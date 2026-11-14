@@ -6390,12 +6390,20 @@
 						"obligation": {
 							"where": {
 								"employee_id": {
-									"is_null": false
+									"eq": {
+										"var": "ctx.entry.id"
+									}
 								}
 							}
 						},
 						"employment": {
-							"where": {}
+							"where": {
+								"employee_id": {
+									"eq": {
+										"var": "ctx.entry.id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const entry = ctx.entry;\nconst at = String(entry.updated_at).slice(0, 10);\nconst on = (contract) => {\n  const from = get(contract, \"effective_range.from\", null);\n  const to = get(contract, \"effective_range.to\", null);\n  return from !== null && from <= at && (to === null || at <= to);\n};\nconst contracts = get(ctx, \"reads.employment\", []).filter((c) => c.employee_id === entry.id);\nconst covering = contracts.find(on);\nconst chosen = covering ?? contracts.toSorted((left, right) =>\n  (String(get(left, \"effective_range.from\", \"\")) < String(get(right, \"effective_range.from\", \"\")) ? 1 : -1)\n)[0];\nconst entityId = get(chosen ?? {}, \"entity_id\", null);\nif (entityId === null) return false;\nconst people = get(ctx, \"reads.employment\", []).filter(\n  (c) => c.entity_id === entityId && c.engagement !== \"PAYEE\" && on(c)\n);\nconst byEmployee = Object.fromEntries(\n  people.map((c) => [String(c.employee_id), true])\n);\nreturn Object.keys(byEmployee).length >= ctx.lookup.employee_count_threshold;",
@@ -6967,6 +6975,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},

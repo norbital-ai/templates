@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">Treasury</title><desc id="desc">Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends.</desc>
+<rect width="1600" height="900" fill="#f2f1ed"/>
+<text x="100" y="190" fill="#26251e" font-family="system-ui,sans-serif" font-size="76" font-weight="600">Treasury</text>
+<text x="104" y="250" fill="#615d59" font-family="system-ui,sans-serif" font-size="29">Bank facilities · Drawdowns · Purchasing</text>
+<rect x="100" y="340" width="1400" height="450" rx="12" fill="#fff" stroke="#d8d6cf" stroke-width="2"/>
+<rect x="100" y="340" width="1400" height="84" rx="12" fill="#26251e"/>
+<text x="140" y="394" fill="#fff" font-family="system-ui,sans-serif" font-size="29" font-weight="600">Trade facility · USD 5,000,000</text>
+<text x="1150" y="394" fill="#fff" font-family="system-ui,sans-serif" font-size="24">62% utilised</text>
+<g font-family="system-ui,sans-serif" font-size="25" fill="#615d59"><text x="140" y="485">Line</text><text x="560" y="485">Supplier</text><text x="960" y="485">Due</text><text x="1280" y="485">Amount</text></g>
+<path d="M140 515H1460M140 600H1460M140 685H1460" stroke="#d8d6cf" stroke-width="2"/>
+<g font-family="system-ui,sans-serif" font-size="29" fill="#26251e"><text x="140" y="568">TR-0142</text><text x="560" y="568">Supplier A</text><text x="960" y="568">in 5 days</text><text x="1240" y="568">410,000.00</text><text x="140" y="655">TR-0143</text><text x="560" y="655">Supplier B</text><text x="960" y="655">in 28 days</text><text x="1240" y="655">265,500.00</text></g>
+<g font-family="system-ui,sans-serif" font-size="23" fill="#aa481b"><text x="140" y="744">Earmarked</text><text x="380" y="744">Applied</text><text x="590" y="744">Active</text><text x="790" y="744">Settled</text><text x="1000" y="744">Month-end locked</text></g>
+</svg>

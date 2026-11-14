@@ -2985,11 +2985,22 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:CPF_MONTHLY_SUBMISSION_AND_PAYMENT:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3024,11 +3035,22 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						},
 						"payslip": {
 							"where": {
@@ -3064,11 +3086,22 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3098,6 +3131,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -3137,6 +3175,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -3174,14 +3217,31 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"employment": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employment', []).filter((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\tif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))) return false;\n\treturn get(contract, 'terms.work_authorisation_category', '') !== 'EMPLOYMENT_PASS';\n});\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3210,6 +3270,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3240,6 +3305,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3268,11 +3338,22 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						},
 						"payslip": {
 							"where": {
@@ -3315,6 +3396,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3345,6 +3431,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3377,6 +3468,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3406,6 +3502,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3433,6 +3534,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3463,11 +3569,22 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const row = ctx.entry;\nif (ctx.after == null) return false;\nif (get(row, 'employee_extension_data', null) == null) return false;\nconst key = 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3494,6 +3611,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3522,6 +3644,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3551,14 +3678,31 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"employment": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const row = ctx.entry;\nif (row == null || row.kind !== 'RETRENCHMENT_EMPLOYEE_NOTICE' || row.closed_on != null) return false;\nconst active = get(ctx, 'reads.employment', []).filter((contract) => {\n\tif (contract.entity_id !== row.entity_id) return false;\n\tif (!(contract.effective_range.from <= row.opened_on)) return false;\n\tconst end = contract.effective_range.to;\n\treturn end == null || end >= row.opened_on;\n});\nif (active.length < ctx.lookup.employee_count_threshold) return false;\nconst key = 'SG:RETRENCHMENT_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3592,6 +3736,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -3632,6 +3781,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3661,6 +3815,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -3701,14 +3860,31 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
 						"holiday": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						},
 						"employment": {
-							"where": {}
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employment', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx.subject.employer, 'entity_extension_data.registrations', []).some((registration) => registration.scheme_code === 'CPF');\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -3786,6 +3962,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3814,6 +3995,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3842,6 +4028,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3873,6 +4064,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3901,6 +4097,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3930,6 +4131,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3960,6 +4166,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -3989,6 +4200,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4018,6 +4234,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4046,6 +4267,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4074,6 +4300,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4102,6 +4333,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": false
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4131,6 +4367,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -4177,6 +4418,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4211,6 +4457,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4239,6 +4490,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -4268,6 +4524,11 @@
 							"where": {
 								"employee_id": {
 									"is_null": true
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						}
@@ -5224,6 +5485,11 @@
 									"like": {
 										"var": "'SG:LQS_WAGE_FLOOR:' + ctx.entry.id + ':%'"
 									}
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -5272,6 +5538,11 @@
 									"like": {
 										"var": "'SG:CPF_AW_YEAR_END_RECALCULATION:' + ctx.entry.id + ':%'"
 									}
+								},
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -5292,7 +5563,21 @@
 							"fields": ["id", "employee_id", "effective_range", "terms", "employee_extension_data"]
 						},
 						"employee_balance": {
-							"where": {},
+							"where": {
+								"employee_id": {
+									"is": {
+										"employment": {
+											"some": {
+												"entity_id": {
+													"eq": {
+														"var": "ctx.entry.entity_id"
+													}
+												}
+											}
+										}
+									}
+								}
+							},
 							"fields": ["employee_id", "account"]
 						}
 					},

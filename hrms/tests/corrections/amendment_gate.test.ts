@@ -7,7 +7,9 @@ import { describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { RUN_INPUTS } from '../../src/lib/amendments.ts';
 import { loadRun } from '../../src/lib/payroll_engine/run_calculation.ts';
-import { ENTITY, PAY_GROUP } from '../kit.ts';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import type { Reader } from '../../src/lib/payroll_engine/reads.ts';
+import { ENTITY, PAY_GROUP, pack, packTerms, storedReader, workspace } from '../kit.ts';
 
 const models = (root: string): readonly string[] =>
 	readdirSync(root, { withFileTypes: true }).flatMap((entry) =>
@@ -26,16 +28,17 @@ const sourceOf = (model: string) => {
 };
 
 describe('what a run reads', () => {
-	it.effect('every model it reads is named with what its write does to a paid period', () =>
+	it.live('every model it reads is named with what its write does to a paid period', () =>
 		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const stored = storedReader(t);
 			const asked: string[] = [];
+			const recording: Reader = (request) => {
+				asked.push(...Object.keys(request));
+				return stored(request);
+			};
 			yield* loadRun(
-				(request) => {
-					asked.push(...Object.keys(request));
-					return Effect.succeed(
-						Object.fromEntries(Object.keys(request).map((root) => [root, { rows: [], next: null }]))
-					);
-				},
+				recording,
 				{
 					entity_id: ENTITY,
 					pay_group_id: PAY_GROUP,
@@ -53,7 +56,14 @@ describe('what a run reads', () => {
 				[],
 				'a model the run reads has no rule for a paid period'
 			);
-		})
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: pack('MY', 'Asia/Kuala_Lumpur', packTerms(3000), {}, [], []),
+					now: '2026-03-05T02:00:00.000Z'
+				})
+			)
+		)
 	);
 
 	for (const [model, rule] of Object.entries(RUN_INPUTS)) {

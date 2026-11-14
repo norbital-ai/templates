@@ -1,3 +1,4 @@
+import { RUN_STINT } from '../../../../lib/payroll_engine/run_output.js';
 import {
 	model,
 	type CarriedWrites,
@@ -33,7 +34,7 @@ import {
 	type JsonObject
 } from '../../../../lib/payroll_engine/foundation.js';
 import { rangeObject, validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { idOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+import { type Reader, idOf, idsOf, queryRows } from '../../../../lib/payroll_engine/reads.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
 type Verb = 'create' | 'update' | 'delete';
@@ -290,7 +291,10 @@ const standing = Effect.fnUntraced(function* (
 	stints: readonly unknown[],
 	act: { readonly as_of?: 'act' } = {}
 ) {
-	const ids = [...new Set(stints.flatMap((id) => (id == null ? [] : [String(id)])))];
+	const ids = idsOf(
+		'employment',
+		stints.flatMap((id) => (id == null ? [] : [id]))
+	);
 	const own = yield* queryRows(read, {
 		employment: { where: { id: { in: ids } }, fields: [...STINT_FIELDS], limit: 10000, ...act },
 		contract_terms: {
@@ -307,7 +311,10 @@ const standing = Effect.fnUntraced(function* (
 		}
 	});
 	const held = (own.employment ?? []).map(ranged);
-	const people = [...new Set(held.map((row) => String(row.employee_id)))];
+	const people = idsOf(
+		'employee_profile',
+		held.map((row) => row.employee_id)
+	);
 	const around = yield* queryRows(read, {
 		employment: {
 			where: { employee_id: { in: people } },
@@ -316,18 +323,17 @@ const standing = Effect.fnUntraced(function* (
 		},
 		employee_profile: { where: { id: { in: people } }, fields: [...PROFILE_FIELDS], limit: 10000 },
 		dependant: { where: { employee_id: { in: people } }, limit: 10000 },
-		entity: { fields: ['id', 'settings_code'], limit: 10000 },
-		pay_group: { fields: ['id', 'entity_id'], limit: 10000 },
+		entity: { fields: ['id', 'settings_code'], limit: 50 },
+		pay_group: { fields: ['id', 'entity_id'], limit: 200 },
 		shift_pattern: {
 			where: {
 				id: {
-					in: [
-						...new Set(
-							(own.contract_terms ?? []).flatMap((row) =>
-								typeof row.shift_pattern_id === 'string' ? [row.shift_pattern_id] : []
-							)
+					in: idsOf(
+						'shift_pattern',
+						own.contract_terms.flatMap((row) =>
+							typeof row.shift_pattern_id === 'string' ? [row.shift_pattern_id] : []
 						)
-					]
+					)
 				}
 			},
 			fields: ['id', 'entity_id', 'pattern'],
@@ -547,7 +553,12 @@ const datedCheck = Effect.fnUntraced(function* (
 			...lawRead([...companies].flatMap((entity) => present(got.lawCodeOf.get(entity)))),
 			shift_definition: {
 				where: {
-					id: { in: [...new Set(got.patterns.flatMap((row) => shiftIdsOf(row.pattern)))] }
+					id: {
+						in: idsOf(
+							'shift_definition',
+							got.patterns.flatMap((row) => shiftIdsOf(row.pattern))
+						)
+					}
 				},
 				fields: ['id', 'code', 'variant'],
 				limit: 10000
@@ -787,7 +798,10 @@ const stintWrite = Effect.fnUntraced(function* (
 const raiseExits = Effect.fnUntraced(function* (ctx: EffectCtx, changes: readonly Written[]) {
 	if (changes.length === 0) return;
 	const rows = changes.flatMap(({ before, after }) => [...present(before), ...present(after)]);
-	const people = [...new Set(rows.map((row) => String(row.employee_id)))];
+	const people = idsOf(
+		'employee_profile',
+		rows.map((row) => row.employee_id)
+	);
 	const { employment: stored = [], entity: entities = [] } = yield* queryRows(ctx.query, {
 		employment: {
 			where: { employee_id: { in: people } },
@@ -920,7 +934,9 @@ export default model('employment', {
 			parameters: { fields: 'all' },
 			leave_catalog_entry: { fields: 'all' }
 		},
-		kiosk: { fields: ['employee_id', 'entity_id', 'employee_number', 'effective_range'] }
+		kiosk: { fields: ['employee_id', 'entity_id', 'employee_number', 'effective_range'] },
+		// the payroll run's named read: the stint, and the relations a run finds its stints by
+		run: RUN_STINT
 	},
 	create: {
 		// a hire arrives whole: the stint with its first terms and statutory parameters, each checked by its own model

@@ -1,4 +1,5 @@
 import { model, type Id } from '@norbital-ai/bolt';
+import { RUN_STINT } from '../../../../lib/payroll_engine/run_output.js';
 import { Effect } from 'effect';
 import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
 import { assertFactsHold } from '../../../../lib/ledger/service.js';
@@ -16,7 +17,7 @@ import {
 	stableJson,
 	type JsonObject
 } from '../../../../lib/payroll_engine/foundation.js';
-import { idOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+import { idOf, idsOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
 
 /** What a formula or a leave row reads of a dependant; the name is for people. */
 const READ = [
@@ -56,7 +57,7 @@ const touched = (
 
 /** A dependant taken away or moved must not leave days taken under it with nothing behind them. */
 const factsHold = Effect.fnUntraced(function* (read: Reader, people: readonly unknown[]) {
-	const ids = [...new Set(people.map(String))];
+	const ids = idsOf('employee_profile', people);
 	const theirs = { employment_id: { is: { employee_id: { in: ids } } } };
 	const got = yield* queryRows(read, {
 		employment: { where: { employee_id: { in: ids } }, fields: [...STINT_FIELDS], limit: 10000 },
@@ -112,6 +113,8 @@ export default model('dependant', {
 		}
 	},
 	outputs: {
+		// the payroll run's named read: this model through the stint a run finds it by
+		run: { fields: 'all', employee_id: { fields: ['id'], employment: RUN_STINT } },
 		default: {
 			fields: 'all',
 			// a read reaches a person's dependants through the person and their stints

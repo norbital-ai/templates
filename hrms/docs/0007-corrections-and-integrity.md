@@ -196,25 +196,23 @@ A hard invariant must always hold. A watch can be reached by a legitimate act an
 
 | #   | Invariant                                                                                      | Enforced by                                                                     |
 | --- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| H1  | A balance figure equals the signed sum of its ledger rows per account, code, period, measure   | The one writer; checked by the integrity check                                  |
+| H1  | A balance figure equals the signed sum of its ledger rows per account, code, period, measure   | The one writer; proved by the tests' oracle                                     |
 | H2  | Every ledger row names its source, period, measure and amount                                  | A database check on `ledger_entry`                                              |
-| H3  | A ledger source that still holds something exists                                              | Deletes carry inverse postings; checked by the integrity check                  |
+| H3  | A ledger source that still holds something exists                                              | Deletes carry inverse postings; proved by the tests' oracle                     |
 | H4  | Only posting, sync and HR's manual row write the ledger and the balance                        | The model write rules and the one writer                                        |
 | H5  | One open amendment row per person, pay group and period; a row is carried by one run           | Database uniqueness on `pay_amendment`; the run's link layer                    |
 | H6  | An entry sealed by a run has that run's payslip for its person                                 | The run's own write; checked for unpaid runs and runs paid in the last 2 months |
 | H7  | Stints of one person never overlap; states move one way; one on-cycle run per group and period | Database constraints and state rules; the run's coverage check                  |
-| H9  | No open exit task on a stint that is not an exit, or for a last day that moved                 | The routine in section 11; checked by the integrity check                       |
-| W1  | An entitlement, or what is left of it, below zero                                              | Reported by the integrity check                                                 |
+| H9  | No open exit task on a stint that is not an exit, or for a last day that moved                 | The routine in section 11; proved by the tests' oracle                          |
+| W1  | An entitlement, or what is left of it, below zero                                              | Watched by the tests' oracle                                                    |
 
-A manual deduction may take a window below zero: days taken stay taken, and HR's row is HR's decision. W1 reports it.
+A manual deduction may take a window below zero: days taken stay taken, and HR's row is HR's decision. The tests' oracle watches it as W1.
 
-## 13. The integrity check
+## 13. No integrity check in the product
 
-`src/lib/integrity.ts` reads the workspace in one request and returns findings for H1, H3, H6, H9 and W1. It raises one task per finding, keyed `integrity:<invariant>:<subject>`.
+The invariants hold by design: one writer, database constraints, and every correction carried in the write that makes it. The product runs no check over the workspace and raises no integrity task (owner, 2026-11-15).
 
-- It only raises tasks. It repairs nothing and writes nothing else.
-- A finding with an open task raises nothing more. One that returns after its task was closed raises a dated task.
-- It is the last step of the `ledger` automation's whole-workspace pass, not an automation of its own. It adds no wake-up and nothing to start.
+`tests/integrity_oracle.ts` is the tests' own oracle for H1, H3, H6, H9 and W1: it reads a test workspace whole and returns findings. Nothing in `src` imports it.
 
 ## 14. How it is tested
 

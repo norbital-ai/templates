@@ -1,5 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { queryRows } from '../lib/payroll_engine/reads.js';
+import { idsOf, queryRows } from '../lib/payroll_engine/reads.js';
 import { applyRegisteredEffects } from '../lib/payroll_engine/registrations.js';
 
 const COLLECTIONS = ['leave_catalog_entry', 'claim_catalog_entry', 'employee_profile'] as const;
@@ -29,9 +29,28 @@ export default automation({
 		const { model: collection, verb: operation, records: ids } = trigger;
 		if (!isCollection(collection) || (operation !== 'create' && operation !== 'update')) return;
 		if (ids.length === 0) return;
-		const { [collection]: rows = [] } = yield* queryRows(ctx.query, {
-			[collection]: { where: { id: { in: [...ids].map(String) } }, limit: 10000 }
-		});
+		// one typed read per model the automation listens to
+		const rows =
+			collection === 'leave_catalog_entry'
+				? (yield* queryRows(ctx.query, {
+						leave_catalog_entry: {
+							where: { id: { in: idsOf('leave_catalog_entry', ids) } },
+							limit: 10000
+						}
+					})).leave_catalog_entry
+				: collection === 'claim_catalog_entry'
+					? (yield* queryRows(ctx.query, {
+							claim_catalog_entry: {
+								where: { id: { in: idsOf('claim_catalog_entry', ids) } },
+								limit: 10000
+							}
+						})).claim_catalog_entry
+					: (yield* queryRows(ctx.query, {
+							employee_profile: {
+								where: { id: { in: idsOf('employee_profile', ids) } },
+								limit: 10000
+							}
+						})).employee_profile;
 		const decided = rows.filter((row) => row.$approval == null);
 		if (decided.length > 0)
 			yield* applyRegisteredEffects(

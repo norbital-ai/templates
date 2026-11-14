@@ -1,12 +1,12 @@
 // The ledger checked from outside its service: a balance is the sum of its ledger rows (H1), what a ledger source still
 // holds has its record (H3), an entry a run sealed has that run's payslip (H6), an open exit task names an exit that
-// stands (H9), and nothing entitled or left is below zero (W1, a watch). Each is broken by a seed no act could have written; the check finds exactly that and changes
-// nothing. A manual deduction stops at what is left, and the database refuses a ledger row that names no source.
+// stands (H9), and nothing entitled or left is below zero (W1, a watch). Each is broken by a seed no act could have written; the tests' oracle finds exactly that.
+// The product runs no such check: its writes keep these by design. A manual deduction stops at what is left, and the database refuses a ledger row that names no source.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Cause, Effect, Exit } from 'effect';
-import { verify } from '../../src/lib/integrity.ts';
+import { verify } from '../integrity_oracle.ts';
 import { leftIn, type Accounts } from '../../src/lib/ledger/core.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
@@ -54,20 +54,6 @@ const found = (t: Kit) =>
 	verify(storedReader(t), TODAY).pipe(
 		Effect.map((rows) => rows.map((row) => [row.invariant, row.subject]))
 	);
-const tasks = (t: Kit) =>
-	storedQuery(t, { obligation: { limit: 1000 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows
-				.filter((row) => row.occurrence_key.startsWith('integrity:'))
-				.map((row) => ({ id: row.id, key: row.occurrence_key, state: row.state }))
-				.toSorted((left, right) => left.key.localeCompare(right.key))
-		)
-	);
-const check = (t: Kit) =>
-	t.as(t.admin).pipe(
-		Effect.andThen((admin) => admin.run('ledger', {}, JobResult)),
-		Effect.andThen(t.run_due())
-	);
 const entry = (quantity: number, on: string) => ({
 	entity_id: ENTITY,
 	employment_id: EMPLOYMENT,
@@ -100,7 +86,7 @@ const H1 = holding({ leave: { ANNUAL_LEAVE: { [YEAR]: { used: 2 } } } });
 const H1_SUBJECT = `${BALANCE}/leave/ANNUAL_LEAVE/${YEAR}/used`;
 
 describe('a workspace worked through its real acts', () => {
-	it.live('has no finding, and its check raises nothing', () =>
+	it.live('has no finding', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = yield* t.as(t.admin);
@@ -166,8 +152,6 @@ describe('a workspace worked through its real acts', () => {
 				assert.ok(sources.has(kind), `nothing posted by ${kind}`);
 			assert.deepEqual(flat(yield* accountsIn(t)), yield* projection(t));
 			assert.deepEqual(yield* verify(storedReader(t), TODAY), []);
-			yield* check(t);
-			assert.deepEqual(yield* tasks(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -310,50 +294,6 @@ describe('a broken invariant yields exactly its finding', () => {
 			assert.deepEqual(yield* found(t), [['W1', `${BALANCE}/leave/ANNUAL_LEAVE/${YEAR}`]]);
 		}).pipe(Effect.provide(workspace({ seed: below, now: NOW })));
 	});
-});
-
-describe('the integrity check', () => {
-	it.live(
-		'raises one task a finding, nothing again while it is open, and a dated one when it comes back',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				// the check rides the sync's whole pass: what the sync itself posts is in place first
-				yield* syncAll(t);
-				const before = { ledger: yield* ledgerRows(t), balance: yield* accountsIn(t) };
-				yield* check(t);
-				const [task, ...more] = yield* tasks(t);
-				assert.ok(task !== undefined);
-				assert.deepEqual(more, []);
-				assert.deepEqual([task.key, task.state], [`integrity:H1:${H1_SUBJECT}`, 'OPEN']);
-				yield* check(t);
-				assert.deepEqual(yield* tasks(t), [task]);
-				// it reports and repairs nothing: the ledger and the balance stand as they were
-				assert.deepEqual(yield* ledgerRows(t), before.ledger);
-				assert.deepEqual(yield* accountsIn(t), before.balance);
-				assert.deepEqual(yield* found(t), [['H1', H1_SUBJECT]]);
-				// closed without a repair, the finding is raised again under its date, once
-				const [open] = (yield* storedQuery(t, {
-					obligation: { where: { id: { eq: task.id } }, limit: 1 }
-				})).obligation.rows;
-				assert.ok(open !== undefined);
-				yield* (yield* t.as(t.admin)).act({
-					'obligation.update': [
-						{ target: open, set: { state: 'WAIVED', waiver_reason: 'Looked at, not repaired' } }
-					]
-				});
-				yield* t.run_due();
-				yield* check(t);
-				yield* check(t);
-				assert.deepEqual(
-					(yield* tasks(t)).map((row) => [row.key, row.state]),
-					[
-						[`integrity:H1:${H1_SUBJECT}`, 'WAIVED'],
-						[`integrity:H1:${H1_SUBJECT}@${TODAY}`, 'OPEN']
-					]
-				);
-			}).pipe(Effect.provide(workspace({ seed: H1, now: NOW })))
-	);
 });
 
 describe('a manual deduction', () => {

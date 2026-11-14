@@ -33,7 +33,7 @@ None. To build on the starter:
   under **Settings → Integrations**, where its credentials are entered and stay sealed.
 
 The workspace agent (`src/agent/+agent.md`) can author all of this through its Studio tools
-(the `workspace_search`, `workspace_write` and `workspace_validate` tools), which write private drafts a person
+(the `workspace_grep`, `workspace_write` and `workspace_diagnose` tools), which write private drafts a person
 previews and publishes. The authoring contract lives in the
 [Norbital OSS repository](https://github.com/norbital-ai/oss/tree/main/packages/bolt); the
 `authoring-tenant-workspace` skill is its published summary.

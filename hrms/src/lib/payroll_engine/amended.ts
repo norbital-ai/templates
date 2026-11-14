@@ -14,7 +14,7 @@ import { carriedFor, payslipWanted, type Carried } from '../ledger/service.js';
 import { isJsonObject, type JsonObject } from './foundation.js';
 import { attendanceOf, type PayWindow } from './pay_cycle.js';
 import { emptyPayslipBreakdown, type PayslipBreakdown } from './payslip_breakdown.js';
-import { objectValue, queryRows, type Reader } from './reads.js';
+import { idOf, idsOf, objectValue, queryRows, type Reader } from './reads.js';
 import { lawsOf, type Law } from '../law.js';
 import {
 	calculateRun,
@@ -183,20 +183,22 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	/** The run's own read: a claim with no posting yet is limited as its law limits it. */
 	own: RunData
 ) {
-	const company = { entity_id: { eq: entity } };
-	const theirs = { employment_id: { is: { employee_id: { in: [...people] } } } };
+	const company = { entity_id: { eq: idOf('entity', entity) } };
+	const who = idsOf('employee_profile', people);
+	const paidBy = idsOf('payroll_run', runs);
+	const theirs = { employment_id: { is: { employee_id: { in: who } } } };
 	const dated = { gte: window.from, lte: window.to };
 	const data = yield* queryRows(read, {
 		work_event: { where: company, limit: 10000 },
 		shift_definition: { where: company, limit: 10000 },
 		shift_pattern: { where: company, limit: 10000 },
 		holiday: { where: company, limit: 10000 },
-		employment: { where: { employee_id: { in: [...people] } }, limit: 10000 },
+		employment: { where: { employee_id: { in: who } }, limit: 10000 },
 		contract_terms: { where: theirs, limit: 10000 },
 		statutory_parameters: { where: theirs, limit: 10000 },
-		dependant: { where: { employee_id: { in: [...people] } }, limit: 10000 },
+		dependant: { where: { employee_id: { in: who } }, limit: 10000 },
 		employee_profile: {
-			where: { id: { in: [...people] } },
+			where: { id: { in: who } },
 			limit: 10000,
 			employment: {
 				fields: ['id', 'employee_id', 'effective_range', 'entity_id', 'service_started_on'],
@@ -204,12 +206,12 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 				entity_id: { fields: ['settings_code'] }
 			}
 		},
-		employee_balance: { where: { employee_id: { in: [...people] } }, limit: 10000 },
+		employee_balance: { where: { employee_id: { in: who } }, limit: 10000 },
 		leave_catalog_entry: {
 			where: {
 				...theirs,
 				leave_catalog_entry_day: {
-					some: { or: [{ incurred_on: dated }, { payroll_run_id: { in: [...runs] } }] }
+					some: { or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] }
 				}
 			},
 			limit: 10000,
@@ -220,11 +222,11 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		},
 		// what is dated in the span, and what a run of the span priced whatever its date
 		claim_catalog_entry: {
-			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: [...runs] } }] },
+			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] },
 			limit: 10000
 		},
 		adhoc_catalog_entry: {
-			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: [...runs] } }] },
+			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] },
 			limit: 10000
 		},
 		loan_catalog_entry: { where: theirs, limit: 10000 },
@@ -246,7 +248,7 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		// what was paid: every payslip of theirs since the earliest year a recalculated period reads
 		payslip: {
 			where: {
-				employee_id: { in: [...people] },
+				employee_id: { in: who },
 				payroll_run_id: { is: { pay_date: { gte: paidFrom } } }
 			},
 			fields: ['id', 'employee_id', 'payroll_run_id', 'breakdown'],
@@ -254,14 +256,14 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		},
 		// the runs that already carried for a period: what they sealed belongs to it
 		pay_amendment: {
-			where: { employee_id: { in: [...people] }, payroll_run_id: { is_null: false } },
+			where: { employee_id: { in: who }, payroll_run_id: { is_null: false } },
 			fields: ['employee_id', 'pay_group_id', 'period', 'payroll_run_id'],
 			limit: 10000
 		},
 		// what records posted outside any payslip, after the earliest recalculated period closed
 		ledger_entry: {
 			where: {
-				balance_id: { is: { employee_id: { in: [...people] } } },
+				balance_id: { is: { employee_id: { in: who } } },
 				or: [
 					{ account: { in: ['leave', 'claim'] }, effective_on: { gt: window.from } },
 					{

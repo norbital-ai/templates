@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { verify } from '../../src/lib/integrity.ts';
+import { verify } from '../integrity_oracle.ts';
 import { isExit } from '../../src/lib/person.ts';
 import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';

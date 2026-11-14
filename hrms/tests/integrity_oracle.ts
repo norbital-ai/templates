@@ -1,8 +1,7 @@
-import type { EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import type { Json, JsonObject } from './payroll_engine/foundation.js';
-import { queryAllRows, type Reader } from './payroll_engine/reads.js';
-import { exitsIn, isExitDuty } from './dependants.js';
+import type { Json, JsonObject } from '../src/lib/payroll_engine/foundation.ts';
+import { queryRows, type Reader } from '../src/lib/payroll_engine/reads.ts';
+import { exitsIn, isExitDuty } from '../src/lib/dependants.ts';
 import {
 	accountsOf,
 	apply,
@@ -11,7 +10,7 @@ import {
 	leftIn,
 	type Accounts,
 	type Movement
-} from './ledger/core.js';
+} from '../src/lib/ledger/core.ts';
 
 /**
  * What the ledger must always be, checked from outside its service. Hard findings: a balance figure that is not the sum
@@ -184,108 +183,59 @@ export const findings = (rows: Workspace, today: string): readonly Finding[] => 
 
 /** Reads the workspace in one request, every root in pages, and answers its findings. */
 export const verify = Effect.fn('integrity.verify')(function* (read: Reader, today: string) {
-	const sealed = { fields: ['id', 'employment_id', 'payroll_run_id'], limit: 10000 };
-	const rows = yield* queryAllRows(
-		read,
-		{
-			employee_balance: { fields: ['id', 'employee_id', 'account'], limit: 10000 },
-			// ponytail: every ledger row is read; bucket by key in the database once `aggregate` takes a ref (`balance_id`) in `by`
-			ledger_entry: {
-				fields: [
-					'id',
-					'balance_id',
-					'source',
-					'operation',
-					'account',
-					'code',
-					'period',
-					'measure',
-					'amount',
-					'effective_on'
-				],
-				limit: 10000
-			},
-			leave_catalog_entry: sealed,
-			claim_catalog_entry: sealed,
-			adhoc_catalog_entry: sealed,
-			payroll_run: { fields: ['id', 'state', 'pay_date'], limit: 10000 },
-			payslip: {
-				where: {
-					payroll_run_id: {
-						is: {
-							or: [
-								{ state: { eq: 'UNPAID' } },
-								{
-									pay_date: {
-										gte: DateTime.formatIsoDate(
-											DateTime.add(DateTime.makeUnsafe(today), { months: -WATCHED_MONTHS })
-										)
-									}
-								}
-							]
-						}
-					}
-				},
-				fields: ['payroll_run_id', 'employee_id'],
-				limit: 10000
-			},
-			employment: {
-				fields: ['id', 'employee_id', 'effective_range', 'entity_id'],
-				limit: 10000
-			},
-			entity: { fields: ['id', 'settings_code'], limit: 10000 },
-			obligation: {
-				where: { state: { eq: 'OPEN' }, employment_id: { is_null: false } },
-				fields: ['id', 'employment_id', 'occurrence_key'],
-				limit: 10000
-			}
+	const sealed = { fields: ['id', 'employment_id', 'payroll_run_id'], limit: 10000 } as const;
+	const rows = yield* queryRows(read, {
+		employee_balance: { fields: ['id', 'employee_id', 'account'], limit: 10000 },
+		// a test workspace is read whole: this oracle never runs in the product
+		ledger_entry: {
+			fields: [
+				'id',
+				'balance_id',
+				'source',
+				'operation',
+				'account',
+				'code',
+				'period',
+				'measure',
+				'amount',
+				'effective_on'
+			],
+			limit: 10000
 		},
-		1_000_000
-	);
-	return findings(rows, today);
-});
-
-/**
- * The check, run at the end of the ledger's whole pass: one task per finding, keyed `integrity:<invariant>:<subject>`.
- * A finding with an open task raises nothing; one that comes back after its task was closed raises a dated one. It
- * writes nothing else and repairs nothing.
- */
-export const raiseFindings = Effect.fn('integrity.raiseFindings')(function* (
-	ctx: Pick<EffectCtx, 'act' | 'query' | 'today'>
-) {
-	const today = String(ctx.today);
-	const found = yield* verify(ctx.query, today);
-	if (found.length === 0) return;
-	const { entity: entities = [], obligation: raised = [] } = yield* queryAllRows(ctx.query, {
-		entity: { fields: ['id'], limit: 1 },
+		leave_catalog_entry: sealed,
+		claim_catalog_entry: sealed,
+		adhoc_catalog_entry: sealed,
+		payroll_run: { fields: ['id', 'state', 'pay_date'], limit: 10000 },
+		payslip: {
+			where: {
+				payroll_run_id: {
+					is: {
+						or: [
+							{ state: { eq: 'UNPAID' } },
+							{
+								pay_date: {
+									gte: DateTime.formatIsoDate(
+										DateTime.add(DateTime.makeUnsafe(today), { months: -WATCHED_MONTHS })
+									)
+								}
+							}
+						]
+					}
+				}
+			},
+			fields: ['payroll_run_id', 'employee_id'],
+			limit: 10000
+		},
+		employment: {
+			fields: ['id', 'employee_id', 'effective_range', 'entity_id'],
+			limit: 10000
+		},
+		entity: { fields: ['id', 'settings_code'], limit: 10000 },
 		obligation: {
-			where: { occurrence_key: { like: 'integrity:%' } },
-			fields: ['occurrence_key', 'state'],
+			where: { state: { eq: 'OPEN' }, employment_id: { is_null: false } },
+			fields: ['id', 'employment_id', 'occurrence_key'],
 			limit: 10000
 		}
 	});
-	const [entity] = entities;
-	if (entity === undefined) return;
-	const taken = new Set(raised.map((row) => String(row.occurrence_key)));
-	const open = new Set(
-		raised
-			.filter((row) => row.state === 'OPEN')
-			.map((row) => String(row.occurrence_key).split('@')[0])
-	);
-	const due = found.flatMap((finding) => {
-		const base = `integrity:${finding.invariant}:${finding.subject}`;
-		const occurrence_key = taken.has(base) ? `${base}@${today}` : base;
-		return open.has(base) || taken.has(occurrence_key)
-			? []
-			: [
-					{
-						entity_id: String(entity.id),
-						...(finding.employee_id === undefined ? {} : { employee_id: finding.employee_id }),
-						title: `Ledger check: ${finding.message}`,
-						occurrence_key
-					}
-				];
-	});
-	const create: Record<string, Json> = { 'obligation.create': due };
-	if (due.length > 0) yield* ctx.act(create);
+	return findings(rows, today);
 });

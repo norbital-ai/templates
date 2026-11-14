@@ -1,7 +1,7 @@
 import { DateTime, Duration, Effect } from 'effect';
-import { queryRows, type Reader } from './reads.js';
+import { idsOf, queryRows, type Reader } from './reads.js';
 import { startOf } from './registrations.js';
-import { lawReadOf, lawsOf } from '../law.js';
+import { lawRead, lawsOf } from '../law.js';
 import { Refusal, isJsonObject, type Json } from './foundation.js';
 import { intervalSpans } from './time_evidence.js';
 import type { JsonObject } from './contracts.js';
@@ -208,14 +208,22 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	if (groups.size === 0 || dates.length === 0) return findings;
 	const got = yield* queryRows(read, {
 		employment: {
-			where: { id: { in: [...groups.keys()] } },
+			where: { id: { in: idsOf('employment', groups.keys()) } },
 			fields: ['id', 'entity_id', 'effective_range'],
 			limit: 10000,
 			entity_id: { fields: ['settings_code'] }
-		},
-		...(yield* lawReadOf(read, { employment: { some: { id: { in: [...groups.keys()] } } } }))
+		}
 	});
-	const laws = lawsOf(got);
+	const laws = lawsOf(
+		yield* queryRows(
+			read,
+			lawRead(
+				got.employment.flatMap((contract) =>
+					isJsonObject(contract.entity_id) ? [String(contract.entity_id.settings_code)] : []
+				)
+			)
+		)
+	);
 	// the caps of the law in force on each sheet's first day: its roster rule's
 	const capsOf = new Map(
 		(got.employment ?? []).flatMap((contract) => {
@@ -268,35 +276,27 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 			)
 		)
 	];
-	const { roster_entry: stored = [], shift_definition: shifts = [] } = yield* queryRows(read, {
-		...(capsOf.size === 0
-			? {}
-			: {
-					roster_entry: {
-						where: {
-							employment_id: { in: [...capsOf.keys()] },
-							work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
-						},
-						fields: [
-							'employment_id',
-							'work_date',
-							'shift_definition_id',
-							'actual_worked_intervals',
-							'planned_overtime_intervals'
-						],
-						limit: 10000,
-						shift_definition_id: { fields: ['variant'] }
-					}
-				}),
-		...(named.length === 0
-			? {}
-			: {
-					shift_definition: {
-						where: { id: { in: named } },
-						fields: ['entity_id', 'variant'],
-						limit: 10000
-					}
-				})
+	const { roster_entry: stored, shift_definition: shifts } = yield* queryRows(read, {
+		roster_entry: {
+			where: {
+				employment_id: { in: idsOf('employment', capsOf.keys()) },
+				work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
+			},
+			fields: [
+				'employment_id',
+				'work_date',
+				'shift_definition_id',
+				'actual_worked_intervals',
+				'planned_overtime_intervals'
+			],
+			limit: 10000,
+			shift_definition_id: { fields: ['variant'] }
+		},
+		shift_definition: {
+			where: { id: { in: idsOf('shift_definition', named) } },
+			fields: ['entity_id', 'variant'],
+			limit: 1000
+		}
 	});
 	const shiftOf = new Map(shifts.map((row) => [String(row.id), row]));
 	const stintOf = new Map((got.employment ?? []).map((row) => [String(row.id), row]));

@@ -151,7 +151,7 @@ export default model('statutory_finding', {
 			if (moved.length === 0) return;
 			const { jurisdiction_change: rows = [] } = yield* queryRows(ctx.query, {
 				jurisdiction_change: {
-					where: { finding_id: { in: moved.map(({ before }) => String(before.id)) } },
+					where: { finding_id: { in: moved.map(({ before }) => before.id) } },
 					fields: ['effective_from'],
 					limit: 10000
 				}

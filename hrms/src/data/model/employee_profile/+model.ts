@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { RUN_STINT } from '../../../lib/payroll_engine/run_output.js';
 import { amendmentsFor } from '../../../lib/amendments.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 
@@ -130,6 +131,11 @@ export default model('employee_profile', {
 		semantic: { semantic: { fields: ['address'], model: 'default', dim: 1536 } }
 	},
 	outputs: {
+		// the payroll run's named read: this model through the stint a run finds it by
+		run: {
+			fields: 'all',
+			employment: { ...RUN_STINT, entity_id: { fields: ['settings_code'] } }
+		},
 		default: {
 			fields: 'all',
 			employment: {

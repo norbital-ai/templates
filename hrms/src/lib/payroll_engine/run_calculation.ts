@@ -21,7 +21,7 @@ const WEEKDAYS = [
 import { calculatePayroll, isWorkingDay, offDaysFor, type ProjectedDay } from './engine.js';
 import type { JsonObject } from './contracts.js';
 import type { PayWindow } from './pay_cycle.js';
-import { idOf, objectValue, queryRows, type Reader } from './reads.js';
+import { idOf, idsOf, objectValue, queryRows, type Reader } from './reads.js';
 import { Refusal, daysIn, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
 import { accountsOf, latestWindow, totalsScope, viewOf } from '../ledger/core.js';
@@ -159,37 +159,49 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	jurisdiction: string
 ) {
 	const coverage = objectValue(run.salary_coverage);
-	const companyId = String(run.entity_id);
+	const company = idOf('entity', run.entity_id);
 	const [opens = attendance.from] = [attendance.from, String(coverage.from)].sort();
 	const closes = [attendance.to, String(coverage.to)].sort().at(-1) ?? attendance.to;
-	const own = { entity_id: { eq: companyId } };
-	// a run pays one pay group: the stints whose terms name it, and their roster. Who it pays is whoever the group holds
-	// on the period's end
-	const paid = { ...own, terms: { some: { pay_group_id: { eq: String(run.pay_group_id) } } } };
+	const own = { entity_id: { eq: company } };
 	// to the salary period's end: a leaver's last run pays what falls after its attendance, up to their last day
 	const window = { gte: attendance.from, lte: closes };
 	const unsealed = { payroll_run_id: { is_null: true } };
+	// An on-cycle run takes what is due; an off-cycle run takes the entries HR named (`pays`). One filter says both: the
+	// named ids, or the unpaid rows up to a day, and whichever does not apply matches nothing.
+	const named = [...(pays ?? [])];
+	const dueTo = pays === undefined ? closes : '0001-01-01';
+	const dueFrom = pays === undefined ? attendance.from : '9999-12-31';
 	// a claim or adhoc entry no run has paid is due whatever its date: one entered for a period that paid the person
 	// nothing. One dated in a period they were paid for is that period's own, worked out again (`leftOut`)
-	const unpaid =
-		pays === undefined
-			? { ...own, ...unsealed, incurred_on: { lte: closes } }
-			: { id: { in: [...pays] } };
+	const unpaid = <C extends 'claim_catalog_entry' | 'adhoc_catalog_entry'>(model: C) => ({
+		...own,
+		or: [{ id: { in: idsOf(model, named) } }, { ...unsealed, incurred_on: { lte: dueTo } }]
+	});
 	// an instalment is read in its own window
-	const repaid =
-		pays === undefined ? { ...own, ...unsealed, paid_on: window } : { id: { in: [...pays] } };
+	const repaid = {
+		...own,
+		or: [
+			{ id: { in: idsOf('loan_catalog_entry_repayment', named) } },
+			{ ...unsealed, paid_on: { gte: dueFrom, lte: closes } }
+		]
+	};
 	// a cash-out with a slot not yet paid, whatever its date
 	const pendingLeave = {
 		leave_catalog_entry_day: { some: unsealed },
 		encashment: { eq: true }
+	};
+	// a run pays one pay group: the stints whose terms name it, and their roster
+	const paid = {
+		...own,
+		terms: { some: { pay_group_id: { eq: idOf('pay_group', run.pay_group_id) } } }
 	};
 	// the stints in the window, and any an unpaid entry was raised on before it
 	const stint = {
 		...paid,
 		or: [
 			{ effective_range: { overlaps: { from: opens, to: closes } } },
-			{ claim_catalog_entry: { some: unpaid } },
-			{ adhoc_catalog_entry: { some: unpaid } },
+			{ claim_catalog_entry: { some: unpaid('claim_catalog_entry') } },
+			{ adhoc_catalog_entry: { some: unpaid('adhoc_catalog_entry') } },
 			// a leave entry keeps the stint it was raised on; its open slots still belong to this run
 			{
 				leave_catalog_entry: {
@@ -203,25 +215,31 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	};
 	const data = yield* queryRows(read, {
 		...lawRead([jurisdiction]),
+		// ponytail: the company's whole history of these; bound them to the run's window if a company outgrows the limit
 		work_event: { where: own, limit: 10000 },
 		shift_definition: { where: own, limit: 10000 },
 		shift_pattern: { where: own, limit: 10000 },
 		holiday: { where: own, limit: 10000 },
 		pay_group: {
-			where: { id: { eq: String(run.pay_group_id) } },
+			where: { id: { eq: idOf('pay_group', run.pay_group_id) } },
 			fields: ['payment_schedule'],
 			limit: 1
 		},
 		// the company: its plain fields, and every dated change, folded on the day each period is priced for
-		entity: { where: { id: { eq: companyId } }, limit: 1 },
+		entity: { where: { id: { eq: company } }, limit: 1 },
 		entity_change: { where: own, limit: 10000 },
 		// each stint with every dated row of it, its person and their dependants: how it stands on any day, a signed date
-		// included
-		employment: { where: stint, limit: 10000 },
-		contract_terms: { where: { employment_id: { is: stint } }, limit: 10000 },
-		statutory_parameters: { where: { employment_id: { is: stint } }, limit: 10000 },
-		dependant: { where: { employee_id: { is: { employment: { some: stint } } } }, limit: 10000 },
+		// included. All through the run's named read, by the one stint filter.
+		employment: { output: 'run', where: stint, limit: 10000 },
+		contract_terms: { output: 'run', where: { employment_id: { is: stint } }, limit: 10000 },
+		statutory_parameters: { output: 'run', where: { employment_id: { is: stint } }, limit: 10000 },
+		dependant: {
+			output: 'run',
+			where: { employee_id: { is: { employment: { some: stint } } } },
+			limit: 10000
+		},
 		employee_profile: {
+			output: 'run',
 			where: { employment: { some: stint } },
 			limit: 10000,
 			employment: {
@@ -231,7 +249,28 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			}
 		},
 		employee_balance: {
+			output: 'run',
 			where: { employee_id: { is: { employment: { some: stint } } } },
+			limit: 10000
+		},
+		roster_entry: {
+			output: 'run',
+			where: { employment_id: { is: paid }, work_date: window },
+			fields: [
+				'id',
+				'employment_id',
+				'payroll_run_id',
+				'work_date',
+				'shift_definition_id',
+				'actual_worked_intervals',
+				'planned_overtime_intervals',
+				'overtime_as_time_off'
+			],
+			limit: 10000
+		},
+		loan_catalog_entry: {
+			output: 'run',
+			where: { ...own, repayments: { some: repaid } },
 			limit: 10000
 		},
 		// a leave with a slot in this window, or one still pending
@@ -246,30 +285,12 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 				limit: 10000
 			}
 		},
-		claim_catalog_entry: { where: unpaid, limit: 10000 },
-		adhoc_catalog_entry: { where: unpaid, limit: 10000 },
-		loan_catalog_entry: { where: { ...own, repayments: { some: repaid } }, limit: 10000 },
+		claim_catalog_entry: { where: unpaid('claim_catalog_entry'), limit: 10000 },
+		adhoc_catalog_entry: { where: unpaid('adhoc_catalog_entry'), limit: 10000 },
 		loan_catalog_entry_repayment: { where: repaid, limit: 10000 },
 		workplace_case_catalog_entry: {
-			where: { ...own, payroll_run_id: { is_null: true } },
+			where: { ...own, ...unsealed },
 			fields: ['id', 'employment_id', 'opened_on', 'closed_on'],
-			limit: 10000
-		},
-		roster_entry: {
-			where: {
-				employment_id: { is: paid },
-				work_date: window
-			},
-			fields: [
-				'id',
-				'employment_id',
-				'payroll_run_id',
-				'work_date',
-				'shift_definition_id',
-				'actual_worked_intervals',
-				'planned_overtime_intervals',
-				'overtime_as_time_off'
-			],
 			limit: 10000
 		}
 	});

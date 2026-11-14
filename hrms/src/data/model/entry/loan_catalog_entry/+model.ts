@@ -31,6 +31,11 @@ export default model('loan_catalog_entry', {
 		}
 	},
 	outputs: {
+		// the payroll run's named read: this model through the stint a run finds it by
+		run: {
+			fields: 'all',
+			repayments: { fields: ['id', 'entity_id', 'payroll_run_id', 'paid_on'] }
+		},
 		default: {
 			fields: 'all',
 			employment_id: { fields: 'all' },

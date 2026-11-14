@@ -1,6 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
 import { Cause, DateTime, Effect } from 'effect';
-import { raiseFindings } from '../lib/integrity.js';
 import { getErrorMessage, isJsonObject } from '../lib/payroll_engine/foundation.js';
 import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js';
 
@@ -32,8 +31,6 @@ export default automation({
 					{},
 					{ at: DateTime.formatIso(DateTime.makeUnsafe(boundary)), key: `ledger:${boundary}` }
 				);
-			// the whole pass ends by checking the ledger against what it stands for
-			yield* raiseFindings(ctx);
 		});
 		yield* work.pipe(
 			// what can pass waits out its retries, which outlast an outage; a refusal will not change. A thrown error is

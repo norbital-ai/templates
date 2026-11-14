@@ -4481,7 +4481,14 @@
 							"limit": 10000
 						},
 						"workplace_case_catalog_entry": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"lookup": {

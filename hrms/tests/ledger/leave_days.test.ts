@@ -8,7 +8,7 @@ import { lawsOf } from '../../src/lib/law.ts';
 import { knownOf, leaveShort, leaveTaken } from '../../src/lib/ledger/service.ts';
 import { leaveOffDay, type LeaveDays } from '../../src/lib/payroll_engine/attendance.ts';
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { idOf, queryAllRows } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf, queryRows } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	leaveCreate,
@@ -130,7 +130,7 @@ describe('a leave entry written to the server', () => {
 				yield* admin.act({ 'leave_catalog_entry.create': [ask(MONDAY)] });
 				yield* t.run_due();
 				// the roots the leave form queries, with an entry's half-days under it
-				const found = yield* queryAllRows(storedReader(t), {
+				const found = yield* queryRows(storedReader(t), {
 					employment: { limit: 100, entity_id: { fields: ['settings_code'] } },
 					contract_terms: { limit: 100 },
 					statutory_parameters: { limit: 100 },

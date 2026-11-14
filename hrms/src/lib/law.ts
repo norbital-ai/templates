@@ -1,8 +1,7 @@
-import type { ReadRequestJson } from '@norbital-ai/bolt';
 import { inForce, type Change } from './dated.js';
 import { Effect } from 'effect';
 import { isJsonObject, type JsonObject } from './payroll_engine/foundation.js';
-import { queryRows, type Reader } from './payroll_engine/reads.js';
+import { idOf, queryRows, type Reader } from './payroll_engine/reads.js';
 
 /** The families of a law whose members are rows, each keyed by its code. Every other family is a value per key. */
 export const LAW_ROWS = [
@@ -47,18 +46,16 @@ export interface Law {
  * What `lawsOf` reads, to spread into a request. Name the codes: a law's chain is about 400 KB, and a workspace holds
  * every seeded jurisdiction, so only a sync over every company reads them all.
  */
-export const lawRead = (codes?: readonly string[]): ReadRequestJson => ({
-	jurisdiction: {
-		...(codes === undefined ? {} : { where: { code: { in: [...new Set(codes)] } } }),
-		limit: 1000
-	},
-	jurisdiction_change: {
-		...(codes === undefined ? {} : { where: { jurisdiction_code: { in: [...new Set(codes)] } } }),
-		fields: ['id', 'jurisdiction_code', 'effective_from', 'finding_id', 'law'],
-		limit: 10000,
-		finding_id: { fields: ['status'] }
-	}
-});
+export const lawRead = (codes: readonly string[]) =>
+	({
+		jurisdiction: { where: { code: { in: [...new Set(codes)] } }, limit: 20 },
+		jurisdiction_change: {
+			where: { jurisdiction_code: { in: [...new Set(codes)] } },
+			fields: ['id', 'jurisdiction_code', 'effective_from', 'finding_id', 'law'],
+			limit: 500,
+			finding_id: { fields: ['status'] }
+		}
+	}) as const;
 
 /** A change written by research is in force only while its finding is confirmed. */
 export const standing = (row: JsonObject): boolean =>
@@ -142,13 +139,17 @@ export const lawsOf = (read: {
 	};
 };
 
-/** `lawRead` for the laws of the companies a filter names: one small read of their codes first. */
+/** `lawRead` for the laws of these companies: one small read of their codes first. */
 export const lawReadOf = Effect.fn('payroll.lawReadOf')(function* (
 	read: Reader,
-	where: JsonObject
+	entities: readonly string[]
 ) {
-	const { entity = [] } = yield* queryRows(read, {
-		entity: { where, fields: ['settings_code'], limit: 10000 }
+	const { entity } = yield* queryRows(read, {
+		entity: {
+			where: { id: { in: entities.map((id) => idOf('entity', id)) } },
+			fields: ['settings_code'],
+			limit: 50
+		}
 	});
 	return lawRead(entity.map((row) => String(row.settings_code)));
 });
@@ -164,8 +165,12 @@ export const lawOn = Effect.fn('payroll.lawOn')(function* (
 	const entities = [...new Set(asked.flatMap(({ entity }) => refId(entity) ?? []))];
 	if (entities.length === 0) return asked.map((): Law | undefined => undefined);
 	const got = yield* queryRows(read, {
-		entity: { where: { id: { in: entities } }, fields: ['id', 'settings_code'], limit: 10000 },
-		...(yield* lawReadOf(read, { id: { in: entities } }))
+		entity: {
+			where: { id: { in: entities.map((id) => idOf('entity', id)) } },
+			fields: ['id', 'settings_code'],
+			limit: 50
+		},
+		...(yield* lawReadOf(read, entities))
 	});
 	const code = new Map((got.entity ?? []).map((row) => [String(row.id), row.settings_code]));
 	const laws = lawsOf(got);

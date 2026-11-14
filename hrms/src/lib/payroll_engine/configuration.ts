@@ -1,5 +1,4 @@
 import type { CarriedWrites, EffectCtx } from '@norbital-ai/bolt';
-import type { ReadRequestJson } from '@norbital-ai/bolt';
 import { DateTime, Effect, Schema } from 'effect';
 import { amendmentsOf } from '../amendments.js';
 import { reachOf, type Change } from '../dated.js';
@@ -23,7 +22,8 @@ import {
 } from './foundation.js';
 import { paramsFor } from './params.js';
 import { programOf } from './programs.js';
-import { queryRows, type Reader } from './reads.js';
+import { type Reader, idsOf, queryRows } from './reads.js';
+import { unreadable } from './rule_reads.js';
 
 /** A conversion arm is a union in use: only FIXED owns its divisor; no other arm may carry it. */
 const conversionArmError = (row: {
@@ -110,6 +110,19 @@ const checkRow = (family: LawFamily, row: JsonObject, subtotals: ReadonlySet<str
 			});
 		}
 	}
+	// a declared read names a model a rule may read and a key to find its rows by: no law reads a whole table
+	if ((family === 'registered_rule' || family === 'registered_effect') && isJsonObject(row.reads))
+		for (const [model, layer] of Object.entries(row.reads)) {
+			if (LAW_ROWS.some((rows) => rows === model) || !isJsonObject(layer)) continue;
+			const where = isJsonObject(layer.where) ? Object.keys(layer.where) : [];
+			const problem =
+				model === 'employment'
+					? where.length === 1 && ['id', 'employee_id', 'entity_id'].includes(where[0] ?? '')
+						? undefined
+						: 'employment: an employment is read by id, person or company.'
+					: unreadable(model, layer);
+			if (problem !== undefined) throw new Refusal({ message: `${family}: ${code}: ${problem}` });
+		}
 	// a row posts to a checkpoint of its own law: no key holds this, so the write does
 	if (family !== 'subtotal')
 		for (const field of ['subtotal', 'employer_cost_subtotal'] as const)
@@ -150,26 +163,15 @@ const priced = (path: string): boolean => {
 	);
 };
 
-/** The entries that name a catalogue row by code, and how each is dated on or after a day. */
-const ENTRIES: Partial<
-	Record<LawFamily, readonly [model: string, since: (day: string) => JsonObject]>
-> = {
-	leave_catalog: [
-		'leave_catalog_entry',
-		(day) => ({ leave_catalog_entry_day: { some: { incurred_on: { gte: day } } } })
-	],
-	claim_catalog: ['claim_catalog_entry', (day) => ({ incurred_on: { gte: day } })],
-	adhoc_catalog: ['adhoc_catalog_entry', (day) => ({ incurred_on: { gte: day } })],
-	loan_catalog: [
-		'loan_catalog_entry',
-		(day) => ({ repayment_period: { overlaps: { from: day, to: null } } })
-	],
-	workplace_case_catalog: ['workplace_case_catalog_entry', (day) => ({ opened_on: { gte: day } })],
-	work_event_catalog: [
-		'work_event',
-		(day) => ({ or: [{ to: { gte: day } }, { to: { is_null: true } }] })
-	]
-};
+/** The families whose entries name a catalogue row by code: a row with entries dated on or after its removal stays. */
+const ENTRY_FAMILIES = [
+	'leave_catalog',
+	'claim_catalog',
+	'adhoc_catalog',
+	'loan_catalog',
+	'workplace_case_catalog',
+	'work_event_catalog'
+] as const satisfies readonly LawFamily[];
 
 const changeOf = (row: JsonObject): Change => ({
 	id: String(row.id),
@@ -259,7 +261,7 @@ export const lawWrite = Effect.fn('payroll.lawWrite')(function* (
 				});
 			const old = was(code, day);
 			for (const family of LAW_ROWS) {
-				if (ENTRIES[family] === undefined) continue;
+				if (!ENTRY_FAMILIES.some((entry) => entry === family)) continue;
 				const kept = new Set((law?.rows[family] ?? []).map((row) => String(row.code)));
 				for (const row of old?.rows[family] ?? [])
 					if (!kept.has(String(row.code))) {
@@ -271,21 +273,69 @@ export const lawWrite = Effect.fn('payroll.lawWrite')(function* (
 		if (lost.size > 0 && entities.length > 0) {
 			// ponytail: every lost code of a family is asked from the family's first lost day; ask per code if a
 			// write ever takes two codes away on different days
-			const asked: Record<string, ReadRequestJson[string]> = {};
-			for (const [family, { codes: gone, from: since }] of lost) {
-				const entry = ENTRIES[family];
-				if (entry !== undefined)
-					asked[entry[0]] = {
-						where: {
-							entity_id: { in: entities },
-							catalog_code: { in: [...gone] },
-							...entry[1](since)
-						},
-						fields: ['catalog_code'],
-						limit: 1
-					};
-			}
-			const named = yield* queryRows(read, asked);
+			// one entry of each family, dated on or after the day its code went; a family that lost none asks for none
+			const of = (family: (typeof ENTRY_FAMILIES)[number]) => ({
+				codes: [...(lost.get(family)?.codes ?? [])],
+				since: lost.get(family)?.from ?? '9999-12-31'
+			});
+			const [leave, claim, adhoc, loan, cases, events] = ENTRY_FAMILIES.map(of);
+			const ids = idsOf('entity', entities);
+			const named = yield* queryRows(read, {
+				leave_catalog_entry: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: leave?.codes ?? [] },
+						leave_catalog_entry_day: { some: { incurred_on: { gte: leave?.since ?? '' } } }
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				},
+				claim_catalog_entry: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: claim?.codes ?? [] },
+						incurred_on: { gte: claim?.since ?? '' }
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				},
+				adhoc_catalog_entry: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: adhoc?.codes ?? [] },
+						incurred_on: { gte: adhoc?.since ?? '' }
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				},
+				loan_catalog_entry: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: loan?.codes ?? [] },
+						repayment_period: { overlaps: { from: loan?.since ?? '', to: null } }
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				},
+				workplace_case_catalog_entry: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: cases?.codes ?? [] },
+						opened_on: { gte: cases?.since ?? '' }
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				},
+				work_event: {
+					where: {
+						entity_id: { in: ids },
+						catalog_code: { in: events?.codes ?? [] },
+						or: [{ to: { gte: events?.since ?? '' } }, { to: { is_null: true } }]
+					},
+					fields: ['catalog_code'],
+					limit: 1
+				}
+			});
 			const [model, rows] = Object.entries(named).find(([, rows]) => rows.length > 0) ?? [];
 			if (model !== undefined)
 				return yield* Effect.fail(

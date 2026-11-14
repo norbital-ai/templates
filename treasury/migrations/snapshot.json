@@ -1,0 +1,2549 @@
+{
+	"currency": null,
+	"tables": {
+		"approval_request": {
+			"fields": {
+				"action": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"approver_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"approver_users": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"closed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"closed_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"collection_name": {
+					"kind": "text"
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"record_id": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"ONGOING",
+						"CHANGES_REQUESTED",
+						"APPROVED",
+						"REJECTED",
+						"SUPERSEDED",
+						"WITHDRAWN"
+					]
+				},
+				"step": {
+					"kind": "int"
+				},
+				"step_names": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"steps": {
+					"kind": "int"
+				},
+				"superseder_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				}
+			},
+			"key": "uuid",
+			"search": {
+				"text": [
+					"collection_name"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"collection_name",
+						"record_id"
+					],
+					"name": "one_ongoing_request",
+					"where": {
+						"status": {
+							"eq": "ONGOING"
+						}
+					}
+				}
+			]
+		},
+		"bank": {
+			"audit": true,
+			"fields": {
+				"code": {
+					"kind": "text",
+					"max": 20
+				},
+				"cut_off_time": {
+					"kind": "text",
+					"optional": true
+				},
+				"is_active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"terms_notes": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.code",
+			"unique": [
+				{
+					"fields": [
+						"code"
+					],
+					"import_key": true,
+					"name": "bank_code"
+				}
+			]
+		},
+		"bank_contact": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "contacts",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "bank"
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"role": {
+					"default": "other",
+					"kind": "enum",
+					"values": [
+						"relationship_manager",
+						"client_service",
+						"trade_operations",
+						"other"
+					]
+				}
+			},
+			"record_label": "record.name"
+		},
+		"bank_document": {
+			"audit": true,
+			"fields": {
+				"advice_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"advice_reference": {
+					"kind": "text",
+					"optional": true
+				},
+				"bank": {
+					"inverse": "documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "bank"
+				},
+				"doc_type": {
+					"default": "other",
+					"kind": "enum",
+					"values": [
+						"drawdown_advice",
+						"settlement_advice",
+						"other"
+					]
+				},
+				"drawdown": {
+					"inverse": "documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "drawdown"
+				},
+				"file": {
+					"accept": [
+						"application/pdf"
+					],
+					"kind": "file",
+					"max": "10MiB"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_note": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_status": {
+					"default": "uploaded",
+					"kind": "enum",
+					"values": [
+						"uploaded",
+						"checked",
+						"applied",
+						"failed"
+					]
+				}
+			},
+			"record_label": "record.advice_reference"
+		},
+		"drawdown": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"application_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"bank_reference": {
+					"kind": "text",
+					"optional": true
+				},
+				"bill_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"charge_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"day_count_basis": {
+					"default": "actual_360",
+					"kind": "enum",
+					"values": [
+						"actual_360",
+						"actual_365"
+					]
+				},
+				"due_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"earliest_invoice_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"expected_draw_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"facility": {
+					"inverse": "drawdowns",
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "facility"
+				},
+				"interest_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"is_archived": {
+					"default": false,
+					"kind": "bool"
+				},
+				"lc_expiry_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"lc_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"product": {
+					"default": "if",
+					"kind": "enum",
+					"values": [
+						"if",
+						"if_after_lc_or_da",
+						"lc",
+						"import_bill",
+						"da",
+						"dp",
+						"tb",
+						"twc",
+						"stl",
+						"bg",
+						"cash",
+						"other"
+					]
+				},
+				"purpose": {
+					"kind": "text",
+					"optional": true
+				},
+				"released_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"settled_interest": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"settled_principal": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"settlement_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"start_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"status": {
+					"default": "active",
+					"kind": "enum",
+					"values": [
+						"earmarked",
+						"applied",
+						"active",
+						"settled",
+						"cancelled",
+						"unclear"
+					]
+				},
+				"supplier": {
+					"inverse": "drawdowns",
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "supplier"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"status",
+						"due_date"
+					]
+				}
+			],
+			"record_label": "record.bank_reference",
+			"search": {
+				"text": [
+					"bank_reference",
+					"lc_number",
+					"bill_number"
+				]
+			}
+		},
+		"drawdown_charge": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"charge_type": {
+					"default": "commission",
+					"kind": "enum",
+					"values": [
+						"commission",
+						"cable",
+						"swift",
+						"cost_of_funds_transfer",
+						"processing",
+						"tr_extension",
+						"penalty",
+						"other"
+					]
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"description": {
+					"kind": "text",
+					"optional": true
+				},
+				"drawdown": {
+					"inverse": "charges",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "drawdown"
+				},
+				"is_estimate": {
+					"default": true,
+					"kind": "bool"
+				},
+				"stage": {
+					"default": "drawdown",
+					"kind": "enum",
+					"values": [
+						"drawdown",
+						"settlement"
+					]
+				}
+			},
+			"record_label": "record.charge_type"
+		},
+		"facility": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "facilities",
+					"kind": "ref",
+					"to": "bank"
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"day_count_basis": {
+					"default": "actual_360",
+					"kind": "enum",
+					"values": [
+						"actual_360",
+						"actual_365"
+					]
+				},
+				"entity": {
+					"kind": "text",
+					"optional": true
+				},
+				"expiry_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"interest_rounding": {
+					"default": "nearest_cent",
+					"kind": "enum",
+					"values": [
+						"nearest_cent",
+						"down_to_cent"
+					]
+				},
+				"limit": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"margin_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"max_tenor_days": {
+					"kind": "int",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"pricing_basis": {
+					"kind": "text",
+					"optional": true
+				},
+				"review_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"security": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"default": "active",
+					"kind": "enum",
+					"values": [
+						"active",
+						"expired"
+					]
+				}
+			},
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"bank",
+						"name"
+					],
+					"name": "facility_name_per_bank"
+				}
+			]
+		},
+		"facility_fee": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"facility": {
+					"inverse": "fees",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "facility"
+				},
+				"fee_type": {
+					"default": "commission",
+					"kind": "enum",
+					"values": [
+						"commission",
+						"cable",
+						"swift",
+						"cost_of_funds_transfer",
+						"processing",
+						"tr_extension",
+						"penalty",
+						"other"
+					]
+				},
+				"include_in_estimates": {
+					"default": true,
+					"kind": "bool"
+				},
+				"method": {
+					"default": "percent",
+					"kind": "enum",
+					"values": [
+						"percent",
+						"flat"
+					]
+				},
+				"minimum_amount": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"product": {
+					"kind": "text",
+					"optional": true
+				},
+				"rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"stage": {
+					"default": "drawdown",
+					"kind": "enum",
+					"values": [
+						"drawdown",
+						"settlement"
+					]
+				}
+			},
+			"record_label": "record.fee_type"
+		},
+		"fx_rate": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"is_month_end": {
+					"default": false,
+					"kind": "bool"
+				},
+				"rate_date": {
+					"kind": "date"
+				},
+				"source": {
+					"kind": "text",
+					"optional": true
+				},
+				"usd_per_unit": {
+					"kind": "decimal",
+					"scale": 12
+				}
+			},
+			"record_label": "record.currency",
+			"unique": [
+				{
+					"fields": [
+						"currency",
+						"rate_date"
+					],
+					"name": "fx_per_day"
+				}
+			]
+		},
+		"invoice": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"bank_bill_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"drawdown": {
+					"inverse": "invoices",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "drawdown"
+				},
+				"invoice_date": {
+					"kind": "date"
+				},
+				"invoice_number": {
+					"kind": "text",
+					"max": 60
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"po": {
+					"inverse": "invoices",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "purchase_order"
+				}
+			},
+			"record_label": "record.invoice_number"
+		},
+		"letter_of_offer": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "letters_of_offer",
+					"kind": "ref",
+					"to": "bank"
+				},
+				"document": {
+					"accept": [
+						"application/pdf"
+					],
+					"kind": "file",
+					"max": "10MiB",
+					"optional": true
+				},
+				"facility": {
+					"inverse": "letters_of_offer",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "facility"
+				},
+				"next_review_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"offer_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
+		"month_end": {
+			"audit": true,
+			"fields": {
+				"accrued_interest": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"average_tenor_days": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"bank_borrowings": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"banker_guarantee": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"credit_line": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"highest_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"is_locked": {
+					"default": false,
+					"kind": "bool"
+				},
+				"letters_of_credit": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"lowest_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"month": {
+					"kind": "date"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"simple_average_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"source": {
+					"default": "portal",
+					"kind": "enum",
+					"values": [
+						"portal",
+						"excel"
+					]
+				},
+				"term_bills": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"total_utilised": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"weighted_average_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				}
+			},
+			"record_label": "record.month",
+			"unique": [
+				{
+					"fields": [
+						"month"
+					],
+					"name": "one_report_per_month"
+				}
+			]
+		},
+		"month_end_line": {
+			"audit": true,
+			"fields": {
+				"accrued_days": {
+					"kind": "int",
+					"optional": true
+				},
+				"accrued_interest": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"amount": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"amount_usd": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"bank_code": {
+					"kind": "text"
+				},
+				"charges": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"drawdown": {
+					"inverse": "month_end_lines",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "drawdown"
+				},
+				"interest_rate_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 6
+				},
+				"interest_to_maturity": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"month_end": {
+					"inverse": "lines",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "month_end"
+				},
+				"product": {
+					"kind": "text",
+					"optional": true
+				},
+				"reference": {
+					"kind": "text",
+					"optional": true
+				},
+				"supplier": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.reference"
+		},
+		"po_document": {
+			"audit": true,
+			"fields": {
+				"file": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png"
+					],
+					"kind": "file",
+					"max": "10MiB"
+				},
+				"kind": {
+					"default": "supporting",
+					"kind": "enum",
+					"values": [
+						"purchase_order",
+						"supporting",
+						"issued_lc",
+						"commercial_invoice",
+						"other"
+					]
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"po": {
+					"inverse": "documents",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "purchase_order"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
+		"po_line": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"item": {
+					"kind": "text"
+				},
+				"po": {
+					"inverse": "lines",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "purchase_order"
+				},
+				"quantity": {
+					"kind": "decimal",
+					"scale": 3
+				}
+			},
+			"record_label": "record.item"
+		},
+		"purchase_order": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"is_cancelled": {
+					"default": false,
+					"kind": "bool"
+				},
+				"lc_requested": {
+					"default": false,
+					"kind": "bool"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"po_date": {
+					"kind": "date"
+				},
+				"po_number": {
+					"kind": "text",
+					"max": 60
+				},
+				"purchaser": {
+					"kind": "text",
+					"optional": true
+				},
+				"salesperson": {
+					"kind": "text",
+					"optional": true
+				},
+				"ship_to_country": {
+					"kind": "text",
+					"optional": true
+				},
+				"supplier": {
+					"inverse": "purchase_orders",
+					"kind": "ref",
+					"to": "supplier"
+				}
+			},
+			"record_label": "record.po_number",
+			"unique": [
+				{
+					"fields": [
+						"po_number"
+					],
+					"import_key": true,
+					"name": "po_number"
+				}
+			]
+		},
+		"requestor": {
+			"fields": {
+				"approval_request_id": {
+					"kind": "ref",
+					"to": "approval_request"
+				},
+				"user_id": {
+					"kind": "text"
+				}
+			},
+			"key": "text",
+			"record_label": "record.user_id"
+		},
+		"sub_limit": {
+			"audit": true,
+			"fields": {
+				"facility": {
+					"inverse": "sub_limits",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "facility"
+				},
+				"limit": {
+					"kind": "decimal",
+					"scale": 2
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"product": {
+					"kind": "text",
+					"optional": true
+				},
+				"supplier": {
+					"inverse": "sub_limits",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "supplier"
+				}
+			},
+			"record_label": "record.name"
+		},
+		"supplier": {
+			"audit": true,
+			"fields": {
+				"country": {
+					"kind": "text",
+					"optional": true
+				},
+				"is_active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"payment_terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"products": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"name"
+					],
+					"import_key": true,
+					"name": "supplier_name"
+				}
+			]
+		},
+		"sys_api_key": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"hash": {
+					"kind": "text"
+				},
+				"last_used_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"prefix": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"prefix"
+					],
+					"name": "prefix"
+				}
+			]
+		},
+		"sys_challenge": {
+			"fields": {
+				"address_mac": {
+					"kind": "text"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"code_mac": {
+					"kind": "text"
+				},
+				"expires_at": {
+					"kind": "instant"
+				}
+			},
+			"key": [
+				"address_mac"
+			],
+			"record_label": "record.address_mac"
+		},
+		"sys_config": {
+			"fields": {
+				"key": {
+					"kind": "text"
+				},
+				"value": {
+					"kind": "text"
+				}
+			},
+			"key": [
+				"key"
+			],
+			"record_label": "record.key"
+		},
+		"sys_conversation": {
+			"fields": {
+				"archived_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"inputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"integration": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"kind": {
+					"kind": "text",
+					"optional": true
+				},
+				"lease_until": {
+					"kind": "instant",
+					"optional": true
+				},
+				"model": {
+					"default": "default",
+					"kind": "text"
+				},
+				"outputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"owner": {
+					"kind": "text",
+					"optional": true
+				},
+				"parent": {
+					"kind": "text",
+					"optional": true
+				},
+				"participants": {
+					"kind": "json",
+					"optional": true
+				},
+				"plan": {
+					"kind": "json",
+					"optional": true
+				},
+				"read": {
+					"default": {},
+					"kind": "json"
+				},
+				"restart_at": {
+					"kind": "text",
+					"optional": true
+				},
+				"restart_from": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"run": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"default": "idle",
+					"kind": "text"
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"record_label": "record.title"
+		},
+		"sys_envoy": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"audience": {
+					"default": "private",
+					"kind": "enum",
+					"values": [
+						"private",
+						"public"
+					]
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"delegation": {
+					"default": "disabled",
+					"kind": "enum",
+					"values": [
+						"enabled",
+						"disabled"
+					]
+				},
+				"dm": {
+					"default": "union",
+					"kind": "enum",
+					"values": [
+						"union",
+						"envoy"
+					]
+				},
+				"group_messages": {
+					"default": "mention_or_reply",
+					"kind": "enum",
+					"values": [
+						"disabled",
+						"mention_or_reply",
+						"all"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"policies": {
+					"default": [],
+					"kind": "text",
+					"many": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"task": {
+					"default": "",
+					"format": "markdown",
+					"kind": "text"
+				},
+				"triage": {
+					"default": false,
+					"kind": "bool"
+				},
+				"triage_scope": {
+					"default": "all",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"dm",
+						"group",
+						"all"
+					]
+				}
+			},
+			"key": "uuid",
+			"record_label": "record.name"
+		},
+		"sys_file": {
+			"fields": {
+				"created_at": {
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"field": {
+					"kind": "text"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"mime": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"sha256": {
+					"kind": "text"
+				},
+				"size": {
+					"kind": "int"
+				},
+				"updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"updated_by": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"record_label": "record.name"
+		},
+		"sys_inbox": {
+			"fields": {
+				"body": {
+					"kind": "json",
+					"optional": true
+				},
+				"consumed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery": {
+					"kind": "text"
+				},
+				"headers": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"received_at": {
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"received_at"
+					],
+					"where": {
+						"consumed_at": {
+							"is_null": true
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.delivery",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"delivery"
+					],
+					"name": "one_inbound_delivery"
+				}
+			]
+		},
+		"sys_integration": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"configuration": {
+					"default": {},
+					"kind": "json"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"import_start": {
+					"kind": "json",
+					"optional": true
+				},
+				"integration": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"owner": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "json",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"owner",
+						"integration"
+					],
+					"name": "one_per_member",
+					"where": {
+						"owner": {
+							"is_null": false
+						}
+					}
+				}
+			]
+		},
+		"sys_invitation": {
+			"check": {
+				"addressed": {
+					"or": [
+						{
+							"email": {
+								"is_null": false
+							}
+						},
+						{
+							"phone": {
+								"is_null": false
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"accepted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "text",
+					"optional": true
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"external": {
+					"default": false,
+					"kind": "bool"
+				},
+				"invited_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					]
+				},
+				{
+					"on": [
+						"phone"
+					]
+				}
+			],
+			"key": "text",
+			"record_label": "record.email"
+		},
+		"sys_message": {
+			"fields": {
+				"about": {
+					"kind": "json",
+					"optional": true
+				},
+				"addressed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"as": {
+					"kind": "json",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"author": {
+					"kind": "text",
+					"optional": true
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"content": {
+					"kind": "json",
+					"optional": true
+				},
+				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"copied_from": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"deleted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivered_turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"delivery": {
+					"default": [],
+					"kind": "json"
+				},
+				"direction": {
+					"kind": "text",
+					"optional": true
+				},
+				"edited_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "json",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "text",
+					"optional": true
+				},
+				"integration": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"invocation": {
+					"kind": "text",
+					"optional": true
+				},
+				"message": {
+					"kind": "json",
+					"optional": true
+				},
+				"meta": {
+					"kind": "json",
+					"optional": true
+				},
+				"mode": {
+					"kind": "text",
+					"optional": true
+				},
+				"next_attempt_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"origin": {
+					"kind": "text",
+					"optional": true
+				},
+				"presume_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"preview": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"refused": {
+					"kind": "text",
+					"optional": true
+				},
+				"reply_to": {
+					"kind": "text",
+					"optional": true
+				},
+				"role": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"sent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"source_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"state": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"kind": "text",
+					"optional": true
+				},
+				"supersedes": {
+					"kind": "text",
+					"optional": true
+				},
+				"text": {
+					"kind": "text",
+					"optional": true
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"version": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"conversation",
+						"seq"
+					]
+				},
+				{
+					"on": [
+						"integration",
+						"provider_id"
+					]
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "pending"
+						}
+					}
+				},
+				{
+					"on": [
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				}
+			],
+			"key": "text",
+			"record_label": "record.preview"
+		},
+		"sys_notification": {
+			"fields": {
+				"at": {
+					"kind": "instant"
+				},
+				"attachments": {
+					"default": [],
+					"kind": "json"
+				},
+				"body": {
+					"kind": "text",
+					"optional": true
+				},
+				"link": {
+					"kind": "json",
+					"optional": true
+				},
+				"member": {
+					"kind": "text",
+					"optional": true
+				},
+				"once": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"recipient": {
+					"kind": "json"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"member",
+						"at"
+					],
+					"where": {
+						"member": {
+							"is_null": false
+						}
+					}
+				}
+			],
+			"key": "text",
+			"record_label": "record.title",
+			"unique": [
+				{
+					"fields": [
+						"once"
+					],
+					"name": "once"
+				}
+			]
+		},
+		"sys_outbox": {
+			"fields": {
+				"acked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"at": {
+					"kind": "instant"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"changed": {
+					"default": [],
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery_op": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"image": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"model": {
+					"kind": "text"
+				},
+				"next_attempt_at": {
+					"kind": "instant"
+				},
+				"op": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"preserve_local": {
+					"default": false,
+					"kind": "bool"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"record_revision": {
+					"kind": "int"
+				},
+				"result": {
+					"kind": "json",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"status": {
+					"default": "queued",
+					"kind": "enum",
+					"values": [
+						"queued",
+						"sending",
+						"acked",
+						"failed",
+						"dead",
+						"skipped"
+					]
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"writer": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "sys_user"
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"next_attempt_at"
+					],
+					"where": {
+						"status": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"record",
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				},
+				{
+					"on": [
+						"sync"
+					],
+					"where": {
+						"status": {
+							"eq": "dead"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"instance",
+						"record",
+						"record_revision"
+					]
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.key",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "coalesce",
+					"where": {
+						"attempts": {
+							"eq": 0
+						},
+						"status": {
+							"eq": "queued"
+						}
+					}
+				}
+			]
+		},
+		"sys_run": {
+			"fields": {
+				"actor": {
+					"kind": "text",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"automation": {
+					"kind": "text"
+				},
+				"cause": {
+					"kind": "text"
+				},
+				"depth": {
+					"kind": "int"
+				},
+				"due_at": {
+					"kind": "instant"
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"finished_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"input": {
+					"kind": "json"
+				},
+				"key": {
+					"kind": "text",
+					"optional": true
+				},
+				"leases": {
+					"default": 0,
+					"kind": "int"
+				},
+				"output": {
+					"kind": "json",
+					"optional": true
+				},
+				"progress": {
+					"kind": "json",
+					"optional": true
+				},
+				"results": {
+					"default": [],
+					"kind": "json"
+				},
+				"run_key": {
+					"kind": "text",
+					"optional": true
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"starter": {
+					"kind": "json",
+					"optional": true
+				},
+				"state": {
+					"default": "queued",
+					"kind": "text"
+				},
+				"trigger": {
+					"kind": "json",
+					"optional": true
+				},
+				"wait": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "waiting"
+						}
+					}
+				},
+				{
+					"on": [
+						"automation",
+						"state"
+					]
+				}
+			],
+			"key": "text",
+			"record_label": "record.automation",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				}
+			]
+		},
+		"sys_session": {
+			"fields": {
+				"agent": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"impersonated_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"refreshed_at": {
+					"kind": "instant"
+				},
+				"token_hash": {
+					"kind": "text"
+				},
+				"user": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_user"
+				},
+				"via": {
+					"kind": "enum",
+					"values": [
+						"code",
+						"invitation",
+						"signup",
+						"host",
+						"anonymous"
+					]
+				}
+			},
+			"key": "text",
+			"record_label": "record.via",
+			"unique": [
+				{
+					"fields": [
+						"token_hash"
+					],
+					"name": "token_hash"
+				}
+			]
+		},
+		"sys_sync": {
+			"fields": {
+				"cursor": {
+					"kind": "json",
+					"optional": true
+				},
+				"cycle": {
+					"default": 0,
+					"kind": "int"
+				},
+				"digest": {
+					"kind": "text"
+				},
+				"health": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"last_change_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_hint_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"phase": {
+					"default": "read",
+					"kind": "enum",
+					"values": [
+						"read",
+						"reconcile"
+					]
+				},
+				"started_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"version": {
+					"default": 0,
+					"kind": "int"
+				}
+			},
+			"key": "uuid",
+			"record_label": "record.sync",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"partition"
+					],
+					"name": "one_partition"
+				}
+			]
+		},
+		"sys_sync_row": {
+			"fields": {
+				"acked_revision": {
+					"kind": "int",
+					"optional": true
+				},
+				"cycle": {
+					"kind": "int"
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"remote_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"remote_version": {
+					"kind": "text",
+					"optional": true
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"partition",
+						"cycle"
+					]
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.remote_id",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"remote_id"
+					],
+					"name": "one_remote_id",
+					"where": {
+						"remote_id": {
+							"is_null": false
+						}
+					}
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "one_record"
+				}
+			]
+		},
+		"sys_user": {
+			"check": {
+				"admin_staff": {
+					"or": [
+						{
+							"admin": {
+								"eq": false
+							}
+						},
+						{
+							"kind": {
+								"eq": "staff"
+							}
+						}
+					]
+				}
+			},
+			"computed": {
+				"party_id": {
+					"expr": {
+						"json_text": [
+							{
+								"field": "party"
+							},
+							"id"
+						]
+					},
+					"kind": "text"
+				},
+				"phone_key": {
+					"expr": {
+						"regex_replace": [
+							{
+								"field": "phone"
+							},
+							"\\D",
+							""
+						]
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"admin": {
+					"default": false,
+					"kind": "bool"
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"kind": {
+					"default": "staff",
+					"kind": "enum",
+					"values": [
+						"staff",
+						"external",
+						"anonymous"
+					]
+				},
+				"last_seen": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"signup": {
+					"default": false,
+					"kind": "bool"
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				},
+				"telegram": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					],
+					"unique": true
+				},
+				{
+					"on": [
+						"phone_key"
+					],
+					"unique": true
+				}
+			],
+			"key": "text",
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"email"
+				]
+			}
+		},
+		"watch_point": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "watch_points",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "bank"
+				},
+				"category": {
+					"default": "other",
+					"kind": "enum",
+					"values": [
+						"suppliers",
+						"restriction",
+						"documents",
+						"settlement",
+						"pricing",
+						"other"
+					]
+				},
+				"facility": {
+					"inverse": "watch_points",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "facility"
+				},
+				"is_active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"text": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.text"
+		}
+	},
+	"tz": "Asia/Singapore"
+}

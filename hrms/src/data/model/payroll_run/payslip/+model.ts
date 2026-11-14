@@ -40,7 +40,8 @@ export default model('payslip', {
 				employee_id: { fields: ['name', 'identity_number'] },
 				terms: { fields: 'all' }
 			},
-			employee_id: { fields: ['name', 'user_id'] },
+			// a person's payslips are found by any of their stints
+			employee_id: { fields: ['name', 'user_id'], employment: { fields: ['id'] } },
 			payroll_run_id: { fields: 'all' },
 			// the payslip's law and currency are those of its company's jurisdiction
 			entity_id: { fields: ['settings_code'] }

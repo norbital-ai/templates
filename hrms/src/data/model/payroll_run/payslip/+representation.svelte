@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { DescriptionHint, format, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { format, Icon, RecordShell, Tooltip, type RecordView } from '@norbital-ai/ui';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
 		emptyPayslipBreakdown,
 		PayslipBreakdown
@@ -79,38 +80,63 @@
 			)
 		)
 	);
-	/** A line's catalogue family: an entry (or a loan repayment) belongs to the catalogue it was raised on. */
+	/**
+	 * A line's catalogue family: an entry (or a loan repayment) belongs to the catalogue it was raised on; a scheme's
+	 * employer share is `<code>_EMPLOYER`.
+	 */
 	const describe = (line: (typeof breakdown.lines)[number]) =>
-		descriptions.get(`${line.source.replace(/_entry(_repayment)?$/, '')}:${line.code}`);
+		descriptions.get(
+			`${line.source.replace(/_entry(_repayment)?$/, '')}:${line.party === 'EMPLOYER' ? line.code.replace(/_EMPLOYER$/, '') : line.code}`
+		);
+	const money = (value: Parameters<typeof format>[1]) =>
+		format({ kind: 'money' }, value, { locale: ctx.locale });
 	const measure = (line: (typeof breakdown.lines)[number]) =>
 		line.quantity === undefined || line.unit === undefined || line.unit === 'MONEY'
 			? ''
 			: `${new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 4 }).format(line.quantity)} ${line.unit.toLowerCase()}`;
 </script>
 
-{#snippet list(title: string, lines: typeof breakdown.lines)}
-	{#if lines.length > 0}<section>
-			<h3 class="text-xs font-medium text-muted-foreground">{title}</h3>
-			<ul class="mt-1 divide-y">
-				{#each lines as line (line.code + line.subtotal + line.amount)}
-					{@const description = describe(line)}
-					<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
-						<span class="min-w-0">
-							<span class="flex items-center gap-1"
-								><span class="font-mono">{line.code}</span
-								>{#if description !== undefined}<DescriptionHint text={description} />{/if}</span
-							>
-							{#if measure(line) !== ''}
-								<span class="block text-xs text-muted-foreground">{measure(line)}</span>
-							{/if}
-						</span>
-						<span class="shrink-0 tabular-nums"
-							>{format({ kind: 'money' }, line.amount, { locale: ctx.locale })}</span
+<!-- one balance-sheet row: its label, an info marker holding the description, the value flush right -->
+{#snippet row(label: string, hint: string | undefined, value: string, note = '', total = false)}
+	<Inline
+		as="li"
+		justify="between"
+		gap="md"
+		class={total ? 'py-1 text-sm font-medium' : 'py-1 text-sm'}
+	>
+		<Inline gap="xs">
+			<span class={total ? undefined : 'font-mono'}>{label}</span>
+			{#if hint !== undefined}<Tooltip text={hint}>
+					{#snippet trigger({ props })}
+						<button
+							{...props}
+							type="button"
+							aria-label={hint}
+							class="rounded-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
+							><Icon name="lucide:info" class="size-3.5" /></button
 						>
-					</li>
+					{/snippet}
+				</Tooltip>{/if}
+			{#if note !== ''}<span class="text-xs text-muted-foreground">{note}</span>{/if}
+		</Inline>
+		<span class="tabular-nums">{value}</span>
+	</Inline>
+{/snippet}
+{#snippet list(
+	title: string,
+	lines: typeof breakdown.lines,
+	total: string,
+	sum: Parameters<typeof format>[1]
+)}
+	{#if lines.length > 0}<Stack as="section" gap="xs">
+			<h3 class="text-xs font-medium text-muted-foreground">{title}</h3>
+			<Stack as="ul" gap="none" divided>
+				{#each lines as line (line.code + line.subtotal + line.amount)}
+					{@render row(line.code, describe(line), money(line.amount), measure(line))}
 				{/each}
-			</ul>
-		</section>{/if}
+				{@render row(total, undefined, money(sum), '', true)}
+			</Stack>
+		</Stack>{/if}
 {/snippet}
 <RecordShell
 	{ctx}
@@ -118,61 +144,61 @@
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
-	{#if record !== null}<div class="grid gap-4">
-			<section class="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-3">
-				<div>
-					<p class="text-xs text-muted-foreground">Net pay</p>
-					<p class="text-2xl font-semibold tabular-nums">
-						{format({ kind: 'money' }, record.net_pay, { locale: ctx.locale })}
-					</p>
-				</div>
-				<div>
-					<p class="text-xs text-muted-foreground">Gross earnings</p>
-					<p class="text-lg font-medium tabular-nums">
-						{format({ kind: 'money' }, record.gross_earnings ?? 0, { locale: ctx.locale })}
-					</p>
-				</div>
-				<div>
-					<p class="text-xs text-muted-foreground">Total deductions</p>
-					<p class="text-lg font-medium tabular-nums">
-						{format({ kind: 'money' }, record.total_deductions, { locale: ctx.locale })}
-					</p>
-				</div>
-			</section>
-			{@render list(ctx.t('app.payroll.earnings'), earnings)}
-			{@render list(ctx.t('app.payroll.deductions'), deductions)}
-			{@render list(ctx.t('app.payroll.employer_contributions'), employer)}
-			{#if adjustments.length > 0}<section>
+	{#if record !== null}<Stack gap="md">
+			{@render list(
+				ctx.t('app.payroll.earnings'),
+				earnings,
+				ctx.t('app.payroll.gross_earnings'),
+				record.gross_earnings ?? 0
+			)}
+			{@render list(
+				ctx.t('app.payroll.deductions'),
+				deductions,
+				ctx.t('app.payroll.total_deductions'),
+				record.total_deductions
+			)}
+			<Stack as="ul" gap="none" class="border-y">
+				{@render row(ctx.t('app.payroll.net_pay'), undefined, money(record.net_pay), '', true)}
+			</Stack>
+			{@render list(
+				ctx.t('app.payroll.employer_contributions'),
+				employer,
+				ctx.t('app.payroll.employer_cost'),
+				record.employer_cost
+			)}
+			{#if breakdown.checkpoints.length > 0}<Stack as="section" gap="xs">
+					<h3 class="text-xs font-medium text-muted-foreground">
+						{ctx.t('app.payroll.checkpoints')}
+					</h3>
+					<Stack as="ul" gap="none" divided>
+						{#each breakdown.checkpoints as checkpoint (checkpoint.code)}
+							{@render row(
+								checkpoint.code,
+								checkpoint.name.trim() === '' ? undefined : checkpoint.name,
+								money(checkpoint.value)
+							)}
+						{/each}
+					</Stack>
+				</Stack>{/if}
+			{#if adjustments.length > 0}<Stack as="section" gap="xs">
 					<h3 class="text-xs font-medium text-muted-foreground">
 						{ctx.t('app.payroll.adjustments')}
 					</h3>
-					<p class="mt-1 text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
+					<p class="text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
 					{#each adjustments as [period, lines] (period)}
-						<h4 class="mt-3 text-xs font-medium tabular-nums">{period}</h4>
-						<ul class="mt-1 divide-y">
+						<h4 class="mt-2 text-xs font-medium tabular-nums">{period}</h4>
+						<Stack as="ul" gap="none" divided>
 							{#each lines as line (line.code + line.party)}
-								{@const description = describe(line)}
-								<li class="flex items-start justify-between gap-3 py-1.5 text-sm">
-									<span class="min-w-0">
-										<span class="flex items-center gap-1"
-											><span class="font-mono">{line.code}</span
-											>{#if description !== undefined}<DescriptionHint
-													text={description}
-												/>{/if}</span
-										>
-										{#if line.party === 'EMPLOYER'}<span class="block text-xs text-muted-foreground"
-												>{ctx.t('app.payroll.adjustment_employer')}</span
-											>{/if}
-									</span>
-									<span class="shrink-0 tabular-nums"
-										>{line.direction === 'DEDUCT' ? '−' : '+'}
-										{format({ kind: 'money' }, line.amount, { locale: ctx.locale })}</span
-									>
-								</li>
+								{@render row(
+									line.code,
+									describe(line),
+									`${line.direction === 'DEDUCT' ? '−' : '+'} ${money(line.amount)}`,
+									line.party === 'EMPLOYER' ? ctx.t('app.payroll.adjustment_employer') : ''
+								)}
 							{/each}
-						</ul>
+						</Stack>
 					{/each}
-				</section>{/if}
-		</div>
+				</Stack>{/if}
+		</Stack>
 	{/if}
 </RecordShell>

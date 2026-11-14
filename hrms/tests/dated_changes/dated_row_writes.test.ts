@@ -9,7 +9,7 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { verify } from '../../src/lib/integrity.ts';
+import { verify } from '../integrity_oracle.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments } from '../amendment_kit.ts';

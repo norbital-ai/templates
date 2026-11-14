@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
-import { queryRows, type Reader } from '../payroll_engine/reads.js';
+import type { Id } from '@norbital-ai/bolt';
+import { idOf, idsOf, queryRows, type Reader } from '../payroll_engine/reads.js';
 import { isJsonObject } from '../payroll_engine/foundation.js';
 import { PROFILE_FIELDS, employmentOn, partsIn } from '../person.js';
 import type { PayrollExportRow } from './export_format.js';
@@ -12,7 +13,10 @@ const amount = (value: unknown): number =>
  * Resolve one run's payments for a file export: payslips, each stint as it stood at the period's end, and the run's
  * currency.
  */
-export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reader, runId: string) {
+export const exportRows = Effect.fn('payroll.exportRows')(function* (
+	read: Reader,
+	runId: Id<'payroll_run'>
+) {
 	const first = yield* queryRows(read, {
 		payroll_run: { where: { id: { eq: runId } }, limit: 1 },
 		payslip: { where: { payroll_run_id: { eq: runId } }, limit: 10000 }
@@ -20,11 +24,14 @@ export const exportRows = Effect.fn('payroll.exportRows')(function* (read: Reade
 	const run = (first.payroll_run ?? [])[0];
 	if (run === undefined) return [];
 	const slips = first.payslip ?? [];
-	const employmentIds = slips.map((row) => text(row.employment_id));
+	const employmentIds = idsOf(
+		'employment',
+		slips.map((row) => row.employment_id)
+	);
 
 	const second = yield* queryRows(read, {
-		jurisdiction: { fields: ['code', 'currency'], limit: 1000 },
-		entity: { where: { id: { eq: text(run.entity_id) } }, limit: 1 },
+		jurisdiction: { fields: ['code', 'currency'], limit: 20 },
+		entity: { where: { id: { eq: idOf('entity', run.entity_id) } }, limit: 1 },
 		employment: { where: { id: { in: employmentIds } }, limit: 10000 },
 		contract_terms: { where: { employment_id: { in: employmentIds } }, limit: 10000 },
 		employee_profile: {

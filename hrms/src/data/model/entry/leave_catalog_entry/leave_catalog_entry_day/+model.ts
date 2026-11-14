@@ -26,7 +26,11 @@ export default model('leave_catalog_entry_day', {
 	outputs: {
 		default: {
 			fields: 'all',
-			leave_entry_id: { fields: ['id', 'employment_id', 'catalog_code', 'payroll_run_id'] },
+			// a person's leave days are found through the entry and its stint
+			leave_entry_id: {
+				fields: ['id', 'employment_id', 'catalog_code', 'payroll_run_id'],
+				employment_id: { fields: ['employee_id'] }
+			},
 			payroll_run_id: { fields: ['id', 'period', 'state'] }
 		}
 	},

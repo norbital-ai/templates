@@ -1,4 +1,4 @@
--- 0001_initial.sql: 175 step(s), from an empty database to 4ee9f1c469b6e80a4b59c19cef33008cac0eb4cabb5690440dbc952ba3fd2f55.
+-- 0001_initial.sql: 175 step(s), from an empty database to 29e39bcc6a3d76f33630ea75fa4cf163488f9b7b2fd5a5dcee4ab293b54758f4.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 

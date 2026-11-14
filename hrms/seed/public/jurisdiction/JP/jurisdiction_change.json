@@ -9328,7 +9328,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9374,7 +9381,14 @@
 							}
 						},
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const reads = get(ctx, 'reads', {});\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
@@ -9396,7 +9410,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9427,7 +9448,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9471,7 +9499,14 @@
 							}
 						},
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const reads = get(ctx, 'reads', {});\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
@@ -9492,7 +9527,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9534,7 +9576,14 @@
 							}
 						},
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const reads = get(ctx, 'reads', {});\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",
@@ -9557,7 +9606,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9590,10 +9646,24 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"workplace_case_catalog_entry": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9625,10 +9695,24 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"workplace_case_catalog_entry": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9661,10 +9745,24 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"workplace_case_catalog_entry": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9695,10 +9793,24 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"workplace_case_catalog_entry": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9731,7 +9843,14 @@
 					"events": ["create", "update"],
 					"reads": {
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						},
 						"roster_entry": {
 							"limit": 10000,
@@ -9772,7 +9891,14 @@
 							}
 						},
 						"shift_definition": {
-							"limit": 10000
+							"limit": 10000,
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.subject.employment.entity_id"
+									}
+								}
+							}
 						}
 					},
 					"condition": "const reads = get(ctx, 'reads', {});\nif (get(reads, 'roster_entry', null) == null) return false;\nreturn get(reads, 'shift_definition', null) != null;",

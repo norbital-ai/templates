@@ -2,7 +2,7 @@ import { automation } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { LAW_ROWS, lawRead, lawsOf, standing } from '../lib/law.js';
-import { objectValue, queryAllRows, queryRows, valueText } from '../lib/payroll_engine/reads.js';
+import { idsOf, objectValue, queryRows, valueText } from '../lib/payroll_engine/reads.js';
 import { isJsonObject, jsonObject, Refusal, type Json } from '../lib/payroll_engine/foundation.js';
 import {
 	FAMILIES,
@@ -57,7 +57,7 @@ export default automation({
 		const code = text(input.code);
 		// One run per jurisdiction in use: a single run may not exceed the host's 3 s guest CPU budget.
 		if (code === null) {
-			const used = yield* queryAllRows(ctx.query, {
+			const used = yield* queryRows(ctx.query, {
 				entity: { fields: ['settings_code'], limit: 10000 }
 			});
 			for (const settings_code of new Set(
@@ -77,7 +77,7 @@ export default automation({
 			return none;
 		}
 
-		const held = yield* queryAllRows(ctx.query, {
+		const held = yield* queryRows(ctx.query, {
 			...lawRead([code]),
 			statutory_finding: { where: { jurisdiction_code: { eq: code } }, limit: 10000 },
 			statutory_source: { where: { jurisdiction_code: { eq: code } }, limit: 10000 }
@@ -102,9 +102,31 @@ export default automation({
 			model: 'statutory_finding' | 'statutory_source' | 'jurisdiction_change',
 			ids: readonly string[]
 		) {
-			const { [model]: rows = [] } = yield* queryRows(ctx.query, {
-				[model]: { where: { id: { in: [...ids] } }, fields: ['revision'], limit: 10000 }
-			});
+			// one typed read per model whose rows the run updates
+			const rows =
+				model === 'statutory_finding'
+					? (yield* queryRows(ctx.query, {
+							statutory_finding: {
+								where: { id: { in: idsOf('statutory_finding', ids) } },
+								fields: ['revision'],
+								limit: 10000
+							}
+						})).statutory_finding
+					: model === 'statutory_source'
+						? (yield* queryRows(ctx.query, {
+								statutory_source: {
+									where: { id: { in: idsOf('statutory_source', ids) } },
+									fields: ['revision'],
+									limit: 10000
+								}
+							})).statutory_source
+						: (yield* queryRows(ctx.query, {
+								jurisdiction_change: {
+									where: { id: { in: idsOf('jurisdiction_change', ids) } },
+									fields: ['revision'],
+									limit: 10000
+								}
+							})).jurisdiction_change;
 			return new Map(
 				rows.map((row) => [
 					valueText(row, 'id'),

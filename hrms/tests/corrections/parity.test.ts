@@ -8,7 +8,7 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
-import { verify } from '../../src/lib/integrity.ts';
+import { verify } from '../integrity_oracle.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import {
 	EMPLOYMENT,

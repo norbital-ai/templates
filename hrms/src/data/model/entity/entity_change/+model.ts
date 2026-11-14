@@ -9,7 +9,7 @@ import {
 	stableJson,
 	type JsonObject
 } from '../../../../lib/payroll_engine/foundation.js';
-import { queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+import { idsOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
@@ -17,7 +17,7 @@ type Verb = 'create' | 'update' | 'delete';
 
 /** These companies and every change of theirs: what a write is checked on, in one read. */
 const companies = (read: Reader, entities: readonly unknown[]) => {
-	const ids = [...new Set(entities.map(String))];
+	const ids = idsOf('entity', entities);
 	return queryRows(read, {
 		entity: {
 			where: { id: { in: ids } },

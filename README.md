@@ -11,6 +11,7 @@ filesystem-first Bolt project that can be installed, checked, built and tested w
 | [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`               | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances |
 | [**trade-operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations` | Order-centered trading and manufacturing with sealed contracts, pricing and ERP handoff                       |
 | [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`        | Home-service bookings with helper matching, shift checks and ETA alerts                                       |
+| [**treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`         | Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends                                |
 
 **Directory and handle are two different names.** The directory is a path in this repository: it is
 what the website serves `norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
@@ -43,6 +44,8 @@ every respect except website discovery and its `visibility` setting.
   availability-matched visits with travel buffers, preferred-helper scheduling, recurring visits,
   pre-shift confirmation with controller-approved replacements and warning letters, and GPS ETA
   alerts.
+- **Treasury** keeps bank facilities, fee rules and the lines drawn on them from earmark to
+  settlement, with purchase orders, supplier invoices, FX rates and month-end figures beside them.
 - **HRMS** covers employment records, attendance, leave, claims, loans, payroll and statutory
   obligations through a linear subtotal chain, an append-only ledger and dated, sealed jurisdiction
   data.

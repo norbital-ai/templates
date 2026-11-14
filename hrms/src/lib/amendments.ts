@@ -2,7 +2,7 @@ import type { CarriedWrites, WriteCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect, Predicate } from 'effect';
 import { Refusal, type JsonObject } from './payroll_engine/foundation.js';
 import { attendanceOf } from './payroll_engine/pay_cycle.js';
-import { idOf, objectValue, queryRows, type Reader } from './payroll_engine/reads.js';
+import { idOf, idsOf, objectValue, queryRows, type Reader } from './payroll_engine/reads.js';
 
 /**
  * No write reaches a paid period's inputs without its amendment row in the same write. A model the run reads says
@@ -122,7 +122,7 @@ const carried = (
 
 const RUN = {
 	fields: ['id', 'pay_group_id', 'period', 'kind', 'state', 'salary_coverage', 'run_number']
-};
+} as const;
 /** A window may open a cycle before its salary period: payslips are read from two months before the earliest day. */
 const since = (touched: readonly Touched[]) =>
 	DateTime.formatIsoDate(
@@ -138,20 +138,21 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	touched: readonly Touched[]
 ) {
 	if (touched.length === 0) return {};
-	const employments = [
-		...new Set(
-			touched.flatMap((touch) => (touch.employment === undefined ? [] : [touch.employment]))
-		)
-	];
-	const named = [
-		...new Set(touched.flatMap((touch) => (touch.employee === undefined ? [] : [touch.employee])))
-	];
+	const employments = idsOf(
+		'employment',
+		touched.flatMap((touch) => (touch.employment === undefined ? [] : [touch.employment]))
+	);
+	const named = idsOf(
+		'employee_profile',
+		touched.flatMap((touch) => (touch.employee === undefined ? [] : [touch.employee]))
+	);
 	const theirs = {
 		or: [{ id: { in: named } }, { employment: { some: { id: { in: employments } } } }]
 	};
-	const sealing = [
-		...new Set(touched.flatMap((touch) => (touch.run == null ? [] : [String(touch.run)])))
-	];
+	const sealing = idsOf(
+		'payroll_run',
+		touched.flatMap((touch) => (touch.run == null ? [] : [touch.run]))
+	);
 	const known = yield* queryRows(read, {
 		employment: {
 			where: { id: { in: employments } },
@@ -174,7 +175,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 			limit: REACH,
 			payroll_run_id: RUN
 		},
-		pay_group: { fields: ['payment_schedule'], limit: 10000 },
+		pay_group: { fields: ['payment_schedule'], limit: 200 },
 		pay_amendment: {
 			where: { payroll_run_id: { is_null: true }, employee_id: { is: theirs } },
 			fields: ['employee_id', 'pay_group_id', 'period'],
@@ -224,7 +225,10 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 	spans: readonly Span[]
 ) {
 	if (spans.length === 0) return {};
-	const entities = [...new Set(spans.map((span) => span.entity))];
+	const entities = idsOf(
+		'entity',
+		spans.map((span) => span.entity)
+	);
 	const known = yield* queryRows(read, {
 		payslip: {
 			where: {

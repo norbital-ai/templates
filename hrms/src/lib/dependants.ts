@@ -8,7 +8,7 @@ import {
 	type JsonObject
 } from './payroll_engine/foundation.js';
 import { buildLoanSchedule, FINAL_SETTLEMENT } from './payroll_engine/loan_schedule.js';
-import { objectValue, queryRows } from './payroll_engine/reads.js';
+import { idsOf, objectValue, queryRows } from './payroll_engine/reads.js';
 
 /**
  * What an exit leaves besides pay. The last payslip settles the leave itself (`run_calculation.ts`), so nothing is
@@ -19,7 +19,7 @@ const EXIT = 'exit:';
 /** A task an exit raised: a law's duty or the loan task (`…:<stint>:exit:<last day>` or `exit:<stint>:…:<last day>`). */
 export const isExitDuty = (key: string) => key.includes(':exit:') || key.startsWith(EXIT);
 
-const CHAIN = ['id', 'employee_id', 'effective_range', 'entity_id'];
+const CHAIN = ['id', 'employee_id', 'effective_range', 'entity_id'] as const;
 
 /** The stints among these that are exits now, each with its last day. */
 export const exitsIn = (
@@ -47,14 +47,21 @@ export const reconcile = Effect.fn('dependants.reconcile')(function* (
 	// every stint of each person: a task or loan hangs on the stint whose exit it answered
 	const { employment: stints = [], entity: entities = [] } = yield* queryRows(ctx.query, {
 		employment: {
-			where: { employee_id: { in: [...new Set(employees)] } },
-			fields: CHAIN,
+			where: { employee_id: { in: idsOf('employee_profile', employees) } },
+			fields: [...CHAIN],
 			limit: 10000
 		},
-		entity: { fields: ['id', 'settings_code'], limit: 10000 }
+		entity: { fields: ['id', 'settings_code'], limit: 50 }
 	});
 	if (stints.length === 0) return;
-	const mine = { employment_id: { in: stints.map((row) => String(row.id)) } };
+	const mine = {
+		employment_id: {
+			in: idsOf(
+				'employment',
+				stints.map((row) => row.id)
+			)
+		}
+	};
 	const found = yield* queryRows(ctx.query, {
 		loan_catalog_entry: {
 			where: mine,

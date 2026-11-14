@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { RUN_STINT } from '../../../lib/payroll_engine/run_output.js';
 import { sealOnly } from '../../../lib/entries.js';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
@@ -103,6 +104,8 @@ export default model('roster_entry', {
 	},
 	constraints: { one_day: { unique: ['employment_id', 'work_date'], import_key: true } },
 	outputs: {
+		// the payroll run's named read: this model through the stint a run finds it by
+		run: { fields: 'all', employment_id: RUN_STINT },
 		default: {
 			fields: 'all',
 			employment_id: { fields: 'all' },

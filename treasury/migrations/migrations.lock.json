@@ -1,0 +1,10 @@
+{
+	"snapshot": "811d792383a4b18c7ffd2f6f55b222c31e064353c2f736d60f9be3d3963da322",
+	"files": {
+		"0001_initial.sql": "d0d29c561bfdeff75ce563019b123edace1a8d524eb617e5a685a9aff8fa9742"
+	},
+	"physical": {
+		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+		"0001_initial.sql": "698675702621ecc82a3d1f549fb3222485d6d7fb2b5949ae4c586faa9312bc5f"
+	}
+}

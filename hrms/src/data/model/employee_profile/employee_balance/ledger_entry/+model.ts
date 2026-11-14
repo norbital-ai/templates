@@ -39,7 +39,8 @@ export default model('ledger_entry', {
 			message: 'errors.ledger_entry_names_its_movement'
 		}
 	},
-	outputs: { default: { fields: 'all' } },
+	// a person's ledger rows are found through their balance
+	outputs: { default: { fields: 'all', balance_id: { fields: ['employee_id'] } } },
 	create: {
 		fields: [
 			'balance_id',

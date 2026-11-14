@@ -146,40 +146,15 @@ export const query = <const R extends ReadRequestBase>(
 	caller
 		.query(request)
 		.pipe(Effect.flatMap(Schema.decodeUnknownEffect(answer<R>(t.manifest, request))));
-/** A decoded field value: JSON; a decimal is its exact text. */
-const Values = Schema.Record(Schema.String, Schema.Json);
-const DynamicPage = Schema.Union([
-	Schema.Struct({
-		rows: Schema.Array(Schema.StructWithRest(Schema.Struct({ id: Schema.String }), [Values])),
-		next: Schema.NullOr(Schema.String)
-	}),
-	Schema.Struct({
-		rows: Schema.Array(
-			Schema.StructWithRest(Schema.Struct({ key: Values, count: Schema.Number }), [Values])
-		),
-		next: Schema.NullOr(Schema.String)
-	}),
-	Schema.Struct({
-		count: Schema.optionalKey(Schema.Number),
-		sum: Schema.optionalKey(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
-		avg: Schema.optionalKey(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
-		min: Schema.optionalKey(Values),
-		max: Schema.optionalKey(Values)
-	})
-]);
-type DynamicAnswer = Effect.Success<ReturnType<Reader>>;
-const DynamicAnswer = Schema.declare<DynamicAnswer>((input): input is DynamicAnswer =>
-	Schema.is(Schema.Record(Schema.String, DynamicPage))(input)
-);
-/** `t.stored_query` as the source's `Reader` (`ctx.query(dynamic_read(…))`): what library reads take in a test. */
+/** `t.stored_query` as the source's `Reader`: what library reads take in a test. */
 export const storedReader =
 	(t: Kit): Reader =>
-	(request) =>
+	<const R extends ReadRequestBase>(request: ReadRequest<R>) =>
 		t
 			.stored_query(request)
 			.pipe(
-				Effect.flatMap((answer) =>
-					Schema.decodeUnknownEffect(DynamicAnswer)(answer).pipe(Effect.orDie)
+				Effect.flatMap((found) =>
+					Schema.decodeUnknownEffect(answer<R>(t.manifest, request))(found).pipe(Effect.orDie)
 				)
 			);
 /** A stored row as a write targets it: its id at its current revision. */

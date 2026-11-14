@@ -7,7 +7,7 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { verify } from '../../src/lib/integrity.ts';
+import { verify } from '../integrity_oracle.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, pay, run } from '../amendment_kit.ts';
 import {

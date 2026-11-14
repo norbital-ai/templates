@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { RUN_STINT } from '../../../../../lib/payroll_engine/run_output.js';
 import { PARAMETER_FIELDS } from '../../../../../lib/person.js';
 import { afterDated, datedWrite } from '../+model.js';
 
@@ -34,6 +35,8 @@ export default model('statutory_parameters', {
 	},
 	constraints: { one_change: { unique: ['employment_id', 'effective_from'] } },
 	outputs: {
+		// the payroll run's named read: this model through the stint a run finds it by
+		run: { fields: 'all', employment_id: RUN_STINT },
 		default: {
 			fields: 'all',
 			// a read reaches a stint's rows through the stint, its person and its company

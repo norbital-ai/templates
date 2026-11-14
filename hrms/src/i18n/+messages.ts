@@ -49,6 +49,11 @@ export default messages({
 	'app.payroll.earnings': 'Earnings',
 	'app.payroll.deductions': 'Deductions',
 	'app.payroll.employer_contributions': 'Employer contributions',
+	'app.payroll.gross_earnings': 'Gross earnings',
+	'app.payroll.total_deductions': 'Total deductions',
+	'app.payroll.net_pay': 'Net pay',
+	'app.payroll.employer_cost': 'Employer cost',
+	'app.payroll.checkpoints': 'Checkpoints',
 	'app.payroll.adjustments': 'Adjustments for earlier periods',
 	'app.payroll.adjustments_help':
 		'A record of a paid period was corrected. That payslip stands; this one carries the difference.',

@@ -1,6 +1,5 @@
 import { BigDecimal, DateTime, Effect } from 'effect';
 import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
-import type { ReadRequestJson } from '@norbital-ai/bolt';
 import {
 	Refusal,
 	isJsonObject,
@@ -8,13 +7,7 @@ import {
 	type Json,
 	type JsonObject
 } from '../payroll_engine/foundation.js';
-import {
-	idOf,
-	objectValue,
-	queryAllRows,
-	queryRows,
-	type Reader
-} from '../payroll_engine/reads.js';
+import { idOf, idsOf, objectValue, queryRows, type Reader } from '../payroll_engine/reads.js';
 import {
 	accountsOf,
 	apply,
@@ -94,7 +87,7 @@ const FIELDS = [
 	'amount',
 	'unit',
 	'effective_on'
-];
+] as const;
 const unitOf = (value: unknown): Unit | undefined =>
 	value === 'DAY' ||
 	value === 'CALENDAR_DAY' ||
@@ -139,32 +132,44 @@ const manualOf = (rows: readonly JsonObject[]): ReadonlyMap<string, Accounts> =>
 /** What a dated row holds beside the fields of its family. */
 const DATED = ['id', 'employment_id', 'effective_from', 'clears'] as const;
 /**
- * The stints of `people` (a filter on the profile; everyone's without one), each with its dated rows, its person and
- * their dependants: the layers of one request.
+ * The stints of these people, each with its dated rows, its person and their dependants: the layers of one request.
  */
-const stintsRead = (people?: JsonObject): ReadRequestJson => {
-	const theirs = people === undefined ? {} : { where: { employee_id: { is: people } } };
-	const dated =
-		people === undefined
-			? {}
-			: { where: { employment_id: { is: { employee_id: { is: people } } } } };
-	return {
+const stintsRead = (people: readonly Id<'employee_profile'>[]) =>
+	({
 		employment: {
-			...theirs,
+			where: { employee_id: { in: people } },
 			fields: [...STINT_FIELDS],
 			limit: 10000,
 			entity_id: { fields: ['settings_code'] }
 		},
-		contract_terms: { ...dated, fields: [...DATED, 'signed_on', ...TERM_FIELDS], limit: 10000 },
-		statutory_parameters: { ...dated, fields: [...DATED, ...PARAMETER_FIELDS], limit: 10000 },
-		employee_profile: {
-			...(people === undefined ? {} : { where: people }),
-			fields: [...PROFILE_FIELDS],
+		contract_terms: {
+			where: { employment_id: { is: { employee_id: { in: people } } } },
+			fields: [...DATED, 'signed_on', ...TERM_FIELDS],
 			limit: 10000
 		},
-		dependant: { ...theirs, limit: 10000 }
-	};
-};
+		statutory_parameters: {
+			where: { employment_id: { is: { employee_id: { in: people } } } },
+			fields: [...DATED, ...PARAMETER_FIELDS],
+			limit: 10000
+		},
+		employee_profile: { where: { id: { in: people } }, fields: [...PROFILE_FIELDS], limit: 10000 },
+		dependant: { where: { employee_id: { in: people } }, limit: 10000 }
+	}) as const;
+/** The laws the companies of these stints follow (`stintsRead` reads each stint's company code): one more read. */
+const lawsFrom = Effect.fnUntraced(function* (read: Reader, stints: readonly JsonObject[]) {
+	return lawsOf(
+		yield* queryRows(
+			read,
+			lawRead([
+				...new Set(
+					stints.flatMap((row) =>
+						isJsonObject(row.entity_id) ? [String(row.entity_id.settings_code)] : []
+					)
+				)
+			])
+		)
+	);
+});
 /**
  * What `stintsRead` found: each stint with its rows, the law code of each company they name, and the people whose
  * service counts every stint.
@@ -247,19 +252,19 @@ export const settle = Effect.fn('ledger.settle')(function* (ctx: Ctx, plans: rea
 	for (let at = 0; at < balances.length; at += BATCH) {
 		const chunk = balances.slice(at, at + BATCH);
 		const due = plans.filter((plan) => chunk.includes(plan.balance_id));
-		const { ledger_entry: posted = [], employee_balance: stored = [] } = yield* queryAllRows(
+		const { ledger_entry: posted = [], employee_balance: stored = [] } = yield* queryRows(
 			ctx.query,
 			{
 				ledger_entry: {
 					where: {
-						balance_id: { in: chunk },
+						balance_id: { in: idsOf('employee_balance', chunk) },
 						source: { in: [...new Set(due.map((plan) => plan.source))] }
 					},
 					fields: FIELDS,
 					limit: 10000
 				},
 				employee_balance: {
-					where: { id: { in: chunk } },
+					where: { id: { in: idsOf('employee_balance', chunk) } },
 					fields: ['account', 'revision'],
 					limit: BATCH
 				}
@@ -294,10 +299,14 @@ export const undone = Effect.fn('ledger.undone')(function* (
 	sources: readonly string[]
 ) {
 	if (sources.length === 0) return inverted([], []);
-	const { ledger_entry: posted = [], employee_balance: balances = [] } = yield* queryAllRows(read, {
-		ledger_entry: { where: { source: { in: [...sources] } }, fields: FIELDS, limit: 10000 },
+	// ponytail: one read of what the sources posted; a run that posted more than 10,000 rows is refused here until its
+	// rows are rebuilt from its payslips instead
+	const { ledger_entry: posted } = yield* queryRows(read, {
+		ledger_entry: { where: { source: { in: [...sources] } }, fields: FIELDS, limit: 10000 }
+	});
+	const { employee_balance: balances } = yield* queryRows(read, {
 		employee_balance: {
-			where: { entries: { some: { source: { in: [...sources] } } } },
+			where: { id: { in: idsOf('employee_balance', uniqueIds(posted, 'balance_id')) } },
 			fields: ['account', 'revision'],
 			limit: 10000
 		}
@@ -342,17 +351,14 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 	}
 	const { employee_balance: balances = [] } = yield* queryRows(read, {
 		employee_balance: {
-			where: { id: { in: uniqueIds(rows, 'balance_id') } },
+			where: { id: { in: idsOf('employee_balance', uniqueIds(rows, 'balance_id')) } },
 			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
 		}
 	});
-	const people = uniqueIds(balances, 'employee_id');
-	const found = yield* queryRows(read, {
-		...stintsRead({ id: { in: people } }),
-		...(yield* lawReadOf(read, { employment: { some: { employee_id: { in: people } } } }))
-	});
-	const laws = lawsOf(found);
+	const people = idsOf('employee_profile', uniqueIds(balances, 'employee_id'));
+	const found = yield* queryRows(read, stintsRead(people));
+	const laws = yield* lawsFrom(read, found.employment);
 	const { parts, lineage, cumulative } = stintsOf(found);
 	const chain = parts.map((held) => held.stint);
 	const balance = new Map(balances.map((row) => [String(row.id), row]));
@@ -769,8 +775,6 @@ const personOf = (
 };
 
 type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
-/** The people who hold these stints, as a filter on the profile: a relation, so it needs no read of its own. */
-const holders = (ids: readonly string[]) => ({ employment: { some: { id: { in: ids } } } });
 /**
  * What a batch of entries reads, all in one request: the people's stints with their dated rows and dependants, entries
  * of this kind and balances, what those entries posted, and the laws their companies answer to. Every check and the
@@ -797,9 +801,18 @@ const known = Effect.fn('ledger.known')(function* (
 	model: Entries,
 	entries: readonly JsonObject[]
 ) {
-	const who = holders(uniqueIds(entries, 'employment_id'));
-	const people = { employee_id: { is: who } };
-	const laws = yield* lawReadOf(read, { employment: { some: people } });
+	// the people of the entries' stints: every other read is keyed by them
+	const { employment: named } = yield* queryRows(read, {
+		employment: {
+			where: { id: { in: idsOf('employment', uniqueIds(entries, 'employment_id')) } },
+			fields: ['employee_id'],
+			limit: 10000
+		}
+	});
+	const people = idsOf('employee_profile', uniqueIds(named, 'employee_id'));
+	const of = (kind: Entries) => ({
+		employment_id: { is: { employee_id: { in: model === kind ? people : [] } } }
+	});
 	// leave falls only on days the person works: their companies' holidays, shifts and patterns, and their roster rows
 	// ponytail: roster rows a month either side of the days asked; a holiday replacing a day further off reads its plan
 	const dates = entries
@@ -808,56 +821,92 @@ const known = Effect.fn('ledger.known')(function* (
 		.map((day) => String(day.date ?? day.incurred_on))
 		.toSorted();
 	const [first, last] = [dates[0], dates.at(-1)];
-	const theirs = { where: { entity_id: { is: { employment: { some: people } } } }, limit: 10000 };
 	const month = (day: string, months: number) =>
 		DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { months }));
-	const found = yield* queryAllRows(read, {
-		...stintsRead(who),
-		...laws,
-		...(model === LEAVE && first !== undefined && last !== undefined
-			? {
-					holiday: {
-						...theirs,
-						fields: ['date', 'published_at', 'employee_id', 'replaces', 'given_to']
-					},
-					pay_group: { ...theirs, fields: ['payment_schedule'] },
-					shift_pattern: { ...theirs, fields: ['pattern', 'effective_range'] },
-					shift_definition: { ...theirs, fields: ['variant'] },
-					roster_entry: {
-						where: {
-							employment_id: { is: people },
-							work_date: { gte: month(first, -1), lte: month(last, 1) }
-						},
-						fields: ['employment_id', 'work_date', 'shift_definition_id'],
-						limit: 10000
-					}
-				}
-			: {}),
+	const planned = model === LEAVE && first !== undefined && last !== undefined;
+	const own = yield* queryRows(read, {
+		...stintsRead(people),
 		employee_balance: {
-			where: people,
+			where: { employee_id: { in: people } },
 			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
 		},
-		[model]: { where: { employment_id: { is: people } }, limit: 10000 },
+		// the entries of this batch's kind; the other kinds ask for nobody's
+		leave_catalog_entry: { where: of('leave_catalog_entry'), limit: 10000 },
+		claim_catalog_entry: { where: of('claim_catalog_entry'), limit: 10000 },
+		adhoc_catalog_entry: { where: of('adhoc_catalog_entry'), limit: 10000 },
 		ledger_entry: {
-			where: { balance_id: { is: people }, source: { like: `${model}:%` } },
+			where: {
+				balance_id: { is: { employee_id: { in: people } } },
+				source: { like: `${model}:%` }
+			},
 			fields: FIELDS,
+			limit: 10000
+		},
+		roster_entry: {
+			where: {
+				employment_id: { is: { employee_id: { in: planned ? people : [] } } },
+				work_date: {
+					gte: month(first ?? '1970-01-01', -1),
+					lte: month(last ?? '1970-01-01', 1)
+				}
+			},
+			fields: ['employment_id', 'work_date', 'shift_definition_id'],
 			limit: 10000
 		}
 	});
-	const stored = found[model] ?? [];
-	// every slot of the person's entries
-	const captures =
-		model === LEAVE && stored.length > 0
-			? ((yield* queryAllRows(read, {
-					leave_catalog_entry_day: {
-						where: { leave_entry_id: { in: stored.map((row) => String(row.id)) } },
-						fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
-						limit: 10000
-					}
-				})).leave_catalog_entry_day ?? [])
-			: [];
-	return knownOf(found, stored, captures, lawsOf(found));
+	const stored = own[model];
+	// what plans their days, by company, with the laws those companies follow and every slot of the person's entries
+	const companies = idsOf(
+		'entity',
+		planned
+			? own.employment.map((row) =>
+					isJsonObject(row.entity_id) ? row.entity_id.id : row.entity_id
+				)
+			: []
+	);
+	const plan = yield* queryRows(read, {
+		...lawRead([
+			...new Set(
+				own.employment.flatMap((row) =>
+					isJsonObject(row.entity_id) ? [String(row.entity_id.settings_code)] : []
+				)
+			)
+		]),
+		holiday: {
+			where: { entity_id: { in: companies } },
+			fields: ['date', 'published_at', 'employee_id', 'replaces', 'given_to'],
+			limit: 10000
+		},
+		pay_group: {
+			where: { entity_id: { in: companies } },
+			fields: ['payment_schedule'],
+			limit: 1000
+		},
+		shift_pattern: {
+			where: { entity_id: { in: companies } },
+			fields: ['pattern', 'effective_range'],
+			limit: 1000
+		},
+		shift_definition: {
+			where: { entity_id: { in: companies } },
+			fields: ['variant'],
+			limit: 1000
+		},
+		leave_catalog_entry_day: {
+			where: {
+				leave_entry_id: {
+					in: idsOf('leave_catalog_entry', model === LEAVE ? stored.map((row) => row.id) : [])
+				}
+			},
+			fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+			limit: 10000
+		}
+	});
+	const laws = lawsOf(plan);
+	const found = { ...own, ...plan };
+	const captures = plan.leave_catalog_entry_day;
+	return knownOf(found, stored, captures, laws);
 });
 /**
  * `Known` from rows already read: the people's stints with their dated rows (`stintsRead`'s roots), their balances,
@@ -1072,44 +1121,44 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 			)
 		: ((yield* queryRows(read, {
 				payslip: {
-					where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+					where: {
+						payroll_run_id: {
+							in: idsOf(
+								'payroll_run',
+								runs.map((run) => run.id)
+							)
+						}
+					},
 					fields: ['payroll_run_id', 'employee_id', 'employment_id', 'entity_id', 'breakdown'],
 					limit: 10000
 				}
 			})).payslip ?? []);
-	const found = yield* queryAllRows(read, {
-		entity: {
-			where: { id: { in: uniqueIds(slips, 'entity_id') } },
-			fields: ['id', 'settings_code'],
-			limit: 10000
-		},
-		...(yield* lawReadOf(read, { id: { in: uniqueIds(slips, 'entity_id') } })),
+	const companies = idsOf('entity', uniqueIds(slips, 'entity_id'));
+	const found = yield* queryRows(read, {
+		entity: { where: { id: { in: companies } }, fields: ['id', 'settings_code'], limit: 50 },
+		...(yield* lawReadOf(read, companies)),
 		employment: {
-			where: { id: { in: uniqueIds(slips, 'employment_id') } },
+			where: { id: { in: idsOf('employment', uniqueIds(slips, 'employment_id')) } },
 			fields: ['id'],
 			limit: 10000
 		},
 		employee_balance: {
-			where: { employee_id: { in: uniqueIds(slips, 'employee_id') } },
+			where: { employee_id: { in: idsOf('employee_profile', uniqueIds(slips, 'employee_id')) } },
 			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
 		},
-		// a run just made has posted nothing
-		...(made
-			? {}
-			: {
-					ledger_entry: {
-						where: { source: { in: runs.map((run) => `payroll_run:${run.id}`) } },
-						fields: FIELDS,
-						limit: 10000
-					}
-				})
+		// a run just made has posted nothing: it asks for no source
+		ledger_entry: {
+			where: { source: { in: made ? [] : runs.map((run) => `payroll_run:${run.id}`) } },
+			fields: FIELDS,
+			limit: 10000
+		}
 	});
 	const {
-		entity: entities = [],
-		employment: stints = [],
-		employee_balance: balances = [],
-		ledger_entry: posted = []
+		entity: entities,
+		employment: stints,
+		employee_balance: balances,
+		ledger_entry: posted
 	} = found;
 	const payDate = new Map(runs.map((run) => [run.id, run.pay_date]));
 	const stint = new Set(stints.map((row) => String(row.id)));
@@ -1345,7 +1394,8 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 ) {
 	if (facts.length === 0) return;
 	const views = facts.map(({ employment }) => employment);
-	const people = uniqueIds(views, 'employee_id');
+	const people = idsOf('employee_profile', uniqueIds(views, 'employee_id'));
+	const companyIds = idsOf('entity', uniqueIds(views, 'entity_id'));
 	const {
 		employee_balance: balances = [],
 		ledger_entry: manualRows = [],
@@ -1370,12 +1420,8 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 			fields: FIELDS,
 			limit: 10000
 		},
-		entity: {
-			where: { id: { in: uniqueIds(views, 'entity_id') } },
-			fields: ['id', 'settings_code'],
-			limit: 10000
-		},
-		entity_change: { where: { entity_id: { in: uniqueIds(views, 'entity_id') } }, limit: 10000 }
+		entity: { where: { id: { in: companyIds } }, fields: ['id', 'settings_code'], limit: 50 },
+		entity_change: { where: { entity_id: { in: companyIds } }, limit: 10000 }
 	});
 	const held = chainOf(stored);
 	const lineage = new Map([
@@ -1431,53 +1477,111 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	}
 });
 
-/** Sync: everyone's entitlements on a day, from the rows in force and the facts of their employment that day. */
+/** What a company's people are entitled under: the company on any day, its work events and the law it follows. */
+const companyRead = (read: Reader, companies: readonly Id<'entity'>[], codes: readonly string[]) =>
+	queryRows(read, {
+		entity: { where: { id: { in: companies } }, fields: ['id', 'settings_code'], limit: 50 },
+		entity_change: { where: { entity_id: { in: companies } }, limit: 10000 },
+		...lawRead(codes),
+		work_event: {
+			where: { entity_id: { in: companies } },
+			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
+			limit: 10000
+		}
+	});
+type CompanyRead = Effect.Success<ReturnType<typeof companyRead>>;
+/** People synced in one pass of reads and one settle. */
+const SYNC_BATCH = 200;
+
+/**
+ * Sync: entitlements on a day, from the rows in force and the facts of each person's employment that day. For the
+ * people named, or for everyone a company at a time; either way in batches, each two reads keyed by its people and
+ * their companies. A company's law and events are read once and kept for its next batches.
+ */
 export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 	ctx: Ctx,
 	employees?: readonly string[]
 ) {
-	// a balance row opens with the person's first stint; the whole pass opens any that is still missing, so nobody is
-	// left where every entry is refused for want of one
-	const { employee_balance: held = [], employment: hired = [] } = yield* queryAllRows(ctx.query, {
+	const everyone: Id<'employee_profile'>[] = [];
+	if (employees !== undefined) everyone.push(...idsOf('employee_profile', employees));
+	else {
+		const { entity } = yield* queryRows(ctx.query, { entity: { fields: ['id'], limit: 50 } });
+		const seen = new Set<string>();
+		for (const company of entity) {
+			const { employment } = yield* queryRows(ctx.query, {
+				employment: {
+					where: { entity_id: { eq: idOf('entity', company.id) } },
+					fields: ['employee_id'],
+					limit: 10000
+				}
+			});
+			for (const id of idsOf('employee_profile', uniqueIds(employment, 'employee_id')))
+				if (!seen.has(id)) (seen.add(id), everyone.push(id));
+		}
+	}
+	const companies = new Map<string, CompanyRead>();
+	let people = 0;
+	let boundary: string | undefined;
+	for (let at = 0; at < everyone.length; at += SYNC_BATCH) {
+		const done = yield* syncPeople(ctx, everyone.slice(at, at + SYNC_BATCH), companies);
+		people += done.people;
+		if (done.boundary !== undefined && (boundary === undefined || done.boundary < boundary))
+			boundary = done.boundary;
+	}
+	return { people, boundary };
+});
+
+const syncPeople = Effect.fnUntraced(function* (
+	ctx: Ctx,
+	employees: readonly Id<'employee_profile'>[],
+	companies: Map<string, CompanyRead>
+) {
+	// a balance row opens with the person's first stint; a pass opens any that is still missing, so nobody is left where
+	// every entry is refused for want of one
+	const { employee_balance: held } = yield* queryRows(ctx.query, {
 		employee_balance: {
-			...(employees === undefined ? {} : { where: { employee_id: { in: [...employees] } } }),
+			where: { employee_id: { in: employees } },
 			fields: ['employee_id'],
 			limit: 10000
-		},
-		...(employees === undefined ? { employment: { fields: ['employee_id'], limit: 10000 } } : {})
+		}
 	});
 	const has = new Set(held.map((row) => String(row.employee_id)));
-	const missing = [...new Set(employees ?? hired.map((row) => String(row.employee_id)))].filter(
-		(id) => !has.has(id)
-	);
+	const missing = employees.filter((id) => !has.has(id));
 	if (missing.length > 0)
 		yield* ctx.act({
-			'employee_balance.create': missing.map((employee_id) => ({
-				employee_id: idOf('employee_profile', employee_id),
-				account: {}
-			}))
+			'employee_balance.create': missing.map((employee_id) => ({ employee_id, account: {} }))
 		});
 	const day = String(ctx.today);
-	// a sync for some people reads their stints and the laws their companies follow, not the workspace
-	const theirs = employees === undefined ? undefined : { id: { in: [...employees] } };
-	const read = yield* queryAllRows(ctx.query, {
-		...stintsRead(theirs),
-		entity: { fields: ['id', 'settings_code'], limit: 1000 },
-		entity_change: { limit: 10000 },
-		...(theirs === undefined
-			? lawRead()
-			: yield* lawReadOf(ctx.query, { employment: { some: { employee_id: { is: theirs } } } })),
-		work_event: {
-			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
+	// their stints, balances and the rows HR keyed by hand
+	const own = yield* queryRows(ctx.query, {
+		...stintsRead(employees),
+		employee_balance: {
+			where: { employee_id: { in: employees } },
+			fields: ['employee_id', 'account'],
 			limit: 10000
 		},
-		employee_balance: {
-			...(employees === undefined ? {} : { where: { employee_id: { in: [...employees] } } }),
-			fields: ['employee_id', 'account'],
-			limit: 1000
-		},
-		ledger_entry: { where: MANUAL, fields: FIELDS, limit: 1000 }
+		ledger_entry: {
+			where: { ...MANUAL, balance_id: { is: { employee_id: { in: employees } } } },
+			fields: FIELDS,
+			limit: 10000
+		}
 	});
+	// the companies those stints name: read once, kept for the next batch of the same companies
+	const named = own.employment.flatMap((row) =>
+		isJsonObject(row.entity_id) ? [row.entity_id] : []
+	);
+	const ids = idsOf(
+		'entity',
+		named.map((row) => row.id)
+	).toSorted();
+	const key = ids.join(',');
+	const theirs =
+		companies.get(key) ??
+		(yield* companyRead(ctx.query, ids, [
+			...new Set(named.map((row) => String(row.settings_code)))
+		]));
+	companies.set(key, theirs);
+	const read = { ...own, ...theirs };
 	const manual = manualOf(read.ledger_entry ?? []);
 	// a stint's law is its entity's jurisdiction as it stands on the day
 	const lineage = new Map(
@@ -1579,7 +1683,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 const YEARS_HELD = 3;
 /** Old periods leave the balance through dated movements; the ledger keeps them forever. */
 export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
-	const { employee_balance: rows = [] } = yield* queryAllRows(ctx.query, {
+	const { employee_balance: rows = [] } = yield* queryRows(ctx.query, {
 		employee_balance: { fields: ['account', 'revision'], limit: 1000 }
 	});
 	const today = String(ctx.today);
@@ -1621,7 +1725,7 @@ export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	if (late.length === 0) return;
 	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
 		employee_balance: {
-			where: { id: { in: uniqueIds(late, 'balance_id') } },
+			where: { id: { in: idsOf('employee_balance', uniqueIds(late, 'balance_id')) } },
 			fields: ['employee_id'],
 			limit: 1000
 		}

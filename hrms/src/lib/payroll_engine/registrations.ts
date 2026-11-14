@@ -3,7 +3,8 @@ import type { EffectCtx } from '@norbital-ai/bolt';
 import { evaluate } from './expressions.js';
 import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
 import { JsonObject, settingsConstants } from './contracts.js';
-import { queryRows, type Reader } from './reads.js';
+import { idOf, idsOf, queryRows, type Reader } from './reads.js';
+import { ruleRead } from './rule_reads.js';
 import { programOf } from './programs.js';
 import { LAW_ROWS, lawReadOf, lawsOf, type Law, type LawFamily } from '../law.js';
 import { employerOn } from '../company.js';
@@ -17,7 +18,6 @@ import {
 	type Parts,
 	type Starts
 } from '../person.js';
-import { ReadRequestJson } from '@norbital-ai/bolt';
 
 export type Operation = 'create' | 'update' | 'delete' | 'exit';
 const CATALOG_OF: Readonly<Record<string, LawFamily>> = {
@@ -168,30 +168,33 @@ const idsIn = (values: readonly (string | undefined)[]): readonly string[] => [
 	...new Set(values.flatMap((value) => (value === undefined ? [] : [value])))
 ];
 /**
- * The five roots that say how the stints matching `where` stand: every stint of their people (the starts count them
- * all), the matching stints' dated rows, the people and their dependants. With no `where`, every stint.
+ * The five roots that say how the stints these keys name stand: every stint of their people (the starts count them
+ * all), the named stints' dated rows, the people and their dependants. A stint is named by id, person or company.
  */
-const stintLayers = (where?: Layer): Record<string, Layer> => {
-	const of = (filter: (matched: Layer) => Layer) =>
-		where === undefined ? {} : { where: filter(where) };
-	const person = (matched: Layer): Layer => ({ employment: { some: matched } });
-	const theirs = (matched: Layer): Layer => ({ employee_id: { is: person(matched) } });
-	const dated = (matched: Layer): Layer => ({ employment_id: { is: matched } });
+type StintKeys = {
+	readonly id: readonly string[];
+	readonly employee_id: readonly string[];
+	readonly entity_id: readonly string[];
+};
+const NO_STINTS: StintKeys = { id: [], employee_id: [], entity_id: [] };
+const stintLayers = (keys: StintKeys) => {
+	const named = {
+		or: [
+			{ id: { in: idsOf('employment', keys.id) } },
+			{ employee_id: { in: idsOf('employee_profile', keys.employee_id) } },
+			{ entity_id: { in: idsOf('entity', keys.entity_id) } }
+		]
+	};
 	return {
 		employment: {
-			...of(theirs),
+			where: { employee_id: { is: { employment: { some: named } } } },
 			fields: [...STINT_FIELDS],
-			entity_id: { fields: ['settings_code'] },
+			entity_id: { fields: ['settings_code'] as const },
 			limit: 10000
 		},
-		contract_terms: { ...of(dated), limit: 10000 },
-		statutory_parameters: { ...of(dated), limit: 10000 },
-		employee_profile: {
-			...of(person),
-			fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
-			limit: 10000
-		},
-		dependant: { ...of(theirs), limit: 10000 }
+		contract_terms: { where: { employment_id: { is: named } }, limit: 10000 },
+		statutory_parameters: { where: { employment_id: { is: named } }, limit: 10000 },
+		dependant: { where: { employee_id: { is: { employment: { some: named } } } }, limit: 10000 }
 	};
 };
 /** The stints an answer to `stintLayers` holds, by id. */
@@ -232,34 +235,25 @@ const subjectLayers = (rows: readonly JsonObject[], cache: SubjectCache) => {
 	const employees = idsIn(held.map((row) => refId(row.employee_id))).filter(
 		(id) => !cache.employees.has(id)
 	);
-	const own: Record<string, Layer> =
-		stints.length === 0 ? {} : stintLayers({ id: { in: [...stints] } });
-	// a person through their stint: employee_profile declares that layer
-	const through = own.employee_profile?.where;
-	const direct = employees.length === 0 ? undefined : { id: { in: [...employees] } };
-	const employee =
-		through === undefined ? direct : direct === undefined ? through : { or: [direct, through] };
 	const layers = {
-		...own,
-		...(entities.length === 0
-			? {}
-			: {
-					entity_change: { where: { entity_id: { in: [...entities] } }, limit: 10000 },
-					pay_group: {
-						where: { entity_id: { in: [...entities] } },
-						fields: [...SUBJECT_PAY_GROUP],
-						limit: 10000
-					}
-				}),
-		...(employee === undefined
-			? {}
-			: {
-					employee_profile: {
-						where: employee,
-						fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
-						limit: 10000
-					}
-				})
+		...stintLayers({ ...NO_STINTS, id: stints }),
+		entity_change: { where: { entity_id: { in: idsOf('entity', entities) } }, limit: 10000 },
+		pay_group: {
+			where: { entity_id: { in: idsOf('entity', entities) } },
+			fields: [...SUBJECT_PAY_GROUP],
+			limit: 1000
+		},
+		// the people of the stints already held, and those of the stints this read names
+		employee_profile: {
+			where: {
+				or: [
+					{ id: { in: idsOf('employee_profile', employees) } },
+					{ employment: { some: { id: { in: idsOf('employment', stints) } } } }
+				]
+			},
+			fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
+			limit: 10000
+		}
 	};
 	return { entities, layers };
 };
@@ -318,10 +312,14 @@ const subjectValue = Effect.fnUntraced(function* (
 		let company = cache.employers.get(employerId);
 		if (company === undefined) {
 			const found = yield* queryRows(read, {
-				entity: { where: { id: { eq: employerId } }, fields: [...SUBJECT_ENTITY], limit: 1 },
-				entity_change: { where: { entity_id: { eq: employerId } }, limit: 10000 },
+				entity: {
+					where: { id: { eq: idOf('entity', employerId) } },
+					fields: [...SUBJECT_ENTITY],
+					limit: 1
+				},
+				entity_change: { where: { entity_id: { eq: idOf('entity', employerId) } }, limit: 10000 },
 				pay_group: {
-					where: { entity_id: { eq: employerId } },
+					where: { entity_id: { eq: idOf('entity', employerId) } },
 					fields: [...SUBJECT_PAY_GROUP],
 					limit: 100
 				}
@@ -340,7 +338,7 @@ const subjectValue = Effect.fnUntraced(function* (
 		if (employee === undefined) {
 			const found = yield* queryRows(read, {
 				employee_profile: {
-					where: { id: { eq: employeeId } },
+					where: { id: { eq: idOf('employee_profile', employeeId) } },
 					fields: ['id', 'name', 'email', 'phone', 'user_id'],
 					limit: 1
 				}
@@ -357,9 +355,7 @@ const STINT_KEYS = ['id', 'employee_id', 'entity_id'] as const;
 /** The one field and value a declared read of `employment` filters on; no field reads every stint. */
 const stintFilter = (layer: Layer) => {
 	const entries = Object.entries(whereOf(layer));
-	const first = entries[0];
-	if (first === undefined) return undefined;
-	const [field, test] = first;
+	const [field, test] = entries[0] ?? [];
 	const key = STINT_KEYS.find((name) => name === field);
 	if (
 		entries.length > 1 ||
@@ -385,141 +381,91 @@ const batchRead = Effect.fnUntraced(function* (
 	cache: Map<string, readonly JsonObject[]>,
 	on: (rule: number, row: number) => string
 ) {
-	const needs = new Map<string, { readonly name: string; readonly layer: Layer }>();
-	const need = (name: string, layer: Layer) => {
-		const key = JSON.stringify({ [name]: layer });
-		if (!cache.has(key)) needs.set(key, { name, layer });
-		return key;
-	};
 	const answers = requests.map((rows) =>
 		rows.map((): Record<string, readonly JsonObject[]> => ({}))
 	);
-	const deals: (() => void)[] = [];
 	const stints: {
 		readonly own: Record<string, readonly JsonObject[]>;
 		readonly layer: Layer;
 		readonly day: string;
 	}[] = [];
-	const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-	const eqOf = (layer: Layer, field: string): Json | undefined => {
-		const test = whereOf(layer)[field];
-		return isJsonObject(test) && Object.keys(test).length === 1 ? test.eq : undefined;
-	};
-	for (const [rule, rows] of requests.entries()) {
-		const answer = answers[rule] ?? [];
+	const wanted: {
+		readonly own: Record<string, readonly JsonObject[]>;
+		readonly name: string;
+		readonly layer: Layer;
+		readonly key: string;
+	}[] = [];
+	for (const [rule, rows] of requests.entries())
 		for (const [index, request] of rows.entries()) {
-			const own = answer[index];
-			if (isJsonObject(request.employment) && own !== undefined)
-				stints.push({ own, layer: request.employment, day: on(rule, index) });
-		}
-		for (const name of new Set(rows.flatMap((request) => Object.keys(request)))) {
-			if (name === 'employment') continue;
-			const layers = rows.map((request) => {
-				const layer = request[name];
-				return isJsonObject(layer) ? layer : {};
-			});
-			const first = layers[0] ?? {};
-			const fields = Object.keys(whereOf(first));
-			const varying = fields.filter((field) =>
-				layers.some((layer) => !same(whereOf(layer)[field], whereOf(first)[field]))
-			);
-			const gathers =
-				varying.length > 0 &&
-				varying.every((field) => layers.every((layer) => eqOf(layer, field) !== undefined));
-			if (!gathers) {
-				const keys = layers.map((layer) => need(name, layer));
-				deals.push(() => {
-					for (const [index, key] of keys.entries()) {
-						const own = answer[index];
-						if (own !== undefined) own[name] = cache.get(key) ?? [];
-					}
-				});
-				continue;
+			const own = answers[rule]?.[index];
+			if (own === undefined) continue;
+			for (const [name, layer] of Object.entries(request)) {
+				if (!isJsonObject(layer)) continue;
+				if (name === 'employment') stints.push({ own, layer, day: on(rule, index) });
+				else wanted.push({ own, name, layer, key: JSON.stringify({ [name]: layer }) });
 			}
-			const where = Object.fromEntries(
-				fields.map((field) => [
-					field,
-					varying.includes(field)
-						? {
-								in: [
-									...new Set(
-										layers.flatMap((layer) => {
-											const value = eqOf(layer, field);
-											return value === undefined ? [] : [value];
-										})
-									)
-								]
-							}
-						: (whereOf(first)[field] ?? null)
-				])
-			);
-			const { limit: _limit, ...rest } = first;
-			const declared = Array.isArray(first.fields) ? first.fields : undefined;
-			const key = need(name, {
-				...rest,
-				where,
-				limit: 10000,
-				...(declared === undefined ? {} : { fields: [...new Set([...declared, ...varying])] })
-			});
-			deals.push(() => {
-				const byValues = Map.groupBy(cache.get(key) ?? [], (row) =>
-					JSON.stringify(varying.map((field) => row[field]))
-				);
-				for (const [index, layer] of layers.entries()) {
-					const own = answer[index];
-					if (own === undefined) continue;
-					const found =
-						byValues.get(JSON.stringify(varying.map((field) => eqOf(layer, field)))) ?? [];
-					own[name] = typeof layer.limit === 'number' ? found.slice(0, layer.limit) : found;
-				}
-			});
 		}
-	}
-	// a root reads once per request: as many requests as the most-read root needs, sent together
-	const packs: { request: Record<string, Layer>; keys: Record<string, string> }[] = [];
-	for (const [key, { name, layer }] of needs) {
-		let pack = packs.find((candidate) => !(name in candidate.request));
-		if (pack === undefined) packs.push((pack = { request: {}, keys: {} }));
-		pack.request[name] = layer;
-		pack.keys[name] = key;
-	}
+	// each distinct read once, all in one typed request
+	const fresh = [
+		...new Map(
+			wanted.filter(({ key }) => !cache.has(key)).map((need) => [need.key, need] as const)
+		).values()
+	];
 	const filters = stints.map(({ layer }) => stintFilter(layer));
-	// every stint if one read names none; else those any read names, and none where they name nothing
-	const named = filters.some((filter) => filter === undefined)
-		? undefined
-		: STINT_KEYS.flatMap((key) => {
-				const values = idsIn(
-					filters.map((filter) => (filter?.key === key ? filter.value : undefined))
-				);
-				return values.length === 0 ? [] : [{ [key]: { in: [...values] } }];
-			});
+	const keys = (key: (typeof STINT_KEYS)[number]) =>
+		idsIn(filters.map((filter) => (filter.key === key ? filter.value : undefined)));
 	const [found, held] = yield* Effect.all(
 		[
-			Effect.forEach(
-				packs,
-				({ request }) => queryRows(read, Schema.decodeUnknownSync(ReadRequestJson)(request)),
-				{ concurrency: 'unbounded' }
-			),
-			stints.length === 0 || named?.length === 0
-				? Effect.succeed(stintsIn({}))
-				: queryRows(
+			fresh.length === 0
+				? Effect.succeed([])
+				: ruleRead(
 						read,
-						Schema.decodeUnknownSync(ReadRequestJson)(
-							stintLayers(named?.length === 1 ? named[0] : named && { or: named })
-						)
-					).pipe(Effect.map(stintsIn))
+						fresh.map(({ name, layer }) => ({ model: name, layer }))
+					),
+			stints.length === 0
+				? Effect.succeed(stintsIn({}))
+				: queryRows(read, {
+						...stintLayers({
+							id: keys('id'),
+							employee_id: keys('employee_id'),
+							entity_id: keys('entity_id')
+						}),
+						employee_profile: {
+							where: {
+								employment: {
+									some: {
+										or: [
+											{ id: { in: idsOf('employment', keys('id')) } },
+											{ employee_id: { in: idsOf('employee_profile', keys('employee_id')) } },
+											{ entity_id: { in: idsOf('entity', keys('entity_id')) } }
+										]
+									}
+								}
+							},
+							fields: [...new Set([...PROFILE_FIELDS, ...SUBJECT_EMPLOYEE])],
+							limit: 10000
+						}
+					}).pipe(Effect.map(stintsIn))
 		],
 		{ concurrency: 'unbounded' }
 	);
-	for (const [index, rows] of found.entries())
-		for (const [name, key] of Object.entries(packs[index]?.keys ?? {}))
-			cache.set(key, rows[name] ?? []);
-	for (const deal of deals) deal();
+	for (const [index, need] of fresh.entries()) cache.set(need.key, found[index] ?? []);
+	for (const { own, name, layer, key } of wanted) {
+		const fields = Array.isArray(layer.fields) ? layer.fields : undefined;
+		const rows = (cache.get(key) ?? []).map((row) =>
+			fields === undefined
+				? row
+				: Object.fromEntries(
+						Object.entries(row).filter(([field]) => field === 'id' || fields.includes(field))
+					)
+		);
+		own[name] = typeof layer.limit === 'number' ? rows.slice(0, layer.limit) : rows;
+	}
 	for (const [nth, { own, layer, day }] of stints.entries()) {
 		const filter = filters[nth];
 		const fields = Array.isArray(layer.fields) ? layer.fields : undefined;
 		const rows = [...held.values()]
-			.filter((stint) => filter === undefined || stint.parts.stint[filter.key] === filter.value)
+			.filter((stint) => filter !== undefined && stint.parts.stint[filter.key] === filter.value)
 			.map((stint) => {
 				const row = stintOn(stint, day);
 				return fields === undefined
@@ -713,18 +659,15 @@ const lawsFor = Effect.fnUntraced(function* (
 	const companies = idsIn(places.flatMap((own) => own.map(({ entity }) => entity)));
 	if (companies.length === 0) return { laws: [...groups.values()], on };
 	const subject = subjectLayers(rows, cache);
-	const first = yield* queryRows(
-		read,
-		Schema.decodeUnknownSync(ReadRequestJson)({
-			entity: {
-				where: { id: { in: [...new Set([...companies, ...subject.entities])] } },
-				fields: [...SUBJECT_ENTITY],
-				limit: 10000
-			},
-			...(yield* lawReadOf(read, { id: { in: [...companies] } })),
-			...subject.layers
-		})
-	);
+	const first = yield* queryRows(read, {
+		entity: {
+			where: { id: { in: idsOf('entity', [...companies, ...subject.entities]) } },
+			fields: [...SUBJECT_ENTITY],
+			limit: 50
+		},
+		...(yield* lawReadOf(read, companies)),
+		...subject.layers
+	});
 	primeFrom(first, subject.entities, cache);
 	const laws = lawsOf(first);
 	const code = new Map((first.entity ?? []).map((row) => [String(row.id), row.settings_code]));
@@ -804,7 +747,9 @@ const assertPlaced = Effect.fnUntraced(function* (
 	if (priced === undefined) return;
 	const { employment: stints = [] } = yield* queryRows(read, {
 		employment: {
-			where: { id: { in: idsIn(rows.map((row) => refId(row.employment_id))) } },
+			where: {
+				id: { in: idsOf('employment', idsIn(rows.map((row) => refId(row.employment_id)))) }
+			},
 			fields: ['effective_range'],
 			limit: 10000
 		}
