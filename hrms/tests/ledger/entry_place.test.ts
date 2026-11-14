@@ -9,7 +9,7 @@ import { ENTITY, leaveCreate, pack, uuid, wholeDays, workspace, packTerms } from
 const NOW = '2026-10-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
 // the fixture's stint starts on 1 January 2025
-const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
+const seed = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 const own = { entity_id: ENTITY, employment_id: EMPLOYMENT };
 const refusal = (t: Kit, writes: Parameters<Effect.Success<ReturnType<Kit['as']>>['act']>[0]) =>
 	Effect.flatMap(t.as(t.admin), (caller) => Effect.flip(caller.act(writes))).pipe(

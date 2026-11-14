@@ -47,7 +47,7 @@ const SEMI_MONTHLY = {
 	pay_days: [15, 31]
 };
 
-const base = () => pack('MY', 'Asia/Kuala_Lumpur', packTerms(2800, 'MANUAL_LABOUR'), {}, [], []);
+const base = () => pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(2800, 'MANUAL_LABOUR'), {}, [], []);
 type Seed = ReturnType<typeof base>;
 /** One company, two payrolls: the first person is paid in A (Monthly), the second in B (Executives). */
 const twoGroups = (schedule: typeof MONTHLY = MONTHLY): Seed => {

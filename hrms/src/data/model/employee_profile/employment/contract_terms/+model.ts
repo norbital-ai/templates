@@ -1,7 +1,5 @@
-import { Effect } from 'effect';
 import { model } from '../../../../../../.norbital/models/contract_terms.ts';
 import { TERM_FIELDS } from '../../../../../lib/person.js';
-import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 import { idOf } from '../../../../../lib/payroll_engine/reads.js';
 import { afterDated, datedWrite } from '../+model.js';
 
@@ -112,33 +110,17 @@ export default model({
 			const unknown = changes.findIndex(({ after }) => !named(after.clears));
 			if (unknown >= 0)
 				return yield* ctx.refuse('errors.contract_terms_clears', { row: unknown, field: 'clears' });
-			const result = yield* datedWrite(
-				ctx.query,
-				'create',
-				'contract_terms',
-				changes.map(({ after }) => ({ after: jsonObject(after) }))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
+			const { filled, carried } = yield* datedWrite(ctx, 'create', 'contract_terms', changes);
 			return {
 				sets: changes.map(({ set, after }) => {
-					const group = result.filled.get(String(after.id));
+					const group = filled.get(String(after.id));
 					return group === undefined ? set : { ...set, pay_group_id: idOf('pay_group', group) };
 				}),
-				on_approved: result.carried
+				on_approved: carried
 			};
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'create',
-				'contract_terms',
-				changes.map(({ after }) => ({ after: jsonObject(after) }))
-			);
+			yield* afterDated(ctx, 'create', 'contract_terms', changes);
 		}
 	},
 	update: {
@@ -150,58 +132,20 @@ export default model({
 			const unknown = changes.findIndex(({ after }) => !named(after.clears));
 			if (unknown >= 0)
 				return yield* ctx.refuse('errors.contract_terms_clears', { row: unknown, field: 'clears' });
-			const result = yield* datedWrite(
-				ctx.query,
-				'update',
-				'contract_terms',
-				changes.map(({ before, after }) => ({
-					before: jsonObject(before),
-					after: jsonObject(after)
-				}))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
-			return { sets: changes.map(({ set }) => set), on_approved: result.carried };
+			const { carried } = yield* datedWrite(ctx, 'update', 'contract_terms', changes);
+			return { sets: changes.map(({ set }) => set), on_approved: carried };
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'update',
-				'contract_terms',
-				changes.map(({ before, after }) => ({
-					before: jsonObject(before),
-					after: jsonObject(after)
-				}))
-			);
+			yield* afterDated(ctx, 'update', 'contract_terms', changes);
 		}
 	},
 	delete: {
 		transform: function* (changes, ctx) {
-			const result = yield* datedWrite(
-				ctx.query,
-				'delete',
-				'contract_terms',
-				changes.map(({ before }) => ({ before: jsonObject(before) }))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
-			return { on_approved: result.carried };
+			const { carried } = yield* datedWrite(ctx, 'delete', 'contract_terms', changes);
+			return { on_approved: carried };
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'delete',
-				'contract_terms',
-				changes.map(({ before }) => ({ before: jsonObject(before) }))
-			);
+			yield* afterDated(ctx, 'delete', 'contract_terms', changes);
 		}
 	}
 });

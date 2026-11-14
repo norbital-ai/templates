@@ -1,10 +1,10 @@
-import { Effect } from 'effect';
 import { model } from '../../../../.norbital/models/roster_entry.ts';
+import { sealOnly } from '../../../lib/entries.js';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { rosterFindings } from '../../../lib/payroll_engine/roster_warnings.js';
-import { amendmentsFor } from '../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../lib/amendments.js';
 
 /** The day a roster entry prices, and the run that priced it: a paid period holding it is worked out again. */
 const touched = (
@@ -154,13 +154,7 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			if (
-				changes.every(
-					(change) =>
-						Object.keys(change.set).length === 1 && Object.hasOwn(change.set, 'payroll_run_id')
-				)
-			)
-				return changes.map((change) => change.set);
+			if (sealOnly(changes)) return changes.map((change) => change.set);
 			yield* validateRegistered(
 				ctx.query,
 				'roster_entry',
@@ -199,11 +193,7 @@ export default model({
 				'roster_entry',
 				'delete',
 				rows.map((row) => jsonObject(row))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			// a deleted day is not a day off: the shift pattern takes over, and a paid period is worked out again
 			return { on_approved: yield* amendmentsFor(ctx.query, touched(rows)) };
 		},

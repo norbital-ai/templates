@@ -4,9 +4,7 @@ How a mistake in a paid period is corrected, what must always be true of the led
 
 ## 1. The rule for HR
 
-If something in a paid period is wrong, correct it where it was recorded, with its real date.
-The paid payslip does not change. The next payroll run works the period out again and pays the difference.
-You see every difference, period by period, in the run before you mark it paid.
+The rule is [section 0's](0001-hrms-calculation-architecture.md#corrections): correct the record where it was recorded, with its real date; the paid payslip does not change, and the next run pays the difference.
 
 **Example: missed overtime.** Two hours of overtime on 10 March were not keyed, and March is paid. HR opens the roster day, adds the hours and saves. The March payslip does not change. The April payslip shows, under "Adjustments for earlier periods", the overtime for March and what it moves in contributions and tax, each tagged March. HR works out nothing and keys no amount.
 
@@ -26,22 +24,6 @@ One mechanism: **what a period should pay now, less what has been paid for it.**
    A statutory scheme says which month answers for carried pay (`assessed` on its row). `EARNED`, the default: the scheme is worked out again for the earlier period and its difference is carried. `PAID`: the earlier period's charge stands, and the carried pay counts as this month's wages for that scheme (Malaysia's SOCSO, EIS and SKBBK, which are charged on wages paid in the month).
 6. **A later tax year is not worked out again.** The year so far is keyed by its tax year, so a later year reads nothing of it.
 7. **Net pay never goes below zero.** If taking money back would push it below, one line, "Recovery carried forward" (`RECOVERY_CARRIED`), brings it to exactly zero, and the run writes an amendment row for its own period so the next run takes the rest.
-
-```mermaid
-sequenceDiagram
-  participant HR
-  participant Record as The record
-  participant Row as pay_amendment
-  participant Run as Next run
-  participant Slip as New payslip
-  HR->>Record: Correct it, with its real date
-  Record->>Row: One open row (person, group, period)
-  Run->>Row: Read the open rows
-  Run->>Run: Work the paid period out again
-  Run->>Slip: Lines tagged with the period
-  Run->>Row: Take the row (done)
-  Note over Record,Slip: The paid payslip never changes
-```
 
 The remainder is a state, not a history. Any number of edits, deletes and changes back to the old value come out the same: one difference, or none.
 
@@ -88,10 +70,8 @@ What follows:
 - An entry a paid payslip priced may be changed or deleted: the write carries its row. A deleted roster day is not a day off; the shift pattern takes over.
 - A record whose date moves loses its run seal (`payroll_run_id`), so the period it joins prices it.
 - A late claim or ad hoc entry dated in a period the person was paid for is that period's: it is carried and tagged. One dated in a period that paid the person nothing is priced by the next run as an ordinary line.
-- A change to a person's terms or statutory parameters is a dated row from the first of its month. A wrong one is edited, moved or deleted in place. A row dated ahead is not yet in force.
-- A stint keyed by mistake and paid stays for its payslips. HR deletes its terms rows: with nothing agreed it pays nothing, and the next runs take back what was paid. A stint never paid is deleted.
-- A company change is a dated row from its real date. A wrong one is edited, moved or deleted in place. An edit to a company's own fields writes no rows.
-- A change of law is a dated row from its real date. A wrong one is corrected, moved or deleted in place. A change to a row's `references`, `description` or `name`, or to an extension schema, writes no rows.
+- A stint keyed by mistake is deleted if it was never paid; one that was paid has its terms rows deleted ([dated changes, decision 2](0011-dated-changes.md#5-decisions)).
+- An edit to a company's own fields writes no rows. Nor does a change to a law row's `references`, `description` or `name`, or to an extension schema.
 - **A change of pay schedule writes no rows.** A pay group that has a paid run keeps its schedule. A company that starts paying monthly makes a monthly group and moves people to it by terms rows from the first of a month. Old periods keep their group and are worked out on its schedule; the run that pays the person now carries the difference.
 
 ## 5. The constraints
@@ -163,31 +143,14 @@ What stays with HR:
 
 Nothing else is refused. A record a run priced may be changed or deleted, a no-pay day may be dated in a paid period, and a terms or parameters row may be written, edited, moved or deleted over paid periods. Each leaves its amendment row.
 
-## 9. The `pay_amendment` model
+## 9. The `pay_amendment` row
 
-One paid pay period of one person to work out again.
+One paid pay period of one person to work out again. Its fields are in [the model specification](0002-model-specification.md#8-payroll-and-output).
 
-| Field            | Kind                                  | Why                                                     |
-| ---------------- | ------------------------------------- | ------------------------------------------------------- |
-| `employee_id`    | ref                                   | Whose period                                            |
-| `pay_group_id`   | ref                                   | With `period`, names the one paid run to work out again |
-| `period`         | text                                  | The paid cycle, as its run names it                     |
-| `payroll_run_id` | optional ref, `on_delete: 'set_null'` | Empty is open. Set: that run carried it                 |
-
-- Unique on (`employee_id`, `pay_group_id`, `period`) while `payroll_run_id` is empty.
+- Unique on (`employee_id`, `pay_group_id`, `period`) while `payroll_run_id` is empty. `pay_group_id` with `period` names the one paid run to work out again.
 - Nobody keys a row. Only the write that corrects a paid period, or a run deferring a recovery, leaves one.
 - A run takes its rows through its `amendments` link layer, in its own write, only while they are still empty. Deleting an unpaid run sets them back to empty. A row a paid run holds is done, and is kept.
-
-```mermaid
-stateDiagram-v2
-  [*] --> Open: a correction reaches a paid period
-  Open --> Taken: a run carries it
-  Taken --> Open: the unpaid run is deleted
-  Taken --> Done: the run is marked paid
-  Done --> [*]
-```
-
-- No field is added to any other record. A payslip breakdown line gains an optional `period`, and the breakdown gains `carried: [{ run_id, period, postings }]`. The run's ledger plan posts the carried differences under its own source, `payroll_run:<id>`.
+- The run's ledger plan posts the carried differences under its own source, `payroll_run:<id>`.
 
 The balance a period saw is rebuilt, not stored: pay and contribution totals from the payslips before it and what this run has already carried for earlier periods; leave and claims from today's balance less what was recorded after the period closed.
 
@@ -212,7 +175,7 @@ HR's manual balance row is immutable. A mistake in one is a second row the other
 
 An exit's tasks name its stint and last day in their `occurrence_key`: `…:<employment id>:exit:<last day>`. A moved last day is another fact, so its key changes.
 
-The leave is not a dependant. The last payslip settles it from the stint and the balance, with nothing keyed (section 0 of [the architecture](0001-hrms-calculation-architecture.md#exits)). Changing `encash_leave`, moving the last day or cancelling the exit after that run is paid amends the period: the next run carries the difference, and its posting moves the days back. Under an unpaid run nothing moves; delete the run first.
+The leave is not a dependant: the last payslip settles it ([section 0](0001-hrms-calculation-architecture.md#exits)). Changing `encash_leave`, moving the last day or cancelling the exit after that run is paid amends the period, and the next run's posting moves the days back. Under an unpaid run nothing moves; delete the run first.
 
 The rest follows in the same write. The stint's effect, for every exit raised, moved or cancelled, runs the routine in `src/lib/dependants.ts`: a cancelled exit's loan back on its instalments, then the exit's tasks. It is safe to repeat; it schedules `ledger` for the people's entitlements.
 
@@ -257,31 +220,16 @@ A manual deduction may take a window below zero: days taken stay taken, and HR's
 
 Every case goes through the models' own acts. A law pack is only the fixture, and a figure is compared with a history in which the record was never wrong.
 
-| Behaviour                                                                                                      | File                                                | Test                                                                                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A correction leaves one open row; the paid payslip stands; the next run carries tagged lines and takes the row | `tests/corrections/paid_period.test.ts`             | "missed overtime keyed after its month is paid is carried by the next run, tagged with its month"                                                                              |
-| A delete takes back exactly what was paid                                                                      | `tests/corrections/paid_period.test.ts`             | "a claim a run paid is deleted: the next run takes back exactly what was paid for it"                                                                                          |
-| A date move amends the period left and is paid by the period joined                                            | `tests/corrections/paid_period.test.ts`             | "a paid claim moved to an unpaid month: taken back for the month it left, paid by the month it joined"                                                                         |
-| Many edits and a change back come out as nothing                                                               | `tests/corrections/paid_period.test.ts`             | "edited many times and back to what it was: one open row, and nothing to carry"                                                                                                |
-| An unpaid run holds its people                                                                                 | `tests/corrections/paid_period.test.ts`             | "nothing of a person moves while an unpaid run holds them"                                                                                                                     |
-| A deleted run frees its rows; the run made again is the same                                                   | `tests/corrections/paid_period.test.ts`             | "a run that carried is deleted: its rows open again, and the run made again is the same payslip"                                                                               |
-| Net pay stops at zero; the rest is taken once                                                                  | `tests/corrections/paid_period.test.ts`             | "a recovery larger than the pay: net pay stops at zero, and the next run takes the rest once"                                                                                  |
-| Recalculation stops at the tax year's end                                                                      | `tests/corrections/paid_period.test.ts`             | "a correction after its tax year closed: that year alone is worked out again"                                                                                                  |
-| A raise keyed late, with no signed date, is due from its date, on every line                                   | `tests/corrections/reach.test.ts`                   | "a raise three months back: each month carries its own difference, on every line"                                                                                              |
-| A later-signed raise is back pay of the signing period                                                         | `tests/corrections/back_pay.test.ts`                | "signed later: the paid month does not move, and the signing month pays it as back pay"                                                                                        |
-| A raise signed in time and keyed late amends its paid periods                                                  | `tests/corrections/back_pay.test.ts`                | "signed in time and keyed late: it was due, so the paid month is worked out again"                                                                                             |
-| Editing or deleting a carried raise returns the back pay and its contributions                                 | `tests/corrections/back_pay.test.ts`                | "carried, then edited to a smaller one: the back pay and its contributions come back"; "carried, then deleted: the raise and its back pay come back, with their contributions" |
-| A term payroll does not read writes no amendment row                                                           | `tests/dated_changes/dated_row_under_a_run.test.ts` | "a term payroll does not read writes no amendment row; a rate on the same row does"                                                                                            |
-| An old period is worked out on the group that paid it                                                          | `tests/runs/pay_group_corrections.test.ts`          | "a period the old group paid is worked out on that group, and the new group carries it"                                                                                        |
-| A paid group keeps its schedule                                                                                | `tests/runs/pay_groups.test.ts`                     | "a group with a paid run keeps its schedule; its name and pay day still change"                                                                                                |
-| A company-wide correction amends everyone it reaches                                                           | `tests/corrections/company_and_approvals.test.ts`   | "a holiday published in a paid month amends everyone the company paid for it"                                                                                                  |
-| A shift paid days used refuses the edit                                                                        | `tests/corrections/company_and_approvals.test.ts`   | "a shift paid days used keeps its hours"                                                                                                                                       |
-| A fact is read as it stands on the date                                                                        | `tests/corrections/parity.test.ts`                  | "children corrected from 1 to 2: the next payslip carries the difference"                                                                                                      |
-| A held change writes its row at approval                                                                       | `tests/corrections/company_and_approvals.test.ts`   | "its amendment row is written by the approving decision, not by the request"                                                                                                   |
-| A rejection leaves nothing                                                                                     | `tests/corrections/company_and_approvals.test.ts`   | "a rejected request leaves no row"                                                                                                                                             |
-| A request under an unpaid run is refused                                                                       | `tests/corrections/company_and_approvals.test.ts`   | "a request dated under an unpaid run is refused at once"                                                                                                                       |
-| Every model a run reads has a rule for a paid period                                                           | `tests/corrections/amendment_gate.test.ts`          | "every model it reads is named with what its write does to a paid period"                                                                                                      |
-| Each such model carries its rule in its own write                                                              | `tests/corrections/amendment_gate.test.ts`          | "`<model>`: its write carries the amendment rows"; "`<model>`: a change paid periods were worked out on is refused"                                                            |
+| File                                                                        | Proves                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/corrections/paid_period.test.ts`                                     | One open row and tagged lines on the next run; a delete and a date move take back and pay exactly; many edits and back carry nothing; an unpaid run holds its people; a deleted run frees its rows; net pay stops at zero; recalculation stops at the tax year's end |
+| `tests/corrections/reach.test.ts`                                           | A raise keyed late with no signed date is due from its date, on every line                                                                                                                                                                                           |
+| `tests/corrections/back_pay.test.ts`                                        | A later-signed raise is back pay of the signing period; one signed in time and keyed late amends its paid periods; editing or deleting a carried raise returns the back pay and its contributions                                                                    |
+| `tests/corrections/parity.test.ts`                                          | A fact is read as it stands on the date                                                                                                                                                                                                                              |
+| `tests/corrections/company_and_approvals.test.ts`                           | A company-wide correction amends everyone it reaches; a shift paid days used refuses the edit; a held change writes its row at approval; a rejection leaves nothing; a request under an unpaid run is refused                                                        |
+| `tests/corrections/amendment_gate.test.ts`                                  | Every model a run reads has a rule for a paid period and carries it in its own write                                                                                                                                                                                 |
+| `tests/dated_changes/dated_row_under_a_run.test.ts`                         | A term payroll does not read writes no amendment row                                                                                                                                                                                                                 |
+| `tests/runs/pay_group_corrections.test.ts`, `tests/runs/pay_groups.test.ts` | An old period is worked out on the group that paid it; a paid group keeps its schedule                                                                                                                                                                               |
 
 The ledger and the exit routine:
 

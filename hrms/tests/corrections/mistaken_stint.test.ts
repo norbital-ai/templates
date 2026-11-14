@@ -6,7 +6,7 @@ import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { TERMS, current, refusal, storedQuery, workspace } from '../kit.ts';
-import { EMPLOYMENT, amendments, pay, rostered, run } from '../amendment_kit.ts';
+import { EMPLOYMENT, amendments, pay, rosteredNeutral as rostered, run } from '../amendment_kit.ts';
 
 describe('a stint keyed by mistake, already paid', () => {
 	it.live('loses its terms: the paid month waits, no later run pays it, and the stint stays', () =>

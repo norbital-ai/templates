@@ -13,7 +13,7 @@ import {
 	claimAt,
 	claimed,
 	pay,
-	rostered,
+	rosteredNeutral as rostered,
 	run,
 	slip
 } from '../amendment_kit.ts';

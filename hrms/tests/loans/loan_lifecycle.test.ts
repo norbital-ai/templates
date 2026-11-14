@@ -38,10 +38,10 @@ const FLOOR = 40;
 const FESTIVE = 'LOAN_RECOVERY_FESTIVE_ADVANCE';
 // no leave row pays out, so an exit here raises no cash-out request for a run to wait on
 const base = lawWith(
-	pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []),
+	pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []),
 	{
 		leave_catalog: Object.fromEntries(
-			lawAt('MY', '2026-08-15').rows.leave_catalog.map((row) => [
+			lawAt('ZZ', '2026-08-15').rows.leave_catalog.map((row) => [
 				String(row.code),
 				{ payout: null }
 			])

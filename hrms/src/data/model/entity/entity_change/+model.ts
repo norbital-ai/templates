@@ -1,7 +1,7 @@
 import type { CarriedWrites, EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/entity_change.ts';
-import { amendmentsOf } from '../../../../lib/amendments.js';
+import { amendmentsOf, refusing } from '../../../../lib/amendments.js';
 import { COMPANY_FIELDS, companyChange, employerOn } from '../../../../lib/company.js';
 import { reachOf } from '../../../../lib/dated.js';
 import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
@@ -254,11 +254,7 @@ export default model({
 						...stored,
 						...rows.map((row, index) => jsonObject({ ...row, id: `new/${index}` }))
 					]
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -287,11 +283,7 @@ export default model({
 							const after = written.get(String(row.id));
 							return after === undefined ? row : jsonObject({ ...after, id: row.id ?? null });
 						})
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -314,11 +306,7 @@ export default model({
 					'delete',
 					changes.map(({ before }) => before.entity_id),
 					(stored) => stored.filter((row) => !gone.has(String(row.id)))
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {

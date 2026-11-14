@@ -19,6 +19,30 @@ export const registerChanged = <
 /** The plain fields a formula, a rule or the ledger reads. */
 const PRICED = ['cumulative_service', 'date_of_birth', 'gender'] as const;
 
+/** The profile's fields a writer sets. */
+const columns = [
+	'name',
+	'source_reference',
+	'cumulative_service',
+	'date_of_birth',
+	'identity_number',
+	'gender',
+	'birth_city',
+	'bank',
+	'email',
+	'phone',
+	'address',
+	'location',
+	'documents',
+	'face_embedding',
+	'face_photo',
+	'face_enrollment_status',
+	'face_consent_at',
+	'face_enrolled_at',
+	'invitation_id',
+	'user_id'
+] as const;
+
 export default model({
 	description:
 		'One system identity for a person: name, contact details, documents, login, face enrolment and the particulars that never change (date of birth, identity number, gender, bank). What changes by date belongs to their stints.',
@@ -128,30 +152,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'name',
-				'source_reference',
-				'cumulative_service',
-				'date_of_birth',
-				'identity_number',
-				'gender',
-				'birth_city',
-				'bank',
-				'email',
-				'phone',
-				'address',
-				'location',
-				'documents',
-				'face_embedding',
-				'face_photo',
-				'face_enrollment_status',
-				'face_consent_at',
-				'face_enrolled_at',
-				'invitation_id',
-				'user_id'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			// identity is the invitation automation's to link; an imported person has no login yet
 			const linked = changes.findIndex(
@@ -163,30 +164,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'name',
-				'source_reference',
-				'cumulative_service',
-				'date_of_birth',
-				'identity_number',
-				'gender',
-				'birth_city',
-				'bank',
-				'email',
-				'phone',
-				'address',
-				'location',
-				'documents',
-				'face_embedding',
-				'face_photo',
-				'face_enrollment_status',
-				'face_consent_at',
-				'face_enrolled_at',
-				'invitation_id',
-				'user_id'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			// a particular a formula reads, and how service counts, were always so: every paid period of the person was
 			// worked out on them

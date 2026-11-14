@@ -1,0 +1,519 @@
+[
+	{
+		"id": "22222222-2222-4222-8222-000000000002",
+		"jurisdiction_code": "ZZ",
+		"effective_from": "2020-01-01",
+		"law": {
+			"conversions": {
+				"day": {
+					"basis": "YEAR"
+				},
+				"hour": {
+					"basis": "CONTRACT_HOURS"
+				},
+				"proration": "CALENDAR_DAYS",
+				"rounding": {
+					"mode": "HALF_UP",
+					"scale": 2
+				},
+				"back_pay": "BPAYBS"
+			},
+			"ledger": {
+				"ytd_scope": "JURISDICTION"
+			},
+			"lookup": {
+				"constants": {
+					"monthly_wage_threshold": 4000,
+					"manual_categories": [
+						"MANUAL_LABOUR",
+						"MANUAL_LABOUR_SUPERVISOR",
+						"VEHICLE_OPERATOR",
+						"VESSEL_CREW"
+					],
+					"part_time_hours_factor": 0.7,
+					"minor_unit": 0.01
+				}
+			},
+			"subtotal": {
+				"BASIC": {
+					"name": "Basic salary",
+					"balance_window": "MONTH"
+				},
+				"PRORATED": {
+					"name": "Prorated basic",
+					"previous": "BASIC",
+					"calculation": "return -(ctx.proration_amount + ctx.abs_amount);"
+				},
+				"PAID_BASIC": {
+					"name": "Paid basic",
+					"previous": "PRORATED"
+				},
+				"REGULAR_PAY": {
+					"name": "Regular pay",
+					"previous": "PAID_BASIC",
+					"balance_window": "MONTH"
+				},
+				"EXEMPT_ALLOWANCES": {
+					"name": "Tax-exempt allowances",
+					"previous": "REGULAR_PAY",
+					"balance_window": "MONTH"
+				},
+				"CHILDCARE": {
+					"name": "Child care allowance",
+					"previous": "EXEMPT_ALLOWANCES",
+					"balance_window": "MONTH"
+				},
+				"WAGE_ARREARS": {
+					"name": "Arrears of wages",
+					"previous": "CHILDCARE",
+					"balance_window": "MONTH"
+				},
+				"COMMISSION": {
+					"name": "Monthly commission",
+					"previous": "WAGE_ARREARS",
+					"balance_window": "MONTH"
+				},
+				"IRREGULAR_COMMISSION": {
+					"name": "Commission not paid monthly",
+					"previous": "COMMISSION",
+					"balance_window": "MONTH"
+				},
+				"AWARDS": {
+					"name": "Excellence awards",
+					"previous": "IRREGULAR_COMMISSION",
+					"balance_window": "MONTH"
+				},
+				"LONG_SERVICE": {
+					"name": "Long service awards",
+					"previous": "AWARDS",
+					"balance_window": "MONTH"
+				},
+				"INCENTIVE_OT": {
+					"name": "Incentive (OT)",
+					"previous": "LONG_SERVICE",
+					"balance_window": "MONTH"
+				},
+				"ORDINARY_WAGES": {
+					"name": "Ordinary wages",
+					"previous": "INCENTIVE_OT",
+					"balance_window": "MONTH"
+				},
+				"ADDITIONAL_WAGES": {
+					"name": "Ordinary pay and bonus",
+					"previous": "ORDINARY_WAGES",
+					"balance_window": "MONTH"
+				},
+				"SEPARATION_PAY": {
+					"name": "Termination and lay-off benefits",
+					"previous": "ADDITIONAL_WAGES",
+					"balance_window": "MONTH"
+				},
+				"OFFICIAL_TRAVEL": {
+					"name": "Official travel",
+					"previous": "SEPARATION_PAY",
+					"balance_window": "MONTH"
+				},
+				"FINAL_PAY": {
+					"name": "Final pay and non-wage settlements",
+					"previous": "OFFICIAL_TRAVEL",
+					"balance_window": "MONTH"
+				},
+				"ZAKAT": {
+					"name": "Payroll zakat",
+					"previous": "FINAL_PAY",
+					"balance_window": "MONTH"
+				},
+				"NET": {
+					"name": "Net pay",
+					"previous": "ZAKAT",
+					"balance_window": "YEAR"
+				}
+			},
+			"allowance_catalog": {
+				"SUA": {
+					"description": "A fixed monthly allowance on the contract, prorated by calendar days and paid share.",
+					"lookup": {
+						"allowance": "SUA"
+					},
+					"subtotal": "REGULAR_PAY",
+					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn ((amount * ctx.calendar_days) / month_days) * ctx.paid_share;",
+					"include_in_rate": true
+				}
+			},
+			"overtime_catalog": {
+				"OVERTIME": {
+					"lookup": {
+						"standard_premium": 1.5,
+						"part_time_premium": 1
+					},
+					"subtotal": "ORDINARY_WAGES",
+					"eligibility": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
+					"conversion": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpHour = ctx.hour_rate;\nconst days = get(ctx, 'work.days', []);\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst ordinary = days\n\t.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', 'WORK')) && !holiday(day))\n\t.toSorted((a, b) => {\n\t\tconst left = String(get(a, 'date', ''));\n\t\tconst right = String(get(b, 'date', ''));\n\t\tif (left < right) return -1;\n\t\treturn left > right ? 1 : 0;\n\t});\nconst band = (premium) => round(premium * orpHour, ctx.lookup.minor_unit, 'HALF_UP');\nconst hoursOf = (day) =>\n\tMath.max(0, Number(get(day, get(day, 'day_type', 'WORK') === 'OFF' ? 'worked_hours' : 'overtime_hours', 0)));\nif (partTime)\n\treturn sum(\n\t\tordinary.map((day) => {\n\t\t\tconst hours = hoursOf(day);\n\t\t\treturn (\n\t\t\t\tMath.min(hours, tier) * band(ctx.lookup.part_time_premium) +\n\t\t\t\tMath.max(0, hours - tier) * band(ctx.lookup.standard_premium)\n\t\t\t);\n\t\t})\n\t);\nconst months = ordinary\n\t.map((day) => String(get(day, 'date', '')).slice(0, 7))\n\t.filter((month, index, all) => all.indexOf(month) === index);\nreturn sum(\n\tmonths.map((month) =>\n\t\tround(\n\t\t\tsum(ordinary.filter((day) => String(get(day, 'date', '')).slice(0, 7) === month).map(hoursOf)) *\n\t\t\t\tband(ctx.lookup.standard_premium),\n\t\t\tctx.lookup.minor_unit,\n\t\t\t'HALF_UP'\n\t\t)\n\t)\n);",
+					"direction": "ADD",
+					"description": "Overtime beyond normal hours on a working day, and every hour on an off day, at a premium on the hour rate."
+				}
+			},
+			"statutory_contribution_catalog": {
+				"FUND": {
+					"kind": "CONTRIBUTION",
+					"depends_on": [],
+					"subtotal": "NET",
+					"employer_cost_subtotal": "NET",
+					"lookup": {
+						"rate": 0.05
+					},
+					"eligibility": "const employment = ctx.subject.employment;\nreturn get(employment, 'engagement', '') !== 'PAYEE';",
+					"employee_amount": "return ctx.subtotals.ORDINARY_WAGES * ctx.lookup.rate;",
+					"employer_amount": "return ctx.subtotals.ORDINARY_WAGES * ctx.lookup.rate;",
+					"balance_window": "MONTH",
+					"description": "A flat-rate fund: the same share of ordinary wages from the employee and the employer."
+				},
+				"TAX": {
+					"kind": "TAX",
+					"depends_on": ["FUND"],
+					"subtotal": "NET",
+					"employer_cost_subtotal": "NET",
+					"lookup": {
+						"rate": 0.02
+					},
+					"eligibility": "const employment = ctx.subject.employment;\nreturn get(employment, 'engagement', '') !== 'PAYEE';",
+					"employee_amount": "const fund = Object.hasOwn(ctx.statutory, 'FUND') ? ctx.statutory.FUND.employee : 0;\nreturn (ctx.subtotals.ORDINARY_WAGES - fund) * ctx.lookup.rate;",
+					"employer_amount": "return 0;",
+					"balance_window": "MONTH",
+					"description": "A flat-rate tax on ordinary wages less the employee's fund share."
+				}
+			},
+			"leave_catalog": {
+				"ANNUAL_LEAVE": {
+					"subtotal": "WAGE_ARREARS",
+					"lookup": {
+						"unit": "DAY",
+						"window": "SERVICE_YEAR",
+						"service_bands": [
+							{
+								"service_months": 12,
+								"days": 8
+							},
+							{
+								"service_months": 24,
+								"days": 12
+							},
+							{
+								"service_months": 60,
+								"days": 16
+							}
+						],
+						"part_time_service_bands": [
+							{
+								"service_months": 12,
+								"days": 6
+							},
+							{
+								"service_months": 24,
+								"days": 8
+							},
+							{
+								"service_months": 60,
+								"days": 11
+							}
+						],
+						"proration": "COMPLETED_MONTHS",
+						"carry": {
+							"windows": 1,
+							"statutory_grant_carries": true,
+							"company_cap_days": 5
+						},
+						"absence_forfeiture": {
+							"max_absent_share": 0.1,
+							"weeks": 52,
+							"fallback_days_per_week": 6
+						},
+						"service_unpaid_leave_ignored_after_days": 30,
+						"eligibility": {
+							"excluded_employment_types": ["DOMESTIC"]
+						},
+						"entitlement": "const employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nconst months = calendar_completed_months(started, ctx.as_of);\nconst [opening] = bands;\nconst exit = get(employment, 'effective_range.to', null);\nconst exitMonths = exit === null ? null : calendar_completed_months(started, exit);\nconst accruedTo = exit !== null && exitMonths < opening.service_months ? exit : ctx.as_of;\nif (months < opening.service_months) return Math.round((opening.days * calendar_completed_months(started, add_days(accruedTo, 1))) / opening.service_months);\nconst band = bands.filter((b) => b.service_months <= months).at(-1);\nif (exit === null) return band.days;\nconst years = Math.floor(months / 12);\nif (exitMonths < years * 12 || exitMonths >= (years + 1) * 12) return band.days;\nconst served = calendar_completed_months(add_months(started, years * 12), add_days(exit, 1));\nreturn Math.round((band.days * served) / 12);"
+					},
+					"description": "Paid annual leave per service year, by length of service; unused days carry and pay out.",
+					"payout": "const days = Number(get(ctx.entry, 'quantity', 0));\nconst daily = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn daily * days;"
+				},
+				"NPL": {
+					"subtotal": "PAID_BASIC",
+					"lookup": {
+						"unit": "DAY"
+					},
+					"description": "No-pay leave: each day taken reduces basic pay by one day.",
+					"paid_share": "0"
+				},
+				"MEDICAL_LEAVE": {
+					"lookup": {
+						"unit": "DAY",
+						"window": "CALENDAR_YEAR",
+						"service_bands": [
+							{
+								"service_months": 0,
+								"days": 14
+							},
+							{
+								"service_months": 24,
+								"days": 18
+							},
+							{
+								"service_months": 60,
+								"days": 22
+							}
+						],
+						"part_time_service_bands": [
+							{
+								"service_months": 0,
+								"days": 10
+							},
+							{
+								"service_months": 24,
+								"days": 13
+							},
+							{
+								"service_months": 60,
+								"days": 15
+							}
+						],
+						"eligibility": {
+							"excluded_employment_types": ["DOMESTIC"]
+						},
+						"entitlement": "const employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
+					},
+					"description": "Paid sick leave, capped per calendar year by length of service."
+				},
+				"PUBLIC_HOLIDAY_IN_LIEU": {
+					"subtotal": "WAGE_ARREARS",
+					"lookup": {
+						"unit": "DAY",
+						"grant_days": 0
+					},
+					"description": "A paid day owed in place of a public holiday; HR grants each day by hand.",
+					"payout": "const day = round(ctx.month_wage / 26, ctx.lookup.minor_unit, 'HALF_UP');\nreturn day * Number(get(ctx.entry, 'quantity', 0));"
+				}
+			},
+			"claim_catalog": {
+				"MEDICAL_CLAIM": {
+					"lookup": {
+						"annual_limit": 1000
+					},
+					"subtotal": "NET",
+					"conversion": "return ctx.entry.quantity;",
+					"description": "Reimburses a medical bill with net pay, at the amount entered, up to a yearly limit."
+				}
+			},
+			"adhoc_catalog": {
+				"BONUS": {
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "ADDITIONAL_WAGES",
+					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+					"conversion": "return ctx.entry.quantity;",
+					"direction": "ADD",
+					"party": "EMPLOYEE",
+					"description": "A bonus at the amount entered."
+				},
+				"BPAYBS": {
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "WAGE_ARREARS",
+					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+					"conversion": "return ctx.entry.quantity;",
+					"direction": "ADD",
+					"party": "EMPLOYEE",
+					"description": "Back pay owed for an earlier period under terms signed later, at the amount entered or computed by the run."
+				}
+			},
+			"loan_catalog": {
+				"LOAN_RECOVERY_FESTIVE_ADVANCE": {
+					"lookup": {},
+					"subtotal": "NET",
+					"description": "An advance recovered from pay."
+				}
+			},
+			"work_event_catalog": {
+				"EMPLOYER_SHUTDOWN": {
+					"lookup": {},
+					"description": "An employer shutdown that stops work."
+				}
+			},
+			"workplace_case_catalog": {
+				"WORKPLACE_ACCIDENT": {
+					"description": "A reportable accident at work.",
+					"lookup": {
+						"input_schema": {
+							"type": "object",
+							"properties": {
+								"accident_type": {
+									"type": "string",
+									"enum": ["INDUSTRIAL", "COMMUTING", "EMERGENCY"],
+									"title": "Accident type"
+								}
+							},
+							"required": ["accident_type"],
+							"additionalProperties": false,
+							"description": "opened_on is the date the employer received notice; occurred_on is the accident date; severity is the injury classification."
+						}
+					}
+				}
+			},
+			"registered_rule": {
+				"ANNUAL_LEAVE_SERVICE": {
+					"description": "Applies the annual-leave service rules for unauthorised absence and long unpaid leave.",
+					"target_collection": "leave_catalog_entry",
+					"events": ["create", "update"],
+					"reads": {
+						"leave_catalog": {
+							"where": {
+								"code": {
+									"eq": {
+										"var": "ctx.entry.catalog_code"
+									}
+								}
+							},
+							"fields": ["code", "lookup"],
+							"limit": 1
+						},
+						"employee_balance": {
+							"where": {
+								"employee_id": {
+									"eq": {
+										"var": "ctx.subject.employment.employee_id"
+									}
+								}
+							},
+							"fields": ["account"],
+							"limit": 1
+						},
+						"shift_definition": {
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							},
+							"fields": ["variant"],
+							"limit": 1000
+						},
+						"roster_entry": {
+							"where": {
+								"employment_id": {
+									"is": {
+										"employee_id": {
+											"eq": {
+												"var": "ctx.subject.employment.employee_id"
+											}
+										}
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_months(ctx.entry.leave_catalog_entry_day.0.incurred_on, -12)"
+									}
+								}
+							},
+							"fields": ["work_date", "shift_definition_id"],
+							"limit": 10000
+						},
+						"leave_catalog_entry": {
+							"where": {
+								"employment_id": {
+									"is": {
+										"employee_id": {
+											"eq": {
+												"var": "ctx.subject.employment.employee_id"
+											}
+										}
+									}
+								},
+								"catalog_code": {
+									"eq": "NPL"
+								}
+							},
+							"fields": ["id"],
+							"limit": 10000
+						},
+						"leave_catalog_entry_day": {
+							"where": {
+								"leave_entry_id": {
+									"is": {
+										"employment_id": {
+											"is": {
+												"employee_id": {
+													"eq": {
+														"var": "ctx.subject.employment.employee_id"
+													}
+												}
+											}
+										},
+										"catalog_code": {
+											"eq": "NPL"
+										}
+									}
+								}
+							},
+							"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
+							"limit": 10000
+						}
+					},
+					"condition": "if (get(ctx.entry, 'encashment', false) === true) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'ANNUAL_LEAVE';",
+					"validate": "const lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = ctx.subject.employment;\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = get(ctx.entry, 'leave_catalog_entry_day', [])\n\t.map((slot) => String(slot.incurred_on))\n\t.toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst grouped = group_by(ctx.reads.leave_catalog_entry_day, 'leave_entry_id');\nconst slotsOf = (id) => get(grouped, String(id), []);\nconst slots = unpaid\n\t.flatMap((row) => slotsOf(row.id).map((slot) => String(slot.incurred_on)))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'ZZ.S.' + year) ? periods['ZZ.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
+					"order": 901
+				}
+			},
+			"registered_effect": {
+				"TERMS_PARTICULARS_ISSUE": {
+					"description": "Raises a task to issue written particulars when an employment is recorded.",
+					"name": "TERMS_PARTICULARS_ISSUE",
+					"source_collection": "employment",
+					"events": ["create", "update"],
+					"reads": {
+						"obligation": {
+							"where": {
+								"occurrence_key": {
+									"eq": {
+										"var": "'ZZ:TERMS_PARTICULARS_ISSUE:' + ctx.entry.id"
+									}
+								}
+							},
+							"limit": 10
+						}
+					},
+					"target_collection": "obligation",
+					"target_action": "create",
+					"effects": "const r = ctx.entry;\nconst key = 'ZZ:TERMS_PARTICULARS_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue written particulars of employment',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];"
+				},
+				"PERSONAL_DATA_DISPOSAL": {
+					"description": "Raises a task to dispose of an ex-employee's personal data after the retention period.",
+					"name": "PERSONAL_DATA_DISPOSAL",
+					"lookup": {
+						"annual_due": "-12-31",
+						"retention_years": 7
+					},
+					"source_collection": "employment",
+					"events": ["exit"],
+					"reads": {
+						"obligation": {
+							"where": {
+								"occurrence_key": {
+									"eq": {
+										"var": "'ZZ:PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
+								}
+							},
+							"limit": 10
+						}
+					},
+					"condition": "return ctx.after != null;",
+					"target_collection": "obligation",
+					"target_action": "create",
+					"effects": "const r = ctx.entry;\nconst key = 'ZZ:PERSONAL_DATA_DISPOSAL:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];"
+				}
+			}
+		}
+	}
+]

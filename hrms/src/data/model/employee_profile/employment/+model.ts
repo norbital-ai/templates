@@ -1,8 +1,8 @@
-import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
+import type { CarriedWrites, EffectCtx, Id, WriteCtx } from '@norbital-ai/bolt';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { DateTime, Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/employment.ts';
-import { amendmentsFor, type Touched } from '../../../../lib/amendments.js';
+import { amendmentsFor, refusing, type Touched } from '../../../../lib/amendments.js';
 import { reachOf } from '../../../../lib/dated.js';
 import { reconcile } from '../../../../lib/dependants.js';
 import { lawRead, lawsOf, type Law } from '../../../../lib/law.js';
@@ -36,6 +36,13 @@ type Verb = 'create' | 'update' | 'delete';
 type Family = 'contract_terms' | 'statutory_parameters';
 /** One written row: as it stood, and as the write leaves it. */
 export type Written = { readonly before?: JsonObject; readonly after?: JsonObject };
+/** A callback's change: a create has no row before it, a delete none after. */
+type Change = { readonly before: object | null; readonly after: object | null };
+const writtenOf = (changes: readonly Change[]): readonly Written[] =>
+	changes.map(({ before, after }) => ({
+		...(before === null ? {} : { before: jsonObject(before) }),
+		...(after === null ? {} : { after: jsonObject(after) })
+	}));
 
 /** The stint's fields a writer sets; its number is filled in. */
 const columns = [
@@ -420,7 +427,7 @@ const rooted = (parts: Parts): boolean => {
  * write reaches, for the write to carry, and the pay group of a first terms row that named none where its company has
  * one (`filled`, by row id). A string is a refusal.
  */
-export const datedWrite = Effect.fnUntraced(function* (
+const datedCheck = Effect.fnUntraced(function* (
 	read: Reader & Staged,
 	verb: Verb,
 	family: Family,
@@ -580,6 +587,22 @@ export const datedWrite = Effect.fnUntraced(function* (
 	return { carried, filled };
 });
 
+/** A family's verb, as its model's transform answers it: refused in the check's words, else what the write carries. */
+export const datedWrite = <M extends Family>(
+	ctx: WriteCtx<M>,
+	verb: Verb,
+	family: M,
+	changes: readonly Change[]
+) =>
+	Effect.gen(function* () {
+		const result = yield* datedCheck(ctx.query, verb, family, writtenOf(changes)).pipe(
+			refusing(ctx)
+		);
+		if (typeof result === 'string') return yield* ctx.refuse(result);
+		if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
+		return result;
+	});
+
 /**
  * After a write to dated rows: the law's registered effects read the stint on each written row's day (a deleted row's
  * own day), as it stood without the write and as it stands with it, and the ledger syncs now for a row in force today,
@@ -589,8 +612,9 @@ export const afterDated = Effect.fnUntraced(function* (
 	ctx: EffectCtx,
 	verb: Verb,
 	family: Family,
-	changes: readonly Written[]
+	written: readonly Change[]
 ) {
+	const changes = writtenOf(written);
 	const key = family === 'contract_terms' ? 'terms' : 'parameters';
 	const rows = changes.flatMap(({ before, after }) => [...present(before), ...present(after)]);
 	const got = yield* standing(
@@ -966,11 +990,7 @@ export default model({
 							...reach
 						}))
 					)
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -1000,11 +1020,7 @@ export default model({
 				return yield* ctx.refuse('errors.employment_service_after_start', {
 					field: 'service_started_on'
 				});
-			const result = yield* stintWrite(ctx.query, written).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			const result = yield* stintWrite(ctx.query, written).pipe(refusing(ctx));
 			if (typeof result === 'string')
 				return yield* ctx.refuse(result, { field: 'effective_range' });
 			const { terms, parameters } = result.moved;

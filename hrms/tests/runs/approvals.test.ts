@@ -24,7 +24,7 @@ import {
 const NOW = '2026-02-20T02:00:00.000Z';
 const STINT = idOf('employment', uuid(6));
 const DAY = '2026-02-10';
-const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
+const base = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 const staff = (id: number, name: string, team: string) => ({
 	id: uuid(id),
 	name,

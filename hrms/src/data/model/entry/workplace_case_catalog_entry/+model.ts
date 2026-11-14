@@ -1,4 +1,5 @@
 import { model } from '../../../../../.norbital/models/workplace_case_catalog_entry.ts';
+import { sealOnly } from '../../../../lib/entries.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import {
 	isJsonObject,
@@ -32,6 +33,24 @@ const missingInputs = Effect.fnUntraced(function* (read: Reader, entries: readon
 	}
 	return undefined;
 });
+
+/** A case's fields a writer sets; a run also sets its own on an update. */
+const columns = [
+	'catalog_code',
+	'entity_id',
+	'employment_id',
+	'severity',
+	'occurred_on',
+	'location',
+	'reference',
+	'description',
+	'kind',
+	'opened_on',
+	'scheduled_on',
+	'closed_on',
+	'inputs',
+	'evidence_file'
+] as const;
 
 export default model({
 	description:
@@ -90,24 +109,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'catalog_code',
-				'entity_id',
-				'employment_id',
-				'severity',
-				'occurred_on',
-				'location',
-				'reference',
-				'description',
-				'kind',
-				'opened_on',
-				'scheduled_on',
-				'closed_on',
-				'inputs',
-				'evidence_file'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => jsonObject(c.after));
 			const missing = yield* missingInputs(ctx.query, rows);
@@ -131,13 +133,7 @@ export default model({
 	},
 	update: {
 		transform: function* (changes, ctx) {
-			if (
-				changes.every(
-					(change) =>
-						Object.keys(change.set).length === 1 && Object.hasOwn(change.set, 'payroll_run_id')
-				)
-			)
-				return changes.map((change) => change.set);
+			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));
 			const missing = yield* missingInputs(ctx.query, proposed);
 			if (missing !== undefined)
@@ -155,25 +151,7 @@ export default model({
 			if (edited.length === 0) return;
 			yield* tap(ctx, 'update', 'workplace_case_catalog_entry', edited);
 		},
-		columns: {
-			fields: [
-				'payroll_run_id',
-				'catalog_code',
-				'entity_id',
-				'employment_id',
-				'severity',
-				'occurred_on',
-				'location',
-				'reference',
-				'description',
-				'kind',
-				'opened_on',
-				'scheduled_on',
-				'closed_on',
-				'inputs',
-				'evidence_file'
-			]
-		}
+		columns: { fields: ['payroll_run_id', ...columns] }
 	}
 	// no delete exposure, as before: the old `effect.deleted` could not run, and a delete effect would expose delete
 });

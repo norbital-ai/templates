@@ -1,7 +1,5 @@
-import { Effect } from 'effect';
 import { model } from '../../../../../../.norbital/models/statutory_parameters.ts';
 import { PARAMETER_FIELDS } from '../../../../../lib/person.js';
-import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 import { afterDated, datedWrite } from '../+model.js';
 
 const named = (clears: readonly string[] | null | undefined) =>
@@ -57,27 +55,11 @@ export default model({
 					row: unknown,
 					field: 'clears'
 				});
-			const result = yield* datedWrite(
-				ctx.query,
-				'create',
-				'statutory_parameters',
-				changes.map(({ after }) => ({ after: jsonObject(after) }))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
-			return { sets: changes.map(({ set }) => set), on_approved: result.carried };
+			const { carried } = yield* datedWrite(ctx, 'create', 'statutory_parameters', changes);
+			return { sets: changes.map(({ set }) => set), on_approved: carried };
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'create',
-				'statutory_parameters',
-				changes.map(({ after }) => ({ after: jsonObject(after) }))
-			);
+			yield* afterDated(ctx, 'create', 'statutory_parameters', changes);
 		}
 	},
 	update: {
@@ -92,58 +74,20 @@ export default model({
 					row: unknown,
 					field: 'clears'
 				});
-			const result = yield* datedWrite(
-				ctx.query,
-				'update',
-				'statutory_parameters',
-				changes.map(({ before, after }) => ({
-					before: jsonObject(before),
-					after: jsonObject(after)
-				}))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
-			return { sets: changes.map(({ set }) => set), on_approved: result.carried };
+			const { carried } = yield* datedWrite(ctx, 'update', 'statutory_parameters', changes);
+			return { sets: changes.map(({ set }) => set), on_approved: carried };
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'update',
-				'statutory_parameters',
-				changes.map(({ before, after }) => ({
-					before: jsonObject(before),
-					after: jsonObject(after)
-				}))
-			);
+			yield* afterDated(ctx, 'update', 'statutory_parameters', changes);
 		}
 	},
 	delete: {
 		transform: function* (changes, ctx) {
-			const result = yield* datedWrite(
-				ctx.query,
-				'delete',
-				'statutory_parameters',
-				changes.map(({ before }) => ({ before: jsonObject(before) }))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
-			if (typeof result === 'string') return yield* ctx.refuse(result);
-			if (result.key !== undefined) return yield* ctx.refuse(result.key, { values: result.values });
-			return { on_approved: result.carried };
+			const { carried } = yield* datedWrite(ctx, 'delete', 'statutory_parameters', changes);
+			return { on_approved: carried };
 		},
 		effect: function* (changes, ctx) {
-			yield* afterDated(
-				ctx,
-				'delete',
-				'statutory_parameters',
-				changes.map(({ before }) => ({ before: jsonObject(before) }))
-			);
+			yield* afterDated(ctx, 'delete', 'statutory_parameters', changes);
 		}
 	}
 });

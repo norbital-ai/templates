@@ -39,10 +39,9 @@ flowchart LR
 
 What to expect:
 
-- **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day. A company with one group never has to name it. A company with two names one in each person's terms and on every run.
+- **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day.
 - **Cutoff.** With cutoff day 1, a cycle's attendance is its own salary days. With a later cutoff, a monthly cycle's attendance runs from last month's cutoff day to the day before this month's.
-- **Pay methods.** Five optional employer methods (the overtime hour, a rest-day multiple, night premium hours, the contribution split over two runs a month, benefits over their tax-free limit). Each applies only where it pays at least the law. Which rows read them in each country is in [statutory coverage](0009-statutory-coverage.md).
-- **A change later** is another `entity_change` from its date. One dated ahead is not in force until its day. A change may be edited, moved or deleted.
+- **Pay methods.** The employer's optional methods are [section 0's](0001-hrms-calculation-architecture.md#company-methods). Each applies only where it pays at least the law. Which rows read them in each country is in [statutory coverage](0009-statutory-coverage.md).
 - **The company screen** shows the company's own fields, what is in force today and one timeline of its changes.
 
 ## 2. Hire
@@ -56,10 +55,8 @@ What to expect:
 
 What to expect:
 
-- **One open stint per person.** A new stint waits until the open one has its last day. The overlap rule is the person's, so it covers a sister company too.
 - **Entitlement is a rule, not a number HR types.** The balance shows `entitled 14` because the row says 14 for this person in this window. If the row prorates a first year or counts service bands, the figure follows that rule.
-- **Service** runs from the current unbroken employment. With "count every stint" on the profile, earlier stints count too.
-- **A change known ahead**, such as a raise from next month, is a terms row dated ahead: it is not in force until its day. An expected birth is a dependant with its expected date.
+- **A change known ahead**, such as a raise from next month, is a terms row dated ahead. An expected birth is a dependant with its expected date.
 
 ## 3. Roster, attendance and overtime
 
@@ -95,10 +92,8 @@ What to expect:
 
 - **A request is refused at once** when the window does not hold the days, when leave already covers a half day, or when an unpaid run holds the person for that date.
 - **Rejected or withdrawn**, the record is taken back and nothing was posted. Only the requester can withdraw; a reviewer rejects.
-- **HR keying leave for someone** posts in the entry's own write, with no approval step.
 - **Paid leave makes no payslip line.** A day of `NPL` does: see the run below.
 - **A half day is taken once** across all of a person's leave, until the slot is removed from its entry.
-- **A payroll run refuses** while a request it would pay still waits.
 
 ## 5. Claims and ad hoc entries
 
@@ -111,10 +106,7 @@ What to expect:
 
 What to expect:
 
-- **A late entry is paid by the next run, once.** Dated in a period that paid the person nothing, it is an ordinary line. Dated in a period the person was paid for, it belongs to that period: the next run carries it under "Adjustments for earlier periods", tagged with the period, with what it moves in contributions and tax.
-- **An ad hoc row says** whether it adds or deducts, whether it is the employee's or the employer's cost, and whether it may run off-cycle.
 - **A tax instalment the authority directs** (Malaysia's CP38) is an ad hoc entry. It is deducted and counted as tax withheld. It posts to its own account, so the PCB year-to-date the next months read leaves it out.
-- **A contribution wrong in a paid month needs no entry.** HR corrects the record that made it wrong and the next run carries the difference (section 10).
 
 ## 6. Loans
 
@@ -128,7 +120,6 @@ What to expect:
 - **Loans never touch the ledger.** What is outstanding is the principal less the repayments.
 - **Each run recovers the instalment dated in its attendance.** A later month's stays open. Recovery is on-cycle only.
 - **A recovery that would take net pay below zero refuses the run** and says how; reduce the instalment and run again.
-- **An instalment a run took can still be corrected.** HR changes or deletes it, and the next run carries the difference for the period it was taken in.
 
 ## 7. The payroll run
 
@@ -172,10 +163,6 @@ NET          after employee contributions, tax and the 100 loan instalment
 
 In June, the joining month, `PRORATED` was 1,500.00: 15 of 30 calendar days from 16 June.
 
-**Statutory contributions and tax.** Each scheme row decides who it applies to and what the employee and the employer pay. A scheme reads only completed subtotals and the schemes it depends on, so a tax row reuses the contribution results. Above zero is a deduction. Below zero, a row whose law has the employer repay pays a refund line; any other row stops at zero and the next run nets it. No line is negative.
-
-**Month-to-date and year-to-date.** A row that needs earlier pay reads the balance: the tax year's totals, or the pay month's where the row keeps month totals. So a second run in the same month charges only what the month still owes.
-
 **What it writes, in one write.**
 
 | Written                     | Detail                                                                                                                               |
@@ -202,16 +189,6 @@ The law's run effects then raise the period's tasks: remittances, filings, paysl
 
 The salary listing is one sheet per run. Every figure is a payslip's own line or total, so each can be traced. An export reads the run; it changes nothing.
 
-```mermaid
-flowchart LR
-  who[Who:<br/>position to last day] --> bands[One coloured band<br/>per subtotal, its lines,<br/>closed by the subtotal]
-  bands --> gross[GROSS PAY<br/>before the first<br/>statutory band]
-  gross --> stat[Statutory bands;<br/>TAX WITHHELD<br/>beside the tax]
-  stat --> net[NET PAY]
-  net --> employer[EMPLOYER'S<br/>PORTION]
-  employer --> cost[COST TO<br/>COMPANY]
-```
-
 - **Who.** Position, department, employee code, name, ID number, date joined, last day. Frozen through the name.
 - **Bands.** The law's subtotal chain, in order, each in its own colour. Each band holds the lines that move it (what adds is positive, what takes off negative) and closes on its subtotal. A line identical to its band's subtotal shows once.
 - **GROSS PAY** stands before the first band that holds a statutory deduction.
@@ -220,7 +197,7 @@ flowchart LR
 - **COST TO COMPANY** = net pay + employee contributions + tax withheld + employer portion.
 - A `TOTAL` row sums each column.
 
-While the run is `UNPAID` it can be deleted: its payslips go, its seals come off, the amendment rows it took open again, and its ledger rows are inverted. Runs come off newest first. While it stands, nothing of the people it holds can be changed.
+While the run is `UNPAID` it can be deleted, newest first; while it stands, nothing of the people it holds can be changed.
 
 ## 9. Marking paid
 
@@ -241,19 +218,7 @@ July is paid. HR finds that two hours of planned overtime on 14 July were never 
 | Reads the August payslip                                  | Under "Adjustments for earlier periods": the overtime for July, and what it moves in contributions and tax, posted to July's own totals                | The payslip                               |
 | Marks August paid                                         | The amendment row stays, held by the August run: it is done                                                                                            | Payroll                                   |
 
-What to expect:
-
-- **HR keys no amount** and picks no period. The correction is the record itself, with its real date.
-- **The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and a change to a person's terms, parameters, dependants or stint, ask first:** "This period is already paid". The paid payslip does not change, and the next run carries the difference.
-- **Any record of a paid month works the same way:** a roster day, a leave day, a claim, an ad hoc entry, a loan instalment. It can be added, changed, moved to another date or deleted.
-- **Many corrections of one month are one difference.** A change put back to what it was carries nothing.
-- **The months after it in the same tax year are worked out again too,** so a yearly ceiling or a cumulative tax ends exact. A later tax year is left alone.
-- **Net pay never goes below zero.** If a correction takes back more than the month pays, the payslip ends at zero with a line "Recovery carried forward", and the next run takes the rest.
-- **While a run is unpaid, the people it holds cannot be corrected.** Delete the run, correct the record, and run again.
-- **Company-wide corrections** work the same way for everyone they reach: a holiday published late, a company change written from its real date, or a change of law written, corrected, moved or deleted.
-- **A pay group that has paid keeps its schedule.** A new schedule is a new group, and people move to it from the first of a month.
-
-The whole rule, with what is refused, is in [corrections and integrity](0007-corrections-and-integrity.md).
+HR keys no amount and picks no period: the correction is the record itself, with its real date. The whole rule, with what is carried, what is refused and how approvals fit, is in [corrections and integrity](0007-corrections-and-integrity.md).
 
 ## 11. Balances and the ledger
 
@@ -267,9 +232,7 @@ Each person has one balance. What a person or HR reads:
 | Left                     | `entitled + carried + limit − used`, worked out, never stored          |
 | Pay and statutory totals | Payslips                                                               |
 
-Behind every figure is a list of ledger rows: an `ADD` or `DEDUCT` of an amount, on a date, naming the record that caused it. The balance is the sum of those rows and nothing else. An employee reads their own balance and ledger in self-service; HR reads them on the employee profile.
-
-HR can adjust a balance by hand on the employee profile: days added to or taken from a leave row's entitlement, or money on a claim row's limit, with a note saying why. It is one more ledger row. It is never changed; a mistake is an opposite row.
+An employee reads their own balance and ledger in self-service; HR reads them on the employee profile, where it adds manual adjustments. How the ledger is keyed and written is in [the architecture](0001-hrms-calculation-architecture.md#6-ledger-and-balance).
 
 When the law changes an entitlement, the balance moves by the difference. If the law raises the example's 14 days to 18, the sync posts `entitled +4`. Days already taken stay taken.
 
@@ -299,13 +262,10 @@ The employee is promoted to 3,500 from 1 October.
 
 What to expect:
 
-- **A change starts on the first of a month**, so a run never prices a month on two sets of terms. A hire, a rehire and an exit keep their real dates.
-- **Under an unpaid run nothing of the person changes.** Delete the run first.
-- **A change may start in a month already paid.** The row takes its real date. If it was signed by that month's pay date, or has no signed date, the month is worked out again and the next run carries the difference on every line. If it was signed later, the paid months do not move: where the law names a back-pay row, the month it was signed in pays what it adds for them as one line of back pay, priced by the law's own rule.
-- **A wrong change** is edited, moved or deleted on its own row. A salary wrong since the hire is corrected on the first row, and every later month follows.
-- **A term payroll does not read**, such as a job title, reaches no paid period.
+- **A change may start in a month already paid.** The row takes its real date, and its signed date decides whether the paid months are worked out again or the signing month pays back pay ([how a period reads the employment](0007-corrections-and-integrity.md#3-how-a-period-reads-the-employment)).
+- **A wrong change** is edited, moved or deleted on its own row ([dated changes](0011-dated-changes.md#3-writing)).
 - **What the law is told of the person**, such as a new residency or marital status, is a `statutory_parameters` row from the first of a month, on the Statutory parameters tab.
-- **A transfer** to another company is one sheet: it ends the stint and starts the next from the first of a month. Under the same law the balance and loans carry on. Under another law it is an exit from the old law and a start under the new: see [transfer semantics](transfer-semantics.md).
+- **A transfer** to another company is one sheet: see [transfer semantics](transfer-semantics.md).
 - **A life event** keeps its real date: a birth is a dependant, and a marriage or a long illness an event on the stint. The leave it opens appears on the balance after the save.
 
 ## 14. An exit
@@ -324,6 +284,4 @@ The employee resigns; the last day is 20 November.
 What to expect:
 
 - **The final run is the one covering the last day.** It pays everything up to that day; while the exit stands, no later on-cycle run pays this person.
-- **The leave is settled by the final payslip.** Nothing is keyed and nothing waits for approval. A dismissal for misconduct, or HR switching the pay-out off, pays none out.
-- **Leave taken beyond what the last day earned** is taken back on the final payslip at the row's `payout`, whatever HR decided.
-- **If HR changes the decision, or the exit is cancelled or its date moves, after the final run is paid**, the period is amended: the next run carries the difference and the days follow. Someone no on-cycle run pays any more is paid by an off-cycle run that carries their waiting periods; what they would owe back is named in one task. Tasks are waived and an unpaid loan settlement goes back to instalments; a paid loan settlement stands. See [corrections and integrity](0007-corrections-and-integrity.md#11-when-an-exit-is-cancelled-or-its-date-moves).
+- **The leave is settled by the final payslip,** as [section 0](0001-hrms-calculation-architecture.md#exits) says. What follows a changed decision, a moved last day or a cancelled exit is in [corrections and integrity](0007-corrections-and-integrity.md#11-when-an-exit-is-cancelled-or-its-date-moves).

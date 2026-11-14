@@ -129,9 +129,9 @@ export const paidInAll = (t: Kit, ...periods: readonly string[]) =>
 // One person on the Malaysian pack, paid by the month: the fixture most of these tests correct.
 export const EMPLOYMENT = idOf('employment', uuid(6));
 /** These months on the roster, eight hours a working day; `overtime` keys two more hours on one day. */
-export const rostered = (months: readonly string[], overtime?: string, rate = 2800) =>
+export const rostered = (months: readonly string[], overtime?: string, rate = 2800, code = 'MY') =>
 	pack(
-		'MY',
+		code,
 		'Asia/Kuala_Lumpur',
 		{ ...packTerms(rate, 'MANUAL_LABOUR'), normal_hours_per_week: 45, normal_days_per_week: 6 },
 		{},
@@ -144,6 +144,9 @@ export const rostered = (months: readonly string[], overtime?: string, rate = 28
 			),
 		[]
 	);
+/** `rostered` on the neutral test law (`seed/test/jurisdiction/ZZ`): for a test that asserts no figure of a real law. */
+export const rosteredNeutral = (months: readonly string[], overtime?: string, rate?: number) =>
+	rostered(months, overtime, rate, 'ZZ');
 /** Two hours of overtime keyed on a roster day that had none. */
 export const overtimeKeyed = (t: Kit, date: string) =>
 	Effect.gen(function* () {

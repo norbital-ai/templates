@@ -1,5 +1,5 @@
-import type { CarriedWrites } from '@norbital-ai/bolt';
-import { DateTime, Effect } from 'effect';
+import type { CarriedWrites, WriteCtx } from '@norbital-ai/bolt';
+import { DateTime, Effect, Predicate } from 'effect';
 import { Refusal, type JsonObject } from './payroll_engine/foundation.js';
 import { attendanceOf } from './payroll_engine/pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './payroll_engine/reads.js';
@@ -278,6 +278,16 @@ export const amendmentsIn = (...parts: readonly CarriedWrites[]): CarriedWrites 
 	);
 	return rows.size === 0 ? {} : { pay_amendment: { create: [...rows.values()] } };
 };
+
+/** A check's refusal, said in its own words, refuses the write: the message carries that text. */
+export const refusing =
+	<M>(ctx: WriteCtx<M>) =>
+	<A, E, R>(effect: Effect.Effect<A, E | Refusal, R>) =>
+		Effect.catchIf(
+			effect,
+			(error): error is Refusal => Predicate.isTagged(error, 'Refusal'),
+			(error) => ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
+		);
 
 /** Whether a paid run answers this filter. What paid periods were worked out on keeps its shape: a change is a new one. */
 export const paidUnder = Effect.fn('payroll.paidUnder')(function* (

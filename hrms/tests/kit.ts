@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
 	JobResult,
@@ -195,9 +195,13 @@ export const WORK = uuid(11),
 	OFF = uuid(13);
 const rowsOf = (path: string): readonly JsonObject[] =>
 	Schema.decodeUnknownSync(Schema.Array(JsonObject))(JSON.parse(readFileSync(path, 'utf8')));
-/** A jurisdiction's public seed: its row and its dated changes, oldest first. */
+/**
+ * A jurisdiction's seeded law: its row and its dated changes, oldest first. The test pack (`seed/test`) comes before the
+ * public seed: `ZZ` is its one small neutral law, for a test that asserts no figure, duty or rule of a real one.
+ */
 export const seedLaw = (code: string) => {
-	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
+	const test = join(process.cwd(), 'seed/test/jurisdiction', code);
+	const root = existsSync(test) ? test : join(process.cwd(), 'seed/public/jurisdiction', code);
 	return {
 		jurisdiction: rowsOf(join(root, 'jurisdiction.json')),
 		jurisdiction_change: rowsOf(join(root, 'jurisdiction_change.json'))
@@ -258,7 +262,7 @@ type Day = {
 	readonly overtime?: number;
 };
 type Holiday = { readonly date: string; readonly kind: string };
-/** One jurisdiction's public law plus one employee, one roster and the holidays of a month. */
+/** One jurisdiction's seeded law (`seedLaw`) plus one employee, one roster and the holidays of a month. */
 export const pack = (
 	code: string,
 	zone: string,

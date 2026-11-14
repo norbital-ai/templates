@@ -10,7 +10,7 @@ const MONTH = '2026-03';
 const days = Array.from({ length: 31 }, (_, at) => `${MONTH}-${String(at + 1).padStart(2, '0')}`);
 const PEOPLE = 34; // 34 × 31 = 1,054 roster days
 const base = pack(
-	'MY',
+	'ZZ',
 	'Asia/Kuala_Lumpur',
 	packTerms(3120, 'MANUAL_LABOUR'),
 	{},

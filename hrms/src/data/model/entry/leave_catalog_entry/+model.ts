@@ -1,11 +1,12 @@
 import { Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/leave_catalog_entry.ts';
+import { sealOnly } from '../../../../lib/entries.js';
 import {
 	isJsonObject,
 	jsonObject,
 	type JsonObject
 } from '../../../../lib/payroll_engine/foundation.js';
-import { amendmentsFor } from '../../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
 import {
 	assertLeft,
 	assertCashable,
@@ -95,21 +96,13 @@ export default model({
 				'leave_catalog_entry',
 				entries,
 				ctx.approving ? undefined : 'create'
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			if (!ctx.approving) {
 				// the balance checks say why in their own words: the refusal carries that text
 				yield* Effect.all([
 					assertCashable(known, entries),
 					assertLeft(known, entries, String(ctx.today))
-				]).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				);
+				]).pipe(refusing(ctx));
 			}
 			return {
 				sets: changes.map((c) => c.set),
@@ -135,13 +128,7 @@ export default model({
 			leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
 		},
 		transform: function* (changes, ctx) {
-			if (
-				changes.every(
-					(change) =>
-						Object.keys(change.set).length === 1 && Object.hasOwn(change.set, 'payroll_run_id')
-				)
-			)
-				return changes.map((change) => change.set);
+			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const held = yield* ctx.query({
 				leave_catalog_entry_day: {
 					where: { leave_entry_id: { in: changes.map((change) => change.before.id) } },
@@ -193,22 +180,14 @@ export default model({
 				'leave_catalog_entry',
 				proposed,
 				ctx.approving ? undefined : 'update'
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			if (!ctx.approving) {
 				yield* assertLeft(
 					known,
 					proposed,
 					String(ctx.today),
 					changes.map((change) => jsonObject(change.before))
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				);
+				).pipe(refusing(ctx));
 			}
 			return {
 				sets: changes.map((c) => c.set),
@@ -243,11 +222,7 @@ export default model({
 				'leave_catalog_entry',
 				entries,
 				ctx.approving ? undefined : 'delete'
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			const held = yield* ctx.query({
 				leave_catalog_entry_day: {
 					where: { leave_entry_id: { in: changes.map((change) => change.before.id) } },

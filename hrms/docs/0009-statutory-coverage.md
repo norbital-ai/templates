@@ -1,14 +1,8 @@
 # Statutory coverage in the seed
 
-<!-- coverage:head -->
-
-The tables in this document are derived from `seed/public/jurisdiction/**` by a script, not typed by hand: the 49 dated changes of 9 jurisdictions were read. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
-
-<!-- coverage:head:end -->
-
 What law the public seed carries for each of its nine jurisdictions: the changes of law, the contributions and taxes, the leave types, the overtime rules, the other catalogue rows, and the rules and tasks the law registers. How these rows are used is in [the architecture](0001-hrms-calculation-architecture.md) and [the mechanisms, run through](0008-mechanisms-walkthrough.md).
 
-<!-- coverage:begin -->
+The tables were read from the 49 dated changes of `seed/public/jurisdiction/**`. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
 
 ## China (CN)
 
@@ -940,11 +934,9 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 - `rest_day_hourly_multiplier`: `PIT_TAXABLE_INCOME`, `REST_DAY_OVERTIME`.
 
-<!-- coverage:end -->
-
 ## How to read the tables
 
-- **Changes of law.** The first change of a jurisdiction holds the whole law on 1 December 2025. Each later change is a patch dated the day a change in law took effect, and exists because something changed that day. A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2028-07-01). The law on a day is the changes dated on or before it, applied oldest first.
+- **Changes of law.** How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2028-07-01).
 - **Rounding.** Every law rounds the day rate before it multiplies the days, except the Philippines, which rounds only the amount (`rounding.day_rate: AMOUNT`).
 - **A run reads only its own law.** A payroll run reads the catalogues of its own jurisdiction's law on its pay date, never another country's.
 - **Contributions and taxes.** "Employee" and "Employer" say whether the row computes that side. "Below zero" says what the row does when a month's figure comes out negative: `refund` pays a refund line because its statute has the employer repay; `stops` stops at zero and the next run nets it. "First reference on the row" is the first of the row's own `references`; the row holds the full list, with locators, quotes and links.
@@ -952,8 +944,6 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 - **Overtime.** "Numbers on the row" are the plain numbers in the row's `lookup`; the row's `conversion` holds the full rule.
 - **Registered rules** refuse a write. **Registered effects** raise a task after a write.
 - **Employer pay methods.** The list shows the rows that read a method by name. `overtime_hour_basis` also lifts the hour rate every overtime row reads, in every jurisdiction, where the employer's hour is higher than the law's.
-
-The tables are derived from the seed. After a seed change they are derived again; nothing in them is typed by hand.
 
 ## Not enforced by the seed
 
@@ -969,8 +959,6 @@ The seed carries no row for these, so nothing computes or enforces them.
 | SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row |
 | SG           | No row records the employer's recovery of work-injury medical costs from its insurer                                                                                       |
 | All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                   |
-
-Each row's legal sources (title, link, the quoted passage) are on the row itself, in its `references`.
 
 ## How it is verified
 

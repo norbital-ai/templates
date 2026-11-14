@@ -24,6 +24,18 @@ const spans = (
 				]
 	);
 
+/** A holiday's fields a writer sets. */
+const columns = [
+	'date',
+	'name',
+	'kind',
+	'published_at',
+	'replaces',
+	'given_to',
+	'entity_id',
+	'employee_id'
+] as const;
+
 export default model({
 	description:
 		'One observed public holiday of one legal entity on one day. Published individually. A published day corrected in paid time amends everyone the company paid for it. Imported from a spreadsheet or entered by hand.',
@@ -76,18 +88,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'date',
-				'name',
-				'kind',
-				'published_at',
-				'replaces',
-				'given_to',
-				'entity_id',
-				'employee_id'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			return {
@@ -105,18 +106,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'date',
-				'name',
-				'kind',
-				'published_at',
-				'replaces',
-				'given_to',
-				'entity_id',
-				'employee_id'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			// a holiday's name moves nobody's pay: only what says which day, of what kind, for whom
 			const moved = changes.filter((change) =>

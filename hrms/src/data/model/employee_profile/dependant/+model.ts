@@ -2,7 +2,7 @@ import type { Id } from '@norbital-ai/bolt';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/dependant.ts';
-import { amendmentsFor } from '../../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
 import { assertFactsHold } from '../../../../lib/ledger/service.js';
 import {
 	PARAMETER_FIELDS,
@@ -139,11 +139,7 @@ export default model({
 				on_approved: yield* amendmentsFor(
 					ctx.query,
 					touched(changes.map(({ after }) => ({ after: jsonObject(after) })))
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -171,11 +167,7 @@ export default model({
 							}))
 						)
 					);
-				}).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				}).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -196,11 +188,7 @@ export default model({
 						ctx.query,
 						touched(changes.map(({ before }) => ({ before: jsonObject(before) })))
 					);
-				}).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				}).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {

@@ -1,9 +1,9 @@
-import { Effect } from 'effect';
 import { model } from '../../../../../../.norbital/models/loan_catalog_entry_repayment.ts';
+import { sealOnly } from '../../../../../lib/entries.js';
 import { validateRegistered } from '../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor } from '../../../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../../../lib/amendments.js';
 
 /** An instalment is deducted by the run whose attendance holds its date: a paid period holding it is worked out again. */
 const touched = (
@@ -93,13 +93,7 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			if (
-				changes.every(
-					(change) =>
-						Object.keys(change.set).length === 1 && Object.hasOwn(change.set, 'payroll_run_id')
-				)
-			)
-				return changes.map((change) => change.set);
+			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));
 			yield* validateRegistered(ctx.query, 'loan_catalog_entry_repayment', 'update', proposed);
 			return {
@@ -127,11 +121,7 @@ export default model({
 				'loan_catalog_entry_repayment',
 				'delete',
 				rows.map((row) => jsonObject(row))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			return { on_approved: yield* amendmentsFor(ctx.query, touched(rows)) };
 		}
 	}

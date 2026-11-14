@@ -19,7 +19,7 @@ import {
 } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
-const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(5000), {}, [], []);
+const seed = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(5000), {}, [], []);
 const CASE = 'WORKPLACE_ACCIDENT';
 const LEAVE = 'NPL';
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });

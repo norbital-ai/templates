@@ -1,5 +1,6 @@
-import { Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/loan_catalog_entry.ts';
+import { sealOnly } from '../../../../lib/entries.js';
+import { refusing } from '../../../../lib/amendments.js';
 import {
 	refuseIneligible,
 	validateRegistered
@@ -78,13 +79,7 @@ export default model({
 			]
 		},
 		transform: function* (changes, ctx) {
-			if (
-				changes.every(
-					(change) =>
-						Object.keys(change.set).length === 1 && Object.hasOwn(change.set, 'payroll_run_id')
-				)
-			)
-				return changes.map((change) => change.set);
+			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));
 			yield* validateRegistered(ctx.query, 'loan_catalog_entry', 'update', proposed);
 			yield* refuseIneligible(ctx.query, 'loan_catalog_entry', proposed);
@@ -119,11 +114,7 @@ export default model({
 				'loan_catalog_entry',
 				'delete',
 				changes.map((change) => jsonObject(change.before))
-			).pipe(
-				Effect.catchTag('Refusal', (error) =>
-					ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-				)
-			);
+			).pipe(refusing(ctx));
 			const paid = changes.findIndex((change) => change.before.payroll_run_id != null);
 			if (paid >= 0) return yield* ctx.refuse('errors.loan_paid_no_delete', { row: paid });
 		}

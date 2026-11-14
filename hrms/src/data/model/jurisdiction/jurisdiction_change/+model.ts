@@ -1,5 +1,5 @@
-import { Effect } from 'effect';
 import { model } from '../../../../../.norbital/models/jurisdiction_change.ts';
+import { refusing } from '../../../../lib/amendments.js';
 import { lawWrite, syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 
@@ -61,11 +61,7 @@ export default model({
 							})
 						)
 					]
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -91,11 +87,7 @@ export default model({
 								? row
 								: jsonObject({ ...row, effective_from: after.effective_from, law: after.law });
 						})
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -116,11 +108,7 @@ export default model({
 					ctx.query,
 					changes.map(({ before }) => before.jurisdiction_code),
 					(stored) => stored.filter((row) => !gone.has(String(row.id)))
-				).pipe(
-					Effect.catchTag('Refusal', (error) =>
-						ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-					)
-				)
+				).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {

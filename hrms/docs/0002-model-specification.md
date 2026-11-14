@@ -47,6 +47,7 @@ Custom fields live beside models:
 ```text
 src/data/custom_field/
   bank/
+  reads/
   references/
 ```
 
@@ -70,29 +71,11 @@ src/data/custom_field/
 
 `jurisdiction_code`, `effective_from`, optional `finding_id` (a `statutory_finding`), `law` (JSON).
 
-- The first change of a jurisdiction holds the whole law. Each later one is a patch: only what changes from its date.
-- `law` is keyed by family, then row code, then field. A field or a row set to `null` is removed. Below the field a value is replaced whole.
-- The law on a day is the changes dated on or before it, applied oldest first. A day before the first change answers to the first change.
-- A change with a `finding_id` is in force only while that finding is `CONFIRMED`.
-- A change may be created, updated, moved or deleted. Each write is checked on the folded law at its date and at every later change date, carries the `pay_amendment` rows of the paid periods it reaches, and schedules the ledger sync: at once for a change in force today, otherwise on its day.
-- The first change stays the first. A catalogue code is not removed while an entry dated on or after the change names it.
+- `law` is keyed by family, then row code, then field, as [the seed specification](0003-jurisdiction-seed-specification.md#3-row-shapes) lays out. Nothing in a law has an id: a row's code is its key in its family, and rows name each other by code.
+- How the changes fold into the law on a day, what a write is checked for, and how a finding puts a change in force are in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date).
+- Each write carries the `pay_amendment` rows of the paid periods it reaches and schedules the ledger sync: at once for a change in force today, otherwise on its day.
 
-The families of a law:
-
-| Family                                                 | Holds                                                          |
-| ------------------------------------------------------ | -------------------------------------------------------------- |
-| `conversions`                                          | The typed conversion block                                     |
-| `ledger`                                               | `ytd_scope`                                                    |
-| `lookup`                                               | Shared tables and shared constants, each with a declared shape |
-| `work_regions`                                         | The region keys the law recognises, each with its display name |
-| `employee_extension_schema`, `entity_extension_schema` | The statutory data the law asks of a person and of a company   |
-| `subtotal`                                             | The chain's rows, by code                                      |
-| The nine `*_catalog` families                          | Catalogue rows, by code                                        |
-| `registered_rule`, `registered_effect`                 | Rules and effects, by code                                     |
-
-Nothing in a law has an id. A row's code is its key in its family, and rows name each other by code.
-
-`conversions` is one typed block: `day` (`basis`, and `days` only on the FIXED arm), `hour` (`basis`, and `hours` only on the FIXED arm), `proration` (`CALENDAR_DAYS`, `WORKING_DAYS` or `DAY_RATE`: a missed day prices at the day rate), `rounding` (`mode`, `scale`, and `day_rate`: `RATE`, the default, rounds the day rate before it multiplies the days; `AMOUNT` rounds only the amount) and an optional `back_pay`: the code of the ad hoc row that prices back pay. Where it is named, a terms row signed after periods it reaches pays what it adds for them on that row, in the period it was signed in; where it is left out, a row applies from its date. `ledger.ytd_scope` (`JURISDICTION` or `EMPLOYER`) chooses the account scope for pay and statutory totals. `lookup` holds only shared tables and shared constants, each with a declared shape; a row's own lookup is local and wins. A value read by one row lives on that row. A person's agreed hours and working days are not stored here.
+The `conversions` block and `ledger.ytd_scope` are in [the architecture](0001-hrms-calculation-architecture.md#conversions). `day` carries `days` and `hour` carries `hours` only on the FIXED arm. A person's agreed hours and working days are not stored in the law.
 
 No `output_bindings`, `minor_units`, `week_start`, `employment_classification`, attendance policy, `negative_net`, `recovery_order` or `coupled_solvers`.
 
@@ -159,7 +142,7 @@ Entry models live under `src/data/model/entry/`; `work_event` under `src/data/mo
 
 Every entry has `entity_id`, `catalog_code` (the code of its catalogue row in the law in force on its date), optional `payroll_run_id` and `evidence_file`, except a loan repayment, which has its loan instead of a catalogue and no evidence. Leave, claim, adhoc, loan and loan repayment entries add `employment_id`. An entry that needs approval is held by its policy's approval flow, not by a status.
 
-`payroll_run_id` is the seal: the run that prices the entry sets it, so no other run pays it again. A sealed entry may still be updated or deleted. A write that touches a period the person has a payslip for carries one `pay_amendment` row in the same write, or in the approving decision when it is held for approval, and the next run carries the difference. A record whose date moves loses its seal, so the period it joins prices it. While an unpaid run holds the person the write is refused. `roster_entry` has the same seal and the same rule.
+`payroll_run_id` is the seal: the run that prices the entry sets it, so no other run pays it again. A sealed entry may still be updated or deleted; what its write does to a paid period, and what an unpaid run holds, is in [corrections and integrity](0007-corrections-and-integrity.md#4-what-writes-an-amendment-row). `roster_entry` has the same seal and the same rule.
 
 **Three-layer catalog naming (owner directive, 2026-11-08).** A catalog that splits an entry over time has exactly
 three layers:
@@ -201,13 +184,13 @@ write ──► registered_rule (collection, event) ──► refuse | commit
 commit ──► registered_effect (collection, event) ──► target_action write
 ```
 
-A rule or effect on `employment` runs on a write to a stint, to its `contract_terms` or to its `statutory_parameters`. Its entry is the employment on the written row's day (the stint's first day for the stint itself), with `effective_range` from the first day those terms stood to the stint's last day. `ctx.before` is the employment as it stood without the write, and is null for a hire. `exit` runs when a stint becomes an exit, with the employment on its last day. A declared read of `employment` answers the stints as they stand on the reading row's own day.
+The employment and the company a rule or effect reads are in [the architecture](0001-hrms-calculation-architecture.md#7-rules-effects-and-tasks).
 
 ## 6. Employer, employee and calendar
 
 - `entity` — one company: `code`, `name`, `settings_code` (its jurisdiction code), `representative_name`, `registered_address`, `time_zone`, `bank` (custom field), `source_reference`, `epf_registered_on`, `socso_registered_on`. These fields carry no date: an edit is a correction in place. `settings_code` is fixed once the company has a change or a stint.
 - `pay_group` — one payroll of a company: `entity_id`, `name`, `payment_schedule` (frequency, pay days, cutoff). A group with a paid run keeps what moves pay in its schedule; a new schedule is a new group. `contract_terms.pay_group_id` names a person's group, by date, and `payroll_run.pay_group_id` the group a run pays; the run reads the schedule and cutoff here, not from the company or the law.
-- `entity_change` — one dated change to a company: `entity_id`, `effective_from`, and any of `pay_methods` (the better-than-law methods, each floored at the statute: `overtime_hour_basis` `STATUTORY`/`CONTRACT_WEEKLY`, `rest_day_hourly_multiplier`, `night_differential_basis` `WORKED`/`CLOCK_SPAN`/`WHOLE_NIGHT`, `contribution_split` `EVEN`/`FIRST_RUN`, `benefit_exclusion` `POOLED`/`EXCESS_TAXED`, `health_billing` `CURRENT`/`ARREARS`, `paid_leave`: leave codes the employer pays in full where the law leaves them unpaid), `final_pay_loan_floor_percent`, `overtime_full_award_percent`, `statutory_parameters` (the fields the law's `entity_extension_schema` declares) and `clears` (the names of those fields taken away from this date). One change per company and date. A field left empty is unchanged; a field a change sets is replaced whole. The company on a day is the fold of its changes dated on or before it (`companyOn` in `src/lib/company.ts`): a field no change has set holds its default (floor 10, full award 100, no pay methods), and formulas read `statutory_parameters` as `entity_extension_data`. A run prices on the company as it stands on the last day of its salary period. A change may be created, edited, moved or deleted. Its write checks the folded company against the law's registered rules on its date and at every later change date, carries the amendment rows of the paid periods it reaches and schedules the ledger sync: at once for a change in force today, else on its date. A change dated ahead is a row not yet in force; nothing materialises it. A registered rule or effect on `entity_change` reads the folded company on the change's date, with an `effective_range` from that date to the day before the next change.
+- `entity_change` — one dated change to a company: `entity_id`, `effective_from`, and any of `pay_methods` (the better-than-law methods of [section 0](0001-hrms-calculation-architecture.md#company-methods), each floored at the statute), `final_pay_loan_floor_percent`, `overtime_full_award_percent`, `statutory_parameters` (the fields the law's `entity_extension_schema` declares) and `clears` (the names of those fields taken away from this date). One change per company and date. A field left empty is unchanged; a field a change sets is replaced whole. The company on a day is the fold of its changes dated on or before it (`companyOn` in `src/lib/company.ts`): a field no change has set holds its default (floor 10, full award 100, no pay methods), and formulas read `statutory_parameters` as `entity_extension_data`. A run prices on the company as it stands on the last day of its salary period. A change may be created, edited, moved or deleted. Its write checks the folded company against the law's registered rules on its date and at every later change date, carries the amendment rows of the paid periods it reaches and schedules the ledger sync: at once for a change in force today, else on its date.
 - `employee_profile` — `name`, contact, `cumulative_service` (default false: count every stint, rehires included), `source_reference`, `documents` (no payroll reads them), the fixed particulars `date_of_birth`, `identity_number`, `gender` (`MALE`, `FEMALE`), `birth_city` and `bank` (custom field), a unique `user_id` (empty until the person accepts an invitation), optional invitation link, face enrolment (`face_embedding`, `face_photo`, `face_enrollment_status`, `face_consent_at`, `face_enrolled_at`). Every field is plain: an edit is a correction in place. A corrected `date_of_birth`, `gender` or `cumulative_service` carries the amendment rows of every paid period of the person and schedules the ledger sync. The other fields reach no paid period.
 - `employment` — one stint of a person with one company: `employee_id`, `entity_id`, `employee_number` (filled in; a person keeps their number across stints), `effective_range` (its first and last day, open while employed), `service_started_on` (only a credit from elsewhere; service is worked out from the stints), `events` (`kind`, `on`, `opened_on`, `ended_on`, `allocated_days`) and the exit answers `exit_ground`, `encash_leave` (default true: at an exit the last payslip pays out the leave left; leave taken beyond what the last day earned is taken back either way), `final_pay_due_on` and `reason`. It has no status. Stints of one person do not overlap, whatever the company. Every `employment_id` on another model names the stint. No law is copied: its law is its entity's `settings_code` jurisdiction on the day, and the name comes from the profile.
   - Create takes the stint with its first `terms` and `parameters` rows in one write: a hire, a rehire, or the new stint of a transfer.
@@ -224,7 +207,7 @@ A rule or effect on `employment` runs on a write to a stint, to its `contract_te
   - Its write carries the amendment rows of the paid periods it reaches: from its date to the next row that sets the same field, within the stint. `job_title`, `department`, `worksite` and `notice_period` reach none, because payroll does not read them.
   - Its write schedules the ledger sync: at once for a row in force today, otherwise on its date.
   - While an unpaid run holds the person the write is refused.
-- **The signed date.** A terms row signed after a period's pay date does not apply to that period; what it adds is back pay of the signing month where the law names a row in `conversions.back_pay`. A row with no signed date counts as signed in time. A changed `signed_on` reaches everything the row sets.
+- **The signed date.** A changed `signed_on` reaches everything the row sets. How a period reads it is in [corrections and integrity](0007-corrections-and-integrity.md#3-how-a-period-reads-the-employment).
 - `dependant` — one member of a person's family: `employee_id`, `relation` (`CHILD`, `SPOUSE`, `PARENT`), optional `name`, `born_on`, `expected_on`, `has_income`, `disabled`, `studying`, and a child's `allocations` per leave code, which record HR's transfer of a shared parental pool without editing the ledger. It is dated by its own birth or expected date. Every family count or flag a scheme reads (dependants, a spouse's income or disability, births, one child) derives from these rows. Its write carries the amendment rows of the person's paid periods from that date and schedules the ledger sync. A changed name reaches nothing.
 - **The employment on a day** is the fold (`employmentOn` in `src/lib/person.ts`), derived and never stored. Formulas, rules and the ledger read it in one shape:
   - the stint's own fields;
@@ -233,18 +216,18 @@ A rule or effect on `employment` runs on a write to a stint, to its `contract_te
   - `payroll`: `date_of_birth`, `identity_number`, `gender` and `birth_city` from the profile, `marital_status`, `nationality` and `passport_number` from the parameters;
   - `family`: the person's dependants;
   - `bank`: the profile's;
-  - `employee_extension_data`: the `parameters` in force.
-- An **exit** is not a record: it is a stint with a last day and no later stint of the person under the same jurisdiction code. Its answers sit on the stint (`effective_range.to`, `reason`, `exit_ground`, `final_pay_due_on`, `encash_leave`). The stint's write raises the `exit` event for the law's exit duties, and its own effect keeps the exit's other tasks and loan in step. The last payslip settles its leave. A jurisdiction's own exit answer (Indonesia's `termination_cause`) is a statutory parameter in force on the last day.
-- **A stint keyed by mistake.** One never paid is deleted. One that was paid stays for its payslips: its terms rows are deleted, so with nothing agreed it pays nothing and the next runs take back what was paid.
+  - `employee_extension_data`: the `parameters` in force;
+  - two worked-out starts: `service_started_on`, the service start (`cumulative_service` decides whether earlier stints count; a credit from elsewhere wins where earlier), and `employment_started_on`, the start of the current unbroken employment, for statutes that count employment in the year rather than service. A registered rule's or effect's employment read that names either field carries them too.
+- An **exit** is not a record. Its answers sit on the stint (`effective_range.to`, `reason`, `exit_ground`, `final_pay_due_on`, `encash_leave`). A jurisdiction's own exit answer (Indonesia's `termination_cause`) is a statutory parameter in force on the last day.
 
-Transfer, loan and service-continuity rules are in [transfer-semantics.md](transfer-semantics.md).
+Stints, transfers, service continuity, loans and exits are in [transfer semantics](transfer-semantics.md).
 
 - `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources. A `holiday` with `employee_id` is one person's holiday; without it, the company's. A holiday written in paid time carries the amendment rows of everyone it reaches. A `shift_pattern` is a `week_start` and either one weekday map (`days`) or a `cycle` of days for a rotation longer than a week; it carries no anchor date, because the stint's `effective_range` dates it. A shift pattern paid periods follow and a shift paid days use refuse a change: make a new one.
 - `work_event`, `workplace_case_catalog_entry` — entity-wide dated source data, each naming its catalogue row by `catalog_code`.
 
 ## 7. Balances and ledger
 
-`employee_balance` — `employee_id` (unique), `account` JSON map keyed by family (`leave`, `claim`, `pay`, `statutory`), code, period and measure. One row per employee; projection only. It holds accumulated values and entitlements, and what is left is derived. **The balance follows the person, not the stint.** Payroll reads it by `employee_id`. A transfer never creates a second balance or edits the projection directly. A transfer under the same jurisdiction carries the balance unchanged and moves the loan and its open repayments to the new stint and company. A transfer to another jurisdiction settles the old leave first where the row has a `payout`: the old stint ends as an exit, and the old jurisdiction's last payslip settles the leave and posts the days. Loans transfer to the target when the target law has a loan row with the same code (new loan and schedule), otherwise they settle from final pay; the old open schedule is removed first. Loans never touch the ledger. A sealed leave entry answers only for its own days in each run, and a sealed claim, adhoc or repayment entry is never paid again.
+`employee_balance` — `employee_id` (unique), `account` JSON map keyed by family (`leave`, `claim`, `pay`, `statutory`), code, period and measure. One row per employee; projection only. It holds accumulated values and entitlements, and what is left is derived. The balance follows the person, not the stint: payroll reads it by `employee_id`, and a transfer never creates a second balance or edits the projection directly ([transfer semantics](transfer-semantics.md#3-balance-semantics)).
 
 `ledger_entry` — `balance_id`, `operation` (`ADD`, `DEDUCT`), `account`, `code`, `period`, `measure`, optional `amount` and `unit` (`DAY`, `CALENDAR_DAY`, `HOUR`, `MONEY`, `COUNT`), `effective_on`, `source` (plain text naming what caused the movement), optional `note`. Rows are immutable. Posting and
 sync write them; HR writes one by hand on the employee profile as a manual adjustment (`source` `manual:<id>`, signed days
@@ -263,59 +246,43 @@ adjustments are hours, and a half day taken on it uses half the agreed `normal_h
 
 ## 9. Roster
 
-`roster_entry` — `employment_id`, optional `payroll_run_id`, `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `overtime_as_time_off` (the worker takes the day's planned overtime as time off: the run prices none of it, and the payslip posts its hours to the law's one leave row whose lookup says `overtime_as_time_off: true`, an hour-unit row, `unit: 'HOUR'`), `consent` (`night_work`, `overtime`, `reference`), `actual_worked_intervals`, `findings` (the roster warnings stored on the day; a law's `roster_warnings.monthly_overtime_hours` is hours counted on every day, or `{ hours, day_types }` counted on the day types it names). One entry per employment and date. The `shift_pattern_id` of the terms in force supplies the plan; every employee with attendance gets a roster, office staff included, and a paid work day without a clock gets one. The roster is the cycle's source of truth: the planned days and the clock evidence. `ABS` is not a shift code or a roster row: the engine reads a planned work day the roster leaves out (no leave, no published holiday), or a planned `WORK` day with no clock, as an absence. Leave and PH are not absences, and the engine does not infer the worker class.
+`roster_entry` — `employment_id`, optional `payroll_run_id`, `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `overtime_as_time_off` (the worker takes the day's planned overtime as time off: the run prices none of it, and the payslip posts its hours to the law's one leave row whose lookup says `overtime_as_time_off: true`, an hour-unit row, `unit: 'HOUR'`), `consent` (`night_work`, `overtime`, `reference`), `actual_worked_intervals`, `findings` (the roster warnings stored on the day; a law's `roster_warnings.monthly_overtime_hours` is hours counted on every day, or `{ hours, day_types }` counted on the day types it names). One entry per employment and date. The `shift_pattern_id` of the terms in force supplies the plan; a paid work day without a clock gets a roster day. How the run reads the roster and an absence is in [section 0](0001-hrms-calculation-architecture.md#attendance-and-roster).
 
 A run sets `payroll_run_id` on the days it prices. A priced day may be changed or deleted, and a day may be added in a paid period: the write carries the amendment row. A day is priced under the terms in force on its date.
 
 ## 10. Expression context
 
-| Context             | Contents                                                              |
-| ------------------- | --------------------------------------------------------------------- |
-| `ctx.subject`       | employee, employment, employer data                                   |
-| `ctx.entry`         | catalogue entry and admitted quantity/unit                            |
-| `ctx.lookup`        | the jurisdiction's shared tables and constants under the row's own    |
-| `ctx.balances`      | `ytd`, `statutory_contribution`, `month`, `years`                     |
-| `ctx.base_pay`      | the running checkpoint; default base pay at the first                 |
-| `ctx.day_rate`      | the jurisdiction's day rate for this person                           |
-| `ctx.hour_rate`     | the jurisdiction's hour rate for this person                          |
-| `ctx.month_wage`    | the person's monthly wage, included allowances with it                |
-| `ctx.calendar_days` | calendar days of the salary coverage                                  |
-| `ctx.working_days`  | ordinary working days of the salary coverage                          |
-| `ctx.paid_share`    | allowance: the share of the period paid, the salary's own             |
-| `ctx.subtotals`     | completed earlier subtotal results only                               |
-| `ctx.statutory`     | completed earlier statutory results by scheme code                    |
-| `ctx.overtime`      | the run's overtime pay, in statutory evaluation                       |
-| `ctx.posted`        | what this run's ad hoc entries post to a statutory account            |
-| `ctx.work`          | the period's roster days and their priced minutes                     |
-| `ctx.leave`         | the run's priced leave slots: `code`, `date`, `part`, `paid_share`    |
-| `ctx.run`           | payroll frame during a run                                            |
-| `ctx.reads`         | declared reads for validation and registered effects                  |
-| `ctx.event`         | the write a rule or effect answers to; the fact an entitlement counts |
-| `ctx.used`          | leave `paid_share`: days of the row its window used before the slot   |
-| `ctx.work_events`   | applicable work events: entity-wide plus this employment's            |
-| `ctx.as_of`         | the date the expression is evaluated for                              |
-
-The employment a run or sync hands to a row (`ctx.subject.employment`), and a registered rule's or effect's employment
-read that names either field, carries two worked-out starts: `service_started_on`, the service start
-(`cumulative_service` decides whether earlier stints count; a credit from elsewhere wins where earlier), and
-`employment_started_on`, the start of the current unbroken employment, for statutes that count employment in the year rather
-than service.
+| Context                                 | Contents                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ctx.subject`                           | The employee, the employment on the day and the employer                                                      |
+| `ctx.entry`                             | The catalogue entry and its admitted quantity and unit                                                        |
+| `ctx.lookup`                            | The jurisdiction's shared tables and constants under the row's own                                            |
+| `ctx.balances`                          | `ytd`, `statutory_contribution`, `month`, `years`                                                             |
+| `ctx.base_pay`                          | The running checkpoint; default base pay at the first                                                         |
+| `ctx.month_wage`                        | The person's monthly wage, included allowances with it                                                        |
+| `ctx.day_rate`, `ctx.hour_rate`         | The jurisdiction's day and hour rate for this person                                                          |
+| `ctx.calendar_days`, `ctx.working_days` | Calendar days and ordinary working days of the salary coverage                                                |
+| `ctx.paid_share`                        | Allowance: the share of the period paid, the salary's own                                                     |
+| `ctx.subtotals`, `ctx.statutory`        | Completed earlier subtotal results, and completed earlier statutory results by scheme code                    |
+| `ctx.overtime`                          | The run's overtime pay, in statutory evaluation                                                               |
+| `ctx.posted`                            | What this run's ad hoc entries post to a statutory account                                                    |
+| `ctx.encashment`                        | Leave paid out in money                                                                                       |
+| `ctx.work`                              | The period's roster days and their priced time                                                                |
+| `ctx.leave`                             | The run's priced leave slots: `code`, `date`, `part`, `paid_share`                                            |
+| `ctx.work_events`                       | Applicable work events: entity-wide plus this employment's                                                    |
+| `ctx.run`                               | The run row: its kind, period, salary coverage and pay date                                                   |
+| `ctx.event`                             | The write a rule or effect answers to; for leave, the fact that opened the row and that an entitlement counts |
+| `ctx.used`                              | Leave `paid_share`: days of the row its window used before the slot                                           |
+| `ctx.as_of`                             | The date the expression is evaluated for                                                                      |
+| `ctx.reads`, `ctx.before`, `ctx.after`  | Rules and effects: their declared reads and the row either side of a write                                    |
 
 No `ctx.components`, `ctx.rates`, `ctx.basis`, `ctx.assessment`, `ctx.recovery_budget`, `ctx.references` or `ctx.earlier`.
 
-## 10.1 Work events
-
-A `work_event_catalog` row is a row of the law: its code is the event type, with no category enum and no
-suspension catalog. A `work_event` records a dated real-world condition — heat period, hurricane, earthquake, epidemic
-or suspension — with an entity, optional employment, `catalog_code`, start, optional end, location and evidence.
-The run and the leave sync expose applicable events as `ctx.work_events`. The event pays nothing; an allowance, adhoc
-or leave row reads it and remains the thing that posts. Workplace cases stay employee-specific incidents.
-
-## 11. Schema and seed constraints
+## 11. Schema constraints
 
 - Schema history is generated by `bolt build`; destructive steps carry an explicit `-- accept:` line inside their block.
-- Seed balances are ledger movements, not direct projection writes. Seed no payroll runs, payslips, YTD or per-run statutory results.
 - The model tree is final. Do not add compatibility models, aliases, duplicate declarations or history bags in JSON.
+- What the seed may hold is in [the seed specification](0003-jurisdiction-seed-specification.md#5-authoring-rules).
 
 ## 12. Acceptance
 

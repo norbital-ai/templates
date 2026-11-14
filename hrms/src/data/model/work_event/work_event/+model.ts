@@ -2,7 +2,7 @@ import { model } from '../../../../../.norbital/models/work_event.ts';
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor, amendmentsIn, amendmentsOf } from '../../../../lib/amendments.js';
+import { amendmentsFor, amendmentsIn, amendmentsOf, refusing } from '../../../../lib/amendments.js';
 import type { WriteCtx } from '@norbital-ai/bolt';
 import type { Reader } from '../../../../lib/payroll_engine/reads.js';
 import { Effect } from 'effect';
@@ -35,7 +35,7 @@ const amended = Effect.fnUntraced(function* (read: Reader, rows: readonly Dated[
 
 /** An event names a row its company's law holds, and answers that law's registered rules. */
 const placed = (
-	ctx: Pick<WriteCtx<'work_event'>, 'query' | 'refuse'>,
+	ctx: WriteCtx<'work_event'>,
 	operation: 'create' | 'update',
 	changes: readonly { readonly after: object }[]
 ) =>
@@ -44,11 +44,7 @@ const placed = (
 		'work_event',
 		operation,
 		changes.map(({ after }) => jsonObject(after))
-	).pipe(
-		Effect.catchTag('Refusal', (error) =>
-			ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-		)
-	);
+	).pipe(refusing(ctx));
 
 export default model({
 	description:

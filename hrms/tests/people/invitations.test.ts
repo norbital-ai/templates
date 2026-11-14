@@ -8,7 +8,7 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { pack, uuid, workspace, storedQuery, packTerms } from '../kit.ts';
 
 const NOW = '2026-02-20T02:00:00.000Z';
-const base = pack('MY', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
+const base = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(3120, 'MANUAL_LABOUR'), {}, [], []);
 const user = (id: number, name: string) => ({
 	id: uuid(id),
 	name,

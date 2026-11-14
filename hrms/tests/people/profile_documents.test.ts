@@ -23,7 +23,7 @@ import {
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const PROFILE = idOf('employee_profile', uuid(4));
-const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
+const seed = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 /** The profile as stored now: a write's target at its current revision. */
 const profile = (t: Kit) =>
 	storedQuery(t, { employee_profile: { where: { id: { eq: PROFILE } }, limit: 1 } }).pipe(

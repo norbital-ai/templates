@@ -1,6 +1,20 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { model } from '../../../../.norbital/models/entity.ts';
 
+/** The company's fields a writer sets. */
+const columns = [
+	'code',
+	'name',
+	'settings_code',
+	'representative_name',
+	'registered_address',
+	'time_zone',
+	'bank',
+	'source_reference',
+	'epf_registered_on',
+	'socso_registered_on'
+] as const;
+
 export default model({
 	description:
 		'One company. Its own fields never change by date, so an edit is a correction; what changes from a date is an entity_change row.',
@@ -54,20 +68,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'code',
-				'name',
-				'settings_code',
-				'representative_name',
-				'registered_address',
-				'time_zone',
-				'bank',
-				'source_reference',
-				'epf_registered_on',
-				'socso_registered_on'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			const blank = changes.findIndex(({ set }) => set.code != null && set.code.trim() === '');
 			if (blank >= 0)
@@ -84,20 +85,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'code',
-				'name',
-				'settings_code',
-				'representative_name',
-				'registered_address',
-				'time_zone',
-				'bank',
-				'source_reference',
-				'epf_registered_on',
-				'socso_registered_on'
-			]
-		},
+		columns: { fields: columns },
 		transform: function* (changes, ctx) {
 			for (const [row, change] of changes.entries()) {
 				const { before, set } = change;

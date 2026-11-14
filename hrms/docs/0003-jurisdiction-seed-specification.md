@@ -61,21 +61,15 @@ law
 
 ## 4. Changes
 
-- The first change is the whole law on 1 December 2025.
-- Each later change is the patch a change in law made on its date. It has the same keys and holds only what changes.
-- A field set to `null` is removed. A row set to `null` is removed. A table or an expression is replaced whole: a patch states the whole new value of a field, never a part of it.
-- The law on a day is the fold: the changes dated on or before it, applied oldest first.
+How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). In the seed:
+
+- The first change is the whole law on 1 December 2025. Each later change has the same keys and holds only what changes.
+- A patch states the whole new value of a field, never a part of it: a table or an expression is replaced whole. A field or a row set to `null` is removed.
 - A change exists only because something changed that day.
 - A change already enacted with a later date of effect is seeded in advance, as its own change from that date.
 - A change not yet enacted is not seeded. Research files it as a `statutory_finding` with its `jurisdiction_change` rows, and it is in force once a person confirms the finding.
 - A value wrong since it was set is corrected on the change that set it, never copied into a later one.
 - A reference's `effective_from` is the date its source took effect. A later change does not rewrite it.
-
-```mermaid
-flowchart LR
-  c1[First change<br/>2025-12-01<br/>the whole law] --> c2[Change<br/>a patch in force]
-  c2 --> c3[Change<br/>enacted, future date]
-```
 
 ## 5. Authoring rules
 
@@ -83,23 +77,19 @@ flowchart LR
 
 Formulas select an evidenced base and assess an amount. The ledger service owns balance admission and posting; the engine owns dependency order and rounding.
 
-- A jurisdiction's shared tables and shared constants live in its global `lookup`, each with a declared shape. A value read by one row lives on that row's own `lookup`, which wins over the global one.
-- Every `lookup` key is read by an expression or by code. Global `lookup` keys must be shared values; a single-reader value belongs to its row.
-- Employee extension schemas are flat: no `facts`, `term_facts`, `exit_facts` or `elections` bucket. `statutory.<SCHEME>` and `events[]` stay nested.
+- A jurisdiction's global `lookup` holds only shared tables and shared constants, each with a declared shape. A value read by one row lives on that row's own `lookup`, which wins. Every `lookup` key is read by an expression or by code.
 - Statutory bases come from completed subtotals and explicit catalog references. A tax formula reuses contribution results rather than reproducing their maths.
 - Legal distinctions and dated exceptions are preserved. Splitting a formula across more fields does not count as simplification.
 - Minification, opaque helpers and copied orchestration are rejected.
-- Expressions carry statute citations, never working notes.
 - A rule or effect validates nothing the model's own write boundary already checks (the agreed rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
 - The extension schemas are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate`: it rewrites `params.ts` from the seed. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts` fails until they match.
 - A seed edit or audit across the law packs is one agent per jurisdiction, each with the same brief.
 
 ### Structure
 
-- `subtotal` rows carry `name`, `previous`, `balance_window` (`MONTH` or `YEAR`) and optional `calculation`. The first computes base pay; later rows accumulate producer lines. Statutory rows carry `balance_window` too. Do not seed output bindings, phases, channels, order fields or subtotal-held catalogue lists.
+- `subtotal` and statutory rows carry `balance_window` (`MONTH` or `YEAR`). Do not seed output bindings, phases, channels, order fields or subtotal-held catalogue lists.
 - Static catalogues hold confirmed definitions and leave `subtotal` out when they create no pay line. Non-static catalogues own their entries, which name their row by `catalog_code`.
-- The law must hold on every change date: expressions parse and read only their family's roots, the chain is linear, statutory dependencies are acyclic, and every `subtotal` a row names is a subtotal of the law that day. A patch that removes a row also changes or removes every row that names it.
-- `conversions.rounding.day_rate` is `RATE` (the default) or `AMOUNT`. `RATE` rounds the day rate before it multiplies the days; `AMOUNT` rounds only the amount. The Philippines uses `AMOUNT`.
+- The law must hold on every change date, by the checks every write to a change runs. A patch that removes a row also changes or removes every row that names it.
 - `conversions.back_pay` names the ad hoc row that prices back pay, where the law prices it apart from ordinary pay: Singapore names `ADDITIONAL_BACKPAY` and Indonesia `RETROACTIVE_PAY`. Every other law leaves it out, so a terms row there applies from its date.
 - Seed no refund or adjustment row per scheme, and no effect for a contribution correction. A contribution wrong in a paid period is corrected at its source and the next run carries the difference. The generic `STATUTORY_REFUND` and `STATUTORY_ADJUSTMENT` rows hold a refund or charge decided outside the system. A row a statute's own procedure needs stays: Malaysia's `NO_PAY_ADJUSTMENT` and `NO_PAY_REFUND`, Japan's `SOCIAL_INSURANCE_ADJUSTMENT` and `SOCIAL_INSURANCE_REFUND`.
 - A tax row that counts what an ad hoc entry posts to a statutory account reads it as `ctx.posted.<SCHEME>.<employee|employer>` (Indonesia's `EMPLOYER_PAID_BENEFIT`, a benefit in kind).

@@ -1,4 +1,5 @@
 import { model } from '../../../../.norbital/models/statutory_finding.ts';
+import { refusing } from '../../../lib/amendments.js';
 import type { CarriedWrites } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { lawWrite, syncLedgerOn } from '../../../lib/payroll_engine/configuration.js';
@@ -110,11 +111,7 @@ export default model({
 										? row
 										: { ...row, finding_id: { ...row.finding_id, status: next } };
 								})
-						).pipe(
-							Effect.catchTag('Refusal', (error) =>
-								ctx.refuse('errors.payroll_refused', { values: { message: error.message } })
-							)
-						);
+						).pipe(refusing(ctx));
 			const confirming = changes.filter(({ set }) => set.status === 'CONFIRMED');
 			if (confirming.length === 0)
 				return { sets: changes.map(({ set }) => set), on_approved: yield* carried };

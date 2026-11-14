@@ -51,7 +51,7 @@ describe('monthly overtime cap', () => {
 const LONG_SHIFT = idOf('shift_definition', uuid(20));
 const PATTERN = idOf('shift_pattern', uuid(21));
 const base = pack(
-	'MY',
+	'ZZ',
 	'Asia/Kuala_Lumpur',
 	{ ...packTerms(60_000), shift_pattern_id: PATTERN },
 	{},

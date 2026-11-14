@@ -17,7 +17,7 @@ import {
 
 const NOW = '2026-10-06T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
-const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
+const seed = pack('ZZ', 'Asia/Kuala_Lumpur', packTerms(8000), {}, [], []);
 const leave = (days: ReturnType<typeof wholeDays>) =>
 	leaveCreate({
 		entity_id: ENTITY,

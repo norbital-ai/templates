@@ -9,8 +9,7 @@
 		"dev": "bolt dev",
 		"test": "bolt test",
 		"format": "prettier --write .",
-		"registry:generate": "node scripts/generate-registries.mjs",
-		"extension:schemas": "node scripts/extension-schemas.mjs"
+		"registry:generate": "node scripts/generate-registries.mjs"
 	},
 	"dependencies": {
 		"@cfworker/json-schema": "4.1.1",

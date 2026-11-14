@@ -4,7 +4,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { amendments, claimed, pay, raisedFrom, rostered } from '../amendment_kit.ts';
+import {
+	amendments,
+	claimed,
+	pay,
+	raisedFrom,
+	rosteredNeutral as rostered
+} from '../amendment_kit.ts';
 import { ENTITY, current, refusal, storedQuery, workspace } from '../kit.ts';
 
 const MONTHS = ['2026-01', '2026-02'] as const;

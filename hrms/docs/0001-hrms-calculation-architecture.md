@@ -237,7 +237,7 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 | `pay_amendment`                       | One paid period of one person to work out again, and the run that carried it                                                                                      | What changed, or any amount                                          |
 | `obligation`                          | A task or reminder raised by an event, with its state                                                                                                             | Money or balances                                                    |
 
-A person, a company and a law have no lifecycle. A plain field is edited in place, and a dated row is added, edited, moved or deleted. The employment on a day is the fold of the stint's `contract_terms` and `statutory_parameters` rows dated on or before it, with the profile's particulars and the person's dependants (`employmentOn` in `src/lib/person.ts`). A terms or parameters row is dated the first of a month, or the stint's first day; a stint's first and last days are real dates. Stints of one person do not overlap. The company on a day is the fold of its `entity_change` rows dated on or before it; a field no change has set holds its default. A run prices on the company as it stands on the last day of its salary period. Field-level detail is in [the model specification](0002-model-specification.md); stints, transfers and exits are in [transfer semantics](transfer-semantics.md).
+A person, a company and a law have no lifecycle: a plain field is edited in place, and a dated row is added, edited, moved or deleted ([dated changes](0011-dated-changes.md)). Each model's fields and write rules are in [the model specification](0002-model-specification.md); stints, transfers and exits are in [transfer semantics](transfer-semantics.md).
 
 ### One owner per fact
 
@@ -340,32 +340,10 @@ A catalogue row describes how one thing behaves: one leave type, one allowance, 
 Notes:
 
 - Only ad hoc rows state a `direction` and a `party`. `party EMPLOYER` is employer cost and never enters net pay. A quantity below zero flips its entry's line.
-- A refund or charge decided outside the system is keyed on the generic `STATUTORY_REFUND` or `STATUTORY_ADJUSTMENT` row, which names the account it moves. A contribution that was wrong in a paid period needs no entry: correct the record and the next run carries the difference.
 - A leave entry is a list of dated half-day slots (`AM`, `PM`). Its quantity is the number of slots ÷ 2. A row that counts in hours takes half the agreed normal day for each slot.
 - A claim on a row with a yearly limit pays what the limit leaves. The run pays what the ledger posted.
-- An entry carries `entity_id`, `employment_id`, `catalog_code`, evidence and an optional `payroll_run_id`. The run that pays it sets `payroll_run_id`. The entry may still be corrected: its write leaves an amendment row for the paid period.
 
-Each family may read only its declared context roots. An expression is a deterministic JavaScript function body with an explicit return, run by a bounded interpreter. A missing value is unknown, never zero. There is no database access, no clock and no undeclared call.
-
-| Root                                      | Holds                                                                               |
-| ----------------------------------------- | ----------------------------------------------------------------------------------- |
-| `ctx.subject`                             | The employee, the employment on the day and the employer                            |
-| `ctx.entry`                               | The catalogue entry and its quantity                                                |
-| `ctx.lookup`                              | The jurisdiction's shared lookup under the row's own                                |
-| `ctx.balances`                            | `ytd`, `statutory_contribution`, `month`, `years`                                   |
-| `ctx.base_pay`                            | The running checkpoint                                                              |
-| `ctx.month_wage`, `day_rate`, `hour_rate` | The person's monthly wage and the rates the jurisdiction derives                    |
-| `ctx.calendar_days`, `working_days`       | Days of the salary period                                                           |
-| `ctx.paid_share`                          | The share of the period paid (allowances)                                           |
-| `ctx.subtotals`, `ctx.statutory`          | Completed earlier subtotals and schemes only                                        |
-| `ctx.posted`, `ctx.encashment`            | What this run's ad hoc entries post to a statutory account; leave paid out in money |
-| `ctx.overtime`, `ctx.work`                | The run's overtime pay; the period's roster days and their priced hours             |
-| `ctx.work_events`                         | Dated work events that reach this employment                                        |
-| `ctx.run`                                 | The run row: its kind, period, salary coverage and pay date                         |
-| `ctx.event`, `ctx.used`, `ctx.as_of`      | Leave: the fact that opened the row, days used before the slot, its date            |
-| `ctx.reads`, `ctx.before`, `ctx.after`    | Rules and effects: their declared reads and the row either side of a write          |
-
-The employment in `ctx.subject` is the stint as it stands on the day (`employmentOn` in `src/lib/person.ts`): its own fields (`id`, `employee_number`, `effective_range`, the exit answers, `events`), `engagement`, `pay_group_id`, `terms` (the agreed terms in force, with `signed_on`, residency and the work pass), `payroll` (date of birth, identity number, gender, birth city, marital status, nationality, passport number), `family` (the person's dependants), `bank` and `employee_extension_data` (the `parameters` in force). It also carries `service_started_on` (the service start `cumulative_service` decides) and `employment_started_on` (the start of the current unbroken employment).
+Each family may read only its declared context roots, listed in [the model specification](0002-model-specification.md#10-expression-context). An expression is a deterministic JavaScript function body with an explicit return, run by a bounded interpreter. A missing value is unknown, never zero. There is no database access, no clock and no undeclared call.
 
 ## 5. What the engine computes and what catalogues declare
 
@@ -400,16 +378,6 @@ The terms state the rate as `MONTHLY`, `DAILY` or `HOURLY`. A daily or hourly ra
 
 ### The chain
 
-```mermaid
-flowchart LR
-  basic[BASIC<br/>agreed pay] --> prorated[PRORATED<br/>less days not employed<br/>and absences]
-  prorated --> paidbasic[PAID_BASIC<br/>less unpaid leave]
-  paidbasic --> later[Later subtotals<br/>plus allowances, overtime,<br/>claims, ad hoc]
-  later --> statutory[Statutory schemes<br/>in depends_on order]
-  statutory --> net[NET<br/>after deductions<br/>and loans]
-  net --> carried[Lines for<br/>earlier periods]
-```
-
 1. **`BASIC`** is base pay from the terms in force: the monthly salary, the daily rate × working days, or the hourly rate × ordinary hours.
 2. **`PRORATED`** takes off days not employed and absences.
 3. **`PAID_BASIC`** takes off the unpaid part of leave: each slot's `(1 − paid_share)`, posted as an `NPL` line. Paid leave creates no line.
@@ -419,8 +387,6 @@ flowchart LR
 7. **Differences for earlier periods** are added last: each line tagged with its `period`, and "Recovery carried forward" where they would take net pay below zero.
 
 An allowance takes the same share as the salary when its conversion reads `ctx.paid_share`; otherwise it pays whole.
-
-A terms or parameters row is dated the first of a month, or the stint's first day, so a month is priced on one set of terms. A stint's first and last days are real dates, and the period's proration pays those days. A roster day, and its overtime, is priced under the terms in force on its date.
 
 ### Month-to-date and year-to-date
 
@@ -435,7 +401,7 @@ A payslip posts each checkpoint as `pay/<subtotal>/<period>/total` and each sche
 
 `jurisdiction.tax_year_start_month` sets the year. The first run of a new year, a new jurisdiction, or a new employer under `ytd_scope: EMPLOYER` reads an empty year.
 
-Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest. So a bonus owes the same inside the on-cycle run or off-cycle, before or after it. A wrong payment in a paid period is corrected at its source: the next run works that period out again, its statutory rows included, and carries the difference to that period's own totals.
+Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest. So a bonus owes the same inside the on-cycle run or off-cycle, before or after it.
 
 ## 6. Ledger and balance
 
@@ -466,15 +432,6 @@ What is left is never stored: `entitled + carried + limit − used`. A row with 
 A ledger row is `balance_id`, `operation` (`ADD`, `DEDUCT`), `account`, `code`, `period`, `measure`, `amount` (never negative), `unit`, `effective_on`, `source` and an optional `note`. `source` is plain text such as `leave_catalog_entry:<id>`, so a movement outlives what caused it.
 
 ### Three ways in
-
-```mermaid
-flowchart LR
-  posting[Posting<br/>leave, claim, ad hoc,<br/>payslip] --> service[Ledger service<br/>writes the difference]
-  sync[Sync<br/>the ledger automation] --> service
-  manual[Manual row<br/>HR, on the profile] --> service
-  service --> ledger[ledger_entry<br/>append-only]
-  ledger --> balance[employee_balance<br/>the running totals]
-```
 
 | Way               | When                                              | Source                                    | Moves                                                             |
 | ----------------- | ------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------- |
@@ -542,7 +499,7 @@ The row's `lookup` holds the rule:
 
 A birth, a marriage, a bereavement or a long illness is a fact about a person. A child is a `dependant`, dated by its birth or expected date. Anything else is an item in the stint's `events` (`kind`, `on`, optional `opened_on` and `ended_on`). Writing either triggers sync, and each leave row whose `opened_by` names the kind opens for that event, in its own period. Days left from one birth do not stack onto the next. Two children born on one day are one birth.
 
-A fact keeps its real date: a child registered late opens its leave on the birth date. A terms row, a parameters row or a company change dated ahead is a row not yet in force. Nothing materialises it, and the ledger syncs on its day.
+A fact keeps its real date: a child registered late opens its leave on the birth date.
 
 ### Old periods
 
@@ -553,8 +510,8 @@ Sync takes old periods off the balance through dated movements: a month total mo
 - A **registered rule** validates a write. It names a target model, the events (`create`, `update`, `delete`), its declared reads and a validation expression. It runs inside the target model's write and refuses with the rule's own message.
 - A **registered effect** runs after a commit. It names a source model, the events (`create`, `update`, `delete`, `exit`), its reads, a condition and an expression that returns the records to write. Every seeded effect creates an `obligation`.
 - An **obligation** is a task or reminder: entity, optional person and employment, title, optional due date, an `occurrence_key` that keeps it to one, and a state. `OPEN → FULFILLED` or `OPEN → WAIVED`; a waived task can be reopened; a fulfilled one keeps its record. It holds no money and posts nothing.
-- **The employment in a rule.** A rule or effect on `employment` runs on a write to a stint, to its `contract_terms` or to its `statutory_parameters`. Its entry is the employment on the written row's day: on the terms and parameters in force that day, with `effective_range` from the first day those terms stood to the stint's last day. `ctx.before` is the employment as it stood without the write, and is null for a hire. `exit` runs when a stint becomes an exit; its entry is the employment on the last day.
-- **The company in a rule.** A rule or effect on `entity_change` reads, as its entry, the folded company on the change's date. One on `entity` reads an update of the company's own fields. Every other rule reads the company through `ctx.subject.employer`, as it stands on the row's own day.
+- **The employment in a rule.** A rule or effect on `employment` runs on a write to a stint, to its `contract_terms` or to its `statutory_parameters`. Its entry is the employment on the written row's day (the stint's first day for the stint itself): on the terms and parameters in force that day, with `effective_range` from the first day those terms stood to the stint's last day. `ctx.before` is the employment as it stood without the write, and is null for a hire. `exit` runs when a stint becomes an exit; its entry is the employment on the last day. A declared read of `employment` answers the stints as they stand on the reading row's own day.
+- **The company in a rule.** A rule or effect on `entity_change` reads, as its entry, the folded company on the change's date, with an `effective_range` from that date to the day before the next change. One on `entity` reads an update of the company's own fields. Every other rule reads the company through `ctx.subject.employer`, as it stands on the row's own day.
 
 A leave or claim entry's effects run in the `registered_effects` automation, under the system identity, once the entry is not waiting for approval. A check with a deadline ahead, such as a permit or a retirement date, sits on the payslip and runs at every run; its `occurrence_key` keeps it to one task. A run effect looks for its own task before raising it.
 
@@ -610,6 +567,7 @@ src/lib/
     pay_cycle.ts        cycles, pay dates, attendance windows
     loan_schedule.ts    loan schedules and final recovery
   law.ts                the law on a day: what a run, a write or a screen reads
+  company.ts            the company on a day: the fold of its dated changes
   person.ts             the employment on a day: the fold of a stint's dated rows, exits, service starts
   dated.ts              the fold of dated changes, the reach of a change, a correction
   amendments.ts         the amendment rows a write carries; every model a run reads and its rule
