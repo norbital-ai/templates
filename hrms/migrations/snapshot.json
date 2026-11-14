@@ -597,6 +597,10 @@
 				"name": {
 					"kind": "text"
 				},
+				"number": {
+					"kind": "seq",
+					"pattern": "HR-{0000}"
+				},
 				"phone": {
 					"format": "phone",
 					"kind": "text",

@@ -409,6 +409,7 @@ export default messages({
 	'models.entity.fields.settings_code': '国家薪酬规则',
 	'models.employee_profile.label': '雇佣档案',
 	'models.employee_profile.singular': '雇佣档案',
+	'models.employee_profile.fields.number': '默认员工编号',
 	'models.employee_profile.fields.documents': '文件',
 	'models.employee_profile.fields.face_photo': '人脸照片',
 	'models.employee_profile.fields.face_enrollment_status': '人脸登记',

@@ -33,7 +33,23 @@ export const workspace = <P extends TestPorts = never>(
 		Extract<TestOptions<P>, { artifact?: never }>,
 		'root' | 'manifest' | 'guest' | 'transforms'
 	> = {}
-) => TestWorkspace.layer({ root: process.cwd(), ...options });
+) =>
+	TestWorkspace.layer({
+		root: process.cwd(),
+		...options,
+		// a seeded person carries the number the database would have counted
+		...(typeof options.seed !== 'object' || options.seed.employee_profile === undefined
+			? {}
+			: {
+					seed: {
+						...options.seed,
+						employee_profile: options.seed.employee_profile.map((row, index) => ({
+							number: `HR-${String(index + 1).padStart(4, '0')}`,
+							...row
+						}))
+					}
+				})
+	});
 
 const OPTIONS = new Set([
 	'where',

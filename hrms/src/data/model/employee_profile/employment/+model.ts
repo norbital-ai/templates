@@ -927,32 +927,29 @@ export default model('employment', {
 				return yield* ctx.refuse('errors.employment_service_after_start', {
 					field: 'service_started_on'
 				});
-			// a person keeps their number across stints; a new person takes the next one
+			// a person keeps their number across stints; a new person takes the one their profile was given, which the
+			// database counts: two hires at once never share one
+			const people = [...new Set(rows.map((row) => row.employee_id))];
 			const existing = yield* ctx.query({
-				employment: { fields: ['employee_id', 'employee_number'], limit: 10000 }
+				employment: {
+					where: { employee_id: { in: people } },
+					fields: ['employee_id', 'employee_number'],
+					limit: 10000
+				},
+				employee_profile: { where: { id: { in: people } }, fields: ['number'], limit: 10000 }
 			});
-			const numbers = new Map(
-				existing.employment.rows.map((row) => [String(row.employee_id), row.employee_number])
-			);
-			let next =
-				existing.employment.rows.reduce((max, row) => {
-					const match = /^HR-(\d+)$/.exec(String(row.employee_number ?? ''));
-					return match === null ? max : Math.max(max, Number(match[1] ?? 0));
-				}, 0) + 1;
-			const assigned = new Map<string, string>();
+			const numbers = new Map<string, string>([
+				...existing.employee_profile.rows.map((row) => [String(row.id), row.number] as const),
+				...existing.employment.rows.map(
+					(row) => [String(row.employee_id), row.employee_number] as const
+				)
+			]);
 			return {
-				sets: rows.map((row) => {
-					if (row.employee_number != null && row.employee_number !== '') return row;
-					const employee = String(row.employee_id);
-					const heldNumber = numbers.get(employee);
-					if (heldNumber != null && heldNumber !== '')
-						return { ...row, employee_number: heldNumber };
-					const assignedNumber = assigned.get(employee);
-					if (assignedNumber !== undefined) return { ...row, employee_number: assignedNumber };
-					const number = `HR-${new Intl.NumberFormat('en', { minimumIntegerDigits: 4, useGrouping: false }).format(next++)}`;
-					assigned.set(employee, number);
-					return { ...row, employee_number: number };
-				}),
+				sets: rows.map((row) =>
+					row.employee_number != null && row.employee_number !== ''
+						? row
+						: { ...row, employee_number: numbers.get(String(row.employee_id)) ?? '' }
+				),
 				// a stint over paid periods amends them: the next run works each out again
 				on_approved: yield* amendmentsFor(
 					ctx.query,

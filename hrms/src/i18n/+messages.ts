@@ -412,6 +412,7 @@ export default messages({
 	'models.entity.fields.settings_code': 'Country payroll rules',
 	'models.employee_profile.label': 'Employment profiles',
 	'models.employee_profile.singular': 'Employment profile',
+	'models.employee_profile.fields.number': 'Default employee number',
 	'models.employee_profile.fields.documents': 'Documents',
 	'models.employee_profile.fields.face_photo': 'Face photo',
 	'models.employee_profile.fields.face_enrollment_status': 'Face enrolment',

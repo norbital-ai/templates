@@ -49,6 +49,8 @@ export default model('employee_profile', {
 	icon: 'lucide:user',
 	record_label: 'record.name',
 	fields: {
+		/** Counted by the database, never reused: the employee number a first stint takes unless one is given. */
+		number: { kind: 'seq', pattern: 'HR-{0000}' },
 		source_reference: { kind: 'text', optional: true },
 		cumulative_service: { kind: 'bool', default: false },
 		// the person's fixed particulars: a different value can only mean the old one was wrong
