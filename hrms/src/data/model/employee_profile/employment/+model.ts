@@ -71,6 +71,7 @@ const REQUIRED = 'errors.contract_terms_required' as const;
 const NO_PAY_GROUP = 'errors.contract_terms_choose_pay_group' as const;
 const OTHER_PAY_GROUP = 'errors.contract_terms_pay_group_other_company' as const;
 const OVERLONG = 'errors.contract_terms_shift_overlong' as const;
+const OTHER_PATTERN = 'errors.contract_terms_shift_pattern_other_company' as const;
 
 const dayFrom = (day: string, days: number) =>
 	DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days }));
@@ -329,7 +330,7 @@ const standing = Effect.fnUntraced(function* (
 					]
 				}
 			},
-			fields: ['id', 'pattern'],
+			fields: ['id', 'entity_id', 'pattern'],
 			limit: 10000
 		}
 	});
@@ -508,6 +509,12 @@ const datedCheck = Effect.fnUntraced(function* (
 				)
 			)
 				return OTHER_PAY_GROUP;
+			const pattern = isJsonObject(employment.terms) ? employment.terms.shift_pattern_id : null;
+			if (
+				pattern != null &&
+				got.patterns.some((row) => row.id === pattern && row.entity_id !== employment.entity_id)
+			)
+				return OTHER_PATTERN;
 			checked.push({ employment, on: day });
 			entries.push(entryOn(now, day));
 			stood.push(stoodOn(was, key, verb, day));
@@ -936,8 +943,34 @@ export default model('employment', {
 					fields: ['employee_id', 'employee_number'],
 					limit: 10000
 				},
-				employee_profile: { where: { id: { in: people } }, fields: ['number'], limit: 10000 }
+				employee_profile: { where: { id: { in: people } }, fields: ['number'], limit: 10000 },
+				entity: {
+					where: { id: { in: [...new Set(rows.map((row) => row.entity_id))] } },
+					fields: ['settings_code'],
+					limit: 10000
+				},
+				jurisdiction: { fields: ['code'], limit: 1000 },
+				// which laws stand, without their megabytes
+				jurisdiction_change: {
+					fields: ['jurisdiction_code', 'effective_from', 'finding_id'],
+					limit: 10000,
+					finding_id: { fields: ['status'] }
+				}
 			});
+			// a hire is priced and checked under its company's law: none in force, no hire
+			const laws = lawsOf({
+				jurisdiction: existing.jurisdiction.rows.map(jsonObject),
+				jurisdiction_change: existing.jurisdiction_change.rows.map(jsonObject)
+			});
+			const lawless = rows.findIndex(
+				(row) =>
+					laws(
+						existing.entity.rows.find((entity) => entity.id === row.entity_id)?.settings_code,
+						String(row.effective_range.from)
+					) === undefined
+			);
+			if (lawless >= 0)
+				return yield* ctx.refuse('errors.employment_no_law', { row: lawless, field: 'entity_id' });
 			const numbers = new Map<string, string>([
 				...existing.employee_profile.rows.map((row) => [String(row.id), row.number] as const),
 				...existing.employment.rows.map(

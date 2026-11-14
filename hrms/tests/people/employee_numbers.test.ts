@@ -6,7 +6,17 @@ import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { ENTITY, PAY_GROUP, agreedTerms, pack, storedQuery, uuid, workspace } from '../kit.ts';
+import {
+	ENTITY,
+	PAY_GROUP,
+	agreedTerms,
+	keyOf,
+	pack,
+	refusal,
+	storedQuery,
+	uuid,
+	workspace
+} from '../kit.ts';
 
 const AGREED = agreedTerms(2800, 'MANUAL_LABOUR');
 const seed = pack(
@@ -96,5 +106,25 @@ describe('an employee number', () => {
 			assert.match(String(counted), /^HR-\d{4}$/);
 			assert.equal(again, counted);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-03-20T02:00:00.000Z' })))
+	);
+});
+
+describe('a hire', () => {
+	it.live('is refused while no law is in force for its company', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const admin = yield* t.as(t.admin);
+			const [first] = PEOPLE;
+			assert.ok(first !== undefined);
+			yield* admin.act({ 'employee_profile.create': [{ id: first, name: 'Person 0' }] });
+			const refused = yield* refusal(
+				admin.act({ 'employment.create': [hire(first, '2026-01-01')] })
+			);
+			assert.equal(keyOf(refused), 'errors.employment_no_law');
+		}).pipe(
+			Effect.provide(
+				workspace({ seed: { ...seed, jurisdiction_change: [] }, now: '2026-03-20T02:00:00.000Z' })
+			)
+		)
 	);
 });

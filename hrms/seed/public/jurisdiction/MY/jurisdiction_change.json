@@ -3356,7 +3356,7 @@
 					"order": 18
 				},
 				"ROSTER_DAILY_TOTAL": {
-					"description": "Checks that the rostered shift and its planned overtime do not take a day beyond twelve hours of work, and that a month's overtime on working or off days stays within the statutory cap; rest-day work is outside that cap.",
+					"description": "Checks that the rostered shift and its planned overtime do not take a day beyond twelve hours of work unless the day records its section 60A(2) ground and reference, and that a month's overtime on working or off days stays within the statutory cap; rest-day work is outside that cap.",
 					"target_collection": "roster_entry",
 					"events": ["create", "update"],
 					"lookup": {
@@ -3402,7 +3402,7 @@
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 						}
 					],
-					"validate": "// EA s.60A(7), s.60C(2): the day's rostered hours, net of unpaid breaks (s.60A(9)) and none on a rest or off day,\n// plus its planned overtime, stay within twelve hours.\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst variant = get(shift, 'variant', {});\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst length = (from, to) => (clock(to) - clock(from) + 1440) % 1440;\nlet rostered = 0;\nif (get(variant, 'day_type', 'WORK') === 'WORK') {\n\tif (get(variant, 'untimed_hours', null) != null) rostered = variant.untimed_hours * 60;\n\telse if (get(variant, 'start_time', null) != null && get(variant, 'end_time', null) != null) {\n\t\trostered = length(variant.start_time, variant.end_time);\n\t\tif (rostered === 0 && variant.ends_next_day === true) rostered = 1440;\n\t\tfor (const pause of get(variant, 'breaks', [])) if (pause.paid !== true) rostered = rostered - length(pause.start_time, pause.end_time);\n\t}\n}\nreturn rostered + interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= ctx.lookup.minutes_per_day;",
+					"validate": "// EA s.60A(7), s.60C(2): the day's rostered hours, net of unpaid breaks (s.60A(9)) and none on a rest or off day,\n// plus its planned overtime, stay within twelve hours.\nconst shift = ctx.reads.shift_definition.find((s) => s.id === get(ctx.entry, 'shift_definition_id', null));\nconst variant = get(shift, 'variant', {});\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst length = (from, to) => (clock(to) - clock(from) + 1440) % 1440;\nlet rostered = 0;\nif (get(variant, 'day_type', 'WORK') === 'WORK') {\n\tif (get(variant, 'untimed_hours', null) != null) rostered = variant.untimed_hours * 60;\n\telse if (get(variant, 'start_time', null) != null && get(variant, 'end_time', null) != null) {\n\t\trostered = length(variant.start_time, variant.end_time);\n\t\tif (rostered === 0 && variant.ends_next_day === true) rostered = 1440;\n\t\tfor (const pause of get(variant, 'breaks', [])) if (pause.paid !== true) rostered = rostered - length(pause.start_time, pause.end_time);\n\t}\n}\nif (rostered + interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= ctx.lookup.minutes_per_day) return true;\n// s.60A(7) excepts the circumstances of s.60A(2)(a) to (e): a longer day stands only with its ground on record.\nconst ground = get(ctx.entry, 'consent', null);\nreturn ground != null && ground.overtime === true && get(ground, 'reference', '') !== '';",
 					"order": 22
 				},
 				"CHILD_EMPLOYMENT": {

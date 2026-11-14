@@ -136,6 +136,16 @@ describe('roster workbook import', () => {
 		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
 	);
 
+	it.live('a day beyond the daily limit stands when it records its ground', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const plan = workbook('W3 2026-02-03');
+			const consent = { night_work: false, overtime: true, reference: 'EA s.60A(2)(d)' };
+			yield* importing(t, { ...plan, rows: plan.rows.map((row) => ({ ...row, consent })) }, false);
+			assert.equal(yield* stored(t), plan.rows.length);
+		}).pipe(Effect.provide(workspace({ seed: seeded, now: '2026-02-20T02:00:00.000Z' })))
+	);
+
 	it.live('a clean workbook writes every row in one act; importing it again updates them', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

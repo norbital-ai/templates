@@ -755,6 +755,8 @@ export default messages({
 	'errors.payroll_run_choose_group': 'Choose the pay group this run pays.',
 	'errors.payroll_run_group_other_company': 'The pay group belongs to another company.',
 	'errors.payroll_run_not_a_cycle': '{period} is not a pay cycle of {group}.',
+	'errors.employment_no_law':
+		'No law is in force for this company: confirm its jurisdiction’s law first.',
 	'errors.payroll_run_later_ran': '{later} has already run, so {period} cannot run after it.',
 	'errors.payroll_run_cycle_paid':
 		'{period} already paid {from} to {to} for {group}. Run the first cycle after it.',
@@ -823,6 +825,8 @@ export default messages({
 		'The normal days a week must be within the jurisdiction’s contract limits.',
 	'errors.contract_terms_choose_pay_group': 'Choose the pay group this person is paid in.',
 	'errors.contract_terms_pay_group_other_company': 'The pay group belongs to another company.',
+	'errors.contract_terms_shift_pattern_other_company':
+		'The shift pattern belongs to another company.',
 	'errors.contract_terms_shift_overlong':
 		"Shift {code} lasts {lasts}h, longer than the contract's {hours} normal hours per day.",
 	'errors.contract_terms_work_category':
