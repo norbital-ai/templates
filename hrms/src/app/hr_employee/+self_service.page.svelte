@@ -43,7 +43,7 @@
 	const clock = ctx.clock('day');
 	const today = $derived(clock.today);
 	const employee = ctx.query({
-		employee_profile: { where: { user_id: { eq: { var: 'requestor.id' } } }, limit: 1 },
+		employee_profile: { where: { user_id: { eq: { var: 'actor.id' } } }, limit: 1 },
 		entity: {
 			output: 'self_service',
 			fields: ['name', 'settings_code', 'time_zone'],

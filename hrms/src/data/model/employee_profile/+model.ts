@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/employee_profile.ts';
+import { model } from '@norbital-ai/bolt';
 import { amendmentsFor } from '../../../lib/amendments.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 
@@ -43,7 +43,7 @@ const columns = [
 	'user_id'
 ] as const;
 
-export default model({
+export default model('employee_profile', {
 	description:
 		'One system identity for a person: name, contact details, documents, login, face enrolment and the particulars that never change (date of birth, identity number, gender, bank). What changes by date belongs to their stints.',
 	icon: 'lucide:user',
@@ -152,7 +152,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			// identity is the invitation automation's to link; an imported person has no login yet
 			const linked = changes.findIndex(
@@ -164,7 +164,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			// a particular a formula reads, and how service counts, were always so: every paid period of the person was
 			// worked out on them

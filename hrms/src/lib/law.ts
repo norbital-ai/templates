@@ -1,4 +1,4 @@
-import type { ReadRequestJson } from '@norbital-ai/bolt/protocol';
+import type { ReadRequestJson } from '@norbital-ai/bolt';
 import { inForce, type Change } from './dated.js';
 import { Effect } from 'effect';
 import { isJsonObject, type JsonObject } from './payroll_engine/foundation.js';

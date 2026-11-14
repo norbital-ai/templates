@@ -1,4 +1,4 @@
--- 0001_initial.sql: 576 step(s), from an empty database to ce0887399c382bb6bb1785c7477f04dfb2dbb17b2caf202bc8b1760babb4d09a.
+-- 0001_initial.sql: 445 step(s), from an empty database to c24f4b2246f5ac9c3f851b1d0306d27a5424efb222374ec782cd79fb87bc66b3.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -132,8 +132,7 @@ begin
 			float_value := (value #>> '{}')::double precision;
 			return float_value not in ('NaN'::double precision,'Infinity'::double precision,'-Infinity'::double precision);
 		end if;
-		text_value := case when shape = 'object' and jsonb_typeof(value->'$dec') = 'string' then value->>'$dec'
-			when shape = 'string' then value #>> '{}' else null end;
+		text_value := case when shape = 'string' then value #>> '{}' else null end;
 		return coalesce(text_value ~ '^-?[0-9]+(\.[0-9]+)?$',false);
 	when 'seq' then
 		return case when spec ? 'pattern' then shape = 'string' else store_json_valid(value,'{"kind":"int"}'::jsonb) end;
@@ -184,28 +183,26 @@ declare
 	state_name text;
 	state_spec jsonb;
 	state_rule jsonb;
-	field_name text;
-	columns jsonb;
 	column_name text;
-	parent jsonb;
-	parent_id jsonb;
-	parent_row jsonb;
 	trusted boolean;
-	locked_rule jsonb;
-	locked boolean;
 	stamp_name text;
-	stamped jsonb := '[]'::jsonb;
 	stamps jsonb := '{}'::jsonb;
-	anonymised jsonb := '[]'::jsonb;
 	at_time timestamptz;
 begin
 	if mode not in ('write', 'seed', 'restore') or
 		(context is not null and jsonb_typeof(context) <> 'object') then
 		raise exception 'invalid native write context' using errcode = '22023';
 	end if;
-	trusted := mode in ('seed', 'restore');
-	if tg_op <> 'INSERT' then before_row := to_jsonb(old); end if;
-	if tg_op <> 'DELETE' then after_row := to_jsonb(new); end if;
+	-- a restore trusts only the rows it restores (`rows`: '<table>/<id>'); the statement's other rows keep their rules
+	trusted := mode = 'seed';
+	if mode = 'restore' then
+		trusted := coalesce(context->'rows' ? (tg_table_name || '/' || (coalesce(to_jsonb(new), to_jsonb(old))->>'id')), false);
+	end if;
+	-- whole-row JSON only where a key or state is compared: a plain insert or delete reads none
+	if tg_op = 'UPDATE' or (tg_op = 'INSERT' and rules->'states' <> '{}'::jsonb) then
+		if tg_op = 'UPDATE' then before_row := to_jsonb(old); end if;
+		after_row := to_jsonb(new);
+	end if;
 	if tg_op = 'UPDATE' then
 		for column_name in select jsonb_array_elements_text(rules->'key') loop
 			if before_row->column_name is distinct from after_row->column_name then
@@ -221,7 +218,6 @@ begin
 				stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
 				if stamp_name is not null then
 					after_row := jsonb_set(after_row, array[stamp_name], to_jsonb(at_time), true);
-					stamped := stamped || jsonb_build_array(stamp_name);
 					stamps := stamps || jsonb_build_object(stamp_name, to_jsonb(at_time));
 				end if;
 			end if;
@@ -242,50 +238,6 @@ begin
 						using errcode = '23514', column = state_name;
 				end if;
 			end if;
-		end loop;
-		if tg_op in ('DELETE', 'UPDATE') then
-			for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
-				execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-					locked_rule->>'sql', tg_table_schema, tg_table_name) into locked using before_row;
-				if not locked then continue; end if;
-				if tg_op = 'DELETE' then
-					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
-				end if;
-				if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
-					execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
-						into anonymised using tg_table_name, after_row->>'id';
-				end if;
-				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
-					if locked_rule->'except' ? field_name or stamped ? field_name or anonymised ? field_name then continue; end if;
-					for column_name in select jsonb_array_elements_text(columns) loop
-						if before_row->column_name is distinct from after_row->column_name then
-							raise exception '% is locked by %', field_name, locked_rule->>'name'
-								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
-						end if;
-					end loop;
-				end loop;
-			end loop;
-		end if;
-		for parent in select value from jsonb_array_elements(rules->'parents') loop
-			for parent_id in
-				select distinct value from jsonb_array_elements(jsonb_build_array(
-					before_row->(parent->>'column'), after_row->(parent->>'column')
-				)) where value <> 'null'::jsonb order by value
-			loop
-				execute format('select to_jsonb(p) from %I.%I p where p.%I = $1::%s for share',
-					tg_table_schema, parent->>'table', parent->>'key', parent->>'type')
-					into parent_row using parent_id #>> '{}';
-				if parent_row is null then continue; end if;
-				for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
-					if locked_rule->'except' ? (parent->>'relation') then continue; end if;
-					execute format('select coalesce((%s),false) from jsonb_populate_record(null::%I.%I,$1) t',
-						locked_rule->>'sql', tg_table_schema, parent->>'table') into locked using parent_row;
-					if locked then
-						raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
-							using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
-					end if;
-				end loop;
-			end loop;
 		end loop;
 	end if;
 	if coalesce((rules->>'audit')::boolean, false) and tg_op <> 'DELETE' then
@@ -316,6 +268,89 @@ begin
 	end if;
 	if tg_op = 'DELETE' then return old; end if;
 	return new;
+end;
+$store_rules$;
+
+-- step create:function:store_statement_rules (additive)
+create or replace function store_statement_rules() returns trigger language plpgsql as $store_rules$
+declare
+	rules jsonb := tg_argv[0]::jsonb;
+	context jsonb := nullif(current_setting('store.write', true), '')::jsonb;
+	pairs text;
+	locked_rule jsonb;
+	before_row jsonb;
+	after_row jsonb;
+	state_name text;
+	state_spec jsonb;
+	stamp_name text;
+	stamped jsonb;
+	anonymised jsonb;
+	field_name text;
+	columns jsonb;
+	column_name text;
+	parent jsonb;
+	ids text;
+	locked boolean;
+	trusted jsonb := case when context->>'mode' = 'restore' then coalesce(context->'rows', '[]'::jsonb) else '[]'::jsonb end;
+begin
+	if coalesce(context->>'mode', 'write') = 'seed' then return null; end if;
+	if tg_op <> 'INSERT' then
+		select string_agg(format('o.%I = n.%I', k, k), ' and ') into pairs from jsonb_array_elements_text(rules->'key') k;
+		for locked_rule in select value from jsonb_array_elements(rules->'locks') loop
+			for before_row, after_row in execute format(
+				'select to_jsonb(o), %s from store_old o %s cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(o)) t where coalesce((%s), false) and not $1 ? (%L || ''/'' || (to_jsonb(o)->>''id''))',
+				case when tg_op = 'UPDATE' then 'to_jsonb(n)' else 'null::jsonb' end,
+				case when tg_op = 'UPDATE' then 'join store_new n on ' || pairs else '' end,
+				tg_table_schema, tg_table_name, locked_rule->>'sql', tg_table_name) using trusted
+			loop
+				if tg_op = 'DELETE' then
+					raise exception 'record is locked by %', locked_rule->>'name' using errcode = '23514', column = 'id', constraint = locked_rule->>'constraint';
+				end if;
+				stamped := '[]'::jsonb;
+				for state_name, state_spec in select key, value from jsonb_each(rules->'states') loop
+					stamp_name := state_spec->'states'->(after_row->>state_name)->>'stamp';
+					if before_row->state_name is distinct from after_row->state_name and stamp_name is not null then
+						stamped := stamped || jsonb_build_array(stamp_name);
+					end if;
+				end loop;
+				anonymised := null;
+				for field_name, columns in select key, value from jsonb_each(rules->'fields') loop
+					if locked_rule->'except' ? field_name or stamped ? field_name then continue; end if;
+					for column_name in select jsonb_array_elements_text(columns) loop
+						if before_row->column_name is distinct from after_row->column_name then
+							if anonymised is null then
+								anonymised := '[]'::jsonb;
+								if to_regprocedure(format('%I.%I(text,text)', tg_table_schema, 'store_anonymise_fields')) is not null then
+									execute format('select %I.%I($1,$2)', tg_table_schema, 'store_anonymise_fields')
+										into anonymised using tg_table_name, after_row->>'id';
+								end if;
+							end if;
+							exit when anonymised ? field_name;
+							raise exception '% is locked by %', field_name, locked_rule->>'name'
+								using errcode = '23514', column = field_name, constraint = locked_rule->>'constraint';
+						end if;
+					end loop;
+				end loop;
+			end loop;
+		end loop;
+	end if;
+	for parent in select value from jsonb_array_elements(rules->'parents') loop
+		ids := format('select v::%s from (%s) s where v is not null', parent->>'type', concat_ws(' union ',
+			case when tg_op <> 'INSERT' then format('select %I::text v from store_old r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end,
+			case when tg_op <> 'DELETE' then format('select %I::text v from store_new r where not $1 ? (%L || ''/'' || (to_jsonb(r)->>''id''))', parent->>'column', tg_table_name) end));
+		execute format('select 1 from %I.%I p where p.%I in (%s) order by p.%I for share',
+			tg_table_schema, parent->>'table', parent->>'key', ids, parent->>'key') using trusted;
+		for locked_rule in select value from jsonb_array_elements(parent->'locks') loop
+			execute format('select exists(select 1 from %I.%I p cross join lateral jsonb_populate_record(null::%I.%I, to_jsonb(p)) t where p.%I in (%s) and coalesce((%s), false))',
+				tg_table_schema, parent->>'table', tg_table_schema, parent->>'table', parent->>'key', ids, locked_rule->>'sql')
+				into locked using trusted;
+			if locked then
+				raise exception 'relation % is locked by %', parent->>'relation', locked_rule->>'name'
+					using errcode = '23514', column = parent->>'column', constraint = locked_rule->>'constraint';
+			end if;
+		end loop;
+	end loop;
+	return null;
 end;
 $store_rules$;
 
@@ -542,35 +577,45 @@ create function "bolt_record_label_employee_profile_93340fdd"(text) returns text
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_employee_balance_61d5b847 (additive)
-create function "bolt_record_label_employee_balance_61d5b847"() returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_dependant_b5b83002 (additive)
+create function "bolt_record_label_dependant_b5b83002"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb('Balance'::text) #>> '{}') AS value FROM (SELECT jsonb_build_object() AS j FROM (SELECT 1 AS unused) label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb(((label_row.j #> ARRAY['name']) IS NOT NULL))) = 'boolean' THEN (to_jsonb(((label_row.j #> ARRAY['name']) IS NOT NULL)) #>> '{}') END)::boolean IS TRUE THEN coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) WHEN (CASE WHEN jsonb_typeof(to_jsonb(((label_row.j #> ARRAY['name']) IS NOT NULL))) = 'boolean' THEN (to_jsonb(((label_row.j #> ARRAY['name']) IS NOT NULL)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb((coalesce((label_row.j #> ARRAY['relation']), 'null'::jsonb) #>> '{}')) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name"), 'relation', to_jsonb("relation")) AS j FROM (SELECT $1 AS "name", $2 AS "relation") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_ledger_entry_1d6aa255 (additive)
-create function "bolt_record_label_ledger_entry_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_ledger_entry_b5edd145 (additive)
+create function "bolt_record_label_ledger_entry_b5edd145"(text, date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, to_jsonb((coalesce((label_row.j #> ARRAY['effective_on']), 'null'::jsonb) #>> '{}')) AS right_value) label_1) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code"), 'effective_on', to_jsonb("effective_on"::text)) AS j FROM (SELECT $1 AS "code", $2 AS "effective_on") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_contract_change_b26ebd75 (additive)
-create function "bolt_record_label_contract_change_b26ebd75"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_contract_terms_58d6e27a (additive)
+create function "bolt_record_label_contract_terms_58d6e27a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['field_path']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('field_path', to_jsonb("field_path")) AS j FROM (SELECT $1 AS "field_path") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['effective_from']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('effective_from', to_jsonb("effective_from"::text)) AS j FROM (SELECT $1 AS "effective_from") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_statutory_parameters_58d6e27a (additive)
+create function "bolt_record_label_statutory_parameters_58d6e27a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['effective_from']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('effective_from', to_jsonb("effective_from"::text)) AS j FROM (SELECT $1 AS "effective_from") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_entity_93340fdd (additive)
 create function "bolt_record_label_entity_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -582,35 +627,25 @@ create function "bolt_record_label_entity_93340fdd"(text) returns text language 
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_entity_change_b26ebd75 (additive)
-create function "bolt_record_label_entity_change_b26ebd75"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_entity_change_58d6e27a (additive)
+create function "bolt_record_label_entity_change_58d6e27a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['field_path']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('field_path', to_jsonb("field_path")) AS j FROM (SELECT $1 AS "field_path") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['effective_from']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('effective_from', to_jsonb("effective_from"::text)) AS j FROM (SELECT $1 AS "effective_from") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_entity_profile_version_93340fdd (additive)
-create function "bolt_record_label_entity_profile_version_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_holiday_926befc4 (additive)
+create function "bolt_record_label_holiday_926befc4"(date, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_holiday_c0a9a654 (additive)
-create function "bolt_record_label_holiday_c0a9a654"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['date']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('date', to_jsonb("date"::text)) AS j FROM (SELECT $1 AS "date") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, to_jsonb((coalesce((label_row.j #> ARRAY['date']), 'null'::jsonb) #>> '{}')) AS right_value) label_1) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name"), 'date', to_jsonb("date"::text)) AS j FROM (SELECT $1 AS "date", $2 AS "name") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_pay_group_93340fdd (additive)
 create function "bolt_record_label_pay_group_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -642,46 +677,6 @@ create function "bolt_record_label_shift_definition_1d6aa255"(text) returns text
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_jurisdiction_settings_93340fdd (additive)
-create function "bolt_record_label_jurisdiction_settings_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_adhoc_catalog_1d6aa255 (additive)
-create function "bolt_record_label_adhoc_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_claim_catalog_1d6aa255 (additive)
-create function "bolt_record_label_claim_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_leave_catalog_1d6aa255 (additive)
-create function "bolt_record_label_leave_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
 -- step create:function:bolt_record_label_leave_catalog_entry_da_09c3ceee (additive)
 create function "bolt_record_label_leave_catalog_entry_da_09c3ceee"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -692,108 +687,18 @@ create function "bolt_record_label_leave_catalog_entry_da_09c3ceee"(date) return
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (to_jsonb((coalesce((label_row.j #> ARRAY['incurred_on']), 'null'::jsonb) #>> '{}')) #>> '{}') AS value FROM (SELECT jsonb_build_object('incurred_on', to_jsonb("incurred_on"::text)) AS j FROM (SELECT $1 AS "incurred_on") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_loan_catalog_1d6aa255 (additive)
-create function "bolt_record_label_loan_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_workplace_case_catalog_a812210f (additive)
+create function "bolt_record_label_workplace_case_catalog_a812210f"(text, date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['kind']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value) label_0) AS left_value, to_jsonb((coalesce((label_row.j #> ARRAY['opened_on']), 'null'::jsonb) #>> '{}')) AS right_value) label_1) #>> '{}') AS value FROM (SELECT jsonb_build_object('kind', to_jsonb("kind"), 'opened_on', to_jsonb("opened_on"::text)) AS j FROM (SELECT $1 AS "kind", $2 AS "opened_on") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_loan_catalog_entry_rep_6b8b30eb (additive)
-create function "bolt_record_label_loan_catalog_entry_rep_6b8b30eb"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['payment_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['payment_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN coalesce((label_row.j #> ARRAY['payment_reference']), 'null'::jsonb) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['payment_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['payment_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('payment_reference', to_jsonb("payment_reference")) AS j FROM (SELECT $1 AS "payment_reference") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_work_event_catalog_1d6aa255 (additive)
-create function "bolt_record_label_work_event_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_workplace_case_catalog_1d6aa255 (additive)
-create function "bolt_record_label_workplace_case_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_workplace_case_catalog_c652d599 (additive)
-create function "bolt_record_label_workplace_case_catalog_c652d599"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['kind']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('kind', to_jsonb("kind")) AS j FROM (SELECT $1 AS "kind") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_allowance_catalog_1d6aa255 (additive)
-create function "bolt_record_label_allowance_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_overtime_catalog_1d6aa255 (additive)
-create function "bolt_record_label_overtime_catalog_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_statutory_contribution_1d6aa255 (additive)
-create function "bolt_record_label_statutory_contribution_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_registered_effect_1d6aa255 (additive)
-create function "bolt_record_label_registered_effect_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_registered_rule_1d6aa255 (additive)
-create function "bolt_record_label_registered_rule_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_subtotal_93340fdd (additive)
-create function "bolt_record_label_subtotal_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_jurisdiction_93340fdd (additive)
+create function "bolt_record_label_jurisdiction_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
@@ -801,6 +706,16 @@ create function "bolt_record_label_subtotal_93340fdd"(text) returns text languag
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+
+-- step create:function:bolt_record_label_jurisdiction_change_58d6e27a (additive)
+create function "bolt_record_label_jurisdiction_change_58d6e27a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['effective_from']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('effective_from', to_jsonb("effective_from"::text)) AS j FROM (SELECT $1 AS "effective_from") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_obligation_06f5fc13 (additive)
 create function "bolt_record_label_obligation_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -812,45 +727,15 @@ create function "bolt_record_label_obligation_06f5fc13"(text) returns text langu
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
 
--- step create:function:bolt_record_label_payroll_run_24bef971 (additive)
-create function "bolt_record_label_payroll_run_24bef971"(int) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_payroll_run_8635e840 (additive)
+create function "bolt_record_label_payroll_run_8635e840"(text, int) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb((coalesce((label_row.j #> ARRAY['run_number']), 'null'::jsonb) #>> '{}')) #>> '{}') AS value FROM (SELECT jsonb_build_object('run_number', to_jsonb("run_number")) AS j FROM (SELECT $1 AS "run_number") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_pay_amendment_17185e46 (additive)
-create function "bolt_record_label_pay_amendment_17185e46"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['period']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('period', to_jsonb("period")) AS j FROM (SELECT $1 AS "period") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_payslip_e54569f4 (additive)
-create function "bolt_record_label_payslip_e54569f4"(numeric) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (to_jsonb((coalesce((label_row.j #> ARRAY['net_pay']), 'null'::jsonb) #>> '{}')) #>> '{}') AS value FROM (SELECT jsonb_build_object('net_pay', to_jsonb(("net_pay")::text)) AS j FROM (SELECT $1 AS "net_pay") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_roster_entry_10a4d23a (additive)
-create function "bolt_record_label_roster_entry_10a4d23a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['work_date']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('work_date', to_jsonb("work_date"::text)) AS j FROM (SELECT $1 AS "work_date") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_2.left_value) = 'string' AND jsonb_typeof(label_2.right_value) = 'string' THEN to_jsonb((label_2.left_value #>> '{}') || (label_2.right_value #>> '{}')) WHEN jsonb_typeof(label_2.left_value) = 'array' AND jsonb_typeof(label_2.right_value) = 'array' THEN label_2.left_value || label_2.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_2.left_value) = 'number' THEN (label_2.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_2.right_value) = 'number' THEN (label_2.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT to_jsonb('Run '::text) AS left_value, to_jsonb((coalesce((label_row.j #> ARRAY['run_number']), 'null'::jsonb) #>> '{}')) AS right_value) label_0) AS left_value, to_jsonb(' · '::text) AS right_value) label_1) AS left_value, coalesce((label_row.j #> ARRAY['period']), 'null'::jsonb) AS right_value) label_2) #>> '{}') AS value FROM (SELECT jsonb_build_object('run_number', to_jsonb("run_number"), 'period', to_jsonb("period")) AS j FROM (SELECT $1 AS "period", $2 AS "run_number") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_statutory_finding_06f5fc13 (additive)
 create function "bolt_record_label_statutory_finding_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -861,16 +746,6 @@ create function "bolt_record_label_statutory_finding_06f5fc13"(text) returns tex
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_statutory_change_b26ebd75 (additive)
-create function "bolt_record_label_statutory_change_b26ebd75"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['field_path']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('field_path', to_jsonb("field_path")) AS j FROM (SELECT $1 AS "field_path") label_inputs) label_row) label_value$record_label$;
 
 -- step create:function:bolt_record_label_statutory_source_06f5fc13 (additive)
 create function "bolt_record_label_statutory_source_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -1117,9 +992,9 @@ create table "sys_conversation" ("id" text primary key,
 	"outputs" jsonb default '[]'::jsonb not null,
 	"status" text default 'idle'::text not null,
 	"lease_until" timestamptz,
+	"archived_at" timestamptz,
 	"model" text default 'default'::text not null,
 	"plan" jsonb,
-	"goals" jsonb,
 	"read" jsonb default '{}'::jsonb not null,
 	"revision" int default '1'::int not null,
 	"updated_at" timestamptz default (now()) not null,
@@ -1131,8 +1006,8 @@ create table "sys_conversation" ("id" text primary key,
 	constraint "sys_conversation__ck__cc931632" check (("inputs" is null or store_json_valid("inputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__44b2543d" check (("outputs" is null or store_json_valid("outputs", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__13b8fb0a" check (isfinite("lease_until")),
+	constraint "sys_conversation__ck__fe05365b" check (isfinite("archived_at")),
 	constraint "sys_conversation__ck__14aaee8f" check (("plan" is null or store_json_valid("plan", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "sys_conversation__ck__85277cdf" check (("goals" is null or store_json_valid("goals", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_conversation__ck__56b593d1" check (("read" is null or store_json_valid("read", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_conversation__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1388,6 +1263,7 @@ create table "sys_run" ("id" text primary key,
 	"actor" text,
 	"starter" jsonb,
 	"trigger" jsonb,
+	"wait" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_run_09f15580"("automation")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_run_09f15580"("automation"), ''))) stored,
 	constraint "sys_run__ck__fcb01943" check (("input" is null or store_json_valid("input", '{"kind":"json"}'::jsonb) is true)),
@@ -1400,6 +1276,7 @@ create table "sys_run" ("id" text primary key,
 	constraint "sys_run__ck__f38716e4" check (("results" is null or store_json_valid("results", '{"default":[],"kind":"json"}'::jsonb) is true)),
 	constraint "sys_run__ck__20970459" check (("starter" is null or store_json_valid("starter", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__ck__6dade4e5" check (("trigger" is null or store_json_valid("trigger", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_run__ck__f6780d31" check (("wait" is null or store_json_valid("wait", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_run__uq__f1a22a1c" unique ("key")
 );
 
@@ -1476,6 +1353,8 @@ create table "sys_user" ("id" text primary key,
 	"party" jsonb,
 	"phone" text,
 	"telegram" text,
+	"slack" text,
+	"discord" text,
 	"revision" int default '1'::int not null,
 	"created_at" timestamptz default (now()) not null,
 	"last_seen" timestamptz,
@@ -1495,6 +1374,11 @@ create table "sys_user" ("id" text primary key,
 create table "employee_profile" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"source_reference" text,
 	"cumulative_service" boolean default false not null,
+	"date_of_birth" date,
+	"identity_number" text,
+	"gender" text,
+	"birth_city" text,
+	"bank" jsonb,
 	"name" text not null,
 	"email" text,
 	"phone" text,
@@ -1511,6 +1395,9 @@ create table "employee_profile" ("id" uuid primary key, revision int not null de
 	bolt_embedding vector(1536),
 	"invitation_id" text,
 	"user_id" text,
+	constraint "employee_profile__ck__01e02f9e" check (isfinite("date_of_birth")),
+	constraint "employee_profile__ck__c4f6038f" check ("gender" in ('MALE', 'FEMALE')),
+	constraint "employee_profile__ck__0633b9c6" check (("bank" is null or store_json_valid("bank", '{"kind":"custom","of":"bank","optional":true}'::jsonb) is true)),
 	constraint "employee_profile__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
 	constraint "employee_profile__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
 	constraint "employee_profile__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
@@ -1523,11 +1410,28 @@ create table "employee_profile" ("id" uuid primary key, revision int not null de
 	constraint "employee_profile__uq__87831656" unique ("user_id") deferrable initially immediate
 );
 
+-- step create:table:dependant (additive)
+create table "dependant" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"relation" text not null,
+	"name" text,
+	"born_on" date,
+	"expected_on" date,
+	"has_income" boolean,
+	"disabled" boolean,
+	"studying" boolean,
+	"allocations" jsonb,
+	"bolt_record_label" text generated always as ("bolt_record_label_dependant_b5b83002"("name", "relation")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_dependant_b5b83002"("name", "relation"), ''))) stored,
+	"employee_id" uuid not null,
+	constraint "dependant__ck__5736cbcf" check ("relation" in ('CHILD', 'SPOUSE', 'PARENT')),
+	constraint "dependant__ck__09625b3b" check (isfinite("born_on")),
+	constraint "dependant__ck__647ff1ea" check (isfinite("expected_on")),
+	constraint "dependant__ck__6cddf405" check (("allocations" is null or store_json_valid("allocations", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"number","min":0}}}'::jsonb) is true))
+);
+
 -- step create:table:employee_balance (additive)
 create table "employee_balance" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"account" jsonb default '{}'::jsonb not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_employee_balance_61d5b847"()) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_employee_balance_61d5b847"(), ''))) stored,
 	"employee_id" uuid not null,
 	constraint "employee_balance__ck__9c094bd4" check (("account" is null or store_json_valid("account", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"record","of":{"kind":"json"}}}}'::jsonb) is true)),
 	constraint "employee_balance__uq__e83ef89e" unique ("employee_id") deferrable initially immediate
@@ -1545,8 +1449,8 @@ create table "ledger_entry" ("id" uuid primary key, revision int not null defaul
 	"effective_on" date not null,
 	"source" text,
 	"note" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_ledger_entry_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_ledger_entry_1d6aa255"("code"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_ledger_entry_b5edd145"("code", "effective_on")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_ledger_entry_b5edd145"("code", "effective_on"), ''))) stored,
 	"balance_id" uuid not null,
 	constraint "ledger_entry__ck__83d69349" check ("operation" in ('ADD', 'DEDUCT')),
 	constraint "ledger_entry__ck__e8abe6c4" check ("measure" in ('total', 'used', 'entitled', 'carried', 'limit', 'paid')),
@@ -1556,58 +1460,94 @@ create table "ledger_entry" ("id" uuid primary key, revision int not null defaul
 	constraint "ledger_entry__ck__6d1c74a2" check (("amount" is not null and "measure" is not null and "period" is not null and "source" is not null))
 );
 
--- step create:table:employee_contract (additive)
-create table "employee_contract" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:employment (additive)
+create table "employment" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"employee_number" text not null,
-	"engagement" text default 'EMPLOYEE'::text not null,
-	"status" text default 'DRAFT' not null,
 	"effective_range" daterange not null,
 	"service_started_on" date,
-	"signed_contract_period" daterange,
-	"terms" jsonb not null,
-	"payroll" jsonb,
 	"events" jsonb,
-	"family" jsonb,
-	"bank" jsonb,
 	"final_pay_due_on" date,
 	"reason" text,
 	"encash_leave" boolean default true not null,
 	"exit_ground" text,
-	"employee_extension_data" jsonb default '{}'::jsonb not null,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("employee_number"::text, ''))) stored,
 	"employee_id" uuid not null,
 	"entity_id" uuid not null,
-	"pay_group_id" uuid,
-	constraint "employee_contract__ck__db94f252" check ("engagement" in ('EMPLOYEE', 'PART_TIME', 'CONTRACTOR', 'INTERN', 'APPRENTICE', 'CONSULTANT', 'PAYEE')),
-	constraint "employee_contract__ck__a3a63477" check ("status" in ('DRAFT', 'SEALED', 'VOID')),
-	constraint "employee_contract__ck__b16c6b5e" check (not isempty("effective_range") and not lower_inf("effective_range")),
-	constraint "employee_contract__ck__7f5deee9" check (isfinite("service_started_on")),
-	constraint "employee_contract__ck__ce769449" check (not isempty("signed_contract_period") and not lower_inf("signed_contract_period")),
-	constraint "employee_contract__ck__b91d745e" check (("terms" is null or store_json_valid("terms", '{"fields":{"allowances":{"kind":"record","of":{"fields":{"amount":{"kind":"number","min":0}},"kind":"object"},"optional":true},"annual_leave_carry_limit_days":{"kind":"number","min":0,"optional":true},"department":{"kind":"text","optional":true},"employee_borne_tax_items":{"kind":"text","many":true,"optional":true},"employer_bears_income_tax":{"kind":"bool","optional":true},"job_title":{"kind":"text","optional":true},"normal_days_per_week":{"kind":"number","max":7,"min":0},"normal_hours_per_day":{"kind":"number","min":0},"normal_hours_per_week":{"kind":"number","min":0},"notice_period":{"fields":{"unit":{"kind":"enum","values":["DAYS","WEEKS","MONTHS"]},"value":{"kind":"number","min":0}},"kind":"object","optional":true},"probation_period":{"kind":"period","of":"date","optional":true},"rate":{"kind":"json","optional":true,"shape":{"arms":{"DAILY":{"amount":{"kind":"number","min":0}},"HOURLY":{"amount":{"kind":"number","min":0}},"MONTHLY":{"amount":{"kind":"number","min":0}}},"by":"unit","kind":"union"}},"residency_status":{"kind":"text","optional":true},"shift_pattern_id":{"kind":"ref","optional":true,"to":"shift_pattern"},"signed_on":{"kind":"date","optional":true},"statutory_work_category":{"kind":"text","optional":true},"wage_payment_method":{"kind":"enum","optional":true,"values":["BANK","CASH","CHEQUE","DIGITAL"]},"work_authorisation_category":{"kind":"text","optional":true},"work_authorisation_expires_on":{"kind":"date","optional":true},"work_classification":{"kind":"text","optional":true},"work_region":{"kind":"text","optional":true},"worksite":{"kind":"text","optional":true}},"kind":"object"}'::jsonb) is true)),
-	constraint "employee_contract__ck__3e552bf0" check (("payroll" is null or store_json_valid("payroll", '{"fields":{"birth_city":{"kind":"text","optional":true},"date_of_birth":{"kind":"date","optional":true},"gender":{"kind":"enum","optional":true,"values":["MALE","FEMALE"]},"identity_number":{"kind":"text","optional":true},"marital_status":{"kind":"enum","optional":true,"values":["SINGLE","MARRIED","SEPARATED","DIVORCED","WIDOWED"]},"nationality":{"kind":"text","optional":true},"passport_number":{"kind":"text","optional":true}},"kind":"object","optional":true}'::jsonb) is true)),
-	constraint "employee_contract__ck__c2e464db" check (("events" is null or store_json_valid("events", '{"fields":{"allocated_days":{"kind":"int","optional":true},"ended_on":{"kind":"date","optional":true},"kind":{"kind":"text"},"on":{"kind":"date"},"opened_on":{"kind":"date","optional":true}},"kind":"object","many":true,"optional":true}'::jsonb) is true)),
-	constraint "employee_contract__ck__f11d8a9c" check (("family" is null or store_json_valid("family", '{"fields":{"allocations":{"kind":"record","of":{"kind":"number","min":0},"optional":true},"born_on":{"kind":"date","optional":true},"disabled":{"kind":"bool","optional":true},"expected_on":{"kind":"date","optional":true},"has_income":{"kind":"bool","optional":true},"relation":{"kind":"enum","values":["CHILD","SPOUSE","PARENT"]},"studying":{"kind":"bool","optional":true}},"kind":"object","many":true,"optional":true}'::jsonb) is true)),
-	constraint "employee_contract__ck__0633b9c6" check (("bank" is null or store_json_valid("bank", '{"kind":"custom","of":"bank","optional":true}'::jsonb) is true)),
-	constraint "employee_contract__ck__ca8464ef" check (isfinite("final_pay_due_on")),
-	constraint "employee_contract__ck__4130a6e7" check ("exit_ground" in ('RETRENCHMENT', 'RETIREMENT', 'RESIGNATION', 'DISMISSAL', 'MISCONDUCT_DISMISSAL', 'END_OF_CONTRACT', 'MUTUAL', 'DEATH', 'UNILATERAL', 'BREACH_BY_EMPLOYER')),
-	constraint "employee_contract__ck__6b0642ac" check (("employee_extension_data" is null or store_json_valid("employee_extension_data", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "employee_contract__ex__89af20f6" exclude using gist ("employee_id" with =, "effective_range" with &&) where (coalesce("status" = 'SEALED'::text, false)) deferrable initially immediate
+	constraint "employment__ck__b16c6b5e" check (not isempty("effective_range") and not lower_inf("effective_range")),
+	constraint "employment__ck__7f5deee9" check (isfinite("service_started_on")),
+	constraint "employment__ck__c2e464db" check (("events" is null or store_json_valid("events", '{"fields":{"allocated_days":{"kind":"int","optional":true},"ended_on":{"kind":"date","optional":true},"kind":{"kind":"text"},"on":{"kind":"date"},"opened_on":{"kind":"date","optional":true}},"kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "employment__ck__ca8464ef" check (isfinite("final_pay_due_on")),
+	constraint "employment__ck__4130a6e7" check ("exit_ground" in ('RETRENCHMENT', 'RETIREMENT', 'RESIGNATION', 'DISMISSAL', 'MISCONDUCT_DISMISSAL', 'END_OF_CONTRACT', 'MUTUAL', 'DEATH', 'UNILATERAL', 'BREACH_BY_EMPLOYER')),
+	constraint "employment__ex__c18a4b19" exclude using gist ("employee_id" with =, "effective_range" with &&) deferrable initially immediate
 );
 
--- step create:table:contract_change (additive)
-create table "contract_change" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"field_path" text not null,
-	"old_value" jsonb,
-	"new_value" jsonb,
+-- step create:table:contract_terms (additive)
+create table "contract_terms" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"effective_from" date not null,
-	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_contract_change_b26ebd75"("field_path")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_contract_change_b26ebd75"("field_path"), ''))) stored,
-	"employee_id" uuid not null,
-	"applied_version_id" uuid,
-	constraint "contract_change__ck__ae52c15d" check (("old_value" is null or store_json_valid("old_value", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "contract_change__ck__73129686" check (("new_value" is null or store_json_valid("new_value", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "contract_change__ck__30e69ba6" check (isfinite("effective_from"))
+	"signed_on" date,
+	"engagement" text,
+	"signed_contract_period" daterange,
+	"probation_period" daterange,
+	"rate" jsonb,
+	"normal_hours_per_day" jsonb,
+	"normal_hours_per_week" jsonb,
+	"normal_days_per_week" jsonb,
+	"employer_bears_income_tax" boolean,
+	"employee_borne_tax_items" text[],
+	"job_title" text,
+	"department" text,
+	"statutory_work_category" text,
+	"work_classification" text,
+	"work_region" text,
+	"worksite" text,
+	"notice_period" jsonb,
+	"annual_leave_carry_limit_days" jsonb,
+	"wage_payment_method" text,
+	"allowances" jsonb,
+	"clears" text[],
+	"bolt_record_label" text generated always as ("bolt_record_label_contract_terms_58d6e27a"("effective_from")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_contract_terms_58d6e27a"("effective_from"), ''))) stored,
+	"employment_id" uuid not null,
+	"pay_group_id" uuid,
+	"shift_pattern_id" uuid,
+	constraint "contract_terms__ck__30e69ba6" check (isfinite("effective_from")),
+	constraint "contract_terms__ck__459cf665" check (isfinite("signed_on")),
+	constraint "contract_terms__ck__db94f252" check ("engagement" in ('EMPLOYEE', 'PART_TIME', 'CONTRACTOR', 'INTERN', 'APPRENTICE', 'CONSULTANT', 'PAYEE')),
+	constraint "contract_terms__ck__ce769449" check (not isempty("signed_contract_period") and not lower_inf("signed_contract_period")),
+	constraint "contract_terms__ck__b0d79508" check (not isempty("probation_period") and not lower_inf("probation_period")),
+	constraint "contract_terms__ck__fb35f1a6" check (("rate" is null or store_json_valid("rate", '{"kind":"json","optional":true,"shape":{"arms":{"DAILY":{"amount":{"kind":"number","min":0}},"HOURLY":{"amount":{"kind":"number","min":0}},"MONTHLY":{"amount":{"kind":"number","min":0}}},"by":"unit","kind":"union"}}'::jsonb) is true)),
+	constraint "contract_terms__ck__ec63e201" check (("normal_hours_per_day" is null or store_json_valid("normal_hours_per_day", '{"kind":"json","optional":true,"shape":{"kind":"number","min":0}}'::jsonb) is true)),
+	constraint "contract_terms__ck__4ea5ac6f" check (("normal_hours_per_week" is null or store_json_valid("normal_hours_per_week", '{"kind":"json","optional":true,"shape":{"kind":"number","min":0}}'::jsonb) is true)),
+	constraint "contract_terms__ck__57fda04f" check (("normal_days_per_week" is null or store_json_valid("normal_days_per_week", '{"kind":"json","optional":true,"shape":{"kind":"number","max":7,"min":0}}'::jsonb) is true)),
+	constraint "contract_terms__ck__3923585e" check (not jsonb_path_exists(to_jsonb("employee_borne_tax_items"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "contract_terms__ck__56b1add7" check (("notice_period" is null or store_json_valid("notice_period", '{"fields":{"unit":{"kind":"enum","values":["DAYS","WEEKS","MONTHS"]},"value":{"kind":"number","min":0}},"kind":"object","optional":true}'::jsonb) is true)),
+	constraint "contract_terms__ck__ddc6685e" check (("annual_leave_carry_limit_days" is null or store_json_valid("annual_leave_carry_limit_days", '{"kind":"json","optional":true,"shape":{"kind":"number","min":0}}'::jsonb) is true)),
+	constraint "contract_terms__ck__b32c483d" check ("wage_payment_method" in ('BANK', 'CASH', 'CHEQUE', 'DIGITAL')),
+	constraint "contract_terms__ck__88ec5c85" check (("allowances" is null or store_json_valid("allowances", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"fields":{"amount":{"kind":"number","min":0}},"kind":"object"}}}'::jsonb) is true)),
+	constraint "contract_terms__ck__64a2ceb8" check (not jsonb_path_exists(to_jsonb("clears"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "contract_terms__uq__f1149db6" unique nulls not distinct ("employment_id", "effective_from") deferrable initially immediate
+);
+
+-- step create:table:statutory_parameters (additive)
+create table "statutory_parameters" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"effective_from" date not null,
+	"residency_status" text,
+	"work_authorisation_category" text,
+	"work_authorisation_expires_on" date,
+	"marital_status" text,
+	"nationality" text,
+	"passport_number" text,
+	"parameters" jsonb,
+	"clears" text[],
+	"bolt_record_label" text generated always as ("bolt_record_label_statutory_parameters_58d6e27a"("effective_from")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_statutory_parameters_58d6e27a"("effective_from"), ''))) stored,
+	"employment_id" uuid not null,
+	constraint "statutory_parameters__ck__30e69ba6" check (isfinite("effective_from")),
+	constraint "statutory_parameters__ck__d038c03b" check (isfinite("work_authorisation_expires_on")),
+	constraint "statutory_parameters__ck__20833849" check ("marital_status" in ('SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED')),
+	constraint "statutory_parameters__ck__919e2fd1" check (("parameters" is null or store_json_valid("parameters", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
+	constraint "statutory_parameters__ck__64a2ceb8" check (not jsonb_path_exists(to_jsonb("clears"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "statutory_parameters__uq__f1149db6" unique nulls not distinct ("employment_id", "effective_from") deferrable initially immediate
 );
 
 -- step create:table:entity (additive)
@@ -1615,11 +1555,16 @@ create table "entity" ("id" uuid primary key, revision int not null default 1, c
 	"code" text,
 	"name" text not null,
 	"settings_code" text not null,
+	"representative_name" text,
+	"registered_address" text,
+	"time_zone" text,
+	"bank" jsonb,
 	"source_reference" text,
 	"epf_registered_on" date,
 	"socso_registered_on" date,
 	"bolt_record_label" text generated always as ("bolt_record_label_entity_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_entity_93340fdd"("name"), '') || ' ' || coalesce("code"::text, '') || ' ' || coalesce("name"::text, ''))) stored,
+	constraint "entity__ck__0633b9c6" check (("bank" is null or store_json_valid("bank", '{"kind":"custom","of":"bank","optional":true}'::jsonb) is true)),
 	constraint "entity__ck__efdb8eda" check (isfinite("epf_registered_on")),
 	constraint "entity__ck__f92e3a5a" check (isfinite("socso_registered_on")),
 	constraint "entity__uq__81caf70b" unique ("code") deferrable initially immediate
@@ -1627,48 +1572,22 @@ create table "entity" ("id" uuid primary key, revision int not null default 1, c
 
 -- step create:table:entity_change (additive)
 create table "entity_change" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"field_path" text not null,
-	"old_value" jsonb,
-	"new_value" jsonb,
 	"effective_from" date not null,
-	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_entity_change_b26ebd75"("field_path")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_entity_change_b26ebd75"("field_path"), ''))) stored,
-	"entity_id" uuid not null,
-	"applied_version_id" uuid,
-	constraint "entity_change__ck__85dd0d0d" check (("old_value" is null or store_json_valid("old_value", '{"hidden":true,"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "entity_change__ck__73129686" check (("new_value" is null or store_json_valid("new_value", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "entity_change__ck__30e69ba6" check (isfinite("effective_from")),
-	constraint "entity_change__uq__9c85363f" unique nulls not distinct ("entity_id", "field_path", "effective_from") deferrable initially immediate
-);
-
--- step create:table:entity_profile_version (additive)
-create table "entity_profile_version" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"settings_code" text not null,
-	"name" text not null,
-	"representative_name" text,
-	"registered_address" text,
-	"final_pay_loan_floor_percent" int default '10'::int not null,
-	"overtime_full_award_percent" int default '100'::int not null,
 	"pay_methods" jsonb,
-	"entity_extension_data" jsonb default '{}'::jsonb not null,
-	"time_zone" text,
-	"bank" jsonb,
-	"effective_range" daterange not null,
-	"status" text default 'DRAFT' not null,
-	"reason" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_entity_profile_version_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_entity_profile_version_93340fdd"("name"), ''))) stored,
-	"input_schema_version_id" uuid not null,
+	"final_pay_loan_floor_percent" int,
+	"overtime_full_award_percent" int,
+	"statutory_parameters" jsonb,
+	"clears" text[],
+	"bolt_record_label" text generated always as ("bolt_record_label_entity_change_58d6e27a"("effective_from")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_entity_change_58d6e27a"("effective_from"), ''))) stored,
 	"entity_id" uuid not null,
-	constraint "entity_profile_version__ck__cea79742" check ("final_pay_loan_floor_percent" >= 0 and "final_pay_loan_floor_percent" <= 100),
-	constraint "entity_profile_version__ck__dda23d17" check ("overtime_full_award_percent" >= 1 and "overtime_full_award_percent" <= 100),
-	constraint "entity_profile_version__ck__fd5bf21f" check (("pay_methods" is null or store_json_valid("pay_methods", '{"fields":{"benefit_exclusion":{"default":"POOLED","kind":"enum","values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"default":"EVEN","kind":"enum","values":["EVEN","FIRST_RUN"]},"health_billing":{"default":"CURRENT","kind":"enum","values":["CURRENT","ARREARS"]},"night_differential_basis":{"default":"WORKED","kind":"enum","values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"default":"STATUTORY","kind":"enum","values":["STATUTORY","CONTRACT_WEEKLY"]},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true}'::jsonb) is true)),
-	constraint "entity_profile_version__ck__ad3b68d8" check (("entity_extension_data" is null or store_json_valid("entity_extension_data", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "entity_profile_version__ck__0633b9c6" check (("bank" is null or store_json_valid("bank", '{"kind":"custom","of":"bank","optional":true}'::jsonb) is true)),
-	constraint "entity_profile_version__ck__b16c6b5e" check (not isempty("effective_range") and not lower_inf("effective_range")),
-	constraint "entity_profile_version__ck__a3a63477" check ("status" in ('DRAFT', 'SEALED', 'VOID')),
-	constraint "entity_profile_version__ex__229b5c56" exclude using gist ("entity_id" with =, "effective_range" with &&) where (coalesce("status" = 'SEALED'::text, false)) deferrable initially immediate
+	constraint "entity_change__ck__30e69ba6" check (isfinite("effective_from")),
+	constraint "entity_change__ck__88a9ce0a" check (("pay_methods" is null or store_json_valid("pay_methods", '{"fields":{"benefit_exclusion":{"default":"POOLED","kind":"enum","values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"default":"EVEN","kind":"enum","values":["EVEN","FIRST_RUN"]},"health_billing":{"default":"CURRENT","kind":"enum","values":["CURRENT","ARREARS"]},"night_differential_basis":{"default":"WORKED","kind":"enum","values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"default":"STATUTORY","kind":"enum","values":["STATUTORY","CONTRACT_WEEKLY"]},"paid_leave":{"kind":"text","many":true,"optional":true},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true}'::jsonb) is true)),
+	constraint "entity_change__ck__cea79742" check ("final_pay_loan_floor_percent" >= 0 and "final_pay_loan_floor_percent" <= 100),
+	constraint "entity_change__ck__dda23d17" check ("overtime_full_award_percent" >= 1 and "overtime_full_award_percent" <= 100),
+	constraint "entity_change__ck__ac87d3fe" check (("statutory_parameters" is null or store_json_valid("statutory_parameters", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
+	constraint "entity_change__ck__64a2ceb8" check (not jsonb_path_exists(to_jsonb("clears"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "entity_change__uq__27cd9d33" unique nulls not distinct ("entity_id", "effective_from") deferrable initially immediate
 );
 
 -- step create:table:holiday (additive)
@@ -1679,8 +1598,8 @@ create table "holiday" ("id" uuid primary key, revision int not null default 1, 
 	"published_at" timestamptz,
 	"replaces" date,
 	"given_to" text default 'EVERYONE'::text not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_holiday_c0a9a654"("date")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_holiday_c0a9a654"("date"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_holiday_926befc4"("date", "name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_holiday_926befc4"("date", "name"), ''))) stored,
 	"entity_id" uuid not null,
 	"employee_id" uuid,
 	constraint "holiday__ck__6b9b7b32" check (isfinite("date")),
@@ -1729,64 +1648,9 @@ create table "shift_definition" ("id" uuid primary key, revision int not null de
 	constraint "shift_definition__uq__dd11f24c" unique nulls not distinct ("entity_id", "code") deferrable initially immediate
 );
 
--- step create:table:jurisdiction_settings (additive)
-create table "jurisdiction_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"code" text not null,
-	"name" text not null,
-	"effective_range" daterange not null,
-	"currency" text not null,
-	"timezone" text not null,
-	"tax_year_start_month" int not null,
-	"conversions" jsonb not null,
-	"ledger" jsonb not null,
-	"employee_extension_schema" jsonb,
-	"entity_extension_schema" jsonb,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"work_regions" jsonb default '{}'::jsonb not null,
-	"status" text default 'DRAFT' not null,
-	"reason" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_jurisdiction_settings_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_jurisdiction_settings_93340fdd"("name"), ''))) stored,
-	constraint "jurisdiction_settings__ck__b16c6b5e" check (not isempty("effective_range") and not lower_inf("effective_range")),
-	constraint "jurisdiction_settings__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
-	constraint "jurisdiction_settings__ck__195dbb6e" check ("timezone" ~ '^[A-Za-z_]+(/[A-Za-z0-9_+\-]+)*$'),
-	constraint "jurisdiction_settings__ck__07363679" check ("tax_year_start_month" >= 1 and "tax_year_start_month" <= 12),
-	constraint "jurisdiction_settings__ck__23b7bd00" check (("conversions" is null or store_json_valid("conversions", '{"fields":{"back_pay":{"kind":"text","optional":true},"day":{"fields":{"basis":{"kind":"enum","values":["CALENDAR_DAYS","WORKING_DAYS","YEAR","YEAR_REST_DAYS","HOUR","FIXED"]},"days":{"kind":"number","min":0,"optional":true}},"kind":"object"},"hour":{"fields":{"basis":{"kind":"enum","values":["CONTRACT_HOURS","CONTRACT_WEEKLY","FIXED"]},"hours":{"kind":"number","min":0,"optional":true}},"kind":"object"},"proration":{"kind":"enum","values":["CALENDAR_DAYS","WORKING_DAYS","DAY_RATE"]},"rounding":{"fields":{"day_rate":{"default":"RATE","kind":"enum","values":["RATE","AMOUNT"]},"mode":{"default":"HALF_UP","kind":"enum","values":["HALF_UP","HALF_EVEN","UP","DOWN","TRUNCATE"]},"scale":{"default":2,"kind":"int","max":12,"min":0}},"kind":"object"}},"kind":"object"}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__d56866f5" check (("ledger" is null or store_json_valid("ledger", '{"fields":{"ytd_scope":{"default":"JURISDICTION","kind":"enum","values":["JURISDICTION","EMPLOYER"]}},"kind":"object"}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__edc0e89f" check (("employee_extension_schema" is null or store_json_valid("employee_extension_schema", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__e1023647" check (("entity_extension_schema" is null or store_json_valid("entity_extension_schema", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__34db5fbb" check (("work_regions" is null or store_json_valid("work_regions", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"text"}}}'::jsonb) is true)),
-	constraint "jurisdiction_settings__ck__a3a63477" check ("status" in ('DRAFT', 'SEALED', 'VOID')),
-	constraint "jurisdiction_settings__ex__d3ff5867" exclude using gist ("code" with =, "effective_range" with &&) where (coalesce("status" = 'SEALED'::text, false)) deferrable initially immediate
-);
-
--- step create:table:adhoc_catalog (additive)
-create table "adhoc_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"eligibility" text,
-	"direction" text default 'ADD'::text not null,
-	"party" text default 'EMPLOYEE'::text not null,
-	"off_cycle_eligible" boolean not null,
-	"conversion" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_adhoc_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_adhoc_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid,
-	"settings_id" uuid not null,
-	constraint "adhoc_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "adhoc_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "adhoc_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "adhoc_catalog__ck__6d503d68" check ("direction" in ('ADD', 'DEDUCT')),
-	constraint "adhoc_catalog__ck__856ea7dc" check ("party" in ('EMPLOYEE', 'EMPLOYER')),
-	constraint "adhoc_catalog__ck__b517fae2" check (char_length("conversion") <= 65536),
-	constraint "adhoc_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
 -- step create:table:adhoc_catalog_entry (additive)
 create table "adhoc_catalog_entry" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"description" text not null,
 	"quantity" numeric not null,
 	"unit" text default 'MONEY'::text not null,
@@ -1794,7 +1658,6 @@ create table "adhoc_catalog_entry" ("id" uuid primary key, revision int not null
 	"evidence_file" jsonb,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
-	"catalog_id" uuid not null,
 	"payroll_run_id" uuid,
 	constraint "adhoc_catalog_entry__ck__8250c825" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 12) = "quantity" and "quantity" >= 0),
 	constraint "adhoc_catalog_entry__ck__74db4e5f" check ("unit" in ('DAY', 'CALENDAR_DAY', 'HOUR', 'MONEY', 'COUNT')),
@@ -1802,34 +1665,15 @@ create table "adhoc_catalog_entry" ("id" uuid primary key, revision int not null
 	constraint "adhoc_catalog_entry__ck__8e16884e" check (("evidence_file" is null or store_json_valid("evidence_file", '{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true))
 );
 
--- step create:table:claim_catalog (additive)
-create table "claim_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"eligibility" text,
-	"conversion" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_claim_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_claim_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid,
-	"settings_id" uuid not null,
-	constraint "claim_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "claim_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "claim_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "claim_catalog__ck__b517fae2" check (char_length("conversion") <= 65536),
-	constraint "claim_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
 -- step create:table:claim_catalog_entry (additive)
 create table "claim_catalog_entry" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"quantity" numeric not null,
 	"unit" text default 'MONEY'::text not null,
 	"incurred_on" date not null,
 	"evidence_file" jsonb,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
-	"catalog_id" uuid not null,
 	"payroll_run_id" uuid,
 	constraint "claim_catalog_entry__ck__8250c825" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 12) = "quantity" and "quantity" >= 0),
 	constraint "claim_catalog_entry__ck__74db4e5f" check ("unit" in ('DAY', 'CALENDAR_DAY', 'HOUR', 'MONEY', 'COUNT')),
@@ -1837,34 +1681,13 @@ create table "claim_catalog_entry" ("id" uuid primary key, revision int not null
 	constraint "claim_catalog_entry__ck__8e16884e" check (("evidence_file" is null or store_json_valid("evidence_file", '{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true))
 );
 
--- step create:table:leave_catalog (additive)
-create table "leave_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"paid_share" text,
-	"payout" text,
-	"references" jsonb,
-	"eligibility" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_leave_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_leave_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid,
-	"settings_id" uuid not null,
-	constraint "leave_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "leave_catalog__ck__8821d273" check (char_length("paid_share") <= 65536),
-	constraint "leave_catalog__ck__f8d4002b" check (char_length("payout") <= 65536),
-	constraint "leave_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "leave_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "leave_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
 -- step create:table:leave_catalog_entry (additive)
 create table "leave_catalog_entry" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"evidence_file" jsonb,
 	"encashment" boolean default false not null,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
-	"catalog_id" uuid not null,
 	"payroll_run_id" uuid,
 	constraint "leave_catalog_entry__ck__8e16884e" check (("evidence_file" is null or store_json_valid("evidence_file", '{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true))
 );
@@ -1882,32 +1705,15 @@ create table "leave_catalog_entry_day" ("id" uuid primary key, revision int not 
 	constraint "leave_catalog_entry_day__uq__a9fedf7b" unique nulls not distinct ("leave_entry_id", "incurred_on", "part") deferrable initially immediate
 );
 
--- step create:table:loan_catalog (additive)
-create table "loan_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"eligibility" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_loan_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_loan_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid,
-	"settings_id" uuid not null,
-	constraint "loan_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "loan_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "loan_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "loan_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
 -- step create:table:loan_catalog_entry (additive)
 create table "loan_catalog_entry" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"quantity" numeric not null,
 	"recovered" numeric default 0 not null,
 	"repayment_period" daterange not null,
 	"evidence_file" jsonb,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
-	"catalog_id" uuid not null,
 	"payroll_run_id" uuid,
 	constraint "loan_catalog_entry__ck__8250c825" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 12) = "quantity" and "quantity" >= 0),
 	constraint "loan_catalog_entry__ck__1a73461e" check (not isempty("repayment_period") and not lower_inf("repayment_period")),
@@ -1919,8 +1725,6 @@ create table "loan_catalog_entry_repayment" ("id" uuid primary key, revision int
 	"amount" numeric not null,
 	"paid_on" date,
 	"payment_reference" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_loan_catalog_entry_rep_6b8b30eb"("payment_reference")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_loan_catalog_entry_rep_6b8b30eb"("payment_reference"), ''))) stored,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
 	"loan_id" uuid not null,
@@ -1929,40 +1733,9 @@ create table "loan_catalog_entry_repayment" ("id" uuid primary key, revision int
 	constraint "loan_catalog_entry_repayment__ck__09a1b7aa" check (isfinite("paid_on"))
 );
 
--- step create:table:work_event_catalog (additive)
-create table "work_event_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_work_event_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_work_event_catalog_1d6aa255"("code"), ''))) stored,
-	"settings_id" uuid not null,
-	"subtotal_id" uuid,
-	constraint "work_event_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "work_event_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "work_event_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:workplace_case_catalog (additive)
-create table "workplace_case_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"events" jsonb default '{}'::jsonb not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_workplace_case_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workplace_case_catalog_1d6aa255"("code"), ''))) stored,
-	"settings_id" uuid not null,
-	"subtotal_id" uuid,
-	constraint "workplace_case_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "workplace_case_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "workplace_case_catalog__ck__38965ec0" check (("events" is null or store_json_valid("events", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "workplace_case_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
 -- step create:table:workplace_case_catalog_entry (additive)
 create table "workplace_case_catalog_entry" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"severity" text default 'N/A'::text not null,
 	"occurred_on" date,
 	"location" text,
@@ -1974,9 +1747,8 @@ create table "workplace_case_catalog_entry" ("id" uuid primary key, revision int
 	"closed_on" date,
 	"inputs" jsonb default '{}'::jsonb not null,
 	"evidence_file" jsonb,
-	"bolt_record_label" text generated always as ("bolt_record_label_workplace_case_catalog_c652d599"("kind")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workplace_case_catalog_c652d599"("kind"), ''))) stored,
-	"catalog_id" uuid not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_workplace_case_catalog_a812210f"("kind", "opened_on")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_workplace_case_catalog_a812210f"("kind", "opened_on"), ''))) stored,
 	"entity_id" uuid not null,
 	"employment_id" uuid not null,
 	"payroll_run_id" uuid,
@@ -1989,141 +1761,31 @@ create table "workplace_case_catalog_entry" ("id" uuid primary key, revision int
 	constraint "workplace_case_catalog_entry__ck__3679d3ec" check (("evidence_file" is null or store_json_valid("evidence_file", '{"accept":["*/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true))
 );
 
--- step create:table:allowance_catalog (additive)
-create table "allowance_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"eligibility" text not null,
-	"conversion" text not null,
-	"include_in_rate" boolean default false not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_allowance_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_allowance_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid,
-	"settings_id" uuid not null,
-	constraint "allowance_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "allowance_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "allowance_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "allowance_catalog__ck__b517fae2" check (char_length("conversion") <= 65536),
-	constraint "allowance_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:overtime_catalog (additive)
-create table "overtime_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"eligibility" text not null,
-	"conversion" text not null,
-	"direction" text not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_overtime_catalog_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_overtime_catalog_1d6aa255"("code"), ''))) stored,
-	"subtotal_id" uuid not null,
-	"settings_id" uuid not null,
-	constraint "overtime_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "overtime_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "overtime_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "overtime_catalog__ck__b517fae2" check (char_length("conversion") <= 65536),
-	constraint "overtime_catalog__ck__6d503d68" check ("direction" in ('ADD', 'DEDUCT')),
-	constraint "overtime_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:statutory_contribution_catalog (additive)
-create table "statutory_contribution_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"references" jsonb,
-	"kind" text not null,
-	"balance_window" text default 'YEAR'::text not null,
-	"assessed" text default 'EARNED'::text not null,
-	"eligibility" text not null,
-	"depends_on" text[],
-	"employee_amount" text not null,
-	"employer_amount" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_statutory_contribution_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_statutory_contribution_1d6aa255"("code"), ''))) stored,
-	"employer_cost_subtotal_id" uuid,
-	"subtotal_id" uuid not null,
-	"settings_id" uuid not null,
-	constraint "statutory_contribution_catalog__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "statutory_contribution_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "statutory_contribution_catalog__ck__e1149f53" check ("kind" in ('CONTRIBUTION', 'TAX')),
-	constraint "statutory_contribution_catalog__ck__f7025387" check ("balance_window" in ('MONTH', 'YEAR')),
-	constraint "statutory_contribution_catalog__ck__f3b3e425" check ("assessed" in ('EARNED', 'PAID')),
-	constraint "statutory_contribution_catalog__ck__34bc72af" check (char_length("eligibility") <= 65536),
-	constraint "statutory_contribution_catalog__ck__b6317af1" check (not jsonb_path_exists(to_jsonb("depends_on"), 'strict $[*] ? (@.type() != "string")')),
-	constraint "statutory_contribution_catalog__ck__032fe5c3" check (char_length("employee_amount") <= 65536),
-	constraint "statutory_contribution_catalog__ck__6f537d84" check (char_length("employer_amount") <= 65536),
-	constraint "statutory_contribution_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:registered_effect (additive)
-create table "registered_effect" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"code" text not null,
-	"description" text,
-	"name" text not null,
-	"references" jsonb,
-	"source_collection" text not null,
-	"events" text[] not null,
-	"reads" jsonb,
-	"condition" text not null,
-	"target_collection" text not null,
-	"target_action" text not null,
-	"effects" text not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_registered_effect_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_registered_effect_1d6aa255"("code"), ''))) stored,
-	"settings_id" uuid not null,
-	constraint "registered_effect__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "registered_effect__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "registered_effect__ck__a5d539d9" check (not jsonb_path_exists(to_jsonb("events"), 'strict $[*] ? (@.type() != "string")') and "events" <@ array['create', 'update', 'delete', 'seal', 'exit']::text[]),
-	constraint "registered_effect__ck__214b27e5" check (("reads" is null or store_json_valid("reads", '{"kind":"custom","of":"reads","optional":true}'::jsonb) is true)),
-	constraint "registered_effect__ck__e2e52b1d" check (char_length("condition") <= 65536),
-	constraint "registered_effect__ck__fcea4370" check ("target_action" in ('create', 'update', 'delete')),
-	constraint "registered_effect__ck__39856cc7" check (char_length("effects") <= 65536),
-	constraint "registered_effect__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:registered_rule (additive)
-create table "registered_rule" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"code" text not null,
-	"description" text,
-	"target_collection" text not null,
-	"events" text[] not null,
-	"reads" jsonb,
-	"condition" text,
-	"validate" text not null,
-	"order" int default '0'::int not null,
-	"lookup" jsonb default '{}'::jsonb not null,
-	"references" jsonb,
-	"bolt_record_label" text generated always as ("bolt_record_label_registered_rule_1d6aa255"("code")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_registered_rule_1d6aa255"("code"), ''))) stored,
-	"settings_id" uuid not null,
-	constraint "registered_rule__ck__8da0789d" check (not jsonb_path_exists(to_jsonb("events"), 'strict $[*] ? (@.type() != "string")') and "events" <@ array['create', 'update', 'delete']::text[]),
-	constraint "registered_rule__ck__214b27e5" check (("reads" is null or store_json_valid("reads", '{"kind":"custom","of":"reads","optional":true}'::jsonb) is true)),
-	constraint "registered_rule__ck__e2e52b1d" check (char_length("condition") <= 65536),
-	constraint "registered_rule__ck__dba88d11" check (char_length("validate") <= 65536),
-	constraint "registered_rule__ck__6531737b" check (("lookup" is null or store_json_valid("lookup", '{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
-	constraint "registered_rule__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true)),
-	constraint "registered_rule__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
-);
-
--- step create:table:subtotal (additive)
-create table "subtotal" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:jurisdiction (additive)
+create table "jurisdiction" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"code" text not null,
 	"name" text not null,
-	"balance_window" text default 'YEAR'::text not null,
-	"calculation" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_subtotal_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_subtotal_93340fdd"("name"), ''))) stored,
-	"settings_id" uuid not null,
-	"previous_id" uuid,
-	constraint "subtotal__ck__f7025387" check ("balance_window" in ('MONTH', 'YEAR')),
-	constraint "subtotal__ck__070cbe53" check (char_length("calculation") <= 65536),
-	constraint "subtotal__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate
+	"currency" text not null,
+	"timezone" text not null,
+	"tax_year_start_month" int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_jurisdiction_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_jurisdiction_93340fdd"("name"), ''))) stored,
+	constraint "jurisdiction__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
+	constraint "jurisdiction__ck__195dbb6e" check ("timezone" ~ '^[A-Za-z_]+(/[A-Za-z0-9_+\-]+)*$'),
+	constraint "jurisdiction__ck__07363679" check ("tax_year_start_month" >= 1 and "tax_year_start_month" <= 12),
+	constraint "jurisdiction__uq__81caf70b" unique ("code") deferrable initially immediate
+);
+
+-- step create:table:jurisdiction_change (additive)
+create table "jurisdiction_change" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"jurisdiction_code" text not null,
+	"effective_from" date not null,
+	"law" jsonb not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_jurisdiction_change_58d6e27a"("effective_from")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_jurisdiction_change_58d6e27a"("effective_from"), ''))) stored,
+	"finding_id" uuid,
+	constraint "jurisdiction_change__ck__30e69ba6" check (isfinite("effective_from")),
+	constraint "jurisdiction_change__ck__4e1a22a9" check (("law" is null or store_json_valid("law", '{"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true))
 );
 
 -- step create:table:obligation (additive)
@@ -2144,7 +1806,7 @@ create table "obligation" ("id" uuid primary key, revision int not null default 
 	constraint "obligation__ck__9a7bdc59" check (isfinite("fulfilled_on")),
 	constraint "obligation__ck__7907ba92" check (("evidence" is null or store_json_valid("evidence", '{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true)),
 	constraint "obligation__ck__55274696" check ("state" in ('FULFILLED', 'OPEN', 'WAIVED')),
-	constraint "obligation__uq__b1d77ab4" unique ("occurrence_key") deferrable initially immediate
+	constraint "obligation__uq__db9e6024" unique ("occurrence_key")
 );
 
 -- step create:table:payroll_run (additive)
@@ -2155,11 +1817,10 @@ create table "payroll_run" ("id" uuid primary key, revision int not null default
 	"salary_coverage" daterange not null,
 	"pay_date" date not null,
 	"state" text default 'UNPAID' not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_payroll_run_24bef971"("run_number")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_payroll_run_24bef971"("run_number"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_payroll_run_8635e840"("period", "run_number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_payroll_run_8635e840"("period", "run_number"), ''))) stored,
 	"entity_id" uuid not null,
 	"pay_group_id" uuid not null,
-	"settings_id" uuid not null,
 	constraint "payroll_run__ck__0ea2c478" check ("run_number" >= 1),
 	constraint "payroll_run__uq__b07ef4ff" unique nulls not distinct ("run_number") deferrable initially immediate,
 	constraint "payroll_run__ck__9567fad3" check ("kind" in ('ON_CYCLE', 'OFF_CYCLE')),
@@ -2172,8 +1833,6 @@ create table "payroll_run" ("id" uuid primary key, revision int not null default
 -- step create:table:pay_amendment (additive)
 create table "pay_amendment" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"period" text not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_pay_amendment_17185e46"("period")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_pay_amendment_17185e46"("period"), ''))) stored,
 	"employee_id" uuid not null,
 	"pay_group_id" uuid not null,
 	"payroll_run_id" uuid,
@@ -2192,10 +1851,7 @@ create table "payslip" ("id" uuid primary key, revision int not null default 1, 
 	"employee_statutory" numeric default '0'::numeric not null,
 	"tax_withheld" numeric default '0'::numeric not null,
 	"breakdown" jsonb default '{}'::jsonb not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_payslip_e54569f4"("net_pay")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_payslip_e54569f4"("net_pay"), ''))) stored,
 	"payroll_run_id" uuid not null,
-	"settings_id" uuid not null,
 	"employee_id" uuid not null,
 	"employment_id" uuid not null,
 	"entity_id" uuid not null,
@@ -2219,8 +1875,6 @@ create table "roster_entry" ("id" uuid primary key, revision int not null defaul
 	"findings" jsonb default '[]'::jsonb not null,
 	"consent" jsonb,
 	"actual_worked_intervals" jsonb,
-	"bolt_record_label" text generated always as ("bolt_record_label_roster_entry_10a4d23a"("work_date")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_roster_entry_10a4d23a"("work_date"), ''))) stored,
 	"employment_id" uuid not null,
 	"payroll_run_id" uuid,
 	"shift_definition_id" uuid,
@@ -2253,31 +1907,10 @@ create table "statutory_finding" ("id" uuid primary key, revision int not null d
 	constraint "statutory_finding__ck__19a56580" check ("fit" in ('VALUE', 'ROW', 'STRUCTURAL')),
 	constraint "statutory_finding__ck__0ff9a026" check (not jsonb_path_exists(to_jsonb("families"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "statutory_finding__ck__eeef1ebb" check (isfinite("announced_on")),
-	constraint "statutory_finding__ck__928cafd6" check ("status" in ('APPLIED', 'CONFIRMED', 'PROPOSED', 'REJECTED')),
+	constraint "statutory_finding__ck__f95d14e0" check ("status" in ('CONFIRMED', 'PROPOSED', 'REJECTED')),
 	constraint "statutory_finding__ck__6efbc1f2" check (not jsonb_path_exists(to_jsonb("source_urls"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "statutory_finding__ck__cc788915" check (isfinite("verified_on")),
 	constraint "statutory_finding__uq__90d60db4" unique nulls not distinct ("jurisdiction_code", "instrument_key") deferrable initially immediate
-);
-
--- step create:table:statutory_change (additive)
-create table "statutory_change" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"jurisdiction_code" text not null,
-	"family" text not null,
-	"row_code" text,
-	"field_path" text not null,
-	"old_value" jsonb,
-	"new_value" jsonb,
-	"effective_from" date,
-	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_statutory_change_b26ebd75"("field_path")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_statutory_change_b26ebd75"("field_path"), ''))) stored,
-	"finding_id" uuid not null,
-	"baseline_version_id" uuid not null,
-	"applied_version_id" uuid,
-	constraint "statutory_change__ck__ae52c15d" check (("old_value" is null or store_json_valid("old_value", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "statutory_change__ck__73129686" check (("new_value" is null or store_json_valid("new_value", '{"kind":"json","optional":true}'::jsonb) is true)),
-	constraint "statutory_change__ck__30e69ba6" check (isfinite("effective_from")),
-	constraint "statutory_change__uq__4b6ab814" unique nulls not distinct ("finding_id", "family", "row_code", "field_path", "effective_from") deferrable initially immediate
 );
 
 -- step create:table:statutory_source (additive)
@@ -2304,6 +1937,7 @@ create table "statutory_source" ("id" uuid primary key, revision int not null de
 
 -- step create:table:work_event (additive)
 create table "work_event" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"catalog_code" text not null,
 	"from" date not null,
 	"to" date,
 	"location" text,
@@ -2313,7 +1947,6 @@ create table "work_event" ("id" uuid primary key, revision int not null default 
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_work_event_b392372b"("description"), ''))) stored,
 	"entity_id" uuid not null,
 	"employment_id" uuid,
-	"catalog_id" uuid not null,
 	constraint "work_event__ck__cd7d6062" check (isfinite("from")),
 	constraint "work_event__ck__f8465441" check (isfinite("to")),
 	constraint "work_event__ck__8e16884e" check (("evidence_file" is null or store_json_valid("evidence_file", '{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true}'::jsonb) is true))
@@ -2353,7 +1986,7 @@ select bolt_history_register('approval_request','{"fields":{"action":{"kind":"en
 select bolt_history_register('sys_api_key','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"created_by":{"kind":"ref","optional":true,"to":"sys_user"},"hash":{"kind":"text"},"last_used_at":{"kind":"instant","optional":true},"name":{"kind":"text"},"prefix":{"kind":"text"},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"key":"text","record_label":"record.name","unique":[{"fields":["prefix"],"name":"prefix"}]}'::jsonb);
 
 -- step create:history:schema:sys_conversation (additive)
-select bolt_history_register('sys_conversation','{"fields":{"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"goals":{"kind":"json","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
+select bolt_history_register('sys_conversation','{"fields":{"archived_at":{"kind":"instant","optional":true},"created_at":{"default":{"var":"now"},"kind":"instant"},"envoy":{"kind":"text","optional":true},"inputs":{"default":[],"kind":"json"},"integration":{"kind":"ref","on_delete":"cascade","optional":true,"to":"sys_integration"},"kind":{"kind":"text","optional":true},"lease_until":{"kind":"instant","optional":true},"model":{"default":"default","kind":"text"},"outputs":{"default":[],"kind":"json"},"owner":{"kind":"text","optional":true},"parent":{"kind":"text","optional":true},"participants":{"kind":"json","optional":true},"plan":{"kind":"json","optional":true},"read":{"default":{},"kind":"json"},"restart_at":{"kind":"text","optional":true},"restart_from":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"run":{"kind":"text","optional":true},"status":{"default":"idle","kind":"text"},"thread":{"kind":"text","optional":true},"title":{"kind":"text","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.title"}'::jsonb);
 
 -- step create:history:schema:sys_envoy (additive)
 select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
@@ -2368,34 +2001,37 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:employee_profile (additive)
-select bolt_history_register('employee_profile','{"audit":true,"fields":{"address":{"kind":"text","optional":true},"cumulative_service":{"default":false,"kind":"bool"},"documents":{"accept":["application/pdf","image/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"email":{"format":"email","kind":"text","optional":true},"face_consent_at":{"kind":"instant","optional":true},"face_embedding":{"dim":1024,"kind":"vector","metric":"cosine","optional":true},"face_enrolled_at":{"kind":"instant","optional":true},"face_enrollment_status":{"default":"NONE","kind":"enum","values":["NONE","PENDING","APPROVED","SUSPENDED"]},"face_photo":{"accept":["image/jpeg","image/png"],"kind":"file","max":"5MiB","optional":true},"invitation_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_invitation"},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"phone":{"format":"phone","kind":"text","optional":true},"source_reference":{"kind":"text","optional":true},"user_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_user"}},"record_label":"record.name","search":{"semantic":{"dim":1536,"fields":["address"],"model":"default"},"text":["name","email","phone"]},"unique":[{"fields":["invitation_id"],"name":"invitation_id"},{"fields":["user_id"],"name":"user_id"}]}'::jsonb);
+select bolt_history_register('employee_profile','{"audit":true,"fields":{"address":{"kind":"text","optional":true},"bank":{"kind":"custom","of":"bank","optional":true},"birth_city":{"kind":"text","optional":true},"cumulative_service":{"default":false,"kind":"bool"},"date_of_birth":{"kind":"date","optional":true},"documents":{"accept":["application/pdf","image/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"email":{"format":"email","kind":"text","optional":true},"face_consent_at":{"kind":"instant","optional":true},"face_embedding":{"dim":1024,"kind":"vector","metric":"cosine","optional":true},"face_enrolled_at":{"kind":"instant","optional":true},"face_enrollment_status":{"default":"NONE","kind":"enum","values":["NONE","PENDING","APPROVED","SUSPENDED"]},"face_photo":{"accept":["image/jpeg","image/png"],"kind":"file","max":"5MiB","optional":true},"gender":{"kind":"enum","optional":true,"values":["MALE","FEMALE"]},"identity_number":{"kind":"text","optional":true},"invitation_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_invitation"},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"phone":{"format":"phone","kind":"text","optional":true},"source_reference":{"kind":"text","optional":true},"user_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_user"}},"record_label":"record.name","search":{"semantic":{"dim":1536,"fields":["address"],"model":"default"},"text":["name","email","phone"]},"unique":[{"fields":["invitation_id"],"name":"invitation_id"},{"fields":["user_id"],"name":"user_id"}]}'::jsonb);
+
+-- step create:history:schema:dependant (additive)
+select bolt_history_register('dependant','{"audit":true,"fields":{"allocations":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"number","min":0}}},"born_on":{"kind":"date","optional":true},"disabled":{"kind":"bool","optional":true},"employee_id":{"inverse":"dependants","kind":"ref","on_delete":"cascade","to":"employee_profile"},"expected_on":{"kind":"date","optional":true},"has_income":{"kind":"bool","optional":true},"name":{"kind":"text","optional":true},"relation":{"kind":"enum","values":["CHILD","SPOUSE","PARENT"]},"studying":{"kind":"bool","optional":true}},"record_label":"has(record.name) ? record.name : string(record.relation)"}'::jsonb);
 
 -- step create:history:schema:employee_balance (additive)
-select bolt_history_register('employee_balance','{"audit":true,"fields":{"account":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"record","of":{"kind":"json"}}}},"employee_id":{"kind":"ref","to":"employee_profile"}},"record_label":"''Balance''","unique":[{"fields":["employee_id"],"name":"one_balance"}]}'::jsonb);
+select bolt_history_register('employee_balance','{"audit":true,"fields":{"account":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"record","of":{"kind":"json"}}}},"employee_id":{"kind":"ref","to":"employee_profile"}},"record_label":"has(record.employee_id.name) ? record.employee_id.name : ''Balance''","unique":[{"fields":["employee_id"],"name":"one_balance"}]}'::jsonb);
 
 -- step create:history:schema:ledger_entry (additive)
-select bolt_history_register('ledger_entry','{"audit":true,"check":{"names_its_movement":{"amount":{"is_null":false},"measure":{"is_null":false},"period":{"is_null":false},"source":{"is_null":false}}},"fields":{"account":{"kind":"text"},"amount":{"kind":"decimal","min":0,"optional":true,"scale":12},"balance_id":{"inverse":"entries","kind":"ref","to":"employee_balance"},"code":{"kind":"text"},"effective_on":{"kind":"date"},"measure":{"kind":"enum","optional":true,"values":["total","used","entitled","carried","limit","paid"]},"note":{"kind":"text","optional":true},"operation":{"kind":"enum","values":["ADD","DEDUCT"]},"period":{"kind":"text","optional":true},"source":{"kind":"text","optional":true},"unit":{"kind":"enum","optional":true,"values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.code"}'::jsonb);
+select bolt_history_register('ledger_entry','{"audit":true,"check":{"names_its_movement":{"amount":{"is_null":false},"measure":{"is_null":false},"period":{"is_null":false},"source":{"is_null":false}}},"fields":{"account":{"kind":"text"},"amount":{"kind":"decimal","min":0,"optional":true,"scale":12},"balance_id":{"inverse":"entries","kind":"ref","to":"employee_balance"},"code":{"kind":"text"},"effective_on":{"kind":"date"},"measure":{"kind":"enum","optional":true,"values":["total","used","entitled","carried","limit","paid"]},"note":{"kind":"text","optional":true},"operation":{"kind":"enum","values":["ADD","DEDUCT"]},"period":{"kind":"text","optional":true},"source":{"kind":"text","optional":true},"unit":{"kind":"enum","optional":true,"values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.code + '' · '' + string(record.effective_on)"}'::jsonb);
 
--- step create:history:schema:employee_contract (additive)
-select bolt_history_register('employee_contract','{"audit":true,"fields":{"bank":{"kind":"custom","of":"bank","optional":true},"effective_range":{"kind":"period","of":"date"},"employee_extension_data":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"employee_id":{"inverse":"employee_contract","kind":"ref","to":"employee_profile"},"employee_number":{"kind":"text"},"encash_leave":{"default":true,"kind":"bool"},"engagement":{"default":"EMPLOYEE","kind":"enum","values":["EMPLOYEE","PART_TIME","CONTRACTOR","INTERN","APPRENTICE","CONSULTANT","PAYEE"]},"entity_id":{"inverse":"employee_contract","kind":"ref","to":"entity"},"events":{"fields":{"allocated_days":{"kind":"int","optional":true},"ended_on":{"kind":"date","optional":true},"kind":{"kind":"text"},"on":{"kind":"date"},"opened_on":{"kind":"date","optional":true}},"kind":"object","many":true,"optional":true},"exit_ground":{"kind":"enum","optional":true,"values":["RETRENCHMENT","RETIREMENT","RESIGNATION","DISMISSAL","MISCONDUCT_DISMISSAL","END_OF_CONTRACT","MUTUAL","DEATH","UNILATERAL","BREACH_BY_EMPLOYER"]},"family":{"fields":{"allocations":{"kind":"record","of":{"kind":"number","min":0},"optional":true},"born_on":{"kind":"date","optional":true},"disabled":{"kind":"bool","optional":true},"expected_on":{"kind":"date","optional":true},"has_income":{"kind":"bool","optional":true},"relation":{"kind":"enum","values":["CHILD","SPOUSE","PARENT"]},"studying":{"kind":"bool","optional":true}},"kind":"object","many":true,"optional":true},"final_pay_due_on":{"kind":"date","optional":true},"pay_group_id":{"inverse":"employee_contract","kind":"ref","on_delete":"restrict","optional":true,"to":"pay_group"},"payroll":{"fields":{"birth_city":{"kind":"text","optional":true},"date_of_birth":{"kind":"date","optional":true},"gender":{"kind":"enum","optional":true,"values":["MALE","FEMALE"]},"identity_number":{"kind":"text","optional":true},"marital_status":{"kind":"enum","optional":true,"values":["SINGLE","MARRIED","SEPARATED","DIVORCED","WIDOWED"]},"nationality":{"kind":"text","optional":true},"passport_number":{"kind":"text","optional":true}},"kind":"object","optional":true},"reason":{"kind":"text","optional":true},"service_started_on":{"kind":"date","optional":true},"signed_contract_period":{"kind":"period","of":"date","optional":true},"status":{"initial":"DRAFT","kind":"state","states":{"DRAFT":{"to":["SEALED"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}},"terms":{"fields":{"allowances":{"kind":"record","of":{"fields":{"amount":{"kind":"number","min":0}},"kind":"object"},"optional":true},"annual_leave_carry_limit_days":{"kind":"number","min":0,"optional":true},"department":{"kind":"text","optional":true},"employee_borne_tax_items":{"kind":"text","many":true,"optional":true},"employer_bears_income_tax":{"kind":"bool","optional":true},"job_title":{"kind":"text","optional":true},"normal_days_per_week":{"kind":"number","max":7,"min":0},"normal_hours_per_day":{"kind":"number","min":0},"normal_hours_per_week":{"kind":"number","min":0},"notice_period":{"fields":{"unit":{"kind":"enum","values":["DAYS","WEEKS","MONTHS"]},"value":{"kind":"number","min":0}},"kind":"object","optional":true},"probation_period":{"kind":"period","of":"date","optional":true},"rate":{"kind":"json","optional":true,"shape":{"arms":{"DAILY":{"amount":{"kind":"number","min":0}},"HOURLY":{"amount":{"kind":"number","min":0}},"MONTHLY":{"amount":{"kind":"number","min":0}}},"by":"unit","kind":"union"}},"residency_status":{"kind":"text","optional":true},"shift_pattern_id":{"kind":"ref","optional":true,"to":"shift_pattern"},"signed_on":{"kind":"date","optional":true},"statutory_work_category":{"kind":"text","optional":true},"wage_payment_method":{"kind":"enum","optional":true,"values":["BANK","CASH","CHEQUE","DIGITAL"]},"work_authorisation_category":{"kind":"text","optional":true},"work_authorisation_expires_on":{"kind":"date","optional":true},"work_classification":{"kind":"text","optional":true},"work_region":{"kind":"text","optional":true},"worksite":{"kind":"text","optional":true}},"kind":"object"}},"locks":{"sealed_version":{"except":["effective_range","final_pay_due_on","reason","exit_ground","encash_leave","employee_extension_data","status"],"where":{"status":{"eq":"SEALED"}}},"void_version":{"where":{"status":{"eq":"VOID"}}}},"no_overlap":[{"key":["employee_id"],"name":"sealed_range","period":"effective_range","where":{"status":{"eq":"SEALED"}}}],"record_label":"has(record.employee_id.name) ? record.employee_id.name + '' · '' + record.employee_number : record.employee_number","search":{"text":["employee_number","employee_id"]}}'::jsonb);
+-- step create:history:schema:employment (additive)
+select bolt_history_register('employment','{"audit":true,"fields":{"effective_range":{"kind":"period","of":"date"},"employee_id":{"inverse":"employment","kind":"ref","to":"employee_profile"},"employee_number":{"kind":"text"},"encash_leave":{"default":true,"kind":"bool"},"entity_id":{"inverse":"employment","kind":"ref","to":"entity"},"events":{"fields":{"allocated_days":{"kind":"int","optional":true},"ended_on":{"kind":"date","optional":true},"kind":{"kind":"text"},"on":{"kind":"date"},"opened_on":{"kind":"date","optional":true}},"kind":"object","many":true,"optional":true},"exit_ground":{"kind":"enum","optional":true,"values":["RETRENCHMENT","RETIREMENT","RESIGNATION","DISMISSAL","MISCONDUCT_DISMISSAL","END_OF_CONTRACT","MUTUAL","DEATH","UNILATERAL","BREACH_BY_EMPLOYER"]},"final_pay_due_on":{"kind":"date","optional":true},"reason":{"kind":"text","optional":true},"service_started_on":{"kind":"date","optional":true}},"no_overlap":[{"key":["employee_id"],"name":"stints","period":"effective_range"}],"record_label":"(has(record.employee_id.name) ? record.employee_id.name + '' · '' : '''') + record.employee_number + '' · '' + string(record.effective_range.from)","search":{"text":["employee_number","employee_id"]}}'::jsonb);
 
--- step create:history:schema:contract_change (additive)
-select bolt_history_register('contract_change','{"audit":true,"fields":{"applied_version_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"employee_contract"},"effective_from":{"kind":"date"},"employee_id":{"inverse":"contract_changes","kind":"ref","on_delete":"cascade","to":"employee_profile"},"field_path":{"kind":"text"},"new_value":{"kind":"json","optional":true},"notes":{"kind":"text","optional":true},"old_value":{"kind":"json","optional":true}},"locks":{"applied_change":{"where":{"applied_version_id":{"is_null":false}}}},"record_label":"record.field_path"}'::jsonb);
+-- step create:history:schema:contract_terms (additive)
+select bolt_history_register('contract_terms','{"audit":true,"fields":{"allowances":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"fields":{"amount":{"kind":"number","min":0}},"kind":"object"}}},"annual_leave_carry_limit_days":{"kind":"json","optional":true,"shape":{"kind":"number","min":0}},"clears":{"kind":"text","many":true,"optional":true},"department":{"kind":"text","optional":true},"effective_from":{"kind":"date"},"employee_borne_tax_items":{"kind":"text","many":true,"optional":true},"employer_bears_income_tax":{"kind":"bool","optional":true},"employment_id":{"inverse":"terms","kind":"ref","on_delete":"cascade","to":"employment"},"engagement":{"kind":"enum","optional":true,"values":["EMPLOYEE","PART_TIME","CONTRACTOR","INTERN","APPRENTICE","CONSULTANT","PAYEE"]},"job_title":{"kind":"text","optional":true},"normal_days_per_week":{"kind":"json","optional":true,"shape":{"kind":"number","max":7,"min":0}},"normal_hours_per_day":{"kind":"json","optional":true,"shape":{"kind":"number","min":0}},"normal_hours_per_week":{"kind":"json","optional":true,"shape":{"kind":"number","min":0}},"notice_period":{"fields":{"unit":{"kind":"enum","values":["DAYS","WEEKS","MONTHS"]},"value":{"kind":"number","min":0}},"kind":"object","optional":true},"pay_group_id":{"inverse":"contract_terms","kind":"ref","on_delete":"restrict","optional":true,"to":"pay_group"},"probation_period":{"kind":"period","of":"date","optional":true},"rate":{"kind":"json","optional":true,"shape":{"arms":{"DAILY":{"amount":{"kind":"number","min":0}},"HOURLY":{"amount":{"kind":"number","min":0}},"MONTHLY":{"amount":{"kind":"number","min":0}}},"by":"unit","kind":"union"}},"shift_pattern_id":{"kind":"ref","optional":true,"to":"shift_pattern"},"signed_contract_period":{"kind":"period","of":"date","optional":true},"signed_on":{"kind":"date","optional":true},"statutory_work_category":{"kind":"text","optional":true},"wage_payment_method":{"kind":"enum","optional":true,"values":["BANK","CASH","CHEQUE","DIGITAL"]},"work_classification":{"kind":"text","optional":true},"work_region":{"kind":"text","optional":true},"worksite":{"kind":"text","optional":true}},"record_label":"record.effective_from","unique":[{"fields":["employment_id","effective_from"],"name":"one_change"}]}'::jsonb);
+
+-- step create:history:schema:statutory_parameters (additive)
+select bolt_history_register('statutory_parameters','{"audit":true,"fields":{"clears":{"kind":"text","many":true,"optional":true},"effective_from":{"kind":"date"},"employment_id":{"inverse":"parameters","kind":"ref","on_delete":"cascade","to":"employment"},"marital_status":{"kind":"enum","optional":true,"values":["SINGLE","MARRIED","SEPARATED","DIVORCED","WIDOWED"]},"nationality":{"kind":"text","optional":true},"parameters":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}},"passport_number":{"kind":"text","optional":true},"residency_status":{"kind":"text","optional":true},"work_authorisation_category":{"kind":"text","optional":true},"work_authorisation_expires_on":{"kind":"date","optional":true}},"record_label":"record.effective_from","unique":[{"fields":["employment_id","effective_from"],"name":"one_change"}]}'::jsonb);
 
 -- step create:history:schema:entity (additive)
-select bolt_history_register('entity','{"audit":true,"fields":{"code":{"kind":"text","optional":true},"epf_registered_on":{"kind":"date","optional":true},"name":{"kind":"text"},"settings_code":{"kind":"text"},"socso_registered_on":{"kind":"date","optional":true},"source_reference":{"kind":"text","optional":true}},"record_label":"record.name","search":{"text":["code","name"]},"unique":[{"fields":["code"],"name":"code"}]}'::jsonb);
+select bolt_history_register('entity','{"audit":true,"fields":{"bank":{"kind":"custom","of":"bank","optional":true},"code":{"kind":"text","optional":true},"epf_registered_on":{"kind":"date","optional":true},"name":{"kind":"text"},"registered_address":{"kind":"text","optional":true},"representative_name":{"kind":"text","optional":true},"settings_code":{"kind":"text"},"socso_registered_on":{"kind":"date","optional":true},"source_reference":{"kind":"text","optional":true},"time_zone":{"kind":"text","optional":true}},"record_label":"record.name","search":{"text":["code","name"]},"unique":[{"fields":["code"],"name":"code"}]}'::jsonb);
 
 -- step create:history:schema:entity_change (additive)
-select bolt_history_register('entity_change','{"audit":true,"fields":{"applied_version_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"entity_profile_version"},"effective_from":{"kind":"date"},"entity_id":{"inverse":"entity_changes","kind":"ref","on_delete":"cascade","to":"entity"},"field_path":{"kind":"text"},"new_value":{"kind":"json","optional":true},"notes":{"kind":"text","optional":true},"old_value":{"hidden":true,"kind":"json","optional":true}},"locks":{"applied_change":{"where":{"applied_version_id":{"is_null":false}}}},"record_label":"record.field_path","unique":[{"fields":["entity_id","field_path","effective_from"],"name":"one_change"}]}'::jsonb);
-
--- step create:history:schema:entity_profile_version (additive)
-select bolt_history_register('entity_profile_version','{"audit":true,"fields":{"bank":{"kind":"custom","of":"bank","optional":true},"effective_range":{"kind":"period","of":"date"},"entity_extension_data":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"entity_id":{"inverse":"payroll_versions","kind":"ref","on_delete":"restrict","to":"entity"},"final_pay_loan_floor_percent":{"default":10,"kind":"int","max":100,"min":0},"input_schema_version_id":{"inverse":"employer_payroll_versions","kind":"ref","on_delete":"restrict","to":"jurisdiction_settings","where":{"status":{"eq":"SEALED"}}},"name":{"kind":"text"},"overtime_full_award_percent":{"default":100,"kind":"int","max":100,"min":1},"pay_methods":{"fields":{"benefit_exclusion":{"default":"POOLED","kind":"enum","values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"default":"EVEN","kind":"enum","values":["EVEN","FIRST_RUN"]},"health_billing":{"default":"CURRENT","kind":"enum","values":["CURRENT","ARREARS"]},"night_differential_basis":{"default":"WORKED","kind":"enum","values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"default":"STATUTORY","kind":"enum","values":["STATUTORY","CONTRACT_WEEKLY"]},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true},"reason":{"kind":"text","optional":true},"registered_address":{"kind":"text","optional":true},"representative_name":{"kind":"text","optional":true},"settings_code":{"kind":"text"},"status":{"initial":"DRAFT","kind":"state","states":{"DRAFT":{"to":["SEALED"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}},"time_zone":{"kind":"text","optional":true}},"locks":{"sealed_version":{"except":["effective_range","reason","status"],"where":{"status":{"eq":"SEALED"}}},"void_version":{"where":{"status":{"eq":"VOID"}}}},"no_overlap":[{"key":["entity_id"],"name":"sealed_range","period":"effective_range","where":{"status":{"eq":"SEALED"}}}],"record_label":"record.name"}'::jsonb);
+select bolt_history_register('entity_change','{"audit":true,"fields":{"clears":{"kind":"text","many":true,"optional":true},"effective_from":{"kind":"date"},"entity_id":{"inverse":"changes","kind":"ref","on_delete":"cascade","to":"entity"},"final_pay_loan_floor_percent":{"kind":"int","max":100,"min":0,"optional":true},"overtime_full_award_percent":{"kind":"int","max":100,"min":1,"optional":true},"pay_methods":{"fields":{"benefit_exclusion":{"default":"POOLED","kind":"enum","values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"default":"EVEN","kind":"enum","values":["EVEN","FIRST_RUN"]},"health_billing":{"default":"CURRENT","kind":"enum","values":["CURRENT","ARREARS"]},"night_differential_basis":{"default":"WORKED","kind":"enum","values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"default":"STATUTORY","kind":"enum","values":["STATUTORY","CONTRACT_WEEKLY"]},"paid_leave":{"kind":"text","many":true,"optional":true},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true},"statutory_parameters":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}},"record_label":"record.effective_from","unique":[{"fields":["entity_id","effective_from"],"name":"one_change"}]}'::jsonb);
 
 -- step create:history:schema:holiday (additive)
-select bolt_history_register('holiday','{"audit":true,"fields":{"date":{"kind":"date"},"employee_id":{"inverse":"holiday","kind":"ref","optional":true,"to":"employee_profile"},"entity_id":{"inverse":"holiday","kind":"ref","to":"entity"},"given_to":{"default":"EVERYONE","kind":"enum","values":["EVERYONE","ONLY_IF_OFF_ON_REPLACED_DATE"]},"kind":{"default":"PUBLIC_HOLIDAY","kind":"enum","values":["PUBLIC_HOLIDAY","SPECIAL_HOLIDAY","SUBSTITUTE","DOUBLE_HOLIDAY","DOUBLE_SPECIAL","MAKEUP_WORKDAY"]},"name":{"kind":"text"},"published_at":{"hidden":true,"kind":"instant","optional":true},"replaces":{"kind":"date","optional":true}},"record_label":"record.date"}'::jsonb);
+select bolt_history_register('holiday','{"audit":true,"fields":{"date":{"kind":"date"},"employee_id":{"inverse":"holiday","kind":"ref","optional":true,"to":"employee_profile"},"entity_id":{"inverse":"holiday","kind":"ref","to":"entity"},"given_to":{"default":"EVERYONE","kind":"enum","values":["EVERYONE","ONLY_IF_OFF_ON_REPLACED_DATE"]},"kind":{"default":"PUBLIC_HOLIDAY","kind":"enum","values":["PUBLIC_HOLIDAY","SPECIAL_HOLIDAY","SUBSTITUTE","DOUBLE_HOLIDAY","DOUBLE_SPECIAL","MAKEUP_WORKDAY"]},"name":{"kind":"text"},"published_at":{"hidden":true,"kind":"instant","optional":true},"replaces":{"kind":"date","optional":true}},"record_label":"record.name + '' · '' + string(record.date)"}'::jsonb);
 
 -- step create:history:schema:pay_group (additive)
 select bolt_history_register('pay_group','{"audit":true,"fields":{"entity_id":{"inverse":"pay_groups","kind":"ref","to":"entity"},"name":{"kind":"text"},"payment_schedule":{"default":{"business_day":"PREVIOUS","frequency":"MONTHLY","non_working_weekdays":[0,6],"pay_cutoff_day":1,"pay_days":[25],"short_month":"LAST_DAY"},"kind":"json","shape":{"arms":{"BIWEEKLY":{"anchor_date":{"kind":"date"},"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]},"weekday":{"kind":"int","max":6,"min":0}},"DAILY":{"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]}},"INTEGER_MONTHS":{"anchor_date":{"kind":"date"},"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"month_interval":{"kind":"int","max":12,"min":1},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"pay_cutoff_day":{"default":1,"kind":"int","max":28,"min":1},"pay_days":{"kind":"int","many":true,"max":31,"min":1,"min_items":1},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]}},"MONTHLY":{"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"pay_cutoff_day":{"default":1,"kind":"int","max":28,"min":1},"pay_days":{"kind":"int","many":true,"max":31,"min":1,"min_items":1},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]}},"SEMI_MONTHLY":{"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"pay_cutoff_day":{"default":1,"kind":"int","max":28,"min":1},"pay_days":{"kind":"int","many":true,"max":31,"min":1,"min_items":1},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]}},"TEN_DAY":{"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"pay_cutoff_day":{"default":1,"kind":"int","max":28,"min":1},"pay_days":{"kind":"int","many":true,"max":31,"min":1,"min_items":1},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]}},"WEEKLY":{"anchor_date":{"kind":"date"},"business_day":{"kind":"enum","values":["NONE","PREVIOUS","NEXT"]},"non_working_weekdays":{"kind":"int","many":true,"max":6,"min":0},"short_month":{"kind":"enum","values":["LAST_DAY","REFUSE"]},"weekday":{"kind":"int","max":6,"min":0}}},"by":"frequency","kind":"union"}}},"record_label":"record.name","search":{"text":["name"]},"unique":[{"fields":["entity_id","name"],"name":"entity_name"}]}'::jsonb);
@@ -2406,92 +2042,56 @@ select bolt_history_register('shift_pattern','{"audit":true,"fields":{"code":{"k
 -- step create:history:schema:shift_definition (additive)
 select bolt_history_register('shift_definition','{"audit":true,"fields":{"code":{"kind":"text"},"effective_range":{"kind":"period","of":"date","optional":true},"entity_id":{"inverse":"shift_definition","kind":"ref","to":"entity"},"name":{"kind":"text","optional":true},"variant":{"fields":{"breaks":{"fields":{"end_time":{"kind":"time"},"paid":{"kind":"bool"},"start_time":{"kind":"time"}},"kind":"object","many":true},"day_type":{"kind":"enum","values":["WORK","REST","OFF","ABS"]},"end_time":{"kind":"time","optional":true},"ends_next_day":{"kind":"bool"},"start_time":{"kind":"time","optional":true},"untimed_hours":{"kind":"number","min":0,"optional":true}},"kind":"object"}},"record_label":"record.code","unique":[{"fields":["entity_id","code"],"name":"entity_code"}]}'::jsonb);
 
--- step create:history:schema:jurisdiction_settings (additive)
-select bolt_history_register('jurisdiction_settings','{"audit":true,"fields":{"code":{"kind":"text"},"conversions":{"fields":{"back_pay":{"kind":"text","optional":true},"day":{"fields":{"basis":{"kind":"enum","values":["CALENDAR_DAYS","WORKING_DAYS","YEAR","YEAR_REST_DAYS","HOUR","FIXED"]},"days":{"kind":"number","min":0,"optional":true}},"kind":"object"},"hour":{"fields":{"basis":{"kind":"enum","values":["CONTRACT_HOURS","CONTRACT_WEEKLY","FIXED"]},"hours":{"kind":"number","min":0,"optional":true}},"kind":"object"},"proration":{"kind":"enum","values":["CALENDAR_DAYS","WORKING_DAYS","DAY_RATE"]},"rounding":{"fields":{"day_rate":{"default":"RATE","kind":"enum","values":["RATE","AMOUNT"]},"mode":{"default":"HALF_UP","kind":"enum","values":["HALF_UP","HALF_EVEN","UP","DOWN","TRUNCATE"]},"scale":{"default":2,"kind":"int","max":12,"min":0}},"kind":"object"}},"kind":"object"},"currency":{"kind":"currency"},"effective_range":{"kind":"period","of":"date"},"employee_extension_schema":{"kind":"json","optional":true},"entity_extension_schema":{"kind":"json","optional":true},"ledger":{"fields":{"ytd_scope":{"default":"JURISDICTION","kind":"enum","values":["JURISDICTION","EMPLOYER"]}},"kind":"object"},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"name":{"kind":"text"},"reason":{"kind":"text","optional":true},"status":{"initial":"DRAFT","kind":"state","states":{"DRAFT":{"to":["SEALED","VOID"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}},"tax_year_start_month":{"kind":"int","max":12,"min":1},"timezone":{"format":"zone","kind":"text"},"work_regions":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"text"}}}},"locks":{"sealed_version":{"except":["effective_range","reason","status"],"where":{"status":{"eq":"SEALED"}}},"void_version":{"where":{"status":{"eq":"VOID"}}}},"no_overlap":[{"key":["code"],"name":"sealed_range","period":"effective_range","where":{"status":{"eq":"SEALED"}}}],"record_label":"record.name"}'::jsonb);
-
--- step create:history:schema:adhoc_catalog (additive)
-select bolt_history_register('adhoc_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"conversion":{"kind":"text","max":65536,"optional":true},"description":{"kind":"text","optional":true},"direction":{"default":"ADD","kind":"enum","values":["ADD","DEDUCT"]},"eligibility":{"kind":"text","max":65536,"optional":true},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"off_cycle_eligible":{"kind":"bool"},"party":{"default":"EMPLOYEE","kind":"enum","values":["EMPLOYEE","EMPLOYER"]},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"adhoc_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"adhoc_catalog","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
 -- step create:history:schema:adhoc_catalog_entry (additive)
-select bolt_history_register('adhoc_catalog_entry','{"audit":true,"fields":{"catalog_id":{"kind":"ref","on_delete":"restrict","to":"adhoc_catalog"},"description":{"kind":"text"},"employment_id":{"inverse":"adhoc_catalog_entry","kind":"ref","to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"incurred_on":{"kind":"date"},"payroll_run_id":{"inverse":"adhoc","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"unit":{"default":"MONEY","kind":"enum","values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.employment_id.employee_number + '' · '' + string(record.quantity)"}'::jsonb);
-
--- step create:history:schema:claim_catalog (additive)
-select bolt_history_register('claim_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"conversion":{"kind":"text","max":65536,"optional":true},"description":{"kind":"text","optional":true},"eligibility":{"kind":"text","max":65536,"optional":true},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"claim_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"claim_catalog","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
+select bolt_history_register('adhoc_catalog_entry','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"description":{"kind":"text"},"employment_id":{"inverse":"adhoc_catalog_entry","kind":"ref","to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"incurred_on":{"kind":"date"},"payroll_run_id":{"inverse":"adhoc","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"unit":{"default":"MONEY","kind":"enum","values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.employment_id.employee_number + '' · '' + record.catalog_code + '' · '' + string(record.quantity)"}'::jsonb);
 
 -- step create:history:schema:claim_catalog_entry (additive)
-select bolt_history_register('claim_catalog_entry','{"audit":true,"fields":{"catalog_id":{"kind":"ref","on_delete":"restrict","to":"claim_catalog"},"employment_id":{"inverse":"claim_catalog_entry","kind":"ref","to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"incurred_on":{"kind":"date"},"payroll_run_id":{"inverse":"claim","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"unit":{"default":"MONEY","kind":"enum","values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.employment_id.employee_number + '' · '' + string(record.quantity) + (record.unit == ''MONEY'' ? '''' : '' '' + record.unit)"}'::jsonb);
-
--- step create:history:schema:leave_catalog (additive)
-select bolt_history_register('leave_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"description":{"kind":"text","optional":true},"eligibility":{"kind":"text","max":65536,"optional":true},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"paid_share":{"kind":"text","max":65536,"optional":true},"payout":{"kind":"text","max":65536,"optional":true},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"leave_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"leave_catalog","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
+select bolt_history_register('claim_catalog_entry','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"employment_id":{"inverse":"claim_catalog_entry","kind":"ref","to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"incurred_on":{"kind":"date"},"payroll_run_id":{"inverse":"claim","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"unit":{"default":"MONEY","kind":"enum","values":["DAY","CALENDAR_DAY","HOUR","MONEY","COUNT"]}},"record_label":"record.employment_id.employee_number + '' · '' + record.catalog_code + '' · '' + string(record.quantity) + (record.unit == ''MONEY'' ? '''' : '' '' + record.unit)"}'::jsonb);
 
 -- step create:history:schema:leave_catalog_entry (additive)
-select bolt_history_register('leave_catalog_entry','{"audit":true,"fields":{"catalog_id":{"kind":"ref","on_delete":"restrict","to":"leave_catalog"},"employment_id":{"inverse":"leave_catalog_entry","kind":"ref","to":"employee_contract"},"encashment":{"default":false,"hidden":true,"kind":"bool"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"payroll_run_id":{"inverse":"leave","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"}},"record_label":"record.employment_id.employee_number + '' · '' + record.catalog_id.code"}'::jsonb);
+select bolt_history_register('leave_catalog_entry','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"employment_id":{"inverse":"leave_catalog_entry","kind":"ref","to":"employment"},"encashment":{"default":false,"hidden":true,"kind":"bool"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"payroll_run_id":{"inverse":"leave","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"}},"record_label":"record.employment_id.employee_number + '' · '' + record.catalog_code"}'::jsonb);
 
 -- step create:history:schema:leave_catalog_entry_day (additive)
 select bolt_history_register('leave_catalog_entry_day','{"audit":true,"fields":{"incurred_on":{"kind":"date"},"leave_entry_id":{"inverse":"leave_catalog_entry_day","kind":"ref","on_delete":"cascade","owned":true,"to":"leave_catalog_entry"},"part":{"kind":"enum","values":["AM","PM"]},"payroll_run_id":{"inverse":"leave_day","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"}},"record_label":"string(record.incurred_on)","unique":[{"fields":["leave_entry_id","incurred_on","part"],"name":"slot"}]}'::jsonb);
 
--- step create:history:schema:loan_catalog (additive)
-select bolt_history_register('loan_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"description":{"kind":"text","optional":true},"eligibility":{"kind":"text","max":65536,"optional":true},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"loan_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"loan_catalog","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
 -- step create:history:schema:loan_catalog_entry (additive)
-select bolt_history_register('loan_catalog_entry','{"audit":true,"fields":{"catalog_id":{"kind":"ref","on_delete":"restrict","to":"loan_catalog"},"employment_id":{"inverse":"loan_catalog_entry","kind":"ref","to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"payroll_run_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"recovered":{"hidden":true,"kind":"sum","of":"repayments.amount"},"repayment_period":{"kind":"period","of":"date"}},"record_label":"record.employment_id.employee_number + '' · '' + string(record.recovered) + '' recovered''"}'::jsonb);
+select bolt_history_register('loan_catalog_entry','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"employment_id":{"inverse":"loan_catalog_entry","kind":"ref","to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"payroll_run_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"quantity":{"kind":"decimal","min":0,"scale":12},"recovered":{"hidden":true,"kind":"sum","of":"repayments.amount"},"repayment_period":{"kind":"period","of":"date"}},"record_label":"record.employment_id.employee_number + '' · '' + record.catalog_code"}'::jsonb);
 
 -- step create:history:schema:loan_catalog_entry_repayment (additive)
-select bolt_history_register('loan_catalog_entry_repayment','{"audit":true,"fields":{"amount":{"kind":"decimal","min":0,"scale":12},"employment_id":{"inverse":"loan_catalog_entry_repayment","kind":"ref","to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"loan_id":{"inverse":"repayments","kind":"ref","on_delete":"restrict","to":"loan_catalog_entry"},"paid_on":{"kind":"date","optional":true},"payment_reference":{"kind":"text","optional":true},"payroll_run_id":{"inverse":"repayment","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"}},"record_label":"record.payment_reference != null ? record.payment_reference : ''''"}'::jsonb);
-
--- step create:history:schema:work_event_catalog (additive)
-select bolt_history_register('work_event_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"description":{"kind":"text","optional":true},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"work_event_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
--- step create:history:schema:workplace_case_catalog (additive)
-select bolt_history_register('workplace_case_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"description":{"kind":"text","optional":true},"events":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"workplace_case_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
+select bolt_history_register('loan_catalog_entry_repayment','{"audit":true,"fields":{"amount":{"kind":"decimal","min":0,"scale":12},"employment_id":{"inverse":"loan_catalog_entry_repayment","kind":"ref","to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"loan_id":{"inverse":"repayments","kind":"ref","on_delete":"restrict","to":"loan_catalog_entry"},"paid_on":{"kind":"date","optional":true},"payment_reference":{"kind":"text","optional":true},"payroll_run_id":{"inverse":"repayment","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"}},"record_label":"record.employment_id.employee_number + '' · '' + string(record.amount) + (record.paid_on != null ? '' · '' + string(record.paid_on) : '''')"}'::jsonb);
 
 -- step create:history:schema:workplace_case_catalog_entry (additive)
-select bolt_history_register('workplace_case_catalog_entry','{"audit":true,"fields":{"catalog_id":{"inverse":"entries","kind":"ref","on_delete":"restrict","to":"workplace_case_catalog"},"closed_on":{"kind":"date","optional":true},"description":{"kind":"text","optional":true},"employment_id":{"inverse":"workplace_case_catalog_entry","kind":"ref","on_delete":"restrict","to":"employee_contract"},"entity_id":{"inverse":"workplace_case_catalog_entries","kind":"ref","to":"entity"},"evidence_file":{"accept":["*/*"],"kind":"file","max":"20MiB","optional":true},"inputs":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"kind":{"kind":"text"},"location":{"kind":"text","optional":true},"occurred_on":{"kind":"date","optional":true},"opened_on":{"kind":"date"},"payroll_run_id":{"inverse":"case","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"reference":{"kind":"text","optional":true},"scheduled_on":{"kind":"date","optional":true},"severity":{"default":"N/A","kind":"enum","values":["DEATH","PERMANENT_TOTAL_DISABILITY","SERIOUS_INJURY","MINOR_INJURY","NEAR_MISS","PROPERTY_DAMAGE","N/A"]}},"locks":{"captured":{"where":{"payroll_run_id":{"is_null":false}}}},"record_label":"record.kind"}'::jsonb);
+select bolt_history_register('workplace_case_catalog_entry','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"closed_on":{"kind":"date","optional":true},"description":{"kind":"text","optional":true},"employment_id":{"inverse":"workplace_case_catalog_entry","kind":"ref","on_delete":"restrict","to":"employment"},"entity_id":{"inverse":"workplace_case_catalog_entries","kind":"ref","to":"entity"},"evidence_file":{"accept":["*/*"],"kind":"file","max":"20MiB","optional":true},"inputs":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"kind":{"kind":"text"},"location":{"kind":"text","optional":true},"occurred_on":{"kind":"date","optional":true},"opened_on":{"kind":"date"},"payroll_run_id":{"inverse":"case","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"reference":{"kind":"text","optional":true},"scheduled_on":{"kind":"date","optional":true},"severity":{"default":"N/A","kind":"enum","values":["DEATH","PERMANENT_TOTAL_DISABILITY","SERIOUS_INJURY","MINOR_INJURY","NEAR_MISS","PROPERTY_DAMAGE","N/A"]}},"locks":{"captured":{"where":{"payroll_run_id":{"is_null":false}}}},"record_label":"record.kind + '' · '' + string(record.opened_on)"}'::jsonb);
 
--- step create:history:schema:allowance_catalog (additive)
-select bolt_history_register('allowance_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"conversion":{"kind":"text","max":65536},"description":{"kind":"text","optional":true},"eligibility":{"kind":"text","max":65536},"include_in_rate":{"default":false,"kind":"bool"},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"allowance_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"allowance_catalog","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
+-- step create:history:schema:jurisdiction (additive)
+select bolt_history_register('jurisdiction','{"audit":true,"fields":{"code":{"kind":"text"},"currency":{"kind":"currency"},"name":{"kind":"text"},"tax_year_start_month":{"kind":"int","max":12,"min":1},"timezone":{"format":"zone","kind":"text"}},"record_label":"record.name","unique":[{"fields":["code"],"name":"code"}]}'::jsonb);
 
--- step create:history:schema:overtime_catalog (additive)
-select bolt_history_register('overtime_catalog','{"audit":true,"fields":{"code":{"kind":"text"},"conversion":{"kind":"text","max":65536},"description":{"kind":"text","optional":true},"direction":{"kind":"enum","values":["ADD","DEDUCT"]},"eligibility":{"kind":"text","max":65536},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"overtime_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"overtime_catalog","kind":"ref","on_delete":"restrict","to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
--- step create:history:schema:statutory_contribution_catalog (additive)
-select bolt_history_register('statutory_contribution_catalog','{"audit":true,"fields":{"assessed":{"default":"EARNED","kind":"enum","values":["EARNED","PAID"]},"balance_window":{"default":"YEAR","kind":"enum","values":["MONTH","YEAR"]},"code":{"kind":"text"},"depends_on":{"kind":"text","many":true,"optional":true},"description":{"kind":"text","optional":true},"eligibility":{"kind":"text","max":65536},"employee_amount":{"kind":"text","max":65536},"employer_amount":{"kind":"text","max":65536,"optional":true},"employer_cost_subtotal_id":{"inverse":"statutory_employer_cost","kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"},"kind":{"kind":"enum","values":["CONTRIBUTION","TAX"]},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"statutory_contribution_catalog","kind":"ref","owned":true,"to":"jurisdiction_settings"},"subtotal_id":{"inverse":"statutory_contribution_catalog","kind":"ref","on_delete":"restrict","to":"subtotal"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
--- step create:history:schema:registered_effect (additive)
-select bolt_history_register('registered_effect','{"audit":true,"fields":{"code":{"kind":"text"},"condition":{"kind":"text","max":65536},"description":{"kind":"text","optional":true},"effects":{"kind":"text","max":65536},"events":{"kind":"enum","many":true,"values":["create","update","delete","seal","exit"]},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"name":{"kind":"text"},"reads":{"kind":"custom","of":"reads","optional":true},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"registered_effect","kind":"ref","owned":true,"to":"jurisdiction_settings"},"source_collection":{"kind":"text"},"target_action":{"kind":"enum","values":["create","update","delete"]},"target_collection":{"kind":"text"}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
--- step create:history:schema:registered_rule (additive)
-select bolt_history_register('registered_rule','{"audit":true,"fields":{"code":{"kind":"text"},"condition":{"kind":"text","max":65536,"optional":true},"description":{"kind":"text","optional":true},"events":{"kind":"enum","many":true,"values":["create","update","delete"]},"lookup":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"order":{"default":0,"kind":"int"},"reads":{"kind":"custom","of":"reads","optional":true},"references":{"kind":"custom","of":"references","optional":true},"settings_id":{"inverse":"registered_rule","kind":"ref","owned":true,"to":"jurisdiction_settings"},"target_collection":{"kind":"text"},"validate":{"kind":"text","max":65536}},"record_label":"record.code","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
-
--- step create:history:schema:subtotal (additive)
-select bolt_history_register('subtotal','{"audit":true,"fields":{"balance_window":{"default":"YEAR","kind":"enum","values":["MONTH","YEAR"]},"calculation":{"kind":"text","max":65536,"optional":true},"code":{"kind":"text"},"name":{"kind":"text"},"previous_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"subtotal"},"settings_id":{"inverse":"subtotals","kind":"ref","owned":true,"to":"jurisdiction_settings"}},"record_label":"record.name","unique":[{"fields":["settings_id","code"],"name":"code_per_settings"}]}'::jsonb);
+-- step create:history:schema:jurisdiction_change (additive)
+select bolt_history_register('jurisdiction_change','{"audit":true,"fields":{"effective_from":{"kind":"date"},"finding_id":{"inverse":"law_changes","kind":"ref","on_delete":"cascade","optional":true,"to":"statutory_finding"},"jurisdiction_code":{"kind":"text"},"law":{"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}}},"record_label":"record.effective_from"}'::jsonb);
 
 -- step create:history:schema:obligation (additive)
-select bolt_history_register('obligation','{"audit":true,"fields":{"due_on":{"kind":"date","optional":true},"employee_id":{"kind":"ref","optional":true,"to":"employee_profile"},"employment_id":{"kind":"ref","optional":true,"to":"employee_contract"},"entity_id":{"inverse":"obligations","kind":"ref","to":"entity"},"evidence":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"fulfilled_on":{"kind":"date","optional":true},"occurrence_key":{"kind":"text"},"state":{"initial":"OPEN","kind":"state","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}},"title":{"kind":"text"},"waiver_reason":{"kind":"text","optional":true}},"locks":{"fulfilled_task":{"where":{"state":{"eq":"FULFILLED"}}},"waived_task":{"except":["waiver_reason","state"],"where":{"state":{"eq":"WAIVED"}}}},"record_label":"record.title","unique":[{"fields":["occurrence_key"],"name":"one_occurrence"}]}'::jsonb);
+select bolt_history_register('obligation','{"audit":true,"fields":{"due_on":{"kind":"date","optional":true},"employee_id":{"kind":"ref","optional":true,"to":"employee_profile"},"employment_id":{"kind":"ref","optional":true,"to":"employment"},"entity_id":{"inverse":"obligations","kind":"ref","to":"entity"},"evidence":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"fulfilled_on":{"kind":"date","optional":true},"occurrence_key":{"kind":"text"},"state":{"initial":"OPEN","kind":"state","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}},"title":{"kind":"text"},"waiver_reason":{"kind":"text","optional":true}},"locks":{"fulfilled_task":{"where":{"state":{"eq":"FULFILLED"}}},"waived_task":{"except":["waiver_reason","state"],"where":{"state":{"eq":"WAIVED"}}}},"record_label":"record.title","unique":[{"fields":["occurrence_key"],"import_key":true,"name":"one_occurrence"}]}'::jsonb);
 
 -- step create:history:schema:payroll_run (additive)
-select bolt_history_register('payroll_run','{"audit":true,"fields":{"entity_id":{"inverse":"payroll_runs","kind":"ref","to":"entity"},"kind":{"default":"ON_CYCLE","kind":"enum","values":["ON_CYCLE","OFF_CYCLE"]},"pay_date":{"kind":"date"},"pay_group_id":{"inverse":"payroll_runs","kind":"ref","on_delete":"restrict","to":"pay_group"},"period":{"kind":"text"},"run_number":{"kind":"seq"},"salary_coverage":{"kind":"period","of":"date"},"settings_id":{"kind":"ref","on_delete":"restrict","to":"jurisdiction_settings"},"state":{"initial":"UNPAID","kind":"state","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}},"locks":{"paid_run":{"where":{"state":{"eq":"PAID"}}}},"record_label":"string(record.run_number)","unique":[{"fields":["pay_group_id","period"],"name":"one_cycle_run","where":{"kind":{"eq":"ON_CYCLE"}}}]}'::jsonb);
+select bolt_history_register('payroll_run','{"audit":true,"fields":{"entity_id":{"inverse":"payroll_runs","kind":"ref","to":"entity"},"kind":{"default":"ON_CYCLE","kind":"enum","values":["ON_CYCLE","OFF_CYCLE"]},"pay_date":{"kind":"date"},"pay_group_id":{"inverse":"payroll_runs","kind":"ref","on_delete":"restrict","to":"pay_group"},"period":{"kind":"text"},"run_number":{"kind":"seq"},"salary_coverage":{"kind":"period","of":"date"},"state":{"initial":"UNPAID","kind":"state","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}},"locks":{"paid_run":{"where":{"state":{"eq":"PAID"}}}},"record_label":"''Run '' + string(record.run_number) + '' · '' + record.period","unique":[{"fields":["pay_group_id","period"],"name":"one_cycle_run","where":{"kind":{"eq":"ON_CYCLE"}}}]}'::jsonb);
 
 -- step create:history:schema:pay_amendment (additive)
-select bolt_history_register('pay_amendment','{"audit":true,"fields":{"employee_id":{"inverse":"pay_amendments","kind":"ref","to":"employee_profile"},"pay_group_id":{"kind":"ref","on_delete":"restrict","to":"pay_group"},"payroll_run_id":{"inverse":"amendments","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"period":{"kind":"text"}},"record_label":"record.period","unique":[{"fields":["employee_id","pay_group_id","period"],"name":"open_period","where":{"payroll_run_id":{"is_null":true}}}]}'::jsonb);
+select bolt_history_register('pay_amendment','{"audit":true,"fields":{"employee_id":{"inverse":"pay_amendments","kind":"ref","to":"employee_profile"},"pay_group_id":{"kind":"ref","on_delete":"restrict","to":"pay_group"},"payroll_run_id":{"inverse":"amendments","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"period":{"kind":"text"}},"record_label":"(has(record.employee_id.name) ? record.employee_id.name + '' · '' : '''') + record.period","unique":[{"fields":["employee_id","pay_group_id","period"],"name":"open_period","where":{"payroll_run_id":{"is_null":true}}}]}'::jsonb);
 
 -- step create:history:schema:payslip (additive)
-select bolt_history_register('payslip','{"audit":true,"fields":{"basic_earnings":{"kind":"decimal","optional":true,"scale":12},"breakdown":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"employee_id":{"inverse":"payslips","kind":"ref","to":"employee_profile"},"employee_statutory":{"default":0,"kind":"decimal","min":0,"scale":12},"employer_cost":{"default":0,"kind":"decimal","min":0,"scale":12},"employment_id":{"inverse":"payslips","kind":"ref","to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"gross_earnings":{"kind":"decimal","optional":true,"scale":12},"net_pay":{"kind":"decimal","scale":12},"ordinary_wages":{"default":0,"kind":"decimal","min":0,"scale":12},"payroll_run_id":{"inverse":"payslips","kind":"ref","on_delete":"cascade","to":"payroll_run"},"period":{"kind":"text","optional":true},"settings_id":{"kind":"ref","on_delete":"restrict","to":"jurisdiction_settings"},"tax_withheld":{"default":0,"kind":"decimal","min":0,"scale":12},"total_deductions":{"kind":"decimal","min":0,"scale":12}},"record_label":"string(record.net_pay)","unique":[{"fields":["payroll_run_id","employee_id","entity_id"],"name":"run_person"}]}'::jsonb);
+select bolt_history_register('payslip','{"audit":true,"fields":{"basic_earnings":{"kind":"decimal","optional":true,"scale":12},"breakdown":{"default":{},"kind":"json","shape":{"kind":"record","of":{"kind":"json"}}},"employee_id":{"inverse":"payslips","kind":"ref","to":"employee_profile"},"employee_statutory":{"default":0,"kind":"decimal","min":0,"scale":12},"employer_cost":{"default":0,"kind":"decimal","min":0,"scale":12},"employment_id":{"inverse":"payslips","kind":"ref","to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"gross_earnings":{"kind":"decimal","optional":true,"scale":12},"net_pay":{"kind":"decimal","scale":12},"ordinary_wages":{"default":0,"kind":"decimal","min":0,"scale":12},"payroll_run_id":{"inverse":"payslips","kind":"ref","on_delete":"cascade","to":"payroll_run"},"period":{"kind":"text","optional":true},"tax_withheld":{"default":0,"kind":"decimal","min":0,"scale":12},"total_deductions":{"kind":"decimal","min":0,"scale":12}},"record_label":"(has(record.employee_id.name) ? record.employee_id.name + '' · '' : '''') + (record.period != null ? record.period : '''')","unique":[{"fields":["payroll_run_id","employee_id","entity_id"],"name":"run_person"}]}'::jsonb);
 
 -- step create:history:schema:roster_entry (additive)
-select bolt_history_register('roster_entry','{"audit":true,"fields":{"actual_worked_intervals":{"fields":{"break_minutes":{"kind":"number","min":0,"optional":true},"breaks":{"fields":{"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"end":{"kind":"instant","optional":true},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true,"was":"worked_intervals"},"consent":{"kind":"json","optional":true,"shape":{"fields":{"night_work":{"kind":"bool"},"overtime":{"kind":"bool"},"reference":{"kind":"text"}},"kind":"object"}},"employment_id":{"inverse":"roster_entry","kind":"ref","to":"employee_contract"},"findings":{"default":[],"kind":"json"},"overtime_as_time_off":{"default":false,"kind":"bool"},"payroll_run_id":{"inverse":"roster_entry","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"planned_overtime_intervals":{"fields":{"break_minutes":{"kind":"number","min":0,"optional":true},"breaks":{"fields":{"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"shift_definition_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"shift_definition"},"work_date":{"kind":"date"}},"record_label":"record.work_date","unique":[{"fields":["employment_id","work_date"],"import_key":true,"name":"one_day"}]}'::jsonb);
+select bolt_history_register('roster_entry','{"audit":true,"fields":{"actual_worked_intervals":{"fields":{"break_minutes":{"kind":"number","min":0,"optional":true},"breaks":{"fields":{"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"end":{"kind":"instant","optional":true},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true,"was":"worked_intervals"},"consent":{"kind":"json","optional":true,"shape":{"fields":{"night_work":{"kind":"bool"},"overtime":{"kind":"bool"},"reference":{"kind":"text"}},"kind":"object"}},"employment_id":{"inverse":"roster_entry","kind":"ref","to":"employment"},"findings":{"default":[],"kind":"json"},"overtime_as_time_off":{"default":false,"kind":"bool"},"payroll_run_id":{"inverse":"roster_entry","kind":"ref","on_delete":"set_null","optional":true,"to":"payroll_run"},"planned_overtime_intervals":{"fields":{"break_minutes":{"kind":"number","min":0,"optional":true},"breaks":{"fields":{"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"end":{"kind":"instant"},"start":{"kind":"instant"}},"kind":"object","many":true,"optional":true},"shift_definition_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"shift_definition"},"work_date":{"kind":"date"}},"record_label":"(has(record.employment_id.employee_number) ? record.employment_id.employee_number + '' · '' : '''') + string(record.work_date)","unique":[{"fields":["employment_id","work_date"],"import_key":true,"name":"one_day"}]}'::jsonb);
 
 -- step create:history:schema:statutory_finding (additive)
-select bolt_history_register('statutory_finding','{"audit":true,"fields":{"announced_on":{"kind":"date","optional":true},"families":{"kind":"text","many":true},"fit":{"kind":"enum","values":["VALUE","ROW","STRUCTURAL"]},"instrument_key":{"kind":"text"},"jurisdiction_code":{"kind":"text"},"notes":{"kind":"text","optional":true},"research_run_id":{"kind":"text","optional":true},"source_quote":{"kind":"text","optional":true},"source_urls":{"kind":"text","many":true},"status":{"initial":"PROPOSED","kind":"state","states":{"APPLIED":{"to":[]},"CONFIRMED":{"to":["APPLIED","REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}},"summary":{"kind":"text","optional":true},"title":{"kind":"text"},"verified_by":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_user"},"verified_on":{"kind":"date","optional":true}},"locks":{"confirmed_finding":{"except":["status","notes"],"where":{"status":{"eq":"CONFIRMED"}}},"decided_finding":{"where":{"status":{"in":["APPLIED","REJECTED"]}}}},"record_label":"record.title","unique":[{"fields":["jurisdiction_code","instrument_key"],"name":"one_instrument"}]}'::jsonb);
-
--- step create:history:schema:statutory_change (additive)
-select bolt_history_register('statutory_change','{"audit":true,"fields":{"applied_version_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"jurisdiction_settings"},"baseline_version_id":{"inverse":"statutory_changes","kind":"ref","on_delete":"restrict","to":"jurisdiction_settings"},"effective_from":{"kind":"date","optional":true},"family":{"kind":"text"},"field_path":{"kind":"text"},"finding_id":{"inverse":"changes","kind":"ref","on_delete":"cascade","to":"statutory_finding"},"jurisdiction_code":{"kind":"text"},"new_value":{"kind":"json","optional":true},"notes":{"kind":"text","optional":true},"old_value":{"kind":"json","optional":true},"row_code":{"kind":"text","optional":true}},"locks":{"applied_change":{"where":{"applied_version_id":{"is_null":false}}}},"record_label":"record.field_path","unique":[{"fields":["finding_id","family","row_code","field_path","effective_from"],"name":"finding_path"}]}'::jsonb);
+select bolt_history_register('statutory_finding','{"audit":true,"fields":{"announced_on":{"kind":"date","optional":true},"families":{"kind":"text","many":true},"fit":{"kind":"enum","values":["VALUE","ROW","STRUCTURAL"]},"instrument_key":{"kind":"text"},"jurisdiction_code":{"kind":"text"},"notes":{"kind":"text","optional":true},"research_run_id":{"kind":"text","optional":true},"source_quote":{"kind":"text","optional":true},"source_urls":{"kind":"text","many":true},"status":{"initial":"PROPOSED","kind":"state","states":{"CONFIRMED":{"to":["REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}},"summary":{"kind":"text","optional":true},"title":{"kind":"text"},"verified_by":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_user"},"verified_on":{"kind":"date","optional":true}},"locks":{"confirmed_finding":{"except":["status","notes"],"where":{"status":{"eq":"CONFIRMED"}}},"decided_finding":{"where":{"status":{"eq":"REJECTED"}}}},"record_label":"record.title","unique":[{"fields":["jurisdiction_code","instrument_key"],"name":"one_instrument"}]}'::jsonb);
 
 -- step create:history:schema:statutory_source (additive)
 select bolt_history_register('statutory_source','{"audit":true,"fields":{"family":{"kind":"text","optional":true},"jurisdiction_code":{"kind":"text"},"last_checked_on":{"kind":"date","optional":true},"notes":{"kind":"text","optional":true},"origin":{"default":"PERSON","kind":"enum","values":["REFERENCE","AGENT","PERSON"]},"replaces_url":{"format":"url","kind":"text","optional":true},"research_run_id":{"kind":"text","optional":true},"status":{"initial":"PROPOSED","kind":"state","states":{"ACTIVE":{"to":["RETIRED"]},"PROPOSED":{"to":["ACTIVE","RETIRED"]},"RETIRED":{"to":["ACTIVE"]}}},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"locks":{"retired_source":{"except":["status","notes"],"where":{"status":{"eq":"RETIRED"}}}},"record_label":"record.title","unique":[{"fields":["jurisdiction_code","url"],"name":"source_url"}]}'::jsonb);
 
 -- step create:history:schema:work_event (additive)
-select bolt_history_register('work_event','{"audit":true,"fields":{"catalog_id":{"kind":"ref","on_delete":"restrict","to":"work_event_catalog"},"description":{"kind":"text","optional":true},"employment_id":{"kind":"ref","optional":true,"to":"employee_contract"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"from":{"kind":"date"},"location":{"kind":"text","optional":true},"to":{"kind":"date","optional":true}},"record_label":"record.description"}'::jsonb);
+select bolt_history_register('work_event','{"audit":true,"fields":{"catalog_code":{"kind":"text"},"description":{"kind":"text","optional":true},"employment_id":{"kind":"ref","optional":true,"to":"employment"},"entity_id":{"kind":"ref","to":"entity"},"evidence_file":{"accept":["application/pdf","image/*"],"kind":"file","max":"20MiB","optional":true},"from":{"kind":"date"},"location":{"kind":"text","optional":true},"to":{"kind":"date","optional":true}},"record_label":"record.description"}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;
@@ -2538,38 +2138,35 @@ alter table "employee_profile" add constraint "employee_profile__fk__18764fd4" f
 -- step create:fk:employee_profile.employee_profile__fk__f0e56d54 (additive)
 alter table "employee_profile" add constraint "employee_profile__fk__f0e56d54" foreign key ("user_id") references "sys_user" ("id") on delete restrict on update restrict;
 
+-- step create:fk:dependant.dependant__fk__fbd45363 (additive)
+alter table "dependant" add constraint "dependant__fk__fbd45363" foreign key ("employee_id") references "employee_profile" ("id") on delete cascade on update restrict;
+
 -- step create:fk:employee_balance.employee_balance__fk__dfe472ed (additive)
 alter table "employee_balance" add constraint "employee_balance__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
 
 -- step create:fk:ledger_entry.ledger_entry__fk__35991792 (additive)
 alter table "ledger_entry" add constraint "ledger_entry__fk__35991792" foreign key ("balance_id") references "employee_balance" ("id") on delete restrict on update restrict;
 
--- step create:fk:employee_contract.employee_contract__fk__dfe472ed (additive)
-alter table "employee_contract" add constraint "employee_contract__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
+-- step create:fk:employment.employment__fk__dfe472ed (additive)
+alter table "employment" add constraint "employment__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
 
--- step create:fk:employee_contract.employee_contract__fk__70277288 (additive)
-alter table "employee_contract" add constraint "employee_contract__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
+-- step create:fk:employment.employment__fk__70277288 (additive)
+alter table "employment" add constraint "employment__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:employee_contract.employee_contract__fk__8d17fe20 (additive)
-alter table "employee_contract" add constraint "employee_contract__fk__8d17fe20" foreign key ("pay_group_id") references "pay_group" ("id") on delete restrict on update restrict;
+-- step create:fk:contract_terms.contract_terms__fk__7f5f2adc (additive)
+alter table "contract_terms" add constraint "contract_terms__fk__7f5f2adc" foreign key ("employment_id") references "employment" ("id") on delete cascade on update restrict;
 
--- step create:fk:contract_change.contract_change__fk__fbd45363 (additive)
-alter table "contract_change" add constraint "contract_change__fk__fbd45363" foreign key ("employee_id") references "employee_profile" ("id") on delete cascade on update restrict;
+-- step create:fk:contract_terms.contract_terms__fk__8d17fe20 (additive)
+alter table "contract_terms" add constraint "contract_terms__fk__8d17fe20" foreign key ("pay_group_id") references "pay_group" ("id") on delete restrict on update restrict;
 
--- step create:fk:contract_change.contract_change__fk__116070c1 (additive)
-alter table "contract_change" add constraint "contract_change__fk__116070c1" foreign key ("applied_version_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:contract_terms.contract_terms__fk__4d56a030 (additive)
+alter table "contract_terms" add constraint "contract_terms__fk__4d56a030" foreign key ("shift_pattern_id") references "shift_pattern" ("id") on delete restrict on update restrict;
+
+-- step create:fk:statutory_parameters.statutory_parameters__fk__7f5f2adc (additive)
+alter table "statutory_parameters" add constraint "statutory_parameters__fk__7f5f2adc" foreign key ("employment_id") references "employment" ("id") on delete cascade on update restrict;
 
 -- step create:fk:entity_change.entity_change__fk__b14b53a8 (additive)
 alter table "entity_change" add constraint "entity_change__fk__b14b53a8" foreign key ("entity_id") references "entity" ("id") on delete cascade on update restrict;
-
--- step create:fk:entity_change.entity_change__fk__cabe92d4 (additive)
-alter table "entity_change" add constraint "entity_change__fk__cabe92d4" foreign key ("applied_version_id") references "entity_profile_version" ("id") on delete restrict on update restrict;
-
--- step create:fk:entity_profile_version.entity_profile_version__fk__b616d7f6 (additive)
-alter table "entity_profile_version" add constraint "entity_profile_version__fk__b616d7f6" foreign key ("input_schema_version_id") references "jurisdiction_settings" ("id") on delete restrict on update restrict;
-
--- step create:fk:entity_profile_version.entity_profile_version__fk__70277288 (additive)
-alter table "entity_profile_version" add constraint "entity_profile_version__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
 -- step create:fk:holiday.holiday__fk__70277288 (additive)
 alter table "holiday" add constraint "holiday__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
@@ -2586,56 +2183,29 @@ alter table "shift_pattern" add constraint "shift_pattern__fk__70277288" foreign
 -- step create:fk:shift_definition.shift_definition__fk__70277288 (additive)
 alter table "shift_definition" add constraint "shift_definition__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:adhoc_catalog.adhoc_catalog__fk__4250ce3e (additive)
-alter table "adhoc_catalog" add constraint "adhoc_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:adhoc_catalog.adhoc_catalog__fk__482ed27a (additive)
-alter table "adhoc_catalog" add constraint "adhoc_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
 -- step create:fk:adhoc_catalog_entry.adhoc_catalog_entry__fk__70277288 (additive)
 alter table "adhoc_catalog_entry" add constraint "adhoc_catalog_entry__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:adhoc_catalog_entry.adhoc_catalog_entry__fk__8fffab27 (additive)
-alter table "adhoc_catalog_entry" add constraint "adhoc_catalog_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
-
--- step create:fk:adhoc_catalog_entry.adhoc_catalog_entry__fk__08d70c6e (additive)
-alter table "adhoc_catalog_entry" add constraint "adhoc_catalog_entry__fk__08d70c6e" foreign key ("catalog_id") references "adhoc_catalog" ("id") on delete restrict on update restrict;
+-- step create:fk:adhoc_catalog_entry.adhoc_catalog_entry__fk__ef7d12fe (additive)
+alter table "adhoc_catalog_entry" add constraint "adhoc_catalog_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:adhoc_catalog_entry.adhoc_catalog_entry__fk__fe7e3555 (additive)
 alter table "adhoc_catalog_entry" add constraint "adhoc_catalog_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
 
--- step create:fk:claim_catalog.claim_catalog__fk__4250ce3e (additive)
-alter table "claim_catalog" add constraint "claim_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:claim_catalog.claim_catalog__fk__482ed27a (additive)
-alter table "claim_catalog" add constraint "claim_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
 -- step create:fk:claim_catalog_entry.claim_catalog_entry__fk__70277288 (additive)
 alter table "claim_catalog_entry" add constraint "claim_catalog_entry__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:claim_catalog_entry.claim_catalog_entry__fk__8fffab27 (additive)
-alter table "claim_catalog_entry" add constraint "claim_catalog_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
-
--- step create:fk:claim_catalog_entry.claim_catalog_entry__fk__5e7f9e41 (additive)
-alter table "claim_catalog_entry" add constraint "claim_catalog_entry__fk__5e7f9e41" foreign key ("catalog_id") references "claim_catalog" ("id") on delete restrict on update restrict;
+-- step create:fk:claim_catalog_entry.claim_catalog_entry__fk__ef7d12fe (additive)
+alter table "claim_catalog_entry" add constraint "claim_catalog_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:claim_catalog_entry.claim_catalog_entry__fk__fe7e3555 (additive)
 alter table "claim_catalog_entry" add constraint "claim_catalog_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
 
--- step create:fk:leave_catalog.leave_catalog__fk__4250ce3e (additive)
-alter table "leave_catalog" add constraint "leave_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:leave_catalog.leave_catalog__fk__482ed27a (additive)
-alter table "leave_catalog" add constraint "leave_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
 -- step create:fk:leave_catalog_entry.leave_catalog_entry__fk__70277288 (additive)
 alter table "leave_catalog_entry" add constraint "leave_catalog_entry__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:leave_catalog_entry.leave_catalog_entry__fk__8fffab27 (additive)
-alter table "leave_catalog_entry" add constraint "leave_catalog_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
-
--- step create:fk:leave_catalog_entry.leave_catalog_entry__fk__e5cf7fa8 (additive)
-alter table "leave_catalog_entry" add constraint "leave_catalog_entry__fk__e5cf7fa8" foreign key ("catalog_id") references "leave_catalog" ("id") on delete restrict on update restrict;
+-- step create:fk:leave_catalog_entry.leave_catalog_entry__fk__ef7d12fe (additive)
+alter table "leave_catalog_entry" add constraint "leave_catalog_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:leave_catalog_entry.leave_catalog_entry__fk__fe7e3555 (additive)
 alter table "leave_catalog_entry" add constraint "leave_catalog_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
@@ -2646,20 +2216,11 @@ alter table "leave_catalog_entry_day" add constraint "leave_catalog_entry_day__f
 -- step create:fk:leave_catalog_entry_day.leave_catalog_entry_day__fk__fe7e3555 (additive)
 alter table "leave_catalog_entry_day" add constraint "leave_catalog_entry_day__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
 
--- step create:fk:loan_catalog.loan_catalog__fk__4250ce3e (additive)
-alter table "loan_catalog" add constraint "loan_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:loan_catalog.loan_catalog__fk__482ed27a (additive)
-alter table "loan_catalog" add constraint "loan_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
 -- step create:fk:loan_catalog_entry.loan_catalog_entry__fk__70277288 (additive)
 alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:loan_catalog_entry.loan_catalog_entry__fk__8fffab27 (additive)
-alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
-
--- step create:fk:loan_catalog_entry.loan_catalog_entry__fk__fa554c50 (additive)
-alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__fa554c50" foreign key ("catalog_id") references "loan_catalog" ("id") on delete restrict on update restrict;
+-- step create:fk:loan_catalog_entry.loan_catalog_entry__fk__ef7d12fe (additive)
+alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:loan_catalog_entry.loan_catalog_entry__fk__fe7e3555 (additive)
 alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
@@ -2667,8 +2228,8 @@ alter table "loan_catalog_entry" add constraint "loan_catalog_entry__fk__fe7e355
 -- step create:fk:loan_catalog_entry_repayment.loan_catalog_entry_repayment__fk__70277288 (additive)
 alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_repayment__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:loan_catalog_entry_repayment.loan_catalog_entry_repayment__fk__8fffab27 (additive)
-alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_repayment__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:loan_catalog_entry_repayment.loan_catalog_entry_repayment__fk__ef7d12fe (additive)
+alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_repayment__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:loan_catalog_entry_repayment.loan_catalog_entry_repayment__fk__8bb4d6dc (additive)
 alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_repayment__fk__8bb4d6dc" foreign key ("loan_id") references "loan_catalog_entry" ("id") on delete restrict on update restrict;
@@ -2676,62 +2237,17 @@ alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_re
 -- step create:fk:loan_catalog_entry_repayment.loan_catalog_entry_repayment__fk__fe7e3555 (additive)
 alter table "loan_catalog_entry_repayment" add constraint "loan_catalog_entry_repayment__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
 
--- step create:fk:work_event_catalog.work_event_catalog__fk__482ed27a (additive)
-alter table "work_event_catalog" add constraint "work_event_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:work_event_catalog.work_event_catalog__fk__4250ce3e (additive)
-alter table "work_event_catalog" add constraint "work_event_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:workplace_case_catalog.workplace_case_catalog__fk__482ed27a (additive)
-alter table "workplace_case_catalog" add constraint "workplace_case_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:workplace_case_catalog.workplace_case_catalog__fk__4250ce3e (additive)
-alter table "workplace_case_catalog" add constraint "workplace_case_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:workplace_case_catalog_entry.workplace_case_catalog_entry__fk__28ed5dd1 (additive)
-alter table "workplace_case_catalog_entry" add constraint "workplace_case_catalog_entry__fk__28ed5dd1" foreign key ("catalog_id") references "workplace_case_catalog" ("id") on delete restrict on update restrict;
-
 -- step create:fk:workplace_case_catalog_entry.workplace_case_catalog_entry__fk__70277288 (additive)
 alter table "workplace_case_catalog_entry" add constraint "workplace_case_catalog_entry__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:workplace_case_catalog_entry.workplace_case_catalog_entry__fk__8fffab27 (additive)
-alter table "workplace_case_catalog_entry" add constraint "workplace_case_catalog_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:workplace_case_catalog_entry.workplace_case_catalog_entry__fk__ef7d12fe (additive)
+alter table "workplace_case_catalog_entry" add constraint "workplace_case_catalog_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:workplace_case_catalog_entry.workplace_case_catalog_entry__fk__fe7e3555 (additive)
 alter table "workplace_case_catalog_entry" add constraint "workplace_case_catalog_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
 
--- step create:fk:allowance_catalog.allowance_catalog__fk__4250ce3e (additive)
-alter table "allowance_catalog" add constraint "allowance_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:allowance_catalog.allowance_catalog__fk__482ed27a (additive)
-alter table "allowance_catalog" add constraint "allowance_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:overtime_catalog.overtime_catalog__fk__4250ce3e (additive)
-alter table "overtime_catalog" add constraint "overtime_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:overtime_catalog.overtime_catalog__fk__482ed27a (additive)
-alter table "overtime_catalog" add constraint "overtime_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:statutory_contribution_catalog.statutory_contribution_catalog__fk__bff4f566 (additive)
-alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__fk__bff4f566" foreign key ("employer_cost_subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:statutory_contribution_catalog.statutory_contribution_catalog__fk__4250ce3e (additive)
-alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__fk__4250ce3e" foreign key ("subtotal_id") references "subtotal" ("id") on delete restrict on update restrict;
-
--- step create:fk:statutory_contribution_catalog.statutory_contribution_catalog__fk__482ed27a (additive)
-alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:registered_effect.registered_effect__fk__482ed27a (additive)
-alter table "registered_effect" add constraint "registered_effect__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:registered_rule.registered_rule__fk__482ed27a (additive)
-alter table "registered_rule" add constraint "registered_rule__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:subtotal.subtotal__fk__482ed27a (additive)
-alter table "subtotal" add constraint "subtotal__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
-
--- step create:fk:subtotal.subtotal__fk__4bbe7755 (additive)
-alter table "subtotal" add constraint "subtotal__fk__4bbe7755" foreign key ("previous_id") references "subtotal" ("id") on delete restrict on update restrict;
+-- step create:fk:jurisdiction_change.jurisdiction_change__fk__8b56e43d (additive)
+alter table "jurisdiction_change" add constraint "jurisdiction_change__fk__8b56e43d" foreign key ("finding_id") references "statutory_finding" ("id") on delete cascade on update restrict;
 
 -- step create:fk:obligation.obligation__fk__70277288 (additive)
 alter table "obligation" add constraint "obligation__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
@@ -2739,17 +2255,14 @@ alter table "obligation" add constraint "obligation__fk__70277288" foreign key (
 -- step create:fk:obligation.obligation__fk__dfe472ed (additive)
 alter table "obligation" add constraint "obligation__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
 
--- step create:fk:obligation.obligation__fk__8fffab27 (additive)
-alter table "obligation" add constraint "obligation__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:obligation.obligation__fk__ef7d12fe (additive)
+alter table "obligation" add constraint "obligation__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:payroll_run.payroll_run__fk__70277288 (additive)
 alter table "payroll_run" add constraint "payroll_run__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
 -- step create:fk:payroll_run.payroll_run__fk__8d17fe20 (additive)
 alter table "payroll_run" add constraint "payroll_run__fk__8d17fe20" foreign key ("pay_group_id") references "pay_group" ("id") on delete restrict on update restrict;
-
--- step create:fk:payroll_run.payroll_run__fk__904a13bb (additive)
-alter table "payroll_run" add constraint "payroll_run__fk__904a13bb" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete restrict on update restrict;
 
 -- step create:fk:pay_amendment.pay_amendment__fk__dfe472ed (additive)
 alter table "pay_amendment" add constraint "pay_amendment__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
@@ -2763,20 +2276,17 @@ alter table "pay_amendment" add constraint "pay_amendment__fk__fe7e3555" foreign
 -- step create:fk:payslip.payslip__fk__04021bf5 (additive)
 alter table "payslip" add constraint "payslip__fk__04021bf5" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete cascade on update restrict;
 
--- step create:fk:payslip.payslip__fk__904a13bb (additive)
-alter table "payslip" add constraint "payslip__fk__904a13bb" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete restrict on update restrict;
-
 -- step create:fk:payslip.payslip__fk__dfe472ed (additive)
 alter table "payslip" add constraint "payslip__fk__dfe472ed" foreign key ("employee_id") references "employee_profile" ("id") on delete restrict on update restrict;
 
--- step create:fk:payslip.payslip__fk__8fffab27 (additive)
-alter table "payslip" add constraint "payslip__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:payslip.payslip__fk__ef7d12fe (additive)
+alter table "payslip" add constraint "payslip__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:payslip.payslip__fk__70277288 (additive)
 alter table "payslip" add constraint "payslip__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:roster_entry.roster_entry__fk__8fffab27 (additive)
-alter table "roster_entry" add constraint "roster_entry__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
+-- step create:fk:roster_entry.roster_entry__fk__ef7d12fe (additive)
+alter table "roster_entry" add constraint "roster_entry__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:fk:roster_entry.roster_entry__fk__fe7e3555 (additive)
 alter table "roster_entry" add constraint "roster_entry__fk__fe7e3555" foreign key ("payroll_run_id") references "payroll_run" ("id") on delete set null on update restrict;
@@ -2787,26 +2297,14 @@ alter table "roster_entry" add constraint "roster_entry__fk__4f1ac330" foreign k
 -- step create:fk:statutory_finding.statutory_finding__fk__d42a73ec (additive)
 alter table "statutory_finding" add constraint "statutory_finding__fk__d42a73ec" foreign key ("verified_by") references "sys_user" ("id") on delete restrict on update restrict;
 
--- step create:fk:statutory_change.statutory_change__fk__8b56e43d (additive)
-alter table "statutory_change" add constraint "statutory_change__fk__8b56e43d" foreign key ("finding_id") references "statutory_finding" ("id") on delete cascade on update restrict;
-
--- step create:fk:statutory_change.statutory_change__fk__038739e1 (additive)
-alter table "statutory_change" add constraint "statutory_change__fk__038739e1" foreign key ("baseline_version_id") references "jurisdiction_settings" ("id") on delete restrict on update restrict;
-
--- step create:fk:statutory_change.statutory_change__fk__bc3a80d5 (additive)
-alter table "statutory_change" add constraint "statutory_change__fk__bc3a80d5" foreign key ("applied_version_id") references "jurisdiction_settings" ("id") on delete restrict on update restrict;
-
 -- step create:fk:work_event.work_event__fk__70277288 (additive)
 alter table "work_event" add constraint "work_event__fk__70277288" foreign key ("entity_id") references "entity" ("id") on delete restrict on update restrict;
 
--- step create:fk:work_event.work_event__fk__8fffab27 (additive)
-alter table "work_event" add constraint "work_event__fk__8fffab27" foreign key ("employment_id") references "employee_contract" ("id") on delete restrict on update restrict;
-
--- step create:fk:work_event.work_event__fk__a5b91c6f (additive)
-alter table "work_event" add constraint "work_event__fk__a5b91c6f" foreign key ("catalog_id") references "work_event_catalog" ("id") on delete restrict on update restrict;
+-- step create:fk:work_event.work_event__fk__ef7d12fe (additive)
+alter table "work_event" add constraint "work_event__fk__ef7d12fe" foreign key ("employment_id") references "employment" ("id") on delete restrict on update restrict;
 
 -- step create:trigger:approval_request.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"fields":{"action":["action"],"approver_teams":["approver_teams"],"approver_users":["approver_users"],"closed_at":["closed_at"],"closed_by":["closed_by"],"collection_name":["collection_name"],"created_at":["created_at"],"record_id":["record_id"],"revision":["revision"],"status":["status"],"step":["step"],"step_names":["step_names"],"steps":["steps"],"superseder_teams":["superseder_teams"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "approval_request" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:approval_request.approval_request__gin__73732636 (additive)
 create index "approval_request__gin__73732636" on "approval_request" using gin (bolt_search);
@@ -2815,37 +2313,37 @@ create index "approval_request__gin__73732636" on "approval_request" using gin (
 create unique index "approval_request__ux__2e4b03bd" on "approval_request" ("collection_name", "record_id") where ("status" = 'ONGOING'::text);
 
 -- step create:trigger:requestor.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"fields":{"approval_request_id":["approval_request_id"],"user_id":["user_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "requestor" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:requestor.requestor__gin__73732636 (additive)
 create index "requestor__gin__73732636" on "requestor" using gin (bolt_search);
 
 -- step create:trigger:sys_api_key.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"hash":["hash"],"last_used_at":["last_used_at"],"name":["name"],"prefix":["prefix"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_api_key" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_api_key.sys_api_key__gin__73732636 (additive)
 create index "sys_api_key__gin__73732636" on "sys_api_key" using gin (bolt_search);
 
 -- step create:trigger:sys_challenge.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"fields":{"address_mac":["address_mac"],"attempts":["attempts"],"code_mac":["code_mac"],"expires_at":["expires_at"]},"key":["address_mac"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_challenge" for each row execute function store_row_rules('{"audit":false,"key":["address_mac"],"states":{}}');
 
 -- step create:index:sys_challenge.sys_challenge__gin__73732636 (additive)
 create index "sys_challenge__gin__73732636" on "sys_challenge" using gin (bolt_search);
 
 -- step create:trigger:sys_config.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"fields":{"key":["key"],"value":["value"]},"key":["key"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_config" for each row execute function store_row_rules('{"audit":false,"key":["key"],"states":{}}');
 
 -- step create:index:sys_config.sys_config__gin__73732636 (additive)
 create index "sys_config__gin__73732636" on "sys_config" using gin (bolt_search);
 
 -- step create:trigger:sys_conversation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"restart_at":["restart_at"],"restart_from":["restart_from"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_conversation.sys_conversation__gin__73732636 (additive)
 create index "sys_conversation__gin__73732636" on "sys_conversation" using gin (bolt_search);
 
 -- step create:trigger:sys_envoy.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"],"triage_scope":["triage_scope"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_envoy.sys_envoy__gin__0061abf6 (additive)
 create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
@@ -2854,13 +2352,13 @@ create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
 
 -- step create:trigger:sys_file.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"created_by":["created_by"],"field":["field"],"key":["key"],"mime":["mime"],"name":["name"],"revision":["revision"],"sha256":["sha256"],"size":["size"],"updated_at":["updated_at"],"updated_by":["updated_by"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_file.sys_file__gin__73732636 (additive)
 create index "sys_file__gin__73732636" on "sys_file" using gin (bolt_search);
 
 -- step create:trigger:sys_inbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"fields":{"body":["body"],"consumed_at":["consumed_at"],"delivery":["delivery"],"headers":["headers"],"instance":["instance"],"received_at":["received_at"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_inbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_inbox.sys_inbox__gin__73732636 (additive)
 create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
@@ -2869,7 +2367,7 @@ create index "sys_inbox__gin__73732636" on "sys_inbox" using gin (bolt_search);
 create index "sys_inbox__ix__e6ba37d2" on "sys_inbox" ("sync", "instance", "received_at") where ("consumed_at" is null);
 
 -- step create:trigger:sys_integration.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"configuration":["configuration"],"envoy":["envoy"],"epoch":["epoch"],"import_start":["import_start"],"integration":["integration"],"name":["name"],"owner":["owner"],"revision":["revision"],"status":["status"],"updated_at":["updated_at"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_integration" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_integration.sys_integration__gin__73732636 (additive)
 create index "sys_integration__gin__73732636" on "sys_integration" using gin (bolt_search);
@@ -2878,7 +2376,7 @@ create index "sys_integration__gin__73732636" on "sys_integration" using gin (bo
 create unique index "sys_integration__ux__3c46fc6b" on "sys_integration" ("owner", "integration") where ("owner" is not null);
 
 -- step create:trigger:sys_invitation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"fields":{"accepted_at":["accepted_at"],"email":["email"],"expires_at":["expires_at"],"external":["external"],"invited_by":["invited_by"],"party":["party"],"phone":["phone"],"revision":["revision"],"revoked_at":["revoked_at"],"team":["team"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_invitation" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_invitation.sys_invitation__gin__73732636 (additive)
 create index "sys_invitation__gin__73732636" on "sys_invitation" using gin (bolt_search);
@@ -2890,7 +2388,7 @@ create index "sys_invitation__ix__08e69363" on "sys_invitation" (lower("email"))
 create index "sys_invitation__ix__55565b71" on "sys_invitation" ("phone");
 
 -- step create:trigger:sys_message.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"fields":{"about":["about"],"addressed":["addressed"],"as":["as"],"attempts":["attempts"],"author":["author"],"claimed_at":["claimed_at"],"content":["content"],"conversation":["conversation"],"copied_from":["copied_from"],"created_at":["created_at"],"deleted_at":["deleted_at"],"delivered_turn":["delivered_turn"],"delivery":["delivery"],"direction":["direction"],"edited_at":["edited_at"],"email":["email"],"epoch":["epoch"],"error":["error"],"integration":["integration"],"invocation":["invocation"],"message":["message"],"meta":["meta"],"mode":["mode"],"next_attempt_at":["next_attempt_at"],"origin":["origin"],"presume_at":["presume_at"],"preview":["preview"],"provider_id":["provider_id"],"read_by":["read_by"],"refused":["refused"],"reply_to":["reply_to"],"role":["role"],"sender":["sender"],"sender_name":["sender_name"],"sent_at":["sent_at"],"seq":["seq"],"source_at":["source_at"],"state":["state"],"status":["status"],"supersedes":["supersedes"],"text":["text"],"thread":["thread"],"turn":["turn"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_message" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_message.sys_message__gin__73732636 (additive)
 create index "sys_message__gin__73732636" on "sys_message" using gin (bolt_search);
@@ -2911,7 +2409,7 @@ create index "sys_message__ix__ddeff634" on "sys_message" ("conversation") where
 create index "sys_message__ix__5c3f70a3" on "sys_message" ("seq") where ("status" in ('queued'::text, 'sending'::text));
 
 -- step create:trigger:sys_notification.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"fields":{"at":["at"],"attachments":["attachments"],"body":["body"],"link":["link"],"member":["member"],"once":["once"],"read_at":["read_at"],"recipient":["recipient"],"title":["title"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_notification" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_notification.sys_notification__gin__73732636 (additive)
 create index "sys_notification__gin__73732636" on "sys_notification" using gin (bolt_search);
@@ -2920,7 +2418,7 @@ create index "sys_notification__gin__73732636" on "sys_notification" using gin (
 create index "sys_notification__ix__846c656b" on "sys_notification" ("member", "at") where ("member" is not null);
 
 -- step create:trigger:sys_outbox.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_at":["acked_at"],"at":["at"],"attempts":["attempts"],"changed":["changed"],"claimed_at":["claimed_at"],"delivery_op":["delivery_op"],"epoch":["epoch"],"error":["error"],"image":["image"],"instance":["instance"],"key":["key"],"model":["model"],"next_attempt_at":["next_attempt_at"],"op":["op"],"preserve_local":["preserve_local"],"record":["record"],"record_revision":["record_revision"],"result":["result"],"seq":["seq"],"status":["status"],"sync":["sync"],"writer":["writer"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_outbox" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_outbox.sys_outbox__gin__73732636 (additive)
 create index "sys_outbox__gin__73732636" on "sys_outbox" using gin (bolt_search);
@@ -2941,7 +2439,7 @@ create index "sys_outbox__ix__564640ab" on "sys_outbox" ("sync") where ("status"
 create index "sys_outbox__ix__276b72a8" on "sys_outbox" ("sync", "instance", "record", "record_revision");
 
 -- step create:trigger:sys_run.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"fields":{"actor":["actor"],"attempts":["attempts"],"automation":["automation"],"cause":["cause"],"depth":["depth"],"due_at":["due_at"],"error":["error"],"finished_at":["finished_at"],"input":["input"],"key":["key"],"leases":["leases"],"output":["output"],"progress":["progress"],"results":["results"],"run_key":["run_key"],"started_at":["started_at"],"starter":["starter"],"state":["state"],"trigger":["trigger"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_run" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_run.sys_run__gin__73732636 (additive)
 create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
@@ -2949,23 +2447,26 @@ create index "sys_run__gin__73732636" on "sys_run" using gin (bolt_search);
 -- step create:index:sys_run.sys_run__ix__1ee5eb39 (additive)
 create index "sys_run__ix__1ee5eb39" on "sys_run" ("due_at") where ("state" = 'queued'::text);
 
+-- step create:index:sys_run.sys_run__ix__4309c70d (additive)
+create index "sys_run__ix__4309c70d" on "sys_run" ("due_at") where ("state" = 'waiting'::text);
+
 -- step create:index:sys_run.sys_run__ix__f2739d46 (additive)
 create index "sys_run__ix__f2739d46" on "sys_run" ("automation", "state");
 
 -- step create:trigger:sys_session.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"fields":{"agent":["agent"],"created_at":["created_at"],"expires_at":["expires_at"],"impersonated_by":["impersonated_by"],"refreshed_at":["refreshed_at"],"token_hash":["token_hash"],"user":["user"],"via":["via"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_session" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_session.sys_session__gin__73732636 (additive)
 create index "sys_session__gin__73732636" on "sys_session" using gin (bolt_search);
 
 -- step create:trigger:sys_sync.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"fields":{"cursor":["cursor"],"cycle":["cycle"],"digest":["digest"],"health":["health"],"instance":["instance"],"last_change_at":["last_change_at"],"last_hint_at":["last_hint_at"],"last_read_at":["last_read_at"],"partition":["partition"],"phase":["phase"],"started_at":["started_at"],"sync":["sync"],"version":["version"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync.sys_sync__gin__73732636 (additive)
 create index "sys_sync__gin__73732636" on "sys_sync" using gin (bolt_search);
 
 -- step create:trigger:sys_sync_row.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"fields":{"acked_revision":["acked_revision"],"cycle":["cycle"],"instance":["instance"],"partition":["partition"],"record":["record"],"remote_id":["remote_id"],"remote_version":["remote_version"],"sync":["sync"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_sync_row" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_sync_row.sys_sync_row__gin__73732636 (additive)
 create index "sys_sync_row__gin__73732636" on "sys_sync_row" using gin (bolt_search);
@@ -2977,7 +2478,7 @@ create unique index "sys_sync_row__ux__b176bf1e" on "sys_sync_row" ("sync", "ins
 create index "sys_sync_row__ix__c5cc52ee" on "sys_sync_row" ("sync", "instance", "partition", "cycle");
 
 -- step create:trigger:sys_user.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"admin":["admin"],"created_at":["created_at"],"email":["email"],"kind":["kind"],"last_seen":["last_seen"],"name":["name"],"party":["party"],"phone":["phone"],"revision":["revision"],"signup":["signup"],"team":["team"],"telegram":["telegram"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "sys_user" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
 
 -- step create:index:sys_user.sys_user__gin__73732636 (additive)
 create index "sys_user__gin__73732636" on "sys_user" using gin (bolt_search);
@@ -2989,7 +2490,7 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
 -- step create:trigger:employee_profile.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "employee_profile" for each row execute function store_row_rules('{"audit":true,"fields":{"address":["address"],"cumulative_service":["cumulative_service"],"documents":["documents"],"email":["email"],"face_consent_at":["face_consent_at"],"face_embedding":["face_embedding"],"face_enrolled_at":["face_enrolled_at"],"face_enrollment_status":["face_enrollment_status"],"face_photo":["face_photo"],"invitation_id":["invitation_id"],"location":["location"],"name":["name"],"phone":["phone"],"source_reference":["source_reference"],"user_id":["user_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "employee_profile" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:employee_profile.employee_profile__gist__bb1c4cd7 (additive)
 create index "employee_profile__gist__bb1c4cd7" on "employee_profile" using gist ("location");
@@ -3003,221 +2504,173 @@ create index "employee_profile__gin__73732636" on "employee_profile" using gin (
 -- step create:index:employee_profile.employee_profile__hnsw__84f1f23e (additive)
 create index "employee_profile__hnsw__84f1f23e" on "employee_profile" using hnsw (bolt_embedding vector_cosine_ops);
 
--- step create:trigger:employee_balance.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "employee_balance" for each row execute function store_row_rules('{"audit":true,"fields":{"account":["account"],"employee_id":["employee_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+-- step create:trigger:dependant.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "dependant" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:index:employee_balance.employee_balance__gin__73732636 (additive)
-create index "employee_balance__gin__73732636" on "employee_balance" using gin (bolt_search);
+-- step create:index:dependant.dependant__gin__73732636 (additive)
+create index "dependant__gin__73732636" on "dependant" using gin (bolt_search);
+
+-- step create:trigger:employee_balance.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "employee_balance" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:ledger_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "ledger_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"account":["account"],"amount":["amount"],"balance_id":["balance_id"],"code":["code"],"effective_on":["effective_on"],"measure":["measure"],"note":["note"],"operation":["operation"],"period":["period"],"source":["source"],"unit":["unit"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "ledger_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:ledger_entry.ledger_entry__gin__73732636 (additive)
 create index "ledger_entry__gin__73732636" on "ledger_entry" using gin (bolt_search);
 
--- step create:trigger:employee_contract.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "employee_contract" for each row execute function store_row_rules('{"audit":true,"fields":{"bank":["bank"],"effective_range":["effective_range"],"employee_extension_data":["employee_extension_data"],"employee_id":["employee_id"],"employee_number":["employee_number"],"encash_leave":["encash_leave"],"engagement":["engagement"],"entity_id":["entity_id"],"events":["events"],"exit_ground":["exit_ground"],"family":["family"],"final_pay_due_on":["final_pay_due_on"],"pay_group_id":["pay_group_id"],"payroll":["payroll"],"reason":["reason"],"service_started_on":["service_started_on"],"signed_contract_period":["signed_contract_period"],"status":["status"],"terms":["terms"]},"key":["id"],"locks":[{"constraint":"employee_contract__lock__f51311df","except":["effective_range","final_pay_due_on","reason","exit_ground","encash_leave","employee_extension_data","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"employee_contract__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"parents":[],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"to":["SEALED"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}}}}');
+-- step create:trigger:employment.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "employment" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:index:employee_contract.employee_contract__gin__73732636 (additive)
-create index "employee_contract__gin__73732636" on "employee_contract" using gin (bolt_search);
+-- step create:index:employment.employment__gin__73732636 (additive)
+create index "employment__gin__73732636" on "employment" using gin (bolt_search);
 
--- step create:trigger:contract_change.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "contract_change" for each row execute function store_row_rules('{"audit":true,"fields":{"applied_version_id":["applied_version_id"],"effective_from":["effective_from"],"employee_id":["employee_id"],"field_path":["field_path"],"new_value":["new_value"],"notes":["notes"],"old_value":["old_value"]},"key":["id"],"locks":[{"constraint":"contract_change__lock__bc6de06d","except":[],"name":"applied_change","sql":"(t.\"applied_version_id\" is not null)"}],"parents":[],"states":{}}');
+-- step create:trigger:contract_terms.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "contract_terms" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:index:contract_change.contract_change__gin__73732636 (additive)
-create index "contract_change__gin__73732636" on "contract_change" using gin (bolt_search);
+-- step create:index:contract_terms.contract_terms__gin__eb429614 (additive)
+create index "contract_terms__gin__eb429614" on "contract_terms" using gin ("employee_borne_tax_items");
+
+-- step create:index:contract_terms.contract_terms__gin__b9550c34 (additive)
+create index "contract_terms__gin__b9550c34" on "contract_terms" using gin ("clears");
+
+-- step create:index:contract_terms.contract_terms__gin__73732636 (additive)
+create index "contract_terms__gin__73732636" on "contract_terms" using gin (bolt_search);
+
+-- step create:trigger:statutory_parameters.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "statutory_parameters" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:statutory_parameters.statutory_parameters__gin__b9550c34 (additive)
+create index "statutory_parameters__gin__b9550c34" on "statutory_parameters" using gin ("clears");
+
+-- step create:index:statutory_parameters.statutory_parameters__gin__73732636 (additive)
+create index "statutory_parameters__gin__73732636" on "statutory_parameters" using gin (bolt_search);
 
 -- step create:trigger:entity.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "entity" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"epf_registered_on":["epf_registered_on"],"name":["name"],"settings_code":["settings_code"],"socso_registered_on":["socso_registered_on"],"source_reference":["source_reference"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "entity" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:entity.entity__gin__73732636 (additive)
 create index "entity__gin__73732636" on "entity" using gin (bolt_search);
 
 -- step create:trigger:entity_change.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "entity_change" for each row execute function store_row_rules('{"audit":true,"fields":{"applied_version_id":["applied_version_id"],"effective_from":["effective_from"],"entity_id":["entity_id"],"field_path":["field_path"],"new_value":["new_value"],"notes":["notes"],"old_value":["old_value"]},"key":["id"],"locks":[{"constraint":"entity_change__lock__bc6de06d","except":[],"name":"applied_change","sql":"(t.\"applied_version_id\" is not null)"}],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "entity_change" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:entity_change.entity_change__gin__b9550c34 (additive)
+create index "entity_change__gin__b9550c34" on "entity_change" using gin ("clears");
 
 -- step create:index:entity_change.entity_change__gin__73732636 (additive)
 create index "entity_change__gin__73732636" on "entity_change" using gin (bolt_search);
 
--- step create:trigger:entity_profile_version.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "entity_profile_version" for each row execute function store_row_rules('{"audit":true,"fields":{"bank":["bank"],"effective_range":["effective_range"],"entity_extension_data":["entity_extension_data"],"entity_id":["entity_id"],"final_pay_loan_floor_percent":["final_pay_loan_floor_percent"],"input_schema_version_id":["input_schema_version_id"],"name":["name"],"overtime_full_award_percent":["overtime_full_award_percent"],"pay_methods":["pay_methods"],"reason":["reason"],"registered_address":["registered_address"],"representative_name":["representative_name"],"settings_code":["settings_code"],"status":["status"],"time_zone":["time_zone"]},"key":["id"],"locks":[{"constraint":"entity_profile_version__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"entity_profile_version__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"parents":[],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"to":["SEALED"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}}}}');
-
--- step create:index:entity_profile_version.entity_profile_version__gin__73732636 (additive)
-create index "entity_profile_version__gin__73732636" on "entity_profile_version" using gin (bolt_search);
-
 -- step create:trigger:holiday.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "holiday" for each row execute function store_row_rules('{"audit":true,"fields":{"date":["date"],"employee_id":["employee_id"],"entity_id":["entity_id"],"given_to":["given_to"],"kind":["kind"],"name":["name"],"published_at":["published_at"],"replaces":["replaces"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "holiday" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:holiday.holiday__gin__73732636 (additive)
 create index "holiday__gin__73732636" on "holiday" using gin (bolt_search);
 
 -- step create:trigger:pay_group.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "pay_group" for each row execute function store_row_rules('{"audit":true,"fields":{"entity_id":["entity_id"],"name":["name"],"payment_schedule":["payment_schedule"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "pay_group" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:pay_group.pay_group__gin__73732636 (additive)
 create index "pay_group__gin__73732636" on "pay_group" using gin (bolt_search);
 
 -- step create:trigger:shift_pattern.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "shift_pattern" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"effective_range":["effective_range"],"entity_id":["entity_id"],"name":["name"],"pattern":["pattern"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "shift_pattern" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:shift_pattern.shift_pattern__gin__73732636 (additive)
 create index "shift_pattern__gin__73732636" on "shift_pattern" using gin (bolt_search);
 
 -- step create:trigger:shift_definition.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "shift_definition" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"effective_range":["effective_range"],"entity_id":["entity_id"],"name":["name"],"variant":["variant"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "shift_definition" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:shift_definition.shift_definition__gin__73732636 (additive)
 create index "shift_definition__gin__73732636" on "shift_definition" using gin (bolt_search);
 
--- step create:trigger:jurisdiction_settings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "jurisdiction_settings" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"conversions":["conversions"],"currency":["currency"],"effective_range":["effective_range"],"employee_extension_schema":["employee_extension_schema"],"entity_extension_schema":["entity_extension_schema"],"ledger":["ledger"],"lookup":["lookup"],"name":["name"],"reason":["reason"],"status":["status"],"tax_year_start_month":["tax_year_start_month"],"timezone":["timezone"],"work_regions":["work_regions"]},"key":["id"],"locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"parents":[],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"to":["SEALED","VOID"]},"SEALED":{"to":["VOID"]},"VOID":{"to":[]}}}}}');
-
--- step create:index:jurisdiction_settings.jurisdiction_settings__gin__73732636 (additive)
-create index "jurisdiction_settings__gin__73732636" on "jurisdiction_settings" using gin (bolt_search);
-
--- step create:trigger:adhoc_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "adhoc_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"conversion":["conversion"],"description":["description"],"direction":["direction"],"eligibility":["eligibility"],"lookup":["lookup"],"off_cycle_eligible":["off_cycle_eligible"],"party":["party"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"adhoc_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:adhoc_catalog.adhoc_catalog__gin__73732636 (additive)
-create index "adhoc_catalog__gin__73732636" on "adhoc_catalog" using gin (bolt_search);
-
 -- step create:trigger:adhoc_catalog_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "adhoc_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"description":["description"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"incurred_on":["incurred_on"],"payroll_run_id":["payroll_run_id"],"quantity":["quantity"],"unit":["unit"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:trigger:claim_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "claim_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"conversion":["conversion"],"description":["description"],"eligibility":["eligibility"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"claim_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:claim_catalog.claim_catalog__gin__73732636 (additive)
-create index "claim_catalog__gin__73732636" on "claim_catalog" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "adhoc_catalog_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:claim_catalog_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "claim_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"incurred_on":["incurred_on"],"payroll_run_id":["payroll_run_id"],"quantity":["quantity"],"unit":["unit"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:trigger:leave_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "leave_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"description":["description"],"eligibility":["eligibility"],"lookup":["lookup"],"paid_share":["paid_share"],"payout":["payout"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"leave_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:leave_catalog.leave_catalog__gin__73732636 (additive)
-create index "leave_catalog__gin__73732636" on "leave_catalog" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "claim_catalog_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:leave_catalog_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "leave_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"employment_id":["employment_id"],"encashment":["encashment"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"payroll_run_id":["payroll_run_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "leave_catalog_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:leave_catalog_entry_day.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "leave_catalog_entry_day" for each row execute function store_row_rules('{"audit":true,"fields":{"incurred_on":["incurred_on"],"leave_entry_id":["leave_entry_id"],"part":["part"],"payroll_run_id":["payroll_run_id"]},"key":["id"],"locks":[],"parents":[{"column":"leave_entry_id","key":"id","locks":[],"relation":"leave_catalog_entry_day","table":"leave_catalog_entry","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "leave_catalog_entry_day" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:leave_catalog_entry_day.leave_catalog_entry_day__gin__73732636 (additive)
 create index "leave_catalog_entry_day__gin__73732636" on "leave_catalog_entry_day" using gin (bolt_search);
 
--- step create:trigger:loan_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "loan_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"description":["description"],"eligibility":["eligibility"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"loan_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:loan_catalog.loan_catalog__gin__73732636 (additive)
-create index "loan_catalog__gin__73732636" on "loan_catalog" using gin (bolt_search);
-
 -- step create:trigger:loan_catalog_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "loan_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"payroll_run_id":["payroll_run_id"],"quantity":["quantity"],"repayment_period":["repayment_period"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "loan_catalog_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:loan_catalog_entry_repayment.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "loan_catalog_entry_repayment" for each row execute function store_row_rules('{"audit":true,"fields":{"amount":["amount"],"employment_id":["employment_id"],"entity_id":["entity_id"],"loan_id":["loan_id"],"paid_on":["paid_on"],"payment_reference":["payment_reference"],"payroll_run_id":["payroll_run_id"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:loan_catalog_entry_repayment.loan_catalog_entry_repayment__gin__73732636 (additive)
-create index "loan_catalog_entry_repayment__gin__73732636" on "loan_catalog_entry_repayment" using gin (bolt_search);
-
--- step create:trigger:work_event_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "work_event_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"description":["description"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"work_event_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:work_event_catalog.work_event_catalog__gin__73732636 (additive)
-create index "work_event_catalog__gin__73732636" on "work_event_catalog" using gin (bolt_search);
-
--- step create:trigger:workplace_case_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "workplace_case_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"description":["description"],"events":["events"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"workplace_case_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:workplace_case_catalog.workplace_case_catalog__gin__73732636 (additive)
-create index "workplace_case_catalog__gin__73732636" on "workplace_case_catalog" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "loan_catalog_entry_repayment" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:workplace_case_catalog_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "workplace_case_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"closed_on":["closed_on"],"description":["description"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"inputs":["inputs"],"kind":["kind"],"location":["location"],"occurred_on":["occurred_on"],"opened_on":["opened_on"],"payroll_run_id":["payroll_run_id"],"reference":["reference"],"scheduled_on":["scheduled_on"],"severity":["severity"]},"key":["id"],"locks":[{"constraint":"workplace_case_catalog_entry__lock__b737815f","except":[],"name":"captured","sql":"(t.\"payroll_run_id\" is not null)"}],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "workplace_case_catalog_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:trigger:workplace_case_catalog_entry.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "workplace_case_catalog_entry" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"catalog_code":["catalog_code"],"closed_on":["closed_on"],"description":["description"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"inputs":["inputs"],"kind":["kind"],"location":["location"],"occurred_on":["occurred_on"],"opened_on":["opened_on"],"payroll_run_id":["payroll_run_id"],"reference":["reference"],"scheduled_on":["scheduled_on"],"severity":["severity"]},"key":["id"],"locks":[{"constraint":"workplace_case_catalog_entry__lock__b737815f","except":[],"name":"captured","sql":"(t.\"payroll_run_id\" is not null)"}],"parents":[],"states":{}}');
+
+-- step create:trigger:workplace_case_catalog_entry.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "workplace_case_catalog_entry" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"catalog_code":["catalog_code"],"closed_on":["closed_on"],"description":["description"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"inputs":["inputs"],"kind":["kind"],"location":["location"],"occurred_on":["occurred_on"],"opened_on":["opened_on"],"payroll_run_id":["payroll_run_id"],"reference":["reference"],"scheduled_on":["scheduled_on"],"severity":["severity"]},"key":["id"],"locks":[{"constraint":"workplace_case_catalog_entry__lock__b737815f","except":[],"name":"captured","sql":"(t.\"payroll_run_id\" is not null)"}],"parents":[],"states":{}}');
 
 -- step create:index:workplace_case_catalog_entry.workplace_case_catalog_entry__gin__73732636 (additive)
 create index "workplace_case_catalog_entry__gin__73732636" on "workplace_case_catalog_entry" using gin (bolt_search);
 
--- step create:trigger:allowance_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "allowance_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"conversion":["conversion"],"description":["description"],"eligibility":["eligibility"],"include_in_rate":["include_in_rate"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"allowance_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+-- step create:trigger:jurisdiction.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "jurisdiction" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:index:allowance_catalog.allowance_catalog__gin__73732636 (additive)
-create index "allowance_catalog__gin__73732636" on "allowance_catalog" using gin (bolt_search);
+-- step create:index:jurisdiction.jurisdiction__gin__73732636 (additive)
+create index "jurisdiction__gin__73732636" on "jurisdiction" using gin (bolt_search);
 
--- step create:trigger:overtime_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "overtime_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"conversion":["conversion"],"description":["description"],"direction":["direction"],"eligibility":["eligibility"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"overtime_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+-- step create:trigger:jurisdiction_change.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "jurisdiction_change" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:index:overtime_catalog.overtime_catalog__gin__73732636 (additive)
-create index "overtime_catalog__gin__73732636" on "overtime_catalog" using gin (bolt_search);
-
--- step create:trigger:statutory_contribution_catalog.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "statutory_contribution_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"assessed":["assessed"],"balance_window":["balance_window"],"code":["code"],"depends_on":["depends_on"],"description":["description"],"eligibility":["eligibility"],"employee_amount":["employee_amount"],"employer_amount":["employer_amount"],"employer_cost_subtotal_id":["employer_cost_subtotal_id"],"kind":["kind"],"lookup":["lookup"],"references":["references"],"settings_id":["settings_id"],"subtotal_id":["subtotal_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"statutory_contribution_catalog","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:statutory_contribution_catalog.statutory_contribution_catalog__gin__9943fafe (additive)
-create index "statutory_contribution_catalog__gin__9943fafe" on "statutory_contribution_catalog" using gin ("depends_on");
-
--- step create:index:statutory_contribution_catalog.statutory_contribution_catalog__gin__73732636 (additive)
-create index "statutory_contribution_catalog__gin__73732636" on "statutory_contribution_catalog" using gin (bolt_search);
-
--- step create:trigger:registered_effect.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "registered_effect" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"condition":["condition"],"description":["description"],"effects":["effects"],"events":["events"],"lookup":["lookup"],"name":["name"],"reads":["reads"],"references":["references"],"settings_id":["settings_id"],"source_collection":["source_collection"],"target_action":["target_action"],"target_collection":["target_collection"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"registered_effect","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:registered_effect.registered_effect__gin__8b9f870b (additive)
-create index "registered_effect__gin__8b9f870b" on "registered_effect" using gin ("events");
-
--- step create:index:registered_effect.registered_effect__gin__73732636 (additive)
-create index "registered_effect__gin__73732636" on "registered_effect" using gin (bolt_search);
-
--- step create:trigger:registered_rule.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "registered_rule" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"condition":["condition"],"description":["description"],"events":["events"],"lookup":["lookup"],"order":["order"],"reads":["reads"],"references":["references"],"settings_id":["settings_id"],"target_collection":["target_collection"],"validate":["validate"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"registered_rule","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:registered_rule.registered_rule__gin__8b9f870b (additive)
-create index "registered_rule__gin__8b9f870b" on "registered_rule" using gin ("events");
-
--- step create:index:registered_rule.registered_rule__gin__73732636 (additive)
-create index "registered_rule__gin__73732636" on "registered_rule" using gin (bolt_search);
-
--- step create:trigger:subtotal.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "subtotal" for each row execute function store_row_rules('{"audit":true,"fields":{"balance_window":["balance_window"],"calculation":["calculation"],"code":["code"],"name":["name"],"previous_id":["previous_id"],"settings_id":["settings_id"]},"key":["id"],"locks":[],"parents":[{"column":"settings_id","key":"id","locks":[{"constraint":"jurisdiction_settings__lock__f51311df","except":["effective_range","reason","status"],"name":"sealed_version","sql":"(coalesce(t.\"status\" = ''SEALED''::text, false))"},{"constraint":"jurisdiction_settings__lock__f8268056","except":[],"name":"void_version","sql":"(coalesce(t.\"status\" = ''VOID''::text, false))"}],"relation":"subtotals","table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
-
--- step create:index:subtotal.subtotal__gin__73732636 (additive)
-create index "subtotal__gin__73732636" on "subtotal" using gin (bolt_search);
+-- step create:index:jurisdiction_change.jurisdiction_change__gin__73732636 (additive)
+create index "jurisdiction_change__gin__73732636" on "jurisdiction_change" using gin (bolt_search);
 
 -- step create:trigger:obligation.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "obligation" for each row execute function store_row_rules('{"audit":true,"fields":{"due_on":["due_on"],"employee_id":["employee_id"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence":["evidence"],"fulfilled_on":["fulfilled_on"],"occurrence_key":["occurrence_key"],"state":["state"],"title":["title"],"waiver_reason":["waiver_reason"]},"key":["id"],"locks":[{"constraint":"obligation__lock__0b5cd795","except":[],"name":"fulfilled_task","sql":"(coalesce(t.\"state\" = ''FULFILLED''::text, false))"},{"constraint":"obligation__lock__5b17b510","except":["waiver_reason","state"],"name":"waived_task","sql":"(coalesce(t.\"state\" = ''WAIVED''::text, false))"}],"parents":[],"states":{"state":{"initial":"OPEN","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}}}}');
+create trigger store_row_rules before insert or update or delete on "obligation" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"state":{"initial":"OPEN","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}}}}');
+
+-- step create:trigger:obligation.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "obligation" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"due_on":["due_on"],"employee_id":["employee_id"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence":["evidence"],"fulfilled_on":["fulfilled_on"],"occurrence_key":["occurrence_key"],"state":["state"],"title":["title"],"waiver_reason":["waiver_reason"]},"key":["id"],"locks":[{"constraint":"obligation__lock__0b5cd795","except":[],"name":"fulfilled_task","sql":"(coalesce(t.\"state\" = ''FULFILLED''::text, false))"},{"constraint":"obligation__lock__5b17b510","except":["waiver_reason","state"],"name":"waived_task","sql":"(coalesce(t.\"state\" = ''WAIVED''::text, false))"}],"parents":[],"states":{"state":{"initial":"OPEN","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}}}}');
+
+-- step create:trigger:obligation.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "obligation" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"due_on":["due_on"],"employee_id":["employee_id"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence":["evidence"],"fulfilled_on":["fulfilled_on"],"occurrence_key":["occurrence_key"],"state":["state"],"title":["title"],"waiver_reason":["waiver_reason"]},"key":["id"],"locks":[{"constraint":"obligation__lock__0b5cd795","except":[],"name":"fulfilled_task","sql":"(coalesce(t.\"state\" = ''FULFILLED''::text, false))"},{"constraint":"obligation__lock__5b17b510","except":["waiver_reason","state"],"name":"waived_task","sql":"(coalesce(t.\"state\" = ''WAIVED''::text, false))"}],"parents":[],"states":{"state":{"initial":"OPEN","states":{"FULFILLED":{"to":[]},"OPEN":{"to":["FULFILLED","WAIVED"]},"WAIVED":{"to":["OPEN"]}}}}}');
 
 -- step create:index:obligation.obligation__gin__73732636 (additive)
 create index "obligation__gin__73732636" on "obligation" using gin (bolt_search);
 
 -- step create:trigger:payroll_run.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "payroll_run" for each row execute function store_row_rules('{"audit":true,"fields":{"entity_id":["entity_id"],"kind":["kind"],"pay_date":["pay_date"],"pay_group_id":["pay_group_id"],"period":["period"],"salary_coverage":["salary_coverage"],"settings_id":["settings_id"],"state":["state"]},"key":["id"],"locks":[{"constraint":"payroll_run__lock__753125e2","except":[],"name":"paid_run","sql":"(coalesce(t.\"state\" = ''PAID''::text, false))"}],"parents":[],"states":{"state":{"initial":"UNPAID","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}}}');
+create trigger store_row_rules before insert or update or delete on "payroll_run" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"state":{"initial":"UNPAID","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}}}');
+
+-- step create:trigger:payroll_run.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "payroll_run" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"entity_id":["entity_id"],"kind":["kind"],"pay_date":["pay_date"],"pay_group_id":["pay_group_id"],"period":["period"],"salary_coverage":["salary_coverage"],"state":["state"]},"key":["id"],"locks":[{"constraint":"payroll_run__lock__753125e2","except":[],"name":"paid_run","sql":"(coalesce(t.\"state\" = ''PAID''::text, false))"}],"parents":[],"states":{"state":{"initial":"UNPAID","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}}}');
+
+-- step create:trigger:payroll_run.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "payroll_run" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"entity_id":["entity_id"],"kind":["kind"],"pay_date":["pay_date"],"pay_group_id":["pay_group_id"],"period":["period"],"salary_coverage":["salary_coverage"],"state":["state"]},"key":["id"],"locks":[{"constraint":"payroll_run__lock__753125e2","except":[],"name":"paid_run","sql":"(coalesce(t.\"state\" = ''PAID''::text, false))"}],"parents":[],"states":{"state":{"initial":"UNPAID","states":{"PAID":{"to":[]},"UNPAID":{"to":["PAID"]}}}}}');
 
 -- step create:index:payroll_run.payroll_run__gin__73732636 (additive)
 create index "payroll_run__gin__73732636" on "payroll_run" using gin (bolt_search);
 
 -- step create:trigger:pay_amendment.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "pay_amendment" for each row execute function store_row_rules('{"audit":true,"fields":{"employee_id":["employee_id"],"pay_group_id":["pay_group_id"],"payroll_run_id":["payroll_run_id"],"period":["period"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:pay_amendment.pay_amendment__gin__73732636 (additive)
-create index "pay_amendment__gin__73732636" on "pay_amendment" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "pay_amendment" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:payslip.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "payslip" for each row execute function store_row_rules('{"audit":true,"fields":{"basic_earnings":["basic_earnings"],"breakdown":["breakdown"],"employee_id":["employee_id"],"employee_statutory":["employee_statutory"],"employer_cost":["employer_cost"],"employment_id":["employment_id"],"entity_id":["entity_id"],"gross_earnings":["gross_earnings"],"net_pay":["net_pay"],"ordinary_wages":["ordinary_wages"],"payroll_run_id":["payroll_run_id"],"period":["period"],"settings_id":["settings_id"],"tax_withheld":["tax_withheld"],"total_deductions":["total_deductions"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:payslip.payslip__gin__73732636 (additive)
-create index "payslip__gin__73732636" on "payslip" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "payslip" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:roster_entry.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "roster_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"actual_worked_intervals":["actual_worked_intervals"],"consent":["consent"],"employment_id":["employment_id"],"findings":["findings"],"overtime_as_time_off":["overtime_as_time_off"],"payroll_run_id":["payroll_run_id"],"planned_overtime_intervals":["planned_overtime_intervals"],"shift_definition_id":["shift_definition_id"],"work_date":["work_date"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
-
--- step create:index:roster_entry.roster_entry__gin__73732636 (additive)
-create index "roster_entry__gin__73732636" on "roster_entry" using gin (bolt_search);
+create trigger store_row_rules before insert or update or delete on "roster_entry" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:statutory_finding.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "statutory_finding" for each row execute function store_row_rules('{"audit":true,"fields":{"announced_on":["announced_on"],"families":["families"],"fit":["fit"],"instrument_key":["instrument_key"],"jurisdiction_code":["jurisdiction_code"],"notes":["notes"],"research_run_id":["research_run_id"],"source_quote":["source_quote"],"source_urls":["source_urls"],"status":["status"],"summary":["summary"],"title":["title"],"verified_by":["verified_by"],"verified_on":["verified_on"]},"key":["id"],"locks":[{"constraint":"statutory_finding__lock__e58aad66","except":["status","notes"],"name":"confirmed_finding","sql":"(coalesce(t.\"status\" = ''CONFIRMED''::text, false))"},{"constraint":"statutory_finding__lock__943c1d92","except":[],"name":"decided_finding","sql":"(coalesce(t.\"status\" = any(array[''APPLIED''::text, ''REJECTED''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"APPLIED":{"to":[]},"CONFIRMED":{"to":["APPLIED","REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}}}}');
+create trigger store_row_rules before insert or update or delete on "statutory_finding" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"PROPOSED","states":{"CONFIRMED":{"to":["REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}}}}');
+
+-- step create:trigger:statutory_finding.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "statutory_finding" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"announced_on":["announced_on"],"families":["families"],"fit":["fit"],"instrument_key":["instrument_key"],"jurisdiction_code":["jurisdiction_code"],"notes":["notes"],"research_run_id":["research_run_id"],"source_quote":["source_quote"],"source_urls":["source_urls"],"status":["status"],"summary":["summary"],"title":["title"],"verified_by":["verified_by"],"verified_on":["verified_on"]},"key":["id"],"locks":[{"constraint":"statutory_finding__lock__e58aad66","except":["status","notes"],"name":"confirmed_finding","sql":"(coalesce(t.\"status\" = ''CONFIRMED''::text, false))"},{"constraint":"statutory_finding__lock__943c1d92","except":[],"name":"decided_finding","sql":"(coalesce(t.\"status\" = ''REJECTED''::text, false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"CONFIRMED":{"to":["REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}}}}');
+
+-- step create:trigger:statutory_finding.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "statutory_finding" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"announced_on":["announced_on"],"families":["families"],"fit":["fit"],"instrument_key":["instrument_key"],"jurisdiction_code":["jurisdiction_code"],"notes":["notes"],"research_run_id":["research_run_id"],"source_quote":["source_quote"],"source_urls":["source_urls"],"status":["status"],"summary":["summary"],"title":["title"],"verified_by":["verified_by"],"verified_on":["verified_on"]},"key":["id"],"locks":[{"constraint":"statutory_finding__lock__e58aad66","except":["status","notes"],"name":"confirmed_finding","sql":"(coalesce(t.\"status\" = ''CONFIRMED''::text, false))"},{"constraint":"statutory_finding__lock__943c1d92","except":[],"name":"decided_finding","sql":"(coalesce(t.\"status\" = ''REJECTED''::text, false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"CONFIRMED":{"to":["REJECTED"]},"PROPOSED":{"to":["CONFIRMED","REJECTED"]},"REJECTED":{"to":[]}}}}}');
 
 -- step create:index:statutory_finding.statutory_finding__gin__8872f8ef (additive)
 create index "statutory_finding__gin__8872f8ef" on "statutory_finding" using gin ("families");
@@ -3228,20 +2681,20 @@ create index "statutory_finding__gin__96ccfcc4" on "statutory_finding" using gin
 -- step create:index:statutory_finding.statutory_finding__gin__73732636 (additive)
 create index "statutory_finding__gin__73732636" on "statutory_finding" using gin (bolt_search);
 
--- step create:trigger:statutory_change.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "statutory_change" for each row execute function store_row_rules('{"audit":true,"fields":{"applied_version_id":["applied_version_id"],"baseline_version_id":["baseline_version_id"],"effective_from":["effective_from"],"family":["family"],"field_path":["field_path"],"finding_id":["finding_id"],"jurisdiction_code":["jurisdiction_code"],"new_value":["new_value"],"notes":["notes"],"old_value":["old_value"],"row_code":["row_code"]},"key":["id"],"locks":[{"constraint":"statutory_change__lock__bc6de06d","except":[],"name":"applied_change","sql":"(t.\"applied_version_id\" is not null)"}],"parents":[],"states":{}}');
-
--- step create:index:statutory_change.statutory_change__gin__73732636 (additive)
-create index "statutory_change__gin__73732636" on "statutory_change" using gin (bolt_search);
-
 -- step create:trigger:statutory_source.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "statutory_source" for each row execute function store_row_rules('{"audit":true,"fields":{"family":["family"],"jurisdiction_code":["jurisdiction_code"],"last_checked_on":["last_checked_on"],"notes":["notes"],"origin":["origin"],"replaces_url":["replaces_url"],"research_run_id":["research_run_id"],"status":["status"],"title":["title"],"url":["url"]},"key":["id"],"locks":[{"constraint":"statutory_source__lock__1ead6ebb","except":["status","notes"],"name":"retired_source","sql":"(coalesce(t.\"status\" = ''RETIRED''::text, false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"ACTIVE":{"to":["RETIRED"]},"PROPOSED":{"to":["ACTIVE","RETIRED"]},"RETIRED":{"to":["ACTIVE"]}}}}}');
+create trigger store_row_rules before insert or update or delete on "statutory_source" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"PROPOSED","states":{"ACTIVE":{"to":["RETIRED"]},"PROPOSED":{"to":["ACTIVE","RETIRED"]},"RETIRED":{"to":["ACTIVE"]}}}}}');
+
+-- step create:trigger:statutory_source.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "statutory_source" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"family":["family"],"jurisdiction_code":["jurisdiction_code"],"last_checked_on":["last_checked_on"],"notes":["notes"],"origin":["origin"],"replaces_url":["replaces_url"],"research_run_id":["research_run_id"],"status":["status"],"title":["title"],"url":["url"]},"key":["id"],"locks":[{"constraint":"statutory_source__lock__1ead6ebb","except":["status","notes"],"name":"retired_source","sql":"(coalesce(t.\"status\" = ''RETIRED''::text, false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"ACTIVE":{"to":["RETIRED"]},"PROPOSED":{"to":["ACTIVE","RETIRED"]},"RETIRED":{"to":["ACTIVE"]}}}}}');
+
+-- step create:trigger:statutory_source.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "statutory_source" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"family":["family"],"jurisdiction_code":["jurisdiction_code"],"last_checked_on":["last_checked_on"],"notes":["notes"],"origin":["origin"],"replaces_url":["replaces_url"],"research_run_id":["research_run_id"],"status":["status"],"title":["title"],"url":["url"]},"key":["id"],"locks":[{"constraint":"statutory_source__lock__1ead6ebb","except":["status","notes"],"name":"retired_source","sql":"(coalesce(t.\"status\" = ''RETIRED''::text, false))"}],"parents":[],"states":{"status":{"initial":"PROPOSED","states":{"ACTIVE":{"to":["RETIRED"]},"PROPOSED":{"to":["ACTIVE","RETIRED"]},"RETIRED":{"to":["ACTIVE"]}}}}}');
 
 -- step create:index:statutory_source.statutory_source__gin__73732636 (additive)
 create index "statutory_source__gin__73732636" on "statutory_source" using gin (bolt_search);
 
 -- step create:trigger:work_event.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "work_event" for each row execute function store_row_rules('{"audit":true,"fields":{"catalog_id":["catalog_id"],"description":["description"],"employment_id":["employment_id"],"entity_id":["entity_id"],"evidence_file":["evidence_file"],"from":["from"],"location":["location"],"to":["to"]},"key":["id"],"locks":[],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "work_event" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:work_event.work_event__gin__73732636 (additive)
 create index "work_event__gin__73732636" on "work_event" using gin (bolt_search);
@@ -3291,38 +2744,35 @@ create index "employee_profile__ix__8f04be28" on "employee_profile" ("invitation
 -- step create:index:employee_profile.employee_profile__ix__07a01ee1 (additive)
 create index "employee_profile__ix__07a01ee1" on "employee_profile" ("user_id");
 
+-- step create:index:dependant.dependant__ix__b0e10b14 (additive)
+create index "dependant__ix__b0e10b14" on "dependant" ("employee_id");
+
 -- step create:index:employee_balance.employee_balance__ix__b0e10b14 (additive)
 create index "employee_balance__ix__b0e10b14" on "employee_balance" ("employee_id");
 
 -- step create:index:ledger_entry.ledger_entry__ix__6efe57aa (additive)
 create index "ledger_entry__ix__6efe57aa" on "ledger_entry" ("balance_id");
 
--- step create:index:employee_contract.employee_contract__ix__b0e10b14 (additive)
-create index "employee_contract__ix__b0e10b14" on "employee_contract" ("employee_id");
+-- step create:index:employment.employment__ix__b0e10b14 (additive)
+create index "employment__ix__b0e10b14" on "employment" ("employee_id");
 
--- step create:index:employee_contract.employee_contract__ix__26554388 (additive)
-create index "employee_contract__ix__26554388" on "employee_contract" ("entity_id");
+-- step create:index:employment.employment__ix__26554388 (additive)
+create index "employment__ix__26554388" on "employment" ("entity_id");
 
--- step create:index:employee_contract.employee_contract__ix__2f5c3491 (additive)
-create index "employee_contract__ix__2f5c3491" on "employee_contract" ("pay_group_id");
+-- step create:index:contract_terms.contract_terms__ix__c9f435cb (additive)
+create index "contract_terms__ix__c9f435cb" on "contract_terms" ("employment_id");
 
--- step create:index:contract_change.contract_change__ix__b0e10b14 (additive)
-create index "contract_change__ix__b0e10b14" on "contract_change" ("employee_id");
+-- step create:index:contract_terms.contract_terms__ix__2f5c3491 (additive)
+create index "contract_terms__ix__2f5c3491" on "contract_terms" ("pay_group_id");
 
--- step create:index:contract_change.contract_change__ix__9803300f (additive)
-create index "contract_change__ix__9803300f" on "contract_change" ("applied_version_id");
+-- step create:index:contract_terms.contract_terms__ix__401a14cf (additive)
+create index "contract_terms__ix__401a14cf" on "contract_terms" ("shift_pattern_id");
+
+-- step create:index:statutory_parameters.statutory_parameters__ix__c9f435cb (additive)
+create index "statutory_parameters__ix__c9f435cb" on "statutory_parameters" ("employment_id");
 
 -- step create:index:entity_change.entity_change__ix__26554388 (additive)
 create index "entity_change__ix__26554388" on "entity_change" ("entity_id");
-
--- step create:index:entity_change.entity_change__ix__9803300f (additive)
-create index "entity_change__ix__9803300f" on "entity_change" ("applied_version_id");
-
--- step create:index:entity_profile_version.entity_profile_version__ix__3d2fc93d (additive)
-create index "entity_profile_version__ix__3d2fc93d" on "entity_profile_version" ("input_schema_version_id");
-
--- step create:index:entity_profile_version.entity_profile_version__ix__26554388 (additive)
-create index "entity_profile_version__ix__26554388" on "entity_profile_version" ("entity_id");
 
 -- step create:index:holiday.holiday__ix__26554388 (additive)
 create index "holiday__ix__26554388" on "holiday" ("entity_id");
@@ -3339,29 +2789,14 @@ create index "shift_pattern__ix__26554388" on "shift_pattern" ("entity_id");
 -- step create:index:shift_definition.shift_definition__ix__26554388 (additive)
 create index "shift_definition__ix__26554388" on "shift_definition" ("entity_id");
 
--- step create:index:adhoc_catalog.adhoc_catalog__ix__f94acacc (additive)
-create index "adhoc_catalog__ix__f94acacc" on "adhoc_catalog" ("subtotal_id");
-
--- step create:index:adhoc_catalog.adhoc_catalog__ix__81c3962d (additive)
-create index "adhoc_catalog__ix__81c3962d" on "adhoc_catalog" ("settings_id");
-
 -- step create:index:adhoc_catalog_entry.adhoc_catalog_entry__ix__26554388 (additive)
 create index "adhoc_catalog_entry__ix__26554388" on "adhoc_catalog_entry" ("entity_id");
 
 -- step create:index:adhoc_catalog_entry.adhoc_catalog_entry__ix__c9f435cb (additive)
 create index "adhoc_catalog_entry__ix__c9f435cb" on "adhoc_catalog_entry" ("employment_id");
 
--- step create:index:adhoc_catalog_entry.adhoc_catalog_entry__ix__d5c002db (additive)
-create index "adhoc_catalog_entry__ix__d5c002db" on "adhoc_catalog_entry" ("catalog_id");
-
 -- step create:index:adhoc_catalog_entry.adhoc_catalog_entry__ix__c1e37189 (additive)
 create index "adhoc_catalog_entry__ix__c1e37189" on "adhoc_catalog_entry" ("payroll_run_id");
-
--- step create:index:claim_catalog.claim_catalog__ix__f94acacc (additive)
-create index "claim_catalog__ix__f94acacc" on "claim_catalog" ("subtotal_id");
-
--- step create:index:claim_catalog.claim_catalog__ix__81c3962d (additive)
-create index "claim_catalog__ix__81c3962d" on "claim_catalog" ("settings_id");
 
 -- step create:index:claim_catalog_entry.claim_catalog_entry__ix__26554388 (additive)
 create index "claim_catalog_entry__ix__26554388" on "claim_catalog_entry" ("entity_id");
@@ -3369,26 +2804,14 @@ create index "claim_catalog_entry__ix__26554388" on "claim_catalog_entry" ("enti
 -- step create:index:claim_catalog_entry.claim_catalog_entry__ix__c9f435cb (additive)
 create index "claim_catalog_entry__ix__c9f435cb" on "claim_catalog_entry" ("employment_id");
 
--- step create:index:claim_catalog_entry.claim_catalog_entry__ix__d5c002db (additive)
-create index "claim_catalog_entry__ix__d5c002db" on "claim_catalog_entry" ("catalog_id");
-
 -- step create:index:claim_catalog_entry.claim_catalog_entry__ix__c1e37189 (additive)
 create index "claim_catalog_entry__ix__c1e37189" on "claim_catalog_entry" ("payroll_run_id");
-
--- step create:index:leave_catalog.leave_catalog__ix__f94acacc (additive)
-create index "leave_catalog__ix__f94acacc" on "leave_catalog" ("subtotal_id");
-
--- step create:index:leave_catalog.leave_catalog__ix__81c3962d (additive)
-create index "leave_catalog__ix__81c3962d" on "leave_catalog" ("settings_id");
 
 -- step create:index:leave_catalog_entry.leave_catalog_entry__ix__26554388 (additive)
 create index "leave_catalog_entry__ix__26554388" on "leave_catalog_entry" ("entity_id");
 
 -- step create:index:leave_catalog_entry.leave_catalog_entry__ix__c9f435cb (additive)
 create index "leave_catalog_entry__ix__c9f435cb" on "leave_catalog_entry" ("employment_id");
-
--- step create:index:leave_catalog_entry.leave_catalog_entry__ix__d5c002db (additive)
-create index "leave_catalog_entry__ix__d5c002db" on "leave_catalog_entry" ("catalog_id");
 
 -- step create:index:leave_catalog_entry.leave_catalog_entry__ix__c1e37189 (additive)
 create index "leave_catalog_entry__ix__c1e37189" on "leave_catalog_entry" ("payroll_run_id");
@@ -3399,20 +2822,11 @@ create index "leave_catalog_entry_day__ix__6a1973c3" on "leave_catalog_entry_day
 -- step create:index:leave_catalog_entry_day.leave_catalog_entry_day__ix__c1e37189 (additive)
 create index "leave_catalog_entry_day__ix__c1e37189" on "leave_catalog_entry_day" ("payroll_run_id");
 
--- step create:index:loan_catalog.loan_catalog__ix__f94acacc (additive)
-create index "loan_catalog__ix__f94acacc" on "loan_catalog" ("subtotal_id");
-
--- step create:index:loan_catalog.loan_catalog__ix__81c3962d (additive)
-create index "loan_catalog__ix__81c3962d" on "loan_catalog" ("settings_id");
-
 -- step create:index:loan_catalog_entry.loan_catalog_entry__ix__26554388 (additive)
 create index "loan_catalog_entry__ix__26554388" on "loan_catalog_entry" ("entity_id");
 
 -- step create:index:loan_catalog_entry.loan_catalog_entry__ix__c9f435cb (additive)
 create index "loan_catalog_entry__ix__c9f435cb" on "loan_catalog_entry" ("employment_id");
-
--- step create:index:loan_catalog_entry.loan_catalog_entry__ix__d5c002db (additive)
-create index "loan_catalog_entry__ix__d5c002db" on "loan_catalog_entry" ("catalog_id");
 
 -- step create:index:loan_catalog_entry.loan_catalog_entry__ix__c1e37189 (additive)
 create index "loan_catalog_entry__ix__c1e37189" on "loan_catalog_entry" ("payroll_run_id");
@@ -3429,21 +2843,6 @@ create index "loan_catalog_entry_repayment__ix__c96b6292" on "loan_catalog_entry
 -- step create:index:loan_catalog_entry_repayment.loan_catalog_entry_repayment__ix__c1e37189 (additive)
 create index "loan_catalog_entry_repayment__ix__c1e37189" on "loan_catalog_entry_repayment" ("payroll_run_id");
 
--- step create:index:work_event_catalog.work_event_catalog__ix__81c3962d (additive)
-create index "work_event_catalog__ix__81c3962d" on "work_event_catalog" ("settings_id");
-
--- step create:index:work_event_catalog.work_event_catalog__ix__f94acacc (additive)
-create index "work_event_catalog__ix__f94acacc" on "work_event_catalog" ("subtotal_id");
-
--- step create:index:workplace_case_catalog.workplace_case_catalog__ix__81c3962d (additive)
-create index "workplace_case_catalog__ix__81c3962d" on "workplace_case_catalog" ("settings_id");
-
--- step create:index:workplace_case_catalog.workplace_case_catalog__ix__f94acacc (additive)
-create index "workplace_case_catalog__ix__f94acacc" on "workplace_case_catalog" ("subtotal_id");
-
--- step create:index:workplace_case_catalog_entry.workplace_case_catalog_entry__ix__d5c002db (additive)
-create index "workplace_case_catalog_entry__ix__d5c002db" on "workplace_case_catalog_entry" ("catalog_id");
-
 -- step create:index:workplace_case_catalog_entry.workplace_case_catalog_entry__ix__26554388 (additive)
 create index "workplace_case_catalog_entry__ix__26554388" on "workplace_case_catalog_entry" ("entity_id");
 
@@ -3453,38 +2852,8 @@ create index "workplace_case_catalog_entry__ix__c9f435cb" on "workplace_case_cat
 -- step create:index:workplace_case_catalog_entry.workplace_case_catalog_entry__ix__c1e37189 (additive)
 create index "workplace_case_catalog_entry__ix__c1e37189" on "workplace_case_catalog_entry" ("payroll_run_id");
 
--- step create:index:allowance_catalog.allowance_catalog__ix__f94acacc (additive)
-create index "allowance_catalog__ix__f94acacc" on "allowance_catalog" ("subtotal_id");
-
--- step create:index:allowance_catalog.allowance_catalog__ix__81c3962d (additive)
-create index "allowance_catalog__ix__81c3962d" on "allowance_catalog" ("settings_id");
-
--- step create:index:overtime_catalog.overtime_catalog__ix__f94acacc (additive)
-create index "overtime_catalog__ix__f94acacc" on "overtime_catalog" ("subtotal_id");
-
--- step create:index:overtime_catalog.overtime_catalog__ix__81c3962d (additive)
-create index "overtime_catalog__ix__81c3962d" on "overtime_catalog" ("settings_id");
-
--- step create:index:statutory_contribution_catalog.statutory_contribution_catalog__ix__db7494ce (additive)
-create index "statutory_contribution_catalog__ix__db7494ce" on "statutory_contribution_catalog" ("employer_cost_subtotal_id");
-
--- step create:index:statutory_contribution_catalog.statutory_contribution_catalog__ix__f94acacc (additive)
-create index "statutory_contribution_catalog__ix__f94acacc" on "statutory_contribution_catalog" ("subtotal_id");
-
--- step create:index:statutory_contribution_catalog.statutory_contribution_catalog__ix__81c3962d (additive)
-create index "statutory_contribution_catalog__ix__81c3962d" on "statutory_contribution_catalog" ("settings_id");
-
--- step create:index:registered_effect.registered_effect__ix__81c3962d (additive)
-create index "registered_effect__ix__81c3962d" on "registered_effect" ("settings_id");
-
--- step create:index:registered_rule.registered_rule__ix__81c3962d (additive)
-create index "registered_rule__ix__81c3962d" on "registered_rule" ("settings_id");
-
--- step create:index:subtotal.subtotal__ix__81c3962d (additive)
-create index "subtotal__ix__81c3962d" on "subtotal" ("settings_id");
-
--- step create:index:subtotal.subtotal__ix__91428126 (additive)
-create index "subtotal__ix__91428126" on "subtotal" ("previous_id");
+-- step create:index:jurisdiction_change.jurisdiction_change__ix__db9feb63 (additive)
+create index "jurisdiction_change__ix__db9feb63" on "jurisdiction_change" ("finding_id");
 
 -- step create:index:obligation.obligation__ix__26554388 (additive)
 create index "obligation__ix__26554388" on "obligation" ("entity_id");
@@ -3501,9 +2870,6 @@ create index "payroll_run__ix__26554388" on "payroll_run" ("entity_id");
 -- step create:index:payroll_run.payroll_run__ix__2f5c3491 (additive)
 create index "payroll_run__ix__2f5c3491" on "payroll_run" ("pay_group_id");
 
--- step create:index:payroll_run.payroll_run__ix__81c3962d (additive)
-create index "payroll_run__ix__81c3962d" on "payroll_run" ("settings_id");
-
 -- step create:index:pay_amendment.pay_amendment__ix__b0e10b14 (additive)
 create index "pay_amendment__ix__b0e10b14" on "pay_amendment" ("employee_id");
 
@@ -3515,9 +2881,6 @@ create index "pay_amendment__ix__c1e37189" on "pay_amendment" ("payroll_run_id")
 
 -- step create:index:payslip.payslip__ix__c1e37189 (additive)
 create index "payslip__ix__c1e37189" on "payslip" ("payroll_run_id");
-
--- step create:index:payslip.payslip__ix__81c3962d (additive)
-create index "payslip__ix__81c3962d" on "payslip" ("settings_id");
 
 -- step create:index:payslip.payslip__ix__b0e10b14 (additive)
 create index "payslip__ix__b0e10b14" on "payslip" ("employee_id");
@@ -3540,31 +2903,24 @@ create index "roster_entry__ix__3ca785d3" on "roster_entry" ("shift_definition_i
 -- step create:index:statutory_finding.statutory_finding__ix__9442f833 (additive)
 create index "statutory_finding__ix__9442f833" on "statutory_finding" ("verified_by");
 
--- step create:index:statutory_change.statutory_change__ix__db9feb63 (additive)
-create index "statutory_change__ix__db9feb63" on "statutory_change" ("finding_id");
-
--- step create:index:statutory_change.statutory_change__ix__4a32eade (additive)
-create index "statutory_change__ix__4a32eade" on "statutory_change" ("baseline_version_id");
-
--- step create:index:statutory_change.statutory_change__ix__9803300f (additive)
-create index "statutory_change__ix__9803300f" on "statutory_change" ("applied_version_id");
-
 -- step create:index:work_event.work_event__ix__26554388 (additive)
 create index "work_event__ix__26554388" on "work_event" ("entity_id");
 
 -- step create:index:work_event.work_event__ix__c9f435cb (additive)
 create index "work_event__ix__c9f435cb" on "work_event" ("employment_id");
 
--- step create:index:work_event.work_event__ix__d5c002db (additive)
-create index "work_event__ix__d5c002db" on "work_event" ("catalog_id");
-
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['adhoc_catalog','adhoc_catalog_entry','allowance_catalog','approval_request','claim_catalog','claim_catalog_entry','contract_change','employee_balance','employee_contract','employee_profile','entity','entity_change','entity_profile_version','holiday','jurisdiction_settings','leave_catalog','leave_catalog_entry','leave_catalog_entry_day','ledger_entry','loan_catalog','loan_catalog_entry','loan_catalog_entry_repayment','obligation','overtime_catalog','pay_amendment','pay_group','payroll_run','payslip','registered_effect','registered_rule','roster_entry','shift_definition','shift_pattern','statutory_change','statutory_contribution_catalog','statutory_finding','statutory_source','subtotal','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','work_event','work_event_catalog','workplace_case_catalog','workplace_case_catalog_entry']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['adhoc_catalog_entry','approval_request','claim_catalog_entry','contract_terms','dependant','employee_balance','employee_profile','employment','entity','entity_change','holiday','jurisdiction','jurisdiction_change','leave_catalog_entry','leave_catalog_entry_day','ledger_entry','loan_catalog_entry','loan_catalog_entry_repayment','obligation','pay_amendment','pay_group','payroll_run','payslip','roster_entry','shift_definition','shift_pattern','statutory_finding','statutory_parameters','statutory_source','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','work_event','workplace_case_catalog_entry']::text[]));
 
 -- step create:engine:audit:employee_profile (additive)
 drop trigger if exists bolt_audit_mark on "employee_profile";
 drop trigger if exists bolt_audit on "employee_profile";
 create trigger bolt_audit after insert or update or delete on "employee_profile" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["invitation_id","sys_invitation"],["user_id","sys_user"]]');
+
+-- step create:engine:audit:dependant (additive)
+drop trigger if exists bolt_audit_mark on "dependant";
+drop trigger if exists bolt_audit on "dependant";
+create trigger bolt_audit after insert or update or delete on "dependant" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"]]');
 
 -- step create:engine:audit:employee_balance (additive)
 drop trigger if exists bolt_audit_mark on "employee_balance";
@@ -3576,15 +2932,20 @@ drop trigger if exists bolt_audit_mark on "ledger_entry";
 drop trigger if exists bolt_audit on "ledger_entry";
 create trigger bolt_audit after insert or update or delete on "ledger_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["balance_id","employee_balance"]]');
 
--- step create:engine:audit:employee_contract (additive)
-drop trigger if exists bolt_audit_mark on "employee_contract";
-drop trigger if exists bolt_audit on "employee_contract";
-create trigger bolt_audit after insert or update or delete on "employee_contract" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["entity_id","entity"],["pay_group_id","pay_group"]]');
+-- step create:engine:audit:employment (additive)
+drop trigger if exists bolt_audit_mark on "employment";
+drop trigger if exists bolt_audit on "employment";
+create trigger bolt_audit after insert or update or delete on "employment" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["entity_id","entity"]]');
 
--- step create:engine:audit:contract_change (additive)
-drop trigger if exists bolt_audit_mark on "contract_change";
-drop trigger if exists bolt_audit on "contract_change";
-create trigger bolt_audit after insert or update or delete on "contract_change" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["applied_version_id","employee_contract"],["employee_id","employee_profile"]]');
+-- step create:engine:audit:contract_terms (additive)
+drop trigger if exists bolt_audit_mark on "contract_terms";
+drop trigger if exists bolt_audit on "contract_terms";
+create trigger bolt_audit after insert or update or delete on "contract_terms" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["pay_group_id","pay_group"],["shift_pattern_id","shift_pattern"]]');
+
+-- step create:engine:audit:statutory_parameters (additive)
+drop trigger if exists bolt_audit_mark on "statutory_parameters";
+drop trigger if exists bolt_audit on "statutory_parameters";
+create trigger bolt_audit after insert or update or delete on "statutory_parameters" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"]]');
 
 -- step create:engine:audit:entity (additive)
 drop trigger if exists bolt_audit_mark on "entity";
@@ -3594,12 +2955,7 @@ create trigger bolt_audit after insert or update or delete on "entity" for each 
 -- step create:engine:audit:entity_change (additive)
 drop trigger if exists bolt_audit_mark on "entity_change";
 drop trigger if exists bolt_audit on "entity_change";
-create trigger bolt_audit after insert or update or delete on "entity_change" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["applied_version_id","entity_profile_version"],["entity_id","entity"]]');
-
--- step create:engine:audit:entity_profile_version (additive)
-drop trigger if exists bolt_audit_mark on "entity_profile_version";
-drop trigger if exists bolt_audit on "entity_profile_version";
-create trigger bolt_audit after insert or update or delete on "entity_profile_version" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["entity_id","entity"],["input_schema_version_id","jurisdiction_settings"]]');
+create trigger bolt_audit after insert or update or delete on "entity_change" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["entity_id","entity"]]');
 
 -- step create:engine:audit:holiday (additive)
 drop trigger if exists bolt_audit_mark on "holiday";
@@ -3621,115 +2977,60 @@ drop trigger if exists bolt_audit_mark on "shift_definition";
 drop trigger if exists bolt_audit on "shift_definition";
 create trigger bolt_audit after insert or update or delete on "shift_definition" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["entity_id","entity"]]');
 
--- step create:engine:audit:jurisdiction_settings (additive)
-drop trigger if exists bolt_audit_mark on "jurisdiction_settings";
-drop trigger if exists bolt_audit on "jurisdiction_settings";
-create trigger bolt_audit after insert or update or delete on "jurisdiction_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
-
--- step create:engine:audit:adhoc_catalog (additive)
-drop trigger if exists bolt_audit_mark on "adhoc_catalog";
-drop trigger if exists bolt_audit on "adhoc_catalog";
-create trigger bolt_audit after insert or update or delete on "adhoc_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
-
 -- step create:engine:audit:adhoc_catalog_entry (additive)
 drop trigger if exists bolt_audit_mark on "adhoc_catalog_entry";
 drop trigger if exists bolt_audit on "adhoc_catalog_entry";
-create trigger bolt_audit after insert or update or delete on "adhoc_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","adhoc_catalog"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
-
--- step create:engine:audit:claim_catalog (additive)
-drop trigger if exists bolt_audit_mark on "claim_catalog";
-drop trigger if exists bolt_audit on "claim_catalog";
-create trigger bolt_audit after insert or update or delete on "claim_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
+create trigger bolt_audit after insert or update or delete on "adhoc_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:claim_catalog_entry (additive)
 drop trigger if exists bolt_audit_mark on "claim_catalog_entry";
 drop trigger if exists bolt_audit on "claim_catalog_entry";
-create trigger bolt_audit after insert or update or delete on "claim_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","claim_catalog"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
-
--- step create:engine:audit:leave_catalog (additive)
-drop trigger if exists bolt_audit_mark on "leave_catalog";
-drop trigger if exists bolt_audit on "leave_catalog";
-create trigger bolt_audit after insert or update or delete on "leave_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
+create trigger bolt_audit after insert or update or delete on "claim_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:leave_catalog_entry (additive)
 drop trigger if exists bolt_audit_mark on "leave_catalog_entry";
 drop trigger if exists bolt_audit on "leave_catalog_entry";
-create trigger bolt_audit after insert or update or delete on "leave_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","leave_catalog"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
+create trigger bolt_audit after insert or update or delete on "leave_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:leave_catalog_entry_day (additive)
 drop trigger if exists bolt_audit_mark on "leave_catalog_entry_day";
 drop trigger if exists bolt_audit on "leave_catalog_entry_day";
 create trigger bolt_audit after insert or update or delete on "leave_catalog_entry_day" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["leave_entry_id","leave_catalog_entry"]]','[["leave_entry_id","leave_catalog_entry"],["payroll_run_id","payroll_run"]]');
 
--- step create:engine:audit:loan_catalog (additive)
-drop trigger if exists bolt_audit_mark on "loan_catalog";
-drop trigger if exists bolt_audit on "loan_catalog";
-create trigger bolt_audit after insert or update or delete on "loan_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
-
 -- step create:engine:audit:loan_catalog_entry (additive)
 drop trigger if exists bolt_audit_mark on "loan_catalog_entry";
 drop trigger if exists bolt_audit on "loan_catalog_entry";
-create trigger bolt_audit after insert or update or delete on "loan_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","loan_catalog"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
+create trigger bolt_audit after insert or update or delete on "loan_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:loan_catalog_entry_repayment (additive)
 drop trigger if exists bolt_audit_mark on "loan_catalog_entry_repayment";
 drop trigger if exists bolt_audit on "loan_catalog_entry_repayment";
-create trigger bolt_audit after insert or update or delete on "loan_catalog_entry_repayment" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employee_contract"],["entity_id","entity"],["loan_id","loan_catalog_entry"],["payroll_run_id","payroll_run"]]');
-
--- step create:engine:audit:work_event_catalog (additive)
-drop trigger if exists bolt_audit_mark on "work_event_catalog";
-drop trigger if exists bolt_audit on "work_event_catalog";
-create trigger bolt_audit after insert or update or delete on "work_event_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
-
--- step create:engine:audit:workplace_case_catalog (additive)
-drop trigger if exists bolt_audit_mark on "workplace_case_catalog";
-drop trigger if exists bolt_audit on "workplace_case_catalog";
-create trigger bolt_audit after insert or update or delete on "workplace_case_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
+create trigger bolt_audit after insert or update or delete on "loan_catalog_entry_repayment" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["loan_id","loan_catalog_entry"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:workplace_case_catalog_entry (additive)
 drop trigger if exists bolt_audit_mark on "workplace_case_catalog_entry";
 drop trigger if exists bolt_audit on "workplace_case_catalog_entry";
-create trigger bolt_audit after insert or update or delete on "workplace_case_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","workplace_case_catalog"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
+create trigger bolt_audit after insert or update or delete on "workplace_case_catalog_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
--- step create:engine:audit:allowance_catalog (additive)
-drop trigger if exists bolt_audit_mark on "allowance_catalog";
-drop trigger if exists bolt_audit on "allowance_catalog";
-create trigger bolt_audit after insert or update or delete on "allowance_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
+-- step create:engine:audit:jurisdiction (additive)
+drop trigger if exists bolt_audit_mark on "jurisdiction";
+drop trigger if exists bolt_audit on "jurisdiction";
+create trigger bolt_audit after insert or update or delete on "jurisdiction" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
--- step create:engine:audit:overtime_catalog (additive)
-drop trigger if exists bolt_audit_mark on "overtime_catalog";
-drop trigger if exists bolt_audit on "overtime_catalog";
-create trigger bolt_audit after insert or update or delete on "overtime_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
-
--- step create:engine:audit:statutory_contribution_catalog (additive)
-drop trigger if exists bolt_audit_mark on "statutory_contribution_catalog";
-drop trigger if exists bolt_audit on "statutory_contribution_catalog";
-create trigger bolt_audit after insert or update or delete on "statutory_contribution_catalog" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["employer_cost_subtotal_id","subtotal"],["settings_id","jurisdiction_settings"],["subtotal_id","subtotal"]]');
-
--- step create:engine:audit:registered_effect (additive)
-drop trigger if exists bolt_audit_mark on "registered_effect";
-drop trigger if exists bolt_audit on "registered_effect";
-create trigger bolt_audit after insert or update or delete on "registered_effect" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
-
--- step create:engine:audit:registered_rule (additive)
-drop trigger if exists bolt_audit_mark on "registered_rule";
-drop trigger if exists bolt_audit on "registered_rule";
-create trigger bolt_audit after insert or update or delete on "registered_rule" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
-
--- step create:engine:audit:subtotal (additive)
-drop trigger if exists bolt_audit_mark on "subtotal";
-drop trigger if exists bolt_audit on "subtotal";
-create trigger bolt_audit after insert or update or delete on "subtotal" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["previous_id","subtotal"],["settings_id","jurisdiction_settings"]]');
+-- step create:engine:audit:jurisdiction_change (additive)
+drop trigger if exists bolt_audit_mark on "jurisdiction_change";
+drop trigger if exists bolt_audit on "jurisdiction_change";
+create trigger bolt_audit after insert or update or delete on "jurisdiction_change" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["finding_id","statutory_finding"]]');
 
 -- step create:engine:audit:obligation (additive)
 drop trigger if exists bolt_audit_mark on "obligation";
 drop trigger if exists bolt_audit on "obligation";
-create trigger bolt_audit after insert or update or delete on "obligation" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["employment_id","employee_contract"],["entity_id","entity"]]');
+create trigger bolt_audit after insert or update or delete on "obligation" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["employment_id","employment"],["entity_id","entity"]]');
 
 -- step create:engine:audit:payroll_run (additive)
 drop trigger if exists bolt_audit_mark on "payroll_run";
 drop trigger if exists bolt_audit on "payroll_run";
-create trigger bolt_audit after insert or update or delete on "payroll_run" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["entity_id","entity"],["pay_group_id","pay_group"],["settings_id","jurisdiction_settings"]]');
+create trigger bolt_audit after insert or update or delete on "payroll_run" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["entity_id","entity"],["pay_group_id","pay_group"]]');
 
 -- step create:engine:audit:pay_amendment (additive)
 drop trigger if exists bolt_audit_mark on "pay_amendment";
@@ -3739,22 +3040,17 @@ create trigger bolt_audit after insert or update or delete on "pay_amendment" fo
 -- step create:engine:audit:payslip (additive)
 drop trigger if exists bolt_audit_mark on "payslip";
 drop trigger if exists bolt_audit on "payslip";
-create trigger bolt_audit after insert or update or delete on "payslip" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["employment_id","employee_contract"],["entity_id","entity"],["payroll_run_id","payroll_run"],["settings_id","jurisdiction_settings"]]');
+create trigger bolt_audit after insert or update or delete on "payslip" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employee_id","employee_profile"],["employment_id","employment"],["entity_id","entity"],["payroll_run_id","payroll_run"]]');
 
 -- step create:engine:audit:roster_entry (additive)
 drop trigger if exists bolt_audit_mark on "roster_entry";
 drop trigger if exists bolt_audit on "roster_entry";
-create trigger bolt_audit after insert or update or delete on "roster_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employee_contract"],["payroll_run_id","payroll_run"],["shift_definition_id","shift_definition"]]');
+create trigger bolt_audit after insert or update or delete on "roster_entry" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["payroll_run_id","payroll_run"],["shift_definition_id","shift_definition"]]');
 
 -- step create:engine:audit:statutory_finding (additive)
 drop trigger if exists bolt_audit_mark on "statutory_finding";
 drop trigger if exists bolt_audit on "statutory_finding";
 create trigger bolt_audit after insert or update or delete on "statutory_finding" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["verified_by","sys_user"]]');
-
--- step create:engine:audit:statutory_change (additive)
-drop trigger if exists bolt_audit_mark on "statutory_change";
-drop trigger if exists bolt_audit on "statutory_change";
-create trigger bolt_audit after insert or update or delete on "statutory_change" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["applied_version_id","jurisdiction_settings"],["baseline_version_id","jurisdiction_settings"],["finding_id","statutory_finding"]]');
 
 -- step create:engine:audit:statutory_source (additive)
 drop trigger if exists bolt_audit_mark on "statutory_source";
@@ -3764,4 +3060,4 @@ create trigger bolt_audit after insert or update or delete on "statutory_source"
 -- step create:engine:audit:work_event (additive)
 drop trigger if exists bolt_audit_mark on "work_event";
 drop trigger if exists bolt_audit on "work_event";
-create trigger bolt_audit after insert or update or delete on "work_event" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["catalog_id","work_event_catalog"],["employment_id","employee_contract"],["entity_id","entity"]]');
+create trigger bolt_audit after insert or update or delete on "work_event" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["employment_id","employment"],["entity_id","entity"]]');

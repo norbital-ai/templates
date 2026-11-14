@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { model } from '../../../../../.norbital/models/leave_catalog_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../../lib/entries.js';
 import {
 	isJsonObject,
@@ -12,7 +12,8 @@ import {
 	assertCashable,
 	entriesUndone,
 	entryPostings,
-	entryRead
+	entryRead,
+	syncLatePosted
 } from '../../../../lib/ledger/service.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
@@ -33,7 +34,7 @@ const touched = (employment: unknown, days: readonly unknown[], cashOut: unknown
 				]
 			: [];
 	});
-export default model({
+export default model('leave_catalog_entry', {
 	description: 'One leave request: dated half-day slots for an employment.',
 	record_label: "record.employment_id.employee_number + ' · ' + record.catalog_code",
 	fields: {
@@ -65,10 +66,8 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: ['entity_id', 'employment_id', 'catalog_code', 'evidence_file', 'encashment'],
-			leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
-		},
+		fields: ['entity_id', 'employment_id', 'catalog_code', 'evidence_file', 'encashment'],
+		leave_catalog_entry_day: { fields: ['incurred_on', 'part'] },
 		transform: function* (changes, ctx) {
 			const slotsOf = (row: JsonObject) =>
 				(Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : []).flatMap(
@@ -120,13 +119,18 @@ export default model({
 					))
 				}
 			};
+		},
+		// a day before this year can change what carried since
+		effect: function* (changes, ctx) {
+			yield* syncLatePosted(
+				ctx,
+				changes.map((change) => `leave_catalog_entry:${change.after.id}`)
+			);
 		}
 	},
 	update: {
-		columns: {
-			fields: ['evidence_file', 'payroll_run_id'],
-			leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
-		},
+		fields: ['evidence_file', 'payroll_run_id'],
+		leave_catalog_entry_day: { fields: ['incurred_on', 'part'] },
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const held = yield* ctx.query({
@@ -212,6 +216,13 @@ export default model({
 					]))
 				}
 			};
+		},
+		// a day before this year can change what carried since
+		effect: function* (changes, ctx) {
+			yield* syncLatePosted(
+				ctx,
+				changes.map((change) => `leave_catalog_entry:${change.after.id}`)
+			);
 		}
 	},
 	delete: {
@@ -251,6 +262,13 @@ export default model({
 					))
 				}
 			};
+		},
+		// a day before this year can change what carried since
+		effect: function* (changes, ctx) {
+			yield* syncLatePosted(
+				ctx,
+				changes.map((change) => `leave_catalog_entry:${change.before.id}`)
+			);
 		}
 	}
 });

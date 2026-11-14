@@ -1,5 +1,5 @@
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { model } from '../../../../../.norbital/models/holiday.ts';
+import { model } from '@norbital-ai/bolt';
 import { amendmentsOf } from '../../../../lib/amendments.js';
 
 /** The day a published holiday prices, for everyone the company paid or the one person it names. */
@@ -36,7 +36,7 @@ const columns = [
 	'employee_id'
 ] as const;
 
-export default model({
+export default model('holiday', {
 	description:
 		'One observed public holiday of one legal entity on one day. Published individually. A published day corrected in paid time amends everyone the company paid for it. Imported from a spreadsheet or entered by hand.',
 	icon: 'lucide:calendar-x',
@@ -88,7 +88,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			return {
@@ -106,7 +106,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			// a holiday's name moves nobody's pay: only what says which day, of what kind, for whom
 			const moved = changes.filter((change) =>

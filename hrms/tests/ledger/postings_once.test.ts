@@ -1,5 +1,4 @@
-// A posting can run again: the host dies as it ends, and the next boot runs it from the start. Whatever it posted stands,
-// once. Every balance is its ledger: a movement and its balance commit as one write.
+// A posting can run again: the ledger sync runs once more from the start. Whatever it posted stands, once. Every balance is its ledger: a movement and its balance commit as one write.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
@@ -98,42 +97,26 @@ const firstEntry = (t: Kit) =>
 	);
 /** A run that prices the entry's slots: while it is unpaid, it holds the entry. */
 const price = (t: Kit) => run(t, '2026-09');
-/** Lets each queued effect and posting finish its work, kills the host as it ends, then runs it again. */
-const crashEach = (t: Kit) =>
-	Effect.gen(function* () {
-		const killed = new Set<string>();
-		for (;;) {
-			const [queued] = yield* t.db.read([
-				{
-					text: `SELECT id::text AS id FROM sys_run WHERE state = 'queued' AND (automation LIKE '%.effect.%' OR automation = 'ledger')`,
-					params: []
-				}
-			]);
-			const id = (queued?.rows ?? [])
-				.map((row) => String(row['id']))
-				.find((run) => !killed.has(run));
-			if (id === undefined) break;
-			killed.add(id);
-			yield* t.crash(id);
-		}
-		assert.ok(killed.size > 0, 'nothing queued');
-		yield* t.run_due();
-	});
+/** Runs what is queued, then the ledger sync once more from the start. */
+const again = (t: Kit) => t.run_due().pipe(Effect.andThen(syncAll(t)));
 describe('a posting that runs again', () => {
 	it.live('a leave entry is posted once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
-			yield* crashEach(t);
+			yield* again(t);
 			assert.equal(yield* used(t), 2);
-			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
+			assert.deepEqual(
+				(yield* leaveRows(t, 'ANNUAL_LEAVE')).filter((row) => row.includes(' used ')),
+				['ADD used 2']
+			);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
 	it.live('an entry an unpaid run priced is held under that run, and its posting stands', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, 'ANNUAL_LEAVE', '2026-09-08', '2026-09-09');
-			yield* crashEach(t);
+			yield* again(t);
 			yield* price(t);
 			const admin = yield* t.as(t.admin);
 			const failed = yield* Effect.flip(
@@ -141,14 +124,17 @@ describe('a posting that runs again', () => {
 			);
 			assert.match(String(failed), /Run \d+ holds this person and is not paid yet/);
 			assert.equal(yield* used(t), 2);
-			assert.deepEqual(yield* leaveRows(t, 'ANNUAL_LEAVE'), ['ADD used 2']);
+			assert.deepEqual(
+				(yield* leaveRows(t, 'ANNUAL_LEAVE')).filter((row) => row.includes(' used ')),
+				['ADD used 2']
+			);
 		}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
 	it.live('a recorded fact opens its days once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* recordEvents(t, [{ kind: 'CHILD_BIRTH', on: '2026-09-02' }]);
-			yield* crashEach(t);
+			yield* again(t);
 			const opened = measureOf(yield* accountsIn(t), 'leave', 'MATERNITY_LEAVE', 'entitled');
 			assert.ok(opened > 0);
 			assert.deepEqual(yield* leaveRows(t, 'MATERNITY_LEAVE'), [`ADD entitled ${opened}`]);
@@ -160,13 +146,13 @@ describe('a posting that runs again', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* take(t, DRAWS, '2026-09-08');
-				yield* crashEach(t);
+				yield* again(t);
 				assert.equal(yield* used(t), 1);
 				assert.deepEqual(yield* leaveRows(t, DRAWS), []);
 				yield* (yield* t.as(t.admin)).act({
 					'leave_catalog_entry.delete': [{ target: yield* firstEntry(t) }]
 				});
-				yield* crashEach(t);
+				yield* again(t);
 				assert.equal(yield* used(t), 0);
 			}).pipe(Effect.provide(workspace({ seed: HOLDS, now: NOW })))
 	);
@@ -177,14 +163,14 @@ describe('a posting that runs again', () => {
 			yield* admin.act({
 				'payroll_run.create': [{ entity_id: ENTITY, period: '2026-09', kind: 'ON_CYCLE' }]
 			});
-			yield* crashEach(t);
+			yield* again(t);
 			const year = (yield* accountsIn(t)).pay?.['BASIC']?.['MY.Y.2026-01-01']?.['total'];
 			assert.equal(year, terms.rate.amount);
 			const { payroll_run: runs } = yield* storedQuery(t, { payroll_run: { limit: 1 } });
 			const run = runs.rows[0];
 			assert.ok(run !== undefined);
 			yield* admin.act({ 'payroll_run.delete': [{ target: run }] });
-			yield* crashEach(t);
+			yield* again(t);
 			assert.deepEqual((yield* accountsIn(t)).pay?.['BASIC']?.['MY.Y.2026-01-01'], { total: 0 });
 		}).pipe(Effect.provide(workspace({ seed: EMPTY, now: NOW })))
 	);

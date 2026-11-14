@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { READ_ALL, CONFIGURATION, AUTOMATION_LIMITS } from './grants.js';
+import { READ_ALL, CONFIGURATION } from './grants.js';
 
 export default policy({
 	description:
@@ -7,6 +7,5 @@ export default policy({
 	grants: { ...READ_ALL, ...CONFIGURATION },
 	capabilities: {
 		tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act']
-	},
-	limits: AUTOMATION_LIMITS
+	}
 });

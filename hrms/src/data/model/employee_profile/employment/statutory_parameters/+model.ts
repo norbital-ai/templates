@@ -1,11 +1,11 @@
-import { model } from '../../../../../../.norbital/models/statutory_parameters.ts';
+import { model } from '@norbital-ai/bolt';
 import { PARAMETER_FIELDS } from '../../../../../lib/person.js';
 import { afterDated, datedWrite } from '../+model.js';
 
 const named = (clears: readonly string[] | null | undefined) =>
 	(clears ?? []).every((name) => PARAMETER_FIELDS.some((field) => field === name));
 
-export default model({
+export default model('statutory_parameters', {
 	description:
 		'One dated change to what the law is told about a person in a stint: from its date, the parameters it holds are now these. One left empty is unchanged; one named in clears is taken away. A change is dated the first of a month, or the stint’s first day, and may be edited, moved or deleted.',
 	icon: 'lucide:landmark',
@@ -47,7 +47,7 @@ export default model({
 	// every write is checked on the stint it leaves, on its date and at every later change, and carries the amendment
 	// rows of the paid periods it reaches
 	create: {
-		columns: { fields: ['employment_id', 'effective_from', ...PARAMETER_FIELDS, 'clears'] },
+		fields: ['employment_id', 'effective_from', ...PARAMETER_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
 			const unknown = changes.findIndex(({ after }) => !named(after.clears));
 			if (unknown >= 0)
@@ -63,11 +63,8 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: ['effective_from', ...PARAMETER_FIELDS, 'clears'] },
+		fields: ['effective_from', ...PARAMETER_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
-			// a stint whose first day moves carries its first rows along: it checked itself with them moved, and its own
-			// reach holds the days between
-			if (ctx.carried_by === 'employment') return changes.map(({ set }) => set);
 			const unknown = changes.findIndex(({ after }) => !named(after.clears));
 			if (unknown >= 0)
 				return yield* ctx.refuse('errors.statutory_parameters_clears', {

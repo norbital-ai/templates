@@ -1,9 +1,8 @@
-import { model } from '../../../../../.norbital/models/work_event.ts';
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import { amendmentsFor, amendmentsIn, amendmentsOf, refusing } from '../../../../lib/amendments.js';
-import type { WriteCtx } from '@norbital-ai/bolt';
+import { model, type WriteCtx } from '@norbital-ai/bolt';
 import type { Reader } from '../../../../lib/payroll_engine/reads.js';
 import { Effect } from 'effect';
 
@@ -46,7 +45,7 @@ const placed = (
 		changes.map(({ after }) => jsonObject(after))
 	).pipe(refusing(ctx));
 
-export default model({
+export default model('work_event', {
 	description:
 		'One dated real-world event affecting work: a heat period, natural disaster, epidemic or other condition. It may be entity-wide or attached to one employment, and catalog rules read its type and dates.',
 	record_label: 'record.description',
@@ -73,18 +72,16 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'entity_id',
-				'employment_id',
-				'catalog_code',
-				'from',
-				'to',
-				'location',
-				'description',
-				'evidence_file'
-			]
-		},
+		fields: [
+			'entity_id',
+			'employment_id',
+			'catalog_code',
+			'from',
+			'to',
+			'location',
+			'description',
+			'evidence_file'
+		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			yield* placed(ctx, 'create', changes);
@@ -100,17 +97,15 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'employment_id',
-				'catalog_code',
-				'from',
-				'to',
-				'location',
-				'description',
-				'evidence_file'
-			]
-		},
+		fields: [
+			'employment_id',
+			'catalog_code',
+			'from',
+			'to',
+			'location',
+			'description',
+			'evidence_file'
+		],
 		transform: function* (changes, ctx) {
 			yield* placed(ctx, 'update', changes);
 			return {

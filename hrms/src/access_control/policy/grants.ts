@@ -2,7 +2,7 @@ import type { ApprovalFlow, Clock, Id, WorkspaceQuery } from '@norbital-ai/bolt'
 import { Effect } from 'effect';
 export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' } as const;
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
-export const OWN_EMPLOYEE = { user_id: { eq: { var: 'requestor.id' } } } as const;
+export const OWN_EMPLOYEE = { user_id: { eq: { var: 'actor.id' } } } as const;
 export const OWN_EMPLOYMENT = { employee_id: { is: OWN_EMPLOYEE } } as const;
 export const OWN = { employment_id: { is: OWN_EMPLOYMENT } } as const;
 export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (

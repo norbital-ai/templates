@@ -1,5 +1,4 @@
 import { policy } from '@norbital-ai/bolt';
-import { MEMBER_LIMITS } from './grants.js';
 
 /**
  * The attendance-kiosk device: the attendance kiosk (opening it and running inside it), punches for people, and enrolments that land PENDING for HR. The update
@@ -16,15 +15,13 @@ export default policy({
 		employee_profile: {
 			outputs: { kiosk: {} },
 			update: {
-				columns: {
-					fields: [
-						'face_embedding',
-						'face_photo',
-						'face_enrollment_status',
-						'face_consent_at',
-						'face_enrolled_at'
-					]
-				},
+				fields: [
+					'face_embedding',
+					'face_photo',
+					'face_enrollment_status',
+					'face_consent_at',
+					'face_enrolled_at'
+				],
 				verdict: function* (changes, ctx) {
 					const undone = changes.findIndex(
 						({ before, after }) =>
@@ -50,10 +47,9 @@ export default policy({
 		roster_entry: {
 			outputs: { kiosk: {} },
 			create: {
-				columns: { fields: ['employment_id', 'work_date', 'actual_worked_intervals'] }
+				fields: ['employment_id', 'work_date', 'actual_worked_intervals']
 			},
-			update: { columns: { fields: ['actual_worked_intervals'] } }
+			update: { fields: ['actual_worked_intervals'] }
 		}
-	},
-	limits: MEMBER_LIMITS
+	}
 });

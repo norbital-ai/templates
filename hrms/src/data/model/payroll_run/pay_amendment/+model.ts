@@ -1,6 +1,6 @@
-import { model } from '../../../../../.norbital/models/pay_amendment.ts';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('pay_amendment', {
 	description:
 		'One paid pay period of one person to work out again. A record of a paid period that is corrected leaves this row in the same write; the next run that pays the person carries the difference and takes the row.',
 	icon: 'lucide:history',
@@ -40,12 +40,11 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: ['employee_id', 'pay_group_id', 'period'] },
-		transform: function* (changes, ctx) {
-			// only the write that corrects a paid period leaves a row: nobody keys one
-			if (ctx.carried_by === null) return yield* ctx.refuse('errors.pay_amendment_carried_only');
-			return changes.map(({ set }) => set);
+		fields: ['employee_id', 'pay_group_id', 'period'],
+		// only the write that corrects a paid period leaves a row: nobody keys one
+		transform: function* (_changes, ctx) {
+			return yield* ctx.refuse('errors.pay_amendment_carried_only');
 		}
 	},
-	update: { columns: { fields: ['payroll_run_id'] } }
+	update: { fields: ['payroll_run_id'] }
 });

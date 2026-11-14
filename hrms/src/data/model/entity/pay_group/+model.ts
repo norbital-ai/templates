@@ -1,5 +1,5 @@
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { model } from '../../../../../.norbital/models/pay_group.ts';
+import { model } from '@norbital-ai/bolt';
 import { paidUnder } from '../../../../lib/amendments.js';
 import { jsonObject, stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
@@ -9,7 +9,7 @@ const paces = (schedule: unknown) => {
 	return stableJson(pace);
 };
 
-export default model({
+export default model('pay_group', {
 	description:
 		'One payroll of a company: the people paid together on one schedule. A company with staff paid monthly and staff paid twice a month has two. Every contract names its group, and a payroll run is for one group.',
 	icon: 'lucide:calendar-clock',
@@ -88,7 +88,7 @@ export default model({
 	indexes: { search: { text: ['name'] } },
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { fields: ['name', 'payment_schedule', 'entity_id'] },
+		fields: ['name', 'payment_schedule', 'entity_id'],
 		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
@@ -100,7 +100,7 @@ export default model({
 	},
 	// a group stays with its company: its contracts and runs are that company's
 	update: {
-		columns: { fields: ['name', 'payment_schedule'] },
+		fields: ['name', 'payment_schedule'],
 		transform: function* (changes, ctx) {
 			// every schedule is a group: one that has paid keeps its schedule, so its periods can be worked out again
 			const moved = changes.filter(

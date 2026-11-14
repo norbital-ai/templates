@@ -1,8 +1,8 @@
-import { model } from '../../../../../../.norbital/models/ledger_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { manualAdjustments, syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
 import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 
-export default model({
+export default model('ledger_entry', {
 	description:
 		'One immutable movement of an employee balance: an amount added to or deducted from one account key.',
 	record_label: "record.code + ' · ' + string(record.effective_on)",
@@ -41,21 +41,19 @@ export default model({
 	},
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: {
-			fields: [
-				'balance_id',
-				'operation',
-				'account',
-				'code',
-				'amount',
-				'unit',
-				'effective_on',
-				'period',
-				'measure',
-				'source',
-				'note'
-			]
-		},
+		fields: [
+			'balance_id',
+			'operation',
+			'account',
+			'code',
+			'amount',
+			'unit',
+			'effective_on',
+			'period',
+			'measure',
+			'source',
+			'note'
+		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			if (writesLedger(ctx)) return rows;

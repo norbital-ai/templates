@@ -352,7 +352,7 @@
 			mode="create"
 			values={view.mode === 'create' ? view.values : {}}
 			on_outcome={createRepayments}
-			class="h-auto! shrink-0"
+			size="content"
 		>
 			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}
 		</Form>
@@ -365,7 +365,7 @@
 				{record}
 				fields={['quantity', 'repayment_period', 'evidence_file']}
 				validate={principalProblem}
-				class="h-auto! shrink-0"
+				size="content"
 			/>
 			<Stack gap="sm" data-loan-repayments>
 				<Cluster gap="sm" align="center" justify="between">

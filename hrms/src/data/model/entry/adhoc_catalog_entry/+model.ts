@@ -1,9 +1,9 @@
-import { model } from '../../../../../.norbital/models/adhoc_catalog_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { amendmentsFor } from '../../../../lib/amendments.js';
 import { entryCreate, entryDelete, entryUpdate } from '../../../../lib/entries.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
-export default model({
+export default model('adhoc_catalog_entry', {
 	description: 'One ad-hoc payment or deduction for an employment.',
 	record_label:
 		"record.employment_id.employee_number + ' · ' + record.catalog_code + ' · ' + string(record.quantity)",
@@ -41,18 +41,16 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'entity_id',
-				'employment_id',
-				'catalog_code',
-				'description',
-				'quantity',
-				'unit',
-				'incurred_on',
-				'evidence_file'
-			]
-		},
+		fields: [
+			'entity_id',
+			'employment_id',
+			'catalog_code',
+			'description',
+			'quantity',
+			'unit',
+			'incurred_on',
+			'evidence_file'
+		],
 		transform: function* (changes, ctx) {
 			return yield* entryCreate(ctx, 'adhoc_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)
@@ -68,9 +66,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: ['payroll_run_id', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file']
-		},
+		fields: ['payroll_run_id', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file'],
 		transform: function* (changes, ctx) {
 			return yield* entryUpdate(ctx, 'adhoc_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)

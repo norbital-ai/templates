@@ -1,7 +1,5 @@
-import type { Id } from '@norbital-ai/bolt';
-import type { ReadFailed } from '@norbital-ai/bolt/errors';
+import { model, type Id } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { model } from '../../../../../.norbital/models/dependant.ts';
 import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
 import { assertFactsHold } from '../../../../lib/ledger/service.js';
 import {
@@ -57,20 +55,8 @@ const touched = (
 	});
 
 /** A dependant taken away or moved must not leave days taken under it with nothing behind them. */
-const factsHold = Effect.fnUntraced(function* (
-	read: Reader & {
-		after(
-			model: 'dependant',
-			where: { readonly employee_id: { readonly in: readonly Id<'employee_profile'>[] } }
-		): Effect.Effect<readonly object[], ReadFailed>;
-	},
-	people: readonly unknown[]
-) {
+const factsHold = Effect.fnUntraced(function* (read: Reader, people: readonly unknown[]) {
 	const ids = [...new Set(people.map(String))];
-	// the dependants as this write leaves them
-	const dependant = (yield* read.after('dependant', {
-		employee_id: { in: ids.map((id) => idOf('employee_profile', id)) }
-	})).map((row) => jsonObject(row));
 	const theirs = { employment_id: { is: { employee_id: { in: ids } } } };
 	const got = yield* queryRows(read, {
 		employment: { where: { employee_id: { in: ids } }, fields: [...STINT_FIELDS], limit: 10000 },
@@ -84,11 +70,13 @@ const factsHold = Effect.fnUntraced(function* (
 			fields: [...DATED, ...PARAMETER_FIELDS],
 			limit: 10000
 		},
-		employee_profile: { where: { id: { in: ids } }, fields: [...PROFILE_FIELDS], limit: 10000 }
+		employee_profile: { where: { id: { in: ids } }, fields: [...PROFILE_FIELDS], limit: 10000 },
+		// the dependants as this write leaves them
+		dependant: { where: { employee_id: { in: ids } }, limit: 10000, as_of: 'act' }
 	});
 	yield* assertFactsHold(
 		read,
-		partsIn({ ...got, dependant }).flatMap((parts) => {
+		partsIn(got).flatMap((parts) => {
 			const on = segmentsOf(parts).at(-1)?.from;
 			return on === undefined || parts.terms.length === 0
 				? []
@@ -97,7 +85,7 @@ const factsHold = Effect.fnUntraced(function* (
 	);
 });
 
-export default model({
+export default model('dependant', {
 	description:
 		'One member of a person’s family, dated by its own birth or expected date. Every count or flag a scheme reads (dependants, a spouse’s income, births) is worked out from these rows, and a child’s birth is a leave event.',
 	icon: 'lucide:users',
@@ -132,7 +120,7 @@ export default model({
 	},
 	// a dependant is a pay input and a leave fact: its write carries the amendment rows of the paid periods it reaches
 	create: {
-		columns: { fields: ['employee_id', 'name', ...READ] },
+		fields: ['employee_id', 'name', ...READ],
 		transform: function* (changes, ctx) {
 			return {
 				sets: changes.map(({ set }) => set),
@@ -149,7 +137,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: ['name', ...READ] },
+		fields: ['name', ...READ],
 		transform: function* (changes, ctx) {
 			return {
 				sets: changes.map(({ set }) => set),

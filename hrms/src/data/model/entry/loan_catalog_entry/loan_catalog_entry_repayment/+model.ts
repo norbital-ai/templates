@@ -1,4 +1,4 @@
-import { model } from '../../../../../../.norbital/models/loan_catalog_entry_repayment.ts';
+import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../../../lib/entries.js';
 import { validateRegistered } from '../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
@@ -19,7 +19,7 @@ const touched = (
 			: [{ employment: String(employment_id), from: String(paid_on), run: payroll_run_id ?? null }]
 	);
 
-export default model({
+export default model('loan_catalog_entry_repayment', {
 	description: 'One repayment against a loan entry.',
 	record_label:
 		"record.employment_id.employee_number + ' · ' + string(record.amount) + (record.paid_on != null ? ' · ' + string(record.paid_on) : '')",
@@ -56,9 +56,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: ['entity_id', 'employment_id', 'loan_id', 'amount', 'paid_on', 'payment_reference']
-		},
+		fields: ['entity_id', 'employment_id', 'loan_id', 'amount', 'paid_on', 'payment_reference'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => c.after);
 			yield* validateRegistered(
@@ -82,16 +80,14 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'payroll_run_id',
-				'amount',
-				'paid_on',
-				'payment_reference',
-				'entity_id',
-				'employment_id'
-			]
-		},
+		fields: [
+			'payroll_run_id',
+			'amount',
+			'paid_on',
+			'payment_reference',
+			'entity_id',
+			'employment_id'
+		],
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));

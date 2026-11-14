@@ -1,6 +1,5 @@
-import { model } from '../../../../.norbital/models/statutory_finding.ts';
 import { refusing } from '../../../lib/amendments.js';
-import type { CarriedWrites } from '@norbital-ai/bolt';
+import { model, type CarriedWrites } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { lawWrite, syncLedgerOn } from '../../../lib/payroll_engine/configuration.js';
 import { isJsonObject } from '../../../lib/payroll_engine/foundation.js';
@@ -13,7 +12,7 @@ const decided = (change: {
 	readonly after: { readonly status: string };
 }) => (change.before.status === 'CONFIRMED') !== (change.after.status === 'CONFIRMED');
 
-export default model({
+export default model('statutory_finding', {
 	description:
 		'One legal instrument research found for a jurisdiction: how it fits the configuration, its sources and its review. Its changes of law are dated patches, in force only while the finding is confirmed: confirming or rejecting it decides them together.',
 	record_label: 'record.title',
@@ -56,22 +55,20 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'jurisdiction_code',
-				'instrument_key',
-				'title',
-				'fit',
-				'families',
-				'summary',
-				'announced_on',
-				'status',
-				'source_urls',
-				'source_quote',
-				'research_run_id',
-				'notes'
-			]
-		},
+		fields: [
+			'jurisdiction_code',
+			'instrument_key',
+			'title',
+			'fit',
+			'families',
+			'summary',
+			'announced_on',
+			'status',
+			'source_urls',
+			'source_quote',
+			'research_run_id',
+			'notes'
+		],
 		transform: function* (changes, ctx) {
 			const row = changes.findIndex(({ set }) => set.status != null && set.status !== 'PROPOSED');
 			if (row >= 0) return yield* ctx.refuse('errors.statutory_finding_starts_proposed', { row });
@@ -79,19 +76,17 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'title',
-				'fit',
-				'families',
-				'summary',
-				'announced_on',
-				'status',
-				'source_urls',
-				'source_quote',
-				'notes'
-			]
-		},
+		fields: [
+			'title',
+			'fit',
+			'families',
+			'summary',
+			'announced_on',
+			'status',
+			'source_urls',
+			'source_quote',
+			'notes'
+		],
 		transform: function* (changes, ctx) {
 			// a finding moved into or out of force moves its changes of law: each is checked and amends as if written
 			const moved = changes.filter(decided);

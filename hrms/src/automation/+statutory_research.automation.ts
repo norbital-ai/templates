@@ -386,7 +386,7 @@ export default automation({
 		}
 		const created = yield* write('statutory_finding.create', [
 			...fresh.map((row) =>
-				jsonObject({ ...row, jurisdiction_code: code, research_run_id: ctx.run.id })
+				jsonObject({ ...row, jurisdiction_code: code, research_run_id: ctx.trigger.id })
 			)
 		]);
 		if (merged.length > 0) {
@@ -409,7 +409,7 @@ export default automation({
 					url,
 					jurisdiction_code: code,
 					origin: 'REFERENCE',
-					research_run_id: ctx.run.id
+					research_run_id: ctx.trigger.id
 				})
 			),
 			...[...proposedSources.values()].map((row) =>
@@ -417,7 +417,7 @@ export default automation({
 					...row,
 					jurisdiction_code: code,
 					origin: 'AGENT',
-					research_run_id: ctx.run.id
+					research_run_id: ctx.trigger.id
 				})
 			)
 		]);

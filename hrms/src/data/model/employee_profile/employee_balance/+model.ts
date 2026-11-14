@@ -1,7 +1,7 @@
-import { model } from '../../../../../.norbital/models/employee_balance.ts';
+import { model } from '@norbital-ai/bolt';
 import { writesLedger } from '../../../../lib/ledger/service.js';
 
-export default model({
+export default model('employee_balance', {
 	description:
 		'One balance row per employee profile. Accounts are keyed by catalogue family (leave, claim, statutory contribution, …), then by account code, so the map is data rather than fixed columns.',
 	record_label: "has(record.employee_id.name) ? record.employee_id.name : 'Balance'",
@@ -16,18 +16,14 @@ export default model({
 	constraints: { one_balance: { unique: ['employee_id'] } },
 	outputs: { default: { fields: 'all', employee_id: { fields: ['name'] } } },
 	create: {
-		columns: {
-			fields: ['employee_id', 'account']
-		},
+		fields: ['employee_id', 'account'],
 		transform: function* (changes, ctx) {
 			if (!writesLedger(ctx)) return yield* ctx.refuse('errors.employee_balance_ledger_only');
 			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
-		columns: {
-			fields: ['account']
-		},
+		fields: ['account'],
 		transform: function* (changes, ctx) {
 			if (!writesLedger(ctx)) return yield* ctx.refuse('errors.employee_balance_ledger_only');
 			return changes.map(({ set }) => set);

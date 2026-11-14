@@ -1,8 +1,8 @@
-import { model } from '../../../../../.norbital/models/claim_catalog_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { amendmentsFor } from '../../../../lib/amendments.js';
 import { entryCreate, entryDelete, entryUpdate } from '../../../../lib/entries.js';
 
-export default model({
+export default model('claim_catalog_entry', {
 	description: 'One claim against an employment.',
 	record_label:
 		"record.employment_id.employee_number + ' · ' + record.catalog_code + ' · ' + string(record.quantity) + (record.unit == 'MONEY' ? '' : ' ' + record.unit)",
@@ -39,16 +39,14 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'entity_id',
-				'employment_id',
-				'catalog_code',
-				'quantity',
-				'incurred_on',
-				'evidence_file'
-			]
-		},
+		fields: [
+			'entity_id',
+			'employment_id',
+			'catalog_code',
+			'quantity',
+			'incurred_on',
+			'evidence_file'
+		],
 		transform: function* (changes, ctx) {
 			return yield* entryCreate(ctx, 'claim_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)
@@ -56,9 +54,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file']
-		},
+		fields: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file'],
 		transform: function* (changes, ctx) {
 			return yield* entryUpdate(ctx, 'claim_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)

@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/loan_catalog_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../../lib/entries.js';
 import { refusing } from '../../../../lib/amendments.js';
 import {
@@ -8,7 +8,7 @@ import {
 import { jsonObject, numberOf } from '../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
-export default model({
+export default model('loan_catalog_entry', {
 	description: 'One employee loan advance and its repayment period.',
 	record_label: "record.employment_id.employee_number + ' · ' + record.catalog_code",
 	fields: {
@@ -38,19 +38,17 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'entity_id',
-				'employment_id',
-				'catalog_code',
-				'quantity',
-				'repayment_period',
-				'evidence_file'
-			],
-			// a loan arrives with its schedule: one write, so none is left without instalments
-			repayments: {
-				fields: ['entity_id', 'employment_id', 'amount', 'paid_on', 'payment_reference']
-			}
+		fields: [
+			'entity_id',
+			'employment_id',
+			'catalog_code',
+			'quantity',
+			'repayment_period',
+			'evidence_file'
+		],
+		// a loan arrives with its schedule: one write, so none is left without instalments
+		repayments: {
+			fields: ['entity_id', 'employment_id', 'amount', 'paid_on', 'payment_reference']
 		},
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => jsonObject(c.after));
@@ -68,16 +66,14 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'payroll_run_id',
-				'quantity',
-				'repayment_period',
-				'evidence_file',
-				'entity_id',
-				'employment_id'
-			]
-		},
+		fields: [
+			'payroll_run_id',
+			'quantity',
+			'repayment_period',
+			'evidence_file',
+			'entity_id',
+			'employment_id'
+		],
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject(change.after));

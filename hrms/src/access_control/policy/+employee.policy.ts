@@ -1,12 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import {
-	OWN,
-	OWN_EMPLOYEE,
-	OWN_EMPLOYMENT,
-	ownsEmployments,
-	requestReview,
-	MEMBER_LIMITS
-} from './grants.js';
+import { OWN, OWN_EMPLOYEE, OWN_EMPLOYMENT, ownsEmployments, requestReview } from './grants.js';
 const claimColumns = [
 	'entity_id',
 	'employment_id',
@@ -25,7 +18,7 @@ export default policy({
 		employee_profile: {
 			outputs: { default: { where: OWN_EMPLOYEE } },
 			update: {
-				columns: { fields: ['documents'] },
+				fields: ['documents'],
 				verdict: function* (changes, ctx) {
 					const other = changes.findIndex(
 						({ before }) => ctx.actor.kind !== 'member' || before.user_id !== ctx.actor.id
@@ -57,7 +50,7 @@ export default policy({
 		claim_catalog_entry: {
 			outputs: { default: { where: OWN } },
 			create: {
-				columns: { fields: claimColumns },
+				fields: claimColumns,
 				verdict: function* (changes, ctx) {
 					if (
 						!(yield* ownsEmployments(
@@ -70,7 +63,7 @@ export default policy({
 				}
 			},
 			update: {
-				columns: { fields: claimUpdateColumns },
+				fields: claimUpdateColumns,
 				verdict: function* (changes, ctx) {
 					if (
 						!(yield* ownsEmployments(
@@ -86,10 +79,8 @@ export default policy({
 		leave_catalog_entry: {
 			outputs: { default: { where: OWN } },
 			create: {
-				columns: {
-					fields: leaveColumns,
-					leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
-				},
+				fields: leaveColumns,
+				leave_catalog_entry_day: { fields: ['incurred_on', 'part'] },
 				verdict: function* (changes, ctx) {
 					if (
 						!(yield* ownsEmployments(
@@ -124,6 +115,5 @@ export default policy({
 		},
 		shift_definition: { outputs: { default: {} } },
 		shift_pattern: { outputs: { default: {} } }
-	},
-	limits: MEMBER_LIMITS
+	}
 });

@@ -1,6 +1,5 @@
-import type { CarriedWrites, EffectCtx } from '@norbital-ai/bolt';
+import { model, type CarriedWrites, type EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import { model } from '../../../../../.norbital/models/entity_change.ts';
 import { amendmentsOf, refusing } from '../../../../lib/amendments.js';
 import { COMPANY_FIELDS, companyChange, employerOn } from '../../../../lib/company.js';
 import { reachOf } from '../../../../lib/dated.js';
@@ -176,7 +175,7 @@ const afterWrite = Effect.fnUntraced(function* (
 const named = (clears: readonly string[] | null | undefined) =>
 	(clears ?? []).every((name) => COMPANY_FIELDS.some((field) => field === name));
 
-export default model({
+export default model('entity_change', {
 	description:
 		'One dated change to a company: from its date, the fields it holds are now these. A field left empty is unchanged; one named in clears is taken away. A change may be edited, moved or deleted.',
 	icon: 'lucide:calendar-plus',
@@ -238,7 +237,7 @@ export default model({
 	// every write is checked on the company it leaves, on its date and at every later change, and carries the amendment
 	// rows of the paid periods it reaches
 	create: {
-		columns: { fields: ['entity_id', 'effective_from', ...COMPANY_FIELDS, 'clears'] },
+		fields: ['entity_id', 'effective_from', ...COMPANY_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ after }) => after);
 			const unknown = rows.findIndex((row) => !named(row.clears));
@@ -266,7 +265,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: ['effective_from', ...COMPANY_FIELDS, 'clears'] },
+		fields: ['effective_from', ...COMPANY_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
 			const unknown = changes.findIndex(({ after }) => !named(after.clears));
 			if (unknown >= 0)

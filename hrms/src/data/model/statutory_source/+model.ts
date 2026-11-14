@@ -1,6 +1,6 @@
-import { model } from '../../../../.norbital/models/statutory_source.ts';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('statutory_source', {
 	description:
 		'One official place research reads for a jurisdiction, for one catalogue family or for all of it. It outlives versions: research proposes new and moved sources, a person activates them, and each run stamps what it checked.',
 	record_label: 'record.title',
@@ -30,23 +30,19 @@ export default model({
 	},
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: {
-			fields: [
-				'jurisdiction_code',
-				'family',
-				'title',
-				'url',
-				'origin',
-				'replaces_url',
-				'research_run_id',
-				'notes'
-			]
-		}
+		fields: [
+			'jurisdiction_code',
+			'family',
+			'title',
+			'url',
+			'origin',
+			'replaces_url',
+			'research_run_id',
+			'notes'
+		]
 	},
 	update: {
-		columns: {
-			fields: ['family', 'title', 'url', 'status', 'notes', 'last_checked_on']
-		},
+		fields: ['family', 'title', 'url', 'status', 'notes', 'last_checked_on'],
 		transform: function* (changes, ctx) {
 			const row = changes.findIndex(
 				(change) =>

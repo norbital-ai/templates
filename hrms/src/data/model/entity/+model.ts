@@ -1,5 +1,5 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
-import { model } from '../../../../.norbital/models/entity.ts';
+import { model } from '@norbital-ai/bolt';
 
 /** The company's fields a writer sets. */
 const columns = [
@@ -15,7 +15,7 @@ const columns = [
 	'socso_registered_on'
 ] as const;
 
-export default model({
+export default model('entity', {
 	description:
 		'One company. Its own fields never change by date, so an edit is a correction; what changes from a date is an entity_change row.',
 	icon: 'lucide:building-2',
@@ -68,7 +68,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			const blank = changes.findIndex(({ set }) => set.code != null && set.code.trim() === '');
 			if (blank >= 0)
@@ -85,31 +85,32 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
-			for (const [row, change] of changes.entries()) {
-				const { before, set } = change;
-				if (set.code != null && set.code.trim() === '')
-					return yield* ctx.refuse('errors.entity_code_blank', { row, field: 'code' });
-				if (!change.changed('settings_code')) continue;
-				const used = yield* ctx.query({
-					entity_change: {
-						where: { entity_id: { eq: before.id } },
-						fields: ['id'],
-						limit: 1
-					},
-					employment: {
-						where: { entity_id: { eq: before.id } },
-						fields: ['id'],
-						limit: 1
-					}
+			const blank = changes.findIndex(({ set }) => set.code != null && set.code.trim() === '');
+			if (blank >= 0)
+				return yield* ctx.refuse('errors.entity_code_blank', { row: blank, field: 'code' });
+			// a company with a dated change or a stint keeps its law
+			const moving = changes.flatMap((change) =>
+				change.changed('settings_code') ? [change.before.id] : []
+			);
+			const used = yield* ctx.query({
+				entity_change: {
+					where: { entity_id: { in: moving } },
+					fields: ['entity_id'],
+					limit: 10000
+				},
+				employment: { where: { entity_id: { in: moving } }, fields: ['entity_id'], limit: 10000 }
+			});
+			const linked = new Set(
+				[...used.entity_change.rows, ...used.employment.rows].map((row) => row.entity_id)
+			);
+			const row = changes.findIndex(({ before }) => linked.has(before.id));
+			if (row >= 0)
+				return yield* ctx.refuse('errors.entity_jurisdiction_linked', {
+					row,
+					field: 'settings_code'
 				});
-				if (used.entity_change.rows.length > 0 || used.employment.rows.length > 0)
-					return yield* ctx.refuse('errors.entity_jurisdiction_linked', {
-						row,
-						field: 'settings_code'
-					});
-			}
 			return changes.map(({ set }) => (set.code == null ? set : { ...set, code: set.code.trim() }));
 		},
 		effect: function* (changes, ctx) {

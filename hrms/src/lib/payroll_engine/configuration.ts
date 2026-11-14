@@ -1,5 +1,5 @@
 import type { CarriedWrites, EffectCtx } from '@norbital-ai/bolt';
-import type { ReadRequestJson } from '@norbital-ai/bolt/protocol';
+import type { ReadRequestJson } from '@norbital-ai/bolt';
 import { DateTime, Effect, Schema } from 'effect';
 import { amendmentsOf } from '../amendments.js';
 import { reachOf, type Change } from '../dated.js';

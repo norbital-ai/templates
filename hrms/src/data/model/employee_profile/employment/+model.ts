@@ -1,7 +1,11 @@
-import type { CarriedWrites, EffectCtx, Id, WriteCtx } from '@norbital-ai/bolt';
-import type { ReadFailed } from '@norbital-ai/bolt/errors';
+import {
+	model,
+	type CarriedWrites,
+	type EffectCtx,
+	type Id,
+	type WriteCtx
+} from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import { model } from '../../../../../.norbital/models/employment.ts';
 import { amendmentsFor, refusing, type Touched } from '../../../../lib/amendments.js';
 import { reachOf } from '../../../../lib/dated.js';
 import { reconcile } from '../../../../lib/dependants.js';
@@ -276,61 +280,31 @@ const assertLaw = (rows: readonly JsonObject[], law: readonly (Law | undefined)[
 };
 
 /**
- * A write callback's read of its act's own rows over the stored ones (`ctx.query.after`): what the model will hold
- * once the act commits.
- */
-export interface Staged {
-	after(
-		model: 'employment',
-		where: { readonly id: { readonly in: readonly Id<'employment'>[] } }
-	): Effect.Effect<readonly object[], ReadFailed>;
-	after(
-		model: 'contract_terms' | 'statutory_parameters',
-		where: { readonly employment_id: { readonly in: readonly Id<'employment'>[] } }
-	): Effect.Effect<readonly object[], ReadFailed>;
-}
-const rowsOf = (rows: readonly object[]): readonly JsonObject[] =>
-	rows.map((row) => jsonObject(row));
-
-/**
  * These stints, each with its dated rows, its person and their dependants, beside every stint of those people and what
- * the checks read of the companies. A write (`staged`) reads its stints and their dated rows as its act leaves them: a
+ * the checks read of the companies. A write (`as_of: 'act'`) reads its stints and their dated rows as its act leaves them: a
  * hire arrives with its first rows, and a first day moves with the rows dated on it.
  */
 const standing = Effect.fnUntraced(function* (
 	read: Reader,
 	stints: readonly unknown[],
-	staged?: Staged
+	act: { readonly as_of?: 'act' } = {}
 ) {
 	const ids = [...new Set(stints.flatMap((id) => (id == null ? [] : [String(id)])))];
-	const keys = ids.map((id) => idOf('employment', id));
-	const act =
-		staged === undefined
-			? undefined
-			: {
-					employment: rowsOf(yield* staged.after('employment', { id: { in: keys } })),
-					contract_terms: rowsOf(
-						yield* staged.after('contract_terms', { employment_id: { in: keys } })
-					),
-					statutory_parameters: rowsOf(
-						yield* staged.after('statutory_parameters', { employment_id: { in: keys } })
-					)
-				};
-	const own =
-		act ??
-		(yield* queryRows(read, {
-			employment: { where: { id: { in: ids } }, fields: [...STINT_FIELDS], limit: 10000 },
-			contract_terms: {
-				where: { employment_id: { in: ids } },
-				fields: [...DATED, 'signed_on', ...TERM_FIELDS],
-				limit: 10000
-			},
-			statutory_parameters: {
-				where: { employment_id: { in: ids } },
-				fields: [...DATED, ...PARAMETER_FIELDS],
-				limit: 10000
-			}
-		}));
+	const own = yield* queryRows(read, {
+		employment: { where: { id: { in: ids } }, fields: [...STINT_FIELDS], limit: 10000, ...act },
+		contract_terms: {
+			where: { employment_id: { in: ids } },
+			fields: [...DATED, 'revision', 'signed_on', ...TERM_FIELDS],
+			limit: 10000,
+			...act
+		},
+		statutory_parameters: {
+			where: { employment_id: { in: ids } },
+			fields: [...DATED, 'revision', ...PARAMETER_FIELDS],
+			limit: 10000,
+			...act
+		}
+	});
 	const held = (own.employment ?? []).map(ranged);
 	const people = [...new Set(held.map((row) => String(row.employee_id)))];
 	const around = yield* queryRows(read, {
@@ -428,7 +402,7 @@ const rooted = (parts: Parts): boolean => {
  * one (`filled`, by row id). A string is a refusal.
  */
 const datedCheck = Effect.fnUntraced(function* (
-	read: Reader & Staged,
+	read: Reader,
 	verb: Verb,
 	family: Family,
 	changes: readonly Written[]
@@ -439,7 +413,7 @@ const datedCheck = Effect.fnUntraced(function* (
 	const got = yield* standing(
 		read,
 		changes.flatMap(({ before, after }) => [before?.employment_id, after?.employment_id]),
-		read
+		{ as_of: 'act' }
 	);
 	const filled = new Map<string, string>();
 	if (terms && verb === 'create')
@@ -728,13 +702,13 @@ const reached = (
  * Answers the amendment rows of the paid periods the days that move reach. A string is a refusal.
  */
 const stintWrite = Effect.fnUntraced(function* (
-	read: Reader & Staged,
+	read: Reader,
 	changes: readonly { readonly before: JsonObject; readonly after: JsonObject }[]
 ) {
 	const got = yield* standing(
 		read,
 		changes.map(({ after }) => after.id),
-		read
+		{ as_of: 'act' }
 	);
 	const entries: JsonObject[] = [];
 	const checked: { readonly employment: JsonObject; readonly on: string }[] = [];
@@ -878,7 +852,7 @@ const raiseExits = Effect.fnUntraced(function* (ctx: EffectCtx, changes: readonl
 	yield* reconcile(ctx, people);
 });
 
-export default model({
+export default model('employment', {
 	description:
 		'One stint of a person with one company: its first and last day, the exit answers and the dated life events. What was agreed and what the law is told change by date, on its terms and statutory parameters. A rehire, and a move to another company, is a new stint.',
 	// a reference to a stint reads only its own fields: the person's name shows where the profile is read beside it
@@ -943,11 +917,9 @@ export default model({
 	},
 	create: {
 		// a hire arrives whole: the stint with its first terms and statutory parameters, each checked by its own model
-		columns: {
-			fields: columns,
-			terms: { fields: ['effective_from', 'signed_on', ...TERM_FIELDS, 'clears'] },
-			parameters: { fields: ['effective_from', ...PARAMETER_FIELDS, 'clears'] }
-		},
+		fields: columns,
+		terms: { fields: ['effective_from', 'signed_on', ...TERM_FIELDS, 'clears'] },
+		parameters: { fields: ['effective_from', ...PARAMETER_FIELDS, 'clears'] },
 		filled: { fields: ['employee_number'] },
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
@@ -1006,11 +978,9 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: columns.filter(
-				(field) => field !== 'employee_id' && field !== 'entity_id' && field !== 'employee_number'
-			)
-		},
+		fields: columns.filter(
+			(field) => field !== 'employee_id' && field !== 'entity_id' && field !== 'employee_number'
+		),
 		transform: function* (changes, ctx) {
 			const written = changes.map(({ before, after }) => ({
 				before: ranged(jsonObject(before)),
@@ -1079,6 +1049,20 @@ export default model({
 						: [{ before: stood, after: stands }];
 				})
 			);
+			// the rows a first day took along went straight to storage: what follows a write to them runs here
+			for (const family of ['contract_terms', 'statutory_parameters'] as const) {
+				const carried = written.flatMap(({ before, after }) => {
+					const [was, from] = [daysOf(before).from, daysOf(after).from];
+					const held = got.parts.find((parts) => parts.stint.id === after.id);
+					const rows = family === 'contract_terms' ? held?.terms : held?.parameters;
+					return was === from
+						? []
+						: (rows ?? [])
+								.filter((row) => row.effective_from === from)
+								.map((row) => ({ before: { ...row, effective_from: was }, after: row }));
+				});
+				if (carried.length > 0) yield* afterDated(ctx, 'update', family, carried);
+			}
 			// only a write that moves a stint's days can make, move or cancel an exit
 			yield* raiseExits(
 				ctx,

@@ -15,7 +15,7 @@ export default automation({
 	policies: ['invitation_profile_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const trigger = ctx.run.trigger;
+		const trigger = ctx.trigger;
 		if (trigger.kind !== 'system' || trigger.cause !== 'event' || trigger.records.length === 0)
 			return undefined;
 
@@ -88,8 +88,11 @@ export default automation({
 				phone: invitation.phone
 			});
 		}
-		if (creates.length > 0) yield* ctx.act({ 'employee_profile.create': creates });
-		if (updates.length > 0) yield* ctx.act({ 'employee_profile.update': updates });
+		if (creates.length + updates.length > 0)
+			yield* ctx.act({
+				...(creates.length > 0 ? { 'employee_profile.create': creates } : {}),
+				...(updates.length > 0 ? { 'employee_profile.update': updates } : {})
+			});
 		return undefined;
 	}
 });

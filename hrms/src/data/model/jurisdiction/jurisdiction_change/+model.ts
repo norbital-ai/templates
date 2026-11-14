@@ -1,9 +1,9 @@
-import { model } from '../../../../../.norbital/models/jurisdiction_change.ts';
+import { model } from '@norbital-ai/bolt';
 import { refusing } from '../../../../lib/amendments.js';
 import { lawWrite, syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 
-export default model({
+export default model('jurisdiction_change', {
 	description:
 		'One dated change to a law. The first holds the whole law; each later one holds only what changed from its date, and a value set to null is taken away. A change may be edited, moved or deleted.',
 	icon: 'lucide:calendar-plus',
@@ -26,7 +26,7 @@ export default model({
 	// every write is checked on the law it leaves, on its date and at every later change, and carries the amendment
 	// rows of the paid periods it reaches
 	create: {
-		columns: { fields: ['jurisdiction_code', 'effective_from', 'finding_id', 'law'] },
+		fields: ['jurisdiction_code', 'effective_from', 'finding_id', 'law'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ after }) => after);
 			const findings = [...new Set(rows.flatMap((row) => row.finding_id ?? []))];
@@ -72,7 +72,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: ['effective_from', 'law'] },
+		fields: ['effective_from', 'law'],
 		transform: function* (changes, ctx) {
 			const written = new Map(changes.map(({ before, after }) => [String(before.id), after]));
 			return {

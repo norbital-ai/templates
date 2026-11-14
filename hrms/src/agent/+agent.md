@@ -25,39 +25,43 @@ next payroll run works the period out again and carries the difference.
 
 ## What owns what
 
-- `jurisdiction` and `jurisdiction_change` — a law: its code, currency, time zone and tax year, and
-  its dated changes. The first change holds the whole law (conversions, lookup, catalogues, statutory
-  schemes, registered rules/effects and the linear `subtotal` chain, each row keyed by its code);
-  each later one holds only what changed from its date. The law on a day is the changes dated on or
-  before it, applied oldest first. A change of law is a new change from its date; a mistake in one is
+- A law and its dated changes: its code, currency, time zone and tax year. The first change holds the
+  whole law (conversions, lookup, catalogues, statutory schemes, registered rules and effects and the
+  linear subtotal chain, each row keyed by its code); each later one holds only what changed from its
+  date. The law on a day is the changes dated on or before it, applied oldest first. A change of law
+  is a new change from its date; a mistake in one is corrected, moved or deleted on the change itself.
+  A change that research filed is out of force until a person confirms its finding.
+- A company and its dated changes: the legal employer and its particulars (registrations, bank, time
+  zone), then its own pay methods and statutory parameters, each from its date. A wrong change is
   corrected, moved or deleted on the change itself.
-- `entity` and `entity_change` — the legal employer and its particulars (registrations, bank, time
-  zone), and its dated changes: the employer's own pay methods and statutory parameters, each from
-  its date. A wrong change is corrected, moved or deleted on the change itself.
-- `pay_group` — one payroll of a company: its payment schedule, non-working weekdays and cutoff.
-  A person's terms name their group and a run pays one group.
-- `employee_profile` — the person: name, contact, documents and the particulars that never change
+- A pay group is one payroll of a company: its payment schedule, non-working weekdays and cutoff. A
+  person's terms name their group and a run pays one group.
+- The employee profile is the person: name, contact, documents and the particulars that never change
   (date of birth, identity number, gender, birth city, bank). An edit is a correction.
-- `employment` — one stint of a person with one company: employee number, first and last day, credited
-  service, dated `events` and the exit answers. It has no status. A rehire, and a move to another
-  company, is a new stint; stints of one person never overlap. Every `employment_id` names the stint.
-- `contract_terms` — a dated row of what was agreed in a stint: rate and unit, normal hours/days,
-  agreed allowances, engagement, pay group, shift pattern, job title, with the day it was signed
-  (`signed_on`). It holds only what changes; `clears` names what is taken away.
-- `statutory_parameters` — a dated row of what the law is told of the person in a stint: residency,
-  work pass, marital status, nationality and the law's own `parameters`.
-- `dependant` — one member of the person's family, dated by its birth or expected date.
+- An employment is one stint of a person with one company: employee number, first and last day,
+  credited service, dated events and the exit answers. It has no status. A rehire, and a move to
+  another company, is a new stint; stints of one person never overlap. A contract is the employment,
+  not the person: every record of work or pay names the stint.
+- Contract terms are dated rows of what was agreed in a stint: rate and unit, normal hours and days,
+  agreed allowances, engagement, pay group, shift pattern, job title, with the day it was signed. A
+  row holds only what changes and names what it takes away.
+- Statutory parameters are dated rows of what the law is told of the person in a stint: residency,
+  work pass, marital status, nationality and the law's own parameters.
+- A dependant is one member of the person's family, dated by its birth or expected date.
 - A terms or parameters row is dated the first of a month, or the stint's first day. The employment
   on a day is the stint with the rows dated on or before it; a row dated ahead is not yet in force.
-- Catalogue definitions and entries — eligibility, conversion (a leave row's `paid_share` and `payout`) and target subtotal on the definition
-  (adhoc adds direction and party, overtime direction); the dated employee activity and its evidence on
-  the entry.
-- `employee_balance` and `ledger_entry` — one append-only ledger and one rebuildable projection.
-  Never edit a balance directly.
-- `payroll_run` and `payslip` — the run owns coverage and the seals on what it priced; the payslip
-  stores totals and the breakdown as calculated, and is never rewritten.
-- `pay_amendment` — one paid period of one person to work out again. A correction leaves it; nobody
-  keys one.
+- Catalogue definitions and entries: eligibility, conversion and target subtotal sit on the
+  definition in the law; the dated employee activity and its evidence sit on the entry, which names
+  its definition by code.
+- The balance and the ledger: one append-only ledger and one rebuildable projection. Never edit a
+  balance directly.
+- A payroll run and its payslips: the run owns coverage and the seals on what it priced; a payslip
+  stores totals and the breakdown as calculated, and is never rewritten. There is one on-cycle run
+  per pay group and period. A run refuses an entry still waiting for approval. A paid run cannot be
+  deleted.
+- A pay amendment is one paid period of one person to work out again. A correction leaves it; nobody
+  keys one. While an unpaid run holds the person, a write that reaches them is refused: the run is
+  deleted first.
 
 ## The calculation order
 
@@ -74,51 +78,6 @@ next payroll run works the period out again and carries the difference.
 A leave, claim or ad hoc entry posts in its own write, and a payslip in its run's, each with the
 balance; one held for approval posts when it is approved. A repeat posts nothing. Workplace cases never move a
 balance.
-
-## Working recipes
-
-- **New hire or rehire:** find the person first. Create the `employee_profile` only if absent, then
-  one `employment` with its first `terms` and `parameters` rows in the same write, each dated the
-  stint's first day. The first terms set engagement, rate, normal hours per day and week, and normal
-  days per week.
-- **Change of terms:** a raise, a promotion or a new pay group is one `contract_terms` row from the
-  first of a month, holding only what changes, with `signed_on`. A row signed after a period's pay
-  date does not apply to that period: the signing month pays the difference as back pay where the
-  law names a back-pay row. What the law is told (residency, marital status, a work pass) is a
-  `statutory_parameters` row the same way.
-- **Transfer:** end the stint the day before the first of a month and create the next `employment`
-  with the other company from that first, with its terms and parameters.
-- **Leave, claim or ad hoc:** create the family's entry with its catalogue row's code
-  (`catalog_code`), employment and dated evidence. Writing it posts the balance movement, and a run later seals it.
-- **Correcting a paid period:** edit, move or delete the record itself: the roster day, leave day,
-  claim, ad hoc entry or instalment. Say first that the period is already paid, the paid payslip will
-  not change and the next run carries the difference, and act once the person confirms. Never key an
-  amount for it. A wrong terms or parameters row, dependant, change of law or change of a company is
-  edited, moved or deleted on the row itself. A corrected job title, department, worksite or notice
-  period reaches no paid period. A stint keyed by mistake is deleted if it was never paid; if it was
-  paid, delete its terms rows: it pays nothing and the next runs take back what was paid.
-  While an unpaid run holds the person the write is refused: the run is deleted first.
-- **Life event:** a birth is a `dependant` with its real date; a marriage, bereavement or long
-  illness is an item in the employment's `events`, dated as it happened. Its document uploads on the
-  employee profile. A workplace case only files what happened.
-- **Loan:** create the principal with its catalogue row's code, employment, principal amount and repayment
-  period, then one `loan_catalog_entry_repayment` per instalment. Payroll settles each on its payslip.
-- **Exit:** set the employment's last day with its reason, exit ground and whether to pay out leave
-  (`encash_leave`). It is an exit when no later stint of the person follows under the same law. The
-  last payslip settles the leave; never key a cash-out or a leave correction for it. To change the
-  decision later, edit `encash_leave` on the ended employment.
-- **Attendance:** write `roster_entry` rows for the employment's day. A day in a paid period is
-  corrected on its own row.
-- **Payroll:** create `payroll_run` through its guarded operation with entity, pay group (where the
-  company has more than one), period and kind; an off-cycle run also names the entries it pays. The
-  rest derives from the pay group's schedule and the law in force. One on-cycle run per pay group
-  and period; a run refuses an entry still waiting for approval. Read its payslips before explaining an outcome. A refusal is reported as written; never
-  calculate a legal result yourself.
-- **Payment:** move the run to `PAID` once it is paid. A paid run cannot be deleted. Its payslip shows
-  what it carried under "Adjustments for earlier periods".
-- **Configuration research:** `automation.statutory_research` files `statutory_finding` rows with the
-  `jurisdiction_change` rows they propose. A filed change is out of force until a person confirms its
-  finding, and out again if the finding is rejected.
 
 ## House rules
 

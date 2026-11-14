@@ -1,6 +1,6 @@
-import { model } from '../../../../../../.norbital/models/leave_catalog_entry_day.ts';
+import { model } from '@norbital-ai/bolt';
 
-export default model({
+export default model('leave_catalog_entry_day', {
 	description:
 		'One leave slot: a dated half-day. A payroll run stamps payroll_run_id when it prices the slot. A slot is corrected where it stands; when its period is paid, the next run carries the difference.',
 	record_label: 'string(record.incurred_on)',
@@ -32,7 +32,7 @@ export default model({
 	},
 	// a slot arrives and leaves through its leave, whose write checks the balance and posts to the ledger: no policy
 	// grants these directly
-	create: { columns: { fields: ['incurred_on', 'part'] } },
-	update: { columns: { fields: ['payroll_run_id'] } },
+	create: { fields: ['incurred_on', 'part'] },
+	update: { fields: ['payroll_run_id'] },
 	delete: {}
 });

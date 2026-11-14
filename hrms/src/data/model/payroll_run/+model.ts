@@ -1,19 +1,16 @@
-import { model } from '../../../../.norbital/models/payroll_run.ts';
+import { model } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { attendanceOf, cycleOf, payDateOf } from '../../../lib/payroll_engine/pay_cycle.js';
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
-import { runPostings, undone } from '../../../lib/ledger/service.js';
+import { runPostings, syncLatePosted, undone } from '../../../lib/ledger/service.js';
 import { amendedRun, RECOVERY } from '../../../lib/payroll_engine/amended.js';
 import { loadRun } from '../../../lib/payroll_engine/run_calculation.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
-import { salaryListing } from '../../../lib/export_format_configuration/salary_listing.js';
-import { ocbcFast, metroBank } from '../../../lib/export_format_configuration/bank_files.js';
-import { exportRows } from '../../../lib/export_format_configuration/export_rows.js';
 
-export default model({
+export default model('payroll_run', {
 	description: 'One payroll execution over a company and covered period.',
 	record_label: "'Run ' + string(record.run_number) + ' · ' + record.period",
 	fields: {
@@ -39,35 +36,6 @@ export default model({
 			}
 		}
 	},
-	syncs: {
-		salary_listing: {
-			with: 'file',
-			parser: salaryListing.parser,
-			schema: salaryListing.schema,
-			context: { payroll_run_id: { kind: 'ref', to: 'payroll_run' } },
-			write: function* ({ context }, ctx) {
-				return salaryListing.records(yield* exportRows(ctx.query, context.payroll_run_id));
-			}
-		},
-		ocbc_fast: {
-			with: 'file',
-			parser: ocbcFast.parser,
-			schema: ocbcFast.schema,
-			context: { payroll_run_id: { kind: 'ref', to: 'payroll_run' } },
-			write: function* ({ context }, ctx) {
-				return ocbcFast.records(yield* exportRows(ctx.query, context.payroll_run_id));
-			}
-		},
-		metro_bank: {
-			with: 'file',
-			parser: metroBank.parser,
-			schema: metroBank.schema,
-			context: { payroll_run_id: { kind: 'ref', to: 'payroll_run' } },
-			write: function* ({ context }, ctx) {
-				return metroBank.records(yield* exportRows(ctx.query, context.payroll_run_id));
-			}
-		}
-	},
 	constraints: {
 		one_cycle_run: { unique: ['pay_group_id', 'period'], where: { kind: { eq: 'ON_CYCLE' } } },
 		// a paid run is locked: correct the record where it was recorded, the next run carries the difference
@@ -83,33 +51,31 @@ export default model({
 	},
 	create: {
 		// the rows a run prices and seals are linked through their `payroll_run_id`, as are the amended periods it carried
-		columns: {
-			fields: ['entity_id', 'pay_group_id', 'period', 'kind', 'salary_coverage', 'pay_date'],
-			payslips: {
-				fields: [
-					'employee_id',
-					'employment_id',
-					'entity_id',
-					'basic_earnings',
-					'gross_earnings',
-					'net_pay',
-					'total_deductions',
-					'employer_cost',
-					'period',
-					'ordinary_wages',
-					'employee_statutory',
-					'tax_withheld'
-				]
-			},
-			leave: { fields: [] },
-			leave_day: { fields: [] },
-			claim: { fields: [] },
-			adhoc: { fields: [] },
-			repayment: { fields: [] },
-			case: { fields: [] },
-			roster_entry: { fields: [] },
-			amendments: { fields: [] }
+		fields: ['entity_id', 'pay_group_id', 'period', 'kind', 'salary_coverage', 'pay_date'],
+		payslips: {
+			fields: [
+				'employee_id',
+				'employment_id',
+				'entity_id',
+				'basic_earnings',
+				'gross_earnings',
+				'net_pay',
+				'total_deductions',
+				'employer_cost',
+				'period',
+				'ordinary_wages',
+				'employee_statutory',
+				'tax_withheld'
+			]
 		},
+		leave: { fields: [] },
+		leave_day: { fields: [] },
+		claim: { fields: [] },
+		adhoc: { fields: [] },
+		repayment: { fields: [] },
+		case: { fields: [] },
+		roster_entry: { fields: [] },
+		amendments: { fields: [] },
 		// a company with one pay group needs none named
 		filled: { fields: ['pay_group_id', 'salary_coverage', 'pay_date'] },
 		transform: function* (changes, ctx) {
@@ -281,6 +247,7 @@ export default model({
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			const working = [];
 			const calculated = [];
 			const posting = [];
 			const deferred = [];
@@ -318,27 +285,108 @@ export default model({
 					// nothing negative posts to a balance, so a deduction that outruns the run waits for the next on-cycle run
 					if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
 						return yield* ctx.refuse('errors.payroll_run_below_zero');
+				}
+				working.push({ id, row, frame, data, result });
+			}
+			const worked = working;
+			// one read for every run: where the people an off-cycle run pays work, and the rows each run seals, linked at
+			// the revision read (a row changed since is a conflict)
+			const attaches = (layer: string) =>
+				worked.flatMap(({ result }) => result.attaches[layer] ?? []);
+			// a month of rosters runs past Bolt's 1,000 values a list: one read, the list in chunks
+			const anyOf = <T extends string>(list: readonly T[]) => ({
+				or: Array.from({ length: Math.ceil(list.length / 1000) || 1 }, (_, at) => ({
+					id: { in: list.slice(at * 1000, at * 1000 + 1000) }
+				}))
+			});
+			const sealed = yield* ctx.query({
+				employment: {
+					where: {
+						employee_id: {
+							in: worked.flatMap(({ frame, result }) =>
+								frame.pays === undefined
+									? []
+									: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
+							)
+						}
+					},
+					fields: ['employee_id', 'entity_id', 'effective_range'],
+					limit: 10000
+				},
+				leave_catalog_entry: {
+					where: anyOf(attaches('leave').map((entry) => idOf('leave_catalog_entry', entry))),
+					fields: ['revision'],
+					limit: 10000
+				},
+				leave_catalog_entry_day: {
+					where: anyOf(
+						attaches('leave_day').map((entry) => idOf('leave_catalog_entry_day', entry))
+					),
+					fields: ['revision'],
+					limit: 10000
+				},
+				claim_catalog_entry: {
+					where: anyOf(attaches('claim').map((entry) => idOf('claim_catalog_entry', entry))),
+					fields: ['revision'],
+					limit: 10000
+				},
+				adhoc_catalog_entry: {
+					where: anyOf(attaches('adhoc').map((entry) => idOf('adhoc_catalog_entry', entry))),
+					fields: ['revision'],
+					limit: 10000
+				},
+				loan_catalog_entry_repayment: {
+					where: anyOf(
+						attaches('repayment').map((entry) => idOf('loan_catalog_entry_repayment', entry))
+					),
+					fields: ['revision'],
+					limit: 10000
+				},
+				workplace_case_catalog_entry: {
+					where: anyOf(
+						attaches('case').map((entry) => idOf('workplace_case_catalog_entry', entry))
+					),
+					fields: ['revision'],
+					limit: 10000
+				},
+				roster_entry: {
+					where: anyOf(attaches('roster_entry').map((entry) => idOf('roster_entry', entry))),
+					fields: ['revision'],
+					limit: 10000
+				},
+				pay_amendment: {
+					where: anyOf(
+						worked
+							.flatMap(({ result }) => result.taken)
+							.map((entry) => idOf('pay_amendment', entry))
+					),
+					fields: ['revision'],
+					limit: 10000
+				}
+			});
+			/** A run's own rows of one layer, each at the revision read. */
+			const linked = <R extends { readonly id: string; readonly revision: number }>(
+				rows: readonly R[],
+				wanted: readonly string[]
+			) => {
+				const own = new Set(wanted);
+				return rows.filter((row) => own.has(row.id)).map(({ id, revision }) => ({ id, revision }));
+			};
+			for (const { id, row, frame, data, result } of worked) {
+				if (frame.pays !== undefined) {
 					// the month's totals hold both companies: on-cycle, each stands alone
 					const { from, to } = row.salary_coverage;
-					const moved = yield* ctx.query({
-						employment: {
-							where: {
-								employee_id: {
-									in: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
-								}
-							},
-							fields: ['entity_id', 'effective_range'],
-							limit: 10000
-						}
-					});
-					const both = moved.employment.rows.some(
-						({ entity_id, effective_range: range }) =>
+					const paid = new Set(result.payslips.map((slip) => slip.employee_id));
+					const both = sealed.employment.rows.some(
+						({ employee_id, entity_id, effective_range: range }) =>
+							paid.has(employee_id) &&
 							entity_id !== row.entity_id &&
 							String(range.from) <= String(to) &&
 							(range.to == null || String(range.to) >= String(from))
 					);
 					if (both) return yield* ctx.refuse('errors.payroll_run_moved_company');
 				}
+				const ids = (layer: string) => result.attaches[layer] ?? [];
 				const payslips = result.payslips.map((slip) => ({
 					employee_id: idOf('employee_profile', slip.employee_id),
 					employment_id: idOf('employment', slip.employment_id),
@@ -377,78 +425,17 @@ export default model({
 					}).format(slip.tax_withheld),
 					breakdown: slip.breakdown
 				}));
-				// what the run seals is linked at the revision it read: a row changed since is a conflict
-				const ids = (layer: string) => result.attaches[layer] ?? [];
-				// a month of rosters runs past Bolt's 1,000 values a list: one read, the list in chunks
-				const anyOf = <T extends string>(list: readonly T[]) => ({
-					or: Array.from({ length: Math.ceil(list.length / 1000) || 1 }, (_, at) => ({
-						id: { in: list.slice(at * 1000, at * 1000 + 1000) }
-					}))
-				});
-				const sealed = yield* ctx.query({
-					leave_catalog_entry: {
-						where: anyOf(ids('leave').map((entry) => idOf('leave_catalog_entry', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					leave_catalog_entry_day: {
-						where: anyOf(ids('leave_day').map((entry) => idOf('leave_catalog_entry_day', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					claim_catalog_entry: {
-						where: anyOf(ids('claim').map((entry) => idOf('claim_catalog_entry', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					adhoc_catalog_entry: {
-						where: anyOf(ids('adhoc').map((entry) => idOf('adhoc_catalog_entry', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					loan_catalog_entry_repayment: {
-						where: anyOf(
-							ids('repayment').map((entry) => idOf('loan_catalog_entry_repayment', entry))
-						),
-						fields: ['revision'],
-						limit: 10000
-					},
-					workplace_case_catalog_entry: {
-						where: anyOf(ids('case').map((entry) => idOf('workplace_case_catalog_entry', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					roster_entry: {
-						where: anyOf(ids('roster_entry').map((entry) => idOf('roster_entry', entry))),
-						fields: ['revision'],
-						limit: 10000
-					},
-					pay_amendment: {
-						where: anyOf(result.taken.map((entry) => idOf('pay_amendment', entry))),
-						fields: ['revision'],
-						limit: 10000
-					}
-				});
 				calculated.push({
 					...row,
 					payslips,
-					leave: sealed.leave_catalog_entry.rows.map(({ id, revision }) => ({ id, revision })),
-					leave_day: sealed.leave_catalog_entry_day.rows.map(({ id, revision }) => ({
-						id,
-						revision
-					})),
-					claim: sealed.claim_catalog_entry.rows.map(({ id, revision }) => ({ id, revision })),
-					adhoc: sealed.adhoc_catalog_entry.rows.map(({ id, revision }) => ({ id, revision })),
-					repayment: sealed.loan_catalog_entry_repayment.rows.map(({ id, revision }) => ({
-						id,
-						revision
-					})),
-					case: sealed.workplace_case_catalog_entry.rows.map(({ id, revision }) => ({
-						id,
-						revision
-					})),
-					roster_entry: sealed.roster_entry.rows.map(({ id, revision }) => ({ id, revision })),
-					amendments: sealed.pay_amendment.rows.map(({ id, revision }) => ({ id, revision }))
+					leave: linked(sealed.leave_catalog_entry.rows, ids('leave')),
+					leave_day: linked(sealed.leave_catalog_entry_day.rows, ids('leave_day')),
+					claim: linked(sealed.claim_catalog_entry.rows, ids('claim')),
+					adhoc: linked(sealed.adhoc_catalog_entry.rows, ids('adhoc')),
+					repayment: linked(sealed.loan_catalog_entry_repayment.rows, ids('repayment')),
+					case: linked(sealed.workplace_case_catalog_entry.rows, ids('case')),
+					roster_entry: linked(sealed.roster_entry.rows, ids('roster_entry')),
+					amendments: linked(sealed.pay_amendment.rows, result.taken)
 				});
 				posting.push({ id, pay_date: String(row.pay_date), payslips: payslips.map(jsonObject) });
 				// a recovery that outran someone's pay is taken by the next run: this run's own period is amended
@@ -516,10 +503,15 @@ export default model({
 				'payroll_run',
 				changes.map(({ after }) => ({ after }))
 			);
+			// leave a run posts into a year before this one can change what carried since
+			yield* syncLatePosted(
+				ctx,
+				changes.map(({ after }) => `payroll_run:${after.id}`)
+			);
 		}
 	},
 	update: {
-		columns: { fields: ['state'] },
+		fields: ['state'],
 		transform: function* (changes, ctx) {
 			yield* validateRegistered(
 				ctx.query,
@@ -572,6 +564,12 @@ export default model({
 				if (shared.rows.length > 0) return yield* ctx.refuse('errors.payroll_run_counted_later');
 			}
 			return { on_approved: yield* back };
+		},
+		effect: function* (changes, ctx) {
+			yield* syncLatePosted(
+				ctx,
+				changes.map(({ before }) => `payroll_run:${before.id}`)
+			);
 		}
 	}
 });

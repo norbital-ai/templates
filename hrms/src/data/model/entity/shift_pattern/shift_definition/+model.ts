@@ -1,9 +1,9 @@
-import { model } from '../../../../../../.norbital/models/shift_definition.ts';
+import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../../lib/payroll_engine/taps.js';
 import { stableJson } from '../../../../../lib/payroll_engine/foundation.js';
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'variant'] as const;
-export default model({
+export default model('shift_definition', {
 	description:
 		'Employer-scoped source data, validated before acceptance. A shift paid roster days used keeps its hours: a change is a new shift.',
 	record_label: 'record.code',
@@ -35,7 +35,7 @@ export default model({
 	constraints: { entity_code: { unique: ['entity_id', 'code'] } },
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
@@ -46,7 +46,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			// its name may change; the hours paid days were worked out on may not
 			const moved = changes.filter(

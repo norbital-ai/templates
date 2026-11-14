@@ -1,4 +1,4 @@
-import { model } from '../../../../.norbital/models/roster_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../lib/entries.js';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
@@ -20,7 +20,7 @@ const touched = (
 		run: row.payroll_run_id ?? null
 	}));
 
-export default model({
+export default model('roster_entry', {
 	description:
 		'One roster day: its planned overtime, whether that overtime is taken as time off, and actual worked intervals. It is priced under the contract version in force on its date; the run that priced it is on the entry.',
 	record_label:
@@ -102,18 +102,16 @@ export default model({
 		kiosk: { fields: ['employment_id', 'work_date', 'actual_worked_intervals', 'payroll_run_id'] }
 	},
 	create: {
-		columns: {
-			fields: [
-				'employment_id',
-				'work_date',
-				'shift_definition_id',
-				'planned_overtime_intervals',
-				'overtime_as_time_off',
-				'actual_worked_intervals',
-				'findings',
-				'consent'
-			]
-		},
+		fields: [
+			'employment_id',
+			'work_date',
+			'shift_definition_id',
+			'planned_overtime_intervals',
+			'overtime_as_time_off',
+			'actual_worked_intervals',
+			'findings',
+			'consent'
+		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
 			yield* validateRegistered(
@@ -141,18 +139,16 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: [
-				'payroll_run_id',
-				'work_date',
-				'shift_definition_id',
-				'planned_overtime_intervals',
-				'overtime_as_time_off',
-				'actual_worked_intervals',
-				'findings',
-				'consent'
-			]
-		},
+		fields: [
+			'payroll_run_id',
+			'work_date',
+			'shift_definition_id',
+			'planned_overtime_intervals',
+			'overtime_as_time_off',
+			'actual_worked_intervals',
+			'findings',
+			'consent'
+		],
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
 			yield* validateRegistered(

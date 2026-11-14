@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import { id_of, type Id, type WorkspaceQuery } from '@norbital-ai/bolt';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
-import { dynamic_read, type DynamicRead, type ReadRequestJson } from '@norbital-ai/bolt/protocol';
+import { dynamic_read, type DynamicRead, type ReadRequestJson } from '@norbital-ai/bolt';
 import { JsonObject } from './contracts.js';
 import { isJsonObject, jsonValues, Refusal } from './foundation.js';
 

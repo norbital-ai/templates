@@ -24,7 +24,7 @@ export default automation({
 	],
 	policies: ['payroll_execution'],
 	run: function* (_, ctx) {
-		const trigger = ctx.run.trigger;
+		const trigger = ctx.trigger;
 		if (trigger.kind !== 'system' || trigger.cause !== 'event') return;
 		const { model: collection, verb: operation, records: ids } = trigger;
 		if (!isCollection(collection) || (operation !== 'create' && operation !== 'update')) return;

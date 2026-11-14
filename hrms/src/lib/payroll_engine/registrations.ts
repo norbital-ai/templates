@@ -17,7 +17,7 @@ import {
 	type Parts,
 	type Starts
 } from '../person.js';
-import { ReadRequestJson } from '@norbital-ai/bolt/protocol';
+import { ReadRequestJson } from '@norbital-ai/bolt';
 
 export type Operation = 'create' | 'update' | 'delete' | 'exit';
 const CATALOG_OF: Readonly<Record<string, LawFamily>> = {
@@ -1098,11 +1098,5 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 	const acts: Record<string, Json> = { ...rest };
 	if (tasks.length > 0) acts['obligation.import'] = { rows: tasks, on_conflict: 'keep' };
 	if (Object.keys(acts).length === 0) return;
-	// two effects of one save may raise the same task at once: the one that lost the key writes again, and keeps it
-	yield* ctx.act(acts).pipe(
-		Effect.catchIf(
-			(error) => tasks.length > 0 && error._tag === 'ActRefused' && error.code === 'unique',
-			() => ctx.act(acts)
-		)
-	);
+	yield* ctx.act(acts);
 });

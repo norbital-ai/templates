@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/shift_pattern.ts';
+import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import { paidUnder } from '../../../../lib/amendments.js';
 import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
@@ -12,7 +12,7 @@ const onePatternShape = (pattern: unknown) => {
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'pattern'] as const;
 const shift = { kind: 'ref', to: 'shift_definition' } as const;
 
-export default model({
+export default model('shift_pattern', {
 	description:
 		'Employer-scoped source data, validated before acceptance. A pattern paid periods followed keeps its days: a change is a new pattern from a date.',
 	record_label: 'record.code',
@@ -54,7 +54,7 @@ export default model({
 	constraints: { entity_code: { unique: ['entity_id', 'code'] } },
 	outputs: { default: { fields: 'all' } },
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
 			if (row >= 0)
@@ -71,7 +71,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
 			if (row >= 0)

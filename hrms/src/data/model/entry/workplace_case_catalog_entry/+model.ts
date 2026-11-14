@@ -1,4 +1,4 @@
-import { model } from '../../../../../.norbital/models/workplace_case_catalog_entry.ts';
+import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../../lib/entries.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import {
@@ -52,7 +52,7 @@ const columns = [
 	'evidence_file'
 ] as const;
 
-export default model({
+export default model('workplace_case_catalog_entry', {
 	description:
 		'Employer-scoped source data for one declared case variant, validated before acceptance and protected when captured by payroll.',
 	record_label: "record.kind + ' · ' + string(record.opened_on)",
@@ -109,7 +109,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: { fields: columns },
+		fields: columns,
 		transform: function* (changes, ctx) {
 			const rows = changes.map((c) => jsonObject(c.after));
 			const missing = yield* missingInputs(ctx.query, rows);
@@ -151,7 +151,7 @@ export default model({
 			if (edited.length === 0) return;
 			yield* tap(ctx, 'update', 'workplace_case_catalog_entry', edited);
 		},
-		columns: { fields: ['payroll_run_id', ...columns] }
+		fields: ['payroll_run_id', ...columns]
 	}
 	// no delete exposure, as before: the old `effect.deleted` could not run, and a delete effect would expose delete
 });

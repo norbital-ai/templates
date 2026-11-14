@@ -1,6 +1,6 @@
 import { BigDecimal, DateTime, Effect } from 'effect';
 import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
-import type { ReadRequestJson } from '@norbital-ai/bolt/protocol';
+import type { ReadRequestJson } from '@norbital-ai/bolt';
 import {
 	Refusal,
 	isJsonObject,
@@ -1537,22 +1537,24 @@ export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	});
 });
 
-/**
- * The models whose writes post: what they post rides in their own write (`onApproved`). A manual adjustment's ledger
- * row carries its own balance move.
- */
-const POSTS = [
-	'leave_catalog_entry',
-	'claim_catalog_entry',
-	'adhoc_catalog_entry',
-	'payroll_run',
-	'ledger_entry'
-];
-/** Who writes the ledger and the balance: the write of a record that posts, and sync (`payroll_execution`). */
-export const writesLedger = (ctx: {
-	readonly policies: readonly string[];
-	readonly carried_by: string | null;
-}) => ctx.policies.includes('payroll_execution') || POSTS.includes(ctx.carried_by ?? '');
+/** After a write that carried postings (their rows go straight to storage): the same look at what its sources posted. */
+export const syncLatePosted = Effect.fn('ledger.syncLatePosted')(function* (
+	ctx: Pick<EffectCtx, 'query' | 'schedule' | 'today'>,
+	sources: readonly string[]
+) {
+	const { ledger_entry: posted = [] } = yield* queryRows(ctx.query, {
+		ledger_entry: {
+			where: { source: { in: [...sources] } },
+			fields: ['source', 'account', 'effective_on', 'balance_id'],
+			limit: 10000
+		}
+	});
+	yield* syncLate(ctx, posted);
+});
+
+/** Who writes the ledger and the balance directly: sync (`payroll_execution`). A record that posts carries its rows in its own write. */
+export const writesLedger = (ctx: { readonly policies: readonly string[] }) =>
+	ctx.policies.includes('payroll_execution');
 
 /** A sync that failed for good raises a task, so nothing is lost in silence. */
 export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (

@@ -1,7 +1,7 @@
-import { model } from '../../../../.norbital/models/obligation.ts';
+import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 
-export default model({
+export default model('obligation', {
 	description: 'A free-form task or reminder raised by an event.',
 	record_label: 'record.title',
 	fields: {
@@ -46,9 +46,7 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: ['entity_id', 'employee_id', 'employment_id', 'title', 'due_on', 'occurrence_key']
-		},
+		fields: ['entity_id', 'employee_id', 'employment_id', 'title', 'due_on', 'occurrence_key'],
 		effect: function* (changes, ctx) {
 			yield* ctx.notify(
 				changes
@@ -65,9 +63,7 @@ export default model({
 		}
 	},
 	update: {
-		columns: {
-			fields: ['title', 'due_on', 'fulfilled_on', 'evidence', 'waiver_reason', 'state']
-		},
+		fields: ['title', 'due_on', 'fulfilled_on', 'evidence', 'waiver_reason', 'state'],
 		effect: function* (changes, ctx) {
 			const edited = changes.filter((change) => change.changed('state', 'fulfilled_on'));
 			if (edited.length === 0) return;

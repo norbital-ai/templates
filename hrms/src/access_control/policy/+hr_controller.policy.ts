@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { READ_ALL, HR_OPERATIONS, CONFIGURATION, PAYROLL_STARTS, MEMBER_LIMITS } from './grants.js';
+import { READ_ALL, HR_OPERATIONS, CONFIGURATION, PAYROLL_STARTS } from './grants.js';
 export default policy({
 	description:
 		'Authorised HR source, configuration and payroll operations through guarded native workflows.',
@@ -10,6 +10,5 @@ export default policy({
 		...HR_OPERATIONS,
 		...CONFIGURATION,
 		ledger_entry: { outputs: { default: {} }, create: {} }
-	},
-	limits: MEMBER_LIMITS
+	}
 });

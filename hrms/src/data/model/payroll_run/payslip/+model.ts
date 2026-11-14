@@ -1,7 +1,7 @@
-import { model } from '../../../../../.norbital/models/payslip.ts';
+import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
-export default model({
+export default model('payslip', {
 	description:
 		'Per-employee payroll totals, read-only once written. Financial detail is recomputed from the subtotal chain, catalogue entries and ledger.',
 	record_label:
@@ -47,24 +47,22 @@ export default model({
 		}
 	},
 	create: {
-		columns: {
-			fields: [
-				'payroll_run_id',
-				'employee_id',
-				'employment_id',
-				'entity_id',
-				'basic_earnings',
-				'gross_earnings',
-				'net_pay',
-				'total_deductions',
-				'employer_cost',
-				'period',
-				'ordinary_wages',
-				'employee_statutory',
-				'tax_withheld',
-				'breakdown'
-			]
-		},
+		fields: [
+			'payroll_run_id',
+			'employee_id',
+			'employment_id',
+			'entity_id',
+			'basic_earnings',
+			'gross_earnings',
+			'net_pay',
+			'total_deductions',
+			'employer_cost',
+			'period',
+			'ordinary_wages',
+			'employee_statutory',
+			'tax_withheld',
+			'breakdown'
+		],
 		effect: function* (changes, ctx) {
 			yield* tap(
 				ctx,
