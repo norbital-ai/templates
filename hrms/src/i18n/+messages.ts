@@ -672,9 +672,9 @@ export default messages({
 	'errors.statutory_finding_changes_drafted': 'Confirming a finding needs its changes drafted.',
 	'errors.shift_pattern_one_shape': 'A shift pattern is either a weekday map or a cycle, not both.',
 	'errors.shift_pattern_paid':
-		'Paid periods follow this pattern. Make a new pattern from the date it changes.',
+		'Paid periods follow this pattern, so it cannot be deleted. Edit it instead.',
 	'errors.shift_definition_paid':
-		'Paid days use this shift. Correct the roster days themselves, or make a new shift.',
+		'Paid days use this shift, so it cannot be deleted. Edit it instead.',
 	'models.shift_pattern.help.pattern.week_start':
 		'The weekday the statutory week opens on. The contract period owns the dates.',
 	'models.shift_pattern.help.pattern.cycle':

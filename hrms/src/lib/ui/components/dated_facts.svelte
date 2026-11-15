@@ -18,6 +18,7 @@
 		names,
 		kindOf,
 		custom,
+		from,
 		onchange
 	}: {
 		ctx: PageContext;
@@ -29,6 +30,8 @@
 		kindOf: (fact: Fact) => { readonly kind: Kind; readonly relation?: Relation } | undefined;
 		/** The value editor of a fact `kindOf` answers nothing for. */
 		custom?: Snippet<[{ fact: Fact; id: string; set: (value: Value) => void }]>;
+		/** The day a new row starts from; today when left out. */
+		from?: string;
 		onchange: (facts: readonly Fact[]) => void;
 	} = $props();
 	const clock = ctx.clock('day');
@@ -94,7 +97,7 @@
 		<div>
 			<Button
 				variant="outline"
-				onclick={() => onchange([...facts, { name: '', value: null, from: clock.today }])}
+				onclick={() => onchange([...facts, { name: '', value: null, from: from ?? clock.today }])}
 				>{ctx.t('dated.add_fact')}</Button
 			>
 		</div>

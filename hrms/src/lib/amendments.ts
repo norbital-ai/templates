@@ -211,6 +211,9 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	);
 });
 
+/** The first day of a span with no first day: a record with no date of its own was always so. */
+export const EVER = '1900-01-01';
+
 /** A company's days: everyone it paid for them, or the one person named. */
 export interface Span {
 	readonly entity: string;
@@ -333,8 +336,9 @@ export const RUN_INPUTS = {
 	jurisdiction_change: 'amends',
 	jurisdiction: 'refuses',
 	pay_group: 'refuses',
-	shift_definition: 'refuses',
-	shift_pattern: 'refuses',
+	// a shift's hours and a pattern's days carry no date: an edit amends every period the company paid
+	shift_definition: 'amends',
+	shift_pattern: 'amends',
 	// the person: their date of birth, gender and how their service counts move pay, and amend every period they were
 	// paid for
 	employee_profile: 'amends',

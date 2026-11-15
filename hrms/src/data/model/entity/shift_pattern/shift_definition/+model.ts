@@ -1,5 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../../lib/payroll_engine/taps.js';
+import { EVER, amendmentsOf, refusing } from '../../../../../lib/amendments.js';
 import { stableJson } from '../../../../../lib/payroll_engine/foundation.js';
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'variant'] as const;
@@ -48,25 +49,17 @@ export default model('shift_definition', {
 	update: {
 		fields: columns,
 		transform: function* (changes, ctx) {
-			// its name may change; the hours paid days were worked out on may not
+			// its name prices nothing; its hours are what paid days were worked out on, and those are worked out again
 			const moved = changes.filter(
 				({ before, after }) => stableJson(after.variant) !== stableJson(before.variant)
 			);
-			if (moved.length > 0) {
-				const used = yield* ctx.query({
-					roster_entry: {
-						where: {
-							shift_definition_id: { in: moved.map(({ before }) => before.id) },
-							payroll_run_id: { is_null: false }
-						},
-						fields: ['id'],
-						limit: 1
-					}
-				});
-				if (used.roster_entry.rows.length > 0)
-					return yield* ctx.refuse('errors.shift_definition_paid');
-			}
-			return changes.map(({ set }) => set);
+			return {
+				sets: changes.map(({ set }) => set),
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					moved.map(({ before }) => ({ entity: String(before.entity_id), from: EVER, to: null }))
+				).pipe(refusing(ctx))
+			};
 		},
 		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'shift_definition', changes);

@@ -1024,9 +1024,8 @@ export default model('employment', {
 		}
 	},
 	update: {
-		fields: columns.filter(
-			(field) => field !== 'employee_id' && field !== 'entity_id' && field !== 'employee_number'
-		),
+		// the person and the company are the stint itself: another of either is another stint (a transfer)
+		fields: columns.filter((field) => field !== 'employee_id' && field !== 'entity_id'),
 		transform: function* (changes, ctx) {
 			const written = changes.map(({ before, after }) => ({
 				before: ranged(jsonObject(before)),

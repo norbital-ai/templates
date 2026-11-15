@@ -8,6 +8,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { EmptyState, Form, Section, format, type Value } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
+	import { DateTime } from 'effect';
 	import type { Snippet } from 'svelte';
 	import { factWrites, factsOf, type Fact } from '../../dated_facts.js';
 	import { TERM_FIELDS } from '../../person.js';
@@ -57,6 +58,12 @@
 	const lawOn = (stint: StintRow, day: string) =>
 		laws.on(codeOf(stint), day === '' ? clock.today : day);
 	const exposure = $derived(ctx.ui.kinds.catalog?.[of]);
+	/** A change to a person starts on the first of a month: the next one, until HR says otherwise. */
+	const nextMonth = $derived(
+		DateTime.formatIsoDateUtc(
+			DateTime.add(DateTime.startOf(DateTime.makeUnsafe(clock.today), 'month'), { months: 1 })
+		)
+	);
 	/** The lists being edited, by stint. */
 	let drafts = $state<Record<string, readonly Fact[]>>({});
 	const factsIn = (stint: StintRow) => drafts[stint.id] ?? factsOf(rowsOf(stint), shape);
@@ -152,6 +159,7 @@
 						names={names(stint)}
 						kindOf={kindOf(stint)}
 						custom={allowances}
+						from={nextMonth}
 						onchange={(next) => (drafts = { ...drafts, [stint.id]: next })}
 					/>
 				</Section>

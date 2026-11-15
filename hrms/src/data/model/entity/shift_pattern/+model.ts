@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { paidUnder } from '../../../../lib/amendments.js';
+import { EVER, amendmentsOf, paidUnder, refusing } from '../../../../lib/amendments.js';
 import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
 const onePatternShape = (pattern: unknown) => {
@@ -76,20 +76,19 @@ export default model('shift_pattern', {
 			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
 			if (row >= 0)
 				return yield* ctx.refuse('errors.shift_pattern_one_shape', { row, field: 'pattern' });
-			// its name may change; the days paid periods were worked out on may not
+			// its name prices nothing; its days are what paid periods were worked out on, and those are worked out again
 			const moved = changes.filter(
 				({ before, after }) =>
 					stableJson(after.pattern) !== stableJson(before.pattern) ||
 					stableJson(after.effective_range ?? null) !== stableJson(before.effective_range ?? null)
 			);
-			if (
-				moved.length > 0 &&
-				(yield* paidUnder(ctx.query, {
-					entity_id: { in: moved.map(({ before }) => before.entity_id) }
-				}))
-			)
-				return yield* ctx.refuse('errors.shift_pattern_paid');
-			return changes.map(({ set }) => set);
+			return {
+				sets: changes.map(({ set }) => set),
+				on_approved: yield* amendmentsOf(
+					ctx.query,
+					moved.map(({ before }) => ({ entity: String(before.entity_id), from: EVER, to: null }))
+				).pipe(refusing(ctx))
+			};
 		},
 		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'shift_pattern', changes);

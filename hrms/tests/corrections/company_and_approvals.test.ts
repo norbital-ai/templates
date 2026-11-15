@@ -223,7 +223,7 @@ describe('what the company corrects', () => {
 		)
 	);
 
-	it.live('a shift paid days used keeps its hours', () =>
+	it.live('a shift paid days used is edited, and the paid period is worked out again', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* pay(t, '2026-02');
@@ -232,25 +232,20 @@ describe('what the company corrects', () => {
 			})).shift_definition.rows;
 			assert.ok(shift !== undefined);
 			const admin = yield* t.as(t.admin);
-			const refused = yield* Effect.flip(
-				admin.act({
-					'shift_definition.update': [
-						{
-							target: shift,
-							set: {
-								variant: {
-									day_type: 'WORK',
-									ends_next_day: false,
-									breaks: [],
-									untimed_hours: 9
-								}
-							}
+			yield* admin.act({
+				'shift_definition.update': [
+					{
+						target: shift,
+						set: {
+							variant: { day_type: 'WORK', ends_next_day: false, breaks: [], untimed_hours: 9 }
 						}
-					]
-				})
-			);
-			assert.ok(refused._tag === 'ActRefused');
-			assert.equal(refused.key, 'errors.shift_definition_paid');
+					}
+				]
+			});
+			const { pay_amendment } = yield* storedQuery(t, {
+				pay_amendment: { where: { payroll_run_id: { is_null: true } }, limit: 100 }
+			});
+			assert.ok(pay_amendment.rows.some((row) => row.period === '2026-02'));
 		}).pipe(Effect.provide(workspace({ seed: base(), now: NOW })))
 	);
 });
