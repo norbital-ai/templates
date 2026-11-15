@@ -118,6 +118,10 @@ jobs:
           R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
           R2_RELEASE_BUCKETS: ${{ vars.R2_RELEASE_BUCKETS }}
         run: |
+          : "${AWS_ACCESS_KEY_ID:?Missing R2 access key}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing R2 secret key}"
+          : "${R2_ENDPOINT:?Missing R2 endpoint}"
+          : "${R2_RELEASE_BUCKETS:?Missing R2 release buckets}"
           for bucket in $R2_RELEASE_BUCKETS; do
             aws s3 sync "$RUNNER_TEMP/releases" "s3://$bucket/releases/" --endpoint-url "$R2_ENDPOINT" --size-only
             aws s3 cp "$RUNNER_TEMP/releases/template" "s3://$bucket/releases/template/" --recursive --endpoint-url "$R2_ENDPOINT"
