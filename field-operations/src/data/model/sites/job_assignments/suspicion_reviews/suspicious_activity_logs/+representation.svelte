@@ -4,7 +4,16 @@
 	 * one is closed by resolving it; a person raises one against a job with a reason.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { type RecordView, Field, Form, format, RecordShell, Section } from '@norbital-ai/ui';
+	import {
+		type RecordView,
+		Button,
+		Field,
+		Form,
+		format,
+		RecordShell,
+		Section,
+		Sheet
+	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import EvidenceBasis from '../../../../../../lib/evidence-basis.svelte';
@@ -18,7 +27,13 @@
 	const t = ctx.t;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const open = $derived(record?.resolved_at == null);
+	// resolving is its own view (a sheet with its one Submit), started from the record's footer
+	let resolving = $state(false);
 </script>
+
+{#snippet resolve()}{#if open}<Button variant="outline" onclick={() => (resolving = true)}
+			>{t('component.suspicion_resolve')}</Button
+		>{/if}{/snippet}
 
 {#if record == null}
 	<RecordShell {ctx} of="suspicious_activity_logs" mode="create">
@@ -37,6 +52,7 @@
 		of="suspicious_activity_logs"
 		id={record.id}
 		subtitle={open ? t('component.suspicion_open') : t('component.suspicion_resolved')}
+		footer_actions={resolve}
 	>
 		<Stack gap="md">
 			<p class="text-sm font-semibold">
@@ -91,21 +107,17 @@
 						})}
 					</p>
 				</Section>
-			{:else}
-				<Section
-					icon="lucide:circle-check"
-					name="resolution"
-					title={t('component.suspicion_resolution')}
-				>
-					<Form
-						{ctx}
-						of={{ automation: 'suspicious_activity_logs_resolve' }}
-						values={{ finding: [record.id] }}
-						fields={['resolution']}
-						submit={t('component.suspicion_resolve')}
-					/>
-				</Section>
 			{/if}
 		</Stack>
 	</RecordShell>
+	<Sheet bind:open={resolving} title={t('component.suspicion_resolution')}>
+		<Form
+			{ctx}
+			of={{ automation: 'suspicious_activity_logs_resolve' }}
+			values={{ finding: [record.id] }}
+			fields={['resolution']}
+			submit={t('component.suspicion_resolve')}
+			on_outcome={(outcome) => outcome.kind === 'committed' && (resolving = false)}
+		/>
+	</Sheet>
 {/if}
