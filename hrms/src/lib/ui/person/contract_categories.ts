@@ -44,6 +44,10 @@ export const categoryValues = (
 		residency_status: categories.residency,
 		statutory_work_category: categories.statutory,
 		work_authorisation_category: categories.pass,
-		work_classification: categories.classification
+		work_classification: categories.classification,
+		// a law that declares work regions takes one of them; one that declares none takes any text
+		work_region: Object.keys(record(law?.settings.work_regions)).length
+			? Object.keys(record(law?.settings.work_regions))
+			: undefined
 	};
 };
