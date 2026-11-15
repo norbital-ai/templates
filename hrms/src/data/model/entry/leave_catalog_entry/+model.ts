@@ -131,7 +131,7 @@ export default model('leave_catalog_entry', {
 		}
 	},
 	update: {
-		fields: ['evidence_file', 'payroll_run_id'],
+		fields: ['catalog_code', 'evidence_file', 'payroll_run_id'],
 		leave_catalog_entry_day: { fields: ['incurred_on', 'part'] },
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);

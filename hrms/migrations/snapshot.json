@@ -1243,7 +1243,7 @@
 				"loan_id": {
 					"inverse": "repayments",
 					"kind": "ref",
-					"on_delete": "restrict",
+					"on_delete": "cascade",
 					"to": "loan_catalog_entry"
 				},
 				"paid_on": {

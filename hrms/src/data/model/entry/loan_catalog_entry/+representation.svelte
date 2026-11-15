@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		Field,
 		Button,
 		Form,
 		Icon,
@@ -19,6 +20,7 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { numberOf } from '../../../../lib/payroll_engine/foundation.js';
 	import LoanCreateFields from '../../../../lib/ui/payroll/loan_create_fields.svelte';
+	import CatalogField from '../../../../lib/ui/settings/catalog_field.svelte';
 	import {
 		buildLoanSchedule,
 		loanScheduleProblems,
@@ -266,23 +268,6 @@
 			)
 		);
 	};
-
-	const principalProblem = (values: Readonly<Record<string, unknown>>) => {
-		const principal = numberOf(values.quantity) ?? 0;
-		const paid = rows
-			.filter((row) => row.payroll_run_id != null)
-			.reduce((total, row) => total + Number(row.amount), 0);
-		return principal < paid
-			? [
-					{
-						field: 'quantity',
-						message: 'The principal cannot be less than repayments already included in payroll.'
-					}
-				]
-			: [];
-	};
-
-	const rowLocked = (row: Repayment) => isLocked() || row.payroll_run_id != null;
 </script>
 
 {#snippet amountCell({ row }: { row: Repayment })}
@@ -291,7 +276,7 @@
 			{ctx}
 			scale={2}
 			value={row.amount}
-			readonly={rowLocked(row)}
+			readonly={isLocked()}
 			disabled={busy}
 			on_change={(next) => {
 				if (typeof next === 'string') edit(row, { amount: next });
@@ -307,7 +292,7 @@
 			of="date"
 			precision="month"
 			value={row.paid_on}
-			readonly={rowLocked(row)}
+			readonly={isLocked()}
 			disabled={busy}
 			on_change={(paid_on: string | null) => edit(row, { paid_on })}
 		/>
@@ -320,7 +305,7 @@
 			title={ctx.t('loan.repayment_locked')}
 			aria-label={ctx.t('loan.repayment_locked')}
 			><Icon name="lucide:lock-keyhole" class="size-4 text-muted-foreground" /></span
-		>{:else if !rowLocked(row)}<Button
+		>{:else if !isLocked()}<Button
 			size="icon"
 			variant="outline"
 			aria-label={ctx.t('loan.remove_repayment')}
@@ -357,16 +342,15 @@
 			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}
 		</Form>
 	{:else}<Stack gap="lg">
-			<Form
-				{ctx}
-				of="loan_catalog_entry"
-				mode="update"
-				id={record.id}
-				{record}
-				fields={['quantity', 'repayment_period', 'evidence_file']}
-				validate={principalProblem}
-				size="content"
-			/>
+			<Form {ctx} of="loan_catalog_entry" mode="update" id={record.id} {record} size="content">
+				{#snippet children()}<Stack gap="md">
+						<CatalogField {ctx} of="loan_catalog" />
+						{#each ['quantity', 'repayment_period', 'evidence_file'] as name (name)}<Field
+								{ctx}
+								{name}
+							/>{/each}
+					</Stack>{/snippet}
+			</Form>
 			<Stack gap="sm" data-loan-repayments>
 				<Cluster gap="sm" align="center" justify="between">
 					<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>

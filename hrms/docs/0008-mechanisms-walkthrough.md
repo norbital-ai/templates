@@ -117,7 +117,7 @@ What to expect:
 
 What to expect:
 
-- **Loans never touch the ledger.** What is outstanding is the principal less the repayments.
+- **Loans never touch the ledger.** What is outstanding is the principal less the repayments. A loan, its principal and an instalment a run took stay editable; deleting the loan deletes its instalments and amends the periods that took one.
 - **Each run recovers the instalment dated in its attendance.** A later month's stays open. Recovery is on-cycle only.
 - **A recovery that would take net pay below zero refuses the run** and says how; reduce the instalment and run again.
 

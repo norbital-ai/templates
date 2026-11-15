@@ -895,7 +895,7 @@ describe('a dependant keyed wrongly', () => {
 // amendment row besides (paid_period.test.ts). A manual balance row is never changed.
 describe('an entry keyed wrongly', () => {
 	it.live(
-		'before a run: a wrong amount is edited, a wrong date and a wrong person are deleted and keyed again, and the run pays what stands',
+		'before a run: a wrong amount and a wrong type are edited, a wrong date and a wrong person are deleted and keyed again, and the run pays what stands',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -930,6 +930,31 @@ describe('an entry keyed wrongly', () => {
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used);
 				yield* leave(t, 'ANNUAL_LEAVE', ['2026-08-11']);
 				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + 1);
+				// the wrong type: the entry itself is changed, and the days move to the other balance
+				const sick = yield* held(t, 'MEDICAL_LEAVE');
+				const typed = yield* leave(t, 'ANNUAL_LEAVE', ['2026-08-12']);
+				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + 2);
+				yield* admin.act({
+					'leave_catalog_entry.update': [
+						{
+							target: yield* current(t, 'leave_catalog_entry', typed),
+							set: { catalog_code: 'MEDICAL_LEAVE' }
+						}
+					]
+				});
+				yield* t.run_due();
+				assert.equal((yield* held(t, 'ANNUAL_LEAVE')).used, annual.used + 1);
+				assert.equal((yield* held(t, 'MEDICAL_LEAVE')).used, sick.used + 1);
+				// an ad hoc payment keyed as the wrong item is changed where it stands
+				const award = yield* adhoc(t, 'BONUS', 200, '2026-08-13', FIRST);
+				yield* admin.act({
+					'adhoc_catalog_entry.update': [
+						{
+							target: yield* current(t, 'adhoc_catalog_entry', award),
+							set: { catalog_code: 'EXCELLENCE_AWARD' }
+						}
+					]
+				});
 				// the ledger keeps the mistake and its inverse: nothing was erased
 				const posted = (yield* ledgerRows(t)).filter(
 					(row) => row.source === `leave_catalog_entry:${day}` && row.measure === 'used'
@@ -939,6 +964,7 @@ describe('an entry keyed wrongly', () => {
 				yield* run(t, '2026-08');
 				const mine = yield* slipOf(t, '2026-08');
 				assert.equal(signed(mine, 'BONUS'), 0);
+				assert.equal(signed(mine, 'EXCELLENCE_AWARD'), 200);
 				assert.equal(signed(mine, 'MEDICAL_CLAIM'), 60);
 				assert.equal(signed(yield* slipOf(t, '2026-08', OTHER_PERSON), 'BONUS'), 500);
 			}).pipe(Effect.provide(workspace({ seed: twoPeople(), now: NOW })))

@@ -25,7 +25,7 @@
 		confirm={paid.confirm(() => record?.payroll_run_id != null, ['incurred_on'])}
 	>
 		{#snippet children()}<Stack gap="md">
-				{#each record === null ? ['employment_id', 'catalog_code', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file'] : ['description', 'quantity', 'unit', 'incurred_on', 'evidence_file'] as name (name)}{#if name === 'catalog_code'}<CatalogField
+				{#each [...(record === null ? ['employment_id'] : []), 'catalog_code', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file'] as name (name)}{#if name === 'catalog_code'}<CatalogField
 							{ctx}
 							of="adhoc_catalog"
 							dated="incurred_on"

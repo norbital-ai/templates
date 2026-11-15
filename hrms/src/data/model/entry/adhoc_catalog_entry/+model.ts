@@ -66,7 +66,15 @@ export default model('adhoc_catalog_entry', {
 		}
 	},
 	update: {
-		fields: ['payroll_run_id', 'description', 'quantity', 'unit', 'incurred_on', 'evidence_file'],
+		fields: [
+			'payroll_run_id',
+			'catalog_code',
+			'description',
+			'quantity',
+			'unit',
+			'incurred_on',
+			'evidence_file'
+		],
 		transform: function* (changes, ctx) {
 			return yield* entryUpdate(ctx, 'adhoc_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)

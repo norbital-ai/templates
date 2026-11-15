@@ -1,12 +1,43 @@
+import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../../../../lib/entries.js';
-import { refusing } from '../../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
 import {
 	refuseIneligible,
 	validateRegistered
 } from '../../../../lib/payroll_engine/registrations.js';
-import { jsonObject, numberOf } from '../../../../lib/payroll_engine/foundation.js';
+import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+import type { Id, WriteCtx } from '@norbital-ai/bolt';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
+
+/** The amendment rows of the paid periods these loans' dated instalments fall in. */
+const instalmentAmendments = Effect.fnUntraced(function* (
+	read: WriteCtx<'loan_catalog_entry'>['query'],
+	loans: readonly Id<'loan_catalog_entry'>[]
+) {
+	if (loans.length === 0) return yield* amendmentsFor(read, []);
+	const { loan_catalog_entry_repayment: instalments } = yield* read({
+		loan_catalog_entry_repayment: {
+			where: { loan_id: { in: loans } },
+			fields: ['employment_id', 'paid_on', 'payroll_run_id'],
+			limit: 10000
+		}
+	});
+	return yield* amendmentsFor(
+		read,
+		instalments.rows.flatMap((row) =>
+			row.paid_on == null
+				? []
+				: [
+						{
+							employment: String(row.employment_id),
+							from: String(row.paid_on),
+							run: row.payroll_run_id ?? null
+						}
+					]
+		)
+	);
+});
 
 export default model('loan_catalog_entry', {
 	description: 'One employee loan advance and its repayment period.',
@@ -73,6 +104,7 @@ export default model('loan_catalog_entry', {
 	update: {
 		fields: [
 			'payroll_run_id',
+			'catalog_code',
 			'quantity',
 			'repayment_period',
 			'evidence_file',
@@ -84,25 +116,13 @@ export default model('loan_catalog_entry', {
 			const proposed = changes.map((change) => jsonObject(change.after));
 			yield* validateRegistered(ctx.query, 'loan_catalog_entry', 'update', proposed);
 			yield* refuseIneligible(ctx.query, 'loan_catalog_entry', proposed);
-			const sealed = yield* ctx.query({
-				loan_catalog_entry_repayment: {
-					where: { loan_id: { in: changes.map((c) => c.before.id) } },
-					fields: ['loan_id', 'amount', 'payroll_run_id'],
-					limit: 10000
-				}
-			});
-			for (const [index, change] of changes.entries()) {
-				const paid = (sealed.loan_catalog_entry_repayment.rows ?? [])
-					.filter((row) => row.loan_id === change.before.id && row.payroll_run_id != null)
-					.reduce((total, row) => total + (numberOf(row.amount) ?? 0), 0);
-				const principal = numberOf(change.after.quantity) ?? 0;
-				if (principal < paid)
-					return yield* ctx.refuse('errors.loan_principal_below_repaid', {
-						row: index,
-						field: 'quantity'
-					});
-			}
-			return changes.map((c) => c.set);
+			// the loan's catalogue row says where each instalment lands on a payslip: another row amends every period
+			// that took one
+			const moved = changes.filter((c) => c.changed('catalog_code')).map((c) => c.before.id);
+			return {
+				sets: changes.map((c) => c.set),
+				on_approved: yield* instalmentAmendments(ctx.query, moved).pipe(refusing(ctx))
+			};
 		},
 		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'loan_catalog_entry', changes);
@@ -116,8 +136,13 @@ export default model('loan_catalog_entry', {
 				'delete',
 				changes.map((change) => jsonObject(change.before))
 			).pipe(refusing(ctx));
-			const paid = changes.findIndex((change) => change.before.payroll_run_id != null);
-			if (paid >= 0) return yield* ctx.refuse('errors.loan_paid_no_delete', { row: paid });
+			// a loan goes with its instalments: each period that took one is worked out again without it
+			return {
+				on_approved: yield* instalmentAmendments(
+					ctx.query,
+					changes.map((change) => change.before.id)
+				).pipe(refusing(ctx))
+			};
 		}
 	}
 });

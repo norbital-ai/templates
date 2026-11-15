@@ -67,7 +67,8 @@ export default model('loan_catalog_entry_repayment', {
 			kind: 'ref',
 			to: 'loan_catalog_entry',
 			inverse: 'repayments',
-			on_delete: 'restrict'
+			// a loan deleted takes its instalments: its own delete carries their amendment rows
+			on_delete: 'cascade'
 		},
 		payroll_run_id: {
 			kind: 'ref',

@@ -54,7 +54,7 @@ export default model('claim_catalog_entry', {
 		}
 	},
 	update: {
-		fields: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file'],
+		fields: ['payroll_run_id', 'catalog_code', 'quantity', 'incurred_on', 'evidence_file'],
 		transform: function* (changes, ctx) {
 			return yield* entryUpdate(ctx, 'claim_catalog_entry', changes, (touched) =>
 				amendmentsFor(ctx.query, touched)

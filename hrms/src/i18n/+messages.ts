@@ -626,9 +626,6 @@ export default messages({
 	// Bolt 0.0.26 migration: refusal keys, field help and captions moved out of the models
 	'errors.jurisdiction_paid_keeps':
 		'Companies under this law have paid runs. Its currency, time zone and tax year stay as those periods were worked out.',
-	'errors.loan_principal_below_repaid':
-		'The principal cannot be less than repayments already included in payroll. Enter a principal at or above that total.',
-	'errors.loan_paid_no_delete': 'A payroll run has paid this loan, so it cannot be deleted.',
 	'errors.workplace_case_missing_inputs': 'This case needs {inputs}.',
 	'models.workplace_case_catalog_entry.help.severity':
 		'The injury or loss classification. Non-injury cases such as harassment or data mishandling use N/A.',

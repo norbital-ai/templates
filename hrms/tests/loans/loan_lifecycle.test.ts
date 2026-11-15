@@ -298,59 +298,44 @@ describe('a loan repayment', () => {
 });
 
 describe('a loan', () => {
-	it.live('with a repayment a run has taken cannot be deleted, and stays whole', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* repay(t, 100, '2026-08-10');
-			yield* repay(t, 100, '2026-09-10');
-			yield* run(t, '2026-08');
-			const drop = Effect.gen(function* () {
-				return yield* (yield* t.as(t.admin)).act({
+	it.live(
+		'with a repayment a run has taken is corrected or deleted whole, and the paid period is worked out again',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* repay(t, 100, '2026-08-10');
+				yield* repay(t, 100, '2026-09-10');
+				yield* pay(t, '2026-08');
+				const admin = yield* t.as(t.admin);
+				// the principal is HR's to correct, under what payroll has taken too
+				yield* admin.act({
+					'loan_catalog_entry.update': [
+						{ target: yield* current(t, 'loan_catalog_entry', LOAN), set: { quantity: '50' } }
+					]
+				});
+				assert.deepEqual(yield* amended(t), []);
+				// the loan goes with its instalments, and the period that took one is worked out again without it
+				yield* admin.act({
 					'loan_catalog_entry.delete': [{ target: yield* current(t, 'loan_catalog_entry', LOAN) }]
 				});
-			});
-			assert.match(yield* refused(drop), /still refer|locked/);
-			// clearing the open schedule does not free it: what a run took keeps its loan
-			const [, open] = yield* repayments(t);
-			assert.ok(open !== undefined);
-			yield* remove(t, open.id);
-			assert.match(yield* refused(drop), /still refer|locked/);
-			assert.equal(
-				(yield* storedQuery(t, { loan_catalog_entry: { limit: 10 } })).loan_catalog_entry.rows
-					.length,
-				1
-			);
-			assert.equal((yield* repayments(t)).length, 1);
-			// the principal cannot be cut under what payroll has already taken
-			assert.match(
-				yield* refused(
-					Effect.gen(function* () {
-						return yield* (yield* t.as(t.admin)).act({
-							'loan_catalog_entry.update': [
-								{ target: yield* current(t, 'loan_catalog_entry', LOAN), set: { quantity: '50' } }
-							]
-						});
-					})
-				),
-				/cannot be less than repayments already included in payroll/
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+				assert.equal(
+					(yield* storedQuery(t, { loan_catalog_entry: { limit: 10 } })).loan_catalog_entry.rows
+						.length,
+					0
+				);
+				assert.equal((yield* repayments(t)).length, 0);
+				assert.deepEqual(yield* amended(t), ['2026-08']);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
-	it.live('never run through payroll is deleted once its open schedule is cleared', () =>
+	it.live('never run through payroll is deleted with its open schedule', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* repay(t, 100, '2026-08-10');
-			const drop = Effect.gen(function* () {
-				return yield* (yield* t.as(t.admin)).act({
-					'loan_catalog_entry.delete': [{ target: yield* current(t, 'loan_catalog_entry', LOAN) }]
-				});
+			yield* (yield* t.as(t.admin)).act({
+				'loan_catalog_entry.delete': [{ target: yield* current(t, 'loan_catalog_entry', LOAN) }]
 			});
-			assert.match(yield* refused(drop), /still refer/);
-			const [open] = yield* repayments(t);
-			assert.ok(open !== undefined);
-			yield* remove(t, open.id);
-			yield* drop;
+			assert.equal((yield* repayments(t)).length, 0);
 			yield* run(t, '2026-08');
 			assert.deepEqual(yield* moved(t), []);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))

@@ -50,7 +50,6 @@
 	const fixedEmployment = initialEmployment != null;
 	const showPerson = $derived(!fixedEmployment || person);
 	// a filed entry keeps its leave type
-	const fixedCatalog = $derived(entry != null);
 	const editable = $derived(!locked);
 	const paid = paidPeriods(ctx);
 	const clock = ctx.clock('day');
@@ -65,7 +64,11 @@
 		entry == null
 			? null
 			: ctx.query({
-					leave_catalog_entry: { where: { id: { eq: entry } }, fields: ['revision'], limit: 1 },
+					leave_catalog_entry: {
+						where: { id: { eq: entry } },
+						fields: ['revision', 'catalog_code'],
+						limit: 1
+					},
 					leave_catalog_entry_day: {
 						where: { leave_entry_id: { eq: entry } },
 						fields: ['id', 'revision', 'incurred_on', 'part', 'payroll_run_id'],
@@ -382,7 +385,8 @@
 		);
 		const proposed = (days: typeof sessions) =>
 			jsonObject({
-				...(stored ?? { entity_id: entityId, employment_id: chosen, catalog_code: catalog }),
+				...(stored ?? { entity_id: entityId, employment_id: chosen }),
+				catalog_code: catalog,
 				days
 			});
 		// only the days this change adds answer for the day they fall on: a day already filed stands
@@ -452,6 +456,8 @@
 							{
 								target: filedRow,
 								set: {
+									// another leave type moves the days to its balance
+									...(catalog === filedRow.catalog_code ? {} : { catalog_code: catalog }),
 									leave_catalog_entry_day: {
 										delete: remove,
 										create: add.map((session) => ({
@@ -548,7 +554,6 @@
 				value={catalog}
 				placeholder="Select leave type"
 				aria-label="Leave type"
-				disabled={fixedCatalog}
 				on_change={(value) => (catalog = value)}
 			/>
 			{#if chosenCatalog !== null && !isNoCap(chosenCatalog)}<span
