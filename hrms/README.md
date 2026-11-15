@@ -32,6 +32,12 @@ Controller)** hold `hr_controller`; **HR Manager** holds `hr_manager`; **Senior 
 
 A law, a company and a person's terms are dated rows: what holds on a day is the rows dated on or before it, applied oldest first. A run reads the employment, the entries and the law, walks one subtotal chain to net pay, and writes its payslips and ledger rows in one write. A mistake in a paid period is corrected where it was recorded; the next run carries the difference. The models, automations and policies are described in [the architecture](docs/0001-hrms-calculation-architecture.md).
 
+The salary listing reads saved payslips: one column per used catalogue item, with employee and employer portions apart. Earlier-period differences combine in that item's column; **Line details** retains each line's period, direction, quantity, unit and currency. **Tax withheld** is the saved summary, alongside the separate deduction columns. Paid figures are never recalculated by the export. See [the export walkthrough](docs/0008-mechanisms-walkthrough.md#8-payslip-salary-listing-and-bank-file).
+
+Settings defines which statutory facts the law accepts; the employee's **Statutory parameters** tab holds their dated values, edited in place. The schema editor keeps field names, types, labels and requirements on the same row.
+
+![The compact statutory parameter definition editor](docs/screenshots/parameters.webp)
+
 ## Seed
 
 - **Public base** — `seed/public/jurisdiction/<CODE>/` holds each of nine jurisdictions (CN, ID,

@@ -109,6 +109,12 @@ in `?day=YYYY-MM-DD` while opening records. The board groups that day's work int
 **Completed**, beside a map of its mapped sites. An empty day has an empty board
 and map message; it does not move older unfinished work into today's schedule.
 
+Tap a map pin to open its site; a cluster zooms into its places. **Plan route** lets the dispatcher choose up to five stops, reorder or remove them, then open road directions in Google Maps. The embedded map uses the workspace's light or dark theme; road navigation is an explicit handoff.
+
+![Planning a multi-stop site route](docs/screenshots/route.webp)
+
+[View the route planner in dark mode](docs/screenshots/route-dark.webp).
+
 Open a job without a contractor and choose **Edit**. In **Progress**, enter the contractor's email or
 phone number, then save. Linking a contractor records the job's first dispatch time; it never
 changes the status. A controller can reassign work from this same

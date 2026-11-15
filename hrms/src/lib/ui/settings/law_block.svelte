@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** One keyed block of a law (its lookup, conversions, ledger, work regions or a statutory parameter declaration), edited as folded. Its view's one Save commits the draft. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { StructuredData, use_form } from '@norbital-ai/ui';
+	import { is_json_schema, StructuredData, use_form } from '@norbital-ai/ui';
 	import type { Law } from '../../law.js';
 	import { isJsonObject, type Json, type JsonObject } from '../../payroll_engine/foundation.js';
 	import LookupSections from './lookup_sections.svelte';
@@ -37,6 +37,15 @@
 		{value}
 		name={family}
 		disabled={!editing}
+		on_change={(next) => (draft = next)}
+	/>
+{:else if (family === 'employee_statutory_parameters' || family === 'entity_statutory_parameters') && is_json_schema(value)}
+	<StructuredData
+		{ctx}
+		name={family}
+		mode="schema"
+		schema={value}
+		readonly={!editing}
 		on_change={(next) => (draft = next)}
 	/>
 {:else}

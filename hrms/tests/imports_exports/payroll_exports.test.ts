@@ -1,6 +1,6 @@
 // The salary listing is laid out as payroll teams keep theirs: a sheet per run, the company and the month above a group
-// row and upper-case headers, who the person is, then the subtotal chain band by band (each band's lines, closed by its
-// subtotal; the tax withheld beside the tax), GROSS and NET, the employer's portion and the cost to the company, every
+// row and upper-case headers, who the person is, then catalogue columns along the subtotal chain (each used band's lines and
+// checkpoint; the saved tax withheld beside the tax), GROSS and NET, the employer's portion and the cost to the company, every
 // figure the payslip's own.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
@@ -8,6 +8,7 @@ import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { metroBank, ocbcFast } from '../../src/lib/export_format_configuration/bank_files.ts';
 import { exportRows } from '../../src/lib/export_format_configuration/export_rows.ts';
+import { listingRead } from '../../src/lib/export_format_configuration/salary_listing_download.ts';
 import {
 	sheetsOf,
 	workbookOf
@@ -15,6 +16,7 @@ import {
 import { inForce } from '../../src/lib/dated.ts';
 import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { termsChange } from '../../src/lib/person.ts';
 import {
 	ENTITY,
@@ -23,7 +25,9 @@ import {
 	storedReader,
 	workspace,
 	decimalNumber,
-	packTerms
+	packTerms,
+	current,
+	TERMS
 } from '../kit.ts';
 
 const terms = { ...packTerms(8000), job_title: 'Engineer', department: 'Operations' };
@@ -50,6 +54,9 @@ describe('the salary listing', () => {
 						'employment_id',
 						'gross_earnings',
 						'net_pay',
+						'tax_withheld',
+						'employee_statutory',
+						'employer_cost',
 						'breakdown'
 					],
 					limit: 100,
@@ -128,18 +135,20 @@ describe('the salary listing', () => {
 			// each band of the subtotal chain is grouped under its name and closes with the payslip's own checkpoint
 			for (const point of breakdown.checkpoints) {
 				const close = headers.findIndex(
-					(header, index) => header === point.name.toUpperCase() && groupOf(index + 1) === header
+					(header, index) =>
+						header === `${point.name.toUpperCase()} (PERIOD ONLY)` &&
+						groupOf(index + 1) === point.name.toUpperCase()
 				);
 				if (close >= 0) assert.equal(cell(close + 1), point.value, point.name);
 			}
-			// the employee's statutory shares read as deductions, the largest scheme first, in the band they are taken in;
+			// the employee's statutory shares read as deductions, in catalogue order, in the band they are taken in;
 			// the tax withheld closes the band that holds the tax
 			const employee = headers.filter(
 				(header, index) =>
 					['EPF', 'SOCSO', 'EIS', 'PCB'].includes(header) &&
 					groupOf(index + 1) !== "EMPLOYER'S PORTION"
 			);
-			assert.equal(employee[0], 'EPF');
+			assert.deepEqual(employee, employee.toSorted());
 			assert.ok(employee.includes('SOCSO') && employee.includes('EIS'));
 			assert.ok(cell(at('EPF')) < 0);
 			assert.ok(taxed, 'the fixture pays tax');
@@ -180,6 +189,33 @@ describe('the salary listing', () => {
 				formula: `SUM(${ws.getColumn(at('NET PAY')).letter}5:${ws.getColumn(at('NET PAY')).letter}5)`,
 				result: decimalNumber(slip.net_pay)
 			});
+			const run = payroll_run.rows[0];
+			assert.ok(run);
+			const read = () => listingRead(storedReader(t), [run.id]);
+			const before = workbookOf(sheetsOf(yield* read())).getWorksheet('FEB 2026');
+			assert.ok(before);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [
+					{ target: yield* current(t, 'payroll_run', run.id), set: { state: 'PAID' } }
+				]
+			});
+			yield* t.run_due();
+			yield* (yield* t.as(t.admin)).act({
+				'contract_terms.update': [
+					{
+						target: yield* current(t, 'contract_terms', idOf('contract_terms', TERMS)),
+						set: { rate: { unit: 'MONTHLY', amount: 9000 } }
+					}
+				]
+			});
+			yield* t.run_due();
+			const after = workbookOf(sheetsOf(yield* read())).getWorksheet('FEB 2026');
+			assert.ok(after);
+			assert.deepEqual(
+				after.getRow(5).values,
+				before.getRow(5).values,
+				'correcting paid-period terms does not reprice the exported paid payslip'
+			);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-03-05T02:00:00.000Z' })))
 	);
 });

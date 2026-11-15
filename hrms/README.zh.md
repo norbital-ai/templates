@@ -31,6 +31,12 @@ Controller)** 持有 `hr_controller`；**HR Manager** 持有 `hr_manager`；**Se
 
 法律、公司和个人的条款都是按日期的行：某一天生效的内容，就是日期在当天或之前的行，按从旧到新的顺序应用。一次核算读取雇佣关系、条目和法律，沿一条小计链计算到实发工资，并在一次写入中写出工资单和台账行。已支付周期中的错误在其记录处更正；下一次核算会结转差额。模型、自动化和策略详见[架构文档](docs/0001-hrms-calculation-architecture.md)。
 
+工资清单读取已保存的工资单：每个已使用的目录项目一列，员工与雇主部分分开。以前周期的差额合并到该项目的列中；**Line details** 保留每行所属周期、方向、数量、单位和币种。**Tax withheld** 是已保存的税款汇总，与各项扣款列并列。导出不会重新计算已支付的金额。详见[导出流程](docs/0008-mechanisms-walkthrough.md#8-payslip-salary-listing-and-bank-file)。
+
+设置页定义法律接受哪些法定事实；员工的**法定参数**标签页保存其按日期生效的值，并在原处更正。结构编辑器将字段名称、类型、标签和必填要求放在同一行。
+
+![紧凑的法定参数定义编辑器](docs/screenshots/parameters.webp)
+
 ## 种子数据
 
 - **公共基础数据** — `seed/public/jurisdiction/<CODE>/` 收录九个司法辖区（CN、ID、

@@ -187,15 +187,17 @@ The law's run effects then raise the period's tasks: remittances, filings, paysl
 | Exports the salary listing           | A spreadsheet built from the run's payslips          | Payroll        |
 | Exports a bank file                  | A bank payment file in one of the template's layouts | Payroll        |
 
-The salary listing is one sheet per run. Every figure is a payslip's own line or total, so each can be traced. An export reads the run; it changes nothing.
+The salary listing is one main sheet per run, plus a shared **Line details** sheet. Every figure is a payslip's own line or total, so each can be traced. An export reads the run; it changes nothing.
 
 - **Who.** Position, department, employee code, name, ID number, date joined, last day. Frozen through the name.
-- **Bands.** The law's subtotal chain, in order, each in its own colour. Each band holds the lines that move it (what adds is positive, what takes off negative) and closes on its subtotal. A line identical to its band's subtotal shows once.
+- **Catalogue columns.** One column per catalogue item and party, ordered by saved subtotal, then catalogue identity. Amounts do not change the column order. What adds is positive; what takes off is negative. Earlier-period corrections add to the same catalogue column. Employer refunds stay negative, separate from employee deductions. A subtotal with lines may close its coloured band, labelled **PERIOD ONLY**: it is the saved checkpoint for that run's own period, while catalogue columns also include carried differences. Unused internal checkpoints are omitted.
 - **GROSS PAY** stands before the first band that holds a statutory deduction.
-- **TAX WITHHELD** comes right after the band that holds the tax. It counts every tax the payslip withholds: the tax scheme and any instalment the authority directs (Malaysia's PCB and CP38).
+- **TAX WITHHELD** comes right after the band that holds calculated tax, or before net pay if there is no calculated-tax line. It counts every tax the payslip withholds: the tax scheme and any instalment the authority directs (Malaysia's PCB and CP38).
 - **NET PAY**, then the **employer's portion**, one column per scheme.
-- **COST TO COMPANY** = net pay + employee contributions + tax withheld + employer portion.
+- **COST TO COMPANY** = saved net pay + saved employee statutory contributions + saved tax withheld + saved employer cost. This is the listing's cash-outlay summary; it does not reprice catalogue items.
 - A `TOTAL` row sums each column.
+- **Line details** names the run sheet, employee, run period, line period, source, catalogue code, description, party, subtotal, direction, quantity, unit, signed amount, currency and company. PCB and CP38 remain separate catalogue columns; tax withheld is a summary, never a second deduction. Intermediate tax-formula steps not saved on the payslip are not invented by the export.
+- All selected rows are read. A missing employment, unreadable breakdown or invalid saved total refuses the export instead of silently dropping a person or substituting zero. Financial values come from the saved payslip; identity and job columns come from linked employment records.
 
 While the run is `UNPAID` it can be deleted, newest first; while it stands, nothing of the people it holds can be changed.
 

@@ -2,16 +2,7 @@ import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { DateTime, Option, Schema } from 'effect';
 import { PayslipBreakdown } from '../payroll_engine/payslip_breakdown.js';
 
-/**
- * The staff salary listing: one sheet per run, the company and `STAFF SALARY LISTING - <month>` above a group row and
- * upper-case column headers. Who the person is comes first (frozen through NAME). Then the pay follows the law's own
- * subtotal chain, as the payslip worked it out: each subtotal is a coloured band of the lines that move it (what adds
- * reads positive, what takes off negative) closed by the subtotal itself, so a proration sits in its band and the band
- * closes on the prorated figure. GROSS PAY stands before the first band that holds a statutory deduction, TAX WITHHELD
- * after the band that holds the tax (it counts every tax the payslip withholds, an instalment the authority directs
- * included), then NET PAY, the employer's portion and the cost to the company, and a TOTAL row. Nothing names a code:
- * the bands, their order and their names are each law's subtotals. Every figure is a payslip's own line or total.
- */
+/** A run per sheet, one signed column per catalogue item and party, plus its saved payroll totals. */
 type Person = {
 	readonly position: string;
 	readonly department: string;
@@ -25,6 +16,8 @@ type Person = {
 	readonly net: number;
 	/** Every tax the payslip withholds: the scheme's and any the authority directs on top (its stored `tax_withheld`). */
 	readonly tax: number;
+	readonly contributions: number;
+	readonly employer: number;
 };
 export type Sheet = {
 	readonly company: string;
@@ -47,9 +40,13 @@ const monthOf = (period: string) => {
 	return `${month.toUpperCase()}${half}`;
 };
 const amount = (value: unknown): number => {
+	if (value == null || (typeof value === 'string' && value.trim() === ''))
+		throw new Error('The salary listing needs every saved payslip total.');
 	// a decimal reads as its exact text
 	const number = typeof value === 'number' ? value : Number(String(value ?? ''));
-	return Number.isFinite(number) ? number : 0;
+	if (!Number.isFinite(number))
+		throw new Error('The salary listing contains an invalid saved amount.');
+	return number;
 };
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 const dayOf = (value: unknown) => (typeof value === 'string' ? value.slice(0, 10) : '');
@@ -71,7 +68,9 @@ export type ListingRead = {
 		readonly employee_id: unknown;
 		readonly gross_earnings: unknown;
 		readonly net_pay: unknown;
-		readonly tax_withheld?: unknown;
+		readonly tax_withheld: unknown;
+		readonly employee_statutory: unknown;
+		readonly employer_cost: unknown;
 		readonly breakdown: unknown;
 		readonly employment_id?: {
 			readonly employee_number?: unknown;
@@ -109,26 +108,39 @@ export const sheetsOf = ({ runs, slips, stints }: ListingRead): readonly Sheet[]
 			period: String(run.period),
 			offCycle: run.kind === 'OFF_CYCLE',
 			people: (byRun.get(run.id) ?? [])
-				.flatMap((slip): Person[] => {
+				.map((slip): Person => {
 					const contract = slip.employment_id;
 					const breakdown = Schema.decodeUnknownOption(PayslipBreakdown)(slip.breakdown);
-					if (contract == null || breakdown._tag === 'None') return [];
+					if (contract == null || breakdown._tag === 'None')
+						throw new Error(
+							'A payslip is missing its employment or saved breakdown; the salary listing was not exported.'
+						);
+					for (const line of breakdown.value.lines)
+						if (
+							!Number.isFinite(line.amount) ||
+							line.amount < 0 ||
+							!['ADD', 'DEDUCT'].includes(line.direction) ||
+							!['EMPLOYEE', 'EMPLOYER'].includes(line.party)
+						)
+							throw new Error(
+								'A payslip contains an invalid saved line; the salary listing was not exported.'
+							);
 					const person = String(slip.employee_id);
-					return [
-						{
-							position: text(contract.terms?.job_title),
-							department: text(contract.terms?.department),
-							code: text(contract.employee_number),
-							name: text(contract.employee_id?.name),
-							identity: text(contract.payroll?.identity_number),
-							joined: dayOf(contract.service_started_on) || (joined.get(person) ?? ''),
-							left: left.get(person) ?? '',
-							breakdown: breakdown.value,
-							gross: amount(slip.gross_earnings),
-							net: amount(slip.net_pay),
-							tax: amount(slip.tax_withheld)
-						}
-					];
+					return {
+						position: text(contract.terms?.job_title),
+						department: text(contract.terms?.department),
+						code: text(contract.employee_number),
+						name: text(contract.employee_id?.name),
+						identity: text(contract.payroll?.identity_number),
+						joined: dayOf(contract.service_started_on) || (joined.get(person) ?? ''),
+						left: left.get(person) ?? '',
+						breakdown: breakdown.value,
+						gross: amount(slip.gross_earnings),
+						net: amount(slip.net_pay),
+						tax: amount(slip.tax_withheld),
+						contributions: amount(slip.employee_statutory),
+						employer: amount(slip.employer_cost)
+					};
 				})
 				.toSorted((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
 		}));
@@ -160,8 +172,7 @@ const IDENTITY_FILL = 'FFCCFFFF';
 const TOTAL_FILL = 'FFD9D9D9';
 const EMPLOYER_FILL = ['FFF2F2F2', 'FFD9D9D9'] as const;
 const signed = (line: Line) => (line.direction === 'DEDUCT' ? -line.amount : line.amount);
-const keyOf = (line: Line) =>
-	`${line.source}:${line.code}:${line.period === undefined ? '' : 'earlier'}`;
+const keyOf = (line: Line) => JSON.stringify([line.source, line.code, line.party]);
 
 /**
  * The sheet's columns, read off its payslips: the subtotal chain in the order the law runs it, each band with the lines
@@ -178,28 +189,24 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 	}
 	const lines = new Map<string, Line>();
 	for (const person of sheet.people)
-		for (const line of person.breakdown.lines) lines.set(keyOf(line), line);
+		for (const line of person.breakdown.lines)
+			// A current-period line supplies the label and band when a carried correction moved subtotals.
+			if (!lines.has(keyOf(line)) || line.period === undefined) lines.set(keyOf(line), line);
 	const sum = (key: string) => (person: Person) =>
 		person.breakdown.lines
 			.filter((own) => keyOf(own) === key)
 			.reduce((total, own) => total + signed(own), 0);
 	const header = (line: Line) =>
-		`${line.source === STATUTORY ? line.code.replace(/_EMPLOYER$/, '') : line.label}${
-			line.period === undefined ? '' : ' (earlier periods)'
-		}`
+		(line.source === STATUTORY ? line.code.replace(/_EMPLOYER$/, '') : line.label)
 			.replaceAll('_', ' ')
 			.toUpperCase();
-	// within a band what adds comes first, then what takes off; the statutory shares largest first and taxes last
-	const size = (key: string) =>
-		sheet.people.reduce((total, person) => total + Math.abs(sum(key)(person)), 0);
-	const rank = (line: Line) =>
-		line.source !== STATUTORY
-			? line.direction === 'ADD'
-				? 0
-				: 1
-			: kind.get(line.code) === 'TAX'
-				? 3
-				: 2;
+	// Catalogue identity keeps the order stable when amounts, refunds or earlier-period lines change.
+	const rank = (line: Line) => (line.source === STATUTORY ? 1 : 0);
+	const order = ([, left]: [string, Line], [, right]: [string, Line]) =>
+		rank(left) - rank(right) ||
+		left.source.localeCompare(right.source) ||
+		left.code.localeCompare(right.code) ||
+		left.party.localeCompare(right.party);
 	const employee = [...lines].filter(([, line]) => line.party !== 'EMPLOYER');
 	const known = new Set(chain.map((band) => band.code));
 	const bands = [
@@ -210,15 +217,11 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 			.map((code) => ({ code, name: '' }))
 	];
 	const columns: Column[] = [];
-	let grossPlaced = false,
+	let taxPlaced = false,
+		grossPlaced = false,
 		painted = 0;
 	for (const band of bands) {
-		const own = employee
-			.filter(([, line]) => line.subtotal === band.code)
-			.toSorted(
-				([a, left], [b, right]) =>
-					rank(left) - rank(right) || size(b) - size(a) || a.localeCompare(b)
-			);
+		const own = employee.filter(([, line]) => line.subtotal === band.code).toSorted(order);
 		if (own.length === 0) continue;
 		if (!grossPlaced && own.some(([, line]) => line.source === STATUTORY)) {
 			columns.push({
@@ -236,30 +239,33 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 		const close = (person: Person) =>
 			person.breakdown.checkpoints.find((point) => point.code === band.code)?.value ?? 0;
 		for (const [key, line] of own)
-			// a line that is its band's subtotal under the same name shows once, as the subtotal
-			if (!(
-				band.name !== '' &&
-				header(line) === group &&
-				sheet.people.every((p) => sum(key)(p) === close(p))
-			))
-				columns.push({
-					band: band.code,
-					group,
-					header: header(line),
-					fill,
-					total: false,
-					value: sum(key)
-				});
-		if (band.name !== '')
 			columns.push({
 				band: band.code,
 				group,
-				header: group,
+				header: header(line),
+				fill,
+				total: false,
+				value: sum(key)
+			});
+		// A catalogue already named for the subtotal keeps its own column, even when its amount changes.
+		if (
+			group !== '' &&
+			!own.some(([, line]) => header(line) === group) &&
+			!['GROSS PAY', 'NET PAY', 'TAX WITHHELD'].includes(group)
+		)
+			columns.push({
+				band: band.code,
+				group,
+				header: `${group} (PERIOD ONLY)`,
 				fill: deep,
 				total: true,
 				value: close
 			});
-		if (own.some(([, line]) => line.source === STATUTORY && kind.get(line.code) === 'TAX'))
+		if (
+			!taxPlaced &&
+			own.some(([, line]) => line.source === STATUTORY && kind.get(line.code) === 'TAX')
+		) {
+			taxPlaced = true;
 			columns.push({
 				band: band.code,
 				group,
@@ -268,6 +274,7 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 				total: true,
 				value: (p) => p.tax
 			});
+		}
 	}
 	if (!grossPlaced)
 		columns.push({
@@ -278,6 +285,16 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 			total: true,
 			value: (p) => p.gross
 		});
+	// A month may withhold an instructed instalment even when the calculated tax has no line.
+	if (!taxPlaced)
+		columns.push({
+			band: 'tax',
+			group: '',
+			header: 'TAX WITHHELD',
+			fill: TOTAL_FILL,
+			total: true,
+			value: (p) => p.tax
+		});
 	columns.push({
 		band: 'net',
 		group: '',
@@ -286,12 +303,8 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 		total: true,
 		value: (p) => p.net
 	});
-	const employer = [...lines]
-		.filter(([, line]) => line.party === 'EMPLOYER')
-		.toSorted(
-			([a, left], [b, right]) => rank(left) - rank(right) || size(b) - size(a) || a.localeCompare(b)
-		);
-	// the employer's portion reads as amounts it pays, positive
+	const employer = [...lines].filter(([, line]) => line.party === 'EMPLOYER').toSorted(order);
+	// Employer refunds retain their saved direction, just as employee refunds do.
 	for (const [key, line] of employer)
 		columns.push({
 			band: 'employer',
@@ -299,26 +312,16 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 			header: header(line),
 			fill: EMPLOYER_FILL[0],
 			total: false,
-			value: (person) => Math.abs(sum(key)(person))
+			value: sum(key)
 		});
-	const employerTotal = (person: Person) =>
-		employer.reduce((total, [key]) => total + Math.abs(sum(key)(person)), 0);
-	// what the company pays out for the person: their pay, what goes to the authorities on their behalf (contributions
-	// and every tax withheld) and its own share; a repayment the company takes back is no cost
-	const contributions = (person: Person) =>
-		person.breakdown.lines
-			.filter(
-				(line) =>
-					line.party !== 'EMPLOYER' && line.source === STATUTORY && kind.get(line.code) !== 'TAX'
-			)
-			.reduce((total, line) => total - signed(line), 0);
+	// This is the existing cash-outlay summary, using saved totals rather than pricing any line again.
 	columns.push({
 		band: 'cost',
 		group: '',
 		header: 'COST TO COMPANY',
 		fill: TOTAL_FILL,
 		total: true,
-		value: (person) => person.net + contributions(person) + person.tax + employerTotal(person)
+		value: (person) => person.net + person.contributions + person.tax + person.employer
 	});
 	return columns;
 };
@@ -338,13 +341,14 @@ const IDENTITY = [
 const FROZEN = 4;
 const HEAD = 4;
 
-const sheetName = (sheet: Sheet, taken: Set<string>) => {
-	const base = `${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`
-		.replaceAll(/[\\/?*[\]:]/g, '-')
-		.slice(0, 27);
-	let name = base;
-	for (let next = 2; taken.has(name); next++) name = `${base} (${next})`;
-	taken.add(name);
+const sheetName = (label: string, taken: Set<string>) => {
+	const base = label.replaceAll(/[\\/?*[\]:]/g, '-');
+	let name = base.slice(0, 31);
+	for (let next = 2; taken.has(name.toLowerCase()); next++) {
+		const suffix = ` (${next})`;
+		name = `${base.slice(0, 31 - suffix.length)}${suffix}`;
+	}
+	taken.add(name.toLowerCase());
 	return name;
 };
 
@@ -441,7 +445,7 @@ const addSheet = (
 		const cell = totals.getCell(IDENTITY.length + at + 1);
 		const letter = ws.getColumn(IDENTITY.length + at + 1).letter;
 		cell.value = {
-			formula: `SUM(${letter}${HEAD + 1}:${letter}${last})`,
+			formula: sheet.people.length === 0 ? '0' : `SUM(${letter}${HEAD + 1}:${letter}${last})`,
 			result: sheet.people.reduce((total, person) => total + column.value(person), 0)
 		};
 		cell.numFmt = ACCOUNTING;
@@ -454,11 +458,77 @@ const addSheet = (
 	ws.autoFilter = { from: { row: HEAD, column: 1 }, to: { row: last, column: width } };
 };
 
-/** The listing of these runs as one workbook, a sheet each. */
+/** Every saved line remains inspectable, including the period a correction belongs to. */
+const addDetails = (
+	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
+	sheets: readonly { sheet: Sheet; name: string }[]
+) => {
+	const ws = workbook.addWorksheet('Line details', {
+		views: [{ state: 'frozen', xSplit: 4, ySplit: 1 }],
+		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+	});
+	const columns = [
+		['RUN SHEET', 28],
+		['EMPLOYEE CODE', 16],
+		['NAME', 30],
+		['RUN PERIOD', 16],
+		['LINE PERIOD', 16],
+		['SOURCE', 32],
+		['CATALOGUE CODE', 24],
+		['DESCRIPTION', 36],
+		['PARTY', 16],
+		['SUBTOTAL', 24],
+		['DIRECTION', 16],
+		['QUANTITY', 14],
+		['UNIT', 14],
+		['AMOUNT', 16],
+		['CURRENCY', 12],
+		['COMPANY', 28]
+	] as const;
+	ws.columns = columns.map(([header, width]) => ({ header, width }));
+	for (const { sheet, name } of sheets)
+		for (const person of sheet.people)
+			for (const line of person.breakdown.lines) {
+				const row = ws.addRow([
+					name,
+					person.code,
+					person.name,
+					sheet.period,
+					line.period ?? sheet.period,
+					line.source,
+					line.code,
+					line.label,
+					line.party,
+					line.subtotal,
+					line.direction,
+					line.quantity ?? null,
+					line.unit ?? '',
+					signed(line),
+					sheet.currency,
+					sheet.company
+				]);
+				row.getCell(12).numFmt = '0.####';
+				row.getCell(14).numFmt = ACCOUNTING;
+			}
+	ws.getRow(1).height = 32;
+	ws.getRow(1).eachCell((cell) => {
+		cell.font = { bold: true };
+		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: IDENTITY_FILL } };
+		cell.alignment = { vertical: 'middle', wrapText: true };
+	});
+	ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: columns.length } };
+};
+
+/** The listing of these runs and their saved line details as one workbook. */
 export const workbookOf = (sheets: readonly Sheet[]) => {
 	const workbook = new ExcelJSBrowser.Workbook();
 	workbook.creator = 'Payroll';
-	const taken = new Set<string>();
-	for (const sheet of sheets) addSheet(workbook, sheet, sheetName(sheet, taken));
+	const taken = new Set<string>(['line details']);
+	const named = sheets.map((sheet) => ({
+		sheet,
+		name: sheetName(`${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`, taken)
+	}));
+	for (const { sheet, name } of named) addSheet(workbook, sheet, name);
+	addDetails(workbook, named);
 	return workbook;
 };

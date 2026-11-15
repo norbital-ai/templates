@@ -105,7 +105,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - Day rate: Malaysia uses `YEAR` (monthly × 12 ÷ (52 × contract days a week)). A fixed divisor remains only where a jurisdiction names it.
 - On `CALENDAR_DAYS` proration only the days actually absent are deducted: a rest day inside a stretch stays paid.
 - An "incentive (OT)" paid outside attendance is an ad hoc entry on the `INCENTIVE_OT` row. In Malaysia it is EPF, SOCSO and EIS wages, and PCB taxes it in the month as additional remuneration. Attendance overtime excludes incentive hours; the roster's planned overtime is cleared on those days.
-- The salary listing export follows the subtotal chain: each checkpoint is a coloured band of the lines posted to it, closed by the checkpoint's own figure, so proration shows as the prorated subtotal. Then gross, tax withheld (CP38 included) beside the tax line, net, the employer's portion and the cost to the company. Nothing in it names a code; every figure is the payslip's own.
+- The salary listing export reads saved payslips: one column per catalogue item and party, in stable order along the subtotal chain, with signed corrections combined in that column. Gross, tax withheld (CP38 included), net and employer costs use saved totals. A line-details sheet keeps each line's own period, quantity, direction and subtotal. Exporting neither prices a line again nor changes the payroll engine. The export names no jurisdiction's catalogue codes (owner, 2026-11-16).
 
 ### Holidays
 
