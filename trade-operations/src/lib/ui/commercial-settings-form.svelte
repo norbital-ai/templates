@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Form, type FormProps } from '@norbital-ai/ui';
+	import { Form, RecordShell, type FormProps } from '@norbital-ai/ui';
 	let {
 		fields,
 		ctx
@@ -13,7 +13,16 @@
 </script>
 
 {#if row}
-	<Form {ctx} of="commercial_settings" mode="update" id={row.id} record={row} {fields} />
+	<RecordShell {ctx} of="commercial_settings" id={row.id}
+		><Form
+			{ctx}
+			of="commercial_settings"
+			mode="update"
+			id={row.id}
+			record={row}
+			{fields}
+		/></RecordShell
+	>
 {:else if settings.error}
 	<p role="alert" class="text-sm text-destructive">{settings.error.message}</p>
 {:else if settings.loading}

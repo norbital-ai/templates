@@ -2,7 +2,16 @@
 	/** A person's dependants, by birth or expected date, newest first. A row opens its own record. */
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, EmptyState, Form, open_record, Section, Sheet, format } from '@norbital-ai/ui';
+	import {
+		Button,
+		EmptyState,
+		Form,
+		open_record,
+		RecordShell,
+		Section,
+		Sheet,
+		format
+	} from '@norbital-ai/ui';
 	import VersionTimeline from '../components/version_timeline.svelte';
 	import { paidPeriods } from '../payroll/paid_period.svelte.js';
 	import { fieldLabel } from './change_summary.js';
@@ -65,14 +74,20 @@
 </Section>
 
 <Sheet bind:open={adding} title={t('person.add_dependant')}>
-	<Form
+	<RecordShell
 		{ctx}
 		of="dependant"
 		mode="create"
-		values={{ employee_id: person }}
-		confirm={paid.confirm(() => false, ['born_on', 'expected_on'])}
-		on_outcome={(outcome) => {
+		on_done={(outcome) => {
 			if (outcome.kind === 'committed') adding = false;
 		}}
-	/>
+	>
+		<Form
+			{ctx}
+			of="dependant"
+			mode="create"
+			values={{ employee_id: person }}
+			confirm={paid.confirm(() => false, ['born_on', 'expected_on'])}
+		/>
+	</RecordShell>
 </Sheet>

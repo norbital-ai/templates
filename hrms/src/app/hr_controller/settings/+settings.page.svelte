@@ -9,6 +9,7 @@
 		Form,
 		Label,
 		notify_outcome,
+		RecordShell,
 		Section,
 		Table,
 		Tabs,
@@ -101,10 +102,9 @@
 			LAW_DEPTH
 		);
 	};
-	const GENERAL = blocks.map(([family]) => family);
-	const generalPatch = $derived(patchFor(GENERAL));
-	const lookupPatch = $derived(patchFor(['lookup']));
-	const lawActs = (patch: JsonObject) => () => {
+	const FAMILIES: readonly Family[] = [...blocks.map(([family]) => family), 'lookup'];
+	const patch = $derived(patchFor(FAMILIES));
+	const acts = () => {
 		if (law === undefined || Object.keys(patch).length === 0) return {};
 		const writes = lawWrites(chain, law, patch, always ? null : (changesOn ?? law.on));
 		return {
@@ -112,15 +112,15 @@
 			'jurisdiction_change.update': writes.update
 		};
 	};
-	const settled = (families: readonly Family[]) => (outcome: { kind: string }) => {
+	const settled = (outcome: { kind: string }) => {
 		if (outcome.kind !== 'committed') return;
-		for (const family of families) delete drafts[family];
+		drafts = {};
 		always = false;
 		changesOn = null;
 	};
 </script>
 
-{#snippet inForce(patch: JsonObject)}{#if law && Object.keys(patch).length > 0}<Combobox
+{#snippet inForce()}{#if law && Object.keys(patch).length > 0}<Combobox
 			aria-label={ctx.t('law_save.title')}
 			options={[
 				{ value: 'from', label: ctx.t('law_save.from_date') },
@@ -142,8 +142,8 @@
 			of="jurisdiction"
 			id={head.id}
 			fields={CALENDAR}
-			acts={lawActs(generalPatch)}
-			on_outcome={settled(GENERAL)}
+			{acts}
+			on_outcome={settled}
 		>
 			<Stack gap="sm">
 				<Section first name="settings_calendar" title={ctx.t('settings_form.calendar')}>
@@ -159,7 +159,6 @@
 					{/each}
 				{/if}
 			</Stack>
-			{#snippet actions()}{@render inForce(generalPatch)}{/snippet}
 		</Form>{/if}{/snippet}
 
 {#snippet changed()}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset
@@ -198,11 +197,10 @@
 			of="jurisdiction"
 			id={head.id}
 			fields={CALENDAR}
-			acts={lawActs(lookupPatch)}
-			on_outcome={settled(['lookup'])}
+			{acts}
+			on_outcome={settled}
 		>
 			<LawBlock {ctx} {law} family="lookup" bind:draft={drafts.lookup} />
-			{#snippet actions()}{@render inForce(lookupPatch)}{/snippet}
 		</Form>{/if}{/snippet}
 
 {#snippet overview()}{#if law}<Scroll name="Calculation overview" size="fill" inset
@@ -278,17 +276,23 @@
 			/>
 		</div>
 	{/snippet}
-	{#if head}{#key head.code}<Tabs
-				tabs={[
-					{ name: 'general', title: ctx.t('app.settings.general'), body: general },
-					{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
-					{ name: 'overview', title: 'Calculation overview', body: overview },
-					{ name: 'catalog', title: 'Catalog', body: catalog },
-					{ name: 'rules', title: 'Registered rules', body: rules },
-					{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
-					{ name: 'change_log', title: ctx.t('app.settings.change_log'), body: changeLog }
-				]}
-			/>{/key}
+	{#if head}{#key head.code}<RecordShell
+				{ctx}
+				of="jurisdiction"
+				id={head.id}
+				footer_actions={inForce}
+				><Tabs
+					tabs={[
+						{ name: 'general', title: ctx.t('app.settings.general'), body: general },
+						{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
+						{ name: 'overview', title: 'Calculation overview', body: overview },
+						{ name: 'catalog', title: 'Catalog', body: catalog },
+						{ name: 'rules', title: 'Registered rules', body: rules },
+						{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
+						{ name: 'change_log', title: ctx.t('app.settings.change_log'), body: changeLog }
+					]}
+				/></RecordShell
+			>{/key}
 	{:else}<EmptyState title={ctx.t('app.settings.choose_jurisdiction_empty')} />{/if}
 </AppShell>
 

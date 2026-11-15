@@ -306,7 +306,6 @@ export default messages({
 	'app.hr_employee.calendar_unavailable_hint':
 		'您的合同或雇主记录仍在准备中，请联系 HR 确认有效雇佣关系。',
 	'claim.request_title': '申请报销',
-	'claim.requested': '报销申请已提交',
 	'ui.table.searchIn': '搜索记录',
 	'v2.search_records_hint': '搜索记录名称和编号',
 	'leave.submit': '提交',

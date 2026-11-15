@@ -147,6 +147,12 @@ export default messages({
 	'dated.add_fact': 'Add fact',
 	'dated.show_history': 'Show history ({count})',
 	'dated.hide_history': 'Hide history',
+	'dated.fact_on': '{fact} from {date}',
+	'dated.twice': '{fact} is listed twice. Keep one row.',
+	'dated.take_away_title': 'Take these facts away?',
+	'dated.take_away_body':
+		'These rows have no value, so each fact stops standing from its date: {facts}. Give them a value, or remove the rows, if that is not meant.',
+	'dated.take_away': 'Take away',
 	'dated.remove': 'Remove {fact}',
 	'dated.hint':
 		'Each row is one fact and the day it stands from: what stands today, and what is dated ahead. A row with no value takes the fact away from that day.',
@@ -341,7 +347,6 @@ export default messages({
 	'app.hr_employee.calendar_unavailable_hint':
 		'Your contract or employer record is still being prepared. Ask HR to confirm the active employment.',
 	'claim.request_title': 'Request claim',
-	'claim.requested': 'Claim submitted',
 	'ui.table.searchIn': 'Search records',
 	'v2.search_records_hint': 'Searches record names and references',
 	'leave.submit': 'Submit',

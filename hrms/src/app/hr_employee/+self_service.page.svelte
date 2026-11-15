@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { moneyKind } from '../../lib/ui/format/money_kind.js';
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { AppShell, Bound, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import {
@@ -10,6 +11,7 @@
 		Form,
 		Icon,
 		Label,
+		RecordShell,
 		Sheet,
 		Table,
 		Tabs,
@@ -104,8 +106,7 @@
 					}
 				}
 	);
-	// a payslip's stored totals keep every decimal the lines made; a list shows them to the cent
-	const MONEY = { kind: 'decimal', scale: 2 } as const;
+	const MONEY = $derived(moneyKind(currency));
 </script>
 
 {#snippet amountCell({
@@ -188,8 +189,10 @@
 
 {#snippet documents()}
 	<Bound size="fill" inset>
-		{#if me != null}<Form {ctx} of="employee_profile" mode="update" id={me.id} record={me}
-				>{#snippet children()}<Field {ctx} name="documents" />{/snippet}</Form
+		{#if me != null}<RecordShell {ctx} of="employee_profile" id={me.id}
+				><Form {ctx} of="employee_profile" mode="update" id={me.id} record={me}
+					>{#snippet children()}<Field {ctx} name="documents" />{/snippet}</Form
+				></RecordShell
 			>{/if}
 	</Bound>
 {/snippet}

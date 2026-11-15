@@ -17,7 +17,7 @@
 		use_act
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import SlotPicker from '../../lib/SlotPicker.svelte';
 	import type { PublicPageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PublicPageContext } = $props();
@@ -279,234 +279,246 @@
 	}
 </script>
 
-<Scroll name="portal-book" size="fill" inset>
-	<Center measure="reading">
-		<Stack gap="lg" class="py-6 sm:py-8">
-			<Stack as="header" gap="md">
-				<h1 class="text-title">{t('app.portal.title')}</h1>
-				<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
-				<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
-					{#each STEPS as s, i (s)}
-						<li
-							aria-current={step === s ? 'step' : undefined}
-							class={step === s ? 'font-semibold' : 'text-muted-foreground'}
-						>
-							{i + 1}. {t(`app.portal.step_${s}`)}
-						</li>
-					{/each}
-				</Inline>
-			</Stack>
-
-			{#if step === 'details'}
-				{#if me === null}
-					<Stack gap="md">
-						<PhoneVerify {ctx} session={ctx.session} />
-					</Stack>
-				{:else}
-					<Stack gap="lg">
-						<p class="text-sm text-muted-foreground">{me.phone} · {t('app.portal.verified')}</p>
-						<Grid minimum="compact" gap="md">
-							<Stack gap="sm">
-								<Label for="portal-service">{t('app.portal.service')}</Label>
-								<Combobox
-									id="portal-service"
-									value={service}
-									clearable
-									placeholder={t('app.booking.select_service')}
-									options={(answer?.services?.rows ?? []).map((s) => ({
-										value: s.id,
-										label: s.name
-									}))}
-									on_change={(value) => {
-										service = value;
-										start = null;
-									}}
-								/>
-								{#if chosen}<p class="text-caption">
-										{chosen.description} · {t('app.booking.duration', {
-											minutes: chosen.duration_minutes
-										})}
-									</p>{/if}
-							</Stack>
-							<Stack gap="sm">
-								<Label for="portal-repeat">{t('app.portal.repeat')}</Label>
-								<Combobox
-									id="portal-repeat"
-									value={repeat}
-									options={REPEATS.map((r) => ({
-										value: r,
-										label: repeatWord(r)
-									}))}
-									on_change={(value) => {
-										if (value !== null) repeat = value;
-									}}
-								/>
-							</Stack>
-						</Grid>
-						<Stack gap="sm" class="booking-destination">
-							<Label for="portal-address">{t('app.portal.address')}</Label>
-							<PointInput
-								{ctx}
-								id="portal-address"
-								value={location}
-								{address}
-								on_address={changeAddress}
-								on_change={(next) => {
-									// The picker sets a point before its address callback; apply the point after address invalidation.
-									queueMicrotask(() => {
-										location = next;
-									});
-								}}
-							/>
-						</Stack>
-						<Grid minimum="compact" gap="md">
-							<Stack gap="sm">
-								<Label for="portal-name">{t('app.portal.name')}</Label>
-								<Input id="portal-name" class="min-h-11" autocomplete="name" bind:value={name} />
-							</Stack>
-							<Stack gap="sm">
-								<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
-								<Combobox
-									id="preferred-helper"
-									value={helper}
-									clearable
-									placeholder={t('app.booking.no_preference')}
-									options={(answer?.helpers?.rows ?? []).map((h) => ({
-										value: h.id,
-										label: h.name
-									}))}
-									on_change={(value) => {
-										helper = value;
-										preference = helper === null ? 'any' : 'preferred';
-									}}
-								/>
-								{#if mismatch}<p role="alert" class="text-sm text-destructive">
-										{t('app.booking.skill_mismatch')}
-									</p>{/if}
-							</Stack>
-						</Grid>
-						<Section
-							icon="lucide:notebook-pen"
-							name="notes"
-							title={t('app.portal.notes')}
-							default_open={false}
-							summary={notes.trim() || t('app.portal.no_notes')}
-						>
-							<Textarea
-								id="portal-notes"
-								aria-label={t('app.portal.notes')}
-								rows={3}
-								bind:value={notes}
-							/>
-						</Section>
-						<Button size="lg" class="w-full" disabled={!ready || save.pending} onclick={chooseTime}>
-							{#if save.pending}<Spinner class="size-4" />{/if}{t('app.portal.choose_time')}
-						</Button>
-					</Stack>
-				{/if}
-			{:else if step === 'time'}
-				<Stack gap="lg">
-					<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
-					{#if quoted == null || quoted.status === 'pending'}
-						<Spinner class="h-4 w-4" />
-					{:else if quoted.status === 'failed'}
-						<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
-					{:else if days.length === 0}
-						<EmptyState variant="inset" title={t('app.portal.no_times')} />
-					{:else}
-						<SlotPicker
-							{days}
-							minutes={chosen?.duration_minutes ?? 60}
-							value={start}
-							locale={ctx.locale}
-							{zone}
-							onPick={(s) => (start = s)}
-							{t}
-						/>
-					{/if}
-					{#if quoted?.estimated}<p class="text-caption">
-							{t('app.booking.travel_estimated')}
-						</p>{/if}
-					<Stack gap="sm">
-						<Button
-							size="lg"
-							class="w-full"
-							disabled={start === null || save.pending || quoted?.status !== 'ready'}
-							onclick={confirm}
-						>
-							{#if save.pending}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
-						</Button>
-						<Button
-							variant="ghost"
-							class="w-full"
-							onclick={() => {
-								step = 'details';
-								start = null;
-								availability = null;
-							}}>{t('app.portal.back')}</Button
-						>
-					</Stack>
+<AppShell
+	icon="lucide:calendar-heart"
+	title={ctx.t('app.portal.tab_book')}
+	description={ctx.t('app.portal.description')}
+	variant="full"
+>
+	<Scroll name="portal-book" size="fill" inset>
+		<Center measure="reading">
+			<Stack gap="lg" class="py-6 sm:py-8">
+				<Stack as="header" gap="md">
+					<h1 class="text-title">{t('app.portal.title')}</h1>
+					<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
+					<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
+						{#each STEPS as s, i (s)}
+							<li
+								aria-current={step === s ? 'step' : undefined}
+								class={step === s ? 'font-semibold' : 'text-muted-foreground'}
+							>
+								{i + 1}. {t(`app.portal.step_${s}`)}
+							</li>
+						{/each}
+					</Inline>
 				</Stack>
-			{:else}
-				{@const r = settledRow}
-				{#if r == null || r.status === 'received'}
-					<Stack gap="md" align="center" class="py-12 text-center">
-						<Spinner class="h-6 w-6" />
-						<p class="text-subhead">{t('app.portal.confirming')}</p>
+
+				{#if step === 'details'}
+					{#if me === null}
+						<Stack gap="md">
+							<PhoneVerify {ctx} session={ctx.session} />
+						</Stack>
+					{:else}
+						<Stack gap="lg">
+							<p class="text-sm text-muted-foreground">{me.phone} · {t('app.portal.verified')}</p>
+							<Grid minimum="compact" gap="md">
+								<Stack gap="sm">
+									<Label for="portal-service">{t('app.portal.service')}</Label>
+									<Combobox
+										id="portal-service"
+										value={service}
+										clearable
+										placeholder={t('app.booking.select_service')}
+										options={(answer?.services?.rows ?? []).map((s) => ({
+											value: s.id,
+											label: s.name
+										}))}
+										on_change={(value) => {
+											service = value;
+											start = null;
+										}}
+									/>
+									{#if chosen}<p class="text-caption">
+											{chosen.description} · {t('app.booking.duration', {
+												minutes: chosen.duration_minutes
+											})}
+										</p>{/if}
+								</Stack>
+								<Stack gap="sm">
+									<Label for="portal-repeat">{t('app.portal.repeat')}</Label>
+									<Combobox
+										id="portal-repeat"
+										value={repeat}
+										options={REPEATS.map((r) => ({
+											value: r,
+											label: repeatWord(r)
+										}))}
+										on_change={(value) => {
+											if (value !== null) repeat = value;
+										}}
+									/>
+								</Stack>
+							</Grid>
+							<Stack gap="sm" class="booking-destination">
+								<Label for="portal-address">{t('app.portal.address')}</Label>
+								<PointInput
+									{ctx}
+									id="portal-address"
+									value={location}
+									{address}
+									on_address={changeAddress}
+									on_change={(next) => {
+										// The picker sets a point before its address callback; apply the point after address invalidation.
+										queueMicrotask(() => {
+											location = next;
+										});
+									}}
+								/>
+							</Stack>
+							<Grid minimum="compact" gap="md">
+								<Stack gap="sm">
+									<Label for="portal-name">{t('app.portal.name')}</Label>
+									<Input id="portal-name" class="min-h-11" autocomplete="name" bind:value={name} />
+								</Stack>
+								<Stack gap="sm">
+									<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
+									<Combobox
+										id="preferred-helper"
+										value={helper}
+										clearable
+										placeholder={t('app.booking.no_preference')}
+										options={(answer?.helpers?.rows ?? []).map((h) => ({
+											value: h.id,
+											label: h.name
+										}))}
+										on_change={(value) => {
+											helper = value;
+											preference = helper === null ? 'any' : 'preferred';
+										}}
+									/>
+									{#if mismatch}<p role="alert" class="text-sm text-destructive">
+											{t('app.booking.skill_mismatch')}
+										</p>{/if}
+								</Stack>
+							</Grid>
+							<Section
+								icon="lucide:notebook-pen"
+								name="notes"
+								title={t('app.portal.notes')}
+								default_open={false}
+								summary={notes.trim() || t('app.portal.no_notes')}
+							>
+								<Textarea
+									id="portal-notes"
+									aria-label={t('app.portal.notes')}
+									rows={3}
+									bind:value={notes}
+								/>
+							</Section>
+							<Button
+								size="lg"
+								class="w-full"
+								disabled={!ready || save.pending}
+								onclick={chooseTime}
+							>
+								{#if save.pending}<Spinner class="size-4" />{/if}{t('app.portal.choose_time')}
+							</Button>
+						</Stack>
+					{/if}
+				{:else if step === 'time'}
+					<Stack gap="lg">
+						<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
+						{#if quoted == null || quoted.status === 'pending'}
+							<Spinner class="h-4 w-4" />
+						{:else if quoted.status === 'failed'}
+							<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
+						{:else if days.length === 0}
+							<EmptyState variant="inset" title={t('app.portal.no_times')} />
+						{:else}
+							<SlotPicker
+								{days}
+								minutes={chosen?.duration_minutes ?? 60}
+								value={start}
+								locale={ctx.locale}
+								{zone}
+								onPick={(s) => (start = s)}
+								{t}
+							/>
+						{/if}
+						{#if quoted?.estimated}<p class="text-caption">
+								{t('app.booking.travel_estimated')}
+							</p>{/if}
+						<Stack gap="sm">
+							<Button
+								size="lg"
+								class="w-full"
+								disabled={start === null || save.pending || quoted?.status !== 'ready'}
+								onclick={confirm}
+							>
+								{#if save.pending}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
+							</Button>
+							<Button
+								variant="ghost"
+								class="w-full"
+								onclick={() => {
+									step = 'details';
+									start = null;
+									availability = null;
+								}}>{t('app.portal.back')}</Button
+							>
+						</Stack>
 					</Stack>
 				{:else}
-					{@const booked = r.status === 'booked'}
-					<Stack gap="lg">
-						<Stack gap="sm" align="center" class="pt-4 text-center">
-							<Stack
-								as="span"
-								align="center"
-								justify="center"
-								class={[
-									'size-14 rounded-full',
-									booked ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
-								]}
-							>
-								<Icon name={booked ? 'lucide:check' : 'lucide:clock'} class="size-7" />
+					{@const r = settledRow}
+					{#if r == null || r.status === 'received'}
+						<Stack gap="md" align="center" class="py-12 text-center">
+							<Spinner class="h-6 w-6" />
+							<p class="text-subhead">{t('app.portal.confirming')}</p>
+						</Stack>
+					{:else}
+						{@const booked = r.status === 'booked'}
+						<Stack gap="lg">
+							<Stack gap="sm" align="center" class="pt-4 text-center">
+								<Stack
+									as="span"
+									align="center"
+									justify="center"
+									class={[
+										'size-14 rounded-full',
+										booked ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
+									]}
+								>
+									<Icon name={booked ? 'lucide:check' : 'lucide:clock'} class="size-7" />
+								</Stack>
+								<h2 class="text-title">
+									{booked ? t('app.portal.booked_title') : t('app.portal.follow_up_title')}
+								</h2>
+								<p class="max-w-[40ch] text-sm text-muted-foreground">
+									{booked ? t('app.portal.booked_body') : t('app.portal.follow_up_body')}
+								</p>
 							</Stack>
-							<h2 class="text-title">
-								{booked ? t('app.portal.booked_title') : t('app.portal.follow_up_title')}
-							</h2>
-							<p class="max-w-[40ch] text-sm text-muted-foreground">
-								{booked ? t('app.portal.booked_body') : t('app.portal.follow_up_body')}
-							</p>
+							<Stack as="dl" gap="none" divided class="rounded-xl border bg-card text-sm">
+								{#each summary as row (row.label)}
+									<Inline gap="sm" align="start" class="px-4 py-3">
+										<Icon name={row.icon} class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+										<dt class="w-24 shrink-0 text-muted-foreground">{row.label}</dt>
+										<dd class="min-w-0 font-medium">{row.value}</dd>
+									</Inline>
+								{/each}
+							</Stack>
+							<Stack gap="sm">
+								{#if booked}
+									<Button variant="outline" class="w-full" onclick={() => addToCalendar(r.number)}>
+										<Icon name="lucide:calendar-plus" class="size-4" />{t(
+											'app.portal.add_to_calendar'
+										)}
+									</Button>
+								{/if}
+								<Button class="w-full" href="visits">{t('app.portal.my_bookings')}</Button>
+								<Button variant="ghost" class="w-full" onclick={again}
+									>{t('app.portal.another')}</Button
+								>
+							</Stack>
 						</Stack>
-						<Stack as="dl" gap="none" divided class="rounded-xl border bg-card text-sm">
-							{#each summary as row (row.label)}
-								<Inline gap="sm" align="start" class="px-4 py-3">
-									<Icon name={row.icon} class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-									<dt class="w-24 shrink-0 text-muted-foreground">{row.label}</dt>
-									<dd class="min-w-0 font-medium">{row.value}</dd>
-								</Inline>
-							{/each}
-						</Stack>
-						<Stack gap="sm">
-							{#if booked}
-								<Button variant="outline" class="w-full" onclick={() => addToCalendar(r.number)}>
-									<Icon name="lucide:calendar-plus" class="size-4" />{t(
-										'app.portal.add_to_calendar'
-									)}
-								</Button>
-							{/if}
-							<Button class="w-full" href="visits">{t('app.portal.my_bookings')}</Button>
-							<Button variant="ghost" class="w-full" onclick={again}
-								>{t('app.portal.another')}</Button
-							>
-						</Stack>
-					</Stack>
+					{/if}
 				{/if}
-			{/if}
 
-			{#if me !== null && step !== 'done'}
-				<a class="text-center text-sm underline underline-offset-4" href="visits"
-					>{t('app.portal.my_bookings')}</a
-				>
-			{/if}
-		</Stack>
-	</Center>
-</Scroll>
+				{#if me !== null && step !== 'done'}
+					<a class="text-center text-sm underline underline-offset-4" href="visits"
+						>{t('app.portal.my_bookings')}</a
+					>
+				{/if}
+			</Stack>
+		</Center>
+	</Scroll>
+</AppShell>
