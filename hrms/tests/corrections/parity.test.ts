@@ -34,6 +34,7 @@ import {
 	ledgerRows,
 	measureOf,
 	projection,
+	stintOf,
 	storedQuery,
 	storedReader,
 	syncAll,
@@ -471,6 +472,267 @@ describe('a shift or a pattern corrected after its month was paid', () => {
 	it.live('the pattern the person follows: the next payslip carries the difference, as B', () =>
 		parity(patterned(), { wrong: nothing, correct: sundayWorked, right: sundayWorked })
 	);
+});
+
+// ---- every other record a run reads --------------------------------------------------------------------------------
+
+const STINT = idOf('employment', EMPLOYMENT);
+const PERSON = idOf('employee_profile', uuid(4));
+const DAY = '2026-01-15';
+/** One write by HR, and the work it queues. */
+const wrote = <A, E>(
+	t: Kit,
+	write: (caller: Effect.Success<ReturnType<Kit['as']>>) => Effect.Effect<A, E>
+) =>
+	Effect.gen(function* () {
+		yield* write(yield* t.as(t.admin));
+		yield* t.run_due();
+	});
+/** A medical claim on a January day; answers its id. */
+const claimed = (t: Kit, quantity: number) =>
+	Effect.gen(function* () {
+		yield* wrote(t, (hr) =>
+			hr.act({
+				'claim_catalog_entry.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: STINT,
+						catalog_code: 'MEDICAL_CLAIM',
+						quantity: String(quantity),
+						incurred_on: DAY
+					}
+				]
+			})
+		);
+		const [made] = (yield* storedQuery(t, { claim_catalog_entry: { limit: 10 } }))
+			.claim_catalog_entry.rows;
+		assert.ok(made !== undefined, 'No claim');
+		return made.id;
+	});
+/** An ad hoc payment on a January day; answers its id. */
+const awarded = (t: Kit, code: string, quantity: number) =>
+	Effect.gen(function* () {
+		yield* wrote(t, (hr) =>
+			hr.act({
+				'adhoc_catalog_entry.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: STINT,
+						catalog_code: code,
+						description: code,
+						quantity: String(quantity),
+						incurred_on: DAY
+					}
+				]
+			})
+		);
+		const [made] = (yield* storedQuery(t, { adhoc_catalog_entry: { limit: 10 } }))
+			.adhoc_catalog_entry.rows;
+		assert.ok(made !== undefined, 'No ad hoc entry');
+		return made.id;
+	});
+const holidayDeclared = (t: Kit) =>
+	wrote(t, (hr) =>
+		hr.act({
+			'holiday.create': [
+				{
+					entity_id: ENTITY,
+					date: DAY,
+					name: 'Declared late',
+					kind: 'PUBLIC_HOLIDAY',
+					given_to: 'EVERYONE',
+					published_at: DateTime.formatIso(DateTime.makeUnsafe('2025-12-01T00:00:00.000Z'))
+				}
+			]
+		})
+	);
+const rosterDayGone = (t: Kit, on: string = DAY) =>
+	Effect.gen(function* () {
+		const [day] = (yield* storedQuery(t, {
+			roster_entry: { where: { work_date: { eq: on } }, limit: 1 }
+		})).roster_entry.rows;
+		assert.ok(day !== undefined);
+		yield* wrote(t, (hr) => hr.act({ 'roster_entry.delete': [{ target: day }] }));
+	});
+const contractHour = (t: Kit) =>
+	wrote(t, (hr) =>
+		hr.act({
+			'entity_change.create': [
+				{
+					entity_id: ENTITY,
+					effective_from: '2026-01-01',
+					pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' }
+				}
+			]
+		})
+	);
+const joinedLater = (t: Kit) =>
+	Effect.gen(function* () {
+		const held = yield* stintOf(t);
+		yield* wrote(t, (hr) =>
+			hr.act({
+				'employment.update': [
+					{ target: held, set: { effective_range: { from: '2026-01-12', to: null } } }
+				]
+			})
+		);
+	});
+const bornEarlier = (t: Kit) =>
+	Effect.gen(function* () {
+		const target = yield* current(t, 'employee_profile', PERSON);
+		yield* wrote(t, (hr) =>
+			hr.act({ 'employee_profile.update': [{ target, set: { date_of_birth: '1960-01-01' } }] })
+		);
+	});
+
+describe('every other record a run reads, corrected after its month was paid', () => {
+	it.live('a claim’s amount: the next payslip carries the difference, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: (t) => claimed(t, 80),
+			correct: (t, entry) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'claim_catalog_entry', entry);
+					yield* wrote(t, (hr) =>
+						hr.act({ 'claim_catalog_entry.update': [{ target, set: { quantity: '60' } }] })
+					);
+				}),
+			right: (t) => claimed(t, 60)
+		})
+	);
+	it.live('a claim that never was: deleted, the next payslip takes it back, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: (t) => claimed(t, 80),
+			correct: (t, entry) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'claim_catalog_entry', entry);
+					yield* wrote(t, (hr) => hr.act({ 'claim_catalog_entry.delete': [{ target }] }));
+				}),
+			right: nothing
+		})
+	);
+	it.live('a claim keyed after its month was paid: the next payslip pays it, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: nothing,
+			correct: (t) => claimed(t, 80),
+			right: (t) => claimed(t, 80)
+		})
+	);
+	it.live('an ad hoc payment’s amount: the next payslip carries the difference, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: (t) => awarded(t, 'BONUS', 500),
+			correct: (t, entry) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'adhoc_catalog_entry', entry);
+					yield* wrote(t, (hr) =>
+						hr.act({ 'adhoc_catalog_entry.update': [{ target, set: { quantity: '300' } }] })
+					);
+				}),
+			right: (t) => awarded(t, 'BONUS', 300)
+		})
+	);
+	it.live('an ad hoc payment keyed as the wrong item: changed where it stands, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: (t) => awarded(t, 'BONUS', 500),
+			correct: (t, entry) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'adhoc_catalog_entry', entry);
+					yield* wrote(t, (hr) =>
+						hr.act({
+							'adhoc_catalog_entry.update': [
+								{
+									target,
+									set: { catalog_code: 'EXCELLENCE_AWARD', description: 'EXCELLENCE_AWARD' }
+								}
+							]
+						})
+					);
+				}),
+			right: (t) => awarded(t, 'EXCELLENCE_AWARD', 500)
+		})
+	);
+	it.live('leave keyed as the wrong type: changed where it stands, pay and days as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: (t) => keyed(t, 'ANNUAL_LEAVE', NPL_DAYS),
+			correct: (t, entry) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'leave_catalog_entry', entry);
+					yield* wrote(t, (hr) =>
+						hr.act({ 'leave_catalog_entry.update': [{ target, set: { catalog_code: 'NPL' } }] })
+					);
+				}),
+			right: (t) => keyed(t, 'NPL', NPL_DAYS)
+		})
+	);
+	it.live('a roster day that was not worked: deleted, as B', () =>
+		parity(rostered(MONTHS), {
+			wrong: nothing,
+			correct: (t) => rosterDayGone(t),
+			right: (t) => rosterDayGone(t)
+		})
+	);
+	it.live('a holiday declared on a day already paid as worked: as B', () =>
+		parity(rostered(MONTHS), { wrong: nothing, correct: holidayDeclared, right: holidayDeclared })
+	);
+	it.live('the company’s overtime hour, dated in the paid month: as B', () =>
+		parity(rostered(MONTHS, OVERTIME_DAY), {
+			wrong: nothing,
+			correct: contractHour,
+			right: contractHour
+		})
+	);
+	it.live('the first day of work, moved into the paid month: as B', () =>
+		parity(rostered(MONTHS), { wrong: nothing, correct: joinedLater, right: joinedLater })
+	);
+	it.live('the date of birth: the schemes that read the age are worked out again, as B', () =>
+		parity(rostered(MONTHS), { wrong: nothing, correct: bornEarlier, right: bornEarlier })
+	);
+});
+
+// ---- several corrections at once ------------------------------------------------------------------------------------
+
+/** Corrections that touch different records and days of January: any of them, in any order. */
+const MENU: Readonly<Record<string, Step<unknown>>> = {
+	claim: (t) => claimed(t, 80),
+	award: (t) => awarded(t, 'BONUS', 500),
+	no_pay_leave: (t) => keyed(t, 'NPL', NPL_DAYS),
+	day_not_worked: (t) => rosterDayGone(t, '2026-01-22'),
+	holiday: holidayDeclared,
+	raise: (t) => raisedFrom(t, '2026-01-01', 3100),
+	company_hour: contractHour,
+	date_of_birth: bornEarlier
+};
+/** A mix of the menu, the same on every run of one `seed`: at least three, in a shuffled order. */
+const mix = (seed: number) => {
+	let state = seed;
+	const next = () => {
+		state = (state * 1664525 + 1013904223) % 4294967296;
+		return state / 4294967296;
+	};
+	const shuffled = Object.keys(MENU)
+		.map((name) => [next(), name] as const)
+		.toSorted(([left], [right]) => left - right)
+		.map(([, name]) => name);
+	return shuffled.slice(0, 3 + Math.floor(next() * (shuffled.length - 2)));
+};
+const all =
+	(names: readonly string[]): Step<void> =>
+	(t) =>
+		Effect.gen(function* () {
+			for (const name of names) yield* MENU[name]?.(t) ?? Effect.void;
+		});
+
+describe('several records corrected at once after their month was paid', () => {
+	for (const seed of [3, 29, 71, 404]) {
+		const names = mix(seed);
+		it.live(`mix ${seed} (${names.join(', ')}): paid in all what a never-wrong history pays`, () =>
+			parity(rostered(MONTHS, '2026-01-20'), {
+				wrong: nothing,
+				correct: all(names),
+				// keyed before anything was paid, in the opposite order: the order they are made in does not matter
+				right: all(names.toReversed())
+			})
+		);
+	}
 });
 
 // ---- an exit --------------------------------------------------------------------------------------------------------
