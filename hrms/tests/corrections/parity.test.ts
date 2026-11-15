@@ -24,7 +24,9 @@ import {
 import {
 	ENTITY,
 	PARAMETERS,
+	REST,
 	TERMS,
+	WORK,
 	accountsIn,
 	current,
 	lawAt,
@@ -394,6 +396,81 @@ describe('a paid day’s clock corrected', () => {
 		const right = (t: Kit) => punched(OVERTIME_DAY)(t).pipe(Effect.andThen(punched(MISSED_DAY)(t)));
 		return parity(clocked(), { wrong: nothing, correct: right, right });
 	});
+});
+
+// ---- the shift and the pattern -------------------------------------------------------------------------------------
+
+/** Two January days are rostered on a shift of their own. */
+const ALT = idOf('shift_definition', uuid(910));
+const ALT_DAYS = ['2026-01-13', '2026-01-14'];
+const twoShifts = (): Seed => {
+	const seed = rostered(MONTHS);
+	const [work] = seed.shift_definition ?? [];
+	assert.ok(work !== undefined);
+	return {
+		...seed,
+		shift_definition: [...(seed.shift_definition ?? []), { ...work, id: ALT, code: 'ALT' }],
+		roster_entry: (seed.roster_entry ?? []).map((row) =>
+			ALT_DAYS.includes(String(row.work_date)) ? { ...row, shift_definition_id: ALT } : row
+		)
+	};
+};
+/** That shift, as a day of absence: the two days rostered on it are then days not worked. */
+const shiftAsAbsence = (t: Kit) =>
+	Effect.gen(function* () {
+		yield* (yield* t.as(t.admin)).act({
+			'shift_definition.update': [
+				{
+					target: yield* current(t, 'shift_definition', ALT),
+					set: { variant: { day_type: 'ABS', ends_next_day: false, breaks: [] } }
+				}
+			]
+		});
+		yield* t.run_due();
+	});
+const WEEK = idOf('shift_pattern', uuid(909));
+const week = (sunday: string) => {
+	const work = idOf('shift_definition', WORK);
+	return {
+		week_start: 'MONDAY' as const,
+		days: {
+			MONDAY: work,
+			TUESDAY: work,
+			WEDNESDAY: work,
+			THURSDAY: work,
+			FRIDAY: work,
+			SATURDAY: work,
+			SUNDAY: idOf('shift_definition', sunday)
+		}
+	};
+};
+/** The stint follows a weekly pattern whose Sunday is a rest day. */
+const patterned = (): Seed => {
+	const seed = rostered(MONTHS);
+	return {
+		...seed,
+		shift_pattern: [{ id: WEEK, entity_id: ENTITY, code: 'WEEK', pattern: week(REST) }],
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, shift_pattern_id: WEEK }))
+	};
+};
+/** The pattern's Sunday, as a work day: the Sundays nobody clocked are then days not worked. */
+const sundayWorked = (t: Kit) =>
+	Effect.gen(function* () {
+		yield* (yield* t.as(t.admin)).act({
+			'shift_pattern.update': [
+				{ target: yield* current(t, 'shift_pattern', WEEK), set: { pattern: week(WORK) } }
+			]
+		});
+		yield* t.run_due();
+	});
+
+describe('a shift or a pattern corrected after its month was paid', () => {
+	it.live('the shift the paid days used: the next payslip carries the difference, as B', () =>
+		parity(twoShifts(), { wrong: nothing, correct: shiftAsAbsence, right: shiftAsAbsence })
+	);
+	it.live('the pattern the person follows: the next payslip carries the difference, as B', () =>
+		parity(patterned(), { wrong: nothing, correct: sundayWorked, right: sundayWorked })
+	);
 });
 
 // ---- an exit --------------------------------------------------------------------------------------------------------

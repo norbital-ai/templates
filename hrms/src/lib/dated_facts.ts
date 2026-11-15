@@ -18,6 +18,8 @@ export interface FactShape {
 	readonly record?: string;
 	/** Fields of the row that are no dated fact (the day a change was signed): listed and stored, never taken away. */
 	readonly attributes?: readonly string[];
+	/** Own object fields listed key by key, each a fact named `<field>.<key>`. */
+	readonly keyed?: readonly string[];
 }
 
 const held = (row: JsonObject, shape: FactShape): Record<string, Json> => {
@@ -34,6 +36,13 @@ const held = (row: JsonObject, shape: FactShape): Record<string, Json> => {
 				const value = row[name];
 				return value == null ? [] : [[name, value]];
 			})
+		),
+		...Object.fromEntries(
+			(shape.keyed ?? []).flatMap((field) =>
+				Object.entries(isJsonObject(row[field]) ? row[field] : {}).flatMap(
+					([key, value]): [string, Json][] => (value === null ? [] : [[`${field}.${key}`, value]])
+				)
+			)
 		),
 		...Object.fromEntries(
 			Object.entries(isJsonObject(record) ? record : {}).filter(([, value]) => value !== null)
@@ -82,13 +91,24 @@ export const factWrites = (
 	);
 	const stored = new Map(rows.map((row) => [String(row.effective_from), row]));
 	const own = [...shape.fields, ...(shape.attributes ?? [])];
+	const part = (name: string) => (shape.keyed ?? []).find((field) => name.startsWith(`${field}.`));
 	const body = (named: Record<string, Json>): Record<string, Json> => ({
 		...Object.fromEntries(own.map((name) => [name, named[name] ?? null])),
+		...Object.fromEntries(
+			(shape.keyed ?? []).map((field): [string, Json] => {
+				const keys = Object.entries(named).flatMap(([name, value]): [string, Json][] =>
+					part(name) === field && value !== null ? [[name.slice(field.length + 1), value]] : []
+				);
+				return [field, keys.length === 0 ? null : Object.fromEntries(keys)];
+			})
+		),
 		...(shape.record === undefined
 			? {}
 			: {
 					[shape.record]: Object.fromEntries(
-						Object.entries(named).filter(([name, value]) => value !== null && !own.includes(name))
+						Object.entries(named).filter(
+							([name, value]) => value !== null && !own.includes(name) && part(name) === undefined
+						)
 					)
 				}),
 		clears: Object.keys(named).filter(

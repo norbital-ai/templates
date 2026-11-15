@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { stintNames } from '../../../lib/ui/person/stint_names.svelte.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, Sheet } from '@norbital-ai/ui';
 	import LeaveEntryForm from '../../../lib/ui/person/leave_entry_form.svelte';
@@ -10,6 +11,7 @@
 	import { entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
+	const stints = stintNames(ctx, () => scope.id);
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 
@@ -64,6 +66,8 @@
 	});
 </script>
 
+{#snippet who({ value }: { value: unknown })}{stints.of(value)}{/snippet}
+
 {#snippet requests()}{#if scope.id !== null}<Table
 			{ctx}
 			of="leave_catalog_entry"
@@ -74,7 +78,7 @@
 				title: ctx.t('v2.leave_requests'),
 				actions: [importLeave(ctx.t('holiday_calendar.import_spreadsheet'))]
 			}}
-			columns={['employment_id', 'catalog_code']}
+			columns={[{ field: 'employment_id', cell: who }, 'catalog_code']}
 		/>{/if}{/snippet}
 <AppShell
 	title={ctx.t('app.leave.title')}

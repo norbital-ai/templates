@@ -9,21 +9,31 @@ export const COMPANY_FIELDS = [
 	'statutory_parameters'
 ] as const;
 
-/** A company's statutory parameters are read key by key: a change holds only the parameters it changes. */
+/** A company's pay methods and statutory parameters are read key by key: a change holds only those it changes. */
+const KEYED = ['pay_methods', 'statutory_parameters'] as const;
 export const COMPANY_DEPTH: Depth = (path) =>
-	path.length === 1 && path[0] === 'statutory_parameters';
+	path.length === 1 && KEYED.some((field) => field === path[0]);
 
 /**
- * An `entity_change` row as the fold reads it: the fields it sets, and `null` for each it takes away (`clears`). A
- * name in `clears` that is no field is a statutory parameter.
+ * An `entity_change` row as the fold reads it: the fields it sets, and `null` for each it takes away (`clears`). In
+ * `clears`, `pay_methods.<method>` is one pay method, and a name that is no field is a statutory parameter.
  */
 export const companyChange = (row: JsonObject): Change => {
 	const clears = (Array.isArray(row.clears) ? row.clears : []).map(String);
 	const own = (name: string) => COMPANY_FIELDS.some((field) => field === name);
-	const parameters: Record<string, Json> = {
-		...Object.fromEntries(clears.filter((name) => !own(name)).map((name) => [name, null])),
-		...(isJsonObject(row.statutory_parameters) ? row.statutory_parameters : {})
-	};
+	const method = (name: string) => name.startsWith('pay_methods.');
+	const keyed = (stored: Json | undefined, gone: readonly string[]): Record<string, Json> => ({
+		...Object.fromEntries(gone.map((name) => [name, null])),
+		...(isJsonObject(stored) ? stored : {})
+	});
+	const methods = keyed(
+		row.pay_methods,
+		clears.filter(method).map((name) => name.slice('pay_methods.'.length))
+	);
+	const parameters = keyed(
+		row.statutory_parameters,
+		clears.filter((name) => !own(name) && !method(name))
+	);
 	return {
 		id: String(row.id),
 		effective_from: String(row.effective_from),
@@ -32,17 +42,18 @@ export const companyChange = (row: JsonObject): Change => {
 			...Object.fromEntries(
 				COMPANY_FIELDS.flatMap((field) => {
 					const value = row[field];
-					return value == null || field === 'statutory_parameters' ? [] : [[field, value]];
+					return value == null || KEYED.some((name) => name === field) ? [] : [[field, value]];
 				})
 			),
+			...(Object.keys(methods).length === 0 ? {} : { pay_methods: methods }),
 			...(Object.keys(parameters).length === 0 ? {} : { statutory_parameters: parameters })
 		}
 	};
 };
 
 /**
- * One company's dated values on a day, from its `entity_change` rows, as formulas read them. A field is replaced whole, the
- * statutory parameters key by key.
+ * One company's dated values on a day, from its `entity_change` rows, as formulas read them. A field is replaced whole; the pay
+ * methods and the statutory parameters key by key.
  * A day before the first change, and a field no change has set, holds the default.
  */
 export const companyOn = (changes: readonly JsonObject[], day: string): JsonObject => {

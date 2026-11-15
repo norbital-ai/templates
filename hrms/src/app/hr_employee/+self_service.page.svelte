@@ -104,6 +104,8 @@
 					}
 				}
 	);
+	// a payslip's stored totals keep every decimal the lines made; a list shows them to the cent
+	const MONEY = { kind: 'decimal', scale: 2 } as const;
 </script>
 
 {#snippet amountCell({
@@ -286,9 +288,9 @@
 			order_by={{ created_at: 'desc' }}
 			columns={[
 				{ field: 'payroll_run_id', label: ctx.t('app.hr_employee.pay_run') },
-				{ field: 'gross_earnings', label: ctx.t('component.gross') },
-				{ field: 'total_deductions', label: ctx.t('component.deductions') },
-				{ field: 'net_pay', label: ctx.t('component.net') }
+				{ field: 'gross_earnings', label: ctx.t('component.gross'), kind: MONEY },
+				{ field: 'total_deductions', label: ctx.t('component.deductions'), kind: MONEY },
+				{ field: 'net_pay', label: ctx.t('component.net'), kind: MONEY }
 			]}
 		/>
 	</Cover>

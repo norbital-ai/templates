@@ -325,6 +325,14 @@ describe('a loan', () => {
 				);
 				assert.equal((yield* repayments(t)).length, 0);
 				assert.deepEqual(yield* amended(t), ['2026-08']);
+				// the paid payslip stands; September gives back exactly what August took
+				assert.deepEqual(yield* moved(t), [['2026-08', 'DEDUCT', 100]]);
+				yield* run(t, '2026-09');
+				assert.deepEqual(yield* amended(t), []);
+				assert.deepEqual(yield* moved(t), [
+					['2026-08', 'DEDUCT', 100],
+					['2026-09', 'ADD', 100]
+				]);
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 

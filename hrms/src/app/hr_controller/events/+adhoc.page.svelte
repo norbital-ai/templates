@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { stintNames } from '../../../lib/ui/person/stint_names.svelte.js';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
@@ -11,6 +12,7 @@
 	import { entryImport, plain } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
+	const stints = stintNames(ctx, () => scope.id);
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 
@@ -63,6 +65,8 @@
 	});
 </script>
 
+{#snippet who({ value }: { value: unknown })}{stints.of(value)}{/snippet}
+
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell
@@ -83,7 +87,7 @@
 				actions: [importAdhoc(ctx.t('holiday_calendar.import_spreadsheet'))]
 			}}
 			columns={[
-				'employment_id',
+				{ field: 'employment_id', cell: who },
 				'catalog_code',
 				'description',
 				'quantity',

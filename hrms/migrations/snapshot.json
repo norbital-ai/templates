@@ -825,32 +825,32 @@
 				"pay_methods": {
 					"fields": {
 						"benefit_exclusion": {
-							"default": "POOLED",
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"POOLED",
 								"EXCESS_TAXED"
 							]
 						},
 						"contribution_split": {
-							"default": "EVEN",
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"EVEN",
 								"FIRST_RUN"
 							]
 						},
 						"health_billing": {
-							"default": "CURRENT",
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"CURRENT",
 								"ARREARS"
 							]
 						},
 						"night_differential_basis": {
-							"default": "WORKED",
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"WORKED",
 								"CLOCK_SPAN",
@@ -858,8 +858,8 @@
 							]
 						},
 						"overtime_hour_basis": {
-							"default": "STATUTORY",
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"STATUTORY",
 								"CONTRACT_WEEKLY"

@@ -45,6 +45,14 @@
 	// what stands: each fact's latest row dated today or before, and every later one. The rows before those are its
 	// history, shown on demand
 	let history = $state(false);
+	// a value holding nothing (an empty record) says nothing while the list is only read
+	const says = (fact: Fact) =>
+		!(
+			typeof fact.value === 'object' &&
+			fact.value !== null &&
+			!Array.isArray(fact.value) &&
+			Object.keys(fact.value).length === 0
+		);
 	const past = $derived(
 		new Set(
 			facts.flatMap((fact, index) => {
@@ -69,7 +77,7 @@
 		<span class="text-meta">{ctx.t('dated.from')}</span>
 		<span></span>
 		{#each facts as fact, index (index)}
-			{#if history || !past.has(index)}
+			{#if history || !(past.has(index) || (viewing && !says(fact)))}
 				{@const shape = fact.name === '' ? undefined : kindOf(fact)}
 				{@const set = (value: Value) => put(index, { value: stored(value) })}
 				{#if viewing}<span>{labelOf(fact.name)}</span>{:else}<Combobox

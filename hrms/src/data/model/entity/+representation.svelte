@@ -35,10 +35,17 @@
 			: ctx.query({ entity_change: { where: { entity_id: { eq: record.id } }, limit: 10000 } })
 	);
 	const rows = $derived((changes?.current?.entity_change.rows ?? []).map(jsonObject));
-	const own = COMPANY_FIELDS.filter((name) => name !== 'statutory_parameters');
-	const shape = { fields: own, record: 'statutory_parameters' };
+	const own = COMPANY_FIELDS.filter(
+		(name) => name !== 'statutory_parameters' && name !== 'pay_methods'
+	);
+	const shape = { fields: own, record: 'statutory_parameters', keyed: ['pay_methods'] };
 	let draft = $state<readonly Fact[] | null>(null);
 	const facts = $derived(draft ?? factsOf(rows, shape));
+	const fields = $derived(ctx.ui.kinds.catalog?.['entity_change']?.fields ?? {});
+	// each pay method is a fact of its own
+	const methods = $derived(
+		fields['pay_methods']?.kind === 'object' ? fields['pay_methods'].fields : {}
+	);
 	// a parameter is the one the company's law declares on the fact's own day
 	const declared = (day: string) =>
 		declaredParameters(
@@ -46,16 +53,20 @@
 				.entity_statutory_parameters
 		);
 	const names = $derived([
+		...Object.keys(methods).map((key) => ({
+			value: `pay_methods.${key}`,
+			label: fieldLabel(key)
+		})),
 		...own.map((name) => ({ value: name, label: fieldLabel(name) })),
 		...Object.entries(declared(clock.today)).map(([value, { label }]) => ({ value, label }))
 	]);
 	const kindOf = (fact: Fact) => {
-		const field = ctx.ui.kinds.catalog?.['entity_change']?.fields[fact.name];
-		return own.some((name) => name === fact.name)
-			? field === undefined
-				? undefined
-				: { kind: field }
-			: declared(fact.from)[fact.name];
+		const method = fact.name.startsWith('pay_methods.')
+			? methods[fact.name.slice('pay_methods.'.length)]
+			: undefined;
+		const field =
+			method ?? (own.some((name) => name === fact.name) ? fields[fact.name] : undefined);
+		return field === undefined ? declared(fact.from)[fact.name] : { kind: field };
 	};
 	const acts = () => {
 		if (record === null || draft === null) return {};

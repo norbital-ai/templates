@@ -54,6 +54,8 @@
 	const paid = paidPeriods(ctx);
 	const clock = ctx.clock('day');
 	const today = $derived(clock.today);
+	/** The first day of last year: a person who left before it is not offered. */
+	const recent = $derived(`${Number(clock.today.slice(0, 4)) - 1}-01-01`);
 	let at = $state(DateTime.startOf(DateTime.makeUnsafe(clock.today), 'month'));
 	let chosen = $state<Id<'employment'> | null>(initialEmployment ?? null);
 	let catalog = $state<string | null>(catalogCode ?? null);
@@ -537,7 +539,11 @@
 				<Picker
 					{ctx}
 					of="employment"
-					where={{ entity_id: { eq: entityId } }}
+					where={{
+						entity_id: { eq: entityId },
+						// who is employed, and who left since the start of last year: older leavers are not offered
+						effective_range: { overlaps: { from: recent, to: null } }
+					}}
 					value={chosen}
 					disabled={fixedEmployment}
 					on_change={(value) => {

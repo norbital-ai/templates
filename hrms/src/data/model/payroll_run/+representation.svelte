@@ -53,6 +53,8 @@
 			)
 		);
 	};
+	// a payslip's stored totals keep every decimal the lines made; a list shows them to the cent
+	const MONEY = { kind: 'decimal', scale: 2 } as const;
 </script>
 
 {#snippet summary()}<Stack size="fill" gap="sm"
@@ -80,12 +82,11 @@
 			toolbar={{ new: false, delete: false, title: ctx.t('v2.payslips') }}
 			columns={[
 				'employee_id',
-				'employment_id',
-				'basic_earnings',
-				'gross_earnings',
-				'net_pay',
-				'total_deductions',
-				'employer_cost'
+				{ field: 'basic_earnings', kind: MONEY },
+				{ field: 'gross_earnings', kind: MONEY },
+				{ field: 'net_pay', kind: MONEY },
+				{ field: 'total_deductions', kind: MONEY },
+				{ field: 'employer_cost', kind: MONEY }
 			]}
 		/>{/if}{/snippet}
 {#snippet amended()}{#if record}<Stack size="fill" gap="lg">

@@ -186,6 +186,7 @@ export default model('entity_change', {
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'changes', on_delete: 'cascade' },
 		effective_from: { kind: 'date' },
+		/** Each method is dated on its own: a change holds only the methods it changes, and one left out stands as the law's. */
 		pay_methods: {
 			kind: 'object',
 			optional: true,
@@ -193,7 +194,7 @@ export default model('entity_change', {
 				overtime_hour_basis: {
 					kind: 'enum',
 					values: ['STATUTORY', 'CONTRACT_WEEKLY'],
-					default: 'STATUTORY'
+					optional: true
 				},
 				rest_day_hourly_multiplier: {
 					kind: 'number',
@@ -203,22 +204,22 @@ export default model('entity_change', {
 				night_differential_basis: {
 					kind: 'enum',
 					values: ['WORKED', 'CLOCK_SPAN', 'WHOLE_NIGHT'],
-					default: 'WORKED'
+					optional: true
 				},
 				contribution_split: {
 					kind: 'enum',
 					values: ['EVEN', 'FIRST_RUN'],
-					default: 'EVEN'
+					optional: true
 				},
 				health_billing: {
 					kind: 'enum',
 					values: ['CURRENT', 'ARREARS'],
-					default: 'CURRENT'
+					optional: true
 				},
 				benefit_exclusion: {
 					kind: 'enum',
 					values: ['POOLED', 'EXCESS_TAXED'],
-					default: 'POOLED'
+					optional: true
 				},
 				/** Leave codes the employer pays in full where the law's row leaves them unpaid: its own policy, no statute. */
 				paid_leave: { kind: 'text', many: true, optional: true }
