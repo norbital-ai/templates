@@ -147,7 +147,10 @@ export const plannedWork = (terms: JsonObject, date: string, plan: Plan): boolea
 	const cycle = objectValue(pattern.pattern);
 	const weekly = isJsonObject(cycle.days) ? cycle.days : null;
 	const rotation = Array.isArray(cycle.cycle) ? cycle.cycle : null;
-	const from = String(objectValue(pattern.effective_range).from ?? '');
+	// a weekly pattern needs no first day; a rotation with none has no day to count from
+	const from = isJsonObject(pattern.effective_range)
+		? String(pattern.effective_range.from ?? '')
+		: '';
 	let shiftId: string | null = null;
 	if (weekly !== null) {
 		const weekday = WEEKDAYS[dateWeekday(date)] ?? 'SUNDAY';

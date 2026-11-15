@@ -82,7 +82,7 @@ What follows:
 4. **A row is carried by one run.** A run takes a row only while no run holds it; deleting an unpaid run frees its rows.
 5. **Net pay never goes below zero.**
 6. **A run works out a bounded number of earlier person-periods:** 240 beyond the people it pays. People are taken whole, the earliest amended first. The rest wait and are shown as waiting.
-7. **A pay group with a paid run keeps its schedule.** Its name and pay day may change; what moves pay may not. A shift pattern paid periods follow and a shift paid days use may be edited: the edit amends every period the company paid.
+7. **A pay group with a paid run keeps its schedule.** Its name and pay day may change; what moves pay may not. A shift pattern paid periods follow and a shift paid days use may be edited: the edit amends the paid periods of the people who used them.
 8. **A run stays one write:** it reads, prices everyone, and writes the run, its payslips, seals, postings and the rows it took together. It links each row at the revision it read, so a row changed in between is a conflict.
 
 ## 6. Approvals
@@ -128,7 +128,7 @@ What stays with HR:
 
 | Attempt                                                                       | The screen says                                                                                                                                                                                  |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Correct anything of a person an unpaid run holds                              | "Run 14 holds this person and is not paid yet. Delete it, correct this, and run again."                                                                                                          |
+| Correct anything of a person an unpaid run holds                              | "Run 14 holds this person and is not paid yet. Pay that run or delete it first, then make this change."                                                                                          |
 | Change what moves pay on a pay group with a paid run                          | "This group has paid runs. Make a new group for the new schedule, and move people to it from the first of a month."                                                                              |
 | Delete a paid run                                                             | Refused: a paid run is locked. Correct the record where it was recorded                                                                                                                          |
 | Date a terms or parameters row inside a month, or outside its stint           | "A change to terms or statutory parameters is dated the first of a month, or the stint's first day, and lies inside the stint. A stint's first terms start on its first day: move them with it." |
@@ -139,7 +139,7 @@ What stays with HR:
 | Key an amendment row by hand                                                  | "A correction leaves this row itself. Correct the record where it was recorded."                                                                                                                 |
 | Change a paid payslip                                                         | No such action exists                                                                                                                                                                            |
 
-Nothing else is refused. An entry's type (its catalogue row) may be changed where it stands: a leave's days move to the other balance and the period is worked out again. A loan a run has deducted may be deleted: it goes with its instalments, and each period that took one is worked out again without it. A shift's hours and a shift pattern's days may be edited after periods were paid on them: they carry no date, so the edit amends every period the company paid (deleting one that paid periods used is still refused). A record a run priced may be changed or deleted, a no-pay day may be dated in a paid period, and a terms or parameters row may be written, edited, moved or deleted over paid periods. Each leaves its amendment row.
+Nothing else is refused. An entry's type (its catalogue row) may be changed where it stands: a leave's days move to the other balance and the period is worked out again. A loan a run has deducted may be deleted: it goes with its instalments, and each period that took one is worked out again without it. A shift's hours and a shift pattern's days may be edited after periods were paid on them: they carry no date, so the edit amends the paid periods of the people who used them: the roster days on that shift, and everyone whose terms name the pattern (deleting one that paid periods used is still refused). A record a run priced may be changed or deleted, a no-pay day may be dated in a paid period, and a terms or parameters row may be written, edited, moved or deleted over paid periods. Each leaves its amendment row.
 
 ## 9. The `pay_amendment` row
 

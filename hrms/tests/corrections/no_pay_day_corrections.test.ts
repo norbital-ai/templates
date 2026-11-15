@@ -78,7 +78,7 @@ describe('a no-pay day corrected', () => {
 				);
 				assert.match(
 					String(yield* Effect.flip(add)),
-					/Run \d+ holds this person and is not paid yet\. Delete it, correct this, and run again\./
+					/Run \d+ holds this person and is not paid yet\. Pay that run or delete it first, then make this change\./
 				);
 				yield* (yield* t.as(t.admin)).act({
 					'payroll_run.update': [{ target: ran, set: { state: 'PAID' } }]

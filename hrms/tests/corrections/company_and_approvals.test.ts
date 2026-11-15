@@ -8,7 +8,9 @@ import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
+	REST,
 	WORK,
+	current,
 	leaveCreate,
 	pack,
 	uuid,
@@ -247,6 +249,58 @@ describe('what the company corrects', () => {
 			});
 			assert.ok(pay_amendment.rows.some((row) => row.period === '2026-02'));
 		}).pipe(Effect.provide(workspace({ seed: base(), now: NOW })))
+	);
+
+	it.live(
+		'a shift pattern someone follows is edited after pay, and their paid period is worked out again',
+		() => {
+			const PATTERN = idOf('shift_pattern', uuid(909));
+			const work = idOf('shift_definition', WORK);
+			const rest = idOf('shift_definition', REST);
+			const days = (saturday: typeof work) => ({
+				week_start: 'MONDAY' as const,
+				days: {
+					MONDAY: work,
+					TUESDAY: work,
+					WEDNESDAY: work,
+					THURSDAY: work,
+					FRIDAY: work,
+					SATURDAY: saturday,
+					SUNDAY: rest
+				}
+			});
+			const seed = base();
+			const followed = {
+				...seed,
+				shift_pattern: [
+					{
+						id: PATTERN,
+						entity_id: ENTITY,
+						code: 'WEEK',
+						// no date range: a weekly pattern needs none
+						pattern: days(rest)
+					}
+				],
+				contract_terms: (seed.contract_terms ?? []).map((row) => ({
+					...row,
+					shift_pattern_id: PATTERN
+				}))
+			};
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* pay(t, '2026-02');
+				assert.deepEqual(yield* amendments(t), []);
+				yield* (yield* t.as(t.admin)).act({
+					'shift_pattern.update': [
+						{ target: yield* current(t, 'shift_pattern', PATTERN), set: { pattern: days(work) } }
+					]
+				});
+				assert.deepEqual(
+					(yield* amendments(t)).map((row) => row.period),
+					['2026-02']
+				);
+			}).pipe(Effect.provide(workspace({ seed: followed, now: NOW })));
+		}
 	);
 });
 

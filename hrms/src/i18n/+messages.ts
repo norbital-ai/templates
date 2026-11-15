@@ -145,9 +145,11 @@ export default messages({
 	'dated.value': 'Value',
 	'dated.from': 'From',
 	'dated.add_fact': 'Add fact',
+	'dated.show_history': 'Show history ({count})',
+	'dated.hide_history': 'Hide history',
 	'dated.remove': 'Remove {fact}',
 	'dated.hint':
-		'Each row is one fact and the day it stands from. A row with no value takes the fact away from that day.',
+		'Each row is one fact and the day it stands from: what stands today, and what is dated ahead. A row with no value takes the fact away from that day.',
 	'entity.tab_holidays': 'Holidays',
 	'entity.tab_pay_groups': 'Pay groups',
 	'app.payroll.pay_group': 'Pay group',

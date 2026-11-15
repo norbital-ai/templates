@@ -222,7 +222,7 @@ The employment and the company a rule or effect reads are in [the architecture](
 
 Stints, transfers, service continuity, loans and exits are in [transfer semantics](transfer-semantics.md).
 
-- `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources. A `holiday` with `employee_id` is one person's holiday; without it, the company's. A holiday written in paid time carries the amendment rows of everyone it reaches. A `shift_pattern` is a `week_start` and either one weekday map (`days`) or a `cycle` of days for a rotation longer than a week; it carries no anchor date, because the stint's `effective_range` dates it. A shift pattern paid periods follow and a shift paid days use may be edited: the edit carries the amendment rows of every period the company paid. Deleting one is refused.
+- `holiday`, `shift_pattern`, `shift_definition` — calendar and shift sources. A `holiday` with `employee_id` is one person's holiday; without it, the company's. A holiday written in paid time carries the amendment rows of everyone it reaches. A `shift_pattern` is a `week_start` and either one weekday map (`days`) or a `cycle` of days for a rotation longer than a week; it carries no anchor date, because the stint's `effective_range` dates it. A shift pattern paid periods follow and a shift paid days use may be edited: the edit carries the amendment rows of the people who used them. Deleting one is refused.
 - `work_event`, `workplace_case_catalog_entry` — entity-wide dated source data, each naming its catalogue row by `catalog_code`.
 
 ## 7. Balances and ledger

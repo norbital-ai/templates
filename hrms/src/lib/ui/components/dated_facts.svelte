@@ -5,7 +5,7 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, Combobox, Editor, use_form, type Kind, type Value } from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { Snippet } from 'svelte';
 	import type { Fact } from '../../dated_facts.js';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
@@ -42,6 +42,24 @@
 		onchange(facts.map((fact, at) => (at === index ? { ...fact, ...next } : fact)));
 	const stored = (value: Value) => jsonObject({ value }).value ?? null;
 	const labelOf = (name: string) => names.find((option) => option.value === name)?.label ?? name;
+	// what stands: each fact's latest row dated today or before, and every later one. The rows before those are its
+	// history, shown on demand
+	let history = $state(false);
+	const past = $derived(
+		new Set(
+			facts.flatMap((fact, index) => {
+				if (fact.name === '' || fact.from === '' || fact.from > clock.today) return [];
+				const superseded = facts.some(
+					(other, at) =>
+						at !== index &&
+						other.name === fact.name &&
+						other.from <= clock.today &&
+						(other.from > fact.from || (other.from === fact.from && at > index))
+				);
+				return superseded ? [index] : [];
+			})
+		)
+	);
 </script>
 
 <Stack gap="sm">
@@ -51,55 +69,64 @@
 		<span class="text-meta">{ctx.t('dated.from')}</span>
 		<span></span>
 		{#each facts as fact, index (index)}
-			{@const shape = fact.name === '' ? undefined : kindOf(fact)}
-			{@const set = (value: Value) => put(index, { value: stored(value) })}
-			{#if viewing}<span>{labelOf(fact.name)}</span>{:else}<Combobox
-					id="{id}-{index}-name"
-					value={fact.name === '' ? null : fact.name}
-					options={[...names]}
-					display={labelOf(fact.name)}
-					placeholder={ctx.t('dated.fact')}
-					searchable
-					on_change={(next) => next !== null && put(index, { name: next, value: null })}
-				/>{/if}
-			{#if shape !== undefined}
+			{#if history || !past.has(index)}
+				{@const shape = fact.name === '' ? undefined : kindOf(fact)}
+				{@const set = (value: Value) => put(index, { value: stored(value) })}
+				{#if viewing}<span>{labelOf(fact.name)}</span>{:else}<Combobox
+						id="{id}-{index}-name"
+						value={fact.name === '' ? null : fact.name}
+						options={[...names]}
+						display={labelOf(fact.name)}
+						placeholder={ctx.t('dated.fact')}
+						searchable
+						on_change={(next) => next !== null && put(index, { name: next, value: null })}
+					/>{/if}
+				{#if shape !== undefined}
+					<Editor
+						{ctx}
+						id="{id}-{index}-value"
+						name={fact.name}
+						kind={shape.kind}
+						value={fact.value}
+						on_change={set}
+						{...shape.relation === undefined ? {} : { relation: shape.relation }}
+					/>
+				{:else if fact.name !== '' && custom !== undefined}
+					{@render custom({ fact, id: `${id}-${index}-value`, set })}
+				{:else}
+					<span></span>
+				{/if}
 				<Editor
 					{ctx}
-					id="{id}-{index}-value"
-					name={fact.name}
-					kind={shape.kind}
-					value={fact.value}
-					on_change={set}
-					{...shape.relation === undefined ? {} : { relation: shape.relation }}
+					id="{id}-{index}-from"
+					name="from"
+					kind={{ kind: 'date' }}
+					value={fact.from}
+					on_change={(next) => put(index, { from: next == null ? '' : String(next).slice(0, 10) })}
 				/>
-			{:else if fact.name !== '' && custom !== undefined}
-				{@render custom({ fact, id: `${id}-${index}-value`, set })}
-			{:else}
-				<span></span>
+				{#if viewing}<span></span>{:else}<Button
+						variant="ghost"
+						size="icon"
+						aria-label={ctx.t('dated.remove', { fact: labelOf(fact.name) })}
+						onclick={() => onchange(facts.filter((_, at) => at !== index))}>×</Button
+					>{/if}
 			{/if}
-			<Editor
-				{ctx}
-				id="{id}-{index}-from"
-				name="from"
-				kind={{ kind: 'date' }}
-				value={fact.from}
-				on_change={(next) => put(index, { from: next == null ? '' : String(next).slice(0, 10) })}
-			/>
-			{#if viewing}<span></span>{:else}<Button
-					variant="ghost"
-					size="icon"
-					aria-label={ctx.t('dated.remove', { fact: labelOf(fact.name) })}
-					onclick={() => onchange(facts.filter((_, at) => at !== index))}>×</Button
-				>{/if}
 		{/each}
 	</Grid>
-	{#if !viewing}
-		<div>
+	<Inline gap="sm">
+		{#if !viewing}
 			<Button
 				variant="outline"
 				onclick={() => onchange([...facts, { name: '', value: null, from: from ?? clock.today }])}
 				>{ctx.t('dated.add_fact')}</Button
 			>
-		</div>
-	{/if}
+		{/if}
+		{#if past.size > 0}
+			<Button variant="ghost" onclick={() => (history = !history)}
+				>{history
+					? ctx.t('dated.hide_history')
+					: ctx.t('dated.show_history', { count: past.size })}</Button
+			>
+		{/if}
+	</Inline>
 </Stack>

@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../../lib/payroll_engine/taps.js';
-import { EVER, amendmentsOf, refusing } from '../../../../../lib/amendments.js';
+import { amendmentsFor, followers, refusing } from '../../../../../lib/amendments.js';
 import { stableJson } from '../../../../../lib/payroll_engine/foundation.js';
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'variant'] as const;
@@ -49,16 +49,38 @@ export default model('shift_definition', {
 	update: {
 		fields: columns,
 		transform: function* (changes, ctx) {
-			// its name prices nothing; its hours are what paid days were worked out on, and those are worked out again
+			// its name prices nothing; its hours are what the paid days that used it were worked out on, and those are worked out again
 			const moved = changes.filter(
 				({ before, after }) => stableJson(after.variant) !== stableJson(before.variant)
 			);
+			if (moved.length === 0) return changes.map(({ set }) => set);
+			const ids = moved.map(({ before }) => before.id);
+			// who it touches: the paid roster days that used it, and everyone on a pattern that holds it
+			const used = yield* ctx.query({
+				roster_entry: {
+					where: { shift_definition_id: { in: ids }, payroll_run_id: { is_null: false } },
+					fields: ['employment_id', 'work_date', 'payroll_run_id'],
+					limit: 10000
+				},
+				shift_pattern: {
+					where: { entity_id: { in: moved.map(({ before }) => before.entity_id) } },
+					fields: ['pattern'],
+					limit: 1000
+				}
+			});
+			const holding = used.shift_pattern.rows
+				.filter((row) => ids.some((id) => stableJson(row.pattern).includes(id)))
+				.map((row) => row.id);
 			return {
 				sets: changes.map(({ set }) => set),
-				on_approved: yield* amendmentsOf(
-					ctx.query,
-					moved.map(({ before }) => ({ entity: String(before.entity_id), from: EVER, to: null }))
-				).pipe(refusing(ctx))
+				on_approved: yield* amendmentsFor(ctx.query, [
+					...used.roster_entry.rows.map((row) => ({
+						employment: String(row.employment_id),
+						from: String(row.work_date),
+						run: row.payroll_run_id
+					})),
+					...(yield* followers(ctx.query, holding))
+				]).pipe(refusing(ctx))
 			};
 		},
 		effect: function* (changes, ctx) {

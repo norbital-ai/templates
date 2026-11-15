@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { EVER, amendmentsOf, paidUnder, refusing } from '../../../../lib/amendments.js';
+import { amendmentsFor, followers, paidUnder, refusing } from '../../../../lib/amendments.js';
 import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
 const onePatternShape = (pattern: unknown) => {
@@ -76,7 +76,7 @@ export default model('shift_pattern', {
 			const row = changes.findIndex(({ after }) => !onePatternShape(after.pattern));
 			if (row >= 0)
 				return yield* ctx.refuse('errors.shift_pattern_one_shape', { row, field: 'pattern' });
-			// its name prices nothing; its days are what paid periods were worked out on, and those are worked out again
+			// its name prices nothing; its days are what the paid periods of who follows it were worked out on, and those are worked out again
 			const moved = changes.filter(
 				({ before, after }) =>
 					stableJson(after.pattern) !== stableJson(before.pattern) ||
@@ -84,9 +84,13 @@ export default model('shift_pattern', {
 			);
 			return {
 				sets: changes.map(({ set }) => set),
-				on_approved: yield* amendmentsOf(
+				// everyone whose terms name it, from the day they began to follow it
+				on_approved: yield* amendmentsFor(
 					ctx.query,
-					moved.map(({ before }) => ({ entity: String(before.entity_id), from: EVER, to: null }))
+					yield* followers(
+						ctx.query,
+						moved.map(({ before }) => before.id)
+					)
 				).pipe(refusing(ctx))
 			};
 		},

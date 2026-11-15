@@ -33,7 +33,7 @@ const TOO_WIDE =
 type Rows = NonNullable<NonNullable<CarriedWrites['pay_amendment']>['create']>[number][];
 
 const held = (run: JsonObject) =>
-	`Run ${String(run.run_number)} holds this person and is not paid yet. Delete it, correct this, and run again.`;
+	`Run ${String(run.run_number)} holds this person and is not paid yet. Pay that run or delete it first, then make this change.`;
 
 /** The paid periods these payslips name, with the window each priced. */
 const windowsOf = (payslips: readonly JsonObject[], schedules: ReadonlyMap<string, JsonObject>) =>
@@ -211,8 +211,25 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	);
 });
 
-/** The first day of a span with no first day: a record with no date of its own was always so. */
-export const EVER = '1900-01-01';
+/** Everyone whose terms name these shift patterns, from the day each began to follow one: what a pattern's edit touches. */
+export const followers = Effect.fn('payroll.followers')(function* (
+	read: Reader,
+	patterns: readonly unknown[]
+) {
+	if (patterns.length === 0) return [];
+	const { contract_terms: terms = [] } = yield* queryRows(read, {
+		contract_terms: {
+			where: { shift_pattern_id: { in: idsOf('shift_pattern', patterns) } },
+			fields: ['employment_id', 'effective_from'],
+			limit: 10000
+		}
+	});
+	return terms.map((row): Touched => ({
+		employment: String(row.employment_id),
+		from: String(row.effective_from),
+		to: null
+	}));
+});
 
 /** A company's days: everyone it paid for them, or the one person named. */
 export interface Span {
@@ -336,7 +353,7 @@ export const RUN_INPUTS = {
 	jurisdiction_change: 'amends',
 	jurisdiction: 'refuses',
 	pay_group: 'refuses',
-	// a shift's hours and a pattern's days carry no date: an edit amends every period the company paid
+	// a shift's hours and a pattern's days carry no date: an edit amends the paid periods of who followed them
 	shift_definition: 'amends',
 	shift_pattern: 'amends',
 	// the person: their date of birth, gender and how their service counts move pay, and amend every period they were
