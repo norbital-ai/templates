@@ -1,6 +1,6 @@
 /**
- * Every financing product a line can be, and what each means for the figures: whether it bears interest (and so
- * counts in the cost of funds), whether it uses the facility limit while open, which month-end line it reports on,
+ * Every financing product a line can be, and what each means for the figures: whether it uses the facility limit
+ * while open, which month-end line it reports on,
  * whether it is trade financing compared on Costs, and what an LC or bill may convert into.
  */
 export const PRODUCT_CODES = [
@@ -45,11 +45,11 @@ export const PRODUCT_CODES = [
 export type Product = (typeof PRODUCT_CODES)[number];
 
 export type Bucket = 'borrowings' | 'lc' | 'tb' | 'guarantee' | 'other';
-type Meta = { interest: boolean; uses_limit: boolean; bucket: Bucket; trade: boolean };
+type Meta = { uses_limit: boolean; bucket: Bucket; trade: boolean };
 
-const loan: Meta = { interest: true, uses_limit: true, bucket: 'borrowings', trade: false };
+const loan: Meta = { uses_limit: true, bucket: 'borrowings', trade: false };
 const trade: Meta = { ...loan, trade: true };
-const documentary = (bucket: Bucket): Meta => ({ ...loan, interest: false, bucket });
+const documentary = (bucket: Bucket): Meta => ({ ...loan, bucket });
 const guarantee: Meta = documentary('guarantee');
 
 export const PRODUCTS: Record<Product, Meta> = {

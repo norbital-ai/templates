@@ -2,7 +2,7 @@ import { policy } from '@norbital-ai/bolt';
 /** View: every treasury and purchasing page, read only. */
 export default policy({
 	description: 'View: read every treasury and purchasing record; change nothing.',
-	capabilities: { apps: ['treasury', 'purchasing'] },
+	capabilities: { apps: ['treasury', 'purchasing'], automations: ['facility_form_pack'] },
 	grants: {
 		bank: { outputs: { default: {} } },
 		bank_contact: { outputs: { default: {} } },

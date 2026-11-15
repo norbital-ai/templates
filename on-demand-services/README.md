@@ -1,10 +1,10 @@
 # On-Demand Services
 
+![On-Demand Services application](docs/screenshots/application.webp)
+
 A booking and dispatch workspace for businesses that send helpers to customers' homes: cleaning,
 laundry, handyman work — anything booked by the visit. The desk takes a booking, the workspace
 matches a helper to every visit, and it watches each shift until the helper is at the door.
-
-![On-Demand Services](assets/thumbnail.svg)
 
 The [local run sheet](docs/DEMO.md) covers booking and recovery.
 

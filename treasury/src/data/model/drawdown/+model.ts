@@ -29,7 +29,14 @@ const EDITABLE = [
 	'purpose',
 	'notes'
 ] as const;
-const CHARGE_FIELDS = ['charge_type', 'stage', 'description', 'currency', 'amount'] as const;
+const CHARGE_FIELDS = [
+	'charge_type',
+	'stage',
+	'description',
+	'currency',
+	'amount',
+	'fx_rate_to_usd'
+] as const;
 /** Figures the write fills from the line and its facility: tenor, interest to maturity, latest due date. */
 const FILLED = ['tenor_days', 'interest_to_maturity', 'latest_due_date'] as const;
 

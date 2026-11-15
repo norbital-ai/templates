@@ -4,7 +4,7 @@
 	 * workspace's own arithmetic on those figures, and Read / Apply in the footer.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Alert, Button, RecordShell, use_act, type RecordView } from '@norbital-ai/ui';
+	import { Alert, Button, RecordShell, RunStatus, use_act, type RecordView } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { adviceChecks } from '../../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'bank_document'>; ctx: PageContext } = $props();
@@ -43,6 +43,15 @@
 				)
 	);
 	const act = use_act(ctx);
+	let run = $state<string | null>(null);
+	let automation = $state<'bank_document_read' | 'bank_document_apply'>('bank_document_read');
+	const start = (which: typeof automation) => {
+		if (record === null) return;
+		const handle = ctx.run(which, { advice: [record.id] });
+		automation = which;
+		run = handle.id;
+		act.run(handle);
+	};
 </script>
 
 {#snippet arithmetic()}
@@ -57,20 +66,17 @@
 {/snippet}
 
 {#snippet next()}
-	{#if record !== null && record.read_status !== 'applied'}
-		<Button
-			variant="outline"
-			disabled={act.pending}
-			onclick={() => act.run(ctx.run('bank_document_read', { advice: [record.id] }))}
+	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && record.read_status !== 'applied'}
+		<Button variant="outline" disabled={act.pending} onclick={() => start('bank_document_read')}
 			>{t('app.advices.read')}</Button
 		>
 		<Button
 			variant="outline"
 			disabled={act.pending || record.extracted === null || record.drawdown === null}
-			onclick={() => act.run(ctx.run('bank_document_apply', { advice: [record.id] }))}
-			>{t('app.advices.apply')}</Button
+			onclick={() => start('bank_document_apply')}>{t('app.advices.apply')}</Button
 		>
 	{/if}
+	{#if run}<RunStatus {ctx} {automation} {run} />{/if}
 {/snippet}
 
 {#if record === null}

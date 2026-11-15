@@ -29,7 +29,10 @@ const EARMARK_FIELDS = [
  */
 export default policy({
 	description: 'Finance: plan earmarks, keep suppliers, record invoices; read everything else.',
-	capabilities: { apps: ['treasury', 'purchasing'], automations: ['drawdown_cancel'] },
+	capabilities: {
+		apps: ['treasury', 'purchasing'],
+		automations: ['drawdown_cancel', 'facility_form_pack']
+	},
 	grants: {
 		bank: { outputs: { default: {} } },
 		bank_contact: { outputs: { default: {} } },

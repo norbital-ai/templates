@@ -63,6 +63,7 @@ export type FeeRow = {
 	readonly rate_pct: string | null;
 	readonly amount: string | null;
 	readonly minimum_amount: string | null;
+	readonly minimum_currency: string;
 	readonly include_in_estimates: boolean;
 };
 export type FxRow = {
@@ -350,34 +351,30 @@ export function usdPerUnit(currency: string, on: string, rates: readonly FxRow[]
 	return (mine.find((r) => r.rate_date <= on) ?? mine[0])?.usd_per_unit ?? null;
 }
 
-/** A line's charges in USD at the rates of `on`. */
+/** Actual charges retain the conversion agreed when they were recorded. */
 export const chargesUsd = (
-	charges: readonly { readonly amount: string; readonly currency: string }[],
-	on: string,
-	rates: readonly FxRow[]
+	charges: readonly { readonly amount: string; readonly fx_rate_to_usd: string }[]
 ) =>
 	text(
 		sum(
-			charges.map((c) =>
-				BigDecimal.multiply(decimal(c.amount), decimal(usdPerUnit(c.currency, on, rates) ?? '1'))
-			)
+			charges.map((c) => money(BigDecimal.multiply(decimal(c.amount), decimal(c.fx_rate_to_usd))))
 		)
 	);
 
 /** One fee rule applied to a USD amount; null when its currency has no rate. */
 export function feeAmount(fee: FeeRow, amount_usd: string, on: string, rates: readonly FxRow[]) {
-	const fx = usdPerUnit(fee.currency, on, rates);
-	if (fx === null) return null;
-	if (fee.method === 'flat')
+	if (fee.method === 'flat') {
+		const fx = usdPerUnit(fee.currency, on, rates);
+		if (fx === null) return null;
 		return text(money(BigDecimal.multiply(decimal(fee.amount ?? 0), decimal(fx))));
+	}
 	const value = BigDecimal.divideUnsafe(
 		BigDecimal.multiply(decimal(amount_usd), decimal(fee.rate_pct ?? 0)),
 		decimal(100)
 	);
-	const minimum =
-		fee.minimum_amount === null
-			? ZERO
-			: BigDecimal.multiply(decimal(fee.minimum_amount), decimal(fx));
+	const minimumFx = fee.minimum_amount === null ? '1' : usdPerUnit(fee.minimum_currency, on, rates);
+	if (minimumFx === null) return null;
+	const minimum = BigDecimal.multiply(decimal(fee.minimum_amount ?? 0), decimal(minimumFx));
 	return text(money(BigDecimal.max(value, minimum)));
 }
 
@@ -401,7 +398,7 @@ export function estimateCharges(
 	rates: readonly FxRow[],
 	on: string
 ) {
-	if (line.facility === null || line.status === 'cancelled' || line.status === 'settled') return [];
+	if (line.facility === null || line.status === 'cancelled') return [];
 	const rules = feesFor(fees, line.facility, line.product);
 	const commissionStage = rules.find((f) => f.fee_type === 'commission')?.stage ?? 'drawdown';
 	return (['drawdown', 'settlement'] as const)
@@ -412,10 +409,11 @@ export function estimateCharges(
 					(f) =>
 						f.stage === stage && !(line.charge_rate_pct !== null && f.fee_type === 'commission')
 				)
-				.flatMap((f) => {
-					const amount = feeAmount(f, line.amount_usd, on, rates);
-					return amount === null ? [] : [{ stage, charge_type: f.fee_type, amount }];
-				}),
+				.map((f) => ({
+					stage,
+					charge_type: f.fee_type,
+					amount: feeAmount(f, line.amount_usd, on, rates)
+				})),
 			...(line.charge_rate_pct !== null && stage === commissionStage
 				? [
 						{
@@ -465,6 +463,7 @@ export type MonthEndLine<Line extends string = string> = {
 export function monthEndReport<
 	L extends LineRow & {
 		readonly bank_reference: string | null;
+		readonly fx_rate_to_usd: string;
 		readonly supplier_name: string | null;
 		readonly rounding: Rounding;
 		readonly charges_usd: string;
@@ -481,7 +480,7 @@ export function monthEndReport<
 			return l.status !== 'settled' || (repaid !== null && repaid > end);
 		})
 		.map((l) => {
-			const fx = usdPerUnit(l.currency, end, rates) ?? '1';
+			const fx = usdPerUnit(l.currency, end, rates) ?? l.fx_rate_to_usd;
 			const days =
 				l.start_date !== null && l.due_date !== null
 					? accruedDays(l.start_date, l.due_date, end)
@@ -539,7 +538,7 @@ export function monthEndReport<
 	const accrued = rows.map((r) =>
 		r.accrued_interest === null
 			? ZERO
-			: BigDecimal.multiply(decimal(r.accrued_interest), decimal(r.fx_rate_to_usd))
+			: money(BigDecimal.multiply(decimal(r.accrued_interest), decimal(r.fx_rate_to_usd)))
 	);
 	return {
 		lines: rows,
@@ -587,8 +586,9 @@ export function monthEndReport<
 export function monthEndFrom<
 	L extends LineRow & {
 		readonly bank_reference: string | null;
+		readonly fx_rate_to_usd: string;
 		readonly supplier: { readonly name: string } | null;
-		readonly charges: readonly { readonly amount: string; readonly currency: string }[];
+		readonly charges: readonly { readonly amount: string; readonly fx_rate_to_usd: string }[];
 	}
 >(month: string, lines: readonly L[], facilities: readonly FacilityRow[], rates: readonly FxRow[]) {
 	const rounding = new Map(facilities.map((f) => [f.id, f.interest_rounding]));
@@ -599,7 +599,7 @@ export function monthEndFrom<
 			supplier_name: l.supplier?.name ?? null,
 			rounding:
 				(l.facility === null ? undefined : rounding.get(l.facility)) ?? ('nearest_cent' as const),
-			charges_usd: chargesUsd(l.charges, monthEnd(month), rates)
+			charges_usd: chargesUsd(l.charges)
 		})),
 		facilities,
 		rates
@@ -607,7 +607,7 @@ export function monthEndFrom<
 }
 
 /** What a month-end read names for its lines. */
-export const MONTH_END_LINE_FIELDS = [...LINE_FIELDS, 'bank_reference'] as const;
+export const MONTH_END_LINE_FIELDS = [...LINE_FIELDS, 'bank_reference', 'fx_rate_to_usd'] as const;
 
 // ── bank costs ────────────────────────────────────────────────────────────────────────────────
 
@@ -650,7 +650,7 @@ export function rateByMonth(
 
 /**
  * For one invoice (amount, tenor, product, supplier), each bank's estimated interest and charges, cheapest eligible
- * first. The rate is the bank's 90-day weighted rate on the product, else its last one, else its trade average.
+ * first. The rate is the bank's 90-day product rate, last product rate, 90-day trade rate, then last trade rate.
  */
 export function compareInvoice(
 	input: {
@@ -676,10 +676,13 @@ export function compareInvoice(
 			const product = mine.filter((l) => family(input.product).includes(l.product));
 			const recent = product.filter((l) => startOf(l)! > recentFrom);
 			const last = [...product].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
+			const lastTrade = [...mine].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
 			const rate =
 				weightedRate(recent) ??
 				last?.interest_rate_pct ??
-				weightedRate(mine.filter((l) => startOf(l)! > recentFrom));
+				weightedRate(mine.filter((l) => startOf(l)! > recentFrom)) ??
+				lastTrade?.interest_rate_pct ??
+				null;
 			const notes: string[] = [];
 			if (input.eligible !== null && !input.eligible.has(f.bank?.code ?? '—'))
 				notes.push('supplier');
@@ -694,13 +697,15 @@ export function compareInvoice(
 				f.day_count_basis,
 				f.interest_rounding
 			);
-			const charges = sum(
-				feesFor(fees, f.id, input.product).flatMap((fee) => {
-					const a = feeAmount(fee, input.amount, input.as_of, rates);
-					return a === null ? [] : [decimal(a)];
-				})
+			const priced = feesFor(fees, f.id, input.product).map((fee) =>
+				feeAmount(fee, input.amount, input.as_of, rates)
 			);
-			const total = cost === null ? null : BigDecimal.sum(decimal(cost), charges);
+			if (priced.includes(null)) notes.push('fx');
+			const charges = priced.includes(null)
+				? null
+				: sum(priced.flatMap((a) => (a === null ? [] : [decimal(a)])));
+			const total =
+				cost === null || charges === null ? null : BigDecimal.sum(decimal(cost), charges);
 			const allIn =
 				total === null || input.tenor <= 0
 					? null
@@ -716,7 +721,7 @@ export function compareInvoice(
 				bank: f.bank?.code ?? '—',
 				rate,
 				interest: cost,
-				charges: text(charges),
+				charges: charges === null ? null : text(charges),
 				total: total === null ? null : text(total),
 				all_in_pct: allIn === null ? null : text(allIn, 4),
 				notes,
@@ -733,18 +738,21 @@ export function compareInvoice(
 export function bankSummary(
 	facilities: readonly FacilityRow[],
 	lines: readonly LineRow[],
-	as_of: string
+	as_of: string,
+	charges: ReturnType<typeof chargesSummary>
 ) {
 	const recentFrom = addDays(as_of, -RECENT_DAYS);
 	const rated = lines.filter((l) => compared(l) && startOf(l)! <= as_of);
 	const group = weightedRate(rated.filter((l) => startOf(l)! > recentFrom));
 	const room = new Map(headroom(facilities, lines).map((h) => [h.facility, h.available]));
-	return facilities
+	const rows = facilities
 		.filter((f) => f.status === 'active')
 		.map((f) => {
 			const mine = rated.filter((l) => l.facility === f.id);
 			const latest = [...mine].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
 			const recent = weightedRate(mine.filter((l) => startOf(l)! > recentFrom));
+			const charge = charges.find((c) => c.bank === f.bank?.code);
+			const reference = recent ?? latest?.interest_rate_pct ?? null;
 			return {
 				facility: f.id,
 				bank: f.bank?.code ?? '—',
@@ -758,17 +766,37 @@ export function bankSummary(
 					lines.filter((l) => l.facility === f.id && OPEN.includes(l.status) && compared(l))
 				),
 				margin_pct: f.margin_pct,
-				available: room.get(f.id) ?? f.limit
+				available: room.get(f.id) ?? f.limit,
+				charges_pct: charge?.pct_of_amount ?? null,
+				charges_pa: charge?.pct_per_annum ?? null,
+				all_in_pct:
+					reference === null || charge?.pct_per_annum == null
+						? null
+						: text(BigDecimal.sum(decimal(reference), decimal(charge.pct_per_annum)), 4)
 			};
 		});
+	const ranked = [...rows]
+		.filter((r) => r.all_in_pct !== null)
+		.sort((a, b) => Number(a.all_in_pct) - Number(b.all_in_pct));
+	return rows.map((row) => ({
+		...row,
+		rank: row.all_in_pct === null ? null : ranked.indexOf(row) + 1
+	}));
 }
 
-/** Actual charges on lines started in the last twelve months, per bank: as % of amount and % p.a. over the tenor. */
+/** Recorded charges plus missing-stage estimates on USD trade lines, over twelve complete calendar months to date. */
 export function chargesSummary(
 	lines: readonly (LineRow & {
-		readonly charges: readonly { readonly amount: string; readonly currency: string }[];
+		readonly charge_rate_pct: string | null;
+		readonly charges: readonly {
+			readonly amount: string;
+			readonly fx_rate_to_usd: string;
+			readonly charge_type: string;
+			readonly stage: Stage;
+		}[];
 	})[],
 	banks: ReadonlyMap<string, string>,
+	fees: readonly FeeRow[],
 	rates: readonly FxRow[],
 	as_of: string
 ) {
@@ -778,13 +806,18 @@ export function chargesSummary(
 		{
 			lines: number;
 			financed: BigDecimal.BigDecimal;
-			charges: BigDecimal.BigDecimal;
+			recorded: BigDecimal.BigDecimal;
+			estimated: BigDecimal.BigDecimal;
+			complete: boolean;
+			byType: Map<string, BigDecimal.BigDecimal>;
 			tenorWeighted: BigDecimal.BigDecimal;
 		}
 	>();
 	for (const l of lines) {
 		const start = startOf(l);
 		if (
+			l.currency !== 'USD' ||
+			!PRODUCTS[l.product].trade ||
 			l.charges.length === 0 ||
 			start === null ||
 			start < since ||
@@ -792,32 +825,51 @@ export function chargesSummary(
 			l.facility === null
 		)
 			continue;
-		const bank = banks.get(l.facility) ?? '—';
-		const a = acc.get(bank) ?? { lines: 0, financed: ZERO, charges: ZERO, tenorWeighted: ZERO };
-		a.lines += 1;
-		a.financed = BigDecimal.sum(a.financed, usd(l));
-		a.charges = BigDecimal.sum(
-			a.charges,
-			sum(
-				l.charges.map((c) =>
-					BigDecimal.multiply(
-						decimal(c.amount),
-						decimal(usdPerUnit(c.currency, start, rates) ?? '1')
-					)
-				)
-			)
+		const estimates = estimateCharges(
+			l,
+			fees,
+			l.charges.map((c) => c.stage),
+			rates,
+			start
 		);
-		const tenor = tenorDays(l.start_date, l.due_date);
-		if (tenor)
-			a.tenorWeighted = BigDecimal.sum(
-				a.tenorWeighted,
-				BigDecimal.multiply(usd(l), decimal(tenor))
+		for (const bank of [banks.get(l.facility) ?? '—', 'all']) {
+			const a = acc.get(bank) ?? {
+				lines: 0,
+				financed: ZERO,
+				recorded: ZERO,
+				estimated: ZERO,
+				complete: true,
+				byType: new Map<string, BigDecimal.BigDecimal>(),
+				tenorWeighted: ZERO
+			};
+			a.lines += 1;
+			a.financed = BigDecimal.sum(a.financed, usd(l));
+			a.recorded = BigDecimal.sum(a.recorded, decimal(chargesUsd(l.charges)));
+			a.complete &&= !estimates.some((e) => e.amount === null);
+			a.estimated = BigDecimal.sum(
+				a.estimated,
+				sum(estimates.flatMap((e) => (e.amount === null ? [] : [decimal(e.amount)])))
 			);
-		acc.set(bank, a);
+			for (const c of l.charges)
+				a.byType.set(
+					c.charge_type,
+					BigDecimal.sum(a.byType.get(c.charge_type) ?? ZERO, decimal(chargesUsd([c])))
+				);
+			const tenor = tenorDays(l.start_date, l.due_date);
+			if (tenor)
+				a.tenorWeighted = BigDecimal.sum(
+					a.tenorWeighted,
+					BigDecimal.multiply(usd(l), decimal(tenor))
+				);
+			acc.set(bank, a);
+		}
 	}
 	return [...acc.entries()]
 		.map(([bank, a]) => {
-			const ofAmount = ratio(BigDecimal.multiply(a.charges, decimal(100)), a.financed);
+			const charges = BigDecimal.sum(a.recorded, a.estimated);
+			const ofAmount = a.complete
+				? ratio(BigDecimal.multiply(charges, decimal(100)), a.financed)
+				: null;
 			const tenor = ratio(a.tenorWeighted, a.financed);
 			const perAnnum =
 				ofAmount === null || tenor === null || BigDecimal.isZero(tenor)
@@ -827,13 +879,73 @@ export function chargesSummary(
 				bank,
 				lines: a.lines,
 				financed: text(a.financed),
-				charges: text(a.charges),
+				recorded: text(a.recorded),
+				estimated: a.complete ? text(a.estimated) : null,
+				charges: a.complete ? text(charges) : null,
+				per_line: a.complete ? text(BigDecimal.divideUnsafe(charges, decimal(a.lines))) : null,
+				by_type: Object.fromEntries([...a.byType].map(([type, amount]) => [type, text(amount)])),
 				pct_of_amount: ofAmount === null ? null : text(ofAmount, 4),
 				pct_per_annum: perAnnum === null ? null : text(perAnnum, 4),
 				average_tenor_days: tenor === null ? null : text(tenor, 0)
 			};
 		})
-		.sort((a, b) => Number(a.pct_of_amount ?? 0) - Number(b.pct_of_amount ?? 0));
+		.sort(
+			(a, b) =>
+				Number(a.bank === 'all') - Number(b.bank === 'all') ||
+				Number(a.pct_of_amount ?? 999) - Number(b.pct_of_amount ?? 999)
+		);
+}
+
+/** The same exported columns for live lines and frozen month-end rows. */
+export function monthEndExportRow(l: {
+	readonly bank_code: string;
+	readonly product: string | null;
+	readonly reference: string | null;
+	readonly supplier: string | null;
+	readonly currency: string;
+	readonly amount: string;
+	readonly fx_rate_to_usd: string;
+	readonly amount_usd: string | null;
+	readonly interest_rate_pct: string | null;
+	readonly day_count_basis: string;
+	readonly start_date: string | null;
+	readonly due_date: string | null;
+	readonly tenor_days: number | null;
+	readonly accrued_days: number | null;
+	readonly accrued_interest: string | null;
+	readonly interest_to_maturity: string | null;
+	readonly charges: string | null;
+}) {
+	const fx = decimal(l.fx_rate_to_usd);
+	const convertedCharges = BigDecimal.isPositive(fx) ? ratio(decimal(l.charges ?? 0), fx) : null;
+	return {
+		bank: l.bank_code,
+		product: l.product,
+		reference: l.reference,
+		supplier: l.supplier,
+		currency: l.currency,
+		amount: l.amount,
+		fx_rate_to_usd: l.fx_rate_to_usd,
+		amount_usd: l.amount_usd,
+		rate_pct: l.interest_rate_pct,
+		day_count_basis: l.day_count_basis,
+		start_date: l.start_date,
+		due_date: l.due_date,
+		tenor_days: l.tenor_days,
+		accrued_days: l.accrued_days,
+		accrued_interest: l.accrued_interest,
+		accrued_interest_usd:
+			l.accrued_interest === null || !BigDecimal.isPositive(fx)
+				? null
+				: text(money(BigDecimal.multiply(decimal(l.accrued_interest), fx))),
+		interest_to_maturity: l.interest_to_maturity,
+		charges_usd: l.charges,
+		// Unknown interest must not become a seemingly complete payable total.
+		total_payable:
+			l.interest_to_maturity === null || convertedCharges === null
+				? null
+				: text(money(sum([decimal(l.amount), decimal(l.interest_to_maturity), convertedCharges])))
+	};
 }
 
 // ── a line's warnings ─────────────────────────────────────────────────────────────────────────

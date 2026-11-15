@@ -1,5 +1,20 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'app.forms.pack': 'Download PDF pack',
+	'errors.one_form': 'Choose one facility form.',
+	'errors.pack_failed':
+		'Could not add {file} to the PDF pack: {detail}. The original attachment is unchanged.',
+	'errors.pack_large':
+		'The PDF pack exceeds 4 MiB. Print the form and download its attachments separately.',
+	'models.drawdown_charge.fields.amount_usd': 'Amount (USD)',
+	'models.drawdown_charge.fields.fx_rate_to_usd': 'Recorded USD per unit',
+	'models.facility_fee.fields.minimum_currency': 'Minimum currency',
+	'app.dashboard.all_banks': 'All banks',
+	'app.charges.missing_fx':
+		'Some estimated fees have no FX rate. Totals and rankings remain unknown until the fee or minimum currency is priced.',
+	'app.charges.per_line': 'Per line',
+	'app.costs.rank': 'Rank',
+	'app.costs.note_fx': 'Missing fee FX rate',
 	'errors.line_sealed':
 		'A settled or cancelled line cannot change; only its archive flag, review and notes can.',
 	'errors.month_locked': 'This month is locked. Unlock it first.',
@@ -190,7 +205,7 @@ export default messages({
 	'app.costs.margin': 'Offer margin %',
 	'app.charges.title': 'Charges',
 	'app.charges.description':
-		'Actual bank charges by bank, the fee rules and every recorded charge.',
+		'Recorded bank charges plus estimates for missing stages, fee rules and every recorded charge.',
 	'app.charges.by_bank': 'By bank',
 	'app.charges.rules': 'Fee rules',
 	'app.charges.recorded': 'Recorded charges',
@@ -453,6 +468,7 @@ export default messages({
 		"A month's open lines, accrued interest and figures; lock it to freeze them.",
 	'app.month_end.month': 'Month',
 	'app.month_end.lock': 'Lock month',
+	'app.month_end.export': 'Export',
 	'app.month_end.unlock': 'Unlock month',
 	'app.month_end.lines': 'Month-end report',
 	'app.month_end.history': 'Closed months',
@@ -505,5 +521,6 @@ export default messages({
 	'app.forms.title': 'Facility forms',
 	'app.forms.description':
 		'Requisitions for POs paid by T/T advance or LC, with their attachments.',
-	'app.forms.fill': 'Fill from attachments'
+	'app.forms.fill': 'Fill from attachments',
+	'errors.po_owner': 'You can only change your own purchase orders and their documents.'
 });

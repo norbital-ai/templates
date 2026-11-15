@@ -1,6 +1,6 @@
 # Field Operations
 
-![Field Operations workspace thumbnail](assets/thumbnail.svg)
+![Field Operations application](docs/screenshots/application.webp)
 
 Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
 contractor, track on-site progress, and collect photographic evidence whose integrity is checked
@@ -74,7 +74,7 @@ For WhatsApp, open the member, enter their **Mobile number** in international fo
 member by the email or phone number entered as its contractor contact, rather than by a separate
 contractor record or a display name.
 
-![Invite a member into the Contractor role](docs/screenshots/19-member-setup.jpg)
+![Invite a member into the Contractor role](docs/screenshots/19-member-setup.webp)
 
 ### 2. Locate a site and file its first assignment
 
@@ -86,9 +86,9 @@ no second address to type. **Client / tenant**, **Site type**, **Floor area (sqm
 dispatch-system site code are optional. Saving the same address/unit twice is refused rather
 than producing another site.
 
-![Location and optional unit in the new-site form](docs/screenshots/02-new-job-and-site.jpg)
+![New site fields, including location and optional unit](docs/screenshots/new-site.webp)
 
-![A missing location is refused](docs/screenshots/20-location-required.jpg)
+![Location is required by the native site form](docs/screenshots/site-validation.webp)
 
 Open **Contractor Workspace → Dispatched jobs** (`/app/field_ops_contractor/jobs`) as a controller
 and choose **New**. Supply **Site**, **Job title**, **Scheduled date**, and **Job description and
@@ -114,7 +114,7 @@ phone number, then save. Linking a contractor records the job's first dispatch t
 changes the status. A controller can reassign work from this same
 section.
 
-![Assign a contractor and dispatch the job](docs/screenshots/03-assignment-progress.jpg)
+![Job scope, contractor and progress on the record](docs/screenshots/job-record.webp)
 
 The assigned contractor opens **Contractor Workspace → Dispatched jobs** and sees only their
 assignments. Controllers using this page see workspace-wide assignments and a Contractor column.
@@ -131,9 +131,7 @@ Contractors can report progress, completion, charged amount and location on thei
 order fields and reassignment remain controller operations. A completion report also makes the
 assignment eligible for another evidence review; completion does not settle an open finding.
 
-![The Contractor's scoped job list](docs/screenshots/06-contractor-jobs.jpg)
-
-![Completed work and the Contractor's visit summary](docs/screenshots/27-contractor-completion.jpg)
+![Jobs in the controller view; contractor permissions scope the same page to assigned work](docs/screenshots/contractor-jobs.webp)
 
 ### 4. Review a site's upcoming work and history
 
@@ -145,7 +143,7 @@ job to inspect its scope, conversation and, as a controller, suspicion records.
 Changing a site's Location updates the derived site title. Existing seed sites that have no
 location remain readable, but require a Location when edited.
 
-![Site activity and assignment history](docs/screenshots/05-site-history.jpg)
+![The site record and its activity history](docs/screenshots/site-history.webp)
 
 ### 5. Import a dispatch sheet
 
@@ -166,11 +164,7 @@ links that contractor, otherwise the card warns that no contractor is linked.
 Re-importing the same `external_ref` skips that work order. Without a reference, the same title,
 day and site is skipped. A successful repeat therefore creates no duplicate work.
 
-![A successful dispatch import](docs/screenshots/22-import-result.jpg)
-
-![Repeating the same import creates no duplicates](docs/screenshots/23-import-repeat.jpg)
-
-![A new site without coordinates is refused before import](docs/screenshots/24-import-validation.jpg)
+![The native dispatch import sheet](docs/screenshots/dispatch-import.webp)
 
 ### 6. File photos and inspect the assignment conversation
 
@@ -182,13 +176,13 @@ after filing. Correct a mistaken filing by adding the correct evidence.
 The creation form asks only for the parent record and photo. Provenance is supplied by the
 system, so there is no required Source field for the person to fill.
 
-![A Contractor's filed photo: the assignment and file only, summarised as Workspace upload](docs/screenshots/09-photo-filed.jpg)
+![A Contractor's filed photo: the assignment and file only, summarised as Workspace upload](docs/screenshots/09-photo-filed.webp)
 
 Filing schedules `inspect_photo_evidence` from the photo's effect. A controller reopening the photo sees its
 integrity facts: a photo without EXIF GPS shows **Missing geolocation**, and **Matched evidence
 ids** stays empty when nothing duplicates it.
 
-![The controller's view of the same photo after inspection](docs/screenshots/10-photo-inspection.jpg)
+![The controller's view of the same photo after inspection](docs/screenshots/10-photo-inspection.webp)
 
 The WhatsApp Envoy can instead file the attachment and its source as part of an assignment
 report. It retains the textual messages about that assignment once per provider message. Open
@@ -220,12 +214,6 @@ conclusion under **Resolution** and choose **Resolve**. The saved resolution rec
 and when. It cannot be reopened or rewritten, and the original evidence basis remains available.
 Any other open judgement still requires its own resolution.
 
-![A completed review run and its result counts](docs/screenshots/11-suspicion-review.jpg)
-
-![A controller records a finding's resolution](docs/screenshots/12-human-resolution.jpg)
-
-![The saved resolution remains attached to the finding](docs/screenshots/32-finding-resolved.jpg)
-
 ### 8. Hand selected sites to another system
 
 In **Sites**, select one or more rows and choose **Actions → Site handover**. On success the page
@@ -234,7 +222,7 @@ run under **Command center → Automations**. Each selected site produces three 
 contains the site details and those related records and their photos. File references and integrity facts travel with the evidence; this action exports the
 records rather than changing their workflow state.
 
-![Site handover succeeded with the JSON and CSV downloads](docs/screenshots/13-site-handover.jpg)
+![Site handover succeeded with the JSON and CSV downloads](docs/screenshots/13-site-handover.webp)
 
 ### 9. Connect and operate the WhatsApp Envoy
 
@@ -248,7 +236,7 @@ Its inline card then offers the WhatsApp channel; connect that one instance rath
 another channel for the same Envoy. **More → System → Integrations** (`/settings/integrations`)
 lists it under **Agent channels**.
 
-![A connected WhatsApp agent channel with Manage, Disconnect and its import start (account number redacted)](docs/screenshots/14-envoy-integrations.jpg)
+![A connected WhatsApp agent channel with Manage, Disconnect and its import start (account number redacted)](docs/screenshots/14-envoy-integrations.webp)
 
 1. For an unpaired WhatsApp channel, choose **Connect**. For an already connected channel,
    choose **Manage**. **Manage** opens that connection's **Connection**,
@@ -277,15 +265,15 @@ lists it under **Agent channels**.
 6. Reopen the job to verify its status, summary, photo and **Conversation** entry. Inspect the
    integration's **Messages** tab for inbound/outbound messages, delivery state and errors.
 
-![Available connection providers](docs/screenshots/15-envoy-provider-choice.jpg)
+![Available connection providers](docs/screenshots/15-envoy-provider-choice.webp)
 
-![Connection tab of the paired instance: provider, account (redacted) and import start](docs/screenshots/35-envoy-connection.jpg)
+![Connection tab of the paired instance: provider, account (redacted) and import start](docs/screenshots/35-envoy-connection.webp)
 
-![Envoy deployment and active state](docs/screenshots/16-envoy-configuration.jpg)
+![Envoy deployment and active state](docs/screenshots/16-envoy-configuration.webp)
 
-![Integration message history with delivered Envoy replies (numbers and names redacted)](docs/screenshots/17-envoy-messages.jpg)
+![Integration message history with delivered Envoy replies (numbers and names redacted)](docs/screenshots/17-envoy-messages.webp)
 
-![WhatsApp provider setup](docs/screenshots/18-envoy-whatsapp-setup.jpg)
+![WhatsApp provider setup](docs/screenshots/18-envoy-whatsapp-setup.webp)
 
 The Envoy's task is to update existing assignments. Its own policy grants no job creation,
 deletion or reassignment. A DM combines the linked member's authority with the Envoy's policy,
@@ -329,7 +317,7 @@ administrator. Phone numbers and names are covered with solid boxes.
 | 3. Envoy actions (status update / photo report) | DM a report naming an assigned job (“…is complete; photo attached”), then reopen the job's record, **Conversation** tab and history. | **NOT RUN.** No WhatsApp client for the linked member's number was available to the probe.                                                                                                                                                                                                                                                                                                                        |
 | 4. Policy boundary                              | DM a request outside the Envoy policy and verify refusal.                                                                            | **NOT RUN** (same reason). For a DM, the linked member's own authority is added to the Envoy policy (`dm: 'union'`), so a test of the policy alone needs a contractor-only member or a group turn. The policy itself grants read and status/summary updates on **any** assignment, so asking about another person's assignment is allowed, not refused. A boundary test asks to create, delete or reassign a job. |
 
-![The Envoy's DM transcript: the member's query, the scoped assignment reads and the reply](docs/screenshots/36-envoy-conversation.jpg)
+![The Envoy's DM transcript: the member's query, the scoped assignment reads and the reply](docs/screenshots/36-envoy-conversation.webp)
 
 To finish probes 3 and 4, send from the linked member's own WhatsApp to the paired number:
 (a) a completion report with a photo for a job assigned to that member, then verify status,

@@ -42,7 +42,7 @@
 		month_end: {
 			order_by: { month: 'desc' },
 			limit: 1,
-			fields: ['month', 'is_locked', 'total_utilised']
+			fields: ['month', 'source', 'is_locked', 'total_utilised']
 		},
 		purchase_order: {
 			where: { lc_requested: { eq: true }, is_cancelled: { eq: false }, lc_links: { eq: 0 } },
@@ -169,7 +169,7 @@
 						<p class="text-meta">
 							{latest === undefined
 								? t('app.dashboard.no_month_end')
-								: latest.is_locked
+								: latest.source === 'portal' && latest.is_locked
 									? t('app.dashboard.locked', { amount: usd(latest.total_utilised) })
 									: t('app.dashboard.unlocked')}
 						</p>
@@ -270,7 +270,7 @@
 							{ctx}
 							of="drawdown_charge"
 							x="charge_type"
-							y="sum.amount"
+							y="sum.amount_usd"
 							kind="bar"
 							title={t('app.dashboard.charges_by_type')}
 						/>

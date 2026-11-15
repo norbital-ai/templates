@@ -30,6 +30,7 @@ export default model('facility_fee', {
 		rate_pct: { kind: 'decimal', scale: 6, optional: true },
 		amount: { kind: 'decimal', scale: 2, optional: true },
 		minimum_amount: { kind: 'decimal', scale: 2, optional: true },
+		minimum_currency: { kind: 'currency', default: 'USD' },
 		include_in_estimates: { kind: 'bool', default: true },
 		notes: { kind: 'text', optional: true }
 	},

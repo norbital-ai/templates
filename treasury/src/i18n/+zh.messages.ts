@@ -1,5 +1,18 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'app.forms.pack': '下载 PDF 文件包',
+	'errors.one_form': '请选择一份融资申请表。',
+	'errors.pack_failed': '无法将 {file} 加入 PDF 文件包：{detail}。原附件保持不变。',
+	'errors.pack_large': 'PDF 文件包超过 4 MiB。请单独打印申请表并下载附件。',
+	'models.drawdown_charge.fields.amount_usd': '美元金额',
+	'models.drawdown_charge.fields.fx_rate_to_usd': '记账美元汇率',
+	'models.facility_fee.fields.minimum_currency': '最低费用币种',
+	'app.dashboard.all_banks': '所有银行',
+	'app.charges.missing_fx':
+		'部分预计费用缺少汇率，因此合计和排名暂不显示。请补充费用币种或最低费用币种的汇率。',
+	'app.charges.per_line': '每笔费用',
+	'app.costs.rank': '排名',
+	'app.costs.note_fx': '缺少费用汇率',
 	'errors.line_sealed': '已结清或已取消的额度不能更改，只能修改归档、复核和备注。',
 	'errors.month_locked': '本月已锁定，请先解锁。',
 	'errors.not_earmark': '只有预留款项可以分配或取消。',
@@ -182,7 +195,7 @@ export default messages({
 	'app.costs.book_rate': '未结融资 %',
 	'app.costs.margin': '授信利差 %',
 	'app.charges.title': '费用',
-	'app.charges.description': '各银行实际费用、费率规则及全部费用记录。',
+	'app.charges.description': '各银行已记账费用、未记账阶段的预计费用、费率规则及全部费用记录。',
 	'app.charges.by_bank': '按银行',
 	'app.charges.rules': '费率规则',
 	'app.charges.recorded': '费用记录',
@@ -444,6 +457,7 @@ export default messages({
 	'app.month_end.description': '当月未结融资、应计利息与汇总；锁定后不再变动。',
 	'app.month_end.month': '月份',
 	'app.month_end.lock': '锁定月份',
+	'app.month_end.export': '导出',
 	'app.month_end.unlock': '解锁月份',
 	'app.month_end.lines': '月末报表',
 	'app.month_end.history': '已关账月份',
@@ -493,5 +507,6 @@ export default messages({
 	'app.orders.link': '关联融资',
 	'app.forms.title': '融资申请表',
 	'app.forms.description': '电汇预付或信用证付款订单的申请表及附件。',
-	'app.forms.fill': '从附件填写'
+	'app.forms.fill': '从附件填写',
+	'errors.po_owner': '您只能修改自己创建的采购订单及其文件。'
 });

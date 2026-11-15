@@ -112,11 +112,13 @@
 			'jurisdiction_change.update': writes.update
 		};
 	};
-	const settled = (outcome: { kind: string }) => {
-		if (outcome.kind !== 'committed') return;
+	const reset = () => {
 		drafts = {};
 		always = false;
 		changesOn = null;
+	};
+	const settled = (outcome: { kind: string }) => {
+		if (outcome.kind === 'committed') reset();
 	};
 </script>
 
@@ -144,6 +146,7 @@
 			fields={CALENDAR}
 			{acts}
 			on_outcome={settled}
+			on_reset={reset}
 		>
 			<Stack gap="sm">
 				<Section first name="settings_calendar" title={ctx.t('settings_form.calendar')}>
@@ -199,6 +202,7 @@
 			fields={CALENDAR}
 			{acts}
 			on_outcome={settled}
+			on_reset={reset}
 		>
 			<LawBlock {ctx} {law} family="lookup" bind:draft={drafts.lookup} />
 		</Form>{/if}{/snippet}
@@ -283,8 +287,13 @@
 				footer_actions={inForce}
 				><Tabs
 					tabs={[
-						{ name: 'general', title: ctx.t('app.settings.general'), body: general },
-						{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup },
+						{
+							name: 'general',
+							title: ctx.t('app.settings.general'),
+							body: general,
+							keep_alive: true
+						},
+						{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup, keep_alive: true },
 						{ name: 'overview', title: 'Calculation overview', body: overview },
 						{ name: 'catalog', title: 'Catalog', body: catalog },
 						{ name: 'rules', title: 'Registered rules', body: rules },

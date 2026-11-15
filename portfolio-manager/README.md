@@ -1,5 +1,7 @@
 # Portfolio Manager
 
+![Portfolio Manager application](docs/screenshots/application.webp)
+
 A portfolio workspace for a family office or a finance team: every line of the book with the research
 kept on it, and a daily report — totals, allocation, the rates used and one call per position —
 written by one agent.

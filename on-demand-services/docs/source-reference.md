@@ -78,12 +78,12 @@ Accounts, pairing and credentials belong to the host's Connections surface; an a
 
 ## Browser evidence
 
-![Current local workspace](screenshots/workspace-overview.jpg)
+![Current local workspace](screenshots/workspace-overview.webp)
 
-![Representative application](screenshots/application.jpg)
+![Representative application](screenshots/application.webp)
 
 Captured through the browser from a separate local documentation workspace on 30 October 2026. This shows layout and navigation; it does not certify external providers, automation results or deployment.
 
-![Scheduler board](screenshots/scheduler.jpg)
+![Scheduler board](screenshots/scheduler.webp)
 
 The My Day capture shows its declared location and notification permission gate. The scheduler board is also captured; the empty documentation workspace has no bookings or helper positions. A permission gate is expected behavior, not evidence that tracking or notification delivery succeeded.

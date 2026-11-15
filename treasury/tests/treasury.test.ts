@@ -153,6 +153,89 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 			})
 		);
 
+		it.effect("a purchaser cannot read another purchaser's items or change their order", () =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const treasury = yield* t.as(t.member(['treasury']));
+				const owner = yield* t.as(t.member(['purchasing']));
+				const other = yield* t.as(t.member(['purchasing']));
+				const supplier = (yield* treasury.act({ 'supplier.create': [{ name: 'Scope supplier' }] }))
+					.records[0];
+				if (supplier === undefined) throw new Error('Expected supplier.');
+				const order = (yield* owner.act({
+					'purchase_order.create': [
+						{
+							po_number: 'SCOPE-001',
+							po_date: '2026-11-01',
+							supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplier.id),
+							lines: [{ item: 'Private item', quantity: '1', amount: '100' }]
+						}
+					]
+				})).records[0];
+				if (order === undefined) throw new Error('Expected order.');
+				const read = yield* other.query({ po_line: { fields: ['item'] } });
+				expect(read).toMatchObject({ po_line: { rows: [] } });
+				expect(
+					yield* owner.query({
+						po_line: {
+							where: { po: { eq: Schema.decodeUnknownSync(id_of('purchase_order'))(order.id) } },
+							fields: ['item']
+						}
+					})
+				).toMatchObject({ po_line: { rows: [{ item: 'Private item' }] } });
+				const file = yield* owner.upload('po_document.file', {
+					name: 'scope.pdf',
+					mime: 'application/pdf',
+					bytes: new TextEncoder().encode('%PDF synthetic')
+				});
+				if (file.kind !== 'committed') throw new Error('Expected document upload.');
+				const document = {
+					po: Schema.decodeUnknownSync(id_of('purchase_order'))(order.id),
+					title: 'Private document',
+					file: file.output
+				};
+				const saved = (yield* owner.act({ 'po_document.create': [document] })).records[0];
+				if (saved === undefined) throw new Error('Expected document.');
+				expect(yield* other.query({ po_document: { fields: ['title'] } })).toMatchObject({
+					po_document: { rows: [] }
+				});
+				expect(
+					Exit.isFailure(yield* Effect.exit(other.act({ 'po_document.create': [document] })))
+				).toBe(true);
+				expect(
+					Exit.isFailure(
+						yield* Effect.exit(
+							other.act({
+								'po_document.update': [
+									{
+										target: {
+											id: Schema.decodeUnknownSync(id_of('po_document'))(saved.id),
+											revision: saved.revision
+										},
+										set: { title: 'Changed by somebody else' }
+									}
+								]
+							})
+						)
+					)
+				).toBe(true);
+				const refused = yield* Effect.exit(
+					other.act({
+						'purchase_order.update': [
+							{
+								target: {
+									id: Schema.decodeUnknownSync(id_of('purchase_order'))(order.id),
+									revision: order.revision
+								},
+								set: { notes: 'Changed by somebody else' }
+							}
+						]
+					})
+				);
+				expect(Exit.isFailure(refused)).toBe(true);
+			})
+		);
+
 		it.effect('treasury locks a month-end and purchasing cannot touch it', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;

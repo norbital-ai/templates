@@ -1,5 +1,7 @@
 # On-Demand Services workflows
 
+![On-Demand Services application](screenshots/application.webp)
+
 Choose the schedule day and switch between board and list. Open a visit to review booking details, progress and recovery. The local run sheet covers representative booking and recovery probes.
 
 The [template README](../README.md) is the maintained workflow and authoring reference.

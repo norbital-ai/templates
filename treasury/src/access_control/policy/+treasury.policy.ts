@@ -21,6 +21,7 @@ export default policy({
 	capabilities: {
 		apps: ['treasury', 'purchasing'],
 		automations: [
+			'facility_form_pack',
 			'drawdown_allocate',
 			'drawdown_cancel',
 			'drawdown_record_advice',

@@ -65,9 +65,9 @@ Pairing and credentials belong to the host's Connections surface; defining a con
 
 ## Browser evidence
 
-![Current local workspace](screenshots/workspace-overview.jpg)
+![Current local workspace](screenshots/workspace-overview.webp)
 
-![Representative application](screenshots/application.jpg)
+![Representative application](screenshots/application.webp)
 
 Captured through the browser from a separate local documentation workspace on 30 October 2026. This shows layout and navigation; it does not certify external providers, automation results or deployment.
 

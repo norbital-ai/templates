@@ -21,6 +21,7 @@
 			month_end: {
 				where: { month: { eq: month } },
 				fields: [
+					'source',
 					'is_locked',
 					'locked_at',
 					'credit_line',
@@ -42,13 +43,13 @@
 		})
 	);
 	const report = $derived(stored.current?.month_end.rows[0]);
-	const locked = $derived(report?.is_locked === true);
+	const locked = $derived(report?.source === 'portal' && report.is_locked);
 	const live = ctx.query({
 		drawdown: {
 			where: { status: { in: ['applied', 'active', 'settled'] } },
 			fields: [...MONTH_END_LINE_FIELDS],
 			supplier: { fields: ['name'] },
-			charges: { fields: ['amount', 'currency'] }
+			charges: { fields: ['amount', 'fx_rate_to_usd'] }
 		},
 		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
 		fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] }
@@ -79,7 +80,15 @@
 					icon: 'lucide:lock',
 					name: t('app.month_end.lock'),
 					run: () => ctx.run('month_end_lock', { month })
-				}
+				},
+		...(!locked
+			? (['xlsx', 'csv'] as const).map((to) => ({
+					icon: 'lucide:download',
+					name: `${t('app.month_end.export')} ${to.toUpperCase()}`,
+					run: () =>
+						ctx.sync_control('month_end_line', 'sheet', { mode: 'export', to, context: { month } })
+				}))
+			: [])
 	]);
 	const LINE_COLUMNS = [
 		'bank_code',
@@ -156,6 +165,7 @@
 		order_by={{ month: 'desc' }}
 		columns={[
 			'month',
+			'source',
 			'is_locked',
 			'locked_at',
 			'total_utilised',

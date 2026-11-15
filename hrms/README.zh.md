@@ -1,6 +1,6 @@
 # HRMS
 
-![HRMS 工作区缩略图](assets/thumbnail.svg)
+![人力资源管理工作区界面](docs/screenshots/application.webp)
 
 一个多国人力资源与薪酬工作区，涵盖雇佣记录、排班、休假、报销、贷款、
 薪酬核算和法定义务。司法辖区的法律是按日期生效的数据；引擎不包含任何

@@ -12,6 +12,7 @@
 		FACILITY_FIELDS,
 		LINE_FIELDS,
 		bankSummary,
+		chargesSummary,
 		compareInvoice,
 		rateByMonth
 	} from '../../lib/treasury.js';
@@ -22,7 +23,8 @@
 		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
 		drawdown: {
 			where: { status: { in: ['earmarked', 'applied', 'active', 'settled', 'unclear'] } },
-			fields: [...LINE_FIELDS]
+			fields: [...LINE_FIELDS, 'charge_rate_pct'],
+			charges: { fields: ['amount', 'fx_rate_to_usd', 'charge_type', 'stage'] }
 		},
 		facility_fee: {
 			fields: [
@@ -35,6 +37,7 @@
 				'rate_pct',
 				'amount',
 				'minimum_amount',
+				'minimum_currency',
 				'include_in_estimates'
 			]
 		},
@@ -81,9 +84,23 @@
 		supplier: 'app.costs.note_supplier',
 		room: 'app.costs.note_room',
 		tenor: 'app.costs.note_tenor',
-		rate: 'app.costs.note_rate'
+		rate: 'app.costs.note_rate',
+		fx: 'app.costs.note_fx'
 	} as const;
-	const summary = $derived(bankSummary(facilities, lines, day.today));
+	const summary = $derived(
+		bankSummary(
+			facilities,
+			lines,
+			day.today,
+			chargesSummary(
+				lines,
+				banks,
+				read.current?.facility_fee.rows ?? [],
+				read.current?.fx_rate.rows ?? [],
+				day.today
+			)
+		)
+	);
 	const heat = $derived<Record<string, string | null>[]>(rateByMonth(lines, banks, day.today));
 	const months = $derived(Object.keys(heat[0] ?? {}).filter((k) => k !== 'bank'));
 </script>
@@ -140,11 +157,15 @@
 		of={summary}
 		controlled
 		columns={[
+			{ field: 'rank', label: t('app.costs.rank') },
 			{ field: 'bank', label: t('app.line.bank') },
 			{ field: 'latest_rate', label: t('app.costs.latest_rate'), align: 'end' },
 			{ field: 'recent_rate', label: t('app.costs.recent_rate'), align: 'end' },
 			{ field: 'spread_bps', label: t('app.costs.spread') },
 			{ field: 'book_rate', label: t('app.costs.book_rate'), align: 'end' },
+			{ field: 'charges_pct', label: t('app.charges.pct_of_amount'), align: 'end' },
+			{ field: 'charges_pa', label: t('app.charges.pct_per_annum'), align: 'end' },
+			{ field: 'all_in_pct', label: t('app.costs.all_in'), align: 'end' },
 			{ field: 'margin_pct', label: t('app.costs.margin'), align: 'end' },
 			{ field: 'available', label: t('app.line.available'), kind: { kind: 'decimal', scale: 2 } }
 		]}

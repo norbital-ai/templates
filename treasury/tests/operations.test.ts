@@ -236,11 +236,46 @@ it.layer(
 		})
 	);
 
-	it.effect('a locked month keeps its figures until it is unlocked', () =>
+	it.effect('a legacy Excel headline can be replaced by a locked report', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const treasury = yield* t.as(t.member(['treasury']));
 			yield* treasury.act({
+				'month_end.create': [
+					{
+						month: '2026-01-01',
+						source: 'excel',
+						is_locked: true,
+						bank_borrowings: '100'
+					}
+				]
+			});
+			yield* finished(t, treasury.run('month_end_lock', { month: '2026-01-01' }, JobResult));
+			expect(
+				yield* treasury.query({
+					month_end: {
+						where: { month: { eq: '2026-01-01' } },
+						fields: ['source', 'is_locked', 'bank_borrowings']
+					}
+				})
+			).toMatchObject({
+				month_end: {
+					rows: [
+						{
+							source: 'portal',
+							is_locked: true,
+							bank_borrowings: '0'
+						}
+					]
+				}
+			});
+		})
+	);
+	it.effect('a locked month keeps its figures until it is unlocked', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const treasury = yield* t.as(t.member(['treasury']));
+			const created = yield* treasury.act({
 				'drawdown.create': [
 					{
 						bank_reference: 'M-1',
@@ -300,6 +335,53 @@ it.layer(
 				})
 			);
 			expect(Exit.isFailure(frozen)).toBe(true);
+			const source = created.records[0];
+			if (source === undefined) throw new Error('Expected the source financing.');
+			yield* treasury.act({
+				'drawdown.update': [
+					{
+						target: {
+							id: Schema.decodeUnknownSync(id_of('drawdown'))(source.id),
+							revision: source.revision
+						},
+						set: { amount: '720000' }
+					}
+				]
+			});
+			const exported = Effect.fnUntraced(function* () {
+				const started = yield* treasury.sync_control('month_end_line', 'sheet', {
+					mode: 'export',
+					format: 'csv',
+					context: { month: '2026-02-01' }
+				});
+				if (started.kind !== 'committed') throw new Error('Expected the CSV export.');
+				yield* t.run_due();
+				const { file } = yield* t.db.value(
+					Schema.Struct({ file: Schema.Struct({ id: Schema.String }) }),
+					{ text: 'SELECT output FROM sys_run WHERE id = $1', params: [started.output.id] }
+				);
+				const key = yield* t.db.value(Schema.String, {
+					text: 'SELECT key FROM sys_file WHERE id = $1',
+					params: [file.id]
+				});
+				const bytes = t.fakes.files.blobs.get(key);
+				if (bytes === undefined) throw new Error('Expected the exported bytes.');
+				const [header, ...rows] = new TextDecoder()
+					.decode(bytes)
+					.trim()
+					.split(/\r?\n/)
+					.map((line) => line.split(','));
+				const row = rows.find((line) => line[header?.indexOf('reference') ?? -1] === 'M-1');
+				if (header === undefined || row === undefined) throw new Error('Expected the report row.');
+				return Object.fromEntries(header.map((name, i) => [name, row[i]]));
+			});
+			const frozenCsv = yield* exported();
+			expect(Number(frozenCsv['amount'])).toBe(360000);
+			expect(frozenCsv).toMatchObject({
+				accrued_interest_usd: '2800',
+				total_payable: '366000',
+				day_count_basis: 'actual_360'
+			});
 			yield* finished(
 				t,
 				treasury.run(
@@ -308,6 +390,12 @@ it.layer(
 					JobResult
 				)
 			);
+			const liveCsv = yield* exported();
+			expect(Number(liveCsv['amount'])).toBe(720000);
+			expect(liveCsv).toMatchObject({
+				accrued_interest_usd: '5600',
+				total_payable: '732000'
+			});
 		})
 	);
 });

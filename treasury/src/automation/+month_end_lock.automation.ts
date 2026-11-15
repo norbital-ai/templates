@@ -18,7 +18,7 @@ export default automation({
 				where: { status: { in: ['applied', 'active', 'settled'] } },
 				fields: [...MONTH_END_LINE_FIELDS],
 				supplier: { fields: ['name'] },
-				charges: { fields: ['amount', 'currency'] }
+				charges: { fields: ['amount', 'fx_rate_to_usd'] }
 			},
 			facility: {
 				fields: [...FACILITY_FIELDS],
@@ -27,12 +27,13 @@ export default automation({
 			fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] },
 			month_end: {
 				where: { month: { eq: month } },
-				fields: ['is_locked', 'revision'],
+				fields: ['source', 'is_locked', 'revision'],
 				lines: { fields: ['revision'] }
 			}
 		});
 		const existing = month_end.rows[0];
-		if (existing?.is_locked === true) return yield* ctx.refuse('errors.month_locked');
+		if (existing?.source === 'portal' && existing.is_locked)
+			return yield* ctx.refuse('errors.month_locked');
 		const report = monthEndFrom(month, drawdown.rows, facility.rows, fx_rate.rows);
 		const set = {
 			...report.figures,

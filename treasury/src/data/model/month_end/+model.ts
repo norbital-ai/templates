@@ -68,7 +68,7 @@ export default model('month_end', {
 	constraints: {
 		one_report_per_month: { unique: ['month'] },
 		locked_month: {
-			locked: { is_locked: { eq: true } },
+			locked: { source: { eq: 'portal' }, is_locked: { eq: true } },
 			except: ['is_locked', 'notes'],
 			message: 'errors.month_locked'
 		}

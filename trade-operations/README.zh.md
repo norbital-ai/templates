@@ -1,5 +1,7 @@
 # Trade Operations
 
+![贸易运营工作区界面](docs/screenshots/application.webp)
+
 面向贸易和制造团队的公开 Bolt 入门模板。客户报价和销售订单共用一个协议模型；供应商采购订单使用同一模型，方向为采购。报价无需移到另一张表即可成为定稿协议。
 
 ## 文档

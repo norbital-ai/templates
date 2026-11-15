@@ -54,6 +54,7 @@ export default model('facility', {
 					'rate_pct',
 					'amount',
 					'minimum_amount',
+					'minimum_currency',
 					'include_in_estimates'
 				]
 			},
@@ -95,6 +96,7 @@ export default model('facility', {
 				'rate_pct',
 				'amount',
 				'minimum_amount',
+				'minimum_currency',
 				'include_in_estimates',
 				'notes'
 			]
@@ -132,6 +134,7 @@ export default model('facility', {
 				'rate_pct',
 				'amount',
 				'minimum_amount',
+				'minimum_currency',
 				'include_in_estimates',
 				'notes'
 			]

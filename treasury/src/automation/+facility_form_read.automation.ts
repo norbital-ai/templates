@@ -1,5 +1,8 @@
-import { automation } from '@norbital-ai/bolt';
+import { automation, type ValueOf } from '@norbital-ai/bolt';
+import { BigDecimal } from 'effect';
+import { decimal } from '../lib/calculations.js';
 import { facilityFor } from '../lib/purchasing.js';
+import { documentSource } from '../lib/documents.js';
 
 const READ = {
 	kind: 'object',
@@ -40,58 +43,85 @@ export default automation({
 						form: { eq: f.id },
 						kind: { in: ['purchase_order', 'proforma', 'customer_po'] }
 					},
-					fields: ['file']
+					fields: ['kind', 'file'],
+					order_by: ['kind', { created_at: 'desc' }]
 				}
 			});
 			if (facility_attachment.rows.length === 0)
 				return yield* ctx.refuse('errors.form_no_attachments');
-			const read = yield* ctx.ai.sys_2.infer({
-				label: 'facility form',
-				system:
-					'You read a purchase order, a supplier proforma and a customer purchase order. Copy what is printed; never guess.',
-				prompt:
-					'Fill the fields. supplier_payment_terms is the proforma’s terms of payment; customer_po_number and customer come from the customer’s purchase order.',
-				files: facility_attachment.rows.map((a) => a.file),
-				output: READ
-			});
+			const readings: { kind: string; read: ValueOf<typeof READ> }[] = [];
+			for (const attachment of facility_attachment.rows) {
+				if (readings.some((r) => r.kind === attachment.kind)) continue;
+				const source = yield* documentSource(attachment.file, 'facility_form_read', ctx);
+				const read = yield* ctx.ai.sys_2.infer({
+					label: `facility form · ${attachment.kind}`,
+					system:
+						'Read only this document. Copy what is printed; never guess or return bank account numbers.',
+					prompt: `This attachment is a ${attachment.kind}. For a purchase_order, extract the supplier PO fields. For a proforma, extract only supplier_payment_terms, currency and total_amount. For a customer_po, extract only customer_po_number and customer. Leave unrelated fields empty. Use the attached page images for scanned text.\n\n${source.text}`,
+					files: source.files,
+					output: READ
+				});
+				readings.push({ kind: attachment.kind, read });
+			}
+			const po = readings.find((r) => r.kind === 'purchase_order')?.read;
+			const proforma = readings.find((r) => r.kind === 'proforma')?.read;
+			const customer = readings.find((r) => r.kind === 'customer_po')?.read;
+			const notes = [
+				'Filled empty fields from the latest attachment of each kind; check them against the documents.'
+			];
+			if (po?.po_number != null && po.po_number !== f.po_number)
+				notes.push(
+					'The attached PO number differs from this form. Check the PO number before linking it.'
+				);
+			if (po?.currency != null && po.currency !== f.currency)
+				notes.push(
+					`The PO currency is ${po.currency}; the form currency is ${f.currency}. Review the currency.`
+				);
+			if (po?.payment_terms != null && facilityFor(po.payment_terms) !== f.facility_required)
+				notes.push('The PO payment terms differ from the selected facility. Review T/T versus LC.');
+			const amount = f.amount ?? po?.total_amount;
+			if (
+				proforma?.total_amount != null &&
+				amount != null &&
+				!BigDecimal.equals(decimal(proforma.total_amount), decimal(amount))
+			)
+				notes.push('The proforma total differs from the PO amount.');
+			if (proforma?.currency != null && proforma.currency !== (po?.currency ?? f.currency))
+				notes.push('The proforma currency differs from the PO currency.');
 			const { purchase_order } = yield* ctx.query({
 				purchase_order: {
-					where: { po_number: { eq: read.po_number ?? f.po_number } },
+					where: { po_number: { eq: f.po_number } },
 					fields: ['po_number'],
 					limit: 1
 				}
 			});
 			const blank = <V>(current: V | null, value: V | null | undefined) =>
-				current === null && value != null ? value : current;
+				(current === null || current === '') && value != null ? value : current;
 			yield* ctx.act({
 				'facility_form.update': [
 					{
 						target: f,
 						set: {
-							po_date: blank(f.po_date, read.po_date),
-							ship_date: blank(f.ship_date, read.ship_date),
-							payment_terms: blank(f.payment_terms, read.payment_terms),
-							shipping_terms: blank(f.shipping_terms, read.shipping_terms),
-							requested_by: blank(f.requested_by, read.requested_by),
-							buyer: blank(f.buyer, read.buyer),
-							vendor: blank(f.vendor, read.vendor),
-							shipment_from: blank(f.shipment_from, read.vendor_country?.toUpperCase()),
-							shipment_to: blank(f.shipment_to, read.consignee_country?.toUpperCase()),
-							amount: blank(f.amount, read.total_amount),
-							remarks: blank(f.remarks, read.supplier_payment_terms),
-							customer_po_number: blank(f.customer_po_number, read.customer_po_number),
+							po_date: blank(f.po_date, po?.po_date),
+							ship_date: blank(f.ship_date, po?.ship_date),
+							payment_terms: blank(f.payment_terms, po?.payment_terms),
+							shipping_terms: blank(f.shipping_terms, po?.shipping_terms),
+							requested_by: blank(f.requested_by, po?.requested_by),
+							buyer: blank(f.buyer, po?.buyer),
+							vendor: blank(f.vendor, po?.vendor),
+							shipment_from: blank(f.shipment_from, po?.vendor_country?.toUpperCase()),
+							shipment_to: blank(f.shipment_to, po?.consignee_country?.toUpperCase()),
+							amount: blank(f.amount, po?.total_amount),
+							remarks: blank(f.remarks, proforma?.supplier_payment_terms),
+							customer_po_number: blank(f.customer_po_number, customer?.customer_po_number),
 							purpose: blank(
 								f.purpose,
-								read.customer_po_number == null
+								customer?.customer_po_number == null
 									? null
-									: `For ${read.customer ?? 'the customer'} PO ${read.customer_po_number}`
+									: `For ${customer.customer ?? 'the customer'} PO ${customer.customer_po_number}`
 							),
-							...(read.currency == null ? {} : { currency: read.currency }),
-							...(read.payment_terms == null
-								? {}
-								: { facility_required: facilityFor(read.payment_terms) }),
 							purchase_order: f.purchase_order ?? purchase_order.rows[0]?.id ?? null,
-							read_note: 'Filled from the attachments; check each field against them before saving.'
+							read_note: notes.join('\n')
 						}
 					}
 				]

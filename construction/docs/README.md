@@ -1,5 +1,7 @@
 # Construction workflows
 
+![Construction Operations application](screenshots/application.webp)
+
 Open a project, choose its model, allocation or commercial tab, and manage related records through
 the shared table and record sheet. Project scope stays on the table toolbar.
 

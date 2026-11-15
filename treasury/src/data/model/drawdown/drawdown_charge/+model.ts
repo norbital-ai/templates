@@ -27,7 +27,9 @@ export default model('drawdown_charge', {
 		stage: { kind: 'enum', values: ['drawdown', 'settlement'], default: 'drawdown' },
 		description: { kind: 'text', optional: true },
 		currency: { kind: 'currency', default: 'USD' },
-		amount: { kind: 'decimal', scale: 2 }
+		amount: { kind: 'decimal', scale: 2 },
+		fx_rate_to_usd: { kind: 'decimal', scale: 12, min: 0, default: 1 },
+		amount_usd: { kind: 'decimal', scale: 2, computed: 'round(amount * fx_rate_to_usd, 2)' }
 	},
 	outputs: {
 		default: {

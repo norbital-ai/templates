@@ -1,5 +1,7 @@
 # Blank workflows
 
+![Blank application](screenshots/application.webp)
+
 The workspace starts with no applications or automations and one read-only Notes model. Use
 the workspace assistant to author the first model and application.
 

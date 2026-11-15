@@ -1,6 +1,6 @@
 # Construction Operations
 
-![Construction workspace thumbnail](assets/thumbnail.svg)
+![Construction Operations application](docs/screenshots/application.webp)
 
 A project-centered construction operations workspace: projects, work fronts, jobs, workers and
 their permits, quality defects, RFIs, payment claims, handover documents, and a BIM reference

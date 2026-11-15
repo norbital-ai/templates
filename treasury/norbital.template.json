@@ -8,9 +8,10 @@
 	"counts": {
 		"models": 23,
 		"apps": 2,
-		"automations": 11
+		"automations": 12
 	},
 	"tags": ["Treasury", "Purchasing", "Bank facilities"],
 	"name_zh": "资金管理",
-	"description_zh": "银行额度、提款、费用、供应商、采购订单与月末结算工作区。"
+	"description_zh": "银行额度、提款、费用、供应商、采购订单与月末结算工作区。",
+	"tags_zh": ["资金管理", "采购", "银行额度"]
 }

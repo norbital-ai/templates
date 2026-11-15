@@ -1,5 +1,7 @@
 # Blank
 
+![Blank application](docs/screenshots/workspace-overview.webp)
+
 An empty Norbital workspace: one read-only starter model (`notes`), no apps and no automations.
 It is the starting point for building a workspace from scratch with the workspace agent.
 

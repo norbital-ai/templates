@@ -1,4 +1,7 @@
 import { policy } from '@norbital-ai/bolt';
+
+const OWN = { created_by: { eq: { var: 'actor.id' } } } as const;
+const OWN_PO = { po: { is: OWN } } as const;
 /**
  * Purchasing: a purchaser raises purchase orders with their item lines and documents, and changes one until its first
  * invoice is recorded; reads the supplier list to pick from; and prepares facility forms. Each purchaser sees only the
@@ -7,11 +10,11 @@ import { policy } from '@norbital-ai/bolt';
  */
 export default policy({
 	description: 'Purchasing: raise and change your own purchase orders; prepare facility forms.',
-	capabilities: { apps: ['purchasing'], automations: ['facility_form_read'] },
+	capabilities: { apps: ['purchasing'], automations: ['facility_form_read', 'facility_form_pack'] },
 	grants: {
 		supplier: { outputs: { default: {} } },
 		purchase_order: {
-			outputs: { default: { where: { created_by: { eq: { var: 'actor.id' } } } } },
+			outputs: { default: { where: OWN } },
 			create: {},
 			update: {
 				fields: [
@@ -28,6 +31,10 @@ export default policy({
 				],
 				lines: { fields: ['item', 'quantity', 'amount'] },
 				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(
+						({ before }) => ctx.actor.kind !== 'member' || before.created_by !== ctx.actor.id
+					);
+					if (away >= 0) return yield* ctx.refuse('errors.po_owner', { row: away });
 					const { purchase_order } = yield* ctx.query({
 						purchase_order: {
 							where: { id: { in: changes.map(({ before }) => before.id) } },
@@ -42,11 +49,47 @@ export default policy({
 				}
 			}
 		},
-		po_line: { outputs: { default: {} } },
-		invoice: { outputs: { default: {} } },
-		invoice_line: { outputs: { default: {} } },
-		po_financing: { outputs: { default: {} } },
-		po_document: { outputs: { default: {} }, create: {}, update: {} },
+		po_line: { outputs: { default: { where: OWN_PO } } },
+		invoice: { outputs: { default: { where: OWN_PO } } },
+		invoice_line: { outputs: { default: { where: { invoice: { is: OWN_PO } } } } },
+		po_financing: { outputs: { default: { where: { purchase_order: { is: OWN } } } } },
+		po_document: {
+			outputs: { default: { where: OWN_PO } },
+			create: {
+				verdict: function* (changes, ctx) {
+					if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.po_owner');
+					const { purchase_order } = yield* ctx.query({
+						purchase_order: {
+							where: {
+								id: { in: changes.map(({ after }) => after.po) },
+								created_by: { eq: ctx.actor.id }
+							},
+							fields: ['id']
+						}
+					});
+					const own = new Set(purchase_order.rows.map((p) => p.id));
+					const away = changes.findIndex(({ after }) => !own.has(after.po));
+					return away < 0 ? ctx.allow() : yield* ctx.refuse('errors.po_owner', { row: away });
+				}
+			},
+			update: {
+				verdict: function* (changes, ctx) {
+					if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.po_owner');
+					const { purchase_order } = yield* ctx.query({
+						purchase_order: {
+							where: {
+								id: { in: changes.map(({ before }) => before.po) },
+								created_by: { eq: ctx.actor.id }
+							},
+							fields: ['id']
+						}
+					});
+					const own = new Set(purchase_order.rows.map((p) => p.id));
+					const away = changes.findIndex(({ before }) => !own.has(before.po));
+					return away < 0 ? ctx.allow() : yield* ctx.refuse('errors.po_owner', { row: away });
+				}
+			}
+		},
 		facility_form: { outputs: { default: {} }, create: {}, update: {} },
 		facility_attachment: { outputs: { default: {} } }
 	}

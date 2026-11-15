@@ -38,7 +38,7 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 - Apps: `purchasing`, `treasury`
 - Kiosks: none
-- Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `month_end_lock`, `month_end_unlock`
+- Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `facility_form_pack`, `month_end_lock`, `month_end_unlock`
 - Policies: `facility_forms`, `finance`, `purchasing`, `treasury`, `viewer`
 - Custom fields: none
 - Integrations: none

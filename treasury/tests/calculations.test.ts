@@ -3,6 +3,10 @@ import { accruedDays, interest, tenorDays } from '../src/lib/calculations.js';
 import { invoiceFindings, poStatus } from '../src/lib/purchasing.js';
 import {
 	adviceChecks,
+	bankSummary,
+	chargesSummary,
+	chargesUsd,
+	compareInvoice,
 	costOfFundsTrend,
 	estimateCharges,
 	feeAmount,
@@ -143,6 +147,7 @@ describe('FX and charges', () => {
 		rate_pct: '0.125',
 		amount: null,
 		minimum_amount: null,
+		minimum_currency: 'USD',
 		include_in_estimates: true,
 		...extra
 	});
@@ -155,12 +160,114 @@ describe('FX and charges', () => {
 	it('applies a fee rule with its minimum in its own currency', () => {
 		expect(feeAmount(fee({}), '100000', '2026-02-15', rates)).toBe('125');
 		expect(
-			feeAmount(fee({ currency: 'SGD', minimum_amount: '200' }), '100000', '2026-02-15', rates)
+			feeAmount(
+				fee({ minimum_currency: 'SGD', minimum_amount: '200' }),
+				'100000',
+				'2026-02-15',
+				rates
+			)
 		).toBe('150');
 		expect(
 			feeAmount(fee({ method: 'flat', amount: '50', currency: 'SGD' }), '1', '2026-03-01', rates)
 		).toBe('40');
-		expect(feeAmount(fee({ currency: 'EUR' }), '100000', '2026-02-15', rates)).toBeNull();
+		expect(
+			feeAmount(
+				fee({ method: 'flat', amount: '50', currency: 'EUR' }),
+				'100000',
+				'2026-02-15',
+				rates
+			)
+		).toBeNull();
+	});
+	it('keeps the minimum currency separate and refuses an unpriced minimum', () => {
+		expect(
+			feeAmount(fee({ currency: 'SGD', minimum_amount: '200' }), '100000', '2026-02-15', rates)
+		).toBe('200');
+		expect(
+			feeAmount(
+				fee({ minimum_currency: 'EUR', minimum_amount: '200' }),
+				'100000',
+				'2026-02-15',
+				rates
+			)
+		).toBeNull();
+	});
+	it('totals actual charges at their recorded FX, without revaluing historical charges', () => {
+		expect(chargesUsd([{ amount: '200', fx_rate_to_usd: '0.75' }])).toBe('150');
+	});
+	it('keeps an unpriced fee visible and excludes an incomplete comparison from recommendations', () => {
+		const missing = fee({ method: 'flat', amount: '50', currency: 'EUR' });
+		const l = { ...line('l', { amount_usd: '100000' }), charge_rate_pct: null };
+		expect(estimateCharges(l, [missing], [], rates, '2026-02-01')).toEqual([
+			{ stage: 'drawdown', charge_type: 'commission', amount: null }
+		]);
+		const [quote] = compareInvoice(
+			{ amount: '100000', tenor: 30, product: 'if', eligible: null, as_of: '2026-02-01' },
+			[facility('f1', 'AAA', '5000000')],
+			[l],
+			[missing],
+			rates
+		);
+		expect(quote).toMatchObject({
+			ok: false,
+			notes: ['fx'],
+			charges: null,
+			total: null,
+			all_in_pct: null
+		});
+	});
+	it('falls back to the last trade rate when the requested product and recent history are absent', () => {
+		const [quote] = compareInvoice(
+			{ amount: '100000', tenor: 30, product: 'if', eligible: null, as_of: '2026-11-15' },
+			[facility('f1', 'AAA', '5000000')],
+			[line('old', { product: 'pif', status: 'settled' })],
+			[],
+			[]
+		);
+		expect(quote).toMatchObject({ rate: '5.000000', ok: true, interest: '416.67' });
+	});
+	it('includes the whole first month, estimates missing stages on closed lines, and compares USD trade only', () => {
+		const charged = {
+			...line('closed', {
+				status: 'settled',
+				start_date: '2025-12-01',
+				due_date: '2026-01-30',
+				amount_usd: '100000',
+				amount: '100000'
+			}),
+			charge_rate_pct: null,
+			charges: [
+				{ amount: '200', fx_rate_to_usd: '0.75', charge_type: 'cable', stage: 'drawdown' as const }
+			]
+		};
+		const rows = chargesSummary(
+			[
+				charged,
+				{ ...charged, id: 'foreign', currency: 'SGD' },
+				{ ...charged, id: 'lc', product: 'lc' }
+			],
+			new Map([['f1', 'AAA']]),
+			[fee({ stage: 'settlement', rate_pct: '0.1' })],
+			rates,
+			'2026-11-15'
+		);
+		expect(rows).toHaveLength(2);
+		expect(rows[0]).toMatchObject({
+			bank: 'AAA',
+			lines: 1,
+			financed: '100000',
+			recorded: '150',
+			estimated: '100',
+			charges: '250',
+			per_line: '250',
+			pct_of_amount: '0.25',
+			pct_per_annum: '1.5',
+			by_type: { cable: '150' }
+		});
+		expect(rows[1]).toMatchObject({ bank: 'all', lines: 1, charges: '250' });
+		expect(
+			bankSummary([facility('f1', 'AAA', '5000000')], [charged], '2026-11-15', rows)[0]
+		).toMatchObject({ charges_pct: '0.25', charges_pa: '1.5', all_in_pct: '6.5', rank: 1 });
 	});
 	it('estimates only stages without an actual charge, an agreed rate replacing the commission', () => {
 		const fees = [
@@ -190,6 +297,7 @@ describe('month-end', () => {
 	const row = (id: string, extra: Partial<LineRow>) => ({
 		...line(id, extra),
 		bank_reference: id,
+		fx_rate_to_usd: '1',
 		supplier_name: null,
 		rounding: 'nearest_cent' as const,
 		charges_usd: '0'
@@ -243,6 +351,39 @@ describe('month-end', () => {
 			(1000000 * 5 + 65000 * 1) / 1065000,
 			5
 		);
+	});
+	it('keeps the drawdown FX when no month-end rate exists for its currency', () => {
+		const report = monthEndReport(
+			'2026-01-01',
+			[
+				{
+					...row('foreign', { currency: 'EUR', amount: '10', amount_usd: '7.5' }),
+					fx_rate_to_usd: '0.75'
+				}
+			],
+			facilities,
+			[]
+		);
+		expect(report.lines[0]).toMatchObject({ fx_rate_to_usd: '0.75', amount_usd: '7.5' });
+	});
+	it('rounds each line’s USD accrual before summing the month-end total', () => {
+		const report = monthEndReport(
+			'2026-01-01',
+			['one', 'two'].map((id) => ({
+				...row(id, {
+					currency: 'EUR',
+					amount: '10',
+					amount_usd: '5',
+					interest_rate_pct: '36',
+					start_date: '2026-01-31',
+					due_date: '2026-02-01'
+				}),
+				fx_rate_to_usd: '0.5'
+			})),
+			facilities,
+			[{ currency: 'EUR', rate_date: '2026-01-31', usd_per_unit: '0.5' }]
+		);
+		expect(report.figures.accrued_interest).toBe('0.02');
 	});
 });
 

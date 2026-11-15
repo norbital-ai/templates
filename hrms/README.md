@@ -1,6 +1,6 @@
 # HRMS
 
-![HRMS workspace thumbnail](assets/thumbnail.svg)
+![HRMS application](docs/screenshots/application.webp)
 
 A multi-country HR and payroll workspace for employment records, rosters, leave, claims, loans,
 payroll runs and statutory obligations. Jurisdiction law is dated data; the engine holds no

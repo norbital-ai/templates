@@ -10,11 +10,12 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"@norbital-ai/bolt": "0.0.3",
-		"@norbital-ai/ui": "0.0.3",
+		"@norbital-ai/bolt": "0.0.4",
+		"@norbital-ai/ui": "0.0.4",
+		"effect": "4.0.6",
+		"pdf-lib": "1.17.1",
 		"svelte": "5.57.3",
-		"vite": "8.3.5",
-		"effect": "4.0.6"
+		"vite": "8.3.5"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",
@@ -27,7 +28,7 @@
 		"happy-dom": "20.14.5",
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
-		"@norbital-ai/bolt-cli": "0.0.3"
+		"@norbital-ai/bolt-cli": "0.0.4"
 	},
 	"trustedDependencies": [
 		"esbuild",

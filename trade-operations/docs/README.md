@@ -1,5 +1,7 @@
 # Trade Operations documentation
 
+![Trade Operations application](screenshots/application.webp)
+
 This folder is the maintained documentation for the template. The source tree is the final authority; these
 documents describe its objective, contracts and gates, and never create a second implementation plan.
 

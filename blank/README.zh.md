@@ -1,5 +1,7 @@
 # 空白
 
+![空白工作区界面](docs/screenshots/workspace-overview.webp)
+
 一个空的 Norbital 工作区：一个只读的起始模型（`notes`），没有应用，也没有自动化。
 它是借助工作区智能体从零开始构建工作区的起点。
 

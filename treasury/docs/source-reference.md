@@ -2,7 +2,7 @@
 
 Checked against this template's source on 15 November 2026.
 
-23 models, 2 applications, 11 automations, 1 file sync.
+23 models, 2 applications, 12 automations, 1 file sync.
 
 ## Applications and pages
 
@@ -13,7 +13,7 @@ Checked against this template's source on 15 November 2026.
 
 Record views: `drawdown` (figures, purchase orders, next steps), `bank_document` (checks, read and
 apply), `purchase_order` (invoice checks, LC and financing links), `facility_form` (fill from
-attachments).
+attachments and download the combined PDF pack).
 
 ## Models
 
@@ -45,10 +45,10 @@ attachments).
 
 ## Policies and teams
 
-| Policy           | Held by              |
-| ---------------- | -------------------- |
-| `treasury`       | team `treasury`      |
-| `finance`        | team `finance`       |
-| `purchasing`     | team `purchasing`    |
-| `viewer`         | team `viewers`       |
-| `facility_forms` | `facility_form_read` |
+| Policy           | Held by                                    |
+| ---------------- | ------------------------------------------ |
+| `treasury`       | team `treasury`                            |
+| `finance`        | team `finance`                             |
+| `purchasing`     | team `purchasing`                          |
+| `viewer`         | team `viewers`                             |
+| `facility_forms` | `facility_form_read`, `facility_form_pack` |

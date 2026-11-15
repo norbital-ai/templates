@@ -1,5 +1,7 @@
 # Trade Operations
 
+![Trade Operations application](docs/screenshots/application.webp)
+
 A public Bolt starter for trading and manufacturing teams. Customer quotations and sales orders
 share one agreement model; supplier purchase orders use the same model with purchasing direction.
 A quotation becomes a finalized agreement without moving to another table.

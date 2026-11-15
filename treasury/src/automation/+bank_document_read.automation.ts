@@ -1,5 +1,6 @@
 import { automation } from '@norbital-ai/bolt';
 import { ADVICE } from '../lib/charges.js';
+import { documentSource } from '../lib/documents.js';
 
 const key = (value: string | null | undefined) =>
 	(value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -15,12 +16,13 @@ export default automation({
 	policies: ['treasury'],
 	run: function* ({ advice }, ctx) {
 		for (const doc of advice) {
+			const source = yield* documentSource(doc.file, 'bank_document_read', ctx);
 			const read = yield* ctx.ai.sys_2.infer({
 				label: 'advice',
 				system:
 					'You read bank drawdown and settlement advices. Copy figures exactly as printed; never calculate. Leave a field empty rather than guess, and list every field you are unsure of in `uncertain`. Never return account numbers. Charges are in USD; leave a charge out when its USD amount is not printed.',
-				prompt: 'Read this advice.',
-				files: [doc.file],
+				prompt: `Read this advice. Its parsed text follows; use the attached page images for scanned text.\n\n${source.text}`,
+				files: source.files,
 				output: ADVICE
 			});
 			const refs = [read.bank_reference, read.lc_number, read.bill_number]

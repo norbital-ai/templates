@@ -61,6 +61,7 @@
 					'rate_pct',
 					'amount',
 					'minimum_amount',
+					'minimum_currency',
 					'include_in_estimates'
 				]
 			},
@@ -183,6 +184,11 @@
 				><Alert.Description>{t(w.key, w.values)}</Alert.Description></Alert.Root
 			>
 		{/each}
+		{#if estimates.some((e) => e.amount === null)}
+			<Alert.Root variant="warning"
+				><Alert.Description>{t('app.charges.missing_fx')}</Alert.Description></Alert.Root
+			>
+		{/if}
 		<Grid minimum="compact">
 			{#each [[t('app.line.tenor'), record?.tenor_days == null ? '—' : t( 'app.line.days', { days: record.tenor_days } )], [t('app.line.interest_to_maturity'), money(record?.interest_to_maturity ?? null)], [t('app.line.accrued_today'), money(accrued)], [t('app.line.latest_due'), record?.latest_due_date == null ? '—' : format( { kind: 'date' }, record.latest_due_date, { locale: ctx.locale } )]] as const as [title, value] (title)}
 				<div class="rounded-xl border border-border bg-card p-4">

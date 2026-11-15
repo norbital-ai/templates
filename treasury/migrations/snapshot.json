@@ -701,6 +701,27 @@
 		},
 		"drawdown_charge": {
 			"audit": true,
+			"computed": {
+				"amount_usd": {
+					"expr": {
+						"round": [
+							{
+								"times": [
+									{
+										"field": "amount"
+									},
+									{
+										"field": "fx_rate_to_usd"
+									}
+								]
+							},
+							2
+						]
+					},
+					"kind": "decimal",
+					"scale": 2
+				}
+			},
 			"fields": {
 				"amount": {
 					"kind": "decimal",
@@ -733,6 +754,12 @@
 					"kind": "ref",
 					"on_delete": "cascade",
 					"to": "drawdown"
+				},
+				"fx_rate_to_usd": {
+					"default": 1,
+					"kind": "decimal",
+					"min": 0,
+					"scale": 12
 				},
 				"stage": {
 					"default": "drawdown",
@@ -940,6 +967,10 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
+				},
+				"minimum_currency": {
+					"default": "USD",
+					"kind": "currency"
 				},
 				"notes": {
 					"kind": "text",
@@ -1397,6 +1428,9 @@
 					"where": {
 						"is_locked": {
 							"eq": true
+						},
+						"source": {
+							"eq": "portal"
 						}
 					}
 				}
