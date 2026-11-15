@@ -1,0 +1,14 @@
+[
+	{
+		"path": "harbour-drawdown-advice.pdf",
+		"sha256": "e7254512abe3af4a43df4b62e5ef2c34adbf055693edfe306bff130a595e8d55",
+		"bytes": 859,
+		"content_type": "application/pdf"
+	},
+	{
+		"path": "northstar-settlement-advice.pdf",
+		"sha256": "ebc3b22763af8c341c16dfee70e3f2fddd585ffeeef9384d4c6d965d9e3e45e2",
+		"bytes": 830,
+		"content_type": "application/pdf"
+	}
+]

@@ -1,0 +1,18 @@
+[
+	{
+		"id": "00000000-0000-4000-8000-000000008031",
+		"bank": "00000000-0000-4000-8000-000000001001",
+		"facility": "00000000-0000-4000-8000-000000003008",
+		"category": "documents",
+		"text": "Invoices must be submitted within 30 days of the bill of lading.",
+		"is_active": true
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000008032",
+		"bank": "00000000-0000-4000-8000-000000001002",
+		"facility": null,
+		"category": "settlement",
+		"text": "Settlement commission is debited separately on the due date.",
+		"is_active": true
+	}
+]

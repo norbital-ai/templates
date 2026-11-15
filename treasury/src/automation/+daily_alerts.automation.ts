@@ -1,56 +1,70 @@
 import { automation } from '@norbital-ai/bolt';
-import { DateTime } from 'effect';
+import { addDays } from '../lib/calculations.js';
+import { FACILITY_FIELDS, LINE_FIELDS, utilisation } from '../lib/treasury.js';
+import { Effect } from 'effect';
+
+type DrawdownWhere = import('@norbital-ai/bolt').Where<'drawdown'>;
 
 /**
- * The Alerts page, run every morning: lines that fall due in the next seven days, and
- * facility reviews due in the next sixty. One notice to the Treasury team when there is anything
- * to say.
+ * The Alerts page, run every morning: lines due within 7 days, banks at 80% or more, facility reviews within 60
+ * days, earmarks past their date, past-due lines without a settlement advice, LC and DA bills to decide within 14
+ * days, LCs expiring within 14 days, lines due after the latest date their bank finances to, and LCs to open. One
+ * notice to Treasury when there is anything to say.
  */
 export default automation({
-	description:
-		'Every morning, tells Treasury which lines fall due in 7 days and which facilities are up for review.',
+	description: 'Every morning, tells Treasury what needs attention on the Alerts page.',
 	on: [{ cron: '0 8 * * *' }],
 	policies: ['treasury'],
-	run: function* (input, ctx) {
-		const today = DateTime.formatIsoDateUtc(DateTime.makeUnsafe(ctx.today));
-		const week = DateTime.formatIsoDateUtc(
-			DateTime.add(DateTime.makeUnsafe(ctx.today), { days: 7 })
-		);
-		const quarter = DateTime.formatIsoDateUtc(
-			DateTime.add(DateTime.makeUnsafe(ctx.today), { days: 60 })
-		);
-
-		const lines = (yield* ctx.query({
-			drawdown: {
-				where: { status: { in: ['applied', 'active'] }, is_archived: { eq: false } },
-				fields: ['bank_reference', 'currency', 'amount', 'due_date', 'status'],
-				facility: { fields: ['name'] },
-				supplier: { fields: ['name'] }
-			}
-		})).drawdown.rows;
-
-		const due = lines.filter((line) => {
-			const when = line.due_date === null ? '' : String(line.due_date);
-			return when !== '' && when >= today && when <= week;
-		});
-
-		const facilities = (yield* ctx.query({
+	run: function* (_input, ctx) {
+		const today = ctx.today;
+		const open = ['applied', 'active'] as const;
+		const lines = (where: DrawdownWhere) =>
+			ctx
+				.query({ drawdown: { where, aggregate: { count: true } } })
+				.pipe(Effect.map((r) => r.drawdown.count));
+		const counts = {
+			due: yield* lines({ status: { in: open }, due_date: { gte: today, lte: addDays(today, 7) } }),
+			past_due: yield* lines({ status: { in: open }, due_date: { lt: today } }),
+			stale: yield* lines({ status: { eq: 'earmarked' }, expected_draw_date: { lt: today } }),
+			bills: yield* lines({
+				status: { in: open },
+				product: { in: ['lc', 'import_bill', 'da', 'tb'] },
+				due_date: { lte: addDays(today, 14) }
+			}),
+			lc_expiry: yield* lines({
+				status: { in: open },
+				product: { eq: 'lc' },
+				lc_expiry_date: { lte: addDays(today, 14) }
+			}),
+			reviews: (yield* ctx.query({
+				facility: {
+					where: { status: { eq: 'active' }, review_date: { lte: addDays(today, 60) } },
+					aggregate: { count: true }
+				}
+			})).facility.count,
+			lcs_to_open: (yield* ctx.query({
+				purchase_order: {
+					where: { lc_requested: { eq: true }, is_cancelled: { eq: false }, lc_links: { eq: 0 } },
+					aggregate: { count: true }
+				}
+			})).purchase_order.count,
+			high: 0
+		};
+		const usage = yield* ctx.query({
 			facility: {
-				where: { status: { eq: 'active' } },
-				fields: ['name', 'review_date']
-			}
-		})).facility.rows;
-
-		const reviews = facilities.filter((facility) => {
-			const when = facility.review_date === null ? '' : String(facility.review_date);
-			return when !== '' && when >= today && when <= quarter;
+				fields: [...FACILITY_FIELDS],
+				bank: { fields: ['code'] }
+			},
+			drawdown: { where: { status: { in: ['earmarked', ...open] } }, fields: [...LINE_FIELDS] }
 		});
-
-		if (due.length === 0 && reviews.length === 0) return;
-
+		counts.high = utilisation(usage.facility.rows, usage.drawdown.rows).banks.filter(
+			(b) => b.high
+		).length;
+		if (Object.values(counts).every((n) => n === 0)) return;
 		yield* ctx.notify({
-			title: `Treasury: ${due.length} line(s) due within 7 days, ${reviews.length} facility review(s) within 60 days`,
-			to: [{ team: 'treasury' }]
+			title: `Treasury: ${counts.due} due within 7 days, ${counts.past_due} past due, ${counts.high} bank(s) at 80%+, ${counts.reviews} review(s), ${counts.stale} stale earmark(s), ${counts.bills} bill(s) to decide, ${counts.lc_expiry} LC(s) expiring, ${counts.lcs_to_open} LC(s) to open`,
+			to: [{ team: 'treasury' }],
+			once: `alerts:${today}`
 		});
 	}
 });

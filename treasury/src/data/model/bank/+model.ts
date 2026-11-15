@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { PRODUCT_CODES } from '../../../lib/products.js';
 /**
  * A bank the group holds trade and loan facilities with. How the team refers to it, its
  * cut-off time, and its facility terms word for word. Contacts and facilities hang off it.
@@ -11,7 +12,10 @@ export default model('bank', {
 		code: { kind: 'text', max: 20 },
 		name: { kind: 'text' },
 		cut_off_time: { kind: 'text', optional: true },
+		settlement_instructions: { kind: 'text', optional: true },
 		terms_notes: { kind: 'text', optional: true },
+		/** What the bank does; a line on another product is flagged. */
+		offered_products: { kind: 'enum', values: PRODUCT_CODES, many: true, optional: true },
 		is_active: { kind: 'bool', default: true }
 	},
 	constraints: {
@@ -28,11 +32,27 @@ export default model('bank', {
 		}
 	},
 	create: {
-		fields: ['code', 'name', 'cut_off_time', 'terms_notes', 'is_active'],
+		fields: [
+			'code',
+			'name',
+			'cut_off_time',
+			'settlement_instructions',
+			'terms_notes',
+			'offered_products',
+			'is_active'
+		],
 		contacts: { fields: ['role', 'name', 'email', 'phone', 'notes'] }
 	},
 	update: {
-		fields: ['code', 'name', 'cut_off_time', 'terms_notes', 'is_active'],
+		fields: [
+			'code',
+			'name',
+			'cut_off_time',
+			'settlement_instructions',
+			'terms_notes',
+			'offered_products',
+			'is_active'
+		],
 		contacts: { fields: ['role', 'name', 'email', 'phone', 'notes'] }
 	}
 });

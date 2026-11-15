@@ -1,7 +1,8 @@
 import { model } from '@norbital-ai/bolt';
 /**
- * A charge on a line: commission, cable, SWIFT and the rest, at drawdown or at settlement,
- * estimated from the fee rules until the bank's advice replaces it.
+ * An actual charge on a line: commission, cable, SWIFT and the rest, at drawdown or at settlement, from the bank's
+ * advice or typed in by Treasury (for example the bank's minimum). A stage with any actual charge, even 0, is no
+ * longer estimated from the fee rules; removing its charges estimates it again.
  */
 export default model('drawdown_charge', {
 	description: 'One charge on a financing line.',
@@ -26,10 +27,12 @@ export default model('drawdown_charge', {
 		stage: { kind: 'enum', values: ['drawdown', 'settlement'], default: 'drawdown' },
 		description: { kind: 'text', optional: true },
 		currency: { kind: 'currency', default: 'USD' },
-		amount: { kind: 'decimal', scale: 2 },
-		is_estimate: { kind: 'bool', default: true }
+		amount: { kind: 'decimal', scale: 2 }
 	},
 	outputs: {
-		default: { fields: 'all', drawdown: { fields: ['bank_reference'] } }
+		default: {
+			fields: 'all',
+			drawdown: { fields: ['bank_reference', 'product', 'currency', 'amount', 'start_date'] }
+		}
 	}
 });

@@ -18,13 +18,13 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 					const treasury = yield* t.as(t.member(['treasury']));
 
 					const bank = yield* treasury.act({
-						'bank.create': [{ code: 'DBS', name: 'DBS Bank' }]
+						'bank.create': [{ code: 'BKA', name: 'Bank A' }]
 					});
 					const bankRow = bank.records[0];
 					if (bankRow === undefined) throw new Error('Expected the created bank.');
 
 					const duplicate = yield* Effect.exit(
-						treasury.act({ 'bank.create': [{ code: 'DBS', name: 'DBS again' }] })
+						treasury.act({ 'bank.create': [{ code: 'BKA', name: 'Bank A again' }] })
 					);
 					expect(Exit.isFailure(duplicate)).toBe(true);
 
@@ -32,7 +32,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 						'facility.create': [
 							{
 								bank: Schema.decodeUnknownSync(id_of('bank'))(bankRow.id),
-								name: 'DBS trade line',
+								name: 'Bank A trade line',
 								limit: '5000000.00',
 								max_tenor_days: 150
 							}
@@ -54,7 +54,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 								supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplierRow.id),
 								product: 'if',
 								status: 'active',
-								bank_reference: 'IF5TF-0001',
+								bank_reference: 'IF-0001',
 								amount: '250000.00',
 								start_date: '2026-11-01',
 								due_date: '2026-12-01',
@@ -73,7 +73,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				const treasury = yield* t.as(t.member(['treasury']));
 
 				const created = yield* treasury.act({
-					'drawdown.create': [{ bank_reference: 'IF5TF-0002', amount: '1000.00', status: 'active' }]
+					'drawdown.create': [{ bank_reference: 'IF-0002', amount: '1000.00', status: 'active' }]
 				});
 				const line = created.records[0];
 				if (line === undefined) throw new Error('Expected the created line.');
@@ -116,7 +116,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 
 				const refused = yield* Effect.exit(
 					purchasing.act({
-						'drawdown.create': [{ bank_reference: 'IF5TF-0003', amount: '500.00' }]
+						'drawdown.create': [{ bank_reference: 'IF-0003', amount: '500.00' }]
 					})
 				);
 				expect(Exit.isFailure(refused)).toBe(true);
@@ -130,7 +130,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				const purchasing = yield* t.as(t.member(['purchasing']));
 
 				const supplier = yield* treasury.act({
-					'supplier.create': [{ name: 'Sinar Polymer' }]
+					'supplier.create': [{ name: 'Supplier Two' }]
 				});
 				const supplierRow = supplier.records[0];
 				if (supplierRow === undefined) throw new Error('Expected the created supplier.');
@@ -138,13 +138,13 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				const po = yield* purchasing.act({
 					'purchase_order.create': [
 						{
-							po_number: '300002402',
+							po_number: 'PO-2002',
 							po_date: '2026-11-02',
 							supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplierRow.id),
 							lc_requested: true,
 							lines: [
-								{ item: 'HI121H Natural', quantity: '18000.000', amount: '25000.00' },
-								{ item: 'HI121H Black', quantity: '2000.000', amount: '3000.00' }
+								{ item: 'Grade A natural', quantity: '18000.000', amount: '25000.00' },
+								{ item: 'Grade A black', quantity: '2000.000', amount: '3000.00' }
 							]
 						}
 					]

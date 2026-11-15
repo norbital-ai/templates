@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { PRODUCT_CODES } from '../../../../lib/products.js';
 /**
  * How a bank charges on a line, used to estimate charges until its advice arrives.
  */
@@ -22,9 +23,10 @@ export default model('facility_fee', {
 			],
 			default: 'commission'
 		},
-		product: { kind: 'text', optional: true },
+		product: { kind: 'enum', values: PRODUCT_CODES, optional: true },
 		stage: { kind: 'enum', values: ['drawdown', 'settlement'], default: 'drawdown' },
 		method: { kind: 'enum', values: ['percent', 'flat'], default: 'percent' },
+		currency: { kind: 'currency', default: 'USD' },
 		rate_pct: { kind: 'decimal', scale: 6, optional: true },
 		amount: { kind: 'decimal', scale: 2, optional: true },
 		minimum_amount: { kind: 'decimal', scale: 2, optional: true },
@@ -32,6 +34,6 @@ export default model('facility_fee', {
 		notes: { kind: 'text', optional: true }
 	},
 	outputs: {
-		default: { fields: 'all', facility: { fields: ['name'] } }
+		default: { fields: 'all', facility: { fields: ['name'], bank: { fields: ['code'] } } }
 	}
 });

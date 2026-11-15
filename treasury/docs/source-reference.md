@@ -1,60 +1,54 @@
 # Source reference
 
-Checked against this template's source and compiled declaration manifest on 15 November 2026.
-This is a local source inventory, not a declaration that a deployed tenant runs these bytes.
+Checked against this template's source on 15 November 2026.
 
-18 models, 2 applications, 1 automation.
+23 models, 2 applications, 11 automations, 1 file sync.
 
 ## Applications and pages
 
-| Source application | Title      | Pages                                                                                                   | Purpose                                      |
-| ------------------ | ---------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `treasury`         | Treasury   | Dashboard, Drawdowns, Alerts, Bank advices, Limits & terms, Banks, Suppliers, Costs, Charges, Month-end | Bank facilities, lines, costs and month-ends |
-| `purchasing`       | Purchasing | Purchase orders                                                                                         | Purchase orders and the documents on them    |
+| Application  | Pages                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| `treasury`   | Dashboard, Drawdowns, Alerts, Bank advices, Limits & terms, Banks, Suppliers, Costs, Charges, Month-end |
+| `purchasing` | Purchase orders, Facility forms                                                                         |
 
-## Models and exposed operations
+Record views: `drawdown` (figures, purchase orders, next steps), `bank_document` (checks, read and
+apply), `purchase_order` (invoice checks, LC and financing links), `facility_form` (fill from
+attachments).
 
-| Model                                                                   | Writes         | Notes                                 |
-| ----------------------------------------------------------------------- | -------------- | ------------------------------------- |
-| [bank](../src/data/model/bank/+model.ts)                                | create, update | Contacts written through its layer    |
-| [bank_contact](../src/data/model/bank/bank_contact/+model.ts)           | none           | Written through `bank`                |
-| [watch_point](../src/data/model/bank/watch_point/+model.ts)             | create, update |                                       |
-| [letter_of_offer](../src/data/model/bank/letter_of_offer/+model.ts)     | create, update | Carries the PDF                       |
-| [facility](../src/data/model/facility/+model.ts)                        | create, update | Fee rules written through its layer   |
-| [facility_fee](../src/data/model/facility/facility_fee/+model.ts)       | none           | Written through `facility`            |
-| [sub_limit](../src/data/model/facility/sub_limit/+model.ts)             | create, update |                                       |
-| [supplier](../src/data/model/supplier/+model.ts)                        | create, update |                                       |
-| [drawdown](../src/data/model/drawdown/+model.ts)                        | create, update | Charges written through its layer     |
-| [drawdown_charge](../src/data/model/drawdown/drawdown_charge/+model.ts) | none           | Written through `drawdown`            |
-| [bank_document](../src/data/model/drawdown/bank_document/+model.ts)     | create, update | The advice PDF                        |
-| [month_end](../src/data/model/month_end/+model.ts)                      | create, update | Lines written through its layer       |
-| [month_end_line](../src/data/model/month_end/month_end_line/+model.ts)  | none           | Written through `month_end`           |
-| [fx_rate](../src/data/model/fx_rate/+model.ts)                          | create, update |                                       |
-| [purchase_order](../src/data/model/purchase_order/+model.ts)            | create, update | Lines and invoices through its layers |
-| [po_line](../src/data/model/purchase_order/po_line/+model.ts)           | none           | Written through `purchase_order`      |
-| [invoice](../src/data/model/purchase_order/invoice/+model.ts)           | none           | Written through `purchase_order`      |
-| [po_document](../src/data/model/purchase_order/po_document/+model.ts)   | create, update | The PO's files                        |
+## Models
 
-`bank`, `supplier` and `purchase_order` mark their unique constraint `import_key`, so they can be imported.
-
-## Automations
-
-| Automation     | Trigger          | Policies   | Purpose                                                             |
-| -------------- | ---------------- | ---------- | ------------------------------------------------------------------- |
-| `daily_alerts` | cron `0 8 * * *` | `treasury` | Lines due within 7 days and facility reviews within 60, to Treasury |
+| Model                 | Writes                   | Notes                                                                   |
+| --------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| `bank`                | create, update           | Contacts through its layer; products it offers                          |
+| `bank_contact`        | through `bank`           |                                                                         |
+| `watch_point`         | create, update           |                                                                         |
+| `letter_of_offer`     | create, update           |                                                                         |
+| `facility`            | create, update           | Fee rules through its layer                                             |
+| `facility_fee`        | through `facility`       |                                                                         |
+| `sub_limit`           | create, update           |                                                                         |
+| `supplier`            | create, update, import   | Aliases; accepting banks through `eligible_banks`                       |
+| `supplier_bank`       | through `supplier`       |                                                                         |
+| `drawdown`            | create, update           | Fills tenor, interest to maturity, latest due date; sealed when settled |
+| `drawdown_charge`     | through `drawdown`       | Actual charges only; estimates are computed                             |
+| `bank_document`       | create, update           | Read figures in `extracted`                                             |
+| `month_end`           | create, update           | Locked months are frozen                                                |
+| `month_end_line`      | through `month_end`      | Export sync `sheet`                                                     |
+| `fx_rate`             | create, update           |                                                                         |
+| `purchase_order`      | create, update, import   | Lines and invoices through its layers; roll-ups                         |
+| `po_line`             | through `purchase_order` | Invoiced quantity roll-up                                               |
+| `invoice`             | through `purchase_order` | Lines through its layer                                                 |
+| `invoice_line`        | through `invoice`        |                                                                         |
+| `po_document`         | create, update           |                                                                         |
+| `po_financing`        | create, delete           | A PO and the line that pays it                                          |
+| `facility_form`       | create, update           | Attachments through its layer; an LC form asks for an LC                |
+| `facility_attachment` | through `facility_form`  |                                                                         |
 
 ## Policies and teams
 
-| Policy       | Grants                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| `treasury`   | Read all eighteen; change banks, facilities, suppliers, lines, documents, month-ends and FX     |
-| `finance`    | Read all eighteen; create and update suppliers and lines; add documents; update purchase orders |
-| `purchasing` | Read suppliers; create and update purchase orders and their documents                           |
-
-Teams: `treasury` → `treasury`; `finance` → `finance`; `purchasing` → `purchasing`.
-
-## Integrations and source roles
-
-- Integration definitions: none.
-- Named connections: none.
-- Custom datatypes: none.
+| Policy           | Held by              |
+| ---------------- | -------------------- |
+| `treasury`       | team `treasury`      |
+| `finance`        | team `finance`       |
+| `purchasing`     | team `purchasing`    |
+| `viewer`         | team `viewers`       |
+| `facility_forms` | `facility_form_read` |

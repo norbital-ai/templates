@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { PRODUCT_CODES } from '../../../../lib/products.js';
 /**
  * Part of a facility's limit reserved for one product or one supplier.
  */
@@ -9,7 +10,7 @@ export default model('sub_limit', {
 	fields: {
 		facility: { kind: 'ref', to: 'facility', inverse: 'sub_limits', on_delete: 'cascade' },
 		name: { kind: 'text' },
-		product: { kind: 'text', optional: true },
+		product: { kind: 'enum', values: PRODUCT_CODES, optional: true },
 		supplier: {
 			kind: 'ref',
 			to: 'supplier',

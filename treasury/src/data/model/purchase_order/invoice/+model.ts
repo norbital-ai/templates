@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
 /**
- * A supplier invoice, keyed in from the bank's returned documents and checked back against the
- * purchase order it was raised on.
+ * A supplier invoice, keyed in from the bank's returned documents with the quantity and amount per PO item, checked
+ * back against the purchase order, and tied to the financing that paid it.
  */
 export default model('invoice', {
 	description: 'A supplier invoice recorded against a purchase order.',
@@ -12,7 +12,7 @@ export default model('invoice', {
 		invoice_number: { kind: 'text', max: 60 },
 		invoice_date: { kind: 'date' },
 		currency: { kind: 'currency', default: 'USD' },
-		amount: { kind: 'decimal', scale: 2 },
+		amount: { kind: 'decimal', scale: 2, min: 0 },
 		bank_bill_number: { kind: 'text', optional: true },
 		drawdown: {
 			kind: 'ref',
@@ -23,11 +23,15 @@ export default model('invoice', {
 		},
 		notes: { kind: 'text', optional: true }
 	},
+	constraints: {
+		invoice_per_po: { unique: ['po', 'invoice_number'] }
+	},
 	outputs: {
 		default: {
 			fields: 'all',
 			po: { fields: ['po_number'] },
-			drawdown: { fields: ['bank_reference'] }
+			drawdown: { fields: ['bank_reference', 'product', 'currency', 'amount'] },
+			lines: { fields: ['po_line', 'quantity', 'amount'] }
 		}
 	}
 });

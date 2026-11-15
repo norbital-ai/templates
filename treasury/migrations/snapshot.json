@@ -117,6 +117,54 @@
 				"name": {
 					"kind": "text"
 				},
+				"offered_products": {
+					"kind": "enum",
+					"many": true,
+					"optional": true,
+					"values": [
+						"lc",
+						"import_bill",
+						"da",
+						"dp",
+						"tb",
+						"ba",
+						"bad",
+						"if",
+						"if_after_lc_or_da",
+						"pif",
+						"twc",
+						"oaf",
+						"apf",
+						"psil",
+						"psbl",
+						"ofcl",
+						"mctf",
+						"tradepay",
+						"packing",
+						"fbep",
+						"dbep",
+						"ecr",
+						"badd",
+						"stl",
+						"term",
+						"efs",
+						"lis",
+						"tbl",
+						"ma",
+						"property",
+						"bg",
+						"sg",
+						"awb",
+						"sblc",
+						"fx",
+						"card",
+						"cash"
+					]
+				},
+				"settlement_instructions": {
+					"kind": "text",
+					"optional": true
+				},
 				"terms_notes": {
 					"kind": "text",
 					"optional": true
@@ -205,6 +253,143 @@
 					"optional": true,
 					"to": "drawdown"
 				},
+				"extracted": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"bank_reference": {
+								"kind": "text",
+								"optional": true
+							},
+							"bill_number": {
+								"kind": "text",
+								"optional": true
+							},
+							"charges": {
+								"fields": {
+									"amount_usd": {
+										"kind": "decimal",
+										"scale": 2
+									},
+									"charge_type": {
+										"kind": "enum",
+										"values": [
+											"commission",
+											"cable",
+											"swift",
+											"cost_of_funds_transfer",
+											"processing",
+											"tr_extension",
+											"penalty",
+											"other"
+										]
+									},
+									"description": {
+										"kind": "text",
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"many": true,
+								"optional": true
+							},
+							"currency": {
+								"kind": "currency",
+								"optional": true
+							},
+							"due_date": {
+								"kind": "date",
+								"optional": true
+							},
+							"interest_amount": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"interest_days": {
+								"kind": "int",
+								"optional": true
+							},
+							"interest_rate_pct": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 6
+							},
+							"lc_number": {
+								"kind": "text",
+								"optional": true
+							},
+							"principal": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"product": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"lc",
+									"import_bill",
+									"da",
+									"dp",
+									"tb",
+									"ba",
+									"bad",
+									"if",
+									"if_after_lc_or_da",
+									"pif",
+									"twc",
+									"oaf",
+									"apf",
+									"psil",
+									"psbl",
+									"ofcl",
+									"mctf",
+									"tradepay",
+									"packing",
+									"fbep",
+									"dbep",
+									"ecr",
+									"badd",
+									"stl",
+									"term",
+									"efs",
+									"lis",
+									"tbl",
+									"ma",
+									"property",
+									"bg",
+									"sg",
+									"awb",
+									"sblc",
+									"fx",
+									"card",
+									"cash"
+								]
+							},
+							"start_date": {
+								"kind": "date",
+								"optional": true
+							},
+							"supplier_name": {
+								"kind": "text",
+								"optional": true
+							},
+							"total_debited": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"uncertain": {
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object"
+					}
+				},
 				"file": {
 					"accept": [
 						"application/pdf"
@@ -231,13 +416,35 @@
 					]
 				}
 			},
-			"record_label": "record.advice_reference"
+			"record_label": "record.advice_reference != null ? record.advice_reference : 'Advice'"
 		},
 		"drawdown": {
 			"audit": true,
+			"computed": {
+				"amount_usd": {
+					"expr": {
+						"round": [
+							{
+								"times": [
+									{
+										"field": "amount"
+									},
+									{
+										"field": "fx_rate_to_usd"
+									}
+								]
+							},
+							2
+						]
+					},
+					"kind": "decimal",
+					"scale": 2
+				}
+			},
 			"fields": {
 				"amount": {
 					"kind": "decimal",
+					"min": 0,
 					"scale": 2
 				},
 				"application_date": {
@@ -256,6 +463,13 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 6
+				},
+				"converted_from": {
+					"inverse": "converted_into",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "drawdown"
 				},
 				"currency": {
 					"default": "USD",
@@ -288,14 +502,28 @@
 					"optional": true,
 					"to": "facility"
 				},
+				"fx_rate_to_usd": {
+					"default": 1,
+					"kind": "decimal",
+					"scale": 12
+				},
 				"interest_rate_pct": {
 					"kind": "decimal",
 					"optional": true,
 					"scale": 6
 				},
+				"interest_to_maturity": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"is_archived": {
 					"default": false,
 					"kind": "bool"
+				},
+				"latest_due_date": {
+					"kind": "date",
+					"optional": true
 				},
 				"lc_expiry_date": {
 					"kind": "date",
@@ -305,6 +533,10 @@
 					"kind": "text",
 					"optional": true
 				},
+				"needs_review": {
+					"default": false,
+					"kind": "bool"
+				},
 				"notes": {
 					"kind": "text",
 					"optional": true
@@ -313,27 +545,77 @@
 					"default": "if",
 					"kind": "enum",
 					"values": [
-						"if",
-						"if_after_lc_or_da",
 						"lc",
 						"import_bill",
 						"da",
 						"dp",
 						"tb",
+						"ba",
+						"bad",
+						"if",
+						"if_after_lc_or_da",
+						"pif",
 						"twc",
+						"oaf",
+						"apf",
+						"psil",
+						"psbl",
+						"ofcl",
+						"mctf",
+						"tradepay",
+						"packing",
+						"fbep",
+						"dbep",
+						"ecr",
+						"badd",
 						"stl",
+						"term",
+						"efs",
+						"lis",
+						"tbl",
+						"ma",
+						"property",
 						"bg",
-						"cash",
-						"other"
+						"sg",
+						"awb",
+						"sblc",
+						"fx",
+						"card",
+						"cash"
 					]
 				},
 				"purpose": {
 					"kind": "text",
 					"optional": true
 				},
+				"rate_source": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"manual",
+						"bank_advice"
+					]
+				},
 				"released_date": {
 					"kind": "date",
 					"optional": true
+				},
+				"requested_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"review_note": {
+					"kind": "text",
+					"optional": true
+				},
+				"settled_by": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"repaid",
+						"cash",
+						"converted"
+					]
 				},
 				"settled_interest": {
 					"kind": "decimal",
@@ -371,6 +653,15 @@
 					"on_delete": "restrict",
 					"optional": true,
 					"to": "supplier"
+				},
+				"tenor_days": {
+					"kind": "int",
+					"optional": true
+				},
+				"terms_days": {
+					"kind": "int",
+					"min": 0,
+					"optional": true
 				}
 			},
 			"indexes": [
@@ -381,7 +672,25 @@
 					]
 				}
 			],
-			"record_label": "record.bank_reference",
+			"locks": {
+				"sealed_line": {
+					"except": [
+						"is_archived",
+						"needs_review",
+						"review_note",
+						"notes"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"settled",
+								"cancelled"
+							]
+						}
+					}
+				}
+			},
+			"record_label": "(record.bank_reference != null ? record.bank_reference : string(record.product)) + ' · ' + record.currency + ' ' + string(record.amount)",
 			"search": {
 				"text": [
 					"bank_reference",
@@ -425,10 +734,6 @@
 					"on_delete": "cascade",
 					"to": "drawdown"
 				},
-				"is_estimate": {
-					"default": true,
-					"kind": "bool"
-				},
 				"stage": {
 					"default": "drawdown",
 					"kind": "enum",
@@ -460,6 +765,10 @@
 						"actual_365"
 					]
 				},
+				"early_settlement_penalty": {
+					"kind": "text",
+					"optional": true
+				},
 				"entity": {
 					"kind": "text",
 					"optional": true
@@ -488,6 +797,7 @@
 				},
 				"max_tenor_days": {
 					"kind": "int",
+					"min": 0,
 					"optional": true
 				},
 				"name": {
@@ -497,7 +807,16 @@
 					"kind": "text",
 					"optional": true
 				},
+				"pledged_deposit": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"pricing_basis": {
+					"kind": "text",
+					"optional": true
+				},
+				"pricing_notes": {
 					"kind": "text",
 					"optional": true
 				},
@@ -516,6 +835,15 @@
 						"active",
 						"expired"
 					]
+				},
+				"tenor_start_rule": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"invoice_date",
+						"disbursement_date",
+						"bill_of_lading_date"
+					]
 				}
 			},
 			"record_label": "record.name",
@@ -529,6 +857,41 @@
 				}
 			]
 		},
+		"facility_attachment": {
+			"audit": true,
+			"fields": {
+				"file": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png"
+					],
+					"kind": "file",
+					"max": "10MiB"
+				},
+				"form": {
+					"inverse": "attachments",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "facility_form"
+				},
+				"kind": {
+					"default": "other",
+					"kind": "enum",
+					"values": [
+						"proforma",
+						"purchase_order",
+						"customer_po",
+						"planning_detail",
+						"other"
+					]
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
 		"facility_fee": {
 			"audit": true,
 			"fields": {
@@ -536,6 +899,10 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
 				},
 				"facility": {
 					"inverse": "fees",
@@ -579,8 +946,47 @@
 					"optional": true
 				},
 				"product": {
-					"kind": "text",
-					"optional": true
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"lc",
+						"import_bill",
+						"da",
+						"dp",
+						"tb",
+						"ba",
+						"bad",
+						"if",
+						"if_after_lc_or_da",
+						"pif",
+						"twc",
+						"oaf",
+						"apf",
+						"psil",
+						"psbl",
+						"ofcl",
+						"mctf",
+						"tradepay",
+						"packing",
+						"fbep",
+						"dbep",
+						"ecr",
+						"badd",
+						"stl",
+						"term",
+						"efs",
+						"lis",
+						"tbl",
+						"ma",
+						"property",
+						"bg",
+						"sg",
+						"awb",
+						"sblc",
+						"fx",
+						"card",
+						"cash"
+					]
 				},
 				"rate_pct": {
 					"kind": "decimal",
@@ -597,6 +1003,144 @@
 				}
 			},
 			"record_label": "record.fee_type"
+		},
+		"facility_form": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"buyer": {
+					"kind": "text",
+					"optional": true
+				},
+				"currency": {
+					"default": "USD",
+					"kind": "currency"
+				},
+				"customer_po_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"documents_presentation_days": {
+					"kind": "int",
+					"min": 0,
+					"optional": true
+				},
+				"expected_arrival": {
+					"kind": "text",
+					"optional": true
+				},
+				"facility_required": {
+					"default": "tt",
+					"kind": "enum",
+					"values": [
+						"tt",
+						"lc"
+					]
+				},
+				"freight": {
+					"kind": "text",
+					"optional": true
+				},
+				"intended_period_of_sales": {
+					"kind": "text",
+					"optional": true
+				},
+				"latest_shipment_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"lc_expiry_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"partial_shipment": {
+					"default": false,
+					"kind": "bool"
+				},
+				"pay_by_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"payment_terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"po_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"po_number": {
+					"kind": "text",
+					"max": 60
+				},
+				"product_description": {
+					"kind": "text",
+					"optional": true
+				},
+				"projected_sales": {
+					"kind": "text",
+					"optional": true
+				},
+				"purchase_order": {
+					"inverse": "facility_forms",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "purchase_order"
+				},
+				"purpose": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_note": {
+					"kind": "text",
+					"optional": true
+				},
+				"remarks": {
+					"kind": "text",
+					"optional": true
+				},
+				"requested_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"ship_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"shipment_from": {
+					"kind": "text",
+					"optional": true
+				},
+				"shipment_to": {
+					"kind": "text",
+					"optional": true
+				},
+				"shipping_terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"transhipment": {
+					"default": false,
+					"kind": "bool"
+				},
+				"vendor": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.po_number",
+			"search": {
+				"text": [
+					"po_number",
+					"vendor",
+					"customer_po_number"
+				]
+			}
 		},
 		"fx_rate": {
 			"audit": true,
@@ -636,6 +1180,7 @@
 			"fields": {
 				"amount": {
 					"kind": "decimal",
+					"min": 0,
 					"scale": 2
 				},
 				"bank_bill_number": {
@@ -671,7 +1216,44 @@
 					"to": "purchase_order"
 				}
 			},
-			"record_label": "record.invoice_number"
+			"record_label": "record.invoice_number",
+			"unique": [
+				{
+					"fields": [
+						"po",
+						"invoice_number"
+					],
+					"name": "invoice_per_po"
+				}
+			]
+		},
+		"invoice_line": {
+			"audit": true,
+			"fields": {
+				"amount": {
+					"kind": "decimal",
+					"min": 0,
+					"scale": 2
+				},
+				"invoice": {
+					"inverse": "lines",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "invoice"
+				},
+				"po_line": {
+					"inverse": "invoice_lines",
+					"kind": "ref",
+					"on_delete": "restrict",
+					"to": "po_line"
+				},
+				"quantity": {
+					"kind": "decimal",
+					"min": 0,
+					"scale": 3
+				}
+			},
+			"record_label": "record.po_line.item"
 		},
 		"letter_of_offer": {
 			"audit": true,
@@ -722,6 +1304,11 @@
 					"optional": true,
 					"scale": 2
 				},
+				"available": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"average_tenor_days": {
 					"kind": "decimal",
 					"optional": true,
@@ -755,6 +1342,10 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
+				},
+				"locked_at": {
+					"kind": "instant",
+					"optional": true
 				},
 				"lowest_rate_pct": {
 					"kind": "decimal",
@@ -797,7 +1388,20 @@
 					"scale": 6
 				}
 			},
-			"record_label": "record.month",
+			"locks": {
+				"locked_month": {
+					"except": [
+						"is_locked",
+						"notes"
+					],
+					"where": {
+						"is_locked": {
+							"eq": true
+						}
+					}
+				}
+			},
+			"record_label": "string(record.month)",
 			"unique": [
 				{
 					"fields": [
@@ -840,12 +1444,29 @@
 					"default": "USD",
 					"kind": "currency"
 				},
+				"day_count_basis": {
+					"default": "actual_360",
+					"kind": "enum",
+					"values": [
+						"actual_360",
+						"actual_365"
+					]
+				},
 				"drawdown": {
 					"inverse": "month_end_lines",
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
 					"to": "drawdown"
+				},
+				"due_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"fx_rate_to_usd": {
+					"default": 1,
+					"kind": "decimal",
+					"scale": 12
 				},
 				"interest_rate_pct": {
 					"kind": "decimal",
@@ -864,19 +1485,66 @@
 					"to": "month_end"
 				},
 				"product": {
-					"kind": "text",
-					"optional": true
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"lc",
+						"import_bill",
+						"da",
+						"dp",
+						"tb",
+						"ba",
+						"bad",
+						"if",
+						"if_after_lc_or_da",
+						"pif",
+						"twc",
+						"oaf",
+						"apf",
+						"psil",
+						"psbl",
+						"ofcl",
+						"mctf",
+						"tradepay",
+						"packing",
+						"fbep",
+						"dbep",
+						"ecr",
+						"badd",
+						"stl",
+						"term",
+						"efs",
+						"lis",
+						"tbl",
+						"ma",
+						"property",
+						"bg",
+						"sg",
+						"awb",
+						"sblc",
+						"fx",
+						"card",
+						"cash"
+					]
 				},
 				"reference": {
 					"kind": "text",
 					"optional": true
 				},
+				"start_date": {
+					"kind": "date",
+					"optional": true
+				},
 				"supplier": {
 					"kind": "text",
 					"optional": true
+				},
+				"tenor_days": {
+					"kind": "int",
+					"optional": true
 				}
 			},
-			"record_label": "record.reference"
+			"record_label": "record.bank_code + ' · ' + (record.reference != null ? record.reference : '—')"
 		},
 		"po_document": {
 			"audit": true,
@@ -917,12 +1585,48 @@
 			},
 			"record_label": "record.title"
 		},
+		"po_financing": {
+			"audit": true,
+			"fields": {
+				"drawdown": {
+					"inverse": "financings",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "drawdown"
+				},
+				"is_lc": {
+					"default": false,
+					"kind": "bool"
+				},
+				"purchase_order": {
+					"inverse": "financings",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "purchase_order"
+				}
+			},
+			"record_label": "record.purchase_order.po_number + ' · ' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))",
+			"unique": [
+				{
+					"fields": [
+						"purchase_order",
+						"drawdown"
+					],
+					"name": "one_link"
+				}
+			]
+		},
 		"po_line": {
 			"audit": true,
 			"fields": {
 				"amount": {
 					"kind": "decimal",
+					"min": 0,
 					"scale": 2
+				},
+				"invoiced_quantity": {
+					"kind": "sum",
+					"of": "invoice_lines.quantity"
 				},
 				"item": {
 					"kind": "text"
@@ -935,6 +1639,7 @@
 				},
 				"quantity": {
 					"kind": "decimal",
+					"min": 0,
 					"scale": 3
 				}
 			},
@@ -943,13 +1648,34 @@
 		"purchase_order": {
 			"audit": true,
 			"fields": {
+				"amount": {
+					"kind": "sum",
+					"of": "lines.amount"
+				},
 				"currency": {
 					"default": "USD",
 					"kind": "currency"
 				},
+				"invoice_count": {
+					"kind": "count",
+					"of": "invoices"
+				},
+				"invoiced_amount": {
+					"kind": "sum",
+					"of": "invoices.amount"
+				},
 				"is_cancelled": {
 					"default": false,
 					"kind": "bool"
+				},
+				"lc_links": {
+					"kind": "count",
+					"of": "financings",
+					"where": {
+						"is_lc": {
+							"eq": true
+						}
+					}
 				},
 				"lc_requested": {
 					"default": false,
@@ -969,6 +1695,10 @@
 				"purchaser": {
 					"kind": "text",
 					"optional": true
+				},
+				"quantity": {
+					"kind": "sum",
+					"of": "lines.quantity"
 				},
 				"salesperson": {
 					"kind": "text",
@@ -1029,8 +1759,47 @@
 					"optional": true
 				},
 				"product": {
-					"kind": "text",
-					"optional": true
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"lc",
+						"import_bill",
+						"da",
+						"dp",
+						"tb",
+						"ba",
+						"bad",
+						"if",
+						"if_after_lc_or_da",
+						"pif",
+						"twc",
+						"oaf",
+						"apf",
+						"psil",
+						"psbl",
+						"ofcl",
+						"mctf",
+						"tradepay",
+						"packing",
+						"fbep",
+						"dbep",
+						"ecr",
+						"badd",
+						"stl",
+						"term",
+						"efs",
+						"lis",
+						"tbl",
+						"ma",
+						"property",
+						"bg",
+						"sg",
+						"awb",
+						"sblc",
+						"fx",
+						"card",
+						"cash"
+					]
 				},
 				"supplier": {
 					"inverse": "sub_limits",
@@ -1045,6 +1814,11 @@
 		"supplier": {
 			"audit": true,
 			"fields": {
+				"aliases": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
 				"country": {
 					"kind": "text",
 					"optional": true
@@ -1067,9 +1841,19 @@
 				"products": {
 					"kind": "text",
 					"optional": true
+				},
+				"relationship_since": {
+					"kind": "date",
+					"optional": true
 				}
 			},
 			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"aliases"
+				]
+			},
 			"unique": [
 				{
 					"fields": [
@@ -1077,6 +1861,33 @@
 					],
 					"import_key": true,
 					"name": "supplier_name"
+				}
+			]
+		},
+		"supplier_bank": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "eligible_suppliers",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "bank"
+				},
+				"supplier": {
+					"inverse": "eligible_banks",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "supplier"
+				}
+			},
+			"record_label": "record.bank.code",
+			"unique": [
+				{
+					"fields": [
+						"supplier",
+						"bank"
+					],
+					"name": "one_per_pair"
 				}
 			]
 		},

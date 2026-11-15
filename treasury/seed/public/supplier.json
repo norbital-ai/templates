@@ -1,0 +1,57 @@
+[
+	{
+		"id": "00000000-0000-4000-8000-000000005018",
+		"name": "Acme Polymers",
+		"aliases": ["ACME POLYMERS LTD"],
+		"country": "Malaysia",
+		"payment_terms": "90 days from invoice",
+		"products": "Resins",
+		"relationship_since": "2021-01-01",
+		"notes": null,
+		"is_active": true
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000005019",
+		"name": "Blue River Resins",
+		"aliases": null,
+		"country": "Thailand",
+		"payment_terms": "90 days from invoice",
+		"products": "Resins",
+		"relationship_since": "2021-01-01",
+		"notes": null,
+		"is_active": true
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000005020",
+		"name": "Northwind Chemicals",
+		"aliases": null,
+		"country": "Korea",
+		"payment_terms": "90 days from invoice",
+		"products": "Resins",
+		"relationship_since": "2021-01-01",
+		"notes": null,
+		"is_active": true
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000005021",
+		"name": "Summit Pigments",
+		"aliases": null,
+		"country": "India",
+		"payment_terms": "90 days from invoice",
+		"products": "Resins",
+		"relationship_since": "2021-01-01",
+		"notes": null,
+		"is_active": true
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000005022",
+		"name": "Orchid Packaging",
+		"aliases": null,
+		"country": "Vietnam",
+		"payment_terms": "90 days from invoice",
+		"products": "Resins",
+		"relationship_since": "2021-01-01",
+		"notes": null,
+		"is_active": true
+	}
+]

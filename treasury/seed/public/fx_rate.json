@@ -1,0 +1,98 @@
+[
+	{
+		"id": "00000000-0000-4000-8000-000000010034",
+		"currency": "SGD",
+		"rate_date": "2026-08-31",
+		"usd_per_unit": 0.772,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010035",
+		"currency": "SGD",
+		"rate_date": "2026-09-30",
+		"usd_per_unit": 0.776,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010036",
+		"currency": "SGD",
+		"rate_date": "2026-10-31",
+		"usd_per_unit": 0.768,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010037",
+		"currency": "SGD",
+		"rate_date": "2026-11-13",
+		"usd_per_unit": 0.771,
+		"is_month_end": false,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010038",
+		"currency": "JPY",
+		"rate_date": "2026-08-31",
+		"usd_per_unit": 0.0068,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010039",
+		"currency": "JPY",
+		"rate_date": "2026-09-30",
+		"usd_per_unit": 0.0067,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010040",
+		"currency": "JPY",
+		"rate_date": "2026-10-31",
+		"usd_per_unit": 0.0066,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010041",
+		"currency": "JPY",
+		"rate_date": "2026-11-13",
+		"usd_per_unit": 0.00655,
+		"is_month_end": false,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010042",
+		"currency": "EUR",
+		"rate_date": "2026-08-31",
+		"usd_per_unit": 1.09,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010043",
+		"currency": "EUR",
+		"rate_date": "2026-09-30",
+		"usd_per_unit": 1.1,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010044",
+		"currency": "EUR",
+		"rate_date": "2026-10-31",
+		"usd_per_unit": 1.08,
+		"is_month_end": true,
+		"source": "Synthetic demo rate"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000010045",
+		"currency": "EUR",
+		"rate_date": "2026-11-13",
+		"usd_per_unit": 1.085,
+		"is_month_end": false,
+		"source": "Synthetic demo rate"
+	}
+]
