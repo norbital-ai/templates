@@ -30,7 +30,7 @@ export const LAW_DEPTH = (path: readonly string[]): boolean =>
 
 /**
  * A law as it stands on a day. `settings` is the jurisdiction with the law's own blocks (`conversions`, `ledger`,
- * `lookup`, `work_regions`, the two extension schemas); `rows` are each family's rows, every one carrying its `code`.
+ * `lookup`, `work_regions`, the two statutory parameter declarations); `rows` are each family's rows, every one carrying its `code`.
  * A row names another by code: `subtotal`, `previous`, `employer_cost_subtotal`. Nothing in a law has an id.
  */
 export interface Law {

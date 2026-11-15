@@ -146,21 +146,15 @@
 	);
 	const baseParameters = $derived.by((): JsonObject => {
 		if (from === null || lastDay === null) return {};
-		const told = carried(
-			inForce(from.parameters.map(jsonObject).map(parametersChange), lastDay).state
-		);
-		const schema = law?.settings.employee_extension_schema;
-		if (sameLaw || schema == null || !is_json_schema(schema)) return told;
+		const schema = law?.settings.employee_statutory_parameters;
+		const on = (stint: StintRow) =>
+			inForce(stint.parameters.map(jsonObject).map(parametersChange), lastDay).state;
+		if (sameLaw || schema == null || !is_json_schema(schema)) return { parameters: on(from) };
 		// the person's parameters from their latest stint under the target law; another jurisdiction's never carry over
 		const prior = read.stints.find(
 			(stint) => stint.id !== from.id && codeOf(stint.entity_id) === codeOf(entity)
 		);
-		const rest = Object.fromEntries(Object.entries(told).filter(([name]) => name !== 'parameters'));
-		const known =
-			prior === undefined
-				? undefined
-				: inForce(prior.parameters.map(jsonObject).map(parametersChange), lastDay).state.parameters;
-		return known == null ? rest : { ...rest, parameters: known };
+		return prior === undefined ? {} : { parameters: on(prior) };
 	});
 	const terms = $derived(termsEdit ?? baseTerms);
 	const parameters = $derived(parametersEdit ?? baseParameters);

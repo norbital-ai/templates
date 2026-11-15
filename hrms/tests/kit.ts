@@ -370,11 +370,13 @@ export const pack = (
 				id: PARAMETERS,
 				employment_id: EMPLOYMENT,
 				effective_from: '2025-01-01',
-				marital_status: 'SINGLE',
-				...told,
-				...(nationality === undefined ? {} : { nationality }),
-				...(passport_number === undefined ? {} : { passport_number }),
-				parameters: statutory
+				parameters: {
+					marital_status: 'SINGLE',
+					...told,
+					...(nationality === undefined ? {} : { nationality }),
+					...(passport_number === undefined ? {} : { passport_number }),
+					...statutory
+				}
 			}
 		],
 		dependant: (Array.isArray(family) ? family : []).map((member, index) => ({
@@ -442,6 +444,17 @@ export const packTerms = (amount: number, statutory_work_category?: string) => (
 	...agreedTerms(amount, statutory_work_category),
 	residency_status: 'CITIZEN'
 });
+/** A pack's statutory parameters with these set on every row, beside what each row already tells; `more` are row fields. */
+export const withParameters = (
+	seed: Seed,
+	set: JsonObject,
+	more: JsonObject = {}
+): readonly JsonObject[] =>
+	(seed.statutory_parameters ?? []).map((row) => ({
+		...row,
+		...more,
+		parameters: { ...(isJsonObject(row.parameters) ? row.parameters : {}), ...set }
+	}));
 /** A model's rows and one more, like its first but for `row`. */
 const like = (seed: Seed, model: string, row: JsonObject): readonly JsonObject[] => [
 	...(seed[model] ?? []),

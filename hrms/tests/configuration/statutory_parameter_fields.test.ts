@@ -1,4 +1,4 @@
-// A country extension field exists because a formula reads it or the salary listing shows it. The schema is flat.
+// A country statutory parameter exists because a formula reads it or the salary listing shows it. The schema is flat.
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -6,7 +6,7 @@ import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
 import { SEEDED } from './seeded.ts';
 
-const LABELS = ['employee_extension_schema', 'entity_extension_schema'] as const;
+const LABELS = ['employee_statutory_parameters', 'entity_statutory_parameters'] as const;
 const BUCKETS = new Set(['facts', 'term_facts', 'exit_facts', 'elections']);
 const isObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -33,7 +33,7 @@ const leaves = (schema: unknown, prefix = ''): readonly string[] => {
 	});
 };
 
-describe('country extension fields', () => {
+describe('country statutory parameters', () => {
 	for (const { code, standing } of SEEDED) {
 		/** The one catalogue is the schema source; names are derived, never a second file. */
 		const sourceFields = [
@@ -79,7 +79,7 @@ describe('country extension fields', () => {
 			assert.deepEqual(unread, [], 'a country field nothing reads: read it, or remove it');
 		});
 
-		it(`${code}: every direct extension path is declared`, () => {
+		it(`${code}: every direct statutory parameter path is declared`, () => {
 			const missing: string[] = [];
 			for (const law of standing) {
 				const fields = (label: (typeof LABELS)[number]): ReadonlySet<string> => {
@@ -88,8 +88,8 @@ describe('country extension fields', () => {
 						isObject(schema) && isObject(schema.properties) ? Object.keys(schema.properties) : []
 					);
 				};
-				const employee = fields('employee_extension_schema');
-				const entity = fields('entity_extension_schema');
+				const employee = fields('employee_statutory_parameters');
+				const entity = fields('entity_statutory_parameters');
 				for (const row of LAW_ROWS.flatMap((family) => law.rows[family]))
 					for (const field of [
 						'calculation',
@@ -107,23 +107,18 @@ describe('country extension fields', () => {
 					]) {
 						const source = row[field];
 						if (typeof source !== 'string') continue;
-						for (const match of source.matchAll(
-							/employee_extension_data\.([a-z0-9_]+)|entity_extension_data\.([a-z0-9_]+)/g
-						)) {
-							const whole = match[0];
-							const employeeField = match[1];
-							const entityField = match[2];
-							if (employeeField !== undefined && !employee.has(employeeField))
-								missing.push(`${code}/${law.on}: ${whole}`);
-							if (entityField !== undefined && !entity.has(entityField))
-								missing.push(`${code}/${law.on}: ${whole}`);
+						// a person's and a company's parameters are read by the one name: either declaration answers
+						for (const match of source.matchAll(/statutory_parameters\.([a-z0-9_]+)/g)) {
+							const name = match[1];
+							if (name !== undefined && !employee.has(name) && !entity.has(name))
+								missing.push(`${code}/${law.on}: ${match[0]}`);
 						}
 					}
 			}
 			assert.deepEqual(
 				[...new Set(missing)],
 				[],
-				'a formula reads a path no extension schema declares'
+				'a formula reads a path no statutory parameter declaration has'
 			);
 		});
 	}

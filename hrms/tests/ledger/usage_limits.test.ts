@@ -424,14 +424,14 @@ describe('the pure ledger rules', () => {
 			opened_by: { CHILD_BIRTH: {} },
 			extra: 15,
 			entitlement:
-				"return 98 + (get(ctx.subject.employment, 'employee_extension_data.difficult_birth', false) ? ctx.lookup.extra : 0);"
+				"return 98 + (get(ctx.subject.employment, 'statutory_parameters.difficult_birth', false) ? ctx.lookup.extra : 0);"
 		};
 		const person = (difficult: boolean) => ({
 			started: subject.started,
 			partTime: false,
 			gender: null,
 			maritalStatus: null,
-			employment: { employee_extension_data: { difficult_birth: difficult } }
+			employment: { statutory_parameters: { difficult_birth: difficult } }
 		});
 		const days = (difficult: boolean) =>
 			entitlementPlans(

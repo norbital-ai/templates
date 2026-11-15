@@ -145,7 +145,11 @@ describe('a statutory parameter changed from a date', () => {
 				const january = yield* slip(t, MONTHS[0]);
 				yield* (yield* hr(t)).act({
 					'statutory_parameters.create': [
-						{ employment_id: EMPLOYMENT, effective_from: DAY, marital_status: 'MARRIED' }
+						{
+							employment_id: EMPLOYMENT,
+							effective_from: DAY,
+							parameters: { marital_status: 'MARRIED' }
+						}
 					]
 				});
 				assert.deepEqual(yield* open(t), [MONTHS[1]]);

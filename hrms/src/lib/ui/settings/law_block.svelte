@@ -1,18 +1,16 @@
 <script lang="ts">
-	/** One keyed block of a law (its lookup, conversions, ledger, work regions or an extension schema), edited as folded. */
+	/** One keyed block of a law (its lookup, conversions, ledger, work regions or a statutory parameter declaration), edited as folded. Its view's one Save commits the draft. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, StructuredData } from '@norbital-ai/ui';
-	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { LAW_DEPTH, type Law } from '../../law.js';
+	import { StructuredData } from '@norbital-ai/ui';
+	import type { Law } from '../../law.js';
 	import { isJsonObject, type Json, type JsonObject } from '../../payroll_engine/foundation.js';
-	import { patchOf } from '../../dated.js';
 	import LookupSections from './lookup_sections.svelte';
 
 	let {
 		ctx,
 		law,
 		family,
-		save
+		draft = $bindable()
 	}: {
 		ctx: PageContext;
 		law: Law;
@@ -21,41 +19,25 @@
 			| 'conversions'
 			| 'ledger'
 			| 'work_regions'
-			| 'employee_extension_schema'
-			| 'entity_extension_schema';
-		/** Asks the save question for a patch; `done` runs once it is written. */
-		save: (patch: JsonObject, done: () => void) => void;
+			| 'employee_statutory_parameters'
+			| 'entity_statutory_parameters';
+		/** The edited block; undefined while it is the law's own. */
+		draft?: Json | undefined;
 	} = $props();
 
-	let draft = $state<Json | undefined>(undefined);
 	const block = (value: Json | undefined): JsonObject => (isJsonObject(value) ? value : {});
-	const held = $derived(block(law.settings[family]));
-	const value = $derived(draft === undefined ? held : block(draft));
-	const patch = $derived(patchOf({ [family]: held }, { [family]: value }, LAW_DEPTH));
-	const dirty = $derived(Object.keys(patch).length > 0);
+	const value = $derived(block(draft === undefined ? law.settings[family] : draft));
 </script>
 
-<Stack gap="md">
-	{#if family === 'lookup'}
-		<LookupSections {ctx} {value} name={family} on_change={(next) => (draft = next)} />
-	{:else}
-		<StructuredData
-			{ctx}
-			name={family}
-			mode="edit"
-			kind={{ kind: 'json' }}
-			{value}
-			on_change={(next) => (draft = next)}
-		/>
-	{/if}
-	{#if dirty}
-		<Cluster gap="sm" justify="end">
-			<Button variant="outline" onclick={() => (draft = undefined)}
-				>{ctx.t('component.cancel')}</Button
-			>
-			<Button onclick={() => save(patch, () => (draft = undefined))}
-				>{ctx.t('law_save.save')}</Button
-			>
-		</Cluster>
-	{/if}
-</Stack>
+{#if family === 'lookup'}
+	<LookupSections {ctx} {value} name={family} on_change={(next) => (draft = next)} />
+{:else}
+	<StructuredData
+		{ctx}
+		name={family}
+		mode="edit"
+		kind={{ kind: 'json' }}
+		{value}
+		on_change={(next) => (draft = next)}
+	/>
+{/if}

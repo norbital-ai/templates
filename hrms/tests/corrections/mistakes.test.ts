@@ -33,7 +33,8 @@ import {
 	decimalNumber,
 	packTerms,
 	withSecond,
-	stintOf
+	stintOf,
+	withParameters
 } from '../kit.ts';
 
 // after the last change of 2026 in the law the template holds (8 July), so no run changes law under a case
@@ -763,10 +764,7 @@ describe('a dependant keyed wrongly', () => {
 		);
 		return {
 			...base,
-			statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
-				...row,
-				marital_status: 'MARRIED'
-			}))
+			statutory_parameters: withParameters(base, { marital_status: 'MARRIED' })
 		};
 	};
 	const PATERNITY = 'PATERNITY_LEAVE';

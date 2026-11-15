@@ -55,8 +55,8 @@ export type SettingsFacts = {
 	readonly code: string;
 	readonly timezone: string;
 	readonly lookup: unknown;
-	readonly employee_extension_schema: unknown;
-	readonly entity_extension_schema: unknown;
+	readonly employee_statutory_parameters: unknown;
+	readonly entity_statutory_parameters: unknown;
 };
 export type AllowanceFacts = {
 	readonly code: string;
@@ -129,7 +129,7 @@ const valueKind = (spec: JsonObject): ValueKind => {
 					: 'text';
 };
 
-/** Every leaf of a jurisdiction's extension schema as one flat column, however deep the schema nests it. */
+/** Every leaf of a jurisdiction's statutory parameter declaration as one flat column, however deep the schema nests it. */
 const flatten = (
 	schema: JsonObject,
 	group: string,
@@ -363,7 +363,9 @@ export const entityColumns = (
 			help: 'Other schemes as Scheme = Number; Scheme = Number.'
 		}),
 		...flatten(
-			isJsonObject(settings.entity_extension_schema) ? settings.entity_extension_schema : {},
+			isJsonObject(settings.entity_statutory_parameters)
+				? settings.entity_statutory_parameters
+				: {},
 			'Country requirements',
 			['statutory_parameters']
 		)
@@ -451,8 +453,6 @@ export const contractColumns = (
 		column('Department', 'text', ['terms', 'department'], WORK),
 		category('Statutory Work Category', 'terms', 'statutory_work_category', categories.statutory),
 		category('Work Classification', 'terms', 'work_classification', categories.classification),
-		category('Residency Status', 'parameters', 'residency_status', categories.residency),
-		category('Work Authorisation', 'parameters', 'work_authorisation_category', categories.pass),
 		column('Shift Pattern', 'pattern', ['$pattern'], WORK, {
 			help: 'A code on the Shift Patterns sheet.'
 		}),
@@ -500,15 +500,12 @@ export const contractColumns = (
 		column('Identity Number', 'text', ['$profile', 'identity_number'], 'Person', {
 			help: 'National ID or passport number, as issued.'
 		}),
-		...extensionColumns(settings.employee_extension_schema).filter(
+		...extensionColumns(settings.employee_statutory_parameters).filter(
 			(column) => column.path.at(-1) === 'registration_number'
 		),
 		column('Gender', 'enum', ['$profile', 'gender'], 'Person', { values: ['MALE', 'FEMALE'] }),
-		column('Marital Status', 'enum', ['parameters', 'marital_status'], 'Person', {
-			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED']
-		}),
 		...bankColumns('Employee bank', ['$profile']),
-		...extensionColumns(settings.employee_extension_schema).filter(
+		...extensionColumns(settings.employee_statutory_parameters).filter(
 			(column) => column.path.at(-1) !== 'registration_number'
 		)
 	]);
@@ -1136,7 +1133,8 @@ export const planDataRequest = (
 			);
 			const told = differing(
 				parameterFields,
-				inForce(standing.parameters.map(parametersChange), row.from).state,
+				// the sheet states the person's parameters as one record
+				{ parameters: inForce(standing.parameters.map(parametersChange), row.from).state },
 				row.parameters
 			);
 			if (Object.keys(agreed).length > 0) {

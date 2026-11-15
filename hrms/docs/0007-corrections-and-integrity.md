@@ -71,7 +71,7 @@ What follows:
 - A record whose date moves loses its run seal (`payroll_run_id`), so the period it joins prices it.
 - A late claim or ad hoc entry dated in a period the person was paid for is that period's: it is carried and tagged. One dated in a period that paid the person nothing is priced by the next run as an ordinary line.
 - A stint keyed by mistake is deleted if it was never paid; one that was paid has its terms rows deleted ([dated changes, decision 2](0011-dated-changes.md#5-decisions)).
-- An edit to a company's own fields writes no rows. Nor does a change to a law row's `references`, `description` or `name`, or to an extension schema.
+- An edit to a company's own fields writes no rows. Nor does a change to a law row's `references`, `description` or `name`, or to a statutory parameter declaration.
 - **A change of pay schedule writes no rows.** A pay group that has a paid run keeps its schedule. A company that starts paying monthly makes a monthly group and moves people to it by terms rows from the first of a month. Old periods keep their group and are worked out on its schedule; the run that pays the person now carries the difference.
 
 ## 5. The constraints

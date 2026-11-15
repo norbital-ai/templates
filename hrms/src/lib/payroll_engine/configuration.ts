@@ -153,10 +153,11 @@ export const checkLaw = (law: Law, seen: Set<string> = new Set()): void => {
 		}
 };
 
-/** What payroll never prices from: a row's citations and wording, and the two extension schemas. */
+/** What payroll never prices from: a row's citations and wording, and the two statutory parameter declarations. */
 const priced = (path: string): boolean => {
 	const [family, , field] = path.split('/');
-	if (family === 'employee_extension_schema' || family === 'entity_extension_schema') return false;
+	if (family === 'employee_statutory_parameters' || family === 'entity_statutory_parameters')
+		return false;
 	return !(
 		LAW_ROWS.some((rows) => rows === family) &&
 		(field === 'references' || field === 'description' || field === 'name')

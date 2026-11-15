@@ -105,9 +105,6 @@ export default messages({
 	'person.section_documents': '文件',
 	'person.hire': '入职',
 	'person.rehire': '重新入职',
-	'person.hired': '入职',
-	'person.last_day': '最后一天',
-	'person.signed_on': '签署于 {date}',
 	'person.not_employed_today': '今日未在职',
 	'person.stint_details': '雇佣详情',
 	'person.company': '公司',
@@ -135,9 +132,6 @@ export default messages({
 	'models.entity_change.singular': '公司变更',
 	'models.entity_change.fields.statutory_parameters': '法定参数',
 	'models.entity_change.fields.clears': '自此日期起取消',
-	'entity.in_force_today': '今日生效',
-	'entity.changes_empty': '尚无变更',
-	'entity.new_change': '新建变更',
 	'entity_change.delete': '删除变更',
 	'entity_change.delete_title': '删除此变更？',
 	'entity_change.delete_body':
@@ -155,7 +149,6 @@ export default messages({
 	'models.pay_group.singular': '薪资组',
 	'contract.transfer': '调动',
 	'contract.terminate': '终止雇佣',
-	'contract.ended': '已结束',
 	'contract.change_help':
 		'选择生效月份、公司及其条款。当前雇佣在前一天结束，新雇佣按这些条款开始。',
 	'contract.target_entity': '目标实体',

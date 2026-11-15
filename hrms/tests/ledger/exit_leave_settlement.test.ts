@@ -303,9 +303,7 @@ describe('the leave an exit settles', () => {
 								parameters: [
 									{
 										effective_from: '2026-11-01',
-										residency_status: 'CITIZEN',
-										marital_status: 'SINGLE',
-										parameters: {}
+										parameters: { residency_status: 'CITIZEN', marital_status: 'SINGLE' }
 									}
 								]
 							}

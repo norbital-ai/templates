@@ -8,6 +8,7 @@
 	import { Editor, Field, use_form, type FieldEditor } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { PARAMETER_FIELDS, TERM_FIELDS } from '../../person.js';
+	import { isJsonObject } from '../../payroll_engine/foundation.js';
 	import { idOf } from '../../payroll_engine/reads.js';
 	import { pageLaws } from '../law.svelte.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
@@ -45,6 +46,14 @@
 		return laws.on(code, from == null ? clock.today : String(from).slice(0, 10));
 	});
 	const categories = $derived(categoryValues(law));
+	// what a change may take away: a term by its field, a statutory parameter by the name its law declares
+	const clearable = $derived.by((): string[] => {
+		if (of === 'contract_terms') return [...dated];
+		const declared = law?.settings.employee_statutory_parameters;
+		return isJsonObject(declared) && isJsonObject(declared.properties)
+			? Object.keys(declared.properties)
+			: [];
+	});
 </script>
 
 {#snippet category(field: FieldEditor)}<Editor
@@ -62,7 +71,7 @@
 {#snippet clears(field: FieldEditor)}<Editor
 		{ctx}
 		{...field}
-		kind={{ kind: 'enum', values: [...dated], many: true, optional: true }}
+		kind={{ kind: 'enum', values: clearable, many: true, optional: true }}
 	/>{/snippet}
 
 <Stack gap="md">

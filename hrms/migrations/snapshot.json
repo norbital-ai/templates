@@ -754,10 +754,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"epf_registered_on": {
-					"kind": "date",
-					"optional": true
-				},
 				"name": {
 					"kind": "text"
 				},
@@ -771,10 +767,6 @@
 				},
 				"settings_code": {
 					"kind": "text"
-				},
-				"socso_registered_on": {
-					"kind": "date",
-					"optional": true
 				},
 				"source_reference": {
 					"kind": "text",
@@ -2304,21 +2296,6 @@
 					"on_delete": "cascade",
 					"to": "employment"
 				},
-				"marital_status": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"SINGLE",
-						"MARRIED",
-						"SEPARATED",
-						"DIVORCED",
-						"WIDOWED"
-					]
-				},
-				"nationality": {
-					"kind": "text",
-					"optional": true
-				},
 				"parameters": {
 					"kind": "json",
 					"optional": true,
@@ -2328,22 +2305,6 @@
 							"kind": "json"
 						}
 					}
-				},
-				"passport_number": {
-					"kind": "text",
-					"optional": true
-				},
-				"residency_status": {
-					"kind": "text",
-					"optional": true
-				},
-				"work_authorisation_category": {
-					"kind": "text",
-					"optional": true
-				},
-				"work_authorisation_expires_on": {
-					"kind": "date",
-					"optional": true
 				}
 			},
 			"record_label": "record.effective_from",

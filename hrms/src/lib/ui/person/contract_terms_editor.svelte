@@ -67,7 +67,7 @@
 				values
 			};
 		}
-		const schema = law?.settings.employee_extension_schema;
+		const schema = law?.settings.employee_statutory_parameters;
 		if (fields['parameters'] !== undefined && schema != null && is_json_schema(schema))
 			fields['parameters'] = json_schema_kind(schema);
 		// the employee-borne tax items are the agreed allowances

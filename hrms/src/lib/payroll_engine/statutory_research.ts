@@ -13,8 +13,8 @@ const BLOCKS = [
 	'ledger',
 	'lookup',
 	'work_regions',
-	'employee_extension_schema',
-	'entity_extension_schema'
+	'employee_statutory_parameters',
+	'entity_statutory_parameters'
 ];
 /** A change never moves a row's code or its place in the chain. */
 const PROTECTED = new Set(['code', 'previous']);
@@ -50,7 +50,7 @@ export const FAMILIES = [
 /** The taxonomy a finding is classified against: what each family holds, as research reads it. */
 export const FAMILY_NOTES: { readonly [family: string]: string } = {
 	[SETTINGS_FAMILY]:
-		'Jurisdiction-wide values and shapes: `lookup` constants, `conversions` and rounding, the ledger scope, work regions, the employee and entity extension schemas.',
+		'Jurisdiction-wide values and shapes: `lookup` constants, `conversions` and rounding, the ledger scope, work regions, the employee and entity statutory parameterss.',
 	leave_catalog: 'Statutory and contractual leave entitlements.',
 	claim_catalog: 'Reimbursable expense types.',
 	adhoc_catalog: 'One-off pay and deduction items.',

@@ -23,7 +23,8 @@ import {
 	storedQuery,
 	decimalNumber,
 	packTerms,
-	agreedTerms
+	agreedTerms,
+	withParameters
 } from '../kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
@@ -334,9 +335,7 @@ describe('the events that call it', () => {
 						parameters: [
 							{
 								effective_from: '2026-11-02',
-								residency_status: 'CITIZEN',
-								marital_status: 'SINGLE',
-								parameters: {}
+								parameters: { residency_status: 'CITIZEN', marital_status: 'SINGLE' }
 							}
 						]
 					}
@@ -478,10 +477,7 @@ describe('the person’s dependants', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, { family: members }, [], []);
 		return {
 			...seed,
-			statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-				...row,
-				marital_status: 'MARRIED'
-			}))
+			statutory_parameters: withParameters(seed, { marital_status: 'MARRIED' })
 		};
 	};
 	it.live('a child born mid-year opens the leave of its birth', () => {

@@ -42,7 +42,7 @@ What to expect:
 - **Pay group.** A pay group is one payroll: frequency (monthly, twice a month, every ten days), the pay day of each cycle, how a pay day on a non-working day moves, and the cutoff day.
 - **Cutoff.** With cutoff day 1, a cycle's attendance is its own salary days. With a later cutoff, a monthly cycle's attendance runs from last month's cutoff day to the day before this month's.
 - **Pay methods.** The employer's optional methods are [section 0's](0001-hrms-calculation-architecture.md#company-methods). Each applies only where it pays at least the law. Which rows read them in each country is in [statutory coverage](0009-statutory-coverage.md).
-- **The company screen** shows the company's own fields, what is in force today and one timeline of its changes.
+- **The company screen** shows the company's own fields and its dated facts as one list (fact, value, from), edited in place and saved with the company.
 
 ## 2. Hire
 

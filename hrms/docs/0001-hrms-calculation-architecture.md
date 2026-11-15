@@ -160,7 +160,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - The row declares `include_in_rate` when the law counts it in the wage a day or hour rate divides.
 - No constant hoisting: a constant read by one formula lives with that formula or on its row.
 - A catalogue row keeps its program with a declared boundary: per-family typed params, one input root set, one output type. The build checks the roots and the run decodes the output. Expressions are JavaScript with one checker. `reads` values are explicit `{ var: ... }` or literals, never bare `ctx.` strings.
-- Extension schemas are flat: no `facts`, `term_facts`, `exit_facts` or `elections`; `statutory.<SCHEME>` and `events[]` stay nested. A field exists only because a formula reads it or the salary listing shows it.
+- Statutory parameter declarations are flat: no `facts`, `term_facts`, `exit_facts` or `elections`; `statutory.<SCHEME>` and `events[]` stay nested. A field exists only because a formula reads it or the salary listing shows it.
 - The ledger period is a typed template and the measure a typed union; the write boundary refuses an unknown code.
 
 ### Screens
@@ -228,7 +228,7 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 | `employee_profile`                    | Name, contact, documents, login, face enrolment, date of birth, identity number, gender, birth city, bank, whether every stint counts as service                  | Anything that changes by date                                        |
 | `employment`                          | One stint with one company: employee number, first and last day, credited service, the exit answers, dated events                                                 | What was agreed, what the law is told                                |
 | `contract_terms`                      | By date, what was agreed: engagement, rate and its unit, normal hours and days, agreed allowances, shift pattern, pay group, and the day it was signed            | Statutory law                                                        |
-| `statutory_parameters`                | By date, what the law is told of the person: residency, work pass, marital status, nationality and the fields the law's employee extension schema declares        | Agreed pay                                                           |
+| `statutory_parameters`                | By date, what the law is told of the person: residency, work pass, marital status, nationality and the fields the law's employee statutory parameters declares    | Agreed pay                                                           |
 | `dependant`                           | One member of a person's family, dated by its birth or expected date                                                                                              | Counts and flags a scheme reads: they are worked out                 |
 | Catalogue rows                        | Eligibility, conversion, target subtotal, lookup and the role fields its family declares                                                                          | Employee-specific amounts                                            |
 | Catalogue entries, `roster_entry`     | Dated employee activity and its evidence                                                                                                                          | Pay calculation results                                              |
@@ -263,13 +263,13 @@ Before a field is added, five questions decide whether it has a second owner. A 
 | Which period a payslip line belongs to                 | The line's `period`; empty is the payslip's own       |
 | Which row prices back pay                              | `conversions.back_pay` in the law                     |
 
-Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (every `lookup` key of a law is a shared table, every row's params match its declared shape, no contract-term duplicate, no bare `ctx.` read), `tests/configuration/extension_fields.test.ts` (every extension field has a reader) and `tests/configuration/lookup_keys.test.ts` (no declared key without a reader).
+Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (every `lookup` key of a law is a shared table, every row's params match its declared shape, no contract-term duplicate, no bare `ctx.` read), `tests/configuration/statutory_parameter_fields.test.ts` (every extension field has a reader) and `tests/configuration/lookup_keys.test.ts` (no declared key without a reader).
 
 ## 3. The law by date
 
 A law is one `jurisdiction` row (`code` such as `MY` or `SG`, name, currency, time zone, tax year start) and its `jurisdiction_change` rows. A change has a `jurisdiction_code`, an `effective_from` and a `law` document keyed by family, then row code, then field.
 
-- The first change holds the whole law: `conversions`, `ledger`, `lookup`, `work_regions`, the two extension schemas, the subtotal chain, the nine catalogue families, registered rules and registered effects.
+- The first change holds the whole law: `conversions`, `ledger`, `lookup`, `work_regions`, the two statutory parameter declarations, the subtotal chain, the nine catalogue families, registered rules and registered effects.
 - Each later change is a patch: only what changes from its date. A field or a row set to `null` is removed. A row's `lookup` is patched key by key: a change names only the keys it changes, and a key set to `null` is removed. Anything else, a table inside a lookup key, a list of citations or an expression, is replaced whole.
 - The law on a day is the fold: the changes dated on or before it, applied oldest first (`src/lib/dated.ts`, `src/lib/law.ts`). A day before the first change answers to the first change.
 - Nothing in a law has an id. A catalogue row names its subtotal by code (`subtotal`), a subtotal its predecessor (`previous`), and an entry its catalogue row (`catalog_code`).
@@ -315,7 +315,7 @@ Every write to `jurisdiction_change`, and every finding moved into or out of for
 - The first change stays the first.
 - No catalogue code is removed while an entry dated in that span names it.
 
-The same write carries the amendment rows of the paid periods it reaches and schedules the entitlement sync: at once for a change in force today, otherwise on its day. A change to a row's `references`, `description` or `name`, or to an extension schema, reaches no paid period.
+The same write carries the amendment rows of the paid periods it reaches and schedules the entitlement sync: at once for a change in force today, otherwise on its day. A change to a row's `references`, `description` or `name`, or to a statutory parameter declaration, reaches no paid period.
 
 A `jurisdiction` keeps its currency, time zone and tax year start once a period is paid under it.
 
@@ -585,9 +585,9 @@ src/app/                HR controller apps, employee self-service
 ## 11. Screens
 
 - HR Controller holds Entities, People, Events, Payroll runs, Obligations, Formats and Settings.
-- Settings is one screen for a jurisdiction and a day. Its tabs: General (currency, calendar, conversions, ledger, work regions, extension schemas), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Change log (the timeline of the law's changes, and the research findings). Each shows the law in force on the chosen day. A change opens to show what it changed. Saving a value asks whether it was always so or changes from a date.
+- Settings is one screen for a jurisdiction and a day. Its tabs: General (currency, calendar, conversions, ledger, work regions, statutory parameter declarations), Lookup (the shared tables), Calculation overview, Catalog, Registered rules, Registered behaviour and Change log (the timeline of the law's changes, and the research findings). Each shows the law in force on the chosen day. A change opens to show what it changed. Saving a value asks whether it was always so or changes from a date.
 - Events lists each entry family on its own page: leave, claims, ad hoc, loans, workplace cases, the work month board and work events.
-- An employee profile's tabs: Profile (face enrolment inside it), Contract (the stints, newest first, each a timeline of its terms from the hire to the last day), Statutory parameters (the same timeline of what the law is told), Family (the dependants), Events, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
-- Each dated tab shows what is in force today above its timeline. A timeline row shows its date and only what it changed, and opens its own record to be edited, moved or deleted. Hire or Rehire, Transfer and Terminate are single sheets on the Contract tab, each one write.
+- An employee profile's tabs: Profile (face enrolment inside it), Contract (the stints, newest first, each a list of its dated terms), Statutory parameters (the same list of what the law is told, a parameter being one the stint's law declares), Family (the dependants), Events, Loans, Workplace cases, and Balances (a balance overview of what is left today, and the ledger where HR adds manual adjustments).
+- A dated tab is a list of facts: a fact, its value and the day it stands from, one row each, edited in place. A row is stored as typed: the facts of one date are one change row, and a row with no value takes the fact away from its day. The view has one Save. Hire or Rehire, Transfer and Terminate are single sheets on the Contract tab, each one write.
 - A rule's or effect's `reads` show the record id as a variable chip and the rest of the filter in the shared filter editor; every expression is a read-only code block.
 - A self-service leave or claim form hides the employment picker when the page already knows the employment.

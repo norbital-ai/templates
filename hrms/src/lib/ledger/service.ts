@@ -755,11 +755,11 @@ const personOf = (
 	workEvents: readonly JsonObject[] = []
 ): LeavePerson => {
 	const payroll = objectValue(contract.payroll);
-	const extension = objectValue(contract.employee_extension_data);
+	const extension = objectValue(contract.statutory_parameters);
 	const facts = Object.fromEntries(
 		Object.entries(extension).filter(([key]) => key !== 'statutory')
 	);
-	const employerExtension = objectValue(employer?.entity_extension_data ?? {});
+	const employerExtension = objectValue(employer?.statutory_parameters ?? {});
 	return {
 		started: starts.service_started_on,
 		partTime: contract.engagement === 'PART_TIME',

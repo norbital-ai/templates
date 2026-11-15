@@ -39,8 +39,8 @@ law
   ledger                      ytd_scope
   lookup                      <table or constants key> -> value
   work_regions                <region key> -> display name
-  employee_extension_schema   the statutory data the law asks of a person
-  entity_extension_schema     the statutory data the law asks of a company
+  employee_statutory_parameters   the statutory data the law asks of a person
+  entity_statutory_parameters     the statutory data the law asks of a company
   subtotal                    <code> -> row
   allowance_catalog           <code> -> row
   overtime_catalog            <code> -> row
@@ -82,7 +82,7 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Legal distinctions and dated exceptions are preserved. Splitting a formula across more fields does not count as simplification.
 - Minification, opaque helpers and copied orchestration are rejected.
 - A rule or effect validates nothing the model's own write boundary already checks (the agreed rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
-- The extension schemas are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate`: it rewrites `params.ts` from the seed. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts` fails until they match.
+- The statutory parameter declarations are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate`: it rewrites `params.ts` from the seed. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts` fails until they match.
 - A seed edit or audit across the law packs is one agent per jurisdiction, each with the same brief.
 
 ### Structure

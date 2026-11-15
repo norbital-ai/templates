@@ -23,7 +23,8 @@ import {
 	leaveCreate,
 	storedQuery,
 	decimalNumber,
-	packTerms
+	packTerms,
+	withParameters
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -67,10 +68,7 @@ const seedOf = (gender: string): Seed => {
 			)
 		}),
 		employee_profile: (seed.employee_profile ?? []).map((row) => ({ ...row, gender })),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			marital_status: 'MARRIED'
-		}))
+		statutory_parameters: withParameters(seed, { marital_status: 'MARRIED' })
 	};
 };
 const WOMAN = seedOf('FEMALE');

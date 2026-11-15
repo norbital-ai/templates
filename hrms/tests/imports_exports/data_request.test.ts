@@ -25,8 +25,8 @@ const seed = (code: string) => {
 		code,
 		timezone: String(law.settings.timezone),
 		lookup: law.settings.lookup,
-		employee_extension_schema: law.settings.employee_extension_schema,
-		entity_extension_schema: law.settings.entity_extension_schema
+		employee_statutory_parameters: law.settings.employee_statutory_parameters,
+		entity_statutory_parameters: law.settings.entity_statutory_parameters
 	};
 	const allowances: readonly AllowanceFacts[] = law.rows.allowance_catalog.map((row) => ({
 		code: String(row.code),
@@ -117,12 +117,12 @@ describe('data request columns', () => {
 	it('turns a multi-select into one Yes/No per choice', () => {
 		const { settings, ruleLookup, allowances } = seed('MY');
 		// the fixture's own field: a list of choices on the person's statutory data
-		const schema = settings.employee_extension_schema;
+		const schema = settings.employee_statutory_parameters;
 		assert.ok(isJsonObject(schema) && isJsonObject(schema.properties));
 		const choices = contractColumns(
 			{
 				...settings,
-				employee_extension_schema: {
+				employee_statutory_parameters: {
 					...schema,
 					properties: {
 						...schema.properties,
@@ -202,8 +202,8 @@ describe('data request plan', () => {
 		assert.deepEqual(row?.parameters, [
 			{
 				effective_from: '2026-03-01',
-				residency_status: 'CITIZEN',
 				parameters: {
+					residency_status: 'CITIZEN',
 					paternity_confinements: [
 						{ event_id: 'E1', lifetime_number: 1, notification_requirement_met: true },
 						{ event_id: 'E2', lifetime_number: 2 }

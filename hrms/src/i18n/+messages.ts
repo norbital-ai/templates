@@ -111,9 +111,6 @@ export default messages({
 	'person.section_documents': 'Documents',
 	'person.hire': 'Hire',
 	'person.rehire': 'Rehire',
-	'person.hired': 'Hired',
-	'person.last_day': 'Last day',
-	'person.signed_on': 'signed {date}',
 	'person.not_employed_today': 'Not employed today',
 	'person.stint_details': 'Employment details',
 	'person.company': 'Company',
@@ -147,9 +144,14 @@ export default messages({
 		'The day these values start to apply. A date after today is not yet in force.',
 	'models.entity_change.help.clears':
 		'Names of the fields above that stop applying from this date. An empty field means unchanged.',
-	'entity.in_force_today': 'In force today',
-	'entity.changes_empty': 'No changes yet',
-	'entity.new_change': 'New change',
+	'dated.title': 'Dated facts',
+	'dated.fact': 'Fact',
+	'dated.value': 'Value',
+	'dated.from': 'From',
+	'dated.add_fact': 'Add fact',
+	'dated.remove': 'Remove {fact}',
+	'dated.hint':
+		'Each row is one fact and the day it stands from. A row with no value takes the fact away from that day.',
 	'entity_change.delete': 'Delete change',
 	'entity_change.delete_title': 'Delete this change?',
 	'entity_change.delete_body':
@@ -167,7 +169,6 @@ export default messages({
 	'models.pay_group.singular': 'Pay group',
 	'contract.transfer': 'Transfer',
 	'contract.terminate': 'Terminate',
-	'contract.ended': 'Ended',
 	'contract.change_help':
 		'Choose the month it applies from, the company and the terms there. This employment ends the day before, and the next starts on those terms.',
 	'contract.target_entity': 'Target entity',
@@ -367,8 +368,8 @@ export default messages({
 	'app.payroll.separate_runs':
 		'These people were not employed in the same period. Pay them in separate runs.',
 	'settings_form.calendar': 'Currency and calendar',
-	'settings_form.employee_schema': 'Employee extension schema',
-	'settings_form.entity_schema': 'Entity extension schema',
+	'settings_form.employee_schema': 'Employee statutory parameters',
+	'settings_form.entity_schema': 'Entity statutory parameters',
 	'settings_lookup.pay_basis': 'Pay basis',
 	'settings_lookup.minimum_pay': 'Minimum pay',
 	'settings_lookup.working_time': 'Working time',
@@ -647,10 +648,7 @@ export default messages({
 	'models.pay_amendment.help.period': 'The paid cycle, as its run names it.',
 	'errors.employee_balance_ledger_only':
 		'Only the ledger moves a balance, an admin included. Key an entry, or a manual adjustment on the employee profile.',
-	'errors.entity_change_clears':
-		'Only a dated field can be taken away: pay methods, the loan floor, the overtime threshold or the statutory parameters.',
 	'errors.contract_terms_clears': 'Only an agreed term can be taken away.',
-	'errors.statutory_parameters_clears': 'Only a statutory parameter can be taken away.',
 	'errors.contract_terms_required':
 		'The first terms of a stint state the engagement and the normal hours a day, hours a week and days a week.',
 	'models.contract_terms.label': 'Contract terms',
@@ -702,10 +700,6 @@ export default messages({
 	'models.entity.fields.source_reference': 'Source reference',
 	'models.entity.help.code':
 		'The company’s stable business code for imports and cross-references. This is separate from its immutable record ID, name, jurisdiction and dated registration numbers.',
-	'models.entity.help.epf_registered_on':
-		'The actual date the employer registered with the Employees Provident Fund. A missing date means not yet recorded, not unregistered.',
-	'models.entity.help.socso_registered_on':
-		'The actual date the employer registered with PERKESO; the single registration covers SOCSO and EIS. A missing date means not yet recorded, not unregistered.',
 	'models.entity.help.representative_name':
 		'The responsible person the law names for filing and registration duties.',
 	'models.entity_change.help.final_pay_loan_floor_percent':
@@ -737,7 +731,7 @@ export default messages({
 	'models.entity_change.help.pay_methods.paid_leave':
 		'Leave codes the company pays in full by its own policy where the law leaves them unpaid, such as emergency leave. No statute requires it; it only ever pays more than the law. It changes the leave and no-pay lines of a payslip.',
 	'models.entity_change.help.statutory_parameters':
-		"The entity data the jurisdiction's entity extension schema declares.",
+		"The entity data the jurisdiction's entity statutory parameters declares.",
 	'models.entity.help.time_zone':
 		"The zone this entity's payroll windows and rostered days are counted in.",
 	'models.roster_entry.help.consent':
@@ -819,7 +813,7 @@ export default messages({
 	'models.employment.help.exit_ground':
 		'The statutory ground for ending the employment. It decides severance eligibility and exit duties; reason carries the narrative.',
 	'models.statutory_parameters.help.parameters':
-		"The employee data the jurisdiction's employee extension schema declares. A change that sets it replaces it whole.",
+		"The employee data the jurisdiction's employee statutory parameters declares. A change that sets it replaces it whole.",
 	'models.statutory_parameters.help.nationality': 'ISO 3166-1 alpha-2 country code.',
 	'errors.contract_terms_rate_positive': 'The agreed rate must be more than zero.',
 	'errors.contract_terms_hours_per_day':

@@ -38,7 +38,8 @@ import {
 	uuid,
 	wholeDays,
 	workspace,
-	endStint
+	endStint,
+	withParameters
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
@@ -154,11 +155,7 @@ const married = (has_income: boolean, children: Readonly<Record<string, number>>
 			...row,
 			date_of_birth: '1985-01-01'
 		})),
-		statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
-			...row,
-			marital_status: 'MARRIED',
-			parameters: reliefs(children)
-		})),
+		statutory_parameters: withParameters(base, { marital_status: 'MARRIED', ...reliefs(children) }),
 		dependant: [{ id: SPOUSE, employee_id: uuid(4), relation: 'SPOUSE', has_income }]
 	};
 };

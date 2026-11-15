@@ -123,7 +123,12 @@
 			person={record.id}
 			{read}
 		/>{/if}{/snippet}
-{#snippet statutoryTab()}<DatedFamily {ctx} of="statutory_parameters" {read} />{/snippet}
+{#snippet statutoryTab()}{#if record}<DatedFamily
+			{ctx}
+			of="statutory_parameters"
+			person={record.id}
+			{read}
+		/>{/if}{/snippet}
 {#snippet familyTab()}{#if record}<ProfileFamily {ctx} person={record.id} {read} />{/if}{/snippet}
 {#snippet eventsTab()}<ProfileEvents {ctx} {read} />{/snippet}
 {#snippet loansTab()}{#if record}{#if stintIds.length === 0}<EmptyState

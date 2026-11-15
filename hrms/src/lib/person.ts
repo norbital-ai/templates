@@ -33,16 +33,12 @@ export const TERM_FIELDS = [
 	'signed_contract_period'
 ] as const;
 
-/** What the law is told about a person changes by date: a `statutory_parameters` row holds any of these. */
-export const PARAMETER_FIELDS = [
-	'residency_status',
-	'work_authorisation_category',
-	'work_authorisation_expires_on',
-	'marital_status',
-	'nationality',
-	'passport_number',
-	'parameters'
-] as const;
+/**
+ * What the law is told about a person changes by date: a `statutory_parameters` row holds `parameters`, the values of
+ * the parameters the law of the stint's company declares (`employee_statutory_parameters`). No statutory fact is a
+ * field of its own.
+ */
+export const PARAMETER_FIELDS = ['parameters'] as const;
 
 /** The stint's own fields: what `employmentOn` carries of it as it stands. */
 export const STINT_FIELDS = [
@@ -72,7 +68,10 @@ export const PROFILE_FIELDS = [
 
 /** The agreed terms a contract held beside its `terms`. */
 const BESIDE_TERMS = ['engagement', 'pay_group_id', 'signed_contract_period'] as const;
-/** The parameters a contract held among its `terms`; the others sat under `payroll`, with the person's particulars. */
+/**
+ * Declared parameters a formula reads beside the terms (`terms.residency_status`) or the person's particulars
+ * (`payroll.marital_status`), as well as under `statutory_parameters`.
+ */
 const AMONG_TERMS = [
 	'residency_status',
 	'work_authorisation_category',
@@ -116,7 +115,24 @@ const changeOf =
 	});
 
 export const termsChange = changeOf(TERM_FIELDS);
-export const parametersChange = changeOf(PARAMETER_FIELDS);
+/** A `statutory_parameters` row as the fold reads it: each parameter it sets, and `null` for each it takes away. */
+export const parametersChange = (row: JsonObject): Change => ({
+	id: String(row.id),
+	effective_from: String(row.effective_from),
+	patch: {
+		...Object.fromEntries(
+			(Array.isArray(row.clears) ? row.clears : []).map((name): [string, Json] => [
+				String(name),
+				null
+			])
+		),
+		...Object.fromEntries(
+			Object.entries(isDynObject(row.parameters) ? row.parameters : {}).filter(
+				(entry): entry is [string, Json] => entry[1] != null
+			)
+		)
+	}
+});
 
 /** One stint with everything that says how it stands on a day: its dated rows, its person and their dependants. */
 export interface Parts {
@@ -172,7 +188,7 @@ export const employmentOn = (parts: Parts, day: string): JsonObject => {
 		payroll: { ...held(profile, PARTICULARS), ...held(told, UNDER_PAYROLL) },
 		family: parts.dependants.map((row) => held(row, FAMILY)),
 		bank: profile.bank ?? null,
-		employee_extension_data: told.parameters ?? {}
+		statutory_parameters: told
 	};
 };
 

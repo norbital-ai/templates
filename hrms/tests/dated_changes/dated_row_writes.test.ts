@@ -174,9 +174,11 @@ const hire = (
 					parameters: [
 						{
 							effective_from: from,
-							residency_status: 'CITIZEN',
-							marital_status: 'SINGLE',
-							...(set.parameters === undefined ? {} : { parameters: set.parameters })
+							parameters: {
+								residency_status: 'CITIZEN',
+								marital_status: 'SINGLE',
+								...set.parameters
+							}
 						}
 					]
 				}
@@ -320,7 +322,11 @@ describe('a dated row is checked when it is written', () => {
 				const told = yield* refusal(
 					admin.act({
 						'statutory_parameters.create': [
-							{ employment_id: FIRST, effective_from: '2026-02-16', marital_status: 'MARRIED' }
+							{
+								employment_id: FIRST,
+								effective_from: '2026-02-16',
+								parameters: { marital_status: 'MARRIED' }
+							}
 						]
 					})
 				);

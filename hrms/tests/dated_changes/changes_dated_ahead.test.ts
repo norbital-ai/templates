@@ -22,7 +22,8 @@ import {
 	storedReader,
 	uuid,
 	workspace,
-	packTerms
+	packTerms,
+	withParameters
 } from '../kit.ts';
 
 const PROFILE = idOf('employee_profile', uuid(4));
@@ -43,11 +44,11 @@ const seed: ReturnType<typeof pack> = {
 		...row,
 		effective_from: '2026-01-01'
 	})),
-	statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
-		...row,
-		effective_from: '2026-01-01',
-		marital_status: 'MARRIED'
-	}))
+	statutory_parameters: withParameters(
+		base,
+		{ marital_status: 'MARRIED' },
+		{ effective_from: '2026-01-01' }
+	)
 };
 /** The days a birth opens: the fixture's own maternity row, keyed by the law's code and the event's date. */
 const maternity = lawAt('MY', '2026-06-15').rows.leave_catalog.find(
@@ -166,14 +167,6 @@ describe('a terms row dated ahead of its day', () => {
 				})
 			);
 			assert.equal(agreed.key, 'errors.contract_terms_clears');
-			const told = yield* refusal(
-				caller.act({
-					'statutory_parameters.create': [
-						{ employment_id: STINT, effective_from: '2026-02-01', clears: ['rate'] }
-					]
-				})
-			);
-			assert.equal(told.key, 'errors.statutory_parameters_clears');
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
@@ -212,14 +205,18 @@ describe('a person on a day', () => {
 						{
 							employment_id: STINT,
 							effective_from: '2026-03-01',
-							nationality: 'MY',
+							parameters: { nationality: 'MY' },
 							clears: ['passport_number']
 						}
 					]
 				});
 				yield* admin.act({
 					'statutory_parameters.create': [
-						{ employment_id: STINT, effective_from: '2026-02-01', passport_number: 'A1' }
+						{
+							employment_id: STINT,
+							effective_from: '2026-02-01',
+							parameters: { passport_number: 'A1' }
+						}
 					]
 				});
 				yield* t.run_due();
@@ -339,25 +336,6 @@ describe('a company change dated ahead of its day', () => {
 			t.clock.set('2026-02-01T02:00:00.000Z');
 			yield* t.run_due();
 			assert.deepEqual(yield* companyChanges(t), filed);
-		}).pipe(Effect.provide(workspace({ seed: employer, now: '2026-01-20T02:00:00.000Z' })))
-	);
-
-	it.live('refuses to take away a field that is not dated', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(
-				t.as(t.member(['hr_controller'])).pipe(
-					Effect.andThen((caller) =>
-						caller.act({
-							'entity_change.create': [
-								{ entity_id: ENTITY, effective_from: '2026-02-01', clears: ['settings_code'] }
-							]
-						})
-					)
-				)
-			);
-			assert.ok(refused._tag === 'ActRefused');
-			assert.equal(refused.key, 'errors.entity_change_clears');
 		}).pipe(Effect.provide(workspace({ seed: employer, now: '2026-01-20T02:00:00.000Z' })))
 	);
 });

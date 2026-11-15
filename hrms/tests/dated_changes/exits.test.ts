@@ -59,7 +59,7 @@ const next = (from: string) => ({
 		}
 	],
 	parameters: [
-		{ effective_from: from, residency_status: 'CITIZEN', marital_status: 'SINGLE' as const }
+		{ effective_from: from, parameters: { residency_status: 'CITIZEN', marital_status: 'SINGLE' } }
 	]
 });
 /** The tasks the first stint's exit raised (`…:<stint>:exit:<last day>`), and any cash-out entry keyed for it. */
@@ -243,7 +243,7 @@ describe('what an exit duty reads of the person', () => {
 			engagement: 'PAYEE',
 			effective_range: { from: '2026-01-01', to: '2026-06-30' },
 			terms,
-			employee_extension_data: {}
+			statutory_parameters: {}
 		};
 		const raised = Schema.decodeUnknownSync(
 			Schema.Array(Schema.Struct({ occurrence_key: Schema.String }))

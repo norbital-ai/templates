@@ -1,7 +1,12 @@
 import { model, type CarriedWrites, type EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
 import { amendmentsOf, refusing } from '../../../../lib/amendments.js';
-import { COMPANY_FIELDS, companyChange, employerOn } from '../../../../lib/company.js';
+import {
+	COMPANY_DEPTH,
+	COMPANY_FIELDS,
+	companyChange,
+	employerOn
+} from '../../../../lib/company.js';
 import { reachOf } from '../../../../lib/dated.js';
 import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
 import {
@@ -113,7 +118,8 @@ const companyWrite = Effect.fnUntraced(function* (
 				const span = reachOf(
 					[...post.values()].filter((row) => row.id !== id),
 					prior.get(id),
-					post.get(id)
+					post.get(id),
+					COMPANY_DEPTH
 				);
 				return span === undefined ? [] : [{ entity: String(entity.id), ...span }];
 			})
@@ -172,9 +178,6 @@ const afterWrite = Effect.fnUntraced(function* (
 	);
 });
 
-const named = (clears: readonly string[] | null | undefined) =>
-	(clears ?? []).every((name) => COMPANY_FIELDS.some((field) => field === name));
-
 export default model('entity_change', {
 	description:
 		'One dated change to a company: from its date, the fields it holds are now these. A field left empty is unchanged; one named in clears is taken away. A change may be edited, moved or deleted.',
@@ -223,13 +226,13 @@ export default model('entity_change', {
 		},
 		final_pay_loan_floor_percent: { kind: 'int', min: 0, max: 100, optional: true },
 		overtime_full_award_percent: { kind: 'int', min: 1, max: 100, optional: true },
-		/** What the law's formulas read of the company: the fields its jurisdiction's entity extension schema declares. */
+		/** What the law's formulas read of the company: the fields its jurisdiction's entity statutory parameters declares. */
 		statutory_parameters: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
 			optional: true
 		},
-		/** The fields above taken away from this date. */
+		/** The fields above, and the statutory parameters, taken away from this date. */
 		clears: { kind: 'text', many: true, optional: true }
 	},
 	constraints: { one_change: { unique: ['entity_id', 'effective_from'] } },
@@ -240,9 +243,6 @@ export default model('entity_change', {
 		fields: ['entity_id', 'effective_from', ...COMPANY_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ after }) => after);
-			const unknown = rows.findIndex((row) => !named(row.clears));
-			if (unknown >= 0)
-				return yield* ctx.refuse('errors.entity_change_clears', { row: unknown, field: 'clears' });
 			return {
 				sets: changes.map(({ set }) => set),
 				on_approved: yield* companyWrite(
@@ -267,9 +267,6 @@ export default model('entity_change', {
 	update: {
 		fields: ['effective_from', ...COMPANY_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
-			const unknown = changes.findIndex(({ after }) => !named(after.clears));
-			if (unknown >= 0)
-				return yield* ctx.refuse('errors.entity_change_clears', { row: unknown, field: 'clears' });
 			const written = new Map(changes.map(({ before, after }) => [String(before.id), after]));
 			return {
 				sets: changes.map(({ set }) => set),

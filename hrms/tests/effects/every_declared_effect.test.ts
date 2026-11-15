@@ -224,9 +224,11 @@ describe('a person’s employment raises what its effects declare', () => {
 								parameters: [
 									{
 										effective_from: ON,
-										residency_status: 'CITIZEN',
-										marital_status: 'SINGLE',
-										parameters: EMPLOYEE[code] ?? {}
+										parameters: {
+											residency_status: 'CITIZEN',
+											marital_status: 'SINGLE',
+											...(EMPLOYEE[code] ?? {})
+										}
 									}
 								]
 							}
@@ -254,7 +256,11 @@ describe('a person’s employment raises what its effects declare', () => {
 					'statutory_parameters',
 					admin.act({
 						'statutory_parameters.create': [
-							{ employment_id: EMPLOYMENT, effective_from: '2026-11-01', marital_status: 'MARRIED' }
+							{
+								employment_id: EMPLOYMENT,
+								effective_from: '2026-11-01',
+								parameters: { marital_status: 'MARRIED' }
+							}
 						]
 					}),
 					failed

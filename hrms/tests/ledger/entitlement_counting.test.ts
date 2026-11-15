@@ -19,7 +19,8 @@ import {
 	measureOf,
 	leaveCreate,
 	storedQuery,
-	packTerms
+	packTerms,
+	withParameters
 } from '../kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
@@ -41,11 +42,11 @@ const seedOf = ({ started = '2024-01-01', gender = 'FEMALE', events = [] }: Pers
 		})),
 		// the stint's first rows are dated with it
 		contract_terms: (seed.contract_terms ?? []).map((row) => ({ ...row, effective_from: started })),
-		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
-			...row,
-			effective_from: started,
-			marital_status: 'MARRIED'
-		}))
+		statutory_parameters: withParameters(
+			seed,
+			{ marital_status: 'MARRIED' },
+			{ effective_from: started }
+		)
 	};
 };
 const born = (...dates: readonly string[]) => dates.map((on) => ({ kind: 'CHILD_BIRTH', on }));

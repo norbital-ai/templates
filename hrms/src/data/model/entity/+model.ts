@@ -10,9 +10,7 @@ const columns = [
 	'registered_address',
 	'time_zone',
 	'bank',
-	'source_reference',
-	'epf_registered_on',
-	'socso_registered_on'
+	'source_reference'
 ] as const;
 
 export default model('entity', {
@@ -28,9 +26,7 @@ export default model('entity', {
 		registered_address: { kind: 'text', optional: true },
 		time_zone: { kind: 'text', optional: true },
 		bank: { kind: 'custom', of: 'bank', optional: true },
-		source_reference: { kind: 'text', optional: true },
-		epf_registered_on: { kind: 'date', optional: true },
-		socso_registered_on: { kind: 'date', optional: true }
+		source_reference: { kind: 'text', optional: true }
 	},
 	constraints: { code: { unique: ['code'] } },
 	indexes: { search: { text: ['code', 'name'] } },

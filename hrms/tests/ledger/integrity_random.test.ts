@@ -138,11 +138,12 @@ const parameters = (w: World) =>
 	Effect.gen(function* () {
 		const { by, name } = anyone(w);
 		const from = firstOf(w);
-		const set = { marital_status: pick(w, ['SINGLE', 'MARRIED'] as const) ?? 'SINGLE' };
+		const status = pick(w, ['SINGLE', 'MARRIED'] as const) ?? 'SINGLE';
+		const set = { parameters: { marital_status: status } };
 		const held = (yield* dated(w)).statutory_parameters.rows.find(
 			(row) => row.effective_from === from
 		);
-		yield* note(w, `parameters ${from} ${set.marital_status} by ${name}`);
+		yield* note(w, `parameters ${from} ${status} by ${name}`);
 		yield* held === undefined
 			? by.act({
 					'statutory_parameters.create': [

@@ -78,8 +78,8 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 			code,
 			timezone: String(law.settings.timezone),
 			lookup: law.settings.lookup,
-			employee_extension_schema: law.settings.employee_extension_schema,
-			entity_extension_schema: law.settings.entity_extension_schema
+			employee_statutory_parameters: law.settings.employee_statutory_parameters,
+			entity_statutory_parameters: law.settings.entity_statutory_parameters
 		},
 		ruleLookup: law.rows.registered_rule.find((row) => row.code === 'CONTRACT_CATEGORIES')?.lookup,
 		allowances: law.rows.allowance_catalog.map((row) => ({

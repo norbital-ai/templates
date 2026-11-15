@@ -45,8 +45,7 @@ const hire = (person: Id<'employee_profile'>, from: string, to: string | null = 
 	parameters: [
 		{
 			effective_from: from,
-			residency_status: 'CITIZEN' as const,
-			marital_status: 'SINGLE' as const
+			parameters: { residency_status: 'CITIZEN', marital_status: 'SINGLE' }
 		}
 	]
 });

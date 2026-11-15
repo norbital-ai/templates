@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Combobox,
 		Editor,
 		EmptyState,
+		Field,
 		Form,
+		Label,
 		notify_outcome,
 		Section,
 		Table,
@@ -14,13 +16,19 @@
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { lawsOf } from '../../../lib/law.js';
-	import { jsonObject, type JsonObject } from '../../../lib/payroll_engine/foundation.js';
+	import { LAW_DEPTH, lawsOf } from '../../../lib/law.js';
+	import { patchOf } from '../../../lib/dated.js';
+	import {
+		isJsonObject,
+		jsonObject,
+		type Json,
+		type JsonObject
+	} from '../../../lib/payroll_engine/foundation.js';
 	import LawBlock from '../../../lib/ui/settings/law_block.svelte';
 	import LawChanges from '../../../lib/ui/settings/law_changes.svelte';
 	import LawRow, { type LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
 	import LawSave from '../../../lib/ui/settings/law_save.svelte';
-	import { lawChain } from '../../../lib/ui/settings/law_save.js';
+	import { lawChain, lawWrites } from '../../../lib/ui/settings/law_save.js';
 	import LawTable from '../../../lib/ui/settings/law_table.svelte';
 	import CalculationOverview from './calculation_overview.svelte';
 	import CatalogTabs from './catalog_tabs.svelte';
@@ -71,30 +79,88 @@
 		['conversions', 'settings_form.conversions'],
 		['ledger', 'settings_form.ledger'],
 		['work_regions', 'settings_form.work_regions'],
-		['employee_extension_schema', 'settings_form.employee_schema'],
-		['entity_extension_schema', 'settings_form.entity_schema']
+		['employee_statutory_parameters', 'settings_form.employee_schema'],
+		['entity_statutory_parameters', 'settings_form.entity_schema']
 	] as const;
+	type Family = (typeof blocks)[number][0] | 'lookup';
+	const CALENDAR = ['name', 'currency', 'timezone', 'tax_year_start_month'] as const;
+
+	// a view's law blocks are drafts its one Save commits, with the jurisdiction's own fields, as one act
+	let drafts = $state<Partial<Record<Family, Json>>>({});
+	let always = $state(false);
+	let changesOn = $state<string | null>(null);
+	const block = (value: Json | undefined): JsonObject => (isJsonObject(value) ? value : {});
+	const patchFor = (families: readonly Family[]): JsonObject => {
+		if (law === undefined) return {};
+		const held = law.settings;
+		const pick = (of: (family: Family) => Json | undefined) =>
+			Object.fromEntries(families.map((family) => [family, block(of(family))]));
+		return patchOf(
+			pick((family) => held[family]),
+			pick((family) => drafts[family] ?? held[family]),
+			LAW_DEPTH
+		);
+	};
+	const GENERAL = blocks.map(([family]) => family);
+	const generalPatch = $derived(patchFor(GENERAL));
+	const lookupPatch = $derived(patchFor(['lookup']));
+	const lawActs = (patch: JsonObject) => () => {
+		if (law === undefined || Object.keys(patch).length === 0) return {};
+		const writes = lawWrites(chain, law, patch, always ? null : (changesOn ?? law.on));
+		return {
+			'jurisdiction_change.create': writes.create,
+			'jurisdiction_change.update': writes.update
+		};
+	};
+	const settled = (families: readonly Family[]) => (outcome: { kind: string }) => {
+		if (outcome.kind !== 'committed') return;
+		for (const family of families) delete drafts[family];
+		always = false;
+		changesOn = null;
+	};
 </script>
 
-{#snippet general()}{#if head}<Scroll name={ctx.t('app.settings.general')} size="fill" inset>
+{#snippet inForce(patch: JsonObject)}{#if law && Object.keys(patch).length > 0}<Combobox
+			aria-label={ctx.t('law_save.title')}
+			options={[
+				{ value: 'from', label: ctx.t('law_save.from_date') },
+				{ value: 'always', label: ctx.t('law_save.always') }
+			]}
+			value={always ? 'always' : 'from'}
+			on_change={(next) => (always = next === 'always')}
+		/>{#if !always}<Label for="law-effective-from">{ctx.t('law_save.date')}</Label><Editor
+				{ctx}
+				id="law-effective-from"
+				name="effective_from"
+				kind={{ kind: 'date' }}
+				value={changesOn ?? law.on}
+				on_change={(next) => next != null && (changesOn = String(next))}
+			/>{/if}{/if}{/snippet}
+
+{#snippet general()}{#if head}<Form
+			{ctx}
+			of="jurisdiction"
+			id={head.id}
+			fields={CALENDAR}
+			acts={lawActs(generalPatch)}
+			on_outcome={settled(GENERAL)}
+		>
 			<Stack gap="sm">
 				<Section first name="settings_calendar" title={ctx.t('settings_form.calendar')}>
-					<Form
-						{ctx}
-						of="jurisdiction"
-						id={head.id}
-						fields={['name', 'currency', 'timezone', 'tax_year_start_month']}
-					/>
+					<Grid minimum="card"
+						>{#each CALENDAR as name (name)}<Field {ctx} {name} />{/each}</Grid
+					>
 				</Section>
 				{#if law}
 					{#each blocks as [family, title] (family)}
 						<Section name="settings_{family}" title={ctx.t(title)} default_open={false}>
-							<LawBlock {ctx} {law} {family} {save} />
+							<LawBlock {ctx} {law} {family} bind:draft={drafts[family]} />
 						</Section>
 					{/each}
 				{/if}
 			</Stack>
-		</Scroll>{/if}{/snippet}
+			{#snippet actions()}{@render inForce(generalPatch)}{/snippet}
+		</Form>{/if}{/snippet}
 
 {#snippet changed()}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset
 		><LawChanges {ctx} {chain} today={clock.today} /></Scroll
@@ -127,9 +193,17 @@
 		]}
 	/>{/snippet}
 
-{#snippet lookup()}{#if law}<Scroll name={ctx.t('app.settings.lookup')} size="fill" inset
-			><LawBlock {ctx} {law} family="lookup" {save} /></Scroll
-		>{/if}{/snippet}
+{#snippet lookup()}{#if law && head}<Form
+			{ctx}
+			of="jurisdiction"
+			id={head.id}
+			fields={CALENDAR}
+			acts={lawActs(lookupPatch)}
+			on_outcome={settled(['lookup'])}
+		>
+			<LawBlock {ctx} {law} family="lookup" bind:draft={drafts.lookup} />
+			{#snippet actions()}{@render inForce(lookupPatch)}{/snippet}
+		</Form>{/if}{/snippet}
 
 {#snippet overview()}{#if law}<Scroll name="Calculation overview" size="fill" inset
 			><CalculationOverview {ctx} {law} on_open={open} /></Scroll

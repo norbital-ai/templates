@@ -3,9 +3,6 @@ import { RUN_STINT } from '../../../../../lib/payroll_engine/run_output.js';
 import { PARAMETER_FIELDS } from '../../../../../lib/person.js';
 import { afterDated, datedWrite } from '../+model.js';
 
-const named = (clears: readonly string[] | null | undefined) =>
-	(clears ?? []).every((name) => PARAMETER_FIELDS.some((field) => field === name));
-
 export default model('statutory_parameters', {
 	description:
 		'One dated change to what the law is told about a person in a stint: from its date, the parameters it holds are now these. One left empty is unchanged; one named in clears is taken away. A change is dated the first of a month, or the stint’s first day, and may be edited, moved or deleted.',
@@ -14,23 +11,13 @@ export default model('statutory_parameters', {
 	fields: {
 		employment_id: { kind: 'ref', to: 'employment', inverse: 'parameters', on_delete: 'cascade' },
 		effective_from: { kind: 'date' },
-		residency_status: { kind: 'text', optional: true },
-		work_authorisation_category: { kind: 'text', optional: true },
-		work_authorisation_expires_on: { kind: 'date', optional: true },
-		marital_status: {
-			kind: 'enum',
-			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED'],
-			optional: true
-		},
-		nationality: { kind: 'text', optional: true },
-		passport_number: { kind: 'text', optional: true },
-		/** What the law's formulas read of the person: the fields its jurisdiction's employee extension schema declares. A row that sets it replaces it whole. */
+		/** What the law is told of the person: the values of the parameters its jurisdiction's employee statutory parameters declare. A row sets the parameters it names; the others stand. */
 		parameters: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
 			optional: true
 		},
-		/** The fields above taken away from this date. */
+		/** The parameters taken away from this date, by name. */
 		clears: { kind: 'text', many: true, optional: true }
 	},
 	constraints: { one_change: { unique: ['employment_id', 'effective_from'] } },
@@ -52,12 +39,6 @@ export default model('statutory_parameters', {
 	create: {
 		fields: ['employment_id', 'effective_from', ...PARAMETER_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
-			const unknown = changes.findIndex(({ after }) => !named(after.clears));
-			if (unknown >= 0)
-				return yield* ctx.refuse('errors.statutory_parameters_clears', {
-					row: unknown,
-					field: 'clears'
-				});
 			const { carried } = yield* datedWrite(ctx, 'create', 'statutory_parameters', changes);
 			return { sets: changes.map(({ set }) => set), on_approved: carried };
 		},
@@ -68,12 +49,6 @@ export default model('statutory_parameters', {
 	update: {
 		fields: ['effective_from', ...PARAMETER_FIELDS, 'clears'],
 		transform: function* (changes, ctx) {
-			const unknown = changes.findIndex(({ after }) => !named(after.clears));
-			if (unknown >= 0)
-				return yield* ctx.refuse('errors.statutory_parameters_clears', {
-					row: unknown,
-					field: 'clears'
-				});
 			const { carried } = yield* datedWrite(ctx, 'update', 'statutory_parameters', changes);
 			return { sets: changes.map(({ set }) => set), on_approved: carried };
 		},

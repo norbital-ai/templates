@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * The Contract tab: the person's stints as timelines of their terms, with what starts a stint (a hire, a rehire, a
+	 * The Contract tab: the person's stints as lists of their dated terms, with what starts a stint (a hire, a rehire, a
 	 * transfer) and what ends one. An ended stint's last day and exit answers are changed on the stint's own record.
 	 */
 	import type { Id } from '@norbital-ai/bolt';
@@ -36,7 +36,7 @@
 	>
 {/snippet}
 
-<DatedFamily {ctx} of="contract_terms" {read} actions={hire} {stintActions} />
+<DatedFamily {ctx} of="contract_terms" {person} {read} actions={hire} {stintActions} />
 {#if starting !== null}
 	<StintStart {ctx} {person} {read} from={starting.from} onclose={() => (starting = null)} />
 {/if}

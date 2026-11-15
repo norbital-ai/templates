@@ -148,8 +148,8 @@
 						"part_time_premium": 1
 					},
 					"subtotal": "ORDINARY_WAGES",
-					"eligibility": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
-					"conversion": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data', {});\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpHour = ctx.hour_rate;\nconst days = get(ctx, 'work.days', []);\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst ordinary = days\n\t.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', 'WORK')) && !holiday(day))\n\t.toSorted((a, b) => {\n\t\tconst left = String(get(a, 'date', ''));\n\t\tconst right = String(get(b, 'date', ''));\n\t\tif (left < right) return -1;\n\t\treturn left > right ? 1 : 0;\n\t});\nconst band = (premium) => round(premium * orpHour, ctx.lookup.minor_unit, 'HALF_UP');\nconst hoursOf = (day) =>\n\tMath.max(0, Number(get(day, get(day, 'day_type', 'WORK') === 'OFF' ? 'worked_hours' : 'overtime_hours', 0)));\nif (partTime)\n\treturn sum(\n\t\tordinary.map((day) => {\n\t\t\tconst hours = hoursOf(day);\n\t\t\treturn (\n\t\t\t\tMath.min(hours, tier) * band(ctx.lookup.part_time_premium) +\n\t\t\t\tMath.max(0, hours - tier) * band(ctx.lookup.standard_premium)\n\t\t\t);\n\t\t})\n\t);\nconst months = ordinary\n\t.map((day) => String(get(day, 'date', '')).slice(0, 7))\n\t.filter((month, index, all) => all.indexOf(month) === index);\nreturn sum(\n\tmonths.map((month) =>\n\t\tround(\n\t\t\tsum(ordinary.filter((day) => String(get(day, 'date', '')).slice(0, 7) === month).map(hoursOf)) *\n\t\t\t\tband(ctx.lookup.standard_premium),\n\t\t\tctx.lookup.minor_unit,\n\t\t\t'HALF_UP'\n\t\t)\n\t)\n);",
+					"eligibility": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'statutory_parameters', {});\nif (get(facts, 'overtime_by_contract', false) === true) return true;\nconst category = get(terms, 'statutory_work_category', '');\nif (['DOMESTIC', 'VESSEL_CREW'].includes(category)) return false;\nif (ctx.month_wage <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
+					"conversion": "const employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'statutory_parameters', {});\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * 8\n\t\t\t: 8\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', 8)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpHour = ctx.hour_rate;\nconst days = get(ctx, 'work.days', []);\nconst holiday = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\nconst ordinary = days\n\t.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', 'WORK')) && !holiday(day))\n\t.toSorted((a, b) => {\n\t\tconst left = String(get(a, 'date', ''));\n\t\tconst right = String(get(b, 'date', ''));\n\t\tif (left < right) return -1;\n\t\treturn left > right ? 1 : 0;\n\t});\nconst band = (premium) => round(premium * orpHour, ctx.lookup.minor_unit, 'HALF_UP');\nconst hoursOf = (day) =>\n\tMath.max(0, Number(get(day, get(day, 'day_type', 'WORK') === 'OFF' ? 'worked_hours' : 'overtime_hours', 0)));\nif (partTime)\n\treturn sum(\n\t\tordinary.map((day) => {\n\t\t\tconst hours = hoursOf(day);\n\t\t\treturn (\n\t\t\t\tMath.min(hours, tier) * band(ctx.lookup.part_time_premium) +\n\t\t\t\tMath.max(0, hours - tier) * band(ctx.lookup.standard_premium)\n\t\t\t);\n\t\t})\n\t);\nconst months = ordinary\n\t.map((day) => String(get(day, 'date', '')).slice(0, 7))\n\t.filter((month, index, all) => all.indexOf(month) === index);\nreturn sum(\n\tmonths.map((month) =>\n\t\tround(\n\t\t\tsum(ordinary.filter((day) => String(get(day, 'date', '')).slice(0, 7) === month).map(hoursOf)) *\n\t\t\t\tband(ctx.lookup.standard_premium),\n\t\t\tctx.lookup.minor_unit,\n\t\t\t'HALF_UP'\n\t\t)\n\t)\n);",
 					"direction": "ADD",
 					"description": "Overtime beyond normal hours on a working day, and every hour on an off day, at a premium on the hour rate."
 				}
@@ -512,6 +512,43 @@
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const r = ctx.entry;\nconst key = 'ZZ:PERSONAL_DATA_DISPOSAL:' + r.id + ':exit:' + r.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];"
+				}
+			},
+			"employee_statutory_parameters": {
+				"$schema": "https://json-schema.org/draft/2020-12/schema",
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"residency_status": {
+						"type": "string",
+						"title": "Residency status",
+						"description": "The person's residency for tax and social security, as the law classes it."
+					},
+					"work_authorisation_category": {
+						"type": "string",
+						"title": "Work authorisation",
+						"description": "The work pass or permit the person holds, where the law asks for one."
+					},
+					"work_authorisation_expires_on": {
+						"type": "string",
+						"format": "date",
+						"title": "Work authorisation expires on",
+						"description": "The day the work pass or permit ends, an extension included."
+					},
+					"marital_status": {
+						"type": "string",
+						"title": "Marital status",
+						"enum": ["SINGLE", "MARRIED", "SEPARATED", "DIVORCED", "WIDOWED"]
+					},
+					"nationality": {
+						"type": "string",
+						"title": "Nationality",
+						"description": "ISO 3166-1 alpha-2 country code."
+					},
+					"passport_number": {
+						"type": "string",
+						"title": "Passport number"
+					}
 				}
 			}
 		}

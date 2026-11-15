@@ -16,8 +16,8 @@
 	} = $props();
 	const stored = $derived(
 		subject === 'EMPLOYER'
-			? law?.settings.entity_extension_schema
-			: law?.settings.employee_extension_schema
+			? law?.settings.entity_statutory_parameters
+			: law?.settings.employee_statutory_parameters
 	);
 	const schema = $derived(
 		stored !== undefined && is_json_schema(stored) ? stored : { type: 'object', properties: {} }
