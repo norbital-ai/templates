@@ -13,6 +13,7 @@
 		toast,
 		type RecordView
 	} from '@norbital-ai/ui';
+	import { moneyKind } from '../../../lib/ui/format/money_kind.js';
 	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
 	let { view, ctx }: { view: RecordView<'payroll_run'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -53,8 +54,26 @@
 			)
 		);
 	};
-	// a payslip's stored totals keep every decimal the lines made; a list shows them to the cent
-	const MONEY = { kind: 'decimal', scale: 2 } as const;
+	// the run's company pays in its law's currency
+	const paidIn = $derived(
+		record === null
+			? null
+			: ctx.query({
+					entity: {
+						where: { id: { eq: record.entity_id } },
+						fields: ['settings_code'],
+						limit: 1
+					},
+					jurisdiction: { fields: ['code', 'currency'], limit: 1000 }
+				})
+	);
+	const MONEY = $derived(
+		moneyKind(
+			paidIn?.current?.jurisdiction.rows.find(
+				(law) => law.code === paidIn.current?.entity.rows[0]?.settings_code
+			)?.currency
+		)
+	);
 </script>
 
 {#snippet summary()}<Stack size="fill" gap="sm"

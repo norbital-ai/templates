@@ -109,6 +109,7 @@
 								{ctx}
 								id="entity-facts"
 								{facts}
+								base={factsOf(rows, shape)}
 								{names}
 								{kindOf}
 								onchange={(next) => (draft = next)}

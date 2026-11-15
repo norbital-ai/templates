@@ -4,9 +4,18 @@
 	 * empty value takes the fact away from its day. The enclosing view's one Save stores the list.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, Combobox, Editor, use_form, type Kind, type Value } from '@norbital-ai/ui';
+	import {
+		Button,
+		Combobox,
+		Editor,
+		confirm_action,
+		use_form,
+		type Kind,
+		type Value
+	} from '@norbital-ai/ui';
+	import { Effect } from 'effect';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import type { Snippet } from 'svelte';
+	import { onDestroy, type Snippet } from 'svelte';
 	import type { Fact } from '../../dated_facts.js';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
 
@@ -15,6 +24,7 @@
 		ctx,
 		id,
 		facts,
+		base,
 		names,
 		kindOf,
 		custom,
@@ -24,6 +34,8 @@
 		ctx: PageContext;
 		id: string;
 		facts: readonly Fact[];
+		/** The list as stored: a fact it did not already take away is asked about before it is saved so. */
+		base: readonly Fact[];
 		/** The facts a row may name. */
 		names: readonly { readonly value: string; readonly label: string }[];
 		/** A fact's value editor: its kind, on the fact's own day. */
@@ -68,6 +80,50 @@
 			})
 		)
 	);
+	// one fact has one value on one day: a second row for it is refused, not guessed between
+	const twice = $derived(
+		facts.filter(
+			(fact, index) =>
+				fact.name !== '' &&
+				facts.some(
+					(other, at) => at < index && other.name === fact.name && other.from === fact.from
+				)
+		)
+	);
+	// a row left with no value takes the fact away from its day: asked once, where the stored list did not say so
+	const taken = $derived(
+		facts.filter(
+			(fact) =>
+				fact.name !== '' &&
+				fact.value === null &&
+				!base.some(
+					(held) => held.name === fact.name && held.from === fact.from && held.value === null
+				)
+		)
+	);
+	const dated = (fact: Fact) =>
+		ctx.t('dated.fact_on', { fact: labelOf(fact.name), date: fact.from });
+	if (form !== undefined) {
+		onDestroy(
+			form.add_validation(() =>
+				twice.map((fact) => ({
+					field: `${id}.${fact.name}`,
+					message: ctx.t('dated.twice', { fact: dated(fact) })
+				}))
+			)
+		);
+		onDestroy(
+			form.confirm_submit(() =>
+				taken.length === 0
+					? Effect.succeed(true)
+					: confirm_action({
+							title: ctx.t('dated.take_away_title'),
+							body: ctx.t('dated.take_away_body', { facts: taken.map(dated).join(', ') }),
+							confirm_label: ctx.t('dated.take_away')
+						})
+			)
+		);
+	}
 </script>
 
 <Stack gap="sm">
@@ -121,6 +177,11 @@
 			{/if}
 		{/each}
 	</Grid>
+	{#each twice as fact (`${fact.name}/${fact.from}`)}
+		<p class="text-sm text-destructive" role="alert">
+			{ctx.t('dated.twice', { fact: dated(fact) })}
+		</p>
+	{/each}
 	<Inline gap="sm">
 		{#if !viewing}
 			<Button

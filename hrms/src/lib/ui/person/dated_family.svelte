@@ -156,6 +156,7 @@
 						{ctx}
 						id="{of}-{stint.id}"
 						facts={factsIn(stint)}
+						base={factsOf(rowsOf(stint), shape)}
 						names={names(stint)}
 						kindOf={kindOf(stint)}
 						custom={allowances}

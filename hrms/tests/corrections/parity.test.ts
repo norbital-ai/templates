@@ -688,6 +688,107 @@ describe('every other record a run reads, corrected after its month was paid', (
 	);
 });
 
+// ---- the law, and a loan --------------------------------------------------------------------------------------------
+
+/** The law's overtime premium raised from a day of January: a run prices on the law of its pay date. */
+const premiumRaised = (t: Kit) =>
+	wrote(t, (hr) =>
+		hr.act({
+			'jurisdiction_change.create': [
+				{
+					jurisdiction_code: 'MY',
+					effective_from: '2026-01-15',
+					law: { overtime_catalog: { OVERTIME: { lookup: { standard_premium: 2 } } } }
+				}
+			]
+		})
+	);
+const LOAN = idOf('loan_catalog_entry', uuid(300));
+/** A festive advance repaid from January. */
+const lent = (): Seed => ({
+	...rostered(MONTHS),
+	loan_catalog_entry: [
+		{
+			id: LOAN,
+			entity_id: ENTITY,
+			employment_id: EMPLOYMENT,
+			catalog_code: 'LOAN_RECOVERY_FESTIVE_ADVANCE',
+			quantity: 6000,
+			repayment_period: { from: '2026-01-01', to: '2026-06-30' }
+		}
+	]
+});
+/** An instalment dated in January; answers it. */
+const instalment = (t: Kit, amount: number) =>
+	Effect.gen(function* () {
+		yield* wrote(t, (hr) =>
+			hr.act({
+				'loan_catalog_entry_repayment.create': [
+					{
+						entity_id: ENTITY,
+						employment_id: STINT,
+						loan_id: LOAN,
+						amount: String(amount),
+						paid_on: '2026-01-10'
+					}
+				]
+			})
+		);
+		const [made] = (yield* storedQuery(t, { loan_catalog_entry_repayment: { limit: 10 } }))
+			.loan_catalog_entry_repayment.rows;
+		assert.ok(made !== undefined, 'No instalment');
+		return made.id;
+	});
+
+describe('the law or a loan corrected after its month was paid', () => {
+	it.live('a change of law dated in the paid month: the overtime is priced again, as B', () =>
+		parity(rostered(MONTHS, '2026-01-20'), {
+			wrong: nothing,
+			correct: premiumRaised,
+			right: premiumRaised
+		})
+	);
+	it.live('a loan instalment’s amount: the next payslip carries the difference, as B', () =>
+		parity(lent(), {
+			wrong: (t) => instalment(t, 100),
+			correct: (t, id) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'loan_catalog_entry_repayment', id);
+					yield* wrote(t, (hr) =>
+						hr.act({ 'loan_catalog_entry_repayment.update': [{ target, set: { amount: '50' } }] })
+					);
+				}),
+			right: (t) => instalment(t, 50)
+		})
+	);
+	it.live('a loan instalment that never was: deleted, the next payslip gives it back, as B', () =>
+		parity(lent(), {
+			wrong: (t) => instalment(t, 100),
+			correct: (t, id) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'loan_catalog_entry_repayment', id);
+					yield* wrote(t, (hr) => hr.act({ 'loan_catalog_entry_repayment.delete': [{ target }] }));
+				}),
+			right: nothing
+		})
+	);
+	it.live('a loan that never was: deleted with its instalment, as B', () =>
+		parity(lent(), {
+			wrong: (t) => instalment(t, 100),
+			correct: (t) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'loan_catalog_entry', LOAN);
+					yield* wrote(t, (hr) => hr.act({ 'loan_catalog_entry.delete': [{ target }] }));
+				}),
+			right: (t) =>
+				Effect.gen(function* () {
+					const target = yield* current(t, 'loan_catalog_entry', LOAN);
+					yield* wrote(t, (hr) => hr.act({ 'loan_catalog_entry.delete': [{ target }] }));
+				})
+		})
+	);
+});
+
 // ---- several corrections at once ------------------------------------------------------------------------------------
 
 /** Corrections that touch different records and days of January: any of them, in any order. */
