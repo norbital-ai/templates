@@ -78,4 +78,4 @@ bun run test    # bolt build, then bolt test (including tests/e2e)
 
 关于让金蝶保持可靠且低成本的边界，请阅读[集成文档](docs/0002-integration.md)。它列出了同步写入的本地表，以及与之并列的平台游标/发件箱表。
 
-有关覆盖范围、验收证据和源写入事故，请参见 [SalesBridge 功能对齐目录](docs/0006-salesbridge-parity.md)、[人工探测矩阵](docs/0008-manual-probe-matrix.md)和[金蝶订单生命周期](docs/0005-kingdee-order-lifecycle.md)。
+有关支持的工作流程、验收检查和 ERP 写入边界，请参见 [工作区能力说明](docs/0006-workspace-capabilities.md)、[人工探测矩阵](docs/0008-manual-probe-matrix.md)和[金蝶订单生命周期](docs/0005-kingdee-order-lifecycle.md)。

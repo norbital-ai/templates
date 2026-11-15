@@ -9,7 +9,7 @@ A quotation becomes a finalized agreement without moving to another table.
 ## Documentation
 
 Start with [the documentation index](docs/README.md). It orders the objective, architecture, integration,
-source inventory and the deeper Kingdee, parity, print and probe references.
+source inventory and the deeper Kingdee, capability, print and probe references.
 
 ## Apps and roles
 
@@ -155,4 +155,4 @@ See [the source reference](docs/0003-source-reference.md) for the current applic
 
 For the boundary that keeps Kingdee reliable and cheap, read [the integration document](docs/0002-integration.md). It lists the local tables the sync writes and the platform cursor/outbox tables beside them.
 
-See the [SalesBridge parity catalogue](docs/0006-salesbridge-parity.md), [manual probe matrix](docs/0008-manual-probe-matrix.md) and [Kingdee order lifecycle](docs/0005-kingdee-order-lifecycle.md) for coverage, acceptance evidence and the source writer incident.
+See the [workspace capability guide](docs/0006-workspace-capabilities.md), [manual probe matrix](docs/0008-manual-probe-matrix.md) and [Kingdee order lifecycle](docs/0005-kingdee-order-lifecycle.md) for supported workflows, acceptance checks and ERP write boundaries.

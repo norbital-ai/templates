@@ -73,7 +73,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 ### Company methods
 
 - The employer's method applies where it pays at least the law, otherwise the law: "keep it to the company's calculated rates UNLESS it is not compliant".
-- The methods are the company's `pay_methods`, by date, each floored at the statute per day or shift. One exception, by the owner's decision of 2026-11-12: Malaysia's holiday-worked pay under `CONTRACT_WEEKLY` is the clocked shift hours × 2 × the company's hour, as the company's pre-approved payroll vendor computes it, without the Act's two-day floor:
+- The methods are the company's `pay_methods`, by date, each floored at the statute per day or shift. With `CONTRACT_WEEKLY`, Malaysia's holiday-worked pay is the clocked shift hours × 2 × the company's hour, without the Act's two-day floor:
 
 | Method                       | Values                                | Meaning                                                                                                                                                                                   |
 | ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

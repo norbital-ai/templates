@@ -27,13 +27,9 @@ Orders carry no personal signature image. Use the company stamp for the seller's
 customer-signed or chopped copies on the confirmed order. The `{{signature}}` placeholder renders
 empty in older layouts.
 
-SalesBridge applied the supplier's company chop and printed the salesperson's name. For orders
-classified as sales contracts, SalesBridge required the live original customer return to be
-acknowledged before Kingdee export. The company stamp was not a substitute for that return.
-The export wrote the sales order header and lines to Kingdee as an unapproved order; it did
-not send the returned file. When Kingdee order writes are configured, Trade Operations queues
-the order when it is confirmed locally. Filing a returned copy is evidence on that order and does
-not trigger sync.
+Document branding, company stamps, signing requirements and legal terms come from the
+organization's configured layout and approval process. The renderer uses the selected saved values;
+it does not supply a tenant's artwork or impose a separate signing workflow.
 
 ## Fields
 
@@ -71,9 +67,7 @@ the line block. The unit label follows the export sheet’s KGS and MT conventio
 preserve the saved precision up to four places and print at least two. Header `quantity_grouped`
 stays blank when the line units differ. `total_grouped` uses the retained amount in both scopes.
 
-For a 1:1 check, give the source and target renderers the same commercial data, typefaces,
-artwork, and print CSS. Compare page count, text extraction and raster output at 144 DPI.
-The [SalesBridge catalogue](0006-salesbridge-parity.md#reference-comparison) tracks the source-specific
-fields that still need to be represented on the order.
+For a layout check, render the same saved commercial values with the configured typefaces,
+artwork and print CSS. Compare page count, extracted text and raster output at 144 DPI.
 
 Next: [Manual probe matrix](0008-manual-probe-matrix.md)

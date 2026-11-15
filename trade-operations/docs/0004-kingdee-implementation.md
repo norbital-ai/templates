@@ -6,9 +6,8 @@ SQL Server pairing gate, the read scheduler and the outbox. The template issues
 fixed SQL through the driver's existing `call` operation and SQL Server's built-in
 `sys.sp_executesql`; business data is bound as parameters. Settings never accept SQL text.
 Trade Operations opens its own TDS session to the on-premises Kingdee SQL Server account set
-over the Alibaba link. Bolt schedules and executes SQL reads and authorized writes in that session.
-The Alibaba path carries TCP traffic. The SalesBridge Windows service, API, files and work queues
-are historical references. Deployment uses the SQL endpoint provided by the network operator.
+over an authorized network connection. Bolt schedules and executes SQL reads and authorized writes in that session.
+Deployment uses the SQL endpoint provided by the network operator; the transport carries TCP traffic.
 Operators create orders, approve and change terms, and manage tasks in Trade Operations.
 The order form, approvals, documents and reports use the Trade Operations database. The link
 carries background replication of mapped table rows, including incoming fulfillment and
@@ -19,34 +18,27 @@ SO. Replicating the locally approved state as an audited SO still requires nativ
 validation on a restored account set.
 
 ```text
-Kingdee SQL Server 2017  <-- TDS over the Alibaba network path -->  Trade Operations runtime
+Kingdee SQL Server 2017  <-- TDS over the configured network path -->  Trade Operations runtime
       SELECT current rows and rowversions  ----------------------->  ledger and sync state
       initial SO and guarded amendments    <-----------------------  confirmed order outbox
 ```
 
 Colony currently uses Bolt’s public-destination TCP guard for database integrations. It rejects a
-private IP literal or a DNS name with any private address before opening a socket. Alibaba routing
+private IP literal or a DNS name with any private address before opening a socket. Network routing
 alone does not change that check. A deployment using the guard can reach a restricted TCP endpoint
-with a permitted address that forwards to the Kingdee host over Alibaba. An endpoint that resolves
+with a permitted address that forwards to the Kingdee host over the configured network. An endpoint that resolves
 only to private addresses requires a host-level policy for that destination. The network operator
 must verify the chosen endpoint from the deployed runtime. Bolt verifies the SQL TLS endpoint’s
 name and certificate. The local Docker probe uses a loopback adapter and does not verify either
-the Alibaba path or the deployed TLS handshake.
+the deployed network path or the deployed TLS handshake.
 
 ## What moves between the systems
 
-The SalesBridge reference is source revision `60e5d253`. Its README describes the earlier
-Kingdee gateway API route. The later EPG runbook and shipped Windows writer also implement
-direct SQL on the local network; the reader and writer use separate credentials.
-
-| Direction     | SalesBridge                                                                                                                                                                                                                                                                                                                                       | Trade Operations                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Kingdee → app | An on-premises read-only job queries KIS and posts results to SalesBridge over HTTPS. It publishes master changes, order audit/status, sales-order history, shipment and return evidence, stock by warehouse and lot, open commitments and enabled finance feeds. Receivables aging and sales analysis are published as completed snapshots.      | Bolt connects to SQL Server through the private route and reads masters, stock and commitments, its owned SO lineage, deliveries, invoices, returns and attributable receipts. Verified optional account bindings enable inventory cost, booked delivery cost, invoice-only facts and receivables. Reports and user actions read the local copy. |
-| App → Kingdee | The SQL writer leases approved work from SalesBridge, inserts the SO header and lines as unapproved, and reports the Kingdee ID or a refusal. Optional guarded write lanes apply approved amendments and void/close requests. Customer returns gate initial export of orders classified as sales contracts; the company chop is supplier artwork. | A locally sealed sales agreement queues an idempotent SO write. It creates an unapproved SO and stores the source ID. Supported amendments keep that live ID and archive the previous source version. The application keeps its own approved revision and holds conflicts for review.                                                            |
-| Boundaries    | The original SQL reader never writes. Third-document export is listed as blocked in the README; it is not evidence of a native DO or invoice write.                                                                                                                                                                                               | No SalesBridge Windows process or gateway is used. Trade Operations does not create Kingdee DOs or invoices, silently adopt a Kingdee-first order, or remotely delete an SO when it is archived locally. Native Kingdee audit remains distinct from local approval.                                                                              |
-
-Source: SalesBridge `scripts/epg-connector.ts`, `scripts/epg-so-write.ts`,
-`docs/reference/epg-connector-runbook.md` and `lib/services/export.ts`.
+| Direction           | Supported behavior                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kingdee → workspace | Read-only projections synchronize mapped masters, order state, fulfillment evidence, stock, receivables and sales facts.                           |
+| Workspace → Kingdee | A confirmed sales agreement queues an idempotent SO write. The supported writer creates a saved, unapproved order and retains its source identity. |
+| Ownership           | Local approval and ERP approval remain separate. Read mirrors stay read-only; local archive does not silently delete an ERP order.                 |
 
 ## Credentials and repeat deployment
 
@@ -60,10 +52,9 @@ instances do not run source reads or deliver queued changes. Administrators see 
 Settings → Integrations → Connections. Use Test connection on previously paired
 instances to run the stronger check. The order, finance and source-write probes have their own
 acceptance criteria.
-Bolt seals the credentials on the host. The SalesBridge connector used `salesbridge_ro`, a
-`db_datareader` login that is never `sa` and cannot write. Mirror that: a read login with
-`db_datareader` or explicit SELECT on the mapped tables, and a separate `salesbridge_wr`-style
-writer with only the object and column grants its enabled operations need. Never `db_datawriter`
+Bolt seals credentials on the host. Use a read login with `db_datareader` or explicit SELECT
+on the mapped tables, and a separate writer with only the object and column grants its enabled
+operations need. Choose account names for the adopting organization. Never `db_datawriter`
 or `db_owner`; the read login's inability to write is a load-bearing control, not a convenience.
 Initial creation inserts the SO and lines and updates the allocator. Amendments also need DELETE on
 SO lines to remove an unfulfilled, unlinked entry and SELECT and INSERT on the change log.
@@ -75,10 +66,9 @@ the integration as read-only and exercises the writer through its own restricted
 throughput probe runs the same reads through a loopback shaper at 5 Mbps per direction and 150 ms
 round-trip delay; the measured product run moved 152,081 bytes to SQL and 370,053 bytes back across
 five pooled connections, including setup, 1,002 products, reconciliation and retry. The connector
-account adds no requests or bytes to that shape. The 5–7 Mbps Alibaba link and its real loss and
-TLS handshake remain a deployment measurement.
+account adds no requests or bytes to that shape. The deployment’s bandwidth, loss and TLS handshake require separate measurement.
 
-Each instance has its own credentials, configuration, model scope, bookmark and outbox. A new China
+Each instance has its own credentials, configuration, model scope, bookmark and outbox. A new
 counterpart uses the same template deployment and another configured instance and SQL endpoint.
 The template adds no objects, CDC jobs, progress tables or scripts to Kingdee.
 
@@ -106,8 +96,8 @@ invoice-only activity. A blank value stops that feed and retains the cached repo
 For account-wide Aging, set **Verified SQL account for receivables aging** and test the enabled
 connection. Use one ledger per account set and set its verified base currency. Apply **Verified
 legacy AR contact exclusions** only to entries approved by that account's finance team.
-SalesBridge's four reference exclusions (604, 605, 21556 and 21557) belong to its original
-account. Other account sets start with an empty list. Finance and Commercial Managers can read
+Exclusion identifiers belong to the selected account set; start with an empty list and configure
+only the entries that its finance team has verified. Finance and Commercial Managers can read
 the account snapshot. Sales and Procurement keep their existing order scope.
 
 Newly confirmed sales orders retain the configured account and branch (`write_target`).
@@ -122,7 +112,7 @@ Writes additionally require `billerId`, `salespersonBindings` (owner ID to emplo
 `currencyBindings` (ISO currency to source ID and base flag) and `settlementRules` (source settlement
 number to credit days/month-end rule). `packagingId` is optional. IDs and business rules must be
 verified for each account set; there are no guessed exchange, employee or payment-term mappings.
-`fromMonthEnd: true` selects the reference EPG rule: zero days means current month-end, and any
+`fromMonthEnd: true` selects the configured month-end rule: zero days means current month-end, and any
 positive term means next month-end (including both 30 and 60). It does not add days to month-end.
 A counterpart using a different rule needs its own verified rule binding.
 
@@ -186,8 +176,8 @@ row keeps its identity when the source audit or data changes. Periodic reconcili
 disappeared lines and line changes that do not advance the header marker. Dates come from the
 invoice. A later red line retains its signed values in its own month. Rows without a shipment
 remain report facts with no local order, lot cost, booked freight or commission basis.
-The displayed amounts use the invoice denomination. SalesBridge's base-currency voucher
-reconciliation and the linked portion of mixed-source invoices still need separate verification.
+Displayed amounts use the invoice denomination. Verify base-currency reconciliation and the
+linked portion of mixed-source invoices against the connected account set.
 
 For Delivery date, opt in to `deliveryCostAccount` with the verified database and recovery-fork
 identity and the account-set base currency. The connection test validates the projection with
@@ -262,14 +252,14 @@ estimate. Configuration, Finance and Commercial Managers can read the purchase b
 uses published floors. The calculation remains advisory and leaves stock, approvals and agreement
 documents independent of the estimate.
 
-This is a purchase-cost estimate from on-hand batches. SalesBridge's finance study found outbound
-`FAmount` can differ from receipt price. The booked delivery cost remains the realized source
+This is a purchase-cost estimate from on-hand batches. An outbound booked amount can differ
+from receipt price. The booked delivery cost remains the realized source
 amount. Kingdee's transfer chronology, valuation layers and eligible warehouse scope still need a
 restored account-set tie-out before treating the estimate as a statement of source FIFO valuation.
 
 ### Link budget and geographic latency
 
-5–7 Mbps gives a raw ceiling of about 0.625–0.875 MB/s in the applicable direction. Incremental
+For example, 5–7 Mbps gives a raw ceiling of about 0.625–0.875 MB/s in the applicable direction. Incremental
 reads are a reasonable fit when measured change volume and competing traffic leave headroom.
 Sequential SQL requests and TLS setup add round trips even with small responses. Measure the
 actual path’s p95 latency and loss alongside payload bytes and reconciliation duration.
@@ -287,7 +277,7 @@ requests. The SQL still reads all lines, including unrelated lines on a matched 
 mixed document cannot look complete. Parent lookups deduplicate IDs before committing a replay page.
 See [the WAN probes](0008-manual-probe-matrix.md#kingdee-wan-probe).
 
-[Alibaba VPN traffic monitoring](https://www.alibabacloud.com/help/en/vpn/sub-product-ipsec-vpn/monitor-an-ipsec-vpn-connection)
+Use the network provider’s traffic metrics to validate the actual connection budget.
 
 ## Writes
 
@@ -417,7 +407,7 @@ the probe verified one initial SO after a lost reply and parallel retries, a ref
 foreign bill number or mismatching frozen line, direct read-back of the source family, and
 one in-place amendment plus one archive and change log after a second lost reply. It also
 verified that an unaudited SO refuses a new amendment. The physical probe calls the template
-requests through a local TDS adapter. The application outbox and Alibaba route have separate
+requests through a local TDS adapter. The application outbox and deployment network route have separate
 acceptance checks. The joined Bolt probe covers the delivery, invoice and receipt projections on the same SQL Server 2017 fixture. Native Kingdee audit still requires a restored account set with desktop access.
 The probe also substituted a different write destination between lookup and submission. SQL
 rejected it before either the allocator or the order changed.
@@ -438,6 +428,6 @@ their original local IDs and v1 seal. Direct edits to sealed terms and lines wer
 operational Remarks remained editable. A later Kingdee closure reached v3's tracker while the
 order was archived. Unarchiving retained all three versions and still refused sealed-term edits.
 These are synthetic fixture results, not validation of a
-customer's Kingdee customization or the Alibaba network path.
+customer's Kingdee customization or the configured network path.
 
 Next: [Kingdee order lifecycle](0005-kingdee-order-lifecycle.md)

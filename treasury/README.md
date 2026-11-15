@@ -64,7 +64,7 @@ arithmetic (days, interest with the bank's rounding, total debited) and applied 
 | Checked / applied advice               | Checked means extraction finished; a person still checks it. Applied means the downstream line operation committed.                                                                                                                             |
 | PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                               |
 | Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                 |
-| Month-end lock                         | A portal report's frozen lines and headlines. An imported Excel headline marked locked does not contain frozen portal lines; locking it creates the full snapshot.                                                                              |
+| Month-end lock                         | A locked report keeps frozen detail lines and headline totals. A summary imported without detail lines becomes a full snapshot when locked.                                                                                                     |
 
 ### Product codes
 
@@ -146,7 +146,7 @@ by pages, automations and write callbacks:
 - **Month-end:** includes applied, active and subsequently settled lines started by month-end,
   excluding those repaid by then. An unsettled overdue line remains owed. It uses the facility's
   rounding per line, converts each accrued-interest amount to USD and rounds it before summing.
-  Live reports and exports share the same calculation; a locked portal report reads its copied
+  Live reports and exports share the same calculation; a locked report reads its copied
   rows. Unlocking returns it to live data; relocking replaces the previous snapshot.
 - **Invoice checks:** compare each line's unit price with a 0.5% relative tolerance; flag total
   invoiced quantity more than 0.001 kg above ordered quantity; compare currency, invoice total
@@ -194,30 +194,12 @@ can download a pack without changing the form. The combined input and output eac
 limit. An unreadable attachment fails the whole job with its title; files are never silently
 omitted, and the original uploads remain unchanged.
 
-## OPS portal coverage and native platform mechanisms
+## Workspace mechanisms
 
-This is a port of the portal's business book and calculations into Bolt records and apps. It
-does not embed the Django portal, its database, account system, provider keys or customer-specific
-company-name mappings.
-
-| Portal function                                                         | Implementation here                                                                                                 |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Facilities, terms, contacts, offers, supplier acceptance and sub-limits | Business records, native relations and record editors; Limits & terms, Banks and Suppliers pages.                   |
-| Earmark, allocation, advice, repayment, cash close and conversion       | Guarded business automations and native state transitions; sealed closed lines.                                     |
-| Usage, maturity, cost of funds, invoice ranking and bank comparisons    | Shared pure decimal calculations called by the pages; no copied dashboard totals.                                   |
-| Actual fees, missing-stage estimates and fee minimums                   | Owned charge rows, product/stage rules and explicit FX; estimates remain computed.                                  |
-| Month close, unlock and spreadsheet export                              | Native owned snapshot rows, a lock constraint, automations and the XLSX/CSV file sync.                              |
-| Advice upload, AI extraction, matching and arithmetic checks            | Native files, ingest and AI plus Treasury's extraction schema, matching and checks.                                 |
-| Purchasing orders, invoices, item checks and financing links            | Business records, native roll-ups, scoped purchaser reads and invoice checks.                                       |
-| Facility requisition, attachment roles, LC request and T/T due list     | Facility form with owned files, a role-aware reader and the Alerts page.                                            |
-| PO spreadsheet/document entry                                           | Native form/import and Norbius record tools; the form filler links an existing PO.                                  |
-| Form printing and supporting documents                                  | Native record printing supplies the form; a business automation appends the sign-off page and original attachments. |
-| Upload storage, row history, search, filters and bulk import/export     | Native platform features; no Treasury-owned attachment server, audit table or generic import-run model.             |
-| Users, sign-in, roles, agent tools and job execution/history            | Native identity, teams/policies, Norbius and durable runs; no copied portal login, AI-cost ledger or worker queue.  |
-
-Operational parity depends on the configured host capabilities and the recorded business data.
-The native form/import/print flows replace the portal's generic administration pages. Provider
-configuration and release deployment belong to the host, not the template's business records.
+Treasury records own financing terms, lifecycle transitions, calculations and document checks.
+Bolt supplies identity, permissions, files, record history, search, approvals, imports, printing
+and durable runs. Pages use shared decimal calculations rather than storing duplicate dashboard
+totals. Configure provider connections and host capabilities separately from business records.
 
 ## Automations
 

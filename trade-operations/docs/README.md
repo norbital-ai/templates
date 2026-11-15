@@ -16,7 +16,7 @@ operating evidence.
 | 0003 | [Source reference](0003-source-reference.md)               | Current applications, model outputs/writes, syncs, automations and integrations             |
 | 0004 | [Kingdee implementation](0004-kingdee-implementation.md)   | SQL projections, account set, bindings, write path and connection operations                |
 | 0005 | [Kingdee order lifecycle](0005-kingdee-order-lifecycle.md) | Source order versions, approval, void, amendment and the production writer incident         |
-| 0006 | [SalesBridge parity](0006-salesbridge-parity.md)           | Source-by-source coverage, decisions and known gaps                                         |
+| 0006 | [Workspace capabilities](0006-workspace-capabilities.md)   | Supported workflows, ownership boundaries and acceptance checks                             |
 | 0007 | [Print layouts](0007-print-layouts.md)                     | Layout HTML, fields, PDF rendering and retained document evidence                           |
 | 0008 | [Manual probe matrix](0008-manual-probe-matrix.md)         | Live acceptance checklist, evidence and open probes                                         |
 

@@ -1,63 +1,50 @@
-# Kingdee order lifecycle and write incidents
+# Kingdee order lifecycle
 
-This investigation covers SalesBridge at `60e5d253f93ff3f37d8e006238704f784fefae78` and the current Trade Operations template. Source behavior below comes from tracked code, runbooks and pull requests. The Windows logs describe the original SalesBridge deployment. Trade Operations opens its own SQL Server connection through the Alibaba link to the on-premises account set and operates its own sync jobs. [SalesBridge source](https://github.com/yueqin02/salesbridge/tree/60e5d253f93ff3f37d8e006238704f784fefae78)
+Trade Operations owns the commercial agreement and its approval history. Kingdee owns ERP approval,
+fulfillment and accounting evidence. Local confirmation and ERP acceptance are separate states.
 
-## Three separate identities
+## Identities and permissions
 
-| Identity                              | Meaning                                                                                                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `svc_connector`                       | SalesBridge application service actor used to attribute runs and gate connector endpoints. It has an unusable password hash.                                        |
-| `salesbridge_ro` and `salesbridge_wr` | Separate SQL Server logins for the read process and the SO writer. The read login has `db_datareader`. The write login receives named-table and column permissions. |
-| Kingdee biller and checker            | The writer stamps the biller on a newly saved SO. The person with Kingdee 审核 permission checks it after it exists. Kingdee records the checker and date.          |
+Use a read connection for source mirrors and a separately authorized write connection for outbound
+sales orders. Configure database permissions for the selected account set; service-account names and
+operator identities belong in deployment configuration, not in template defaults.
 
-The source writer creates the header and entries in `SEOrder` and `SEOrderEntry`, allocates `FInterID` through `ICMaxNum`, and leaves `FCheckerID` and `FCheckDate` empty. SalesBridge reads the approval back and advances from `pushed_unapproved` to `exported`. Local SalesBridge approval, SQL insertion and Kingdee 审核 are distinct events. The original SQL writer supports sales orders. Delivery and invoice evidence comes from the Kingdee read feeds. [Writer design](https://github.com/yueqin02/salesbridge/pull/217) · [Writer source](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/lib/kingdee/sqlwrite/so-rows.ts) · [Connector runbook](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/docs/reference/epg-connector-runbook.md)
+The workspace member authorizes the local action. The connector performs the permitted database
+operation. Kingdee records its biller and checker identities independently of the workspace member.
+Keep those identities in the integration mapping and retain the resulting source identifiers.
 
-## Why the original writer saved first
+## Create and amend
 
-The SQL writer deliberately left the order pending audit. Staff could inspect the new order and remove
-a bad insert while the Kingdee `SEOrder_DEL` trigger still allowed deletion. Setting a checker at
-insertion would close that recovery window. The approver is an EPG operator with Kingdee 审核
-permission. Kingdee records that operator's user ID and audit date. The source runbook identifies the
-role. Identifying a specific checker for a specific order requires that order's Kingdee audit record.
-[Writer decision](https://github.com/yueqin02/salesbridge/pull/217) · [Delete trigger and readiness](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/docs/reference/so-write-readiness-plan.md)
+A quotation and confirmed sale share one order ID. Confirmation seals the selected agreement revision
+and queues an idempotent source write. The supported sales-order writer creates a saved, unapproved
+SO and retains its source identity. A successful write does not imply native Kingdee audit.
 
-SalesBridge captured a KIS document audit endpoint for sales orders (`FClassTypeID = 1081`). It accepts
-the committed `FInterID` and an optional Kingdee checker ID, with administrator as the documented
-default if omitted. The captured API is a reference for how Kingdee exposes the audit operation. The documented
-SalesBridge API adapter only saves. Its create payload also lists audit fields, but create-as-audited was left for joint testing.
-[Kingdee audit capture](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/docs/reference/kingdee-api/doc-audit.md) · [API adapter](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/lib/kingdee/api/adapter.ts)
+Retries read back the stored header and lines before acknowledging the write. Supported amendments
+retain the live source identity and preserve the earlier commercial revision. Conflicts stay visible
+for review rather than silently replacing either side's values.
 
-Direct SQL access makes an automatic audit technically possible. The restored source account set
-showed a single audit level. The read-back identifies it by `FCheckerID` and `FCheckDate`, while
-approved rows appeared under multiple `FStatus` values. That observation does not prove that
-writing only those fields reproduces the application's audit. An account-set rehearsal should
-compare a native audit with an integration audit on identical saved test orders and verify
-downstream delivery selection, audit attribution and recovery after a lost reply. Trade
-Operations is the intended place for the human approval.
-[Restored account-set observations](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/docs/reference/epg-onprem-connector-design.md)
+Validate header and line mappings against the connected account set. Document IDs, entry identifiers
+and line ordinals have different meanings; ambiguous or missing identities must be refused before a
+write. Use the source's retained identifiers when reconciling a response.
 
-## What actually happened
+## Read-back and evidence
 
-| Evidence                                                                                                                                                   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Readiness review #179](https://github.com/yueqin02/salesbridge/issues/179)                                                                                | The early direct-write plan was rejected. It lacked safe line-ID allocation and durable ownership proof. Later work measured the database behavior and reopened SO writes with separate credentials and gates.                                                                                                                                                                                                                                                                  |
-| [First pipeline test #223](https://github.com/yueqin02/salesbridge/pull/223)                                                                               | Against the restored test account set, dry-run claimed the real lease and burned a retry. The subsequent run picked up zero work until expiry. In a separate case the insert and outcome report succeeded, then Node called `process.exit()` while the Tedious SQL driver still had Windows sockets closing. The libuv assertion surfaced as `0xC0000409`, so the scheduler showed failure after a successful insert. The fix sets the exit code and lets the event loop drain. |
-| [Numbering fixes #264](https://github.com/yueqin02/salesbridge/pull/264) and [#308](https://github.com/yueqin02/salesbridge/pull/308)                      | An early prefix-wide check counted the writer's own bills, then also collided with clerks using the same series. The final guard checks each bill in its branch. A foreign match refuses that one order. An owned replay can reuse the existing row.                                                                                                                                                                                                                            |
-| [Writer service definition](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/scripts/winsw-salesbridge-so-writer.xml) | The separate Windows service writes rolling logs under `C:\salesbridge-so-writer\logs`. Search by bill number and allocated `FInterID`. Correlate the write result with the SalesBridge export attempt and a read-only Kingdee status check.                                                                                                                                                                                                                                    |
+The read mirrors expose source approval, delivery, invoice, payment and stock facts. They are owned by
+the sync and remain read-only to members. Source changes update the mirror; local commercial changes
+remain subject to the workspace's approval and sealing rules.
 
-## Create, change and remove
+Archiving a local order preserves its history and evidence. It does not silently delete a Kingdee SO.
+A customer-issued PO, signed return or other supporting file is retained with the agreement version.
+Source approval and any required business review remain explicit steps.
 
-| Event                       | SalesBridge source                                                                                                                                                                                                                                                        | Current Trade Operations                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quotation and customer PO   | The source has a separate quotation and converts it to a sales order. A customer's PO is supporting evidence on the sales order.                                                                                                                                          | A draft quote and confirmed sale share one order ID. The customer's PO can be attached to the order. A supplier commitment uses the same model and can be changed without an ERP write.                                                                                                                                                                                                                                           |
-| First outbound SO           | The writer leases confirmed work and inserts a saved, unapproved SO. A read-back proves native approval.                                                                                                                                                                  | A confirmed sales agreement queues a write. Its correlation uses ledger, branch and ERP `FUUID`. The writer verifies the stored header and lines on replay before acknowledging. Approval and delivery status remain visible independently. The direct SQL Server 2017 probe retained one header and line after discarding the committed reply and retrying in parallel. Native outbox and Alibaba-route acceptance are separate. |
-| Terms change                | Approved change claims the existing SO, archives the previous version under a separate source ID, increments `FVersionNo` and writes line changes plus `ICOrderAlter`. The candidate revision becomes active after success. The source code ships behind `changeEnabled`. | A sales rep's line change waits for commercial review, then amends the SO; record history keeps every earlier value. The guarded ERP amendment checks the current source version, audit and existing fulfillment. An independent Kingdee change updates the order and its lines. SQL Server 2017 verified an amendment, replay after a lost reply and refusal without audit.                                                      |
-| Cancel after push           | The cancel workflow can unapprove and void an owned, undelivered SO. A partially shipped order closes the unfulfilled remainder. An already fulfilled or unverifiable order is refused. The Kingdee delete trigger protects audited rows.                                 | Archive is local and reversible. Source status and fulfillment evidence remain linked. The outbound operation has no SQL delete, void or close command. Remote voids and closings are observed when supported by verified source evidence.                                                                                                                                                                                        |
-| Kingdee creates an SO first | The content mirror reads Kingdee-created sales orders, including historical ones, as source-owned evidence. The lifecycle feed only advances orders SalesBridge already owns.                                                                                             | The current read scopes commercial and fulfillment imports to orders with local provenance. An independent Kingdee SO cannot yet be adopted or linked. Matching on a printed bill number alone is unsafe because branches and amendment archives can reuse it.                                                                                                                                                                    |
-| Delivery order or invoice   | The shipment mirror keeps the whole delivery when at least one line points to an owned SO. It stores the raw source entry ID and calculates fulfillment by item code within the order.                                                                                    | An issued transaction can carry several SKU lines from one verified order. Trade Operations matches each line to the source entry, SKU and unit. If a linked document contains an unmatched line or spans orders, it goes to review and prior fulfillment stays intact.                                                                                                                                                           |
+## Verify a connection
 
-[Source amendments](https://github.com/yueqin02/salesbridge/pull/406) · [Source void](https://github.com/yueqin02/salesbridge/pull/372) · [Source partial close](https://github.com/yueqin02/salesbridge/pull/385) · [Deletion and stale shipment incident](https://github.com/yueqin02/salesbridge/pull/391) · [Source SO mirror](https://github.com/yueqin02/salesbridge/blob/60e5d253f93ff3f37d8e006238704f784fefae78/db/schema/sales-order-mirror.ts)
+1. Validate schema and read permissions before enabling a mapping.
+2. Rehearse a source write in a disposable account set, then read it back.
+3. Repeat the request and verify that it does not create a second order.
+4. Exercise amendment, refusal, connection-loss and acknowledgment-replay cases.
+5. Confirm that local approval and source approval remain distinguishable throughout.
 
-For inbound adoption, the integration needs a verified source account-set identity, branch, live header identity and revision lineage. A repeated observation should update its source evidence. An explicit link to an existing local order should refuse an ambiguous match. The [manual matrix](0008-manual-probe-matrix.md) separates this gap from tested connection and master-data behavior.
-
-Next: [SalesBridge parity](0006-salesbridge-parity.md)
+See [Kingdee implementation](0004-kingdee-implementation.md),
+[workspace capabilities](0006-workspace-capabilities.md) and the
+[manual probe matrix](0008-manual-probe-matrix.md).
