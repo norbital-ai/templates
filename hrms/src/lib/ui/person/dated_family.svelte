@@ -42,7 +42,9 @@
 	const clock = ctx.clock('day');
 	const paid = paidPeriods(ctx);
 	const shape = $derived(
-		of === 'contract_terms' ? { fields: TERM_FIELDS } : { fields: [], record: 'parameters' }
+		of === 'contract_terms'
+			? { fields: TERM_FIELDS, attributes: ['signed_on'] }
+			: { fields: [], record: 'parameters' }
 	);
 	const rowsOf = (stint: StintRow) =>
 		(of === 'contract_terms' ? stint.terms : stint.parameters).map(jsonObject);
@@ -60,7 +62,7 @@
 	const factsIn = (stint: StintRow) => drafts[stint.id] ?? factsOf(rowsOf(stint), shape);
 	const names = (stint: StintRow) =>
 		of === 'contract_terms'
-			? TERM_FIELDS.map((value) => ({ value, label: fieldLabel(value) }))
+			? [...TERM_FIELDS, 'signed_on'].map((value) => ({ value, label: fieldLabel(value) }))
 			: Object.entries(
 					declaredParameters(lawOn(stint, clock.today)?.settings.employee_statutory_parameters)
 				).map(([value, { label }]) => ({ value, label }));
@@ -72,11 +74,15 @@
 		const values = categoryValues(law)[fact.name];
 		const field = exposure?.fields[fact.name];
 		const relation = exposure?.relations?.[fact.name];
-		return values !== undefined
-			? { kind: { kind: 'enum' as const, values, optional: true as const } }
-			: field === undefined
-				? undefined
-				: { kind: field, ...(relation === undefined ? {} : { relation }) };
+		if (values !== undefined)
+			return { kind: { kind: 'enum' as const, values, optional: true as const } };
+		// a reference is its relation: the catalogue lists it apart from the plain fields
+		if (relation !== undefined)
+			return {
+				kind: { kind: 'ref' as const, to: relation.targets[0] ?? '', optional: true as const },
+				relation
+			};
+		return field === undefined ? undefined : { kind: field };
 	};
 	const written = () =>
 		read.stints.flatMap((stint) => {

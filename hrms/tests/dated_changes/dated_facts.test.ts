@@ -53,6 +53,29 @@ describe('dated facts', () => {
 		assert.deepEqual(writes.dates, ['2026-04-01', '2026-01-01', '2026-03-01']);
 	});
 
+	it('lists and stores an attribute of the row, and never names it in clears', () => {
+		const signed = { fields: ['rate'], attributes: ['signed_on'] };
+		const stored = [
+			{ id: 'a', revision: 1, effective_from: '2026-01-01', rate: 10, signed_on: '2025-12-20' }
+		];
+		assert.deepEqual(
+			factsOf(stored, signed).map((fact) => fact.name),
+			['rate', 'signed_on']
+		);
+		const writes = factWrites(
+			stored,
+			[
+				{ name: 'rate', value: 10, from: '2026-01-01' },
+				{ name: 'signed_on', value: null, from: '2026-01-01' }
+			],
+			owner,
+			signed
+		);
+		assert.deepEqual(writes.update, [
+			{ target: { id: 'a', revision: 1 }, set: { rate: 10, signed_on: null, clears: [] } }
+		]);
+	});
+
 	it('reads a company parameter key by key, and one named in clears as taken away', () => {
 		const changes = [
 			{ id: 'a', effective_from: '2026-01-01', statutory_parameters: { x: 1, y: 2 } },

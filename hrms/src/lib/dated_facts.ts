@@ -16,6 +16,8 @@ export interface Fact {
 export interface FactShape {
 	readonly fields: readonly string[];
 	readonly record?: string;
+	/** Fields of the row that are no dated fact (the day a change was signed): listed and stored, never taken away. */
+	readonly attributes?: readonly string[];
 }
 
 const held = (row: JsonObject, shape: FactShape): Record<string, Json> => {
@@ -28,7 +30,7 @@ const held = (row: JsonObject, shape: FactShape): Record<string, Json> => {
 			])
 		),
 		...Object.fromEntries(
-			shape.fields.flatMap((name): [string, Json][] => {
+			[...shape.fields, ...(shape.attributes ?? [])].flatMap((name): [string, Json][] => {
 				const value = row[name];
 				return value == null ? [] : [[name, value]];
 			})
@@ -79,18 +81,19 @@ export const factWrites = (
 		].map(([from, list]) => [from, Object.fromEntries(list.map((fact) => [fact.name, fact.value]))])
 	);
 	const stored = new Map(rows.map((row) => [String(row.effective_from), row]));
+	const own = [...shape.fields, ...(shape.attributes ?? [])];
 	const body = (named: Record<string, Json>): Record<string, Json> => ({
-		...Object.fromEntries(shape.fields.map((name) => [name, named[name] ?? null])),
+		...Object.fromEntries(own.map((name) => [name, named[name] ?? null])),
 		...(shape.record === undefined
 			? {}
 			: {
 					[shape.record]: Object.fromEntries(
-						Object.entries(named).filter(
-							([name, value]) => value !== null && !shape.fields.includes(name)
-						)
+						Object.entries(named).filter(([name, value]) => value !== null && !own.includes(name))
 					)
 				}),
-		clears: Object.keys(named).filter((name) => named[name] === null)
+		clears: Object.keys(named).filter(
+			(name) => named[name] === null && !(shape.attributes ?? []).includes(name)
+		)
 	});
 	const added = [...wanted].filter(([from]) => !stored.has(from));
 	const changed = [...wanted].flatMap(([from, named]) => {

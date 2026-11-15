@@ -119,10 +119,6 @@ export default messages({
 	'person.move_first_day': 'Move first day',
 	'person.move_first_day_help': 'The first terms and statutory parameters move with the first day.',
 	'person.save': 'Save',
-	'person.delete_change': 'Delete change',
-	'person.delete_change_title': 'Delete this change?',
-	'person.delete_change_body':
-		'From its date, what it changed goes back to what the change before it set. Paid periods it reached are worked out again by the next payroll run.',
 	'person.delete_dependant': 'Delete dependant',
 	'person.delete_dependant_title': 'Delete this dependant?',
 	'person.delete_dependant_body':
@@ -152,10 +148,6 @@ export default messages({
 	'dated.remove': 'Remove {fact}',
 	'dated.hint':
 		'Each row is one fact and the day it stands from. A row with no value takes the fact away from that day.',
-	'entity_change.delete': 'Delete change',
-	'entity_change.delete_title': 'Delete this change?',
-	'entity_change.delete_body':
-		'Its values stop applying from its date. Paid periods it reached are worked out again by the next payroll run.',
 	'entity.tab_holidays': 'Holidays',
 	'entity.tab_pay_groups': 'Pay groups',
 	'app.payroll.pay_group': 'Pay group',

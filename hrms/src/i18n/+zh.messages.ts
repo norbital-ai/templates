@@ -113,10 +113,6 @@ export default messages({
 	'person.move_first_day': '调整第一天',
 	'person.move_first_day_help': '首份合同条款和法定参数随第一天一并调整。',
 	'person.save': '保存',
-	'person.delete_change': '删除变更',
-	'person.delete_change_title': '删除此变更？',
-	'person.delete_change_body':
-		'自其日期起，所变更的内容恢复为前一次变更所设的值。受影响的已发薪期间将由下一次薪资运行重新计算。',
 	'person.delete_dependant': '删除家属',
 	'person.delete_dependant_title': '删除此家属？',
 	'person.delete_dependant_body': '计入此家属的已发薪期间将由下一次薪资运行重新计算。',
@@ -132,10 +128,6 @@ export default messages({
 	'models.entity_change.singular': '公司变更',
 	'models.entity_change.fields.statutory_parameters': '法定参数',
 	'models.entity_change.fields.clears': '自此日期起取消',
-	'entity_change.delete': '删除变更',
-	'entity_change.delete_title': '删除此变更？',
-	'entity_change.delete_body':
-		'其数值自其日期起不再适用。受影响的已发薪期间将在下次薪资运行时重新计算。',
 	'entity.tab_holidays': '假期',
 	'entity.tab_pay_groups': '薪资组',
 	'app.payroll.pay_group': '薪资组',
