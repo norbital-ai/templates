@@ -18,6 +18,8 @@ invoices that come back and prepares the facility requisition for each PO paid b
 
 Open a record for its supporting evidence and actions. The lists use native table filters, rather than nested copies of the same view. The overview has three compact charts: bank usage, maturities and funding cost.
 
+The workspace uses a blue-accented theme with navy surfaces in dark mode and light surfaces in light mode. Its shared colour tokens are declared once in `src/+workspace.ts` under `theme.light` and `theme.dark`; they apply to navigation, controls, record sheets and charts. Change those tokens through the normal workspace preview and release flow to customize the theme without changing the calculations.
+
 | Team           | May do                                                                                                                                                                                         |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Treasury**   | Change banks, facilities, fee rules, lines (allocate, advices, settle, cash or convert), suppliers and the banks that finance them, month-end locks, FX rates; key invoices; link POs to lines |

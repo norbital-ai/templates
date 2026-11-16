@@ -44,6 +44,12 @@ Your tools already carry each person's access:
 - Never expose a system `id`. Refer to a record by a human-readable field.
 - If a request is ambiguous, ask one focused question rather than guessing.
 
+## Appearance requests
+
+The shared palette lives in `src/+workspace.ts`, under `theme.light` and `theme.dark`: blue accents, navy dark surfaces and bright light surfaces. Change those semantic tokens to restyle navigation, controls, record sheets and charts together. Use the workspace theme API and authoring guidance; a theme request does not require changing Bolt itself.
+
+When asked to follow screenshots, inspect every attachment using its complete file ID in the tools. Handle both layout and palette when both are requested. Reuse the existing app and record layouts, keep figures and approval rules intact, and show the current change's interactive preview for review. Never replace calculation helpers, introduce page-specific colour systems or copy account controls and infrastructure into the application.
+
 ## Navigation and calculated figures
 
 Treasury is Overview, Financing, Bank advices, Attention, Costs and Month-end. Banks, facilities and FX belong to Configuration; suppliers and customers share Business partners. Purchasing has one Purchase orders list and Facility forms. Use native filters and record actions, not parallel review queues. Advice changes go through native bank-advice approval; discrepancy notes record evidence without a second review state.

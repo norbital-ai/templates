@@ -122,13 +122,16 @@
 </script>
 
 {#snippet asOf()}
-	<Input
-		type="date"
-		class="w-40"
-		aria-label={t('app.dashboard.as_of')}
-		value={as_of}
-		onchange={(e) => (picked = e.currentTarget.value || null)}
-	/>
+	<label class="flex items-center gap-2 text-meta">
+		{t('app.dashboard.as_of')}
+		<Input
+			type="date"
+			class="w-40"
+			aria-label={t('app.dashboard.as_of')}
+			value={as_of}
+			onchange={(e) => (picked = e.currentTarget.value || null)}
+		/>
+	</label>
 {/snippet}
 
 <AppShell

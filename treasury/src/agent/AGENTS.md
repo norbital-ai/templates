@@ -33,6 +33,10 @@ business_partner/
 
 Keep a new model in the branch of the record that owns it. Moving a model folder does not rename it: its leaf folder name is the model name.
 
+## Theme and layout
+
+`src/+workspace.ts` owns the workspace-wide `theme.light` and `theme.dark` tokens. Use it for palette/accent changes; retain semantic UI classes and native app/record primitives. Reference images guide layout and palette separately. Inspect all images by their complete file IDs, preserve calculation helpers and approval policies, and verify both modes in the current change's preview before proposing a merge. The public README and Bolt's workspace-theme authoring reference document the same mechanism.
+
 ## Surfaces
 
 - Apps: `business_partners`, `configuration`, `purchasing`, `treasury`

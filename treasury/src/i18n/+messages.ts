@@ -47,8 +47,9 @@ export default messages({
 	'errors.po_invoiced': 'This purchase order has an invoice recorded; ask Accounts to change it.',
 	'errors.form_no_attachments': 'Attach the PO, proforma or customer PO first.',
 	'app.dashboard.title': 'Overview',
-	'app.dashboard.description': 'Bank lines, usage, maturities and the cost of funds, in USD.',
-	'app.dashboard.as_of': 'As of',
+	'app.dashboard.description':
+		'Current balances and rates, with dated maturity and funding-cost analysis, in USD.',
+	'app.dashboard.as_of': 'Analysis date',
 	'app.dashboard.alerts': 'Banks at 80% · LCs to open',
 	'app.dashboard.alerts_hint': 'Open Attention for details.',
 	'app.dashboard.available': 'Available',
