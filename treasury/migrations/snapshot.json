@@ -443,14 +443,6 @@
 					"default": true,
 					"kind": "bool"
 				},
-				"is_customer": {
-					"default": false,
-					"kind": "bool"
-				},
-				"is_supplier": {
-					"default": true,
-					"kind": "bool"
-				},
 				"name": {
 					"kind": "text"
 				},
@@ -469,6 +461,15 @@
 				"relationship_since": {
 					"kind": "date",
 					"optional": true
+				},
+				"role": {
+					"default": "supplier",
+					"kind": "enum",
+					"values": [
+						"supplier",
+						"customer",
+						"both"
+					]
 				}
 			},
 			"record_label": "record.name",

@@ -42,7 +42,7 @@ Long forms use native `RecordShell sections` in create, edit and read modes. Gro
 ### Responsibility boundaries
 
 - `facility` stores agreed credit limits and reusable pricing/tenor terms. `facility_fee` is a fee rule; `sub_limit` partitions the existing limit rather than adding credit.
-- `purchase_order` owns the current commercial order, items and invoice links. `business_partner` is the sole supplier/customer directory; `supplier_bank` stores eligibility only.
+- `purchase_order` owns the current commercial order, items and invoice links. `business_partner` is the sole supplier/customer directory, with one role enum (supplier, customer or both); `supplier_bank` stores eligibility only.
 - `facility_form`, displayed as **Financing request**, holds the application and its document facts. It can exist before a saved order and links one when available. Copied document facts are evidence, not an alternative current order or bank facility. Editing a request does not allocate credit or settle financing.
 - `drawdown` owns the financing lifecycle and financial facts. `drawdown_charge` holds actual charges; fee rules only estimate charges until actuals exist.
 - `bank_document` keeps the original evidence and extracted proposal. Native approval owns review and acceptance; no extra approval/status model or ledger is needed.
@@ -76,3 +76,5 @@ Long forms use native `RecordShell sections` in create, edit and read modes. Gro
 
 - [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
 - `README.md` and `docs/` — operator walkthrough and design detail.
+
+Every titled form section uses a meaningful native section icon. Preserve the overview’s grouped total facilities, horizontal bank usage, funding-cost period, maturity, due-date and Attention hierarchy. Reuse the existing financial helpers. The Attention page and daily notification share `src/lib/attention.ts`; change their rules together there, never duplicate a reminder model. Use the native `settings` tool for personal display names and administrator workspace display names, not source edits.

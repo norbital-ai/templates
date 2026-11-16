@@ -34,16 +34,19 @@
 	const sections: readonly RecordSection[] = [
 		{
 			name: 'financing',
+			icon: 'lucide:hand-coins',
 			title: t('app.sections.financing'),
 			fields: ['facility', 'supplier', 'product', 'status', 'currency', 'amount', 'fx_rate_to_usd']
 		},
 		{
 			name: 'references',
+			icon: 'lucide:hash',
 			title: t('app.sections.references'),
 			fields: ['bank_reference', 'lc_number', 'bill_number', 'purpose', 'requested_by']
 		},
 		{
 			name: 'dates',
+			icon: 'lucide:calendar-days',
 			title: t('app.sections.dates'),
 			fields: [
 				'application_date',
@@ -57,6 +60,7 @@
 		},
 		{
 			name: 'pricing',
+			icon: 'lucide:percent',
 			title: t('app.sections.pricing'),
 			fields: [
 				'interest_rate_pct',
@@ -68,6 +72,7 @@
 		},
 		{
 			name: 'settlement',
+			icon: 'lucide:badge-check',
 			title: t('app.sections.settlement'),
 			fields: [
 				'settlement_date',
@@ -79,12 +84,14 @@
 		},
 		{
 			name: 'evidence',
+			icon: 'lucide:paperclip',
 			title: t('app.sections.evidence'),
 			fields: ['charges', 'documents'],
 			default_open: false
 		},
 		{
 			name: 'notes',
+			icon: 'lucide:notebook-pen',
 			title: t('app.sections.notes'),
 			fields: ['notes', 'discrepancy_note', 'is_archived'],
 			default_open: false
@@ -361,7 +368,12 @@
 		subtitle={['supplier', 'due_date']}
 		footer_actions={next}
 		tabs={[
-			{ name: 'figures', title: t('app.line.figures'), icon: 'lucide:calculator', body: figures },
+			{
+				name: 'figures',
+				title: t('app.line.figures'),
+				icon: 'lucide:calculator',
+				body: figures
+			},
 			{ name: 'orders', title: t('app.line.orders'), icon: 'lucide:file-text', body: orders }
 		]}
 	/>

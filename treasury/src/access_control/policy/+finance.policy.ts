@@ -45,8 +45,7 @@ export default policy({
 			create: {
 				fields: [
 					'name',
-					'is_supplier',
-					'is_customer',
+					'role',
 					'aliases',
 					'country',
 					'payment_terms',
@@ -59,8 +58,7 @@ export default policy({
 			update: {
 				fields: [
 					'name',
-					'is_supplier',
-					'is_customer',
+					'role',
 					'aliases',
 					'country',
 					'payment_terms',

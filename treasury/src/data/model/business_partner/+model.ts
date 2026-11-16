@@ -10,8 +10,7 @@ export default model('business_partner', {
 	record_label: 'record.name',
 	fields: {
 		name: { kind: 'text' },
-		is_supplier: { kind: 'bool', default: true },
-		is_customer: { kind: 'bool', default: false },
+		role: { kind: 'enum', values: ['supplier', 'customer', 'both'], default: 'supplier' },
 		aliases: { kind: 'text', many: true, optional: true },
 		country: { kind: 'text', optional: true },
 		payment_terms: { kind: 'text', optional: true },
@@ -33,8 +32,7 @@ export default model('business_partner', {
 	create: {
 		fields: [
 			'name',
-			'is_supplier',
-			'is_customer',
+			'role',
 			'aliases',
 			'country',
 			'payment_terms',
@@ -48,8 +46,7 @@ export default model('business_partner', {
 	update: {
 		fields: [
 			'name',
-			'is_supplier',
-			'is_customer',
+			'role',
 			'aliases',
 			'country',
 			'payment_terms',

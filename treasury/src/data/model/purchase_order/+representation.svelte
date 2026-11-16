@@ -19,21 +19,30 @@
 	const sections: readonly RecordSection[] = [
 		{
 			name: 'order',
+			icon: 'lucide:clipboard-list',
 			title: t('app.sections.order'),
 			fields: ['po_number', 'po_date', 'supplier', 'purchaser', 'salesperson', 'currency']
 		},
 		{
 			name: 'items',
+			icon: 'lucide:package',
 			title: t('app.sections.items'),
 			fields: ['lines', 'ship_to_country', 'lc_requested', 'is_cancelled']
 		},
 		{
 			name: 'evidence',
+			icon: 'lucide:paperclip',
 			title: t('app.sections.evidence'),
 			fields: ['documents', 'invoices'],
 			default_open: false
 		},
-		{ name: 'notes', title: t('app.sections.notes'), fields: ['notes'], default_open: false }
+		{
+			name: 'notes',
+			icon: 'lucide:notebook-pen',
+			title: t('app.sections.notes'),
+			fields: ['notes'],
+			default_open: false
+		}
 	];
 
 	const record = $derived(view.mode === 'create' ? null : view.record);

@@ -15,7 +15,7 @@ invoices that come back and prepares the facility requisition for each PO paid b
 | **Purchasing**    | Business partners, Purchase orders, Financing requests         |
 | **Configuration** | Banks, Facilities, Exchange rates                              |
 
-Open a record for its supporting evidence and actions. The lists use native table filters, rather than nested copies of the same view. The overview has three compact charts: bank usage, maturities and funding cost.
+Open a record for its supporting evidence and actions. The lists use native table filters, rather than nested copies of the same view. The overview groups total facilities, horizontal bank utilisation, period funding cost, maturities, month-end and Attention. It uses the same financial helpers as the detailed records.
 
 The workspace uses a blue-accented theme with navy surfaces in dark mode and light surfaces in light mode. Its shared colour tokens are declared once in `src/+workspace.ts` under `theme.light` and `theme.dark`; they apply to navigation, controls, record sheets and charts. Change those tokens through the normal workspace preview and release flow to customize the theme without changing the calculations.
 
@@ -259,3 +259,19 @@ Long forms are grouped into native sections for the financing, dates, terms and 
 **Facilities** are the bank’s agreed credit limits and reusable terms. **Financing requests** are purchasing applications with supporting documents and an optional link to a saved purchase order. They do not create a second credit limit or financing ledger. Purchase orders own current commercial items, financing lines own financial facts, bank advices retain source evidence, fee rules estimate charges, and actual charges record what was charged. A closed month-end freezes a snapshot; live financing remains the source for a new close. Native Bolt approval, files and audit remain the shared platform mechanisms.
 
 App banners are locally stored stock photographs; [photo credits](assets/app-media/CREDITS.md) list their sources.
+
+## Attention and daily reminders
+
+Attention is derived from current records, not a second reminder ledger. Each record appears once with all matching reasons:
+
+- Applied or active financing: overdue or due within 7 days; LC/import/DA/term bills due within 14 days; LCs expiring within 14 days.
+- Earmarks: the expected draw date has passed. A due date beyond the bank’s maximum financing date also raises attention.
+- Active facilities: their bank is at least 80% used, or their review date is within 60 days (including overdue reviews).
+- Purchase orders: payment by LC was requested but no LC is linked.
+- TT financing requests: payment is due from 7 days ago through 14 days ahead.
+
+The morning automation uses the same rules at 08:00 in the workspace’s time zone. When the list is non-empty, it sends the Treasury team one in-app notification per day. Opening an item opens its source record; corrected or closed records drop out when the rules no longer apply.
+
+Business partners have one role: Supplier, Customer, or Supplier and customer. Eligibility belongs to the partner’s bank links, independently of its role.
+
+Members can ask Norbius to change their own display name. Administrators can also change the workspace display name; the workspace address and sign-in stay the same. Personal appearance and language use the account menu; the shared workspace theme uses reviewed source changes.

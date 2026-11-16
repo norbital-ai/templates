@@ -7,11 +7,13 @@
 	const sections: readonly RecordSection[] = [
 		{
 			name: 'facility',
+			icon: 'lucide:vault',
 			title: t('app.sections.facility'),
 			fields: ['bank', 'entity', 'name', 'status', 'currency', 'limit']
 		},
 		{
 			name: 'pricing',
+			icon: 'lucide:percent',
 			title: t('app.sections.pricing'),
 			fields: [
 				'margin_pct',
@@ -24,6 +26,7 @@
 		},
 		{
 			name: 'terms',
+			icon: 'lucide:file-check-2',
 			title: t('app.sections.terms'),
 			fields: [
 				'max_tenor_days',
@@ -33,9 +36,25 @@
 				'security'
 			]
 		},
-		{ name: 'dates', title: t('app.sections.dates'), fields: ['review_date', 'expiry_date'] },
-		{ name: 'limits', title: t('app.sections.limits'), fields: ['sub_limits'] },
-		{ name: 'notes', title: t('app.sections.notes'), fields: ['notes'], default_open: false }
+		{
+			name: 'dates',
+			icon: 'lucide:calendar-days',
+			title: t('app.sections.dates'),
+			fields: ['review_date', 'expiry_date']
+		},
+		{
+			name: 'limits',
+			icon: 'lucide:gauge',
+			title: t('app.sections.limits'),
+			fields: ['sub_limits']
+		},
+		{
+			name: 'notes',
+			icon: 'lucide:notebook-pen',
+			title: t('app.sections.notes'),
+			fields: ['notes'],
+			default_open: false
+		}
 	];
 </script>
 

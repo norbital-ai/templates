@@ -34,9 +34,7 @@ it.layer(
 			});
 			expect(changed).toMatchObject({ drawdown: { rows: [{ amount_usd: '100.00' }] } });
 			const partner = (yield* admin.act({
-				'business_partner.create': [
-					{ name: 'Shared Partner', is_supplier: true, is_customer: true }
-				]
+				'business_partner.create': [{ name: 'Shared Partner', role: 'both' }]
 			})).records[0];
 			if (partner === undefined) throw new Error('Expected a partner.');
 			const partnerId = Schema.decodeUnknownSync(id_of('business_partner'))(partner.id);
@@ -94,11 +92,11 @@ it.layer(
 			const partners = yield* admin.query({
 				business_partner: {
 					where: { id: { eq: partnerId } },
-					fields: ['is_supplier', 'is_customer']
+					fields: ['role']
 				}
 			});
 			expect(partners).toMatchObject({
-				business_partner: { rows: [{ is_supplier: true, is_customer: true }] }
+				business_partner: { rows: [{ role: 'both' }] }
 			});
 		})
 	);

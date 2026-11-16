@@ -1,4 +1,4 @@
--- 0001_initial.sql: 342 step(s), from an empty database to eb10d508262485209c3859e6ff06f0335194347ca1eefa5d2ca0347e05fa569a.
+-- 0001_initial.sql: 342 step(s), from an empty database to 67287810f7c43800a78ce59680afddbb476aadb49faf625dc77fcbcf50b73816.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -1403,8 +1403,7 @@ create table "watch_point" ("id" uuid primary key, revision int not null default
 -- step create:table:business_partner (additive)
 create table "business_partner" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"name" text not null,
-	"is_supplier" boolean default true not null,
-	"is_customer" boolean default false not null,
+	"role" text default 'supplier'::text not null,
 	"aliases" text[],
 	"country" text,
 	"payment_terms" text,
@@ -1414,6 +1413,7 @@ create table "business_partner" ("id" uuid primary key, revision int not null de
 	"is_active" boolean default true not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_business_partner_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_business_partner_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce(bolt_search_join("aliases"::text[]), ''))) stored,
+	constraint "business_partner__ck__844653da" check ("role" in ('supplier', 'customer', 'both')),
 	constraint "business_partner__ck__82bbedb7" check (not jsonb_path_exists(to_jsonb("aliases"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "business_partner__ck__2a4562b4" check (isfinite("relationship_since")),
 	constraint "business_partner__uq__7b9c2684" unique ("name")
@@ -1901,7 +1901,7 @@ select bolt_history_register('letter_of_offer','{"audit":true,"fields":{"bank":{
 select bolt_history_register('watch_point','{"audit":true,"fields":{"bank":{"inverse":"watch_points","kind":"ref","on_delete":"cascade","to":"bank"},"category":{"default":"other","kind":"enum","values":["suppliers","restriction","documents","settlement","pricing","other"]},"facility":{"inverse":"watch_points","kind":"ref","on_delete":"set_null","optional":true,"to":"facility"},"is_active":{"default":true,"kind":"bool"},"text":{"kind":"text"}},"record_label":"record.text"}'::jsonb);
 
 -- step create:history:schema:business_partner (additive)
-select bolt_history_register('business_partner','{"audit":true,"fields":{"aliases":{"kind":"text","many":true,"optional":true},"country":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"is_customer":{"default":false,"kind":"bool"},"is_supplier":{"default":true,"kind":"bool"},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"payment_terms":{"kind":"text","optional":true},"products":{"kind":"text","optional":true},"relationship_since":{"kind":"date","optional":true}},"record_label":"record.name","search":{"text":["name","aliases"]},"unique":[{"fields":["name"],"import_key":true,"name":"partner_name"}],"was":"supplier"}'::jsonb);
+select bolt_history_register('business_partner','{"audit":true,"fields":{"aliases":{"kind":"text","many":true,"optional":true},"country":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"payment_terms":{"kind":"text","optional":true},"products":{"kind":"text","optional":true},"relationship_since":{"kind":"date","optional":true},"role":{"default":"supplier","kind":"enum","values":["supplier","customer","both"]}},"record_label":"record.name","search":{"text":["name","aliases"]},"unique":[{"fields":["name"],"import_key":true,"name":"partner_name"}],"was":"supplier"}'::jsonb);
 
 -- step create:history:schema:supplier_bank (additive)
 select bolt_history_register('supplier_bank','{"audit":true,"fields":{"bank":{"inverse":"eligible_suppliers","kind":"ref","on_delete":"cascade","to":"bank"},"supplier":{"inverse":"eligible_banks","kind":"ref","on_delete":"cascade","to":"business_partner"}},"record_label":"record.bank.code","unique":[{"fields":["supplier","bank"],"name":"one_per_pair"}]}'::jsonb);

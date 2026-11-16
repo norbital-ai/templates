@@ -1,5 +1,10 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'app.dashboard.total_facilities': '授信总额',
+	'app.dashboard.current_rate': '当前加权利率',
+	'app.dashboard.coming_due': '即将到期',
+	'app.dashboard.cost_by_bank': '各银行资金成本',
+	'app.advices.reading': 'PDF 读取',
 	'models.facility_form.label': '融资申请',
 	'app.dashboard.month_range': '月份范围',
 	'app.sections.financing': '融资',
@@ -553,8 +558,10 @@ export default messages({
 	'app.costs.report': '成本报表',
 	'app.dashboard.closed': '已结账报表',
 	'errors.month_imported': '导入的历史报表不可更改。',
-	'models.business_partner.fields.is_supplier': '供应商',
-	'models.business_partner.fields.is_customer': '客户',
+	'models.business_partner.fields.role': '角色',
+	'models.business_partner.fields.role.supplier': '供应商',
+	'models.business_partner.fields.role.customer': '客户',
+	'models.business_partner.fields.role.both': '供应商及客户',
 	'models.drawdown.fields.discrepancy_note': '通知书差异',
 	'app.month_end.details': '报表详情及历史',
 	'app.month_end.imported': '导入的历史汇总',

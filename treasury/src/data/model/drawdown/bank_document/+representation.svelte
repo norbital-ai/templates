@@ -20,15 +20,31 @@
 	const t = ctx.t;
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const sections: readonly RecordSection[] = [
-		{ name: 'advice', fields: ['file', 'doc_type', 'bank', 'drawdown'] },
-		{ name: 'figures', title: t('app.advices.figures'), fields: ['extracted'] },
+		{
+			name: 'advice',
+			icon: 'lucide:file-text',
+			title: t('app.advices.title'),
+			fields: ['file', 'doc_type', 'bank', 'drawdown']
+		},
+		{
+			name: 'figures',
+			icon: 'lucide:calculator',
+			title: t('app.advices.figures'),
+			fields: ['extracted']
+		},
 		{
 			name: 'details',
+			icon: 'lucide:list',
 			title: t('app.advices.details'),
 			default_open: false,
 			fields: ['advice_reference', 'advice_date', 'notes']
 		},
-		{ name: 'reading', fields: ['read_status', 'read_note'] }
+		{
+			name: 'reading',
+			icon: 'lucide:scan-text',
+			title: t('app.advices.reading'),
+			fields: ['read_status', 'read_note']
+		}
 	];
 	const line = $derived.by(() => {
 		const id = record?.drawdown ?? null;

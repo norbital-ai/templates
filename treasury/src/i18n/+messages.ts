@@ -1,5 +1,10 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'app.dashboard.total_facilities': 'Total facilities',
+	'app.dashboard.current_rate': 'Current weighted rate',
+	'app.dashboard.coming_due': 'Coming due',
+	'app.dashboard.cost_by_bank': 'Cost of funds by bank',
+	'app.advices.reading': 'PDF reading',
 	'models.facility_form.label': 'Financing request',
 	'app.dashboard.month_range': 'Month range',
 	'app.sections.financing': 'Financing',
@@ -574,8 +579,10 @@ export default messages({
 	'app.costs.report': 'Cost report',
 	'app.dashboard.closed': 'Closed report',
 	'errors.month_imported': 'An imported historical report is immutable.',
-	'models.business_partner.fields.is_supplier': 'Supplier',
-	'models.business_partner.fields.is_customer': 'Customer',
+	'models.business_partner.fields.role': 'Role',
+	'models.business_partner.fields.role.supplier': 'Supplier',
+	'models.business_partner.fields.role.customer': 'Customer',
+	'models.business_partner.fields.role.both': 'Supplier and customer',
 	'models.drawdown.fields.discrepancy_note': 'Advice differences',
 	'app.month_end.details': 'Report details and history',
 	'app.month_end.imported': 'Imported historical summary',
