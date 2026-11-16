@@ -15,6 +15,8 @@ import {
 	feeAmount,
 	headroom,
 	lineFigures,
+	subLimitUsage,
+	lineWarnings,
 	monthEndFrom,
 	maturities,
 	monthEndReport,
@@ -207,11 +209,19 @@ describe('FX and charges', () => {
 			{ stage: 'drawdown', charge_type: 'commission', amount: null }
 		]);
 		const [quote] = compareInvoice(
-			{ amount: '100000', tenor: 30, product: 'if', eligible: null, as_of: '2026-02-01' },
+			{
+				amount: '100000',
+				tenor: 30,
+				product: 'if',
+				eligible: null,
+				supplier: null,
+				as_of: '2026-02-01'
+			},
 			[facility('f1', 'AAA', '5000000')],
-			[l],
+			[{ ...l, supplier: null }],
 			[missing],
-			rates
+			rates,
+			[]
 		);
 		expect(quote).toMatchObject({
 			ok: false,
@@ -223,9 +233,17 @@ describe('FX and charges', () => {
 	});
 	it('falls back to the last trade rate when the requested product and recent history are absent', () => {
 		const [quote] = compareInvoice(
-			{ amount: '100000', tenor: 30, product: 'if', eligible: null, as_of: '2026-11-15' },
+			{
+				amount: '100000',
+				tenor: 30,
+				product: 'if',
+				eligible: null,
+				supplier: null,
+				as_of: '2026-11-15'
+			},
 			[facility('f1', 'AAA', '5000000')],
-			[line('old', { product: 'pif', status: 'settled' })],
+			[{ ...line('old', { product: 'pif', status: 'settled' }), supplier: null }],
+			[],
 			[],
 			[]
 		);
@@ -542,4 +560,56 @@ it('combines overlapping attention conditions into one record', () => {
 		'app.alerts.bills',
 		'app.alerts.lc_expiry'
 	]);
+});
+
+describe('facility sublimits', () => {
+	it('uses matching products and suppliers, excluding closed lines and the current line', () => {
+		const current = { ...line('current', { amount: '40', amount_usd: '40' }), supplier: 's1' };
+		const caps = [
+			{ facility: 'f1', name: 'IF', product: 'if' as const, supplier: null, limit: '100' },
+			{ facility: 'f1', name: 'Supplier IF', product: 'if' as const, supplier: 's1', limit: '80' },
+			{ facility: 'f1', name: 'LC', product: 'lc' as const, supplier: null, limit: '1' },
+			{ facility: 'f1', name: 'Other supplier', product: null, supplier: 's2', limit: '1' }
+		];
+		const lines = [
+			current,
+			{ ...line('same', { amount_usd: '50' }), supplier: 's1' },
+			{ ...line('other', { amount_usd: '10' }), supplier: 's2' },
+			{ ...line('lc', { product: 'lc', amount_usd: '900' }), supplier: 's1' },
+			{ ...line('closed', { status: 'settled', amount_usd: '900' }), supplier: 's1' }
+		];
+		const usage = subLimitUsage(current, caps, lines);
+		expect(usage).toEqual([
+			{ name: 'IF', limit: '100', used: '60' },
+			{ name: 'Supplier IF', limit: '80', used: '50' }
+		]);
+		const warnings = lineWarnings(
+			{ ...current, fx_rate_to_usd: '1', lc_expiry_date: null, earliest_invoice_date: null },
+			{
+				facility: facility('f1', 'AAA', '10000'),
+				offered: [],
+				lines,
+				eligible_banks: null,
+				sub_limits: usage,
+				today: '2026-01-02'
+			}
+		);
+		expect(warnings.map((w) => w.key)).toEqual(['warning.over_cap']);
+		const [quote] = compareInvoice(
+			{
+				amount: '40',
+				tenor: 30,
+				product: 'if',
+				eligible: null,
+				supplier: 's1',
+				as_of: '2026-01-02'
+			},
+			[facility('f1', 'AAA', '10000')],
+			lines.filter((l) => l.id !== current.id),
+			[],
+			[],
+			caps
+		);
+		expect(quote).toMatchObject({ ok: false, notes: ['room'] });
+	});
 });

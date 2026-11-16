@@ -589,6 +589,10 @@
 					"optional": true,
 					"scale": 6
 				},
+				"invoiced_amount": {
+					"kind": "sum",
+					"of": "invoices.amount"
+				},
 				"is_archived": {
 					"default": false,
 					"kind": "bool"

@@ -47,7 +47,9 @@ export default model('purchase_order', {
 			invoices: {
 				fields: [...INVOICE_FIELDS],
 				lines: { fields: ['po_line', 'quantity', 'amount'] },
-				drawdown: { fields: ['supplier', 'amount', 'bank_reference', 'product', 'currency'] }
+				drawdown: {
+					fields: ['supplier', 'amount', 'invoiced_amount', 'bank_reference', 'product', 'currency']
+				}
 			},
 			documents: { fields: ['kind', 'title', 'file'] },
 			financings: {

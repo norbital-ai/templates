@@ -57,17 +57,13 @@
 				invoices: {
 					fields: ['invoice_number', 'currency', 'amount', 'drawdown'],
 					lines: { fields: ['po_line', 'quantity', 'amount'] },
-					drawdown: { fields: ['supplier', 'amount'] }
+					drawdown: { fields: ['supplier', 'amount', 'invoiced_amount'] }
 				},
 				financings: {
 					fields: ['drawdown'],
 					drawdown: { fields: ['bank_reference', 'product', 'status', 'lc_number', 'due_date'] }
 				},
 				limit: 1
-			},
-			invoice: {
-				where: { po: { eq: id } },
-				fields: ['drawdown']
 			}
 		});
 	});
@@ -85,11 +81,7 @@
 							: {
 									supplier: inv.drawdown.supplier,
 									amount: inv.drawdown.amount,
-									invoiced: String(
-										po.invoices
-											.filter((o) => o.drawdown?.id === inv.drawdown?.id)
-											.reduce((a, o) => a + Number(o.amount), 0)
-									)
+									invoiced: inv.drawdown.invoiced_amount
 								}
 					).map((f) => ({ ...f, invoice: inv.invoice_number }))
 				)

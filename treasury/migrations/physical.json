@@ -135,6 +135,7 @@
 		"column drawdown.fx_rate_to_usd numeric not null default '1'::numeric",
 		"column drawdown.id uuid not null",
 		"column drawdown.interest_rate_pct numeric",
+		"column drawdown.invoiced_amount numeric not null default 0",
 		"column drawdown.is_archived boolean not null default false",
 		"column drawdown.lc_expiry_date date",
 		"column drawdown.lc_number text",
@@ -2860,7 +2861,8 @@
 			1419,
 			1420,
 			1421,
-			1422
+			1422,
+			1423
 		]
 	}
 }

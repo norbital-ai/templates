@@ -87,6 +87,7 @@ export default model('drawdown', {
 		amount: { kind: 'decimal', scale: 2, min: 0 },
 		fx_rate_to_usd: { kind: 'decimal', scale: 12, default: 1 },
 		amount_usd: { kind: 'decimal', scale: 2, computed: 'round(amount * fx_rate_to_usd, 2)' },
+		invoiced_amount: { kind: 'sum', of: 'invoices.amount' },
 		application_date: { kind: 'date', optional: true },
 		released_date: { kind: 'date', optional: true },
 		start_date: { kind: 'date', optional: true },

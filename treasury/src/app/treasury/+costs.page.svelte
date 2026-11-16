@@ -24,7 +24,7 @@
 		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
 		drawdown: {
 			where: { status: { in: ['earmarked', 'applied', 'active', 'settled', 'unclear'] } },
-			fields: [...LINE_FIELDS, 'charge_rate_pct'],
+			fields: [...LINE_FIELDS, 'charge_rate_pct', 'supplier'],
 			charges: { fields: ['amount', 'fx_rate_to_usd', 'charge_type', 'stage'] }
 		},
 		facility_fee: {
@@ -43,6 +43,7 @@
 			]
 		},
 		fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] },
+		sub_limit: { fields: ['facility', 'name', 'product', 'supplier', 'limit'] },
 		business_partner: {
 			where: { is_active: { eq: true } },
 			fields: ['name'],
@@ -70,12 +71,14 @@
 						tenor: Number(tenor),
 						product,
 						eligible,
+						supplier,
 						as_of: day.today
 					},
 					facilities,
 					lines,
 					read.current?.facility_fee.rows ?? [],
-					read.current?.fx_rate.rows ?? []
+					read.current?.fx_rate.rows ?? [],
+					read.current?.sub_limit.rows ?? []
 				).map((q) => ({
 					...q,
 					notes: q.notes.map((n) => t(NOTES[n as keyof typeof NOTES])).join(' · ')

@@ -1,5 +1,6 @@
 import { Effect, Exit, Schema } from 'effect';
 import { id_of } from '@norbital-ai/bolt';
+import { invoiceFindings } from '../src/lib/purchasing.js';
 import { TestWorkspace, expect, it } from '@norbital-ai/bolt-cli/test';
 
 it.layer(
@@ -99,6 +100,69 @@ it.layer(
 				business_partner: { rows: [{ role: 'both' }] }
 			});
 		})
+	);
+	it.effect(
+		'financing invoice totals include every linked PO without loading their invoice lists',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				const partner = (yield* admin.act({
+					'business_partner.create': [{ name: 'Invoice supplier' }]
+				})).records[0];
+				const financing = (yield* admin.act({ 'drawdown.create': [{ amount: '200' }] })).records[0];
+				if (partner === undefined || financing === undefined)
+					throw new Error('Expected source records.');
+				const supplier = Schema.decodeUnknownSync(id_of('business_partner'))(partner.id);
+				const drawdown = Schema.decodeUnknownSync(id_of('drawdown'))(financing.id);
+				for (const [index, amount] of ['140', '100'].entries()) {
+					const po = (yield* admin.act({
+						'purchase_order.create': [
+							{ po_number: `INVOICE-SHARED-${index}`, po_date: '2026-03-01', supplier }
+						]
+					})).records[0];
+					if (po === undefined) throw new Error('Expected PO.');
+					yield* admin.act({
+						'purchase_order.update': [
+							{
+								target: {
+									id: Schema.decodeUnknownSync(id_of('purchase_order'))(po.id),
+									revision: po.revision
+								},
+								set: {
+									invoices: {
+										create: [
+											{
+												invoice_number: `SHARED-${index}`,
+												invoice_date: '2026-03-02',
+												amount,
+												drawdown
+											}
+										]
+									}
+								}
+							}
+						]
+					});
+				}
+				const read = yield* admin.query({
+					drawdown: { where: { id: { eq: drawdown } }, fields: ['invoiced_amount'] }
+				});
+				const rows = Schema.decodeUnknownSync(
+					Schema.Struct({
+						drawdown: Schema.Struct({
+							rows: Schema.Array(Schema.Struct({ invoiced_amount: Schema.String }))
+						})
+					})
+				)(read).drawdown.rows;
+				expect(rows).toEqual([{ invoiced_amount: '240' }]);
+				const findings = invoiceFindings(
+					{ invoice_number: 'SHARED-0', currency: 'USD', amount: '140', lines: [] },
+					{ currency: 'USD', supplier: partner.id, lines: [] },
+					{ supplier: partner.id, amount: '200', invoiced: rows[0]!.invoiced_amount }
+				);
+				expect(findings.map((f) => f.key)).toContain('finding.financing_over');
+			})
 	);
 	it.effect('bank contacts use one bank save and retain native validation', () =>
 		Effect.gen(function* () {

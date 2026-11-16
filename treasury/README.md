@@ -29,6 +29,22 @@ The workspace uses a blue-accented theme with navy surfaces in dark mode and lig
 Administrators have workspace-wide access; record locks and native approval holds still apply.
 Each record's history is the audit trail.
 
+## How the records connect
+
+| Record                     | What it controls                                                                                                                                                                                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bank and facility          | The lender and its agreed credit line. Active limits feed utilisation, available credit and the month-end headline. Allocation copies the facility's day-count basis; rounding and maximum tenor drive interest and warnings.                                                                       |
+| Fee rules                  | Product/stage-specific estimated charges, including flat or percentage charges and their minimum currency. Recorded charges replace that stage's estimates.                                                                                                                                         |
+| Sublimits                  | Caps on a product, a supplier, or their intersection within one facility. The line warns on a breach; the cost calculator excludes a proposal that exceeds a matching cap. They never increase the facility limit.                                                                                  |
+| FX rates                   | Dated USD-per-unit conversions for foreign fee estimates and month-end revaluation. The month-end checkbox labels a rate; selection uses its date. They do not overwrite the conversion saved on a drawdown or actual charge.                                                                       |
+| PO items and invoice items | PO items calculate ordered quantity and amount. Invoice items link to those items, accumulate invoiced quantities and drive price/quantity/total checks. Financing checks total **all invoices linked to the drawdown across POs**, using a native sum rather than downloading the invoice book.    |
+| PO financing link          | Links an order to the line paying it, including the LC-to-financing conversion chain. An LC request remains in Attention until a linked LC exists.                                                                                                                                                  |
+| Financing request          | The purchasing application and source-document evidence. An LC request linked to a PO marks it as requesting an LC; T/T requests feed payment-date Attention. Its reader fills empty facts, and its PDF pack includes the supporting documents. It does not create an approved facility or payment. |
+| Bank advice                | The original PDF, extracted facts and proposed drawdown/settlement changes. A unique match submits the changes and actual charges together to native Treasury approval.                                                                                                                             |
+| Month-end                  | A calculated closing position. Locking freezes the source facts, converted values and totals; later FX, fee or facility edits cannot rewrite the locked month.                                                                                                                                      |
+
+The facility's margin, pricing basis, security, deposits and documented tenor-start rule describe the agreement. The bank's actual all-in rate and dates belong to the drawdown; the documented margin is not automatically added to that rate. The latest invoice-financing deadline is the earliest invoice date plus the maximum tenor. An `fx` **product** is an FX-contract record, separate from the FX-rate table; it does not consume borrowing limits or execute a currency trade.
+
 ## How a line moves
 
 1. **Earmark**: Finance plans a supplier payment (supplier, requested date, amount, earliest invoice date).
@@ -136,7 +152,7 @@ by pages, automations and write callbacks:
   for a frozen historical position.
 - **Costs:** USD trade financing with a recorded rate, started by the comparison date. A proposed
   invoice uses the bank's 90-day weighted product rate, then its last product rate, then its
-  90-day trade rate, then its last trade rate. Supplier eligibility, remaining room and maximum
+  90-day trade rate, then its last trade rate. Supplier eligibility, facility headroom, matching product/supplier sublimits and maximum
   tenor are checked separately. Missing rate or fee FX prevents an eligible recommendation.
   All-in % = (interest + fees) / principal × day basis / tenor × 100.
 - **Costs → Charges:** recorded charges on USD trade lines started in the last twelve calendar months

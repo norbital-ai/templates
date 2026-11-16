@@ -72,6 +72,46 @@ export type FxRow = {
 	readonly usd_per_unit: string;
 };
 
+/** Sublimits constrain the matching product/supplier inside a facility, never add credit. */
+export function subLimitUsage(
+	line: Pick<LineRow, 'id' | 'facility' | 'product'> & { readonly supplier: string | null },
+	caps: readonly {
+		readonly facility: string;
+		readonly name: string;
+		readonly product: Product | null;
+		readonly supplier: string | null;
+		readonly limit: string;
+	}[],
+	lines: readonly (LineRow & { readonly supplier: string | null })[]
+) {
+	return caps
+		.filter(
+			(c) =>
+				PRODUCTS[line.product].uses_limit &&
+				c.facility === line.facility &&
+				(c.product === null || c.product === line.product) &&
+				(c.supplier === null || c.supplier === line.supplier)
+		)
+		.map((c) => ({
+			name: c.name,
+			limit: c.limit,
+			used: text(
+				sum(
+					lines
+						.filter(
+							(l) =>
+								l.id !== line.id &&
+								usesLimit(l) &&
+								l.facility === c.facility &&
+								(c.product === null || l.product === c.product) &&
+								(c.supplier === null || l.supplier === c.supplier)
+						)
+						.map(usd)
+				)
+			)
+		}));
+}
+
 /** The fields a `LineRow` read names; facilities add their bank's code as a layer. */
 export const LINE_FIELDS = [
 	'status',
@@ -701,12 +741,14 @@ export function compareInvoice(
 		tenor: number;
 		product: Product;
 		eligible: ReadonlySet<string> | null;
+		supplier: string | null;
 		as_of: string;
 	},
 	facilities: readonly FacilityRow[],
-	lines: readonly LineRow[],
+	lines: readonly (LineRow & { readonly supplier: string | null })[],
 	fees: readonly FeeRow[],
-	rates: readonly FxRow[]
+	rates: readonly FxRow[],
+	caps: Parameters<typeof subLimitUsage>[1]
 ) {
 	const recentFrom = addDays(input.as_of, -RECENT_DAYS);
 	const room = new Map(headroom(facilities, lines).map((h) => [h.facility, h.available]));
@@ -730,6 +772,21 @@ export function compareInvoice(
 			if (input.eligible !== null && !input.eligible.has(f.bank?.code ?? '—'))
 				notes.push('supplier');
 			if (BigDecimal.isGreaterThan(decimal(input.amount), decimal(room.get(f.id) ?? f.limit)))
+				notes.push('room');
+			const subLimits = subLimitUsage(
+				{ id: '', facility: f.id, product: input.product, supplier: input.supplier },
+				caps,
+				lines
+			);
+			if (
+				!notes.includes('room') &&
+				subLimits.some((c) =>
+					BigDecimal.isGreaterThan(
+						BigDecimal.sum(decimal(c.used), decimal(input.amount)),
+						decimal(c.limit)
+					)
+				)
+			)
 				notes.push('room');
 			if (f.max_tenor_days !== null && input.tenor > f.max_tenor_days) notes.push('tenor');
 			if (rate === null) notes.push('rate');
@@ -1015,7 +1072,7 @@ export function lineWarnings(
 		readonly offered: readonly Product[];
 		readonly lines: readonly LineRow[];
 		readonly eligible_banks: readonly string[] | null;
-		readonly supplier_caps: readonly {
+		readonly sub_limits: readonly {
 			readonly name: string;
 			readonly limit: string;
 			readonly used: string;
@@ -1060,12 +1117,10 @@ export function lineWarnings(
 			!context.eligible_banks.includes(f.bank?.code ?? '—')
 		)
 			out.push({ key: 'warning.supplier_not_accepted', values: { bank: f.bank?.code ?? '—' } });
-		for (const cap of context.supplier_caps)
-			if (
-				BigDecimal.isGreaterThan(BigDecimal.sum(decimal(cap.used), usd(line)), decimal(cap.limit))
-			)
-				out.push({ key: 'warning.over_cap', values: { cap: cap.name, limit: cap.limit } });
 	}
+	for (const cap of context.sub_limits)
+		if (BigDecimal.isGreaterThan(BigDecimal.sum(decimal(cap.used), usd(line)), decimal(cap.limit)))
+			out.push({ key: 'warning.over_cap', values: { cap: cap.name, limit: cap.limit } });
 	const tenor = tenorDays(line.start_date, line.due_date);
 	if (tenor !== null && tenor <= 0) out.push({ key: 'warning.due_before_start', values: {} });
 	else if (tenor !== null && f.max_tenor_days !== null && tenor > f.max_tenor_days)

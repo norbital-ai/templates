@@ -27,6 +27,7 @@
 		headroom,
 		lineWarnings,
 		lineFigures,
+		subLimitUsage,
 		type Stage
 	} from '../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'drawdown'>; ctx: PageContext } = $props();
@@ -136,7 +137,7 @@
 			},
 			fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] },
 			supplier_bank: { fields: ['supplier'], bank: { fields: ['code'] } },
-			sub_limit: { fields: ['facility', 'name', 'supplier', 'limit'] },
+			sub_limit: { fields: ['facility', 'name', 'product', 'supplier', 'limit'] },
 			drawdown_charge: {
 				where: { drawdown: { eq: line.id } },
 				fields: ['charge_type', 'stage', 'currency', 'amount', 'description']
@@ -206,26 +207,7 @@
 							: data.supplier_bank.rows
 									.filter((s) => s.supplier === record.supplier)
 									.map((s) => s.bank?.code ?? ''),
-					supplier_caps: data.sub_limit.rows
-						.filter(
-							(c) =>
-								c.facility === facility?.id && c.supplier !== null && c.supplier === record.supplier
-						)
-						.map((c) => ({
-							name: c.name,
-							limit: c.limit,
-							used: String(
-								data.drawdown.rows
-									.filter(
-										(l) =>
-											l.facility === c.facility &&
-											l.supplier === c.supplier &&
-											l.id !== record.id &&
-											(l.status === 'applied' || l.status === 'active')
-									)
-									.reduce((a, l) => a + Number(l.amount_usd), 0)
-							)
-						})),
+					sub_limits: subLimitUsage(record, data.sub_limit.rows, data.drawdown.rows),
 					today: day.today
 				})
 	);

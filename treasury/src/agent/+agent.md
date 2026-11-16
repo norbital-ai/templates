@@ -63,3 +63,9 @@ Closing reads every source page and is the sole writer of closing snapshot figur
 Keep long forms in native `RecordShell sections`, with related short fields sharing a row and optional evidence or notes collapsed. Use `TimeInput` for day/month selection and `TimeRangeInput` for periods, with the workspace clock and zone. Never use a browser date/month input as a replacement.
 
 A facility is the bank’s agreed limit and terms. A financing request is a purchasing application and its supporting evidence; it neither owns the facility limit nor creates a second financing ledger. Link a saved PO where available instead of copying its current item book. A bank advice preserves the original PDF and extracted facts; native approval alone accepts the proposed financial update. Actual charges, estimated fee rules and frozen month-end snapshots keep their distinct responsibilities. Add no model that duplicates native approvals, files, audit or these existing records.
+
+## Connected records
+
+Use FX rates for fee estimates and month-end revaluation; preserve the conversion recorded on each drawdown and actual charge. The rate's month-end flag is descriptive; dates select the rate. An FX product is a contract record, not the exchange-rate table or an executed trade. Facility margins and tenor-start notes are agreement references; never invent an all-in rate by adding the margin again. Allocate using the existing automation and preserve the bank's dates and figures.
+
+PO items calculate order totals; invoice items accumulate billed quantities and drive the checks. A drawdown's native `invoiced_amount` totals invoices across all POs. Product/supplier sublimits constrain their matching scope inside the facility and feed line warnings and cost recommendations. Never add a second total, balance or approval ledger to connect these records.
