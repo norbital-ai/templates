@@ -416,6 +416,18 @@
 					]
 				}
 			},
+			"locks": {
+				"submitted_advice": {
+					"except": [
+						"notes"
+					],
+					"where": {
+						"read_status": {
+							"eq": "applied"
+						}
+					}
+				}
+			},
 			"record_label": "record.advice_reference != null ? record.advice_reference : 'Advice'"
 		},
 		"drawdown": {

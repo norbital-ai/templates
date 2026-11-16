@@ -81,7 +81,7 @@ it.layer(
 	})
 )('document readers', (it) => {
 	it.effect(
-		'uploads an advice, renders its scanned page for AI, and keeps the extracted figures unapplied',
+		'automatically reads an uploaded scanned advice and keeps an unmatched document out of the book',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -98,8 +98,6 @@ it.layer(
 				const document = created.records[0];
 				if (document === undefined) throw new Error('Expected the uploaded advice.');
 				const id = Schema.decodeUnknownSync(id_of('bank_document'))(document.id);
-				const started = yield* treasury.run('bank_document_read', { advice: [id] }, JobResult);
-				if (started.kind !== 'committed') throw new Error('Expected the reader run.');
 				yield* t.run_due();
 				const read = yield* treasury.query({
 					bank_document: { where: { id: { eq: id } }, fields: ['read_status', 'extracted'] },

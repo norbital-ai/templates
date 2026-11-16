@@ -2,12 +2,12 @@ import { automation } from '@norbital-ai/bolt';
 
 /**
  * Applies a checked advice to its line: a drawdown advice records the drawdown, a settlement advice settles it, each
- * with the advice's figures and charges. The figures are the ones a person checked (`extracted`).
+ * with the advice's figures and charges. The figures are held with the PDF in the native financing approval.
  */
 export default automation({
-	description: 'Apply a checked bank advice to its line.',
+	description: 'Submit extracted bank advice figures for Treasury approval.',
 	input: { advice: { kind: 'rows', of: 'bank_document' } },
-	policies: ['treasury'],
+	policies: ['bank_advices'],
 	run: function* ({ advice }, ctx) {
 		const doc = advice[0];
 		if (doc === undefined || advice.length !== 1) return yield* ctx.refuse('errors.one_advice');
@@ -32,7 +32,7 @@ export default automation({
 					charges,
 					document: doc.id
 				},
-				{ key: `advice:${doc.id}` }
+				{ key: `advice:${doc.id}:${doc.revision}` }
 			);
 			return;
 		}
@@ -50,7 +50,7 @@ export default automation({
 					charges,
 					document: doc.id
 				},
-				{ key: `advice:${doc.id}` }
+				{ key: `advice:${doc.id}:${doc.revision}` }
 			);
 			return;
 		}

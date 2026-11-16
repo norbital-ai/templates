@@ -29,7 +29,8 @@ const Line = Schema.Struct({
 	interest_to_maturity: Schema.NullOr(Schema.String),
 	needs_review: Schema.Boolean,
 	converted_from: Schema.NullOr(Schema.String),
-	product: Schema.String
+	product: Schema.String,
+	$approval: Schema.optionalKey(Schema.Struct({ request_id: Schema.String, state: Schema.String }))
 });
 const lines = Effect.fnUntraced(function* (t: Kit) {
 	const admin = yield* t.as(t.admin);
@@ -66,7 +67,7 @@ it.layer(
 	it.effect('an earmark is allocated, drawn and settled; a differing bank interest flags it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const treasury = yield* t.as(t.member(['treasury']));
+			const treasury = yield* t.as(t.member(['treasury'], { teams: ['treasury'] }));
 			const finance = yield* t.as(t.member(['finance']));
 			const bank = created(
 				(yield* treasury.act({ 'bank.create': [{ code: 'AAA', name: 'Bank A' }] })).records
@@ -122,6 +123,9 @@ it.layer(
 				)
 			);
 			const [drawn] = yield* lines(t);
+			if (drawn?.$approval === undefined)
+				throw new Error('Expected Treasury approval for the drawdown advice.');
+			yield* treasury.approvals.decide(drawn.$approval.request_id, { decision: 'approve' });
 			// 100000 × 5% × 1 / 360 = 13.888…, rounded down by this bank
 			expect(drawn).toMatchObject({
 				status: 'active',
@@ -143,6 +147,9 @@ it.layer(
 			);
 			const [settled] = yield* lines(t);
 			expect(settled).toMatchObject({ status: 'settled', needs_review: true });
+			if (settled?.$approval === undefined)
+				throw new Error('Expected Treasury approval for the settlement.');
+			yield* treasury.approvals.decide(settled.$approval.request_id, { decision: 'approve' });
 			const sealed = yield* Effect.exit(
 				treasury.act({
 					'drawdown.update': [

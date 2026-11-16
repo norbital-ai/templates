@@ -39,7 +39,7 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 - Apps: `purchasing`, `treasury`
 - Kiosks: none
 - Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `facility_form_pack`, `month_end_lock`, `month_end_unlock`
-- Policies: `facility_forms`, `finance`, `purchasing`, `treasury`, `viewer`
+- Policies: `bank_advices`, `facility_forms`, `finance`, `purchasing`, `treasury`, `viewer`
 - Custom fields: none
 - Integrations: none
 
@@ -52,6 +52,8 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 - A line's status only moves forward; a settled or cancelled line is sealed (`sealed_line`).
 - Every figure comes from `src/lib/calculations.ts`, `treasury.ts` and `purchasing.ts`; pages,
   automations and write callbacks share them. Estimated charges are computed, never stored.
+- Advice extraction schedules a uniquely matched financing proposal under `bank_advices`; the line, charges
+  and evidence share one native Treasury approval. Never add a direct allow to that automation policy.
 - A locked month-end never changes (`locked_month`).
 - Purchasing never writes treasury records.
 

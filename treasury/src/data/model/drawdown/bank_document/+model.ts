@@ -3,8 +3,8 @@ import { ADVICE } from '../../../../lib/charges.js';
 
 /**
  * A bank advice or other document: the drawdown advice, the settlement advice, or anything else kept with a line.
- * An advice dropped in waits unmatched; it is read (by the reader or by hand into `extracted`), checked against its
- * own arithmetic and the line, and applied only when a person confirms.
+ * Uploading starts extraction. A unique match submits its figures through the native Treasury approval;
+ * unmatched documents retain their figures for manual matching.
  */
 export default model('bank_document', {
 	description: 'A bank advice or other document kept with a line.',
@@ -42,6 +42,13 @@ export default model('bank_document', {
 		read_note: { kind: 'text', optional: true },
 		notes: { kind: 'text', optional: true }
 	},
+	constraints: {
+		submitted_advice: {
+			locked: { read_status: { eq: 'applied' } },
+			except: ['notes'],
+			message: 'errors.advice_submitted'
+		}
+	},
 	outputs: {
 		default: {
 			fields: 'all',
@@ -50,7 +57,15 @@ export default model('bank_document', {
 		}
 	},
 	create: {
-		fields: ['bank', 'drawdown', 'doc_type', 'advice_reference', 'advice_date', 'file', 'notes']
+		fields: ['bank', 'drawdown', 'doc_type', 'advice_reference', 'advice_date', 'file', 'notes'],
+		effect: function* (changes, ctx) {
+			for (const { after } of changes)
+				yield* ctx.schedule(
+					'bank_document_read',
+					{ advice: [after.id] },
+					{ key: `read:${after.id}:${after.revision}` }
+				);
+		}
 	},
 	update: {
 		fields: [
@@ -64,6 +79,40 @@ export default model('bank_document', {
 			'read_status',
 			'read_note',
 			'notes'
-		]
+		],
+		transform: function* (changes) {
+			return changes.map((change) =>
+				change.changed('file') ||
+				(change.changed('read_status') && change.after.read_status === 'uploaded')
+					? { ...change.set, extracted: null, read_status: 'uploaded' as const, read_note: null }
+					: change.set
+			);
+		},
+		effect: function* (changes, ctx) {
+			for (const change of changes) {
+				const doc = change.after;
+				if (
+					change.changed('file') ||
+					(change.changed('read_status') && doc.read_status === 'uploaded')
+				)
+					yield* ctx.schedule(
+						'bank_document_read',
+						{ advice: [doc.id] },
+						{ key: `read:${doc.id}:${doc.revision}` }
+					);
+				else if (
+					doc.read_status === 'checked' &&
+					doc.extracted !== null &&
+					doc.drawdown !== null &&
+					doc.doc_type !== 'other' &&
+					(change.changed('extracted') || change.changed('drawdown') || change.changed('doc_type'))
+				)
+					yield* ctx.schedule(
+						'bank_document_apply',
+						{ advice: [doc.id] },
+						{ key: `submit:${doc.id}:${doc.revision}` }
+					);
+			}
+		}
 	}
 });

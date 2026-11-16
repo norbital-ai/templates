@@ -20,7 +20,7 @@ export default automation({
 		document: { kind: 'ref', to: 'bank_document', optional: true }
 	},
 	output: { kind: 'object', fields: { review: { kind: 'int' } } },
-	policies: ['treasury'],
+	policies: ['bank_advices'],
 	run: function* (input, ctx) {
 		const row = input.line.findIndex((d) => !['applied', 'active', 'unclear'].includes(d.status));
 		if (row >= 0) return yield* ctx.refuse('errors.line_not_open', { row });

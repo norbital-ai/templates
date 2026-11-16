@@ -16,11 +16,7 @@
 		'status',
 		'currency',
 		'amount',
-		'amount_usd',
-		'interest_rate_pct',
-		'start_date',
-		'due_date',
-		'interest_to_maturity'
+		'due_date'
 	] as const;
 </script>
 
@@ -87,7 +83,7 @@
 		of="drawdown"
 		order_by={{ due_date: 'desc' }}
 		initial_filter={{ is_archived: { eq: false } }}
-		columns={[...COLUMNS, 'settlement_date', 'settled_by', 'is_archived']}
+		columns={[...COLUMNS, 'interest_rate_pct', 'start_date', 'settlement_date', 'is_archived']}
 		toolbar={{ title: t('app.drawdowns.all') }}
 		key="all"
 	/>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * Bank advices: drop the PDFs in (New), read them, check each one's figures beside the PDF in its record, then apply
-	 * it to its line. Nothing reaches a line until it is applied.
+	 * Bank advices: uploading starts extraction; the original PDF and figures share one record, and a unique
+	 * financing match submits its update through native Treasury approval.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Table, Tabs } from '@norbital-ai/ui';
@@ -27,16 +27,6 @@
 		order_by={{ advice_date: 'desc' }}
 		columns={COLUMNS}
 		toolbar={{ title: t('app.advices.inbox') }}
-		actions={[
-			{
-				label: t('app.advices.read'),
-				run: (row) => ctx.run('bank_document_read', { advice: [row.id] })
-			},
-			{
-				label: t('app.advices.apply'),
-				run: (row) => ctx.run('bank_document_apply', { advice: [row.id] })
-			}
-		]}
 	/>
 {/snippet}
 {#snippet applied()}

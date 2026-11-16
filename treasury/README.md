@@ -14,6 +14,10 @@ invoices that come back and prepares the facility requisition for each PO paid b
 | **Treasury**   | Dashboard, Drawdowns, Alerts, Bank advices, Limits & terms, Banks, Suppliers, Costs, Charges, Month-end |
 | **Purchasing** | Purchase orders, Facility forms                                                                         |
 
+Treasury's navigation groups **Daily work** (Dashboard, Drawdowns, Bank advices, Alerts),
+**Reports** (Costs, Charges, Month-end) and **Setup** (Limits & terms, Banks, Suppliers).
+The open-lines list shows the essentials; open a line for its rates, interest and supporting records.
+
 | Team           | May do                                                                                                                                                                                         |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Treasury**   | Change banks, facilities, fee rules, lines (allocate, advices, settle, cash or convert), suppliers and the banks that finance them, month-end locks, FX rates; key invoices; link POs to lines |
@@ -21,7 +25,8 @@ invoices that come back and prepares the facility requisition for each PO paid b
 | **Purchasing** | Raise purchase orders (each purchaser sees their own) and change one until it is invoiced; prepare facility forms                                                                              |
 | **View**       | Read every page                                                                                                                                                                                |
 
-Administrators see and change everything. Each record's history is the audit trail.
+Administrators have workspace-wide access; record locks and native approval holds still apply.
+Each record's history is the audit trail.
 
 ## How a line moves
 
@@ -32,8 +37,8 @@ Administrators see and change everything. Each record's history is the audit tra
 4. **Settle**, or for an LC, import bill or DA bill **Pay cash or convert**: a conversion closes the bill
    and opens new financing that keeps its POs and invoices. A settled or cancelled line is sealed.
 
-Bank advices can be dropped in, read into their figures, checked against the workspace's own
-arithmetic (days, interest with the bank's rounding, total debited) and applied to their line.
+Uploading a bank advice starts extraction automatically. A unique financing match submits its figures
+for Treasury approval, alongside checks of days, interest with the bank's rounding and total debited.
 
 ## Terms used in the workspace
 
@@ -60,8 +65,8 @@ arithmetic (days, interest with the bank's rounding, total debited) and applied 
 | Minimum currency                       | The currency of a percentage fee's minimum; it can differ from the currency of a flat fee. Missing FX makes the estimate unknown.                                                                                                               |
 | All-in cost                            | Estimated interest plus applicable fees, annualised over the proposed tenor. It is a comparison based on stored history and rules, not a bank quote.                                                                                            |
 | Basis points (bps)                     | One percentage point is 100 bps. The spread compares a bank's recent rate with the group's recent rate.                                                                                                                                         |
-| Bank advice                            | A bank's drawdown, rate-revision or repayment notice. Uploading or reading it does not settle or change a financing line.                                                                                                                       |
-| Checked / applied advice               | Checked means extraction finished; a person still checks it. Applied means the downstream line operation committed.                                                                                                                             |
+| Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                                       |
+| Ready to review / submitted advice       | Ready to review means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                                                                      |
 | PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                               |
 | Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                 |
 | Month-end lock                         | A locked report keeps frozen detail lines and headline totals. A summary imported without detail lines becomes a full snapshot when locked.                                                                                                     |
@@ -159,19 +164,24 @@ planning warnings; the application does not submit instructions to a bank or exe
 
 ## Uploads and document reading
 
-1. In **Bank advices**, create a record and attach its PDF (up to 10 MiB). Pick its type and bank;
-   link its financing line if known.
-2. **Read** uses native document ingest for text and pictures. Pages without text are rendered
-   as images for the configured multimodal model. Structured extraction copies printed facts;
-   uncertain fields remain for review and account numbers are excluded.
-3. The reader matches references after removing punctuation and case, requiring at least six
-   characters. Review the match, extracted fields and **Checks** beside the original PDF. Checks
-   compare tenor, interest under the bank's day basis and rounding, and total debited against
-   principal + interest + charges.
-4. Correct extracted values through the native record editor. **Apply to line** schedules the
-   appropriate guarded drawdown/settlement operation. A failed or incomplete application remains
-   a visible run failure; it is not a successful settlement. The line changes only on that
-   operation's commit.
+1. In **Bank advices**, create a record and attach its PDF (up to 10 MiB). Bank, advice type and
+   financing line are optional hints. Saving automatically starts the reader; there is no separate Read or Apply step.
+2. Native document ingest supplies text and pictures; scanned pages become images for the configured multimodal
+   model. Extraction copies printed facts, excludes account numbers and lists uncertain fields. The original PDF
+   and the extracted figures appear side by side; narrow screens switch between the two panes.
+3. Matching ignores punctuation and case and requires at least six reference characters. It uses a bank or
+   currency when available and accepts exactly one open financing line. Ambiguous or unmatched advice stays
+   available for manual matching. Saving a match or corrected figures automatically submits the update.
+4. The existing drawdown or settlement operation submits one native Treasury approval, carrying the advice,
+   financing line and charges together. Bolt shows provisional values with a **Pending** hold; approval unlocks
+   them, rejection restores the checkpoint. Pending values can appear in reports, so check the native approval
+   state before treating the change as final. The original PDF is retained as evidence.
+5. Review the figures and arithmetic checks against the PDF, then approve or reject in Bolt's native approval
+   controls. Checks compare tenor, bank-basis interest and rounding, and principal + interest + charges against
+   the debit total. A failed extraction or incomplete operation remains visible in the run history. **Read again**
+   retries extraction; replacing the PDF clears old figures before rereading it. After rejection, correct and save
+   the figures to submit a new proposal. Submitted figures and their PDF stay locked together;
+   use a new advice for a later bank notice.
 
 Facility forms keep each attachment's role: supplier PO supplies order/vendor/shipping fields;
 proforma supplies payment remarks and a currency/amount cross-check; customer PO supplies its
@@ -210,8 +220,8 @@ totals. Configure provider connections and host capabilities separately from bus
 | `drawdown_record_advice` | Records the drawdown advice; the line becomes active            |
 | `drawdown_settle`        | Records the settlement advice; flags a differing interest       |
 | `drawdown_close_bill`    | Pays a bill in cash or converts it into financing               |
-| `bank_document_read`     | Reads advices into their figures for checking                   |
-| `bank_document_apply`    | Applies a checked advice to its line                            |
+| `bank_document_read`     | Automatically extracts and matches uploaded bank advices                   |
+| `bank_document_apply`    | Submits advice figures through Treasury approval                            |
 | `month_end_lock`         | Freezes a month's lines and figures                             |
 | `month_end_unlock`       | Lets a month follow live data again                             |
 | `facility_form_read`     | Fills a facility form from its PO, proforma and customer PO     |

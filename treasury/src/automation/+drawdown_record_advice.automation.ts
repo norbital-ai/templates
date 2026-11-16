@@ -18,7 +18,7 @@ export default automation({
 		charges: CHARGES_INPUT,
 		document: { kind: 'ref', to: 'bank_document', optional: true }
 	},
-	policies: ['treasury'],
+	policies: ['bank_advices'],
 	run: function* (input, ctx) {
 		const row = input.line.findIndex((d) => !['earmarked', 'applied', 'active'].includes(d.status));
 		if (row >= 0) return yield* ctx.refuse('errors.line_not_open', { row });

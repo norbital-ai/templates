@@ -1,15 +1,35 @@
 <script lang="ts">
 	/**
 	 * One advice: its fields and the figures read from it (edit any the PDF shows differently, then Save), the
-	 * workspace's own arithmetic on those figures, and Read / Apply in the footer.
+	 * workspace's own arithmetic on those figures, and native approval controls.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Alert, Button, RecordShell, RunStatus, use_act, type RecordView } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import {
+		Alert,
+		Button,
+		Form,
+		RecordShell,
+		RunsFor,
+		use_act,
+		type RecordSection,
+		type RecordView
+	} from '@norbital-ai/ui';
+	import { Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { adviceChecks } from '../../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'bank_document'>; ctx: PageContext } = $props();
 	const t = ctx.t;
 	const record = $derived(view.mode === 'create' ? null : view.record);
+	const sections: readonly RecordSection[] = [
+		{ name: 'advice', fields: ['file', 'doc_type', 'bank', 'drawdown'] },
+		{ name: 'figures', title: t('app.advices.figures'), fields: ['extracted'] },
+		{
+			name: 'details',
+			title: t('app.advices.details'),
+			default_open: false,
+			fields: ['advice_reference', 'advice_date', 'notes']
+		},
+		{ name: 'reading', fields: ['read_status', 'read_note'] }
+	];
 	const line = $derived.by(() => {
 		const id = record?.drawdown ?? null;
 		return id === null
@@ -42,15 +62,22 @@
 					terms?.facility?.interest_rounding ?? 'nearest_cent'
 				)
 	);
+	const subject = $derived(record?.id ?? null);
+	const runWhere = $derived(subject === null ? {} : { input: { eq: { advice: [subject] } } });
 	const act = use_act(ctx);
-	let run = $state<string | null>(null);
-	let automation = $state<'bank_document_read' | 'bank_document_apply'>('bank_document_read');
-	const start = (which: typeof automation) => {
+	const retry = () => {
 		if (record === null) return;
-		const handle = ctx.run(which, { advice: [record.id] });
-		automation = which;
-		run = handle.id;
-		act.run(handle);
+		if (record.read_status === 'uploaded') {
+			act.run(ctx.run('bank_document_read', { advice: [record.id] }));
+			return;
+		}
+		act.run(
+			ctx.act({
+				'bank_document.update': [
+					{ target: record, set: { read_status: 'uploaded', read_note: null } }
+				]
+			})
+		);
 	};
 </script>
 
@@ -66,17 +93,10 @@
 {/snippet}
 
 {#snippet next()}
-	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && record.read_status !== 'applied'}
-		<Button variant="outline" disabled={act.pending} onclick={() => start('bank_document_read')}
-			>{t('app.advices.read')}</Button
-		>
-		<Button
-			variant="outline"
-			disabled={act.pending || record.extracted === null || record.drawdown === null}
-			onclick={() => start('bank_document_apply')}>{t('app.advices.apply')}</Button
+	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && ['uploaded', 'checked', 'failed'].includes(record.read_status)}
+		<Button variant="ghost" disabled={act.pending} onclick={retry}>{t('app.advices.reread')}</Button
 		>
 	{/if}
-	{#if run}<RunStatus {ctx} {automation} {run} />{/if}
 {/snippet}
 
 {#if record === null}
@@ -85,6 +105,8 @@
 		of="bank_document"
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
+		{sections}
+		footer={t('app.advices.upload_hint')}
 	/>
 {:else}
 	<RecordShell
@@ -92,14 +114,73 @@
 		of="bank_document"
 		id={record.id}
 		subtitle={['doc_type', 'advice_date']}
+		footer={t(
+			record.read_status === 'uploaded'
+				? 'app.advices.read_hint'
+				: record.drawdown === null
+					? 'app.advices.link_hint'
+					: 'app.advices.review_hint'
+		)}
 		footer_actions={next}
-		tabs={[
-			{
-				name: 'checks',
-				title: t('app.advices.checks'),
-				icon: 'lucide:calculator',
-				body: arithmetic
-			}
-		]}
-	/>
+	>
+		{#snippet children(shown)}
+			{#if shown.mode !== 'create'}
+				<Split
+					ratio="half"
+					collapse="switch"
+					collapse_at="compact"
+					size="fill"
+					gap="md"
+					switch_labels={[t('app.advices.original'), t('app.advices.figures')]}
+				>
+					{#snippet start()}
+						{@const pdf = ctx.ui.kinds.file_url?.(shown.record.file)}
+						{#if pdf !== undefined}<iframe
+								src={`${pdf}#view=FitH`}
+								title={t('app.advices.original')}
+								class="h-full min-h-80 w-full border-0 bg-background"
+							/>{/if}
+					{/snippet}
+					{#snippet end()}
+						<Scroll name={t('app.advices.figures')} size="fill">
+							<Stack gap="md">
+								<Form
+									{ctx}
+									of="bank_document"
+									id={shown.record.id}
+									record={shown.record}
+									mode={shown.mode === 'view' ? 'view' : 'update'}
+									fields={[
+										'file',
+										'doc_type',
+										'bank',
+										'drawdown',
+										'extracted',
+										'advice_reference',
+										'advice_date',
+										'notes',
+										'read_note'
+									]}
+									{sections}
+								/>
+								{@render arithmetic()}
+								<RunsFor
+									{ctx}
+									automation="bank_document_read"
+									limit={20}
+									where={runWhere}
+								/>
+								<RunsFor
+									{ctx}
+									automation="bank_document_apply"
+									limit={20}
+									where={runWhere}
+								/>
+							</Stack>
+						</Scroll>
+					{/snippet}
+				</Split>
+			{/if}
+		{/snippet}
+	</RecordShell>
 {/if}
