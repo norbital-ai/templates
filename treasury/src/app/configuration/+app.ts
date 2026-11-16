@@ -4,6 +4,7 @@ export default app({
 	title: 'Configuration',
 	description: 'Banks, facility terms and reporting exchange rates.',
 	icon: 'lucide:settings',
+	banner: 'app-media/configuration.webp',
 	pages: {
 		banks: { title: 'Banks', icon: 'lucide:landmark' },
 		facilities: { title: 'Facilities', icon: 'lucide:gauge' },

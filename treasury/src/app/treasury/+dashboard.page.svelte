@@ -5,7 +5,17 @@
 	 * Every figure is USD and comes from one read of the facilities and lines plus the shared treasury helpers.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Chart, Combobox, EmptyState, Input, Table, format } from '@norbital-ai/ui';
+	import {
+		Chart,
+		Combobox,
+		EmptyState,
+		TimeInput,
+		TimeRangeInput,
+		Table,
+		format,
+		value_object,
+		type Value
+	} from '@norbital-ai/ui';
 	import { AppShell, Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { addDays, addMonths, monthEnd, monthStart } from '../../lib/calculations.js';
 	import {
@@ -98,7 +108,15 @@
 		}
 	]);
 	let period = $state('month');
-	const window = $derived(picks.find((p) => p.value === period) ?? picks[0]!);
+	let selectedRange = $state<Value>(null);
+	const customRange = $derived(
+		value_object(selectedRange) &&
+			typeof selectedRange.from === 'string' &&
+			typeof selectedRange.to === 'string'
+			? { from: selectedRange.from, to: selectedRange.to }
+			: null
+	);
+	const window = $derived(customRange ?? picks.find((p) => p.value === period) ?? picks[0]!);
 	const cost = $derived(periodCost(lines, banks, window.from, window.to));
 	const costAll = $derived(cost.find((c) => c.bank === 'all'));
 
@@ -122,15 +140,20 @@
 </script>
 
 {#snippet asOf()}
-	<label class="flex items-center gap-2 text-meta">
+	<label
+		for="treasury-analysis-date"
+		class="flex items-center gap-2 rounded-md bg-card p-2 text-meta"
+	>
 		{t('app.dashboard.as_of')}
-		<Input
-			type="date"
-			class="w-40"
-			aria-label={t('app.dashboard.as_of')}
-			value={as_of}
-			onchange={(e) => (picked = e.currentTarget.value || null)}
-		/>
+		<div class="w-44">
+			<TimeInput
+				{ctx}
+				id="treasury-analysis-date"
+				of="date"
+				value={as_of}
+				on_change={(value) => (picked = value)}
+			/>
+		</div>
 	</label>
 {/snippet}
 
@@ -141,7 +164,7 @@
 	variant="full"
 	actions={asOf}
 >
-	<Scroll name="dashboard" size="fill" min_height="24rem">
+	<Scroll name="dashboard" size="fill" min_height="24rem" inset>
 		{#if read.error}
 			<EmptyState title={t('app.dashboard.error')} hint={String(read.error)} />
 		{:else if read.current === undefined}
@@ -152,67 +175,76 @@
 			<EmptyState title={t('app.dashboard.empty')} hint={t('app.dashboard.empty_hint')} />
 		{:else}
 			<Stack gap="lg">
-				<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
-					{#each tiles as [title, value] (title)}
+				<section class="rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+					<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
+						{#each tiles as [title, value] (title)}
+							<div class="min-w-0">
+								<p class="text-meta">{title}</p>
+								<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+							</div>
+						{/each}
+					</Grid>
+				</section>
+				<section class="rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+					<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
+						{#each due as bucket (bucket.key)}
+							<div class="min-w-0">
+								<p class="text-meta">{t(BUCKETS[bucket.key])}</p>
+								<p class="mt-1 text-lg font-semibold tabular-nums">{usd(bucket.amount)}</p>
+								<p class="text-meta">{t('app.dashboard.lines', { count: bucket.count })}</p>
+							</div>
+						{/each}
 						<div class="min-w-0">
-							<p class="text-meta">{title}</p>
-							<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+							<p class="text-meta">{t('app.dashboard.month_end')}</p>
+							<p class="mt-1 text-lg font-semibold">
+								{latest === undefined ? '—' : monthLabel(latest.month.slice(0, 7))}
+							</p>
+							<p class="text-meta">
+								{latest === undefined
+									? t('app.dashboard.no_month_end')
+									: latest.source === 'portal' && latest.is_locked
+										? t('app.dashboard.closed')
+										: t('app.dashboard.unlocked')}
+							</p>
 						</div>
-					{/each}
-				</Grid>
-				<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
-					{#each due as bucket (bucket.key)}
 						<div class="min-w-0">
-							<p class="text-meta">{t(BUCKETS[bucket.key])}</p>
-							<p class="mt-1 text-lg font-semibold tabular-nums">{usd(bucket.amount)}</p>
-							<p class="text-meta">{t('app.dashboard.lines', { count: bucket.count })}</p>
+							<p class="text-meta">{t('app.dashboard.alerts')}</p>
+							<p class="mt-1 text-lg font-semibold tabular-nums">
+								{usage.banks.filter((b) => b.high).length} · {read.current.purchase_order.rows.filter(
+									(po) =>
+										!po.financings.some(
+											(f) => f.drawdown?.product === 'lc' || f.drawdown?.lc_number != null
+										)
+								).length}
+							</p>
+							<p class="text-meta">{t('app.dashboard.alerts_hint')}</p>
 						</div>
-					{/each}
-					<div class="min-w-0">
-						<p class="text-meta">{t('app.dashboard.month_end')}</p>
-						<p class="mt-1 text-lg font-semibold">
-							{latest === undefined ? '—' : monthLabel(latest.month.slice(0, 7))}
-						</p>
-						<p class="text-meta">
-							{latest === undefined
-								? t('app.dashboard.no_month_end')
-								: latest.source === 'portal' && latest.is_locked
-									? t('app.dashboard.closed')
-									: t('app.dashboard.unlocked')}
-						</p>
-					</div>
-					<div class="min-w-0">
-						<p class="text-meta">{t('app.dashboard.alerts')}</p>
-						<p class="mt-1 text-lg font-semibold tabular-nums">
-							{usage.banks.filter((b) => b.high).length} · {read.current.purchase_order.rows.filter(
-								(po) =>
-									!po.financings.some(
-										(f) => f.drawdown?.product === 'lc' || f.drawdown?.lc_number != null
-									)
-							).length}
-						</p>
-						<p class="text-meta">{t('app.dashboard.alerts_hint')}</p>
-					</div>
-				</Grid>
+					</Grid>
+				</section>
 				<Grid
 					tracks="repeat(auto-fit, minmax(min(100%, max(18rem, calc((100% - 2rem) / 3))), 1fr))"
 				>
-					<Bound class="h-72">
+					<Bound
+						class="h-80 rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5"
+					>
 						<Chart
 							{ctx}
 							of={usage.banks.map((b) => ({
 								bank: b.bank,
 								used: Number(b.used),
-								available: Math.max(0, Number(b.available))
+								earmarked: Number(b.earmarked),
+								free_after_earmarks: Math.max(0, Number(b.free_after_earmarks))
 							}))}
 							x="bank"
-							y={['used', 'available']}
+							y={['used', 'earmarked', 'free_after_earmarks']}
 							kind="bar"
 							stack
 							title={t('app.dashboard.usage_by_bank')}
 						/>
 					</Bound>
-					<Bound class="h-72">
+					<Bound
+						class="h-80 rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5"
+					>
 						<Chart
 							{ctx}
 							of={ladder}
@@ -222,7 +254,9 @@
 							title={t('app.dashboard.ladder')}
 						/>
 					</Bound>
-					<Bound class="h-72">
+					<Bound
+						class="h-80 rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5"
+					>
 						<Chart
 							{ctx}
 							of={trend.map((p) => ({
@@ -236,43 +270,62 @@
 						/>
 					</Bound>
 				</Grid>
-				<Stack gap="sm">
-					<Combobox
-						class="w-56"
-						aria-label={t('app.dashboard.period')}
-						options={picks.map((p) => ({ value: p.value, label: p.label }))}
-						value={period}
-						on_change={(v) => (period = v ?? 'month')}
-					/>
-					<p class="text-meta">
-						{t('app.dashboard.period_cost', {
-							rate: rate(costAll?.rate ?? null),
-							interest: usd(costAll?.interest),
-							balance: usd(costAll?.average_balance)
-						})}
-					</p>
-					<Table
-						{ctx}
-						of={cost.filter((c) => c.bank !== 'all')}
-						controlled
-						embedded
-						columns={[
-							{ field: 'bank', label: t('app.dashboard.bank') },
-							{ field: 'rate', label: t('app.dashboard.rate'), align: 'end' },
-							{
-								field: 'interest',
-								label: t('app.dashboard.interest'),
-								kind: { kind: 'decimal', scale: 2 }
-							},
-							{
-								field: 'average_balance',
-								label: t('app.dashboard.average_balance'),
-								kind: { kind: 'decimal', scale: 2 }
-							},
-							{ field: 'lines', label: t('app.dashboard.lines_column') }
-						]}
-					/>
-				</Stack>
+				<section class="rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5">
+					<Stack gap="md">
+						<div class="flex flex-wrap items-end gap-3">
+							<Combobox
+								class="w-56"
+								aria-label={t('app.dashboard.period')}
+								options={picks.map((p) => ({ value: p.value, label: p.label }))}
+								value={period}
+								on_change={(v) => {
+									period = v ?? 'month';
+									selectedRange = null;
+								}}
+							/>
+							<label for="treasury-cost-period" class="grid gap-2 text-meta"
+								>{t('app.dashboard.month_range')}<TimeRangeInput
+									{ctx}
+									id="treasury-cost-period"
+									of="date"
+									precision="month"
+									value={selectedRange ?? { from: window.from, to: window.to }}
+									on_change={(value) => (selectedRange = value)}
+								/></label
+							>
+						</div>
+						<p class="text-meta">
+							{t('app.dashboard.period_cost', {
+								from: format({ kind: 'date' }, window.from, { locale: ctx.locale }),
+								to: format({ kind: 'date' }, window.to, { locale: ctx.locale }),
+								rate: rate(costAll?.rate ?? null),
+								interest: usd(costAll?.interest),
+								balance: usd(costAll?.average_balance)
+							})}
+						</p>
+						<Table
+							{ctx}
+							of={cost.filter((c) => c.bank !== 'all')}
+							controlled
+							embedded
+							columns={[
+								{ field: 'bank', label: t('app.dashboard.bank') },
+								{ field: 'rate', label: t('app.dashboard.rate'), align: 'end' },
+								{
+									field: 'interest',
+									label: t('app.dashboard.interest'),
+									kind: { kind: 'decimal', scale: 2 }
+								},
+								{
+									field: 'average_balance',
+									label: t('app.dashboard.average_balance'),
+									kind: { kind: 'decimal', scale: 2 }
+								},
+								{ field: 'lines', label: t('app.dashboard.lines_column') }
+							]}
+						/>
+					</Stack>
+				</section>
 			</Stack>
 		{/if}
 	</Scroll>

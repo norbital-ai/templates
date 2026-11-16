@@ -14,6 +14,7 @@
 		Sheet,
 		Table,
 		format,
+		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -30,6 +31,66 @@
 	} from '../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'drawdown'>; ctx: PageContext } = $props();
 	const t = ctx.t;
+	const sections: readonly RecordSection[] = [
+		{
+			name: 'financing',
+			title: t('app.sections.financing'),
+			fields: ['facility', 'supplier', 'product', 'status', 'currency', 'amount', 'fx_rate_to_usd']
+		},
+		{
+			name: 'references',
+			title: t('app.sections.references'),
+			fields: ['bank_reference', 'lc_number', 'bill_number', 'purpose', 'requested_by']
+		},
+		{
+			name: 'dates',
+			title: t('app.sections.dates'),
+			fields: [
+				'application_date',
+				'released_date',
+				'start_date',
+				'due_date',
+				'lc_expiry_date',
+				'expected_draw_date',
+				'earliest_invoice_date'
+			]
+		},
+		{
+			name: 'pricing',
+			title: t('app.sections.pricing'),
+			fields: [
+				'interest_rate_pct',
+				'rate_source',
+				'charge_rate_pct',
+				'day_count_basis',
+				'terms_days'
+			]
+		},
+		{
+			name: 'settlement',
+			title: t('app.sections.settlement'),
+			fields: [
+				'settlement_date',
+				'settled_principal',
+				'settled_interest',
+				'settled_by',
+				'converted_from'
+			]
+		},
+		{
+			name: 'evidence',
+			title: t('app.sections.evidence'),
+			fields: ['charges', 'documents'],
+			default_open: false
+		},
+		{
+			name: 'notes',
+			title: t('app.sections.notes'),
+			fields: ['notes', 'discrepancy_note', 'is_archived'],
+			default_open: false
+		}
+	];
+
 	const day = ctx.clock('day');
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const open = $derived(
@@ -287,6 +348,7 @@
 	<RecordShell
 		{ctx}
 		of="drawdown"
+		{sections}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
 	/>
@@ -294,6 +356,7 @@
 	<RecordShell
 		{ctx}
 		of="drawdown"
+		{sections}
 		id={record.id}
 		subtitle={['supplier', 'due_date']}
 		footer_actions={next}

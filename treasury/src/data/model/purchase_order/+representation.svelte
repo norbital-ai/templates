@@ -4,11 +4,38 @@
 	 * difference an invoice shows against it, and the lines that pay it. Treasury links a line here.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Alert, Form, RecordShell, Table, type RecordView } from '@norbital-ai/ui';
+	import {
+		Alert,
+		Form,
+		RecordShell,
+		Table,
+		type RecordSection,
+		type RecordView
+	} from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { invoiceFindings, poStatus } from '../../../lib/purchasing.js';
 	let { view, ctx }: { view: RecordView<'purchase_order'>; ctx: PageContext } = $props();
 	const t = ctx.t;
+	const sections: readonly RecordSection[] = [
+		{
+			name: 'order',
+			title: t('app.sections.order'),
+			fields: ['po_number', 'po_date', 'supplier', 'purchaser', 'salesperson', 'currency']
+		},
+		{
+			name: 'items',
+			title: t('app.sections.items'),
+			fields: ['lines', 'ship_to_country', 'lc_requested', 'is_cancelled']
+		},
+		{
+			name: 'evidence',
+			title: t('app.sections.evidence'),
+			fields: ['documents', 'invoices'],
+			default_open: false
+		},
+		{ name: 'notes', title: t('app.sections.notes'), fields: ['notes'], default_open: false }
+	];
+
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const read = $derived.by(() => {
 		const id = record?.id;
@@ -116,6 +143,7 @@
 	<RecordShell
 		{ctx}
 		of="purchase_order"
+		{sections}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
 	/>
@@ -123,6 +151,7 @@
 	<RecordShell
 		{ctx}
 		of="purchase_order"
+		{sections}
 		id={record.id}
 		subtitle={['supplier', 'po_date']}
 		tabs={[

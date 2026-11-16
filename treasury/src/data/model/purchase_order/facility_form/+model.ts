@@ -32,7 +32,8 @@ const FIELDS = [
 ] as const;
 
 /**
- * A purchase facility requisition: needed for every PO paid by T/T advance or LC. The purchaser attaches the PO, the
+ * A financing application and its source-document facts, separate from agreed bank facilities and the current PO.
+ * The purchaser attaches the PO, the
  * supplier's proforma, the customer's PO and the planning detail; the reader can fill the form from them; the
  * purchaser checks it, adds what only they know (pay-by date, shipment terms) and prints it with its attachments for
  * signature. An LC form asks for an LC: saving it ticks Pay by LC on its purchase order.

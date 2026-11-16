@@ -4,6 +4,7 @@ export default app({
 	title: 'Treasury',
 	description: 'Plan financing, record bank advices and close the month.',
 	icon: 'lucide:landmark',
+	banner: 'app-media/treasury.webp',
 	pages: {
 		dashboard: { title: 'Overview', icon: 'lucide:layout-dashboard' },
 		drawdowns: { title: 'Financing', icon: 'lucide:hand-coins' },

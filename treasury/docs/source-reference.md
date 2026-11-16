@@ -1,20 +1,18 @@
 # Source reference
 
-Checked against this template's source on 16 November 2026.
+Checked against this template's source on 17 November 2026.
 
-22 models, 4 applications, 12 automations, 1 file sync.
+22 models, 3 applications, 12 automations, 1 file sync.
 
 ## Applications and pages
 
-| Application         | Pages                                                          |
-| ------------------- | -------------------------------------------------------------- |
-| `treasury`          | Overview, Financing, Bank advices, Attention, Costs, Month-end |
-| `purchasing`        | Purchase orders, Facility forms                                |
-| `configuration`     | Banks, Facilities, Exchange rates                              |
-| `business_partners` | Business partners                                              |
+| Application     | Pages                                                          |
+| --------------- | -------------------------------------------------------------- |
+| `treasury`      | Overview, Financing, Bank advices, Attention, Costs, Month-end |
+| `purchasing`    | Business partners, Purchase orders, Financing requests         |
+| `configuration` | Banks, Facilities, Exchange rates                              |
 
-Record views: `drawdown` (figures, purchase orders, next steps), `bank_document` (checks, read and
-apply), `purchase_order` (invoice checks, LC and financing links), `facility_form` (fill from
+Record views: `drawdown` (figures, purchase orders, next steps), `bank_document` (automatic extraction and native approval), `purchase_order` (invoice checks, LC and financing links), `facility_form` (fill from
 attachments and download the combined PDF pack).
 
 ## Models
@@ -54,4 +52,4 @@ attachments and download the combined PDF pack).
 | `viewer`         | team `viewers`                             |
 | `facility_forms` | `facility_form_read`, `facility_form_pack` |
 
-Closing reads every source page and is the sole writer of portal snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.
+Closing reads every source page and is the sole writer of closing snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.

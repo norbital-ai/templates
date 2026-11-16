@@ -1,5 +1,28 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'models.facility_form.label': 'Financing request',
+	'app.dashboard.month_range': 'Month range',
+	'app.sections.financing': 'Financing',
+	'app.sections.references': 'References',
+	'app.sections.dates': 'Dates',
+	'app.sections.pricing': 'Pricing and charges',
+	'app.sections.settlement': 'Settlement',
+	'app.sections.evidence': 'Supporting documents',
+	'app.sections.notes': 'Notes',
+	'app.sections.order': 'Purchase order',
+	'app.sections.items': 'Items and delivery',
+	'app.sections.request': 'Financing request',
+	'app.sections.shipment': 'Shipment',
+	'app.sections.credit': 'Payment and LC terms',
+	'app.sections.planning': 'Purpose and sales plan',
+	'app.sections.bank': 'Bank',
+	'app.sections.contacts': 'Contacts and settlement',
+	'app.sections.terms': 'Terms',
+	'app.sections.facilities': 'Agreed facilities',
+	'app.sections.facility': 'Facility and limit',
+	'app.sections.limits': 'Product and supplier sublimits',
+	'app.sections.partner': 'Business partner',
+
 	'errors.month_figures_readonly':
 		'Report figures are calculated when the month closes; edit the source records instead.',
 	'models.bank_document.label': 'Bank advice',
@@ -9,7 +32,7 @@ export default messages({
 	'models.bank_document.fields.read_status.applied': 'Submitted',
 	'models.bank_document.fields.read_status.checked': 'Extracted',
 	'app.forms.pack': 'Download PDF pack',
-	'errors.one_form': 'Choose one facility form.',
+	'errors.one_form': 'Choose one financing request.',
 	'errors.pack_failed':
 		'Could not add {file} to the PDF pack: {detail}. The original attachment is unchanged.',
 	'errors.pack_large':
@@ -63,7 +86,7 @@ export default messages({
 	'app.dashboard.earmarked': 'Earmarked',
 	'app.dashboard.empty': 'No bank lines yet',
 	'app.dashboard.empty_hint':
-		'Add a bank and its facility under Banks, then its lines under Drawdowns.',
+		'Add a bank and facility under Configuration, then add a line under Financing.',
 	'app.dashboard.error': 'The figures could not load',
 	'app.dashboard.loading': 'Loading the figures…',
 	'reports.incomplete': 'This report has more records than it can display. No totals are shown.',
@@ -86,11 +109,11 @@ export default messages({
 	'app.dashboard.open_lines': 'Open lines',
 	'app.dashboard.period': 'Cost of funds period',
 	'app.dashboard.period_cost':
-		'Over the period: {rate} weighted by amount × days, interest {interest}, average balance {balance}.',
+		'{from} to {to}: {rate} weighted by amount × days, interest {interest}, average balance {balance}.',
 	'app.dashboard.rate': 'Rate %',
 	'app.dashboard.this_month': 'This month',
 	'app.dashboard.trend': 'Cost of funds by month-end (%)',
-	'app.dashboard.usage_by_bank': 'Used and available by bank (USD)',
+	'app.dashboard.usage_by_bank': 'Used, earmarked and free by bank (USD)',
 	'app.dashboard.used': 'Used',
 	'app.dashboard.earlier': 'Earlier',
 	'app.dashboard.later': 'Later',
@@ -536,7 +559,7 @@ export default messages({
 	'app.orders.lc_number': 'LC no.',
 	'app.orders.due': 'Due',
 	'app.orders.link': 'Link line',
-	'app.forms.title': 'Facility forms',
+	'app.forms.title': 'Financing requests',
 	'app.forms.description':
 		'Requisitions for POs paid by T/T advance or LC, with their attachments.',
 	'app.forms.fill': 'Fill from attachments',

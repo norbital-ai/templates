@@ -11,7 +11,7 @@ Your tools already carry each person's access:
 - **Treasury** reads and changes banks, facilities, fee rules, lines and their charges, suppliers,
   month-ends and FX rates, keys invoices and links purchase orders to lines.
 - **Finance** reads everything, plans and cancels earmarks, keeps the supplier list and records invoices.
-- **Purchasing** raises purchase orders (each purchaser their own) and prepares facility forms.
+- **Purchasing** raises purchase orders (each purchaser their own) and prepares financing requests.
 - **View** reads everything.
 
 ## What the models mean
@@ -52,8 +52,14 @@ When asked to follow screenshots, inspect every attachment using its complete fi
 
 ## Navigation and calculated figures
 
-Treasury is Overview, Financing, Bank advices, Attention, Costs and Month-end. Banks, facilities and FX belong to Configuration; suppliers and customers share Business partners. Purchasing has one Purchase orders list and Facility forms. Use native filters and record actions, not parallel review queues. Advice changes go through native bank-advice approval; discrepancy notes record evidence without a second review state.
+Treasury is Overview, Financing, Bank advices, Attention, Costs and Month-end. Banks, facilities and FX belong to Configuration; Purchasing contains Business partners, Purchase orders and Financing requests. Use native filters and record actions, not parallel review queues. Advice changes go through native bank-advice approval; discrepancy notes record evidence without a second review state.
 
-Live tenor, interest and latest eligible financing dates are calculated from source facts and current terms. Native computed fields and PO rollups recalculate on source writes. Closed portal month-ends freeze inputs and figures; unlock before recalculation and close again to replace the snapshot. Imported Excel summaries cannot be reclosed from today’s book. Never write ledger figures directly.
+Live tenor, interest and latest eligible financing dates are calculated from source facts and current terms. Native computed fields and PO rollups recalculate on source writes. Closed month-ends freeze inputs and figures; unlock before recalculation and close again to replace the snapshot. Imported Excel summaries cannot be reclosed from today’s book. Never write ledger figures directly.
 
-Closing reads every source page and is the sole writer of portal snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.
+Closing reads every source page and is the sole writer of closing snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.
+
+## Forms and model boundaries
+
+Keep long forms in native `RecordShell sections`, with related short fields sharing a row and optional evidence or notes collapsed. Use `TimeInput` for day/month selection and `TimeRangeInput` for periods, with the workspace clock and zone. Never use a browser date/month input as a replacement.
+
+A facility is the bank’s agreed limit and terms. A financing request is a purchasing application and its supporting evidence; it neither owns the facility limit nor creates a second financing ledger. Link a saved PO where available instead of copying its current item book. A bank advice preserves the original PDF and extracted facts; native approval alone accepts the proposed financial update. Actual charges, estimated fee rules and frozen month-end snapshots keep their distinct responsibilities. Add no model that duplicates native approvals, files, audit or these existing records.

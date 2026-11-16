@@ -1,9 +1,74 @@
 <script lang="ts">
 	/** A facility form: its fields and attachments (the generated form), and Fill from attachments in the footer. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, RecordShell, RunStatus, use_act, type RecordView } from '@norbital-ai/ui';
+	import {
+		Button,
+		RecordShell,
+		RunStatus,
+		use_act,
+		type RecordSection,
+		type RecordView
+	} from '@norbital-ai/ui';
 	let { view, ctx }: { view: RecordView<'facility_form'>; ctx: PageContext } = $props();
 	const t = ctx.t;
+	const sections: readonly RecordSection[] = [
+		{
+			name: 'request',
+			title: t('app.sections.request'),
+			fields: [
+				'purchase_order',
+				'po_number',
+				'po_date',
+				'vendor',
+				'buyer',
+				'requested_by',
+				'facility_required',
+				'currency',
+				'amount',
+				'pay_by_date',
+				'customer_po_number'
+			]
+		},
+		{
+			name: 'shipment',
+			title: t('app.sections.shipment'),
+			fields: [
+				'ship_date',
+				'shipping_terms',
+				'latest_shipment_date',
+				'shipment_from',
+				'shipment_to',
+				'freight',
+				'partial_shipment',
+				'transhipment',
+				'expected_arrival'
+			]
+		},
+		{
+			name: 'credit',
+			title: t('app.sections.credit'),
+			fields: ['payment_terms', 'lc_expiry_date', 'documents_presentation_days']
+		},
+		{
+			name: 'planning',
+			title: t('app.sections.planning'),
+			fields: ['purpose', 'product_description', 'intended_period_of_sales', 'projected_sales'],
+			default_open: false
+		},
+		{
+			name: 'evidence',
+			title: t('app.sections.evidence'),
+			fields: ['attachments'],
+			default_open: false
+		},
+		{
+			name: 'notes',
+			title: t('app.sections.notes'),
+			fields: ['remarks', 'read_note'],
+			default_open: false
+		}
+	];
+
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const act = use_act(ctx);
 	let run = $state<string | null>(null);
@@ -40,6 +105,7 @@
 	<RecordShell
 		{ctx}
 		of="facility_form"
+		{sections}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
 	/>
@@ -47,6 +113,7 @@
 	<RecordShell
 		{ctx}
 		of="facility_form"
+		{sections}
 		id={record.id}
 		subtitle={['vendor', 'pay_by_date']}
 		{...record.read_note === null ? {} : { hint: record.read_note }}

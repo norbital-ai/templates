@@ -37,9 +37,21 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 `src/+workspace.ts` owns the workspace-wide `theme.light` and `theme.dark` tokens. Use it for palette/accent changes; retain semantic UI classes and native app/record primitives. Reference images guide layout and palette separately. Inspect all images by their complete file IDs, preserve calculation helpers and approval policies, and verify both modes in the current change's preview before proposing a merge. The public README and Bolt's workspace-theme authoring reference document the same mechanism.
 
+Long forms use native `RecordShell sections` in create, edit and read modes. Group fields by the operator’s task, keep related short controls on one row, and collapse optional evidence or notes. Use native `TimeInput` for days and months and `TimeRangeInput` for periods; never substitute browser `input type="date"` or `type="month"` popups. A month-end selects one month; a cost report can select an inclusive month range.
+
+### Responsibility boundaries
+
+- `facility` stores agreed credit limits and reusable pricing/tenor terms. `facility_fee` is a fee rule; `sub_limit` partitions the existing limit rather than adding credit.
+- `purchase_order` owns the current commercial order, items and invoice links. `business_partner` is the sole supplier/customer directory; `supplier_bank` stores eligibility only.
+- `facility_form`, displayed as **Financing request**, holds the application and its document facts. It can exist before a saved order and links one when available. Copied document facts are evidence, not an alternative current order or bank facility. Editing a request does not allocate credit or settle financing.
+- `drawdown` owns the financing lifecycle and financial facts. `drawdown_charge` holds actual charges; fee rules only estimate charges until actuals exist.
+- `bank_document` keeps the original evidence and extracted proposal. Native approval owns review and acceptance; no extra approval/status model or ledger is needed.
+- `month_end` and `month_end_line` hold frozen closing snapshots. They are not a second editable financing ledger.
+- Domain attachments name the business role of native files. The exported PDF pack’s signature spaces are paper content, not a second platform approval workflow.
+
 ## Surfaces
 
-- Apps: `business_partners`, `configuration`, `purchasing`, `treasury`
+- Apps: `treasury`, `purchasing`, `configuration`
 - Kiosks: none
 - Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `facility_form_pack`, `month_end_lock`, `month_end_unlock`
 - Policies: `bank_advices`, `facility_forms`, `finance`, `month_end_closing`, `purchasing`, `treasury`, `viewer`

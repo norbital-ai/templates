@@ -9,9 +9,9 @@ const OWN_PO = { po: { is: OWN } } as const;
  * pages.
  */
 export default policy({
-	description: 'Purchasing: raise and change your own purchase orders; prepare facility forms.',
+	description: 'Purchasing: raise and change your own purchase orders; prepare financing requests.',
 	capabilities: {
-		apps: ['purchasing', 'business_partners'],
+		apps: ['purchasing'],
 		automations: ['facility_form_read', 'facility_form_pack']
 	},
 	grants: {

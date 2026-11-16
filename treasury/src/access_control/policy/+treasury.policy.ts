@@ -19,7 +19,7 @@ const INVOICE_FIELDS = [
 export default policy({
 	description: 'Treasury: change banks, facilities, lines, charges, month-ends; link POs to lines.',
 	capabilities: {
-		apps: ['treasury', 'purchasing', 'configuration', 'business_partners'],
+		apps: ['treasury', 'purchasing', 'configuration'],
 		automations: [
 			'facility_form_pack',
 			'drawdown_allocate',

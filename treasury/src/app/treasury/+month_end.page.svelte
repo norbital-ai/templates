@@ -6,7 +6,7 @@
 	 * history of closed months sit beside it.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { EmptyState, Input, Table, format, open_record } from '@norbital-ai/ui';
+	import { EmptyState, TimeInput, Table, format, open_record } from '@norbital-ai/ui';
 	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { addMonths, monthEnd } from '../../lib/calculations.js';
 	import { FACILITY_FIELDS, MONTH_END_LINE_FIELDS, monthEndFrom } from '../../lib/treasury.js';
@@ -129,13 +129,17 @@
 </script>
 
 {#snippet pick()}
-	<Input
-		type="month"
-		class="w-40"
-		aria-label={t('app.month_end.month')}
-		value={month.slice(0, 7)}
-		onchange={(e) => (picked = e.currentTarget.value || null)}
-	/>
+	<label
+		for="treasury-report-month"
+		class="flex items-center gap-2 rounded-md bg-card p-2 text-meta"
+		>{t('app.month_end.month')}<TimeInput
+			{ctx}
+			id="treasury-report-month"
+			of="month"
+			value={month.slice(0, 7)}
+			on_change={(value) => (picked = value)}
+		/></label
+	>
 {/snippet}
 
 {#snippet lines()}

@@ -9,12 +9,11 @@ invoices that come back and prepares the facility requisition for each PO paid b
 
 ## Apps and roles
 
-| App                   | Pages                                                          |
-| --------------------- | -------------------------------------------------------------- |
-| **Treasury**          | Overview, Financing, Bank advices, Attention, Costs, Month-end |
-| **Purchasing**        | Purchase orders, Facility forms                                |
-| **Business partners** | One directory, with supplier and customer roles                |
-| **Configuration**     | Banks, Facilities, Exchange rates                              |
+| App               | Pages                                                          |
+| ----------------- | -------------------------------------------------------------- |
+| **Treasury**      | Overview, Financing, Bank advices, Attention, Costs, Month-end |
+| **Purchasing**    | Business partners, Purchase orders, Financing requests         |
+| **Configuration** | Banks, Facilities, Exchange rates                              |
 
 Open a record for its supporting evidence and actions. The lists use native table filters, rather than nested copies of the same view. The overview has three compact charts: bank usage, maturities and funding cost.
 
@@ -24,7 +23,7 @@ The workspace uses a blue-accented theme with navy surfaces in dark mode and lig
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Treasury**   | Change banks, facilities, fee rules, lines (allocate, advices, settle, cash or convert), suppliers and the banks that finance them, month-end locks, FX rates; key invoices; link POs to lines |
 | **Finance**    | Read everything; add, change and cancel earmarks; keep the supplier list; key invoices against POs; keep PO documents                                                                          |
-| **Purchasing** | Raise purchase orders (each purchaser sees their own) and change one until it is invoiced; prepare facility forms                                                                              |
+| **Purchasing** | Raise purchase orders (each purchaser sees their own) and change one until it is invoiced; prepare financing requests                                                                          |
 | **View**       | Read every page                                                                                                                                                                                |
 
 Administrators have workspace-wide access; record locks and native approval holds still apply.
@@ -70,8 +69,8 @@ for Treasury approval, alongside checks of days, interest with the bank's roundi
 | Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                                        |
 | Extracted / submitted advice           | Extracted means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                                              |
 | PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                                               |
-| Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                                 |
-| Month-end lock                         | A locked report keeps frozen detail lines and headline totals. Imported historical summaries retain their original figures and cannot be rebuilt from today’s book. Unlocking a portal report resumes live calculation; closing it again replaces its snapshot. |
+| Financing request / T/T / pay by LC    | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                                 |
+| Month-end lock                         | A locked report keeps frozen detail lines and headline totals. Imported historical summaries retain their original figures and cannot be rebuilt from today’s book. Unlocking a closed report resumes live calculation; closing it again replaces its snapshot. |
 
 ### Product codes
 
@@ -184,7 +183,7 @@ planning warnings; the application does not submit instructions to a bank or exe
    the figures to submit a new proposal. Submitted figures and their PDF stay locked together;
    use a new advice for a later bank notice.
 
-Facility forms keep each attachment's role: supplier PO supplies order/vendor/shipping fields;
+Financing requests keep each attachment's role: supplier PO supplies order/vendor/shipping fields;
 proforma supplies payment remarks and a currency/amount cross-check; customer PO supplies its
 number and purpose. **Fill from attachments** reads the newest attachment of each kind separately,
 fills empty fields and links a saved PO with the form's PO number. It preserves entered values,
@@ -251,4 +250,12 @@ the basics. `tests/documents.test.ts` checks scanned advice ingestion and attach
 
 See [the source reference](docs/source-reference.md) for every model, page, automation and policy.
 
-Closing reads every source page and is the sole writer of portal snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.
+Closing reads every source page and is the sole writer of closing snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.
+
+## Forms and record responsibilities
+
+Long forms are grouped into native sections for the financing, dates, terms and evidence. Optional notes and supporting material collapse without losing unsaved changes. The analysis date uses the shared calendar; the cost report offers an inclusive month range and Month-end selects a single month.
+
+**Facilities** are the bank’s agreed credit limits and reusable terms. **Financing requests** are purchasing applications with supporting documents and an optional link to a saved purchase order. They do not create a second credit limit or financing ledger. Purchase orders own current commercial items, financing lines own financial facts, bank advices retain source evidence, fee rules estimate charges, and actual charges record what was charged. A closed month-end freezes a snapshot; live financing remains the source for a new close. Native Bolt approval, files and audit remain the shared platform mechanisms.
+
+App banners are locally stored stock photographs; [photo credits](assets/app-media/CREDITS.md) list their sources.

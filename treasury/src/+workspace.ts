@@ -3,6 +3,7 @@ import { workspace } from '@norbital-ai/bolt';
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
+	apps: ['treasury', 'purchasing', 'configuration'],
 	convert: { to: ['pdf'] },
 	theme: {
 		light: {
@@ -37,7 +38,7 @@ export default workspace({
 			'sidebar-ring': '#1467a6',
 			'chart-1': '#1467a6',
 			'chart-2': '#397b28',
-			'chart-3': '#a56b08',
+			'chart-3': '#8795a5',
 			'chart-4': '#6b5da8',
 			'chart-5': '#397d82'
 		},
@@ -73,7 +74,7 @@ export default workspace({
 			'sidebar-ring': '#3b8fd4',
 			'chart-1': '#3b8fd4',
 			'chart-2': '#66bd4a',
-			'chart-3': '#e8ae32',
+			'chart-3': '#73859a',
 			'chart-4': '#b1a1e8',
 			'chart-5': '#6bc5cb'
 		}
