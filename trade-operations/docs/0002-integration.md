@@ -96,8 +96,8 @@ row remains; it is not silently dropped.
 - The local mirror is **not** an audit log of every source change; the source system remains that log.
 - A failed feed stays visible through `sys_integration.status` and `source_health`; it is not retried forever
   in the background without surfacing.
-- Credit, purchase payments and some legacy AR cases have no verified binding and refuse rather than fabricate a
-  result.
+- Credit requires the explicit simulator policy below; other native credit policies, purchase payments and some
+  legacy AR cases refuse rather than fabricate a result.
 - A source write is only as safe as its verification block. The SQL writer checks the source version, document
   family, line identities, quantities and audit/void state before it commits.
 
@@ -106,21 +106,21 @@ row remains; it is not silently dropped.
 These are real tenant tables, not a hidden schema. "Hidden" here means **no standalone app page**: the row is
 read through an order, party, product, stock or report surface. The table name is the model name.
 
-| Local table                | Source read (SQL Server)                                                                                                                                   | Cadence / gate                                   | Surfaced as                                            |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------ |
-| `parties`                  | `t_Item`, `t_Organization`, `t_Supplier`                                                                                                                   | 1 min                                            | Partners list/record, order party picker               |
-| `products`                 | `t_Item`, `t_ICItem`, unit and brand `t_Item`                                                                                                              | 1 min                                            | Warehouse products, order line picker, price book      |
-| `warehouses`               | `t_Item`, `t_Stock`, parent `t_Item`                                                                                                                       | 1 min                                            | Warehouse tab, order warehouse picker, price group     |
-| `stock_snapshots`          | `ICInventory`, `t_ICItem`, unit `t_Item`                                                                                                                   | scheduled                                        | Warehouse → Stock; availability                        |
-| `credit_snapshots`         | no verified source binding yet                                                                                                                             | refuses                                          | Partner credit evidence; never invents a limit or hold |
-| `source_lot_costs`         | `ICStockBill`, `ICStockBillEntry`, `t_ICItem`, `t_Item`                                                                                                    | opt-in `stockLotCostAccount`                     | Quote FIFO estimate, stock cost evidence               |
-| `source_stock_commitments` | `SEOrder`, `SEOrderEntry`, `t_ICItem`, `t_Item`                                                                                                            | 5 min, opt-in `stockAvailabilityAccount`         | Warehouse → Availability; open sales quantities        |
-| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`, `t_Organization`                                                                            | 1 h, opt-in `receivablesAccount`                 | Analysis → AR aging                                    |
-| `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                       | scheduled, two syncs (`kingdee`, `invoice_only`) | Sales analysis, partner agreement fulfilment, reports  |
-| `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`                                                                    | 5 min; invoice must exist first                  | Order payments, AR aging                               |
-| `ext_purchase_orders`      | none — local supplier commitment                                                                                                                           | no sync                                          | Purchase order source confirmation                     |
-| `transactions`             | `ICStockBill`/`ICStockBillEntry` (deliveries), `ICSale`/`ICSaleEntry` (invoices), parent `SEOrder`                                                         | 5 min; parent order must be issued               | Order Transactions, AR aging, reports                  |
-| `orders`                   | `SEOrder`, `SEOrderEntry`, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency` | 1 min read + outbox write                        | Orders list, order record (SO header)                  |
+| Local table                | Source read (SQL Server)                                                                                                                                   | Cadence / gate                                   | Surfaced as                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| `parties`                  | `t_Item`, `t_Organization`, `t_Supplier`                                                                                                                   | 1 min                                            | Partners list/record, order party picker                  |
+| `products`                 | `t_Item`, `t_ICItem`, unit and brand `t_Item`                                                                                                              | 1 min                                            | Warehouse products, order line picker, price book         |
+| `warehouses`               | `t_Item`, `t_Stock`, parent `t_Item`                                                                                                                       | 1 min                                            | Warehouse tab, order warehouse picker, price group        |
+| `stock_snapshots`          | `ICInventory`, `t_ICItem`, unit `t_Item`                                                                                                                   | scheduled                                        | Warehouse → Stock; availability                           |
+| `credit_snapshots`         | `sim.IntegrationCredit` (explicit simulator profile over native invoice, receipt and shipment amounts)                                                     | 1 min, opt-in `creditPolicy` + `creditAccount`   | Partner limit, used, available, hold and observation time |
+| `source_lot_costs`         | `ICStockBill`, `ICStockBillEntry`, `t_ICItem`, `t_Item`                                                                                                    | opt-in `stockLotCostAccount`                     | Quote FIFO estimate, stock cost evidence                  |
+| `source_stock_commitments` | `SEOrder`, `SEOrderEntry`, `t_ICItem`, `t_Item`                                                                                                            | 5 min, opt-in `stockAvailabilityAccount`         | Warehouse → Availability; open sales quantities           |
+| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`, `t_Organization`                                                                            | 1 h, opt-in `receivablesAccount`                 | Analysis → AR aging                                       |
+| `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                       | scheduled, two syncs (`kingdee`, `invoice_only`) | Sales analysis, partner agreement fulfilment, reports     |
+| `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`                                                                    | 5 min; invoice must exist first                  | Order payments, AR aging                                  |
+| `ext_purchase_orders`      | none — local supplier commitment                                                                                                                           | no sync                                          | Purchase order source confirmation                        |
+| `transactions`             | `ICStockBill`/`ICStockBillEntry` (deliveries), `ICSale`/`ICSaleEntry` (invoices), parent `SEOrder`                                                         | 5 min; parent order must be issued               | Order Transactions, AR aging, reports                     |
+| `orders`                   | `SEOrder`, `SEOrderEntry`, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency` | 1 min read + outbox write                        | Orders list, order record (SO header)                     |
 
 `order_lines` is the SO's lines: its `kingdee` sync reads `SEOrderEntry` every minute, and a line change writes
 the order's SO.
@@ -190,3 +190,9 @@ truth; a notification is a prompt, not a second state.
 6. Document the new local table and source table here and in [the source reference](0003-source-reference.md).
 
 Next: [source reference](0003-source-reference.md) · [Kingdee implementation runbook](0004-kingdee-implementation.md)
+
+## Simulator credit policy
+
+Set `creditPolicy=simulator-kis-2017-v1` and `creditAccount=<database GUID>/<recovery fork GUID>` on one ledger per account, with `baseCurrency=CNY`. The SQL Server login needs SELECT on `sim.IntegrationCredit`, which the simulator grants to its reader and writer. This explicit test profile is refused outside `TradeOperationsProbe`; the SQL batch also verifies the pinned account. It does not infer hold from `FIsCreditMgr`.
+
+The producer view uses audited invoice amounts minus allocated payments, plus audited DO amounts minus matched DO amounts, plus unsettled refunds minus receipts/advances. Hold is the simulator's explicit hold or enabled overdue block. The feed reads one serializable accounting position, validates the whole bounded payload and requires each customer to have one active synchronized CNY party. An unsupported formula, missing hold policy, malformed amount, changed account or failed read publishes nothing. Unchanged balances still receive a fresh source observation time. Available credit is derived from limit minus used, including NULL when either is unknown.

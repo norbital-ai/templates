@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import { it } from '@effect/vitest';
 import sql from 'mssql';
 import { validate_database_request } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { workspace, committed, confirm } from './kit.js';
-import { firstRow, fixtureId } from './test-runtime.js';
+import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
+import { simulatorCreditPolicy } from '../src/integration/kingdee/configuration.js';
 const Access = Schema.Struct({
 	sqlHost: Schema.String,
 	sqlPort: Schema.Number,
@@ -160,6 +161,8 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 					deliveryCostAccount: a.accountIdentity,
 					receivablesAccount: a.accountIdentity,
 					invoiceAnalysisAccount: a.accountIdentity,
+					creditAccount: a.accountIdentity,
+					creditPolicy: simulatorCreditPolicy,
 					billerId: '41',
 					salespersonBindings: JSON.stringify({
 						[owner]: { employeeId: '21', departmentId: '31' }
@@ -169,6 +172,32 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 				};
 				yield* as.act({
 					'sys_integration.update': [{ target: { id: instance }, set: { configuration: config } }]
+				});
+				const readCredit = () =>
+					as.query({
+						credit_snapshots: { where: { source: { eq: instance }, external_code: { eq: '110' } } }
+					});
+				yield* t.pull('credit_snapshots');
+				const baselineCredit = firstRow((yield* readCredit()).credit_snapshots.rows);
+				assert(baselineCredit.credit_used !== null);
+				const baselineUsed = BigDecimal.fromStringUnsafe(baselineCredit.credit_used);
+				const creditMovement = Effect.fnUntraced(function* (delta: string) {
+					yield* t.pull('credit_snapshots');
+					const row = firstRow((yield* readCredit()).credit_snapshots.rows);
+					assert(row.credit_used !== null && row.credit_limit !== null);
+					const expected = BigDecimal.sum(baselineUsed, BigDecimal.fromStringUnsafe(delta));
+					assert(
+						sameDecimal(row.credit_used, BigDecimal.format(expected)),
+						'Native credit movement must be exact'
+					);
+					assert(
+						sameDecimal(
+							row.credit_available,
+							BigDecimal.format(
+								BigDecimal.subtract(BigDecimal.fromStringUnsafe(row.credit_limit), expected)
+							)
+						)
+					);
 				});
 				for (const product of masters.products.rows)
 					committed(
@@ -317,6 +346,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 				yield* Effect.promise(() =>
 					api('deliveries/audit', { id: foreign.id, delivery: d.delivery, actor: 21 })
 				);
+				yield* creditMovement('66.67');
 				const i = yield* Effect.promise(() =>
 					api('invoices/save', {
 						id: foreign.id,
@@ -327,12 +357,19 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 						]
 					})
 				);
+				yield* creditMovement('66.67');
 				yield* Effect.promise(() =>
 					api('invoices/audit', { id: foreign.id, invoice: i.invoice, actor: 42 })
 				);
+				yield* creditMovement('133.34');
 				yield* Effect.promise(() =>
 					api('receipts/create', { id: foreign.id, invoice: i.invoice, amount: '10.00' })
 				);
+				yield* creditMovement('123.34');
+				yield* Effect.promise(() =>
+					api('deliveries/match', { id: foreign.id, delivery: d.delivery, actor: 42 })
+				);
+				yield* creditMovement('56.67');
 				for (const model of [
 					'transactions',
 					'source_payments',
@@ -352,6 +389,16 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 				assert.equal(delivery?.items?.length, 2);
 				assert.equal(invoice?.items?.length, 2);
 				assert.equal(facts.source_payments.rows.length, 1);
+				yield* Effect.promise(() =>
+					api('receipts/create', { id: foreign.id, invoice: i.invoice, amount: '56.67' })
+				);
+				yield* creditMovement('0');
+				yield* t.pull('source_payments');
+				assert.equal(
+					(yield* as.query({ source_payments: { where: { order: { eq: imported.id } } } }))
+						.source_payments.rows.length,
+					2
+				);
 				assert(
 					facts.stock_snapshots.rows.some((s) => s.lot_number === 'LOT-01'),
 					'Batch-aware stock snapshot required'
@@ -372,6 +419,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 					invoice: i.invoice,
 					warehouseCount: masters.warehouses.rows.length,
 					stockRows: facts.stock_snapshots.rows.length,
+					creditMovementCny: ['0', '66.67', '133.34', '123.34', '56.67', '0'],
 					checks: [
 						'actual Bolt importer',
 						'atomic two-line import',
@@ -381,6 +429,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 						'native header retained during amendment',
 						'native multi-line DO/invoice read',
 						'receipt allocation',
+						'credit sync after invoice audit, partial/full payments and DO matching',
 						'warehouse / stock / batch / commitments / costs / sales reads',
 						'repeat import without duplicates'
 					]

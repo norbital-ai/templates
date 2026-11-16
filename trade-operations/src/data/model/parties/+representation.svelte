@@ -49,7 +49,14 @@
 				{ctx}
 				of="credit_snapshots"
 				where={{ party: { eq: id } }}
-				columns={['currency', 'credit_limit', 'credit_used', 'as_of']}
+				columns={[
+					'currency',
+					'credit_limit',
+					'credit_used',
+					'credit_available',
+					'credit_hold',
+					'as_of'
+				]}
 				toolbar={{ new: false }}
 			/></Bound
 		>{/if}{/snippet}

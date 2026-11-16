@@ -423,6 +423,22 @@
 		},
 		"credit_snapshots": {
 			"audit": true,
+			"computed": {
+				"credit_available": {
+					"expr": {
+						"minus": [
+							{
+								"field": "credit_limit"
+							},
+							{
+								"field": "credit_used"
+							}
+						]
+					},
+					"kind": "decimal",
+					"scale": 2
+				}
+			},
 			"fields": {
 				"as_of": {
 					"kind": "instant"

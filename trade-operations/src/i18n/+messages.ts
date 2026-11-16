@@ -447,6 +447,7 @@ export default messages({
 	'models.credit_snapshots.fields.currency': 'Currency',
 	'models.credit_snapshots.fields.credit_limit': 'Credit limit',
 	'models.credit_snapshots.fields.credit_used': 'Credit used',
+	'models.credit_snapshots.fields.credit_available': 'Available credit',
 	'models.credit_snapshots.fields.credit_hold': 'Credit hold',
 	'models.credit_snapshots.fields.as_of': 'As of',
 	'models.credit_snapshots.fields.party': 'Party',

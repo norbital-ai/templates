@@ -4,7 +4,6 @@ import { fixtureId, sameDecimal } from './test-runtime.js';
 import {
 	mapPayments,
 	mapSalesFacts,
-	readCreditSource,
 	type FinancialDocument
 } from '../src/integration/kingdee/financial-source.js';
 import { SourceRowInvalid, type SqlRow } from '../src/integration/kingdee/polling.js';
@@ -333,14 +332,6 @@ test('void deliveries stay as inactive evidence and void invoices do not supply 
 	)[0];
 	expect(fact).toMatchObject({ active: false, net_amount: null, tax_amount: null });
 });
-
-test.effect(
-	'unverified credit policy remains visibly unavailable instead of implying credit hold is false',
-	() =>
-		Effect.gen(function* () {
-			expect(yield* Effect.flip(readCreditSource())).toMatchObject({ _tag: 'SourceUnavailable' });
-		})
-);
 
 test('withholds overallocated invoice cost without dropping either invoice revenue', () => {
 	const costed = document({ lines: [line({ costAmount: BigDecimal.fromStringUnsafe('30') })] });

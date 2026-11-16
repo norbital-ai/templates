@@ -19,6 +19,11 @@ export default model('credit_snapshots', {
 			currency: 'currency',
 			optional: true
 		},
+		credit_available: {
+			kind: 'decimal',
+			scale: 2,
+			computed: 'credit_limit - credit_used'
+		},
 		credit_hold: {
 			kind: 'bool',
 			default: false

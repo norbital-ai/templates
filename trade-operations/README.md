@@ -122,8 +122,12 @@ receipt. Source documents are read-only.
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
 Focused local probes use synthetic physical tables with CDC disabled. Trade Operations connects directly
 to on-premises SQL Server 2017 over the Alibaba network path. Deployment acceptance covers the SQL
-endpoint’s address policy and TLS, source defaults, permissions and query plans. Credit-policy
-binding and unsupported document/write types remain explicitly unavailable.
+endpoint’s address policy and TLS, source defaults, permissions and query plans. Credit is opt-in: set
+`creditPolicy` to `simulator-kis-2017-v1`, `creditAccount` to the simulator database/recovery-fork identity,
+and base currency to CNY. This profile reads `sim.IntegrationCredit`: the measured shipment-credit
+formula and explicit simulator hold/overdue policy. It refreshes partner credit every minute; invoice
+audit, allocated payments and DO matching update used and available credit. Other native account
+policies and unsupported document/write types remain unavailable until verified.
 
 ## Seed
 

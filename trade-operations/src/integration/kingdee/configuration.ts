@@ -1,3 +1,4 @@
+export const simulatorCreditPolicy = 'simulator-kis-2017-v1';
 export const kingdeeConfiguration = {
 	baseCurrency: { kind: 'text', default: 'CNY' },
 	branchNo: { kind: 'text', default: '0' },
@@ -26,6 +27,8 @@ export const kingdeeConfiguration = {
 		kind: 'text',
 		optional: true
 	},
+	creditAccount: { kind: 'text', optional: true },
+	creditPolicy: { kind: 'enum', values: [simulatorCreditPolicy], optional: true },
 	billerId: { kind: 'text', optional: true },
 	packagingId: { kind: 'text', optional: true },
 	salespersonBindings: {
@@ -59,6 +62,7 @@ function accountPin(
 		| 'stockAvailabilityAccount'
 		| 'stockLotCostAccount'
 		| 'deliveryCostAccount'
+		| 'creditAccount'
 ): string | null {
 	if (configuration === null || typeof configuration !== 'object' || !(field in configuration))
 		return null;
@@ -79,6 +83,8 @@ export const kingdeeStockLotCostAccount = (configuration: unknown) =>
 	accountPin(configuration, 'stockLotCostAccount');
 export const kingdeeDeliveryCostAccount = (configuration: unknown) =>
 	accountPin(configuration, 'deliveryCostAccount');
+export const kingdeeCreditAccount = (configuration: unknown) =>
+	accountPin(configuration, 'creditAccount');
 
 export function kingdeeWriteTarget(configuration: unknown) {
 	const account = kingdeeWriteAccount(configuration);

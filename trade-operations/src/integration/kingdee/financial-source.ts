@@ -627,11 +627,3 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 		graph
 	);
 });
-
-/** FIsCreditMgr is an enable switch, not a hold decision; no verified account policy supplies credit_hold yet. */
-export const readCreditSource = Effect.fnUntraced(function* () {
-	return yield* new SourceUnavailable({
-		reason:
-			'The Kingdee account-set credit policy and hold decision have no verified source binding'
-	});
-});
