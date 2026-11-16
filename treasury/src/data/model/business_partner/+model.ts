@@ -1,14 +1,17 @@
 import { model } from '@norbital-ai/bolt';
 /**
- * A supplier the group buys from and finances. The name is kept as the bank writes it on its advice; other spellings
+ * A business partner the group buys from or sells to. The name is kept as the bank writes it on its advice; other spellings
  * seen on advices and old records are its aliases. Which banks accept invoice financing for it is Treasury's call.
  */
-export default model('supplier', {
-	description: 'A supplier paid through a bank facility.',
-	icon: 'lucide:truck',
+export default model('business_partner', {
+	was: 'supplier',
+	description: 'One business partner, acting as a supplier, customer or both.',
+	icon: 'lucide:contact-round',
 	record_label: 'record.name',
 	fields: {
 		name: { kind: 'text' },
+		is_supplier: { kind: 'bool', default: true },
+		is_customer: { kind: 'bool', default: false },
 		aliases: { kind: 'text', many: true, optional: true },
 		country: { kind: 'text', optional: true },
 		payment_terms: { kind: 'text', optional: true },
@@ -18,7 +21,7 @@ export default model('supplier', {
 		is_active: { kind: 'bool', default: true }
 	},
 	constraints: {
-		supplier_name: { unique: ['name'], import_key: true }
+		partner_name: { unique: ['name'], import_key: true }
 	},
 	indexes: { by_name: { text: ['name', 'aliases'] } },
 	outputs: {
@@ -30,6 +33,8 @@ export default model('supplier', {
 	create: {
 		fields: [
 			'name',
+			'is_supplier',
+			'is_customer',
 			'aliases',
 			'country',
 			'payment_terms',
@@ -43,6 +48,8 @@ export default model('supplier', {
 	update: {
 		fields: [
 			'name',
+			'is_supplier',
+			'is_customer',
 			'aliases',
 			'country',
 			'payment_terms',

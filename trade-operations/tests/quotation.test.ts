@@ -2,8 +2,14 @@ import { sameDecimal } from './test-runtime.js';
 import { Effect, Result } from 'effect';
 import { expect, it as test } from '@effect/vitest';
 import { committed, confirm, draft, PRODUCT, SETTINGS, workspace } from './kit.js';
-import { quotationOf } from './reads.js';
-import { confirmationCheck, confirmationHash, confirmationRead } from '../src/lib/confirmation.js';
+import { confirmationReadOf, quotationOf } from './reads.js';
+import { businessRows } from './business-source.js';
+import {
+	confirmationCheck,
+	confirmationHash,
+	confirmationRead,
+	confirmationScopeRead
+} from '../src/lib/confirmation.js';
 test.live('quotation edits confirm the same order and line records', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
@@ -96,6 +102,26 @@ test.live(
 			const group = warehouse?.group_code;
 			if (!warehouse || !group) throw new Error('Fixture warehouse group missing');
 			const { order, line } = yield* draft(t, 'sales', undefined, '2026-08-01', warehouse.id);
+			const other = (yield* as.query({ products: { where: { id: { ne: PRODUCT } }, limit: 1 } }))
+				.products.rows[0];
+			if (!other) throw new Error('Second fixture product missing');
+			yield* businessRows(
+				t,
+				'stock_snapshots',
+				[
+					{ product_code: 'RESIN-A', external_code: 'own-lot' },
+					{ product_code: other.external_code, external_code: 'other-lot' }
+				].map((row) => ({
+					...row,
+					warehouse_code: 'WEST',
+					lot_number: row.external_code,
+					currency: 'SGD',
+					unit: 'kg',
+					on_hand: '10',
+					unit_cost: '2.5',
+					as_of: '2026-08-01T00:00:00Z'
+				}))
+			);
 			committed(
 				'pricing_floors',
 				yield* as.act({
@@ -110,6 +136,19 @@ test.live(
 							tax_inclusive: true,
 							tax_rate: '9',
 							minimum_quantity: '0'
+						})),
+						...[
+							{ product: other.id, currency: 'SGD' as const },
+							{ product: PRODUCT, currency: 'USD' as const }
+						].map((row) => ({
+							...row,
+							unit: 'kg',
+							group_code: group,
+							effective_on: '2026-07-01',
+							floor_price: '99',
+							tax_inclusive: false,
+							tax_rate: '0',
+							minimum_quantity: '0'
 						}))
 					]
 				})
@@ -122,8 +161,25 @@ test.live(
 					]
 				})
 			);
-			const read = () => as.query(confirmationRead(order));
-			const check = confirmationCheck(yield* read(), { as_of: '2026-08-02T00:00:00Z' });
+			const read = () => confirmationReadOf(as, order);
+			const scoped = yield* read();
+			const at = { as_of: '2026-08-02T00:00:00Z' };
+			const check = confirmationCheck(scoped, at);
+			expect(scoped.pricing_floors.rows).toHaveLength(1);
+			expect(scoped.warehouses.rows).toHaveLength(1);
+			expect(scoped.stock_snapshots.rows).toHaveLength(1);
+			const scope = (yield* as.query(confirmationScopeRead(order))).orders.rows[0];
+			if (!scope) throw new Error('Draft scope missing');
+			const request = confirmationRead(scope);
+			const broad = yield* as.query({
+				...request,
+				stock_snapshots: { ...request.stock_snapshots, where: {} },
+				pricing_floors: {},
+				warehouses: {}
+			});
+			expect(broad.pricing_floors.rows).toHaveLength(4);
+			expect(broad.stock_snapshots.rows).toHaveLength(2);
+			expect(confirmationCheck(broad, at)).toEqual(check);
 			if (Result.isFailure(check)) throw new Error(check.failure);
 			expect(sameDecimal(check.success.floors[0]?.net, '3')).toBe(true);
 			// the hashed terms carry the floor's own net of tax, as the model computes it
@@ -154,5 +210,6 @@ test.live(
 			);
 			yield* confirm(t, order);
 			expect(sameDecimal((yield* read()).orders.rows[0]?.lines[0]?.floor_net, '3')).toBe(true);
+			expect((yield* as.query(request)).orders.rows).toEqual([]);
 		})
 );

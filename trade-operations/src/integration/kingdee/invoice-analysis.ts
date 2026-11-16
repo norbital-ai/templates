@@ -6,7 +6,6 @@ import {
 	columns,
 	Instant,
 	readSource,
-	sourceState,
 	SourceRowInvalid,
 	SourceUnavailable,
 	type SqlRow
@@ -45,7 +44,7 @@ const fields = {
 };
 
 /** ICSale has no branch column. Only verified non-delivery line types feed the account-set report. */
-const legacyInvoiceAnalysisProjection: SourceProjection = {
+export const invoiceAnalysisProjection: SourceProjection = {
 	table: { schema: 'dbo', name: 'ICSale' },
 	alias: 'invoice',
 	key: 'detail_id',
@@ -58,31 +57,21 @@ const legacyInvoiceAnalysisProjection: SourceProjection = {
 		join('left', 't_Organization', 'customer', ref('invoice', 'FCustID'), 'FItemID'),
 		join('left', 't_Item', 'product', ref('line', 'FItemID'), 'FItemID'),
 		join('left', 't_Item', 'unit', ref('line', 'FUnitID'), 'FItemID'),
-		join('left', 't_Emp', 'employee', ref('invoice', 'FEmpID'), 'FItemID')
-	],
-	filters: [
-		{ field: ref('invoice', 'FTranType'), op: 'in', value: [80, 86] },
-		{ field: ref('invoice', 'FDate'), op: 'gte', value: '20250101' },
-		{ field: ref('line', 'FSourceTranType'), op: 'in', value: [0, 80, null] }
-	],
-	dates: ['invoiced_on', 'checked_on'],
-	decimals: ['quantity', 'net', 'gross', 'tax'],
-	texts: ['detail_id', 'entry_id', 'employee_id', 'sign']
-};
-
-export const invoiceAnalysisProjection: SourceProjection = {
-	...legacyInvoiceAnalysisProjection,
-	joins: [
-		...(legacyInvoiceAnalysisProjection.joins ?? []),
+		join('left', 't_Emp', 'employee', ref('invoice', 'FEmpID'), 'FItemID'),
 		{
 			...join('left', 'ICSaleEntry', 'delivery_line', ref('invoice', 'FInterID'), 'FInterID'),
 			where: { FSourceTranType: 21 }
 		}
 	],
 	filters: [
-		...(legacyInvoiceAnalysisProjection.filters ?? []),
+		{ field: ref('invoice', 'FTranType'), op: 'in', value: [80, 86] },
+		{ field: ref('invoice', 'FDate'), op: 'gte', value: '20250101' },
+		{ field: ref('line', 'FSourceTranType'), op: 'in', value: [0, 80, null] },
 		{ field: ref('delivery_line', 'FInterID'), op: 'eq', value: null }
-	]
+	],
+	dates: ['invoiced_on', 'checked_on'],
+	decimals: ['quantity', 'net', 'gross', 'tax'],
+	texts: ['detail_id', 'entry_id', 'employee_id', 'sign']
 };
 
 function invoiceFact(row: SqlRow, observedAt: string) {
@@ -164,30 +153,18 @@ export const readInvoiceAnalysis = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Enable account-wide invoice-only analysis on just one Kingdee ledger per account set'
 		});
-	const read = (position: Json | null) =>
-		readSource(
-			invoiceAnalysisProjection,
-			position,
+	return yield* readSource(
+		invoiceAnalysisProjection,
+		cursor,
+		ctx,
+		invoiceFact,
+		preserveSource({
+			model: 'source_sales_lines',
+			instance,
+			projection: invoiceAnalysisProjection,
 			ctx,
-			invoiceFact,
-			preserveSource({
-				model: 'source_sales_lines',
-				instance,
-				projection: invoiceAnalysisProjection,
-				ctx,
-				account
-			}),
 			account
-		);
-	return yield* read(cursor).pipe(
-		Effect.catchTag('CheckpointInvalid', (failure) =>
-			Effect.gen(function* () {
-				if (cursor === null || typeof cursor !== 'object' || !('source' in cursor))
-					return yield* failure;
-				const legacy = yield* sourceState(ctx, legacyInvoiceAnalysisProjection);
-				if (legacy.account !== account || cursor.source !== legacy.source) return yield* failure;
-				return yield* read(null);
-			})
-		)
+		}),
+		account
 	);
 });

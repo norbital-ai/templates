@@ -24,7 +24,7 @@
 					drawdown: { fields: ['supplier', 'amount'] }
 				},
 				financings: {
-					fields: ['drawdown', 'is_lc'],
+					fields: ['drawdown'],
 					drawdown: { fields: ['bank_reference', 'product', 'status', 'lc_number', 'due_date'] }
 				},
 				limit: 1

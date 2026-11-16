@@ -59,14 +59,11 @@ const readExport = (t: T) => (runId: string) =>
 
 const exportRun =
 	(t: T, who = t.admin) =>
-	(
-		model: 'orders' | 'parties' | 'warehouses' | 'commission_rules',
-		format: 'csv' | 'xlsx' = 'csv'
-	) =>
+	(model: 'orders' | 'parties' | 'warehouses' | 'commission_rules', to: 'csv' | 'xlsx' = 'csv') =>
 		Effect.gen(function* () {
 			const run = yield* (yield* t.as(who)).sync_control(model, 'sheet', {
 				mode: 'export',
-				format
+				to
 			});
 			if (run.kind !== 'committed') throw new Error(JSON.stringify(run));
 			yield* t.run_due();
@@ -238,7 +235,7 @@ it.live('updates and inserts order lines by the order number and stable line key
 		expect(yield* load([['MISSING', '', 'RESIN-A', '1', '1', '0', '9'].join(',')])).toMatchObject([
 			{ state: 'succeeded', output: { applied: false } }
 		]);
-		const runLines = yield* as.sync_control('orders', 'lines', { mode: 'export', format: 'csv' });
+		const runLines = yield* as.sync_control('orders', 'lines', { mode: 'export', to: 'csv' });
 		if (runLines.kind !== 'committed') throw new Error(JSON.stringify(runLines));
 		yield* t.run_due();
 		const exported = yield* readExport(t)(runLines.output.id);

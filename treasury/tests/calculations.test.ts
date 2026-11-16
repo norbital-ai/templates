@@ -1,3 +1,6 @@
+import { id_of } from '@norbital-ai/bolt';
+import { Schema } from 'effect';
+import { attention } from '../src/lib/attention.js';
 import { describe, expect, it } from '@effect/vitest';
 import { accruedDays, interest, tenorDays } from '../src/lib/calculations.js';
 import { invoiceFindings, poStatus } from '../src/lib/purchasing.js';
@@ -11,6 +14,8 @@ import {
 	estimateCharges,
 	feeAmount,
 	headroom,
+	lineFigures,
+	monthEndFrom,
 	maturities,
 	monthEndReport,
 	periodCost,
@@ -448,4 +453,93 @@ describe('advice and invoice checks', () => {
 		expect(priced.map((f) => f.key)).toEqual(['finding.price']);
 		expect(poStatus(po)).toBe('over_invoiced');
 	});
+});
+
+describe('derived financing figures', () => {
+	it('recalculates from the dates, principal and facility terms instead of a stored copy', () => {
+		const facts = {
+			amount: '100000',
+			fx_rate_to_usd: '0.75',
+			interest_rate_pct: '5',
+			start_date: '2026-03-12',
+			due_date: '2026-03-13',
+			day_count_basis: 'actual_360' as const,
+			earliest_invoice_date: '2026-03-01'
+		};
+		expect(lineFigures(facts, { interest_rounding: 'down_to_cent', max_tenor_days: 150 })).toEqual({
+			amount_usd: '75000',
+			tenor_days: 1,
+			interest_to_maturity: '13.88',
+			latest_due_date: '2026-07-29'
+		});
+		expect(
+			lineFigures(
+				{ ...facts, amount: '200000', due_date: '2026-03-14' },
+				{ interest_rounding: 'nearest_cent', max_tenor_days: 30 }
+			)
+		).toEqual({
+			amount_usd: '150000',
+			tenor_days: 2,
+			interest_to_maturity: '55.56',
+			latest_due_date: '2026-03-31'
+		});
+	});
+	it('excludes later settlement charges from an earlier close', () => {
+		const facts = {
+			...line('close', { status: 'settled', settlement_date: '2026-04-01' }),
+			bank_reference: 'CLOSE-1',
+			fx_rate_to_usd: '1',
+			supplier: null,
+			charges: [
+				{ stage: 'drawdown' as const, amount: '25', fx_rate_to_usd: '1' },
+				{ stage: 'settlement' as const, amount: '75', fx_rate_to_usd: '1' }
+			]
+		};
+		expect(
+			monthEndFrom('2026-02-01', [facts], [facility('f1', 'A', '2000000')], []).lines[0]?.charges
+		).toBe('25');
+	});
+});
+
+it('combines overlapping attention conditions into one record', () => {
+	const items = attention(
+		{
+			facility: { rows: [], next: null, total: 0 },
+			purchase_order: { rows: [], next: null, total: 0 },
+			facility_form: { rows: [], next: null, total: 0 },
+			drawdown: {
+				rows: [
+					{
+						id: Schema.decodeUnknownSync(id_of('drawdown'))('00000000-0000-4000-8000-000000000001'),
+						status: 'active',
+						product: 'lc',
+						currency: 'USD',
+						amount: '1000',
+						amount_usd: '1000',
+						fx_rate_to_usd: '1',
+						interest_rate_pct: null,
+						day_count_basis: 'actual_360',
+						start_date: '2026-02-01',
+						due_date: '2026-03-09',
+						application_date: null,
+						settlement_date: null,
+						facility: null,
+						bank_reference: 'OVERLAP',
+						expected_draw_date: null,
+						earliest_invoice_date: null,
+						lc_expiry_date: '2026-03-11'
+					}
+				],
+				next: null,
+				total: 1
+			}
+		},
+		'2026-03-10'
+	);
+	expect(items).toHaveLength(1);
+	expect(items[0]?.reasons).toEqual([
+		'app.alerts.past_due',
+		'app.alerts.bills',
+		'app.alerts.lc_expiry'
+	]);
 });

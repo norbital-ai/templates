@@ -6,7 +6,7 @@ import { CHARGES_INPUT, documentApplied, replaceStage } from '../lib/charges.js'
 /**
  * The settlement advice: the line is repaid and archived with the advice's principal, interest and charges, which
  * replace the settlement stage. The workspace recomputes the interest from the line's start, rate and basis with the
- * bank's rounding; a difference of a cent or more marks the line for review with both figures.
+ * bank's rounding; a difference of a cent or more is kept with both figures in its discrepancy note.
  */
 export default automation({
 	description: 'Record the bank’s settlement advice: the line is repaid and archived.',
@@ -19,7 +19,7 @@ export default automation({
 		charges: CHARGES_INPUT,
 		document: { kind: 'ref', to: 'bank_document', optional: true }
 	},
-	output: { kind: 'object', fields: { review: { kind: 'int' } } },
+	output: { kind: 'object', fields: { discrepancies: { kind: 'int' } } },
 	policies: ['bank_advices'],
 	run: function* (input, ctx) {
 		const row = input.line.findIndex((d) => !['applied', 'active', 'unclear'].includes(d.status));
@@ -39,7 +39,7 @@ export default automation({
 		const rounding = new Map(
 			drawdown.rows.map((d) => [d.id, d.facility?.interest_rounding ?? 'nearest_cent'])
 		);
-		let review = 0;
+		let discrepancies = 0;
 		yield* ctx.act({
 			'drawdown.update': input.line.map((target) => {
 				const rate = input.interest_rate_pct ?? target.interest_rate_pct;
@@ -56,7 +56,7 @@ export default automation({
 						BigDecimal.abs(BigDecimal.subtract(decimal(expected), decimal(input.interest))),
 						decimal('0.01')
 					);
-				if (differs) review += 1;
+				if (differs) discrepancies += 1;
 				return {
 					target,
 					set: {
@@ -74,8 +74,7 @@ export default automation({
 								}),
 						...(differs
 							? {
-									needs_review: true,
-									review_note: `Bank charged interest ${input.interest}; expected ${expected}.`
+									discrepancy_note: `Bank charged interest ${input.interest}; expected ${expected}.`
 								}
 							: {}),
 						charges: replaceStage(
@@ -97,6 +96,6 @@ export default automation({
 						)
 					})
 		});
-		return { review };
+		return { discrepancies };
 	}
 });

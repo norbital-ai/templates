@@ -1,8 +1,7 @@
 import { model } from '@norbital-ai/bolt';
 /**
  * A purchase order and the line that pays it, usually its LC: one LC can cover several POs and a PO can be split
- * across lines. `is_lc` is filled from the line (an LC, or financing that keeps an LC number), so a PO asking to be
- * paid by LC leaves "LCs to open" once it is linked to one.
+ * across lines.
  */
 export default model('po_financing', {
 	description: 'A purchase order linked to the line that pays it.',
@@ -16,8 +15,7 @@ export default model('po_financing', {
 			inverse: 'financings',
 			on_delete: 'cascade'
 		},
-		drawdown: { kind: 'ref', to: 'drawdown', inverse: 'financings', on_delete: 'cascade' },
-		is_lc: { kind: 'bool', default: false }
+		drawdown: { kind: 'ref', to: 'drawdown', inverse: 'financings', on_delete: 'cascade' }
 	},
 	constraints: {
 		one_link: { unique: ['purchase_order', 'drawdown'] }
@@ -25,7 +23,10 @@ export default model('po_financing', {
 	outputs: {
 		default: {
 			fields: 'all',
-			purchase_order: { fields: ['po_number', 'po_date', 'currency', 'amount'] },
+			purchase_order: {
+				fields: ['po_number', 'po_date', 'currency'],
+				lines: { fields: ['amount'] }
+			},
 			drawdown: {
 				fields: [
 					'bank_reference',
@@ -39,21 +40,6 @@ export default model('po_financing', {
 			}
 		}
 	},
-	create: {
-		fields: ['purchase_order', 'drawdown', 'is_lc'],
-		filled: { fields: ['is_lc'] },
-		transform: function* (changes, ctx) {
-			const { drawdown } = yield* ctx.query({
-				drawdown: {
-					where: { id: { in: changes.map((c) => c.after.drawdown) } },
-					fields: ['product', 'lc_number']
-				}
-			});
-			const lc = new Set(
-				drawdown.rows.filter((d) => d.product === 'lc' || d.lc_number !== null).map((d) => d.id)
-			);
-			return changes.map((c) => ({ ...c.set, is_lc: lc.has(c.after.drawdown) }));
-		}
-	},
+	create: { fields: ['purchase_order', 'drawdown'] },
 	delete: {}
 });

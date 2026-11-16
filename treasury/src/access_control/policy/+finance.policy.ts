@@ -30,22 +30,23 @@ const EARMARK_FIELDS = [
 export default policy({
 	description: 'Finance: plan earmarks, keep suppliers, record invoices; read everything else.',
 	capabilities: {
-		apps: ['treasury', 'purchasing'],
+		apps: ['treasury', 'purchasing', 'configuration', 'business_partners'],
 		automations: ['drawdown_cancel', 'facility_form_pack']
 	},
 	grants: {
 		bank: { outputs: { default: {} } },
-		bank_contact: { outputs: { default: {} } },
 		watch_point: { outputs: { default: {} } },
 		letter_of_offer: { outputs: { default: {} } },
 		facility: { outputs: { default: {} } },
 		facility_fee: { outputs: { default: {} } },
 		sub_limit: { outputs: { default: {} } },
-		supplier: {
+		business_partner: {
 			outputs: { default: {} },
 			create: {
 				fields: [
 					'name',
+					'is_supplier',
+					'is_customer',
 					'aliases',
 					'country',
 					'payment_terms',
@@ -58,6 +59,8 @@ export default policy({
 			update: {
 				fields: [
 					'name',
+					'is_supplier',
+					'is_customer',
 					'aliases',
 					'country',
 					'payment_terms',

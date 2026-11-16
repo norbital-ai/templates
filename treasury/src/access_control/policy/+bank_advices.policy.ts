@@ -6,7 +6,7 @@ export default policy({
 	grants: {
 		bank: { outputs: { default: {} } },
 		facility: { outputs: { default: {} } },
-		supplier: { outputs: { default: {} } },
+		business_partner: { outputs: { default: {} } },
 		drawdown_charge: { outputs: { default: {} } },
 		drawdown: {
 			outputs: { default: {} },

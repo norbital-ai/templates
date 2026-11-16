@@ -2,12 +2,15 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
 	import type { CurrencyCode } from '@norbital-ai/bolt';
-	import { BigDecimal } from 'effect';
+	import { BigDecimal, Effect } from 'effect';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Combobox, CustomView, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
 		monthDays,
+		priceBookCatalogRead,
+		priceBookDefaultsRead,
 		priceBookMonths,
 		priceBookRead,
 		priceBookRows,
@@ -17,10 +20,7 @@
 	const clock = ctx.clock('day');
 	const today = clock.today;
 	const currentMonth = today.slice(0, 7);
-	const catalog = ctx.query({
-		pricing_floors: { fields: ['group_code', 'currency'], limit: 10000 },
-		warehouses: { fields: ['name', 'group_code', 'active'] }
-	});
+	const catalog = ctx.query(priceBookCatalogRead);
 	const groups = $derived.by(() => {
 		const names = new Map<string, string[]>();
 		for (const warehouse of catalog.current?.warehouses.rows ?? []) {
@@ -30,7 +30,7 @@
 			names.set(warehouse.group_code, list);
 		}
 		const codes = new Set(names.keys());
-		for (const row of catalog.current?.pricing_floors.rows ?? []) codes.add(row.group_code);
+		for (const row of catalog.current?.pricing_floors.rows ?? []) codes.add(row.key.group_code);
 		return [...codes].sort().map((code) => ({
 			value: code,
 			label: names.has(code) ? `${code} · ${names.get(code)!.join(', ')}` : code
@@ -39,11 +39,12 @@
 	/** The group and currency that already hold the most prices, so the book opens on a real pair. */
 	const defaultPair = $derived.by(() => {
 		const counts = new Map<string, { group: string; currency: CurrencyCode; count: number }>();
-		for (const row of catalog.current?.pricing_floors.rows ?? []) {
+		for (const bucket of catalog.current?.pricing_floors.rows ?? []) {
+			const row = bucket.key;
 			const key = JSON.stringify([row.group_code, row.currency]);
 			const found = counts.get(key);
-			if (found) found.count++;
-			else counts.set(key, { group: row.group_code, currency: row.currency, count: 1 });
+			if (found) found.count += bucket.count;
+			else counts.set(key, { group: row.group_code, currency: row.currency, count: bucket.count });
 		}
 		return (
 			[...counts.values()].sort(
@@ -62,8 +63,8 @@
 		[
 			...new Set(
 				(catalog.current?.pricing_floors.rows ?? [])
-					.filter((row) => row.group_code === group)
-					.map((row) => row.currency)
+					.filter((row) => row.key.group_code === group)
+					.map((row) => row.key.currency)
 			)
 		].sort((a, b) => a.localeCompare(b))
 	);
@@ -72,12 +73,12 @@
 			? chosenCurrency
 			: (currencies.find((value) => value === 'CNY') ?? currencies[0] ?? null)
 	);
-	const book = $derived(
-		group !== null && currency !== null ? ctx.query(priceBookRead(group, currency)) : null
-	);
-	const months = $derived(book?.current ? priceBookMonths(book.current) : []);
+	const months = $derived(catalog.current ? priceBookMonths(catalog.current, group, currency) : []);
 	const month = $derived(
 		chosenMonth ?? (months.includes(currentMonth) ? currentMonth : (months[0] ?? currentMonth))
+	);
+	const book = $derived(
+		group !== null && currency !== null ? ctx.query(priceBookRead(group, currency, month)) : null
 	);
 	const days = $derived(monthDays(month));
 	const rows = $derived(book?.current ? priceBookRows(book.current, month) : []);
@@ -85,10 +86,11 @@
 	let editing = $state<string | null>(null);
 	let draft = $state('');
 	const save = use_act(ctx);
+	let readingDefaults = $state(false);
 	let error = $state<string | null>(null);
 	const keyOf = (row: PriceRow, day: string) => `${row.key}|${day}`;
 	function start(row: PriceRow, day: string) {
-		if (save.pending) return;
+		if (save.pending || readingDefaults) return;
 		error = null;
 		editing = keyOf(row, day);
 		const cell = row.cells[day];
@@ -122,27 +124,52 @@
 		)
 			return;
 		error = null;
-		// the day's floor is keyed by product, group, currency, day and minimum: one upsert sets its price
-		save.run(
-			ctx.act({
-				'pricing_floors.import': {
-					rows: [
-						{
-							product: row.product,
-							group_code: group,
-							currency,
-							effective_on: day,
-							unit: (existing ?? row.latest).unit,
-							floor_price: value,
-							tax_inclusive: (existing ?? row.latest).tax_inclusive,
-							tax_rate: (existing ?? row.latest).tax_rate,
-							minimum_quantity: row.minimum_quantity
-						}
-					],
-					on_conflict: 'update'
+		const scope = { group, currency };
+		// The day's floor is one keyed upsert; only a blank cell needs the latest band's metadata.
+		const write = (defaults: Pick<PriceRow['latest'], 'unit' | 'tax_inclusive' | 'tax_rate'>) =>
+			save.run(
+				ctx.act({
+					'pricing_floors.import': {
+						rows: [
+							{
+								product: row.product,
+								group_code: scope.group,
+								currency: scope.currency,
+								effective_on: day,
+								unit: defaults.unit,
+								floor_price: value,
+								tax_inclusive: defaults.tax_inclusive,
+								tax_rate: defaults.tax_rate,
+								minimum_quantity: row.minimum_quantity
+							}
+						],
+						on_conflict: 'update'
+					}
+				})
+			);
+		if (existing) write(existing);
+		else {
+			readingDefaults = true;
+			fork(
+				ctx
+					.query(
+						priceBookDefaultsRead(scope.group, scope.currency, row.product, row.minimum_quantity)
+					)
+					.pipe(
+						Effect.tap((answer) =>
+							Effect.sync(() => write(answer.pricing_floors.rows[0] ?? row.latest))
+						),
+						Effect.ensuring(
+							Effect.sync(() => {
+								readingDefaults = false;
+							})
+						)
+					),
+				(cause) => {
+					error = cause.message;
 				}
-			})
-		);
+			);
+		}
 	}
 	function create() {
 		openCreate('pricing_floors', {
@@ -314,7 +341,7 @@
 													type="button"
 													class="group/cell hover:bg-muted flex h-8 w-full items-center justify-end px-1.5 tabular-nums"
 													aria-label={`${row.name} ${day}`}
-													disabled={save.pending}
+													disabled={save.pending || readingDefaults}
 													onclick={() => start(row, day)}
 												>
 													{#if cell}

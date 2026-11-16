@@ -2,11 +2,26 @@ import type { CurrencyCode } from '@norbital-ai/bolt';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
 import { BigDecimal, DateTime } from 'effect';
 
-/** A group's dated book in one currency, with the product identity each cell prices. */
-export const priceBookRead = (group: string, currency: CurrencyCode) =>
+/** Month and scope selectors need bucket counts, not the individual price records. */
+export const priceBookCatalogRead = {
+	pricing_floors: { aggregate: { by: ['group_code', 'currency', { month: 'effective_on' }] } },
+	warehouses: { fields: ['name', 'group_code', 'active'] }
+} as const;
+
+/** One month's dated book in one currency, with the product identity each cell prices. */
+export const priceBookRead = (group: string, currency: CurrencyCode, month: string) =>
 	({
 		pricing_floors: {
-			where: { group_code: { eq: group }, currency: { eq: currency } },
+			where: {
+				group_code: { eq: group },
+				currency: { eq: currency },
+				effective_on: {
+					gte: `${month}-01`,
+					lt: DateTime.formatIsoDateUtc(
+						DateTime.add(DateTime.makeUnsafe(`${month}-01`), { months: 1 })
+					)
+				}
+			},
 			fields: [
 				'product',
 				'group_code',
@@ -19,7 +34,7 @@ export const priceBookRead = (group: string, currency: CurrencyCode) =>
 				'minimum_quantity',
 				'revision'
 			],
-			order_by: { effective_on: 'asc' }, // shortcut: one group's whole book is read at once; page by date once a real ledger outgrows 10k rows
+			order_by: { effective_on: 'asc' },
 			limit: 10000,
 			product: {
 				fields: ['name', 'external_code', 'source_number']
@@ -28,6 +43,27 @@ export const priceBookRead = (group: string, currency: CurrencyCode) =>
 	}) as const;
 
 type Answer = ReadAnswer<ReturnType<typeof priceBookRead>>;
+
+/** A blank day's cell inherits the latest band's units and tax terms, even in a historical month. */
+export const priceBookDefaultsRead = (
+	group: string,
+	currency: CurrencyCode,
+	product: Id<'products'>,
+	minimum_quantity: string
+) =>
+	({
+		pricing_floors: {
+			where: {
+				group_code: { eq: group },
+				currency: { eq: currency },
+				product: { eq: product },
+				minimum_quantity: { eq: minimum_quantity }
+			},
+			fields: ['unit', 'tax_inclusive', 'tax_rate'],
+			order_by: { effective_on: 'desc' },
+			limit: 1
+		}
+	}) as const;
 
 export type PriceCell = {
 	readonly id: Id<'pricing_floors'>;
@@ -50,7 +86,7 @@ export type PriceRow = {
 	/** The band's lower bound, empty for the base row. */
 	band: string;
 	cells: Record<string, PriceCell>;
-	/** The newest cell across the whole book, the metadata a new cell in this row inherits. */
+	/** The newest cell in the displayed month, the metadata a new cell in this row inherits. */
 	latest: PriceCell;
 };
 
@@ -66,10 +102,15 @@ const cellOf = (row: Answer['pricing_floors']['rows'][number]): PriceCell => ({
 });
 
 /** Every month in the book, newest first. */
-export const priceBookMonths = (answer: Answer): readonly string[] =>
-	[...new Set(answer.pricing_floors.rows.map((row) => row.effective_on.slice(0, 7)))].sort((a, b) =>
-		b.localeCompare(a)
-	);
+export const priceBookMonths = (
+	answer: ReadAnswer<typeof priceBookCatalogRead>,
+	group: string | null,
+	currency: CurrencyCode | null
+): readonly string[] =>
+	answer.pricing_floors.rows
+		.filter((row) => row.key.group_code === group && row.key.currency === currency)
+		.map((row) => row.key.effective_on.slice(0, 7))
+		.sort((a, b) => b.localeCompare(a));
 
 /** The chosen month's rows, one per product and quantity band, with the cells stored on their exact days. */
 export function priceBookRows(answer: Answer, month: string): readonly PriceRow[] {

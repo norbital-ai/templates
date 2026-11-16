@@ -61,7 +61,9 @@ Feeds with a native SQL Server rowversion use `[bookmark, upper)` windows: only 
 completed window are read. The bookmark is the native marker, not a local timestamp. A joined field (for
 example a product's unit or brand) changes its own marker, so a joined edit is not missed.
 
-Feeds without a reliable marker use a complete listing. A periodic full listing also reconciles physical source
+Feeds without a reliable marker use the smallest authoritative listing their verified bindings support:
+owned sales-order families and their linked documents stay scoped to those identities. A feed must not invent
+a timestamp or skip a dependency to claim that it is incremental. A periodic full listing also reconciles physical source
 deletions: rows absent from the source are marked inactive on the local mirror; they are not deleted. This keeps
 history, links and audit evidence.
 
@@ -139,6 +141,10 @@ The platform tables beside them carry the sync machinery, not business rows:
 | `bolt_history`, `bolt_audit`, `bolt_approvals`, `sys_file`, `sys_notification` | Native Bolt history, audit, approvals, files and notices (not integration-specific)          |
 
 ## 6. Why the loop is efficient
+
+Opening or navigating a page reads the local materialized records; it does not start an ERP sync.
+Integration workers advance their durable cursors on their declared schedule, through a verified webhook,
+or after an explicit operator request. A refresh of the browser never resets a cursor.
 
 - **Pages, not per-row calls.** One SQL page returns up to 999 rows; one page is one local set-based upsert and
   one cursor compare-and-set. Work grows with changed pages, not with the number of rows in the local table.

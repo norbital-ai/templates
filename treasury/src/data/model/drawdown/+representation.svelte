@@ -17,7 +17,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import { accruedDays, interest } from '../../../lib/calculations.js';
+	import { accruedDays, decimal, interest, sum, text } from '../../../lib/calculations.js';
 	import { CONVERTIBLE } from '../../../lib/products.js';
 	import {
 		FACILITY_FIELDS,
@@ -25,6 +25,7 @@
 		estimateCharges,
 		headroom,
 		lineWarnings,
+		lineFigures,
 		type Stage
 	} from '../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'drawdown'>; ctx: PageContext } = $props();
@@ -74,14 +75,18 @@
 			},
 			po_financing: {
 				where: { drawdown: { eq: line.id } },
-				fields: ['purchase_order', 'is_lc'],
-				purchase_order: { fields: ['po_number', 'po_date', 'currency', 'amount'] }
+				fields: ['purchase_order'],
+				purchase_order: {
+					fields: ['po_number', 'po_date', 'currency'],
+					lines: { fields: ['amount'] }
+				}
 			}
 		});
 	});
 	const data = $derived(context?.current);
 	const facility = $derived(data?.facility.rows.find((f) => f.id === record?.facility) ?? null);
 	const rounding = $derived(facility?.interest_rounding ?? 'nearest_cent');
+	const calculated = $derived(record === null ? null : lineFigures(record, facility));
 	const accrued = $derived(
 		record === null
 			? null
@@ -190,7 +195,7 @@
 			>
 		{/if}
 		<Grid minimum="compact">
-			{#each [[t('app.line.tenor'), record?.tenor_days == null ? '—' : t( 'app.line.days', { days: record.tenor_days } )], [t('app.line.interest_to_maturity'), money(record?.interest_to_maturity ?? null)], [t('app.line.accrued_today'), money(accrued)], [t('app.line.latest_due'), record?.latest_due_date == null ? '—' : format( { kind: 'date' }, record.latest_due_date, { locale: ctx.locale } )]] as const as [title, value] (title)}
+			{#each [[t('app.line.tenor'), calculated?.tenor_days == null ? '—' : t( 'app.line.days', { days: calculated.tenor_days } )], [t('app.line.interest_to_maturity'), money(calculated?.interest_to_maturity ?? null)], [t('app.line.accrued_today'), money(accrued)], [t('app.line.latest_due'), calculated?.latest_due_date == null ? '—' : format( { kind: 'date' }, calculated.latest_due_date, { locale: ctx.locale } )]] as const as [title, value] (title)}
 				<div class="rounded-xl border border-border bg-card p-4">
 					<p class="text-meta">{title}</p>
 					<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
@@ -244,7 +249,10 @@
 			po_number: l.purchase_order?.po_number ?? '—',
 			po_date: l.purchase_order?.po_date ?? null,
 			currency: l.purchase_order?.currency ?? null,
-			amount: l.purchase_order?.amount ?? null
+			amount:
+				l.purchase_order === null
+					? null
+					: text(sum(l.purchase_order.lines.map((line) => decimal(line.amount))))
 		}))}
 		controlled
 		embedded
@@ -356,7 +364,9 @@
 				line: [record.id],
 				principal: record.amount,
 				...(record.due_date === null ? {} : { settlement_date: record.due_date }),
-				...(record.interest_to_maturity === null ? {} : { interest: record.interest_to_maturity })
+				...(calculated?.interest_to_maturity == null
+					? {}
+					: { interest: calculated.interest_to_maturity })
 			}}
 			fields={[
 				'settlement_date',

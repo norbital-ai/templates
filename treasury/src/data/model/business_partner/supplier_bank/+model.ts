@@ -5,7 +5,12 @@ export default model('supplier_bank', {
 	icon: 'lucide:badge-check',
 	record_label: 'record.bank.code',
 	fields: {
-		supplier: { kind: 'ref', to: 'supplier', inverse: 'eligible_banks', on_delete: 'cascade' },
+		supplier: {
+			kind: 'ref',
+			to: 'business_partner',
+			inverse: 'eligible_banks',
+			on_delete: 'cascade'
+		},
 		bank: { kind: 'ref', to: 'bank', inverse: 'eligible_suppliers', on_delete: 'cascade' }
 	},
 	constraints: {

@@ -28,6 +28,6 @@
 			'pay_by_date',
 			'purchase_order'
 		]}
-		toolbar={{ title: t('app.forms.title') }}
+		toolbar={{ title: false }}
 	/>
 </AppShell>

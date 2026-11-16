@@ -6,8 +6,8 @@
 	"description": "Treasury bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends.",
 	"visibility": "public",
 	"counts": {
-		"models": 23,
-		"apps": 2,
+		"models": 22,
+		"apps": 4,
 		"automations": 12
 	},
 	"tags": ["Treasury", "Purchasing", "Bank facilities"],

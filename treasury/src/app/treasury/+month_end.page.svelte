@@ -6,8 +6,8 @@
 	 * history of closed months sit beside it.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { EmptyState, Input, Table, Tabs, format } from '@norbital-ai/ui';
-	import { AppShell, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { EmptyState, Input, Table, format, open_record } from '@norbital-ai/ui';
+	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { addMonths, monthEnd } from '../../lib/calculations.js';
 	import { FACILITY_FIELDS, MONTH_END_LINE_FIELDS, monthEndFrom } from '../../lib/treasury.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -43,25 +43,29 @@
 		})
 	);
 	const report = $derived(stored.current?.month_end.rows[0]);
-	const locked = $derived(report?.source === 'portal' && report.is_locked);
-	const live = ctx.query({
-		drawdown: {
-			where: { status: { in: ['applied', 'active', 'settled'] } },
-			fields: [...MONTH_END_LINE_FIELDS],
-			supplier: { fields: ['name'] },
-			charges: { fields: ['amount', 'fx_rate_to_usd'] }
-		},
-		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
-		fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] }
-	});
+	const locked = $derived(report?.is_locked === true);
+	const live = $derived(
+		stored.current === undefined || locked
+			? null
+			: ctx.query({
+					drawdown: {
+						where: { status: { in: ['applied', 'active', 'settled'] } },
+						fields: [...MONTH_END_LINE_FIELDS],
+						supplier: { fields: ['name'] },
+						charges: { fields: ['amount', 'fx_rate_to_usd', 'stage'] }
+					},
+					facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
+					fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] }
+				})
+	);
 	const computed = $derived(
-		live.current === undefined
+		live?.current === undefined
 			? null
 			: monthEndFrom(
 					month,
-					live.current.drawdown.rows,
-					live.current.facility.rows,
-					live.current.fx_rate.rows
+					live?.current.drawdown.rows,
+					live?.current.facility.rows,
+					live?.current.fx_rate.rows
 				)
 	);
 	const figures = $derived(locked && report !== undefined ? report : computed?.figures);
@@ -69,27 +73,44 @@
 		value == null ? '—' : format({ kind: 'money' }, value, { locale: ctx.locale, currency: 'USD' });
 	const pct = (value: string | null | undefined) =>
 		value == null ? '—' : `${Number(value).toFixed(3)}%`;
-	const actions = $derived([
-		locked && report !== undefined
-			? {
-					icon: 'lucide:lock-open',
-					name: t('app.month_end.unlock'),
-					run: () => ctx.run('month_end_unlock', { report: [report.id] })
-				}
-			: {
-					icon: 'lucide:lock',
-					name: t('app.month_end.lock'),
-					run: () => ctx.run('month_end_lock', { month })
-				},
-		...(!locked
-			? (['xlsx', 'csv'] as const).map((to) => ({
-					icon: 'lucide:download',
-					name: `${t('app.month_end.export')} ${to.toUpperCase()}`,
-					run: () =>
-						ctx.sync_control('month_end_line', 'sheet', { mode: 'export', to, context: { month } })
-				}))
-			: [])
-	]);
+	const actions = $derived(
+		report?.source === 'excel'
+			? []
+			: [
+					locked && report !== undefined
+						? {
+								icon: 'lucide:lock-open',
+								name: t('app.month_end.unlock'),
+								run: () => ctx.run('month_end_unlock', { report: [report.id] })
+							}
+						: {
+								icon: 'lucide:lock',
+								name: t('app.month_end.lock'),
+								run: () => ctx.run('month_end_lock', { month })
+							},
+					...(report === undefined
+						? []
+						: [
+								{
+									icon: 'lucide:history',
+									name: t('app.month_end.details'),
+									run: () => open_record('month_end', report.id)
+								}
+							]),
+					...(!locked
+						? (['xlsx', 'csv'] as const).map((to) => ({
+								icon: 'lucide:download',
+								name: `${t('app.month_end.export')} ${to.toUpperCase()}`,
+								run: () =>
+									ctx.sync_control('month_end_line', 'sheet', {
+										mode: 'export',
+										to,
+										context: { month }
+									})
+							}))
+						: [])
+				]
+	);
 	const LINE_COLUMNS = [
 		'bank_code',
 		'product',
@@ -136,7 +157,9 @@
 				{/each}
 			</Grid>
 		{/if}
-		{#if locked && report !== undefined}
+		{#if locked && report?.source === 'excel'}
+			<EmptyState title={t('app.month_end.imported')} hint={t('app.month_end.imported_hint')} />
+		{:else if locked && report !== undefined}
 			<Table
 				{ctx}
 				of="month_end_line"
@@ -157,35 +180,6 @@
 		{/if}
 	</Stack>
 {/snippet}
-{#snippet history()}
-	<Table
-		{ctx}
-		of="month_end"
-		key="history"
-		order_by={{ month: 'desc' }}
-		columns={[
-			'month',
-			'source',
-			'is_locked',
-			'locked_at',
-			'total_utilised',
-			'accrued_interest',
-			'weighted_average_rate_pct'
-		]}
-		toolbar={{ title: t('app.month_end.history'), new: false }}
-	/>
-{/snippet}
-{#snippet rates()}
-	<Table
-		{ctx}
-		of="fx_rate"
-		key="fx"
-		order_by={{ rate_date: 'desc' }}
-		columns={['currency', 'rate_date', 'usd_per_unit', 'is_month_end', 'source']}
-		toolbar={{ title: t('app.month_end.fx') }}
-	/>
-{/snippet}
-
 <AppShell
 	icon="lucide:calendar-check"
 	title={t('app.month_end.title')}
@@ -193,11 +187,9 @@
 	variant="full"
 	actions={pick}
 >
-	<Tabs
-		tabs={[
-			{ name: 'report', title: t('app.month_end.lines'), icon: 'lucide:table', body: lines },
-			{ name: 'history', title: t('app.month_end.history'), icon: 'lucide:history', body: history },
-			{ name: 'fx', title: t('app.month_end.fx'), icon: 'lucide:arrow-left-right', body: rates }
-		]}
-	/>
+	<Scroll name="month-end" size="fill" inset>
+		{#if stored.error || live?.error}
+			<EmptyState title={t('app.dashboard.error')} hint={String(stored.error ?? live?.error)} />
+		{:else}{@render lines()}{/if}
+	</Scroll>
 </AppShell>

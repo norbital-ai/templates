@@ -1,4 +1,5 @@
-import { model } from '@norbital-ai/bolt';
+import { model, type Actor } from '@norbital-ai/bolt';
+import { monthStart } from '../../../lib/calculations.js';
 
 const FIGURES = [
 	'credit_line',
@@ -67,8 +68,13 @@ export default model('month_end', {
 	},
 	constraints: {
 		one_report_per_month: { unique: ['month'] },
+		imported_report: {
+			locked: { source: { eq: 'excel' } },
+			except: ['notes'],
+			message: 'errors.month_imported'
+		},
 		locked_month: {
-			locked: { source: { eq: 'portal' }, is_locked: { eq: true } },
+			locked: { is_locked: { eq: true } },
 			except: ['is_locked', 'notes'],
 			message: 'errors.month_locked'
 		}
@@ -78,10 +84,41 @@ export default model('month_end', {
 	},
 	create: {
 		fields: ['month', 'is_locked', 'locked_at', 'source', ...FIGURES, 'notes'],
-		lines: { fields: [...LINE_FIELDS] }
+		lines: { fields: [...LINE_FIELDS] },
+		transform: function* (changes, ctx) {
+			const closing = isCloser(ctx.actor, 'month_end_lock');
+			const row = changes.findIndex(
+				(c) => c.after.source === 'portal' && (c.after.is_locked || hasFigures(c.set)) && !closing
+			);
+			if (row >= 0) return yield* ctx.refuse('errors.month_figures_readonly', { row });
+			return changes.map((c) => ({
+				...c.set,
+				month: monthStart(c.after.month),
+				...(c.after.source === 'excel' ? { is_locked: true } : {})
+			}));
+		}
 	},
 	update: {
-		fields: ['is_locked', 'locked_at', 'source', ...FIGURES, 'notes'],
-		lines: { fields: [...LINE_FIELDS] }
+		fields: ['is_locked', 'locked_at', ...FIGURES, 'notes'],
+		lines: { fields: [...LINE_FIELDS] },
+		transform: function* (changes, ctx) {
+			const locked = changes.findIndex((c) => c.before.is_locked && c.set.lines !== undefined);
+			if (locked >= 0) return yield* ctx.refuse('errors.month_locked', { row: locked });
+			const closing = isCloser(ctx.actor, 'month_end_lock');
+			const opening = isCloser(ctx.actor, 'month_end_unlock');
+			const row = changes.findIndex(
+				(c) =>
+					(hasFigures(c.set) && !closing) ||
+					(c.changed('is_locked') && !(c.after.is_locked ? closing : opening))
+			);
+			if (row >= 0) return yield* ctx.refuse('errors.month_figures_readonly', { row });
+			return changes.map((c) => c.set);
+		}
 	}
 });
+
+/** Figures are immutable closing evidence, owned by the native calculation run rather than hand-entered fields. */
+const hasFigures = (set: object) =>
+	['locked_at', 'lines', ...FIGURES].some((field) => Object.hasOwn(set, field));
+const isCloser = (actor: Actor, automation: 'month_end_lock' | 'month_end_unlock') =>
+	actor.kind === 'system' && 'automation' in actor.by && actor.by.automation === automation;

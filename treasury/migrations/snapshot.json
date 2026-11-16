@@ -106,6 +106,41 @@
 					"kind": "text",
 					"max": 20
 				},
+				"contacts": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"email": {
+								"format": "email",
+								"kind": "text",
+								"optional": true
+							},
+							"name": {
+								"kind": "text"
+							},
+							"notes": {
+								"kind": "text",
+								"optional": true
+							},
+							"phone": {
+								"kind": "text",
+								"optional": true
+							},
+							"role": {
+								"kind": "enum",
+								"values": [
+									"relationship_manager",
+									"client_service",
+									"trade_operations",
+									"other"
+								]
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
 				"cut_off_time": {
 					"kind": "text",
 					"optional": true
@@ -180,44 +215,6 @@
 					"name": "bank_code"
 				}
 			]
-		},
-		"bank_contact": {
-			"audit": true,
-			"fields": {
-				"bank": {
-					"inverse": "contacts",
-					"kind": "ref",
-					"on_delete": "cascade",
-					"to": "bank"
-				},
-				"email": {
-					"format": "email",
-					"kind": "text",
-					"optional": true
-				},
-				"name": {
-					"kind": "text"
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"phone": {
-					"kind": "text",
-					"optional": true
-				},
-				"role": {
-					"default": "other",
-					"kind": "enum",
-					"values": [
-						"relationship_manager",
-						"client_service",
-						"trade_operations",
-						"other"
-					]
-				}
-			},
-			"record_label": "record.name"
 		},
 		"bank_document": {
 			"audit": true,
@@ -430,6 +427,68 @@
 			},
 			"record_label": "record.advice_reference != null ? record.advice_reference : 'Advice'"
 		},
+		"business_partner": {
+			"audit": true,
+			"fields": {
+				"aliases": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"country": {
+					"kind": "text",
+					"optional": true
+				},
+				"is_active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"is_customer": {
+					"default": false,
+					"kind": "bool"
+				},
+				"is_supplier": {
+					"default": true,
+					"kind": "bool"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"payment_terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"products": {
+					"kind": "text",
+					"optional": true
+				},
+				"relationship_since": {
+					"kind": "date",
+					"optional": true
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"aliases"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"name"
+					],
+					"import_key": true,
+					"name": "partner_name"
+				}
+			],
+			"was": "supplier"
+		},
 		"drawdown": {
 			"audit": true,
 			"computed": {
@@ -495,6 +554,11 @@
 						"actual_365"
 					]
 				},
+				"discrepancy_note": {
+					"kind": "text",
+					"optional": true,
+					"was": "review_note"
+				},
 				"due_date": {
 					"kind": "date",
 					"optional": true
@@ -524,18 +588,9 @@
 					"optional": true,
 					"scale": 6
 				},
-				"interest_to_maturity": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 2
-				},
 				"is_archived": {
 					"default": false,
 					"kind": "bool"
-				},
-				"latest_due_date": {
-					"kind": "date",
-					"optional": true
 				},
 				"lc_expiry_date": {
 					"kind": "date",
@@ -544,10 +599,6 @@
 				"lc_number": {
 					"kind": "text",
 					"optional": true
-				},
-				"needs_review": {
-					"default": false,
-					"kind": "bool"
 				},
 				"notes": {
 					"kind": "text",
@@ -616,10 +667,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"review_note": {
-					"kind": "text",
-					"optional": true
-				},
 				"settled_by": {
 					"kind": "enum",
 					"optional": true,
@@ -664,11 +711,7 @@
 					"kind": "ref",
 					"on_delete": "restrict",
 					"optional": true,
-					"to": "supplier"
-				},
-				"tenor_days": {
-					"kind": "int",
-					"optional": true
+					"to": "business_partner"
 				},
 				"terms_days": {
 					"kind": "int",
@@ -688,8 +731,7 @@
 				"sealed_line": {
 					"except": [
 						"is_archived",
-						"needs_review",
-						"review_note",
+						"discrepancy_note",
 						"notes"
 					],
 					"where": {
@@ -1432,6 +1474,16 @@
 				}
 			},
 			"locks": {
+				"imported_report": {
+					"except": [
+						"notes"
+					],
+					"where": {
+						"source": {
+							"eq": "excel"
+						}
+					}
+				},
 				"locked_month": {
 					"except": [
 						"is_locked",
@@ -1440,9 +1492,6 @@
 					"where": {
 						"is_locked": {
 							"eq": true
-						},
-						"source": {
-							"eq": "portal"
 						}
 					}
 				}
@@ -1640,10 +1689,6 @@
 					"on_delete": "cascade",
 					"to": "drawdown"
 				},
-				"is_lc": {
-					"default": false,
-					"kind": "bool"
-				},
 				"purchase_order": {
 					"inverse": "financings",
 					"kind": "ref",
@@ -1714,15 +1759,6 @@
 					"default": false,
 					"kind": "bool"
 				},
-				"lc_links": {
-					"kind": "count",
-					"of": "financings",
-					"where": {
-						"is_lc": {
-							"eq": true
-						}
-					}
-				},
 				"lc_requested": {
 					"default": false,
 					"kind": "bool"
@@ -1757,7 +1793,7 @@
 				"supplier": {
 					"inverse": "purchase_orders",
 					"kind": "ref",
-					"to": "supplier"
+					"to": "business_partner"
 				}
 			},
 			"record_label": "record.po_number",
@@ -1852,63 +1888,10 @@
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
-					"to": "supplier"
+					"to": "business_partner"
 				}
 			},
 			"record_label": "record.name"
-		},
-		"supplier": {
-			"audit": true,
-			"fields": {
-				"aliases": {
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
-				"country": {
-					"kind": "text",
-					"optional": true
-				},
-				"is_active": {
-					"default": true,
-					"kind": "bool"
-				},
-				"name": {
-					"kind": "text"
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"payment_terms": {
-					"kind": "text",
-					"optional": true
-				},
-				"products": {
-					"kind": "text",
-					"optional": true
-				},
-				"relationship_since": {
-					"kind": "date",
-					"optional": true
-				}
-			},
-			"record_label": "record.name",
-			"search": {
-				"text": [
-					"name",
-					"aliases"
-				]
-			},
-			"unique": [
-				{
-					"fields": [
-						"name"
-					],
-					"import_key": true,
-					"name": "supplier_name"
-				}
-			]
 		},
 		"supplier_bank": {
 			"audit": true,
@@ -1923,7 +1906,7 @@
 					"inverse": "eligible_banks",
 					"kind": "ref",
 					"on_delete": "cascade",
-					"to": "supplier"
+					"to": "business_partner"
 				}
 			},
 			"record_label": "record.bank.code",

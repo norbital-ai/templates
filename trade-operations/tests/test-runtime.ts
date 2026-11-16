@@ -93,6 +93,55 @@ const answer = <R extends ReadRequestBase>(m: EngineManifest, request: R) => {
 					: []
 			)
 		];
+		if (Predicate.isObject(layer['aggregate'])) {
+			const aggregate = layer['aggregate'];
+			const fields = new Map(own);
+			const field = (name: string) => {
+				const schema = fields.get(name);
+				if (!schema) throw new Error(`${model}.${name}: no aggregate field`);
+				return schema;
+			};
+			const buckets =
+				aggregate['by'] === undefined
+					? []
+					: Array.isArray(aggregate['by'])
+						? aggregate['by']
+						: [aggregate['by']];
+			const columns: Record<string, Schema.Top> = {};
+			if (buckets.length || aggregate['count'] === true) columns['count'] = Schema.Int;
+			if (buckets.length)
+				columns['key'] = Schema.Struct(
+					Object.fromEntries(
+						buckets.map((bucket) => {
+							if (typeof bucket === 'string') return [bucket, field(bucket)];
+							if (!Predicate.isObject(bucket)) throw new Error('Invalid calendar bucket');
+							const name = Object.values(bucket)[0];
+							if (typeof name !== 'string') throw new Error('Missing calendar field');
+							field(name);
+							return [name, value({ kind: 'date' })];
+						})
+					)
+				);
+			for (const measure of ['sum', 'avg', 'min', 'max'] as const) {
+				const names = aggregate[measure];
+				if (Array.isArray(names))
+					columns[measure] = Schema.Struct(
+						Object.fromEntries(
+							names.map((name) => {
+								if (typeof name !== 'string') throw new Error('Invalid measure field');
+								const schema = field(name);
+								return [
+									name,
+									measure === 'sum' || measure === 'avg'
+										? value({ kind: 'decimal', scale: 0 })
+										: schema
+								];
+							})
+						)
+					);
+			}
+			return Schema.Struct(columns);
+		}
 		for (const [name, value] of own) {
 			if (named !== undefined && !named.has(name)) continue;
 			columns[name] = named === undefined ? Schema.optionalKey(value) : value;

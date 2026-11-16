@@ -9,14 +9,14 @@ invoices that come back and prepares the facility requisition for each PO paid b
 
 ## Apps and roles
 
-| App            | Pages                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------------------------------- |
-| **Treasury**   | Dashboard, Drawdowns, Alerts, Bank advices, Limits & terms, Banks, Suppliers, Costs, Charges, Month-end |
-| **Purchasing** | Purchase orders, Facility forms                                                                         |
+| App                   | Pages                                                          |
+| --------------------- | -------------------------------------------------------------- |
+| **Treasury**          | Overview, Financing, Bank advices, Attention, Costs, Month-end |
+| **Purchasing**        | Purchase orders, Facility forms                                |
+| **Business partners** | One directory, with supplier and customer roles                |
+| **Configuration**     | Banks, Facilities, Exchange rates                              |
 
-Treasury's navigation groups **Daily work** (Dashboard, Drawdowns, Bank advices, Alerts),
-**Reports** (Costs, Charges, Month-end) and **Setup** (Limits & terms, Banks, Suppliers).
-The open-lines list shows the essentials; open a line for its rates, interest and supporting records.
+Open a record for its supporting evidence and actions. The lists use native table filters, rather than nested copies of the same view. The overview has three compact charts: bank usage, maturities and funding cost.
 
 | Team           | May do                                                                                                                                                                                         |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -42,34 +42,34 @@ for Treasury approval, alongside checks of days, interest with the bank's roundi
 
 ## Terms used in the workspace
 
-| Term                                   | Meaning here                                                                                                                                                                                                                                    |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bank                                   | The lender, with contacts, cut-off time, offered products and watch points. A bank can have several facilities.                                                                                                                                 |
-| Facility / credit line                 | One agreement's limit, entity, pricing, day-count basis, rounding and maximum tenor. Limit and headroom reports use USD.                                                                                                                        |
-| Letter of offer                        | The attached bank agreement and its review date; the actual terms remain the bank document's.                                                                                                                                                   |
-| Sub-limit                              | A product or supplier cap within a facility. It is a warning against allocation, rather than a second pot of credit added to the limit.                                                                                                         |
-| Drawdown / line                        | One financing obligation or planned payment. The product says what kind; the status says where it is in its life.                                                                                                                               |
-| Earmark                                | A planned payment. It does not count as bank borrowing; allocated earmarks reduce the planning headroom. An unallocated earmark belongs to no bank yet.                                                                                         |
-| Applied / active                       | Applied means requested from the bank; active means drawn. Both use the limit when the product uses a limit.                                                                                                                                    |
-| Settled / cancelled / unclear          | Settled closes an obligation; cancelled abandons it; unclear is an imported line requiring review. Settled and cancelled lines are sealed except for archive, review and notes.                                                                 |
-| Principal / amount                     | The financing amount in the line's currency, separate from interest and fees.                                                                                                                                                                   |
-| USD per unit                           | USD bought by one unit of the original currency. USD amount = original amount × this rate. Enter the agreed conversion on a foreign line or charge.                                                                                             |
-| Tenor                                  | Due date minus start date in calendar days. It includes the start day and excludes the due day.                                                                                                                                                 |
-| Day-count basis                        | The annual denominator, Actual/360 or Actual/365, rather than the number of days in the loan.                                                                                                                                                   |
-| Rate / margin / charge rate            | Rate is the full annual interest percentage. Margin is the offer's pricing margin, shown for comparison; it is not added a second time to a line's full rate. Charge rate is an agreed commission percentage replacing the commission fee rule. |
-| Accrued / to maturity                  | Accrued interest runs through the report date, capped at the tenor. Interest to maturity covers the whole tenor. Missing rate or date is unknown, not an assumed zero rate.                                                                     |
-| Used / available / free after earmarks | Used is applied plus active obligations that consume a limit; available = active limits − used; free after earmarks also subtracts planned earmarks.                                                                                            |
-| Cost of funds                          | The amount-weighted annual interest rate. For a period it is weighted by amount × days outstanding; it is not an unweighted average of banks.                                                                                                   |
-| Recorded / estimated charge            | Recorded means an actual advice or manually keyed charge. Estimates are live calculations from fee rules and are never saved as charges.                                                                                                        |
-| Drawdown / settlement stage            | When a fee is collected. Any recorded charge at a stage, including a zero charge, suppresses the whole stage's estimate.                                                                                                                        |
-| Minimum currency                       | The currency of a percentage fee's minimum; it can differ from the currency of a flat fee. Missing FX makes the estimate unknown.                                                                                                               |
-| All-in cost                            | Estimated interest plus applicable fees, annualised over the proposed tenor. It is a comparison based on stored history and rules, not a bank quote.                                                                                            |
-| Basis points (bps)                     | One percentage point is 100 bps. The spread compares a bank's recent rate with the group's recent rate.                                                                                                                                         |
-| Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                        |
-| Ready to review / submitted advice     | Ready to review means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                        |
-| PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                               |
-| Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                 |
-| Month-end lock                         | A locked report keeps frozen detail lines and headline totals. A summary imported without detail lines becomes a full snapshot when locked.                                                                                                     |
+| Term                                   | Meaning here                                                                                                                                                                                                                                                    |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bank                                   | The lender, with contacts, cut-off time, offered products and watch points. A bank can have several facilities.                                                                                                                                                 |
+| Facility / credit line                 | One agreement's limit, entity, pricing, day-count basis, rounding and maximum tenor. Limit and headroom reports use USD.                                                                                                                                        |
+| Letter of offer                        | The attached bank agreement and its review date; the actual terms remain the bank document's.                                                                                                                                                                   |
+| Sub-limit                              | A product or supplier cap within a facility. It is a warning against allocation, rather than a second pot of credit added to the limit.                                                                                                                         |
+| Drawdown / line                        | One financing obligation or planned payment. The product says what kind; the status says where it is in its life.                                                                                                                                               |
+| Earmark                                | A planned payment. It does not count as bank borrowing; allocated earmarks reduce the planning headroom. An unallocated earmark belongs to no bank yet.                                                                                                         |
+| Applied / active                       | Applied means requested from the bank; active means drawn. Both use the limit when the product uses a limit.                                                                                                                                                    |
+| Settled / cancelled / unclear          | Settled closes an obligation; cancelled abandons it; unclear is an imported line requiring review. Settled and cancelled lines are sealed except for archive, discrepancy notes and notes.                                                                      |
+| Principal / amount                     | The financing amount in the line's currency, separate from interest and fees.                                                                                                                                                                                   |
+| USD per unit                           | USD bought by one unit of the original currency. USD amount = original amount × this rate. Enter the agreed conversion on a foreign line or charge.                                                                                                             |
+| Tenor                                  | Due date minus start date in calendar days. It includes the start day and excludes the due day.                                                                                                                                                                 |
+| Day-count basis                        | The annual denominator, Actual/360 or Actual/365, rather than the number of days in the loan.                                                                                                                                                                   |
+| Rate / margin / charge rate            | Rate is the full annual interest percentage. Margin is the offer's pricing margin, shown for comparison; it is not added a second time to a line's full rate. Charge rate is an agreed commission percentage replacing the commission fee rule.                 |
+| Accrued / to maturity                  | Accrued interest runs through the report date, capped at the tenor. Interest to maturity covers the whole tenor. Missing rate or date is unknown, not an assumed zero rate.                                                                                     |
+| Used / available / free after earmarks | Used is applied plus active obligations that consume a limit; available = active limits − used; free after earmarks also subtracts planned earmarks.                                                                                                            |
+| Cost of funds                          | The amount-weighted annual interest rate. For a period it is weighted by amount × days outstanding; it is not an unweighted average of banks.                                                                                                                   |
+| Recorded / estimated charge            | Recorded means an actual advice or manually keyed charge. Estimates are live calculations from fee rules and are never saved as charges.                                                                                                                        |
+| Drawdown / settlement stage            | When a fee is collected. Any recorded charge at a stage, including a zero charge, suppresses the whole stage's estimate.                                                                                                                                        |
+| Minimum currency                       | The currency of a percentage fee's minimum; it can differ from the currency of a flat fee. Missing FX makes the estimate unknown.                                                                                                                               |
+| All-in cost                            | Estimated interest plus applicable fees, annualised over the proposed tenor. It is a comparison based on stored history and rules, not a bank quote.                                                                                                            |
+| Basis points (bps)                     | One percentage point is 100 bps. The spread compares a bank's recent rate with the group's recent rate.                                                                                                                                                         |
+| Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                                        |
+| Extracted / submitted advice           | Extracted means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                                              |
+| PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                                               |
+| Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                                 |
+| Month-end lock                         | A locked report keeps frozen detail lines and headline totals. Imported historical summaries retain their original figures and cannot be rebuilt from today’s book. Unlocking a portal report resumes live calculation; closing it again replaces its snapshot. |
 
 ### Product codes
 
@@ -130,8 +130,7 @@ by pages, automations and write callbacks:
 ### What each report calculates
 
 - **Dashboard:** current active facilities and open obligations; bank utilisation, unallocated
-  earmarks, maturity buckets, due-month ladder, currency/product/status exposure, actual charges,
-  and the latest closed-month headline. The date picker drives maturities, the historical trend
+  earmarks, maturities and funding cost, with a link to the latest closed month. The date picker drives maturities, the historical trend
   and the cost-of-funds period; it does not restore past versions of the live book. Use Month-end
   for a frozen historical position.
 - **Costs:** USD trade financing with a recorded rate, started by the comparison date. A proposed
@@ -139,7 +138,7 @@ by pages, automations and write callbacks:
   90-day trade rate, then its last trade rate. Supplier eligibility, remaining room and maximum
   tenor are checked separately. Missing rate or fee FX prevents an eligible recommendation.
   All-in % = (interest + fees) / principal × day basis / tenor × 100.
-- **Charges:** recorded charges on USD trade lines started in the last twelve calendar months
+- **Costs → Charges:** recorded charges on USD trade lines started in the last twelve calendar months
   to today, plus estimates for stages not recorded yet, including on settled lines. The table
   separates recorded, estimated, total, per-line, % of financed amount and % p.a.; the annualised
   figure uses a USD-amount-weighted tenor and 360 days. Recorded charge-type breakdowns and an
@@ -249,3 +248,5 @@ the basics. `tests/documents.test.ts` checks scanned advice ingestion and attach
 `tests/pdf-pack.test.ts` checks page order, original-file preservation and failed attachments.
 
 See [the source reference](docs/source-reference.md) for every model, page, automation and policy.
+
+Closing reads every source page and is the sole writer of portal snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.

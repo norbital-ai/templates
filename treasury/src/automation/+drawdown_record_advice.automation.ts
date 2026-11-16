@@ -4,7 +4,7 @@ import { CHARGES_INPUT, documentApplied, replaceStage } from '../lib/charges.js'
 /**
  * The bank has drawn the line: it becomes active with the advice's number, dates and rate, and the advice's charges
  * replace whatever the drawdown stage held. An agreed rate the advice does not match is replaced by the advice's and
- * the line is marked for review with both figures.
+ * both figures are kept in its discrepancy note.
  */
 export default automation({
 	description: 'Record the bank’s drawdown advice: the line becomes active with its figures.',
@@ -49,8 +49,7 @@ export default automation({
 						: { interest_rate_pct: rate, rate_source: 'bank_advice' as const }),
 					...(differs
 						? {
-								needs_review: true,
-								review_note: `Advice rate ${rate}% differs from the agreed ${target.interest_rate_pct}%; the advice rate is used.`
+								discrepancy_note: `Advice rate ${rate}% differs from the agreed ${target.interest_rate_pct}%; the advice rate is used.`
 							}
 						: {}),
 					charges: replaceStage(

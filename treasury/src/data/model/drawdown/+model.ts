@@ -1,5 +1,4 @@
-import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
-import { addDays, interest, tenorDays } from '../../../lib/calculations.js';
+import { model } from '@norbital-ai/bolt';
 import { PRODUCT_CODES } from '../../../lib/products.js';
 
 const EDITABLE = [
@@ -37,8 +36,6 @@ const CHARGE_FIELDS = [
 	'amount',
 	'fx_rate_to_usd'
 ] as const;
-/** Figures the write fills from the line and its facility: tenor, interest to maturity, latest due date. */
-const FILLED = ['tenor_days', 'interest_to_maturity', 'latest_due_date'] as const;
 
 /**
  * One financing line: an earmark planned by the team, then applied to a bank, drawn, and settled (repaid, paid in
@@ -61,7 +58,7 @@ export default model('drawdown', {
 		},
 		supplier: {
 			kind: 'ref',
-			to: 'supplier',
+			to: 'business_partner',
 			inverse: 'drawdowns',
 			optional: true,
 			on_delete: 'restrict'
@@ -94,10 +91,8 @@ export default model('drawdown', {
 		released_date: { kind: 'date', optional: true },
 		start_date: { kind: 'date', optional: true },
 		due_date: { kind: 'date', optional: true },
-		tenor_days: { kind: 'int', optional: true },
 		interest_rate_pct: { kind: 'decimal', scale: 6, optional: true },
 		rate_source: { kind: 'enum', values: ['manual', 'bank_advice'], optional: true },
-		interest_to_maturity: { kind: 'decimal', scale: 2, optional: true },
 		charge_rate_pct: { kind: 'decimal', scale: 6, optional: true },
 		day_count_basis: {
 			kind: 'enum',
@@ -106,7 +101,6 @@ export default model('drawdown', {
 		},
 		expected_draw_date: { kind: 'date', optional: true },
 		earliest_invoice_date: { kind: 'date', optional: true },
-		latest_due_date: { kind: 'date', optional: true },
 		requested_by: { kind: 'text', optional: true },
 		purpose: { kind: 'text', optional: true },
 		settlement_date: { kind: 'date', optional: true },
@@ -120,14 +114,13 @@ export default model('drawdown', {
 			optional: true,
 			on_delete: 'set_null'
 		},
-		needs_review: { kind: 'bool', default: false },
-		review_note: { kind: 'text', optional: true },
+		discrepancy_note: { kind: 'text', optional: true, was: 'review_note' },
 		notes: { kind: 'text', optional: true }
 	},
 	constraints: {
 		sealed_line: {
 			locked: { status: { in: ['settled', 'cancelled'] } },
-			except: ['is_archived', 'needs_review', 'review_note', 'notes'],
+			except: ['is_archived', 'discrepancy_note', 'notes'],
 			message: 'errors.line_sealed'
 		}
 	},
@@ -154,20 +147,12 @@ export default model('drawdown', {
 			charges: { fields: [...CHARGE_FIELDS] },
 			invoices: { fields: ['invoice_number', 'invoice_date', 'amount', 'bank_bill_number'] },
 			documents: { fields: ['doc_type', 'advice_reference', 'advice_date', 'read_status'] },
-			financings: { fields: ['purchase_order', 'is_lc'] }
+			financings: { fields: ['purchase_order'] }
 		}
 	},
 	create: {
-		fields: [...EDITABLE, 'converted_from', ...FILLED],
-		filled: { fields: [...FILLED] },
-		charges: { fields: [...CHARGE_FIELDS] },
-		transform: function* (changes, ctx) {
-			const facilities = yield* facilitiesOf(
-				changes.map((c) => c.after.facility),
-				ctx
-			);
-			return changes.map((c) => ({ ...c.set, ...figures(c.after, facilities) }));
-		}
+		fields: [...EDITABLE, 'converted_from'],
+		charges: { fields: [...CHARGE_FIELDS] }
 	},
 	update: {
 		fields: [
@@ -177,65 +162,8 @@ export default model('drawdown', {
 			'settled_principal',
 			'settled_interest',
 			'settled_by',
-			'needs_review',
-			'review_note',
-			// recomputed by the transform on every write, whatever a writer sends
-			...FILLED
+			'discrepancy_note'
 		],
-		charges: { fields: [...CHARGE_FIELDS] },
-		transform: function* (changes, ctx) {
-			const facilities = yield* facilitiesOf(
-				changes.map((c) => c.after.facility),
-				ctx
-			);
-			return changes.map((c) => ({ ...c.set, ...figures(c.after, facilities) }));
-		}
+		charges: { fields: [...CHARGE_FIELDS] }
 	}
 });
-
-type Terms = {
-	readonly interest_rounding: 'nearest_cent' | 'down_to_cent';
-	readonly max_tenor_days: number | null;
-};
-
-function* facilitiesOf(
-	ids: readonly (Id<'facility'> | null | undefined)[],
-	ctx: WriteCtx<'drawdown'>
-) {
-	const wanted = [...new Set(ids.flatMap((id) => (id == null ? [] : [id])))];
-	if (wanted.length === 0) return new Map<string, Terms>();
-	const { facility } = yield* ctx.query({
-		facility: { where: { id: { in: wanted } }, fields: ['interest_rounding', 'max_tenor_days'] }
-	});
-	return new Map<string, Terms>(facility.rows.map((f) => [f.id, f]));
-}
-
-function figures(
-	line: {
-		readonly facility?: string | null;
-		readonly amount: string;
-		readonly interest_rate_pct?: string | null;
-		readonly start_date?: string | null;
-		readonly due_date?: string | null;
-		readonly day_count_basis?: 'actual_360' | 'actual_365';
-		readonly earliest_invoice_date?: string | null;
-	},
-	facilities: ReadonlyMap<string, Terms>
-) {
-	const terms = line.facility == null ? undefined : facilities.get(line.facility);
-	const tenor = tenorDays(line.start_date ?? null, line.due_date ?? null);
-	return {
-		tenor_days: tenor,
-		interest_to_maturity: interest(
-			line.amount,
-			line.interest_rate_pct ?? null,
-			tenor,
-			line.day_count_basis ?? 'actual_360',
-			terms?.interest_rounding
-		),
-		latest_due_date:
-			line.earliest_invoice_date == null || terms?.max_tenor_days == null
-				? null
-				: addDays(line.earliest_invoice_date, terms.max_tenor_days)
-	};
-}

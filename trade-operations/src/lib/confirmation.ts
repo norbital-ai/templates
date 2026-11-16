@@ -22,15 +22,53 @@ export const quotationRead = (order: Id<'orders'>) =>
 		document_templates: { where: { status: { eq: 'published' } } },
 		commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
 	}) as const;
-/** The quotation read with the catalogues a confirmation checks: stock lots, floors, warehouses, the party's credit. */
-export const confirmationRead = (order: Id<'orders'>) =>
+/** The saved order facts needed to scope its confirmation read. */
+export const confirmationScopeRead = (order: Id<'orders'>) =>
 	({
-		...quotationRead(order),
-		stock_snapshots: { fields: [...fifoStockFields, 'currency', 'unit_cost'], limit: 10000 },
-		pricing_floors: {},
-		warehouses: {},
-		credit_snapshots: { where: { party: { is: { orders: { some: { id: { eq: order } } } } } } }
+		orders: {
+			where: { id: { eq: order } },
+			fields: ['revision', 'currency', 'ordered_on', 'warehouse'],
+			limit: 1,
+			lines: { fields: ['product'] }
+		}
 	}) as const;
+/** Keep every relevant historical tier and stock lot, without sending unrelated products. */
+export const confirmationRead = (
+	order: ReadAnswer<ReturnType<typeof confirmationScopeRead>>['orders']['rows'][number]
+) => {
+	const products = [...new Set(order.lines.map((line) => line.product))];
+	return {
+		...quotationRead(order.id),
+		orders: {
+			...quotationRead(order.id).orders,
+			// A concurrent edit must refresh the scope before these catalogues can confirm it.
+			where: {
+				id: { eq: order.id },
+				revision: { eq: order.revision },
+				lines: { every: { product: { in: products } } }
+			}
+		},
+		stock_snapshots: {
+			where: { product: { in: products } },
+			fields: [...fifoStockFields, 'currency', 'unit_cost'],
+			limit: 10000
+		},
+		pricing_floors: {
+			where: {
+				product: { in: products },
+				currency: { eq: order.currency },
+				effective_on: { lte: order.ordered_on }
+			}
+		},
+		warehouses: {
+			where: { id: { in: order.warehouse ? [order.warehouse] : [] } },
+			fields: ['group_code']
+		},
+		credit_snapshots: {
+			where: { party: { is: { orders: { some: { id: { eq: order.id } } } } } }
+		}
+	} as const;
+};
 type QuotationAnswer = ReadAnswer<ReturnType<typeof quotationRead>>;
 /** The draft and its configuration, or why it cannot be quoted or confirmed. */
 function draftOf(answer: QuotationAnswer, revision: number | null | undefined) {

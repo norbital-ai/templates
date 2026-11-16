@@ -44,6 +44,7 @@ export default model('facility', {
 		default: {
 			fields: 'all',
 			bank: { fields: ['code', 'name', 'cut_off_time', 'offered_products'] },
+			sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
 			fees: {
 				fields: [
 					'fee_type',
@@ -59,7 +60,6 @@ export default model('facility', {
 				]
 			},
 			drawdowns: { fields: ['bank_reference', 'status', 'currency', 'amount', 'due_date'] },
-			sub_limits: { fields: ['name', 'product', 'supplier', 'limit'] },
 			letters_of_offer: { fields: ['title', 'next_review_date'] },
 			watch_points: { fields: ['category', 'text'] }
 		}
@@ -86,6 +86,7 @@ export default model('facility', {
 			'security',
 			'notes'
 		],
+		sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
 		fees: {
 			fields: [
 				'fee_type',
@@ -124,6 +125,7 @@ export default model('facility', {
 			'security',
 			'notes'
 		],
+		sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
 		fees: {
 			fields: [
 				'fee_type',

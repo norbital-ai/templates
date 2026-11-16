@@ -42,7 +42,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 					if (facilityRow === undefined) throw new Error('Expected the created facility.');
 
 					const supplier = yield* treasury.act({
-						'supplier.create': [{ name: 'Acme Polymers' }]
+						'business_partner.create': [{ name: 'Acme Polymers' }]
 					});
 					const supplierRow = supplier.records[0];
 					if (supplierRow === undefined) throw new Error('Expected the created supplier.');
@@ -51,7 +51,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 						'drawdown.create': [
 							{
 								facility: Schema.decodeUnknownSync(id_of('facility'))(facilityRow.id),
-								supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplierRow.id),
+								supplier: Schema.decodeUnknownSync(id_of('business_partner'))(supplierRow.id),
 								product: 'if',
 								status: 'active',
 								bank_reference: 'IF-0001',
@@ -130,7 +130,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				const purchasing = yield* t.as(t.member(['purchasing']));
 
 				const supplier = yield* treasury.act({
-					'supplier.create': [{ name: 'Supplier Two' }]
+					'business_partner.create': [{ name: 'Supplier Two' }]
 				});
 				const supplierRow = supplier.records[0];
 				if (supplierRow === undefined) throw new Error('Expected the created supplier.');
@@ -140,7 +140,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 						{
 							po_number: 'PO-2002',
 							po_date: '2026-11-02',
-							supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplierRow.id),
+							supplier: Schema.decodeUnknownSync(id_of('business_partner'))(supplierRow.id),
 							lc_requested: true,
 							lines: [
 								{ item: 'Grade A natural', quantity: '18000.000', amount: '25000.00' },
@@ -159,15 +159,16 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				const treasury = yield* t.as(t.member(['treasury']));
 				const owner = yield* t.as(t.member(['purchasing']));
 				const other = yield* t.as(t.member(['purchasing']));
-				const supplier = (yield* treasury.act({ 'supplier.create': [{ name: 'Scope supplier' }] }))
-					.records[0];
+				const supplier = (yield* treasury.act({
+					'business_partner.create': [{ name: 'Scope supplier' }]
+				})).records[0];
 				if (supplier === undefined) throw new Error('Expected supplier.');
 				const order = (yield* owner.act({
 					'purchase_order.create': [
 						{
 							po_number: 'SCOPE-001',
 							po_date: '2026-11-01',
-							supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplier.id),
+							supplier: Schema.decodeUnknownSync(id_of('business_partner'))(supplier.id),
 							lines: [{ item: 'Private item', quantity: '1', amount: '100' }]
 						}
 					]
@@ -236,34 +237,24 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 			})
 		);
 
-		it.effect('treasury locks a month-end and purchasing cannot touch it', () =>
+		it.effect('ledger figures cannot be written directly by Treasury or Purchasing', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const treasury = yield* t.as(t.member(['treasury']));
 				const purchasing = yield* t.as(t.member(['purchasing']));
-
-				const created = yield* treasury.act({
-					'month_end.create': [{ month: '2026-10-01' }]
-				});
-				const report = created.records[0];
-				if (report === undefined) throw new Error('Expected the created month-end.');
-
-				yield* treasury.act({
-					'month_end.update': [
-						{
-							target: {
-								id: Schema.decodeUnknownSync(id_of('month_end'))(report.id),
-								revision: report.revision
-							},
-							set: { is_locked: true, bank_borrowings: '1250000.00' }
-						}
-					]
-				});
-
-				const refused = yield* Effect.exit(
-					purchasing.act({ 'month_end.create': [{ month: '2026-11-01' }] })
-				);
-				expect(Exit.isFailure(refused)).toBe(true);
+				for (const caller of [treasury, purchasing]) {
+					expect(
+						Exit.isFailure(
+							yield* Effect.exit(
+								caller.act({
+									'month_end.create': [
+										{ month: '2026-10-01', is_locked: true, bank_borrowings: '1250000' }
+									]
+								})
+							)
+						)
+					).toBe(true);
+				}
 			})
 		);
 

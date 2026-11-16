@@ -13,7 +13,7 @@ export default model('sub_limit', {
 		product: { kind: 'enum', values: PRODUCT_CODES, optional: true },
 		supplier: {
 			kind: 'ref',
-			to: 'supplier',
+			to: 'business_partner',
 			inverse: 'sub_limits',
 			optional: true,
 			on_delete: 'set_null'

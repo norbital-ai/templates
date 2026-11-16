@@ -8,8 +8,8 @@ It is the starting point for building a workspace from scratch with the workspac
 ## Apps and roles
 
 None. `src/+workspace.ts` declares only the time zone and locale, and no teams or policies are
-authored. The starter includes Runed, std and Iconify for authoring ordinary modules and custom UI;
-the workspace shell owns theme behavior. Add other dependencies when your source uses them.
+authored. The starter includes Bolt, Svelte and Effect; the workspace shell owns theme behavior.
+Add other dependencies when your source uses them.
 
 ## Data model
 
@@ -52,8 +52,8 @@ bunx bolt check   # types, Svelte warnings, layout and declarations
 bun run test    # bolt test
 ```
 
-`tests/blank.test.ts` recomputes the model, app and automation counts from `src/` and fails when
-they disagree with `counts` in `norbital.template.json`: update both in the same change.
+`bolt build` derives model, app and automation counts from `src/` and refreshes
+`counts` in `norbital.template.json` before packing the catalogue.
 
 ## Maintained source reference
 

@@ -73,7 +73,7 @@ export default sync('month_end_line', 'sheet', {
 				where: { status: { in: ['applied', 'active', 'settled'] } },
 				fields: [...MONTH_END_LINE_FIELDS],
 				supplier: { fields: ['name'] },
-				charges: { fields: ['amount', 'fx_rate_to_usd'] }
+				charges: { fields: ['amount', 'fx_rate_to_usd', 'stage'] }
 			},
 			facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
 			fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] }

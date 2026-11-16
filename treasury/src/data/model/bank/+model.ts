@@ -11,6 +11,24 @@ export default model('bank', {
 	fields: {
 		code: { kind: 'text', max: 20 },
 		name: { kind: 'text' },
+		contacts: {
+			kind: 'json',
+			optional: true,
+			shape: {
+				kind: 'object',
+				many: true,
+				fields: {
+					role: {
+						kind: 'enum',
+						values: ['relationship_manager', 'client_service', 'trade_operations', 'other']
+					},
+					name: { kind: 'text' },
+					email: { kind: 'text', format: 'email', optional: true },
+					phone: { kind: 'text', optional: true },
+					notes: { kind: 'text', optional: true }
+				}
+			}
+		},
 		cut_off_time: { kind: 'text', optional: true },
 		settlement_instructions: { kind: 'text', optional: true },
 		terms_notes: { kind: 'text', optional: true },
@@ -24,10 +42,11 @@ export default model('bank', {
 	outputs: {
 		default: {
 			fields: 'all',
-			contacts: { fields: ['role', 'name', 'email', 'phone', 'notes'] },
 			facilities: { fields: ['name', 'currency', 'limit', 'status', 'max_tenor_days'] },
-			watch_points: { fields: ['category', 'text', 'is_active'] },
-			letters_of_offer: { fields: ['title', 'offer_date', 'next_review_date'] },
+			watch_points: { fields: ['facility', 'category', 'text', 'is_active'] },
+			letters_of_offer: {
+				fields: ['facility', 'title', 'offer_date', 'next_review_date', 'document', 'notes']
+			},
 			documents: { fields: ['doc_type', 'advice_reference', 'advice_date', 'read_status'] }
 		}
 	},
@@ -35,24 +54,32 @@ export default model('bank', {
 		fields: [
 			'code',
 			'name',
+			'contacts',
 			'cut_off_time',
 			'settlement_instructions',
 			'terms_notes',
 			'offered_products',
 			'is_active'
 		],
-		contacts: { fields: ['role', 'name', 'email', 'phone', 'notes'] }
+		watch_points: { fields: ['facility', 'category', 'text', 'is_active'] },
+		letters_of_offer: {
+			fields: ['facility', 'title', 'offer_date', 'next_review_date', 'document', 'notes']
+		}
 	},
 	update: {
 		fields: [
 			'code',
 			'name',
+			'contacts',
 			'cut_off_time',
 			'settlement_instructions',
 			'terms_notes',
 			'offered_products',
 			'is_active'
 		],
-		contacts: { fields: ['role', 'name', 'email', 'phone', 'notes'] }
+		watch_points: { fields: ['facility', 'category', 'text', 'is_active'] },
+		letters_of_offer: {
+			fields: ['facility', 'title', 'offer_date', 'next_review_date', 'document', 'notes']
+		}
 	}
 });

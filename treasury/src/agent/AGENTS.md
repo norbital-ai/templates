@@ -8,7 +8,6 @@ This is the coding-agent map for this workspace. Norbius reads [`+agent.md`](./+
 
 ```text
 bank/
-  bank_contact/
   letter_of_offer/
   watch_point/
 drawdown/
@@ -28,7 +27,7 @@ purchase_order/
   po_document/
   po_financing/
   po_line/
-supplier/
+business_partner/
   supplier_bank/
 ```
 
@@ -36,10 +35,10 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 ## Surfaces
 
-- Apps: `purchasing`, `treasury`
+- Apps: `business_partners`, `configuration`, `purchasing`, `treasury`
 - Kiosks: none
 - Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `facility_form_pack`, `month_end_lock`, `month_end_unlock`
-- Policies: `bank_advices`, `facility_forms`, `finance`, `purchasing`, `treasury`, `viewer`
+- Policies: `bank_advices`, `facility_forms`, `finance`, `month_end_closing`, `purchasing`, `treasury`, `viewer`
 - Custom fields: none
 - Integrations: none
 

@@ -8,7 +8,8 @@ import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { committed, confirm, SETTINGS, workspace } from './kit.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
-import { confirmationRead, quotationFifoCosts } from '../src/lib/confirmation.js';
+import { quotationFifoCosts } from '../src/lib/confirmation.js';
+import { confirmationReadOf } from './reads.js';
 import { estimateFifoCost, inventoryCostRead, purchaseLotCostRead } from '../src/lib/lot-cost.js';
 import {
 	logisticsStockAvailabilityRead,
@@ -322,7 +323,7 @@ it.effect.skipIf(!password)(
 					tax_rate: '0'
 				}))
 			});
-			const savedQuote = yield* admin.query(confirmationRead(order));
+			const savedQuote = yield* confirmationReadOf(admin, order);
 			const guidance = quotationFifoCosts(savedQuote, costs, new Date().toISOString());
 			expect(guidance).toHaveLength(1);
 			expect(guidance[0]?.below).toBe(true);

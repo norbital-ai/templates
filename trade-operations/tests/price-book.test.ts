@@ -1,7 +1,13 @@
 import { sameDecimal } from './test-runtime.js';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { priceBookRead, priceBookRows } from '../src/lib/price-book.js';
+import {
+	priceBookCatalogRead,
+	priceBookDefaultsRead,
+	priceBookMonths,
+	priceBookRead,
+	priceBookRows
+} from '../src/lib/price-book.js';
 import { PRODUCT, workspace } from './kit.js';
 import catalogue from '../src/i18n/+messages.js';
 
@@ -78,9 +84,47 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 		]);
 		expect((yield* floors()).pricing_floors.rows).toEqual(rows);
 
-		const book = priceBookRows(yield* actor.query(priceBookRead('WEST', 'SGD')), '2026-10');
+		const book = priceBookRows(
+			yield* actor.query(priceBookRead('WEST', 'SGD', '2026-10')),
+			'2026-10'
+		);
 		expect(book).toHaveLength(1);
 		expect(book[0]?.code).toBe('RESIN-A');
 		expect(book[0]?.cells['2026-10-01']?.floor_price).toBe('12');
+		const nextMonth = yield* actor.query(priceBookRead('WEST', 'SGD', '2026-11'));
+		expect(nextMonth.pricing_floors.rows).toEqual([]);
+		yield* actor.act({
+			'pricing_floors.create': [
+				{
+					product: PRODUCT,
+					group_code: 'WEST',
+					currency: 'SGD',
+					effective_on: '2026-11-01',
+					unit: product.unit,
+					floor_price: '15',
+					tax_inclusive: false,
+					tax_rate: '0',
+					minimum_quantity: '5'
+				}
+			]
+		});
+		expect(
+			(yield* actor.query(priceBookRead('WEST', 'SGD', '2026-10'))).pricing_floors.rows
+		).toHaveLength(1);
+		expect(
+			(yield* actor.query(priceBookRead('WEST', 'SGD', '2026-11'))).pricing_floors.rows
+		).toMatchObject([{ effective_on: '2026-11-01', floor_price: '15' }]);
+		expect(
+			(yield* actor.query(priceBookDefaultsRead('WEST', 'SGD', PRODUCT, '5'))).pricing_floors.rows
+		).toMatchObject([{ unit: product.unit, tax_inclusive: false, tax_rate: '0' }]);
+		const catalog = yield* actor.query(priceBookCatalogRead);
+		expect(priceBookMonths(catalog, 'WEST', 'SGD')).toEqual(['2026-11', '2026-10']);
+		expect(priceBookMonths(catalog, 'WEST', 'USD')).toEqual([]);
+		expect(
+			catalog.pricing_floors.rows.filter((row) => row.key.group_code === 'WEST')
+		).toMatchObject([
+			{ key: { group_code: 'WEST', currency: 'SGD', effective_on: '2026-10-01' }, count: 1 },
+			{ key: { group_code: 'WEST', currency: 'SGD', effective_on: '2026-11-01' }, count: 1 }
+		]);
 	})
 );

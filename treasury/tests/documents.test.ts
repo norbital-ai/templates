@@ -128,7 +128,7 @@ it.layer(
 				const purchaser = yield* t.as(t.member(['purchasing']));
 				const treasury = yield* t.as(t.member(['treasury']));
 				const supplier = (yield* treasury.act({
-					'supplier.create': [{ name: 'Synthetic Supplier' }]
+					'business_partner.create': [{ name: 'Synthetic Supplier' }]
 				})).records[0];
 				if (supplier === undefined) throw new Error('Expected the supplier.');
 				const po = (yield* purchaser.act({
@@ -136,7 +136,7 @@ it.layer(
 						{
 							po_number: 'PO-SYN-001',
 							po_date: '2026-11-01',
-							supplier: Schema.decodeUnknownSync(id_of('supplier'))(supplier.id),
+							supplier: Schema.decodeUnknownSync(id_of('business_partner'))(supplier.id),
 							lines: [{ item: 'Synthetic item', quantity: '10', amount: '1200' }]
 						}
 					]

@@ -5,7 +5,7 @@
 	 * too long, no rate history. The comparison and the monthly rates are for negotiations. USD trade financing only.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Combobox, Input, Table, Tabs } from '@norbital-ai/ui';
+	import { Combobox, EmptyState, Input, Table } from '@norbital-ai/ui';
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { PRODUCTS, PRODUCT_CODES, type Product } from '../../lib/products.js';
 	import {
@@ -19,6 +19,7 @@
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 	const day = ctx.clock('day');
+	let report = $state('calculator');
 	const read = ctx.query({
 		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
 		drawdown: {
@@ -42,13 +43,14 @@
 			]
 		},
 		fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] },
-		supplier: {
+		business_partner: {
 			where: { is_active: { eq: true } },
 			fields: ['name'],
 			eligible_banks: { fields: ['bank'], bank: { fields: ['code'] } }
 		}
 	});
 	const facilities = $derived(read.current?.facility.rows ?? []);
+	const incomplete = $derived(Object.values(read.current ?? {}).some((page) => page.next != null));
 	const lines = $derived(read.current?.drawdown.rows ?? []);
 	const banks = $derived(new Map(facilities.map((f) => [f.id, f.bank?.code ?? '—'])));
 
@@ -56,7 +58,7 @@
 	let tenor = $state('150');
 	let product = $state<Product>('if');
 	let supplier = $state<string | null>(null);
-	const chosen = $derived(read.current?.supplier.rows.find((s) => s.id === supplier));
+	const chosen = $derived(read.current?.business_partner.rows.find((s) => s.id === supplier));
 	const eligible = $derived(
 		chosen === undefined ? null : new Set(chosen.eligible_banks.map((e) => e.bank?.code ?? ''))
 	);
@@ -125,7 +127,10 @@
 				aria-label={t('app.costs.supplier')}
 				placeholder={t('app.costs.any_supplier')}
 				clearable
-				options={(read.current?.supplier.rows ?? []).map((s) => ({ value: s.id, label: s.name }))}
+				options={(read.current?.business_partner.rows ?? []).map((s) => ({
+					value: s.id,
+					label: s.name
+				}))}
 				value={supplier}
 				on_change={(v) => (supplier = v)}
 			/>
@@ -190,24 +195,29 @@
 	icon="lucide:percent"
 	title={t('app.costs.title')}
 	description={t('app.costs.description')}
-	variant="full"
 >
-	<Tabs
-		tabs={[
-			{
-				name: 'calculator',
-				title: t('app.costs.calculator'),
-				icon: 'lucide:calculator',
-				body: calculator,
-				keep_alive: true
-			},
-			{
-				name: 'comparison',
-				title: t('app.costs.comparison'),
-				icon: 'lucide:scale',
-				body: comparison
-			},
-			{ name: 'rates', title: t('app.costs.by_month'), icon: 'lucide:grid-3x3', body: rates }
-		]}
-	/>
+	{#if read.error}
+		<EmptyState title={t('app.dashboard.error')} hint={read.error.message} />
+	{:else if read.current === undefined}
+		<EmptyState title={t('app.dashboard.loading')} />
+	{:else if incomplete}
+		<EmptyState title={t('app.dashboard.error')} hint={t('reports.incomplete')} />
+	{:else}
+		<Stack gap="md">
+			<Combobox
+				class="w-56"
+				aria-label={t('app.costs.report')}
+				options={[
+					{ value: 'calculator', label: t('app.costs.calculator') },
+					{ value: 'comparison', label: t('app.costs.comparison') },
+					{ value: 'rates', label: t('app.costs.by_month') }
+				]}
+				value={report}
+				on_change={(value) => (report = value ?? 'calculator')}
+			/>
+			{#if report === 'calculator'}{@render calculator()}
+			{:else if report === 'comparison'}{@render comparison()}
+			{:else}{@render rates()}{/if}
+		</Stack>
+	{/if}
 </AppShell>

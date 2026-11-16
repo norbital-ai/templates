@@ -98,13 +98,46 @@ export const FACILITY_FIELDS = [
 ] as const;
 
 const OPEN: readonly Status[] = ['applied', 'active'];
-const usd = (line: LineRow) => decimal(line.amount_usd);
+const usd = (line: Pick<LineRow, 'amount_usd'>) => decimal(line.amount_usd);
 const usesLimit = (line: LineRow) =>
 	OPEN.includes(line.status) && PRODUCTS[line.product].uses_limit;
 const pct = (part: BigDecimal.BigDecimal, whole: BigDecimal.BigDecimal) => {
 	const r = ratio(BigDecimal.multiply(part, decimal(100)), whole);
 	return r === null ? null : BigDecimal.toNumberUnsafe(r);
 };
+
+/** A financing's derived figures, calculated from source facts and the current facility terms. */
+export function lineFigures(
+	line: {
+		readonly amount: string;
+		readonly fx_rate_to_usd: string;
+		readonly interest_rate_pct: string | null;
+		readonly start_date: string | null;
+		readonly due_date: string | null;
+		readonly day_count_basis: DayBasis;
+		readonly earliest_invoice_date: string | null;
+	},
+	terms: { readonly interest_rounding: Rounding; readonly max_tenor_days: number | null } | null
+) {
+	const tenor = tenorDays(line.start_date, line.due_date);
+	return {
+		amount_usd: text(
+			money(BigDecimal.multiply(decimal(line.amount), decimal(line.fx_rate_to_usd)))
+		),
+		tenor_days: tenor,
+		interest_to_maturity: interest(
+			line.amount,
+			line.interest_rate_pct,
+			tenor,
+			line.day_count_basis,
+			terms?.interest_rounding
+		),
+		latest_due_date:
+			line.earliest_invoice_date === null || terms?.max_tenor_days == null
+				? null
+				: addDays(line.earliest_invoice_date, terms.max_tenor_days)
+	};
+}
 
 /** Amount-weighted average rate (% p.a.) of the lines that carry one. */
 export function weightedRate(lines: readonly LineRow[]) {
@@ -588,7 +621,11 @@ export function monthEndFrom<
 		readonly bank_reference: string | null;
 		readonly fx_rate_to_usd: string;
 		readonly supplier: { readonly name: string } | null;
-		readonly charges: readonly { readonly amount: string; readonly fx_rate_to_usd: string }[];
+		readonly charges: readonly {
+			readonly amount: string;
+			readonly fx_rate_to_usd: string;
+			readonly stage: Stage;
+		}[];
 	}
 >(month: string, lines: readonly L[], facilities: readonly FacilityRow[], rates: readonly FxRow[]) {
 	const rounding = new Map(facilities.map((f) => [f.id, f.interest_rounding]));
@@ -599,7 +636,13 @@ export function monthEndFrom<
 			supplier_name: l.supplier?.name ?? null,
 			rounding:
 				(l.facility === null ? undefined : rounding.get(l.facility)) ?? ('nearest_cent' as const),
-			charges_usd: chargesUsd(l.charges)
+			charges_usd: chargesUsd(
+				l.charges.filter(
+					(c) =>
+						c.stage === 'drawdown' ||
+						(l.settlement_date !== null && l.settlement_date <= monthEnd(month))
+				)
+			)
 		})),
 		facilities,
 		rates
@@ -965,7 +1008,7 @@ export function lineWarnings(
 		readonly supplier: string | null;
 		readonly fx_rate_to_usd: string;
 		readonly lc_expiry_date: string | null;
-		readonly latest_due_date: string | null;
+		readonly earliest_invoice_date: string | null;
 	},
 	context: {
 		readonly facility: FacilityRow | null;
@@ -1030,12 +1073,9 @@ export function lineWarnings(
 			key: 'warning.tenor_over',
 			values: { tenor, bank: f.bank?.code ?? '—', max: f.max_tenor_days }
 		});
-	if (
-		line.latest_due_date !== null &&
-		line.due_date !== null &&
-		line.due_date > line.latest_due_date
-	)
-		out.push({ key: 'warning.after_latest_due', values: { latest: line.latest_due_date } });
+	const latest = lineFigures(line, f).latest_due_date;
+	if (latest !== null && line.due_date !== null && line.due_date > latest)
+		out.push({ key: 'warning.after_latest_due', values: { latest } });
 	if (context.offered.length > 0 && !context.offered.includes(line.product))
 		out.push({ key: 'warning.product_not_offered', values: { bank: f.bank?.code ?? '—' } });
 	if (

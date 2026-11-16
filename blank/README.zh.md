@@ -8,8 +8,8 @@
 ## 应用与角色
 
 无。`src/+workspace.ts` 只声明时区和语言区域，未编写任何团队或策略。
-起始模板包含 Runed、std 和 Iconify，用于编写普通模块和自定义界面；
-主题行为由工作区外壳负责。源码用到其他依赖时再添加。
+起始模板包含 Bolt、Svelte 和 Effect；主题行为由工作区外壳负责。
+源码用到其他依赖时再添加。
 
 ## 数据模型
 
@@ -51,8 +51,8 @@ bunx bolt check   # types, Svelte warnings, layout and declarations
 bun run test    # bolt test
 ```
 
-`tests/blank.test.ts` 根据 `src/` 重新计算模型、应用和自动化的数量，与
-`norbital.template.json` 中的 `counts` 不一致时即失败：请在同一次变更中同时更新两者。
+`bolt build` 根据 `src/` 计算模型、应用和自动化的数量，并在打包目录前
+更新 `norbital.template.json` 中的 `counts`。
 
 ## 维护中的源码参考
 

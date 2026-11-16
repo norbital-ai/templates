@@ -16,13 +16,13 @@ Your tools already carry each person's access:
 
 ## What the models mean
 
-- `bank`, `bank_contact`, `watch_point`, `letter_of_offer` — a bank, who to call there, its rules
+- `bank` (including its contacts), `watch_point`, `letter_of_offer` — a bank, who to call there, its rules
   and its letters of offer.
 - `facility`, `facility_fee`, `sub_limit` — a credit line, how the bank charges on it, and the parts
   of its limit reserved for a product or supplier.
 - `drawdown`, `drawdown_charge`, `bank_document` — one financing line from earmark to settlement,
   its charges and the bank's advices.
-- `supplier`, `supplier_bank` — suppliers and the banks that finance them.
+- `business_partner`, `supplier_bank` — one partner directory with supplier/customer roles and the banks that finance suppliers.
 - `purchase_order`, `po_line`, `invoice`, `invoice_line`, `po_document`, `po_financing`,
   `facility_form`, `facility_attachment` — purchasing, invoices checked against POs, and the lines
   that pay them.
@@ -43,3 +43,11 @@ Your tools already carry each person's access:
 - Keep the bank's own numbers exactly as its advice gives them.
 - Never expose a system `id`. Refer to a record by a human-readable field.
 - If a request is ambiguous, ask one focused question rather than guessing.
+
+## Navigation and calculated figures
+
+Treasury is Overview, Financing, Bank advices, Attention, Costs and Month-end. Banks, facilities and FX belong to Configuration; suppliers and customers share Business partners. Purchasing has one Purchase orders list and Facility forms. Use native filters and record actions, not parallel review queues. Advice changes go through native bank-advice approval; discrepancy notes record evidence without a second review state.
+
+Live tenor, interest and latest eligible financing dates are calculated from source facts and current terms. Native computed fields and PO rollups recalculate on source writes. Closed portal month-ends freeze inputs and figures; unlock before recalculation and close again to replace the snapshot. Imported Excel summaries cannot be reclosed from today’s book. Never write ledger figures directly.
+
+Closing reads every source page and is the sole writer of portal snapshot figures. Native model rules reject manual closes, manual reopen attempts and hand-entered ledger figures even for administrators. Imported historical summaries are immutable.

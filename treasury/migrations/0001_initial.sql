@@ -1,4 +1,4 @@
--- 0001_initial.sql: 300 step(s), from an empty database to c0820a4dae957725f4257c437fe4037a15003e145f26f7af0e1afb1d16d8ded3.
+-- 0001_initial.sql: 342 step(s), from an empty database to eb10d508262485209c3859e6ff06f0335194347ca1eefa5d2ca0347e05fa569a.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -382,364 +382,374 @@ create or replace function bolt_search_query(term text, every boolean) returns t
 create or replace function bolt_search_filter(term text) returns tsquery language plpgsql immutable strict parallel safe as $bolt_search$ begin return (select string_agg('(' || q::text || ')', ' & ')::tsquery from regexp_split_to_table(bolt_search_fold(regexp_replace(term, '[''’]s\M', '', 'gi')), ' ') as word, bolt_search_query(word, false) as q where q is not null); end $bolt_search$;
 
 -- step create:function:bolt_record_label_requestor_ecf94290 (additive)
-create function "bolt_record_label_requestor_ecf94290"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_requestor_ecf94290"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['user_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('user_id', to_jsonb("user_id")) AS j FROM (SELECT $1 AS "user_id") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['user_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('user_id', to_jsonb("user_id")) AS j FROM (SELECT $1 AS "user_id") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_api_key_93340fdd (additive)
-create function "bolt_record_label_sys_api_key_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_api_key_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_challenge_df4146f1 (additive)
-create function "bolt_record_label_sys_challenge_df4146f1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_challenge_df4146f1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['address_mac']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('address_mac', to_jsonb("address_mac")) AS j FROM (SELECT $1 AS "address_mac") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['address_mac']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('address_mac', to_jsonb("address_mac")) AS j FROM (SELECT $1 AS "address_mac") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_config_3b2327df (additive)
-create function "bolt_record_label_sys_config_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_config_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_conversation_06f5fc13 (additive)
-create function "bolt_record_label_sys_conversation_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_conversation_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_envoy_93340fdd (additive)
-create function "bolt_record_label_sys_envoy_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_envoy_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_file_93340fdd (additive)
-create function "bolt_record_label_sys_file_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_file_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_inbox_36426dfc (additive)
-create function "bolt_record_label_sys_inbox_36426dfc"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_inbox_36426dfc"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['delivery']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('delivery', to_jsonb("delivery")) AS j FROM (SELECT $1 AS "delivery") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['delivery']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('delivery', to_jsonb("delivery")) AS j FROM (SELECT $1 AS "delivery") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_integration_93340fdd (additive)
-create function "bolt_record_label_sys_integration_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_integration_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_invitation_34710ef4 (additive)
-create function "bolt_record_label_sys_invitation_34710ef4"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_invitation_34710ef4"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['email']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('email', to_jsonb("email")) AS j FROM (SELECT $1 AS "email") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['email']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('email', to_jsonb("email")) AS j FROM (SELECT $1 AS "email") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_message_6667a00c (additive)
-create function "bolt_record_label_sys_message_6667a00c"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_message_6667a00c"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['preview']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('preview', to_jsonb("preview")) AS j FROM (SELECT $1 AS "preview") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['preview']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('preview', to_jsonb("preview")) AS j FROM (SELECT $1 AS "preview") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_notification_06f5fc13 (additive)
-create function "bolt_record_label_sys_notification_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_notification_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_outbox_3b2327df (additive)
-create function "bolt_record_label_sys_outbox_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_outbox_3b2327df"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['key']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('key', to_jsonb("key")) AS j FROM (SELECT $1 AS "key") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_run_09f15580 (additive)
-create function "bolt_record_label_sys_run_09f15580"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_run_09f15580"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['automation']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('automation', to_jsonb("automation")) AS j FROM (SELECT $1 AS "automation") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['automation']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('automation', to_jsonb("automation")) AS j FROM (SELECT $1 AS "automation") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_session_6a2ce92f (additive)
-create function "bolt_record_label_sys_session_6a2ce92f"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_session_6a2ce92f"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['via']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('via', to_jsonb("via")) AS j FROM (SELECT $1 AS "via") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['via']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('via', to_jsonb("via")) AS j FROM (SELECT $1 AS "via") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_sync_35128a4d (additive)
-create function "bolt_record_label_sys_sync_35128a4d"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_sync_35128a4d"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['sync']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('sync', to_jsonb("sync")) AS j FROM (SELECT $1 AS "sync") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['sync']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('sync', to_jsonb("sync")) AS j FROM (SELECT $1 AS "sync") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_sync_row_605c7331 (additive)
-create function "bolt_record_label_sys_sync_row_605c7331"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_sync_row_605c7331"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['remote_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('remote_id', to_jsonb("remote_id")) AS j FROM (SELECT $1 AS "remote_id") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['remote_id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('remote_id', to_jsonb("remote_id")) AS j FROM (SELECT $1 AS "remote_id") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_user_93340fdd (additive)
-create function "bolt_record_label_sys_user_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sys_user_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_bank_1d6aa255 (additive)
-create function "bolt_record_label_bank_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_bank_1d6aa255"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_bank_contact_93340fdd (additive)
-create function "bolt_record_label_bank_contact_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['code']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('code', to_jsonb("code")) AS j FROM (SELECT $1 AS "code") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_letter_of_offer_06f5fc13 (additive)
-create function "bolt_record_label_letter_of_offer_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_letter_of_offer_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_watch_point_b2bf9cd3 (additive)
-create function "bolt_record_label_watch_point_b2bf9cd3"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_watch_point_b2bf9cd3"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['text']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('text', to_jsonb("text")) AS j FROM (SELECT $1 AS "text") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['text']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('text', to_jsonb("text")) AS j FROM (SELECT $1 AS "text") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
--- step create:function:bolt_record_label_drawdown_6e8ab94b (additive)
-create function "bolt_record_label_drawdown_6e8ab94b"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_business_partner_93340fdd (additive)
+create or replace function "bolt_record_label_business_partner_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('bank_reference', to_jsonb("bank_reference")) AS j FROM (SELECT $1 AS "bank_reference") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
--- step create:function:bolt_record_label_bank_document_6d5469b9 (additive)
-create function "bolt_record_label_bank_document_6d5469b9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_drawdown_c9bc55ae (additive)
+create or replace function "bolt_record_label_drawdown_c9bc55ae"(numeric, text, text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('advice_reference', to_jsonb("advice_reference")) AS j FROM (SELECT $1 AS "advice_reference") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_3.left_value) = 'string' AND jsonb_typeof(label_3.right_value) = 'string' THEN to_jsonb((label_3.left_value #>> '{}') || (label_3.right_value #>> '{}')) WHEN jsonb_typeof(label_3.left_value) = 'array' AND jsonb_typeof(label_3.right_value) = 'array' THEN label_3.left_value || label_3.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_3.left_value) = 'number' THEN (label_3.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_3.right_value) = 'number' THEN (label_3.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_2.left_value) = 'string' AND jsonb_typeof(label_2.right_value) = 'string' THEN to_jsonb((label_2.left_value #>> '{}') || (label_2.right_value #>> '{}')) WHEN jsonb_typeof(label_2.left_value) = 'array' AND jsonb_typeof(label_2.right_value) = 'array' THEN label_2.left_value || label_2.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_2.left_value) = 'number' THEN (label_2.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_2.right_value) = 'number' THEN (label_2.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['bank_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb((coalesce((label_row.j #> ARRAY['product']), 'null'::jsonb) #>> '{}')) ELSE 'null'::jsonb END) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['currency']), 'null'::jsonb) AS right_value OFFSET 0) label_1) AS left_value, to_jsonb(' '::text) AS right_value OFFSET 0) label_2) AS left_value, to_jsonb((coalesce((label_row.j #> ARRAY['amount']), 'null'::jsonb) #>> '{}')) AS right_value OFFSET 0) label_3) #>> '{}') AS value FROM (SELECT jsonb_build_object('bank_reference', to_jsonb("bank_reference"), 'product', to_jsonb("product"), 'currency', to_jsonb("currency"), 'amount', to_jsonb(("amount")::text)) AS j FROM (SELECT $1 AS "amount", $2 AS "bank_reference", $3 AS "currency", $4 AS "product") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_bank_document_3dc52602 (additive)
+create or replace function "bolt_record_label_bank_document_3dc52602"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['advice_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb('Advice'::text) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('advice_reference', to_jsonb("advice_reference")) AS j FROM (SELECT $1 AS "advice_reference") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_drawdown_charge_60712bd1 (additive)
-create function "bolt_record_label_drawdown_charge_60712bd1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_drawdown_charge_60712bd1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['charge_type']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('charge_type', to_jsonb("charge_type")) AS j FROM (SELECT $1 AS "charge_type") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['charge_type']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('charge_type', to_jsonb("charge_type")) AS j FROM (SELECT $1 AS "charge_type") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_facility_93340fdd (additive)
-create function "bolt_record_label_facility_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_facility_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_facility_fee_e13c4f1a (additive)
-create function "bolt_record_label_facility_fee_e13c4f1a"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_facility_fee_e13c4f1a"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['fee_type']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('fee_type', to_jsonb("fee_type")) AS j FROM (SELECT $1 AS "fee_type") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['fee_type']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('fee_type', to_jsonb("fee_type")) AS j FROM (SELECT $1 AS "fee_type") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sub_limit_93340fdd (additive)
-create function "bolt_record_label_sub_limit_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_sub_limit_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_fx_rate_4982f156 (additive)
-create function "bolt_record_label_fx_rate_4982f156"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_fx_rate_4982f156"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['currency']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('currency', to_jsonb("currency")) AS j FROM (SELECT $1 AS "currency") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['currency']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('currency', to_jsonb("currency")) AS j FROM (SELECT $1 AS "currency") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
--- step create:function:bolt_record_label_month_end_ee21dd4a (additive)
-create function "bolt_record_label_month_end_ee21dd4a"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_month_end_907c8683 (additive)
+create or replace function "bolt_record_label_month_end_907c8683"(date) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['month']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('month', to_jsonb("month"::text)) AS j FROM (SELECT $1 AS "month") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (to_jsonb((coalesce((label_row.j #> ARRAY['month']), 'null'::jsonb) #>> '{}')) #>> '{}') AS value FROM (SELECT jsonb_build_object('month', to_jsonb("month"::text)) AS j FROM (SELECT $1 AS "month") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
--- step create:function:bolt_record_label_month_end_line_813c0aa8 (additive)
-create function "bolt_record_label_month_end_line_813c0aa8"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+-- step create:function:bolt_record_label_month_end_line_7135a1d1 (additive)
+create or replace function "bolt_record_label_month_end_line_7135a1d1"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('reference', to_jsonb("reference")) AS j FROM (SELECT $1 AS "reference") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['bank_code']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb('—'::text) ELSE 'null'::jsonb END) AS right_value OFFSET 0) label_1) #>> '{}') AS value FROM (SELECT jsonb_build_object('bank_code', to_jsonb("bank_code"), 'reference', to_jsonb("reference")) AS j FROM (SELECT $1 AS "bank_code", $2 AS "reference") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_purchase_order_27022eb9 (additive)
-create function "bolt_record_label_purchase_order_27022eb9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_purchase_order_27022eb9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['po_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('po_number', to_jsonb("po_number")) AS j FROM (SELECT $1 AS "po_number") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['po_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('po_number', to_jsonb("po_number")) AS j FROM (SELECT $1 AS "po_number") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_facility_form_27022eb9 (additive)
+create or replace function "bolt_record_label_facility_form_27022eb9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['po_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('po_number', to_jsonb("po_number")) AS j FROM (SELECT $1 AS "po_number") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_facility_attachment_06f5fc13 (additive)
+create or replace function "bolt_record_label_facility_attachment_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_invoice_d54577a9 (additive)
-create function "bolt_record_label_invoice_d54577a9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_invoice_d54577a9"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['invoice_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('invoice_number', to_jsonb("invoice_number")) AS j FROM (SELECT $1 AS "invoice_number") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['invoice_number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('invoice_number', to_jsonb("invoice_number")) AS j FROM (SELECT $1 AS "invoice_number") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_po_document_06f5fc13 (additive)
-create function "bolt_record_label_po_document_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_po_document_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_po_line_d1d21638 (additive)
-create function "bolt_record_label_po_line_d1d21638"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+create or replace function "bolt_record_label_po_line_d1d21638"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
 			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['item']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('item', to_jsonb("item")) AS j FROM (SELECT $1 AS "item") label_inputs) label_row) label_value$record_label$;
-
--- step create:function:bolt_record_label_supplier_93340fdd (additive)
-create function "bolt_record_label_supplier_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row) label_value$record_label$;
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['item']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('item', to_jsonb("item")) AS j FROM (SELECT $1 AS "item") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:engine:bolt_history_register (additive)
 create or replace function bolt_history_register(model_name text, definition jsonb)
@@ -1348,27 +1358,18 @@ create table "sys_user" ("id" text primary key,
 create table "bank" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"code" text not null,
 	"name" text not null,
+	"contacts" jsonb,
 	"cut_off_time" text,
+	"settlement_instructions" text,
 	"terms_notes" text,
+	"offered_products" text[],
 	"is_active" boolean default true not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_bank_1d6aa255"("code")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bank_1d6aa255"("code"), ''))) stored,
 	constraint "bank__ck__cf471164" check (char_length("code") <= 20),
+	constraint "bank__ck__00bea859" check (("contacts" is null or store_json_valid("contacts", '{"kind":"json","optional":true,"shape":{"fields":{"email":{"format":"email","kind":"text","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"role":{"kind":"enum","values":["relationship_manager","client_service","trade_operations","other"]}},"kind":"object","many":true}}'::jsonb) is true)),
+	constraint "bank__ck__2aa057f7" check (not jsonb_path_exists(to_jsonb("offered_products"), 'strict $[*] ? (@.type() != "string")') and "offered_products" <@ array['lc', 'import_bill', 'da', 'dp', 'tb', 'ba', 'bad', 'if', 'if_after_lc_or_da', 'pif', 'twc', 'oaf', 'apf', 'psil', 'psbl', 'ofcl', 'mctf', 'tradepay', 'packing', 'fbep', 'dbep', 'ecr', 'badd', 'stl', 'term', 'efs', 'lis', 'tbl', 'ma', 'property', 'bg', 'sg', 'awb', 'sblc', 'fx', 'card', 'cash']::text[]),
 	constraint "bank__uq__8afde2d7" unique ("code")
-);
-
--- step create:table:bank_contact (additive)
-create table "bank_contact" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"role" text default 'other'::text not null,
-	"name" text not null,
-	"email" text,
-	"phone" text,
-	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_bank_contact_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bank_contact_93340fdd"("name"), ''))) stored,
-	"bank" uuid not null,
-	constraint "bank_contact__ck__4da46c0f" check ("role" in ('relationship_manager', 'client_service', 'trade_operations', 'other')),
-	constraint "bank_contact__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')
 );
 
 -- step create:table:letter_of_offer (additive)
@@ -1399,6 +1400,32 @@ create table "watch_point" ("id" uuid primary key, revision int not null default
 	constraint "watch_point__ck__8138f808" check ("category" in ('suppliers', 'restriction', 'documents', 'settlement', 'pricing', 'other'))
 );
 
+-- step create:table:business_partner (additive)
+create table "business_partner" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"name" text not null,
+	"is_supplier" boolean default true not null,
+	"is_customer" boolean default false not null,
+	"aliases" text[],
+	"country" text,
+	"payment_terms" text,
+	"products" text,
+	"relationship_since" date,
+	"notes" text,
+	"is_active" boolean default true not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_business_partner_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_business_partner_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce(bolt_search_join("aliases"::text[]), ''))) stored,
+	constraint "business_partner__ck__82bbedb7" check (not jsonb_path_exists(to_jsonb("aliases"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "business_partner__ck__2a4562b4" check (isfinite("relationship_since")),
+	constraint "business_partner__uq__7b9c2684" unique ("name")
+);
+
+-- step create:table:supplier_bank (additive)
+create table "supplier_bank" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"supplier" uuid not null,
+	"bank" uuid not null,
+	constraint "supplier_bank__uq__d80ef5c3" unique nulls not distinct ("supplier", "bank") deferrable initially immediate
+);
+
 -- step create:table:drawdown (additive)
 create table "drawdown" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"product" text default 'if'::text not null,
@@ -1408,43 +1435,55 @@ create table "drawdown" ("id" uuid primary key, revision int not null default 1,
 	"lc_number" text,
 	"lc_expiry_date" date,
 	"bill_number" text,
+	"terms_days" int,
 	"currency" text default 'USD'::text not null,
 	"amount" numeric not null,
+	"fx_rate_to_usd" numeric default '1'::numeric not null,
 	"application_date" date,
 	"released_date" date,
 	"start_date" date,
 	"due_date" date,
 	"interest_rate_pct" numeric,
+	"rate_source" text,
 	"charge_rate_pct" numeric,
 	"day_count_basis" text default 'actual_360'::text not null,
 	"expected_draw_date" date,
 	"earliest_invoice_date" date,
+	"requested_by" text,
 	"purpose" text,
 	"settlement_date" date,
 	"settled_principal" numeric,
 	"settled_interest" numeric,
+	"settled_by" text,
+	"discrepancy_note" text,
 	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_drawdown_6e8ab94b"("bank_reference")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_drawdown_6e8ab94b"("bank_reference"), '') || ' ' || coalesce("bank_reference"::text, '') || ' ' || coalesce("lc_number"::text, '') || ' ' || coalesce("bill_number"::text, ''))) stored,
+	"amount_usd" numeric generated always as ((round(((("amount")::numeric * ("fx_rate_to_usd")::numeric))::numeric, 2))::numeric) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_drawdown_c9bc55ae"("amount", "bank_reference", "currency", "product")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_drawdown_c9bc55ae"("amount", "bank_reference", "currency", "product"), '') || ' ' || coalesce("bank_reference"::text, '') || ' ' || coalesce("lc_number"::text, '') || ' ' || coalesce("bill_number"::text, ''))) stored,
 	"facility" uuid,
 	"supplier" uuid,
-	constraint "drawdown__ck__3e75e609" check ("product" in ('if', 'if_after_lc_or_da', 'lc', 'import_bill', 'da', 'dp', 'tb', 'twc', 'stl', 'bg', 'cash', 'other')),
+	"converted_from" uuid,
+	constraint "drawdown__ck__7db82e38" check ("product" in ('lc', 'import_bill', 'da', 'dp', 'tb', 'ba', 'bad', 'if', 'if_after_lc_or_da', 'pif', 'twc', 'oaf', 'apf', 'psil', 'psbl', 'ofcl', 'mctf', 'tradepay', 'packing', 'fbep', 'dbep', 'ecr', 'badd', 'stl', 'term', 'efs', 'lis', 'tbl', 'ma', 'property', 'bg', 'sg', 'awb', 'sblc', 'fx', 'card', 'cash')),
 	constraint "drawdown__ck__ae6a36f3" check ("status" in ('earmarked', 'applied', 'active', 'settled', 'cancelled', 'unclear')),
 	constraint "drawdown__ck__1a1b051b" check (isfinite("lc_expiry_date")),
+	constraint "drawdown__ck__47d4ed26" check ("terms_days" >= 0),
 	constraint "drawdown__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
-	constraint "drawdown__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount"),
+	constraint "drawdown__ck__6ed3a672" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount" and "amount" >= 0),
+	constraint "drawdown__ck__48a45d78" check ("fx_rate_to_usd" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("fx_rate_to_usd", 12) = "fx_rate_to_usd"),
 	constraint "drawdown__ck__1e0c878d" check (isfinite("application_date")),
 	constraint "drawdown__ck__a2f2aa10" check (isfinite("released_date")),
 	constraint "drawdown__ck__790737cd" check (isfinite("start_date")),
 	constraint "drawdown__ck__fcf7f1c2" check (isfinite("due_date")),
 	constraint "drawdown__ck__96af28fd" check ("interest_rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("interest_rate_pct", 6) = "interest_rate_pct"),
+	constraint "drawdown__ck__70e8e49a" check ("rate_source" in ('manual', 'bank_advice')),
 	constraint "drawdown__ck__41942fc4" check ("charge_rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("charge_rate_pct", 6) = "charge_rate_pct"),
 	constraint "drawdown__ck__8011bd28" check ("day_count_basis" in ('actual_360', 'actual_365')),
 	constraint "drawdown__ck__cd42eb0d" check (isfinite("expected_draw_date")),
 	constraint "drawdown__ck__eecddc2c" check (isfinite("earliest_invoice_date")),
 	constraint "drawdown__ck__26dd7bce" check (isfinite("settlement_date")),
 	constraint "drawdown__ck__970b1a22" check ("settled_principal" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("settled_principal", 2) = "settled_principal"),
-	constraint "drawdown__ck__775e298d" check ("settled_interest" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("settled_interest", 2) = "settled_interest")
+	constraint "drawdown__ck__775e298d" check ("settled_interest" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("settled_interest", 2) = "settled_interest"),
+	constraint "drawdown__ck__d91f106d" check ("settled_by" in ('repaid', 'cash', 'converted'))
 );
 
 -- step create:table:bank_document (additive)
@@ -1453,16 +1492,18 @@ create table "bank_document" ("id" uuid primary key, revision int not null defau
 	"advice_reference" text,
 	"advice_date" date,
 	"file" jsonb not null,
+	"extracted" jsonb,
 	"read_status" text default 'uploaded'::text not null,
 	"read_note" text,
 	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_bank_document_6d5469b9"("advice_reference")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bank_document_6d5469b9"("advice_reference"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_bank_document_3dc52602"("advice_reference")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bank_document_3dc52602"("advice_reference"), ''))) stored,
 	"bank" uuid,
 	"drawdown" uuid,
 	constraint "bank_document__ck__ef6d387c" check ("doc_type" in ('drawdown_advice', 'settlement_advice', 'other')),
 	constraint "bank_document__ck__3ac3e041" check (isfinite("advice_date")),
 	constraint "bank_document__ck__b29579ec" check (("file" is null or store_json_valid("file", '{"accept":["application/pdf"],"kind":"file","max":"10MiB"}'::jsonb) is true)),
+	constraint "bank_document__ck__3ac5e389" check (("extracted" is null or store_json_valid("extracted", '{"kind":"json","optional":true,"shape":{"fields":{"bank_reference":{"kind":"text","optional":true},"bill_number":{"kind":"text","optional":true},"charges":{"fields":{"amount_usd":{"kind":"decimal","scale":2},"charge_type":{"kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"description":{"kind":"text","optional":true}},"kind":"object","many":true,"optional":true},"currency":{"kind":"currency","optional":true},"due_date":{"kind":"date","optional":true},"interest_amount":{"kind":"decimal","optional":true,"scale":2},"interest_days":{"kind":"int","optional":true},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"lc_number":{"kind":"text","optional":true},"principal":{"kind":"decimal","optional":true,"scale":2},"product":{"kind":"enum","optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"start_date":{"kind":"date","optional":true},"supplier_name":{"kind":"text","optional":true},"total_debited":{"kind":"decimal","optional":true,"scale":2},"uncertain":{"kind":"text","many":true,"optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "bank_document__ck__4f3a3af2" check ("read_status" in ('uploaded', 'checked', 'applied', 'failed'))
 );
 
@@ -1473,14 +1514,16 @@ create table "drawdown_charge" ("id" uuid primary key, revision int not null def
 	"description" text,
 	"currency" text default 'USD'::text not null,
 	"amount" numeric not null,
-	"is_estimate" boolean default true not null,
+	"fx_rate_to_usd" numeric default '1'::numeric not null,
+	"amount_usd" numeric generated always as ((round(((("amount")::numeric * ("fx_rate_to_usd")::numeric))::numeric, 2))::numeric) stored,
 	"bolt_record_label" text generated always as ("bolt_record_label_drawdown_charge_60712bd1"("charge_type")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_drawdown_charge_60712bd1"("charge_type"), ''))) stored,
 	"drawdown" uuid not null,
 	constraint "drawdown_charge__ck__1ea083fc" check ("charge_type" in ('commission', 'cable', 'swift', 'cost_of_funds_transfer', 'processing', 'tr_extension', 'penalty', 'other')),
 	constraint "drawdown_charge__ck__67a5ad5d" check ("stage" in ('drawdown', 'settlement')),
 	constraint "drawdown_charge__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
-	constraint "drawdown_charge__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount")
+	constraint "drawdown_charge__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount"),
+	constraint "drawdown_charge__ck__e9535888" check ("fx_rate_to_usd" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("fx_rate_to_usd", 12) = "fx_rate_to_usd" and "fx_rate_to_usd" >= 0)
 );
 
 -- step create:table:facility (additive)
@@ -1492,9 +1535,13 @@ create table "facility" ("id" uuid primary key, revision int not null default 1,
 	"status" text default 'active'::text not null,
 	"margin_pct" numeric,
 	"pricing_basis" text,
+	"pricing_notes" text,
 	"day_count_basis" text default 'actual_360'::text not null,
 	"interest_rounding" text default 'nearest_cent'::text not null,
 	"max_tenor_days" int,
+	"tenor_start_rule" text,
+	"early_settlement_penalty" text,
+	"pledged_deposit" numeric,
 	"review_date" date,
 	"expiry_date" date,
 	"security" text,
@@ -1508,6 +1555,9 @@ create table "facility" ("id" uuid primary key, revision int not null default 1,
 	constraint "facility__ck__a6416cb1" check ("margin_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("margin_pct", 6) = "margin_pct"),
 	constraint "facility__ck__8011bd28" check ("day_count_basis" in ('actual_360', 'actual_365')),
 	constraint "facility__ck__36864100" check ("interest_rounding" in ('nearest_cent', 'down_to_cent')),
+	constraint "facility__ck__1a60ac93" check ("max_tenor_days" >= 0),
+	constraint "facility__ck__b9945651" check ("tenor_start_rule" in ('invoice_date', 'disbursement_date', 'bill_of_lading_date')),
+	constraint "facility__ck__b40f27b0" check ("pledged_deposit" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("pledged_deposit", 2) = "pledged_deposit"),
 	constraint "facility__ck__efe25585" check (isfinite("review_date")),
 	constraint "facility__ck__b99fd7e1" check (isfinite("expiry_date")),
 	constraint "facility__uq__8eb3e547" unique nulls not distinct ("bank", "name") deferrable initially immediate
@@ -1519,20 +1569,25 @@ create table "facility_fee" ("id" uuid primary key, revision int not null defaul
 	"product" text,
 	"stage" text default 'drawdown'::text not null,
 	"method" text default 'percent'::text not null,
+	"currency" text default 'USD'::text not null,
 	"rate_pct" numeric,
 	"amount" numeric,
 	"minimum_amount" numeric,
+	"minimum_currency" text default 'USD'::text not null,
 	"include_in_estimates" boolean default true not null,
 	"notes" text,
 	"bolt_record_label" text generated always as ("bolt_record_label_facility_fee_e13c4f1a"("fee_type")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_facility_fee_e13c4f1a"("fee_type"), ''))) stored,
 	"facility" uuid not null,
 	constraint "facility_fee__ck__7c004e6a" check ("fee_type" in ('commission', 'cable', 'swift', 'cost_of_funds_transfer', 'processing', 'tr_extension', 'penalty', 'other')),
+	constraint "facility_fee__ck__7db82e38" check ("product" in ('lc', 'import_bill', 'da', 'dp', 'tb', 'ba', 'bad', 'if', 'if_after_lc_or_da', 'pif', 'twc', 'oaf', 'apf', 'psil', 'psbl', 'ofcl', 'mctf', 'tradepay', 'packing', 'fbep', 'dbep', 'ecr', 'badd', 'stl', 'term', 'efs', 'lis', 'tbl', 'ma', 'property', 'bg', 'sg', 'awb', 'sblc', 'fx', 'card', 'cash')),
 	constraint "facility_fee__ck__67a5ad5d" check ("stage" in ('drawdown', 'settlement')),
 	constraint "facility_fee__ck__8a9e9ccd" check ("method" in ('percent', 'flat')),
+	constraint "facility_fee__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "facility_fee__ck__e0743b27" check ("rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("rate_pct", 6) = "rate_pct"),
 	constraint "facility_fee__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount"),
-	constraint "facility_fee__ck__f3be62cc" check ("minimum_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("minimum_amount", 2) = "minimum_amount")
+	constraint "facility_fee__ck__f3be62cc" check ("minimum_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("minimum_amount", 2) = "minimum_amount"),
+	constraint "facility_fee__ck__0e60c11a" check ("minimum_currency" ~ '^[A-Z]{3}$')
 );
 
 -- step create:table:sub_limit (additive)
@@ -1545,6 +1600,7 @@ create table "sub_limit" ("id" uuid primary key, revision int not null default 1
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sub_limit_93340fdd"("name"), ''))) stored,
 	"facility" uuid not null,
 	"supplier" uuid,
+	constraint "sub_limit__ck__7db82e38" check ("product" in ('lc', 'import_bill', 'da', 'dp', 'tb', 'ba', 'bad', 'if', 'if_after_lc_or_da', 'pif', 'twc', 'oaf', 'apf', 'psil', 'psbl', 'ofcl', 'mctf', 'tradepay', 'packing', 'fbep', 'dbep', 'ecr', 'badd', 'stl', 'term', 'efs', 'lis', 'tbl', 'ma', 'property', 'bg', 'sg', 'awb', 'sblc', 'fx', 'card', 'cash')),
 	constraint "sub_limit__ck__d3eba20f" check ("limit" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("limit", 2) = "limit")
 );
 
@@ -1567,6 +1623,7 @@ create table "fx_rate" ("id" uuid primary key, revision int not null default 1, 
 create table "month_end" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"month" date not null,
 	"is_locked" boolean default false not null,
+	"locked_at" timestamptz,
 	"source" text default 'portal'::text not null,
 	"credit_line" numeric,
 	"bank_borrowings" numeric,
@@ -1574,6 +1631,7 @@ create table "month_end" ("id" uuid primary key, revision int not null default 1
 	"term_bills" numeric,
 	"banker_guarantee" numeric,
 	"total_utilised" numeric,
+	"available" numeric,
 	"accrued_interest" numeric,
 	"highest_rate_pct" numeric,
 	"lowest_rate_pct" numeric,
@@ -1581,9 +1639,10 @@ create table "month_end" ("id" uuid primary key, revision int not null default 1
 	"weighted_average_rate_pct" numeric,
 	"average_tenor_days" numeric,
 	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_month_end_ee21dd4a"("month")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_month_end_ee21dd4a"("month"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_month_end_907c8683"("month")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_month_end_907c8683"("month"), ''))) stored,
 	constraint "month_end__ck__c02ef3bf" check (isfinite("month")),
+	constraint "month_end__ck__5be068ac" check (isfinite("locked_at")),
 	constraint "month_end__ck__c033fbb7" check ("source" in ('portal', 'excel')),
 	constraint "month_end__ck__409e357e" check ("credit_line" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("credit_line", 2) = "credit_line"),
 	constraint "month_end__ck__8c99d9e7" check ("bank_borrowings" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("bank_borrowings", 2) = "bank_borrowings"),
@@ -1591,6 +1650,7 @@ create table "month_end" ("id" uuid primary key, revision int not null default 1
 	constraint "month_end__ck__79197824" check ("term_bills" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("term_bills", 2) = "term_bills"),
 	constraint "month_end__ck__745d552f" check ("banker_guarantee" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("banker_guarantee", 2) = "banker_guarantee"),
 	constraint "month_end__ck__64b01bad" check ("total_utilised" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("total_utilised", 2) = "total_utilised"),
+	constraint "month_end__ck__81a11a90" check ("available" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("available", 2) = "available"),
 	constraint "month_end__ck__fce56b0e" check ("accrued_interest" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("accrued_interest", 2) = "accrued_interest"),
 	constraint "month_end__ck__b51d5c20" check ("highest_rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("highest_rate_pct", 6) = "highest_rate_pct"),
 	constraint "month_end__ck__101f3491" check ("lowest_rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("lowest_rate_pct", 6) = "lowest_rate_pct"),
@@ -1608,20 +1668,30 @@ create table "month_end_line" ("id" uuid primary key, revision int not null defa
 	"supplier" text,
 	"currency" text default 'USD'::text not null,
 	"amount" numeric not null,
+	"fx_rate_to_usd" numeric default '1'::numeric not null,
 	"amount_usd" numeric,
 	"interest_rate_pct" numeric,
+	"day_count_basis" text default 'actual_360'::text not null,
+	"start_date" date,
+	"due_date" date,
+	"tenor_days" int,
 	"accrued_days" int,
 	"accrued_interest" numeric,
 	"interest_to_maturity" numeric,
 	"charges" numeric,
-	"bolt_record_label" text generated always as ("bolt_record_label_month_end_line_813c0aa8"("reference")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_month_end_line_813c0aa8"("reference"), ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_month_end_line_7135a1d1"("bank_code", "reference")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_month_end_line_7135a1d1"("bank_code", "reference"), ''))) stored,
 	"month_end" uuid not null,
 	"drawdown" uuid,
+	constraint "month_end_line__ck__7db82e38" check ("product" in ('lc', 'import_bill', 'da', 'dp', 'tb', 'ba', 'bad', 'if', 'if_after_lc_or_da', 'pif', 'twc', 'oaf', 'apf', 'psil', 'psbl', 'ofcl', 'mctf', 'tradepay', 'packing', 'fbep', 'dbep', 'ecr', 'badd', 'stl', 'term', 'efs', 'lis', 'tbl', 'ma', 'property', 'bg', 'sg', 'awb', 'sblc', 'fx', 'card', 'cash')),
 	constraint "month_end_line__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "month_end_line__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount"),
+	constraint "month_end_line__ck__48a45d78" check ("fx_rate_to_usd" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("fx_rate_to_usd", 12) = "fx_rate_to_usd"),
 	constraint "month_end_line__ck__a5517ff8" check ("amount_usd" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount_usd", 2) = "amount_usd"),
 	constraint "month_end_line__ck__96af28fd" check ("interest_rate_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("interest_rate_pct", 6) = "interest_rate_pct"),
+	constraint "month_end_line__ck__8011bd28" check ("day_count_basis" in ('actual_360', 'actual_365')),
+	constraint "month_end_line__ck__790737cd" check (isfinite("start_date")),
+	constraint "month_end_line__ck__fcf7f1c2" check (isfinite("due_date")),
 	constraint "month_end_line__ck__fce56b0e" check ("accrued_interest" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("accrued_interest", 2) = "accrued_interest"),
 	constraint "month_end_line__ck__ffcf24de" check ("interest_to_maturity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("interest_to_maturity", 2) = "interest_to_maturity"),
 	constraint "month_end_line__ck__165bac73" check ("charges" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("charges", 2) = "charges")
@@ -1638,6 +1708,10 @@ create table "purchase_order" ("id" uuid primary key, revision int not null defa
 	"lc_requested" boolean default false not null,
 	"is_cancelled" boolean default false not null,
 	"notes" text,
+	"amount" numeric default 0 not null,
+	"quantity" numeric default 0 not null,
+	"invoiced_amount" numeric default 0 not null,
+	"invoice_count" int default 0 not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_purchase_order_27022eb9"("po_number")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_purchase_order_27022eb9"("po_number"), ''))) stored,
 	"supplier" uuid not null,
@@ -1645,6 +1719,63 @@ create table "purchase_order" ("id" uuid primary key, revision int not null defa
 	constraint "purchase_order__ck__33ed5c43" check (isfinite("po_date")),
 	constraint "purchase_order__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "purchase_order__uq__9442534e" unique ("po_number")
+);
+
+-- step create:table:facility_form (additive)
+create table "facility_form" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"po_number" text not null,
+	"po_date" date,
+	"ship_date" date,
+	"payment_terms" text,
+	"shipping_terms" text,
+	"customer_po_number" text,
+	"requested_by" text,
+	"buyer" text,
+	"vendor" text,
+	"facility_required" text default 'tt'::text not null,
+	"currency" text default 'USD'::text not null,
+	"amount" numeric,
+	"latest_shipment_date" date,
+	"partial_shipment" boolean default false not null,
+	"transhipment" boolean default false not null,
+	"shipment_from" text,
+	"shipment_to" text,
+	"freight" text,
+	"lc_expiry_date" date,
+	"documents_presentation_days" int,
+	"expected_arrival" text,
+	"intended_period_of_sales" text,
+	"projected_sales" text,
+	"purpose" text,
+	"product_description" text,
+	"pay_by_date" date,
+	"remarks" text,
+	"read_note" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_facility_form_27022eb9"("po_number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_facility_form_27022eb9"("po_number"), '') || ' ' || coalesce("po_number"::text, '') || ' ' || coalesce("vendor"::text, '') || ' ' || coalesce("customer_po_number"::text, ''))) stored,
+	"purchase_order" uuid,
+	constraint "facility_form__ck__b601e9fa" check (char_length("po_number") <= 60),
+	constraint "facility_form__ck__33ed5c43" check (isfinite("po_date")),
+	constraint "facility_form__ck__69c93b17" check (isfinite("ship_date")),
+	constraint "facility_form__ck__4f0f0b1e" check ("facility_required" in ('tt', 'lc')),
+	constraint "facility_form__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
+	constraint "facility_form__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount"),
+	constraint "facility_form__ck__7e0bb8b8" check (isfinite("latest_shipment_date")),
+	constraint "facility_form__ck__1a1b051b" check (isfinite("lc_expiry_date")),
+	constraint "facility_form__ck__252f409a" check ("documents_presentation_days" >= 0),
+	constraint "facility_form__ck__740b4d8c" check (isfinite("pay_by_date"))
+);
+
+-- step create:table:facility_attachment (additive)
+create table "facility_attachment" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"kind" text default 'other'::text not null,
+	"title" text not null,
+	"file" jsonb not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_facility_attachment_06f5fc13"("title")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_facility_attachment_06f5fc13"("title"), ''))) stored,
+	"form" uuid not null,
+	constraint "facility_attachment__ck__90b8e62c" check ("kind" in ('proforma', 'purchase_order', 'customer_po', 'planning_detail', 'other')),
+	constraint "facility_attachment__ck__c2203a9a" check (("file" is null or store_json_valid("file", '{"accept":["application/pdf","image/jpeg","image/png"],"kind":"file","max":"10MiB"}'::jsonb) is true))
 );
 
 -- step create:table:invoice (additive)
@@ -1662,7 +1793,18 @@ create table "invoice" ("id" uuid primary key, revision int not null default 1, 
 	constraint "invoice__ck__4a7b9469" check (char_length("invoice_number") <= 60),
 	constraint "invoice__ck__4672b404" check (isfinite("invoice_date")),
 	constraint "invoice__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
-	constraint "invoice__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount")
+	constraint "invoice__ck__6ed3a672" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount" and "amount" >= 0),
+	constraint "invoice__uq__2ccf7806" unique nulls not distinct ("po", "invoice_number") deferrable initially immediate
+);
+
+-- step create:table:invoice_line (additive)
+create table "invoice_line" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"quantity" numeric not null,
+	"amount" numeric not null,
+	"invoice" uuid not null,
+	"po_line" uuid not null,
+	constraint "invoice_line__ck__c25ace36" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 3) = "quantity" and "quantity" >= 0),
+	constraint "invoice_line__ck__6ed3a672" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount" and "amount" >= 0)
 );
 
 -- step create:table:po_document (additive)
@@ -1678,29 +1820,24 @@ create table "po_document" ("id" uuid primary key, revision int not null default
 	constraint "po_document__ck__c2203a9a" check (("file" is null or store_json_valid("file", '{"accept":["application/pdf","image/jpeg","image/png"],"kind":"file","max":"10MiB"}'::jsonb) is true))
 );
 
+-- step create:table:po_financing (additive)
+create table "po_financing" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"purchase_order" uuid not null,
+	"drawdown" uuid not null,
+	constraint "po_financing__uq__f3b8208f" unique nulls not distinct ("purchase_order", "drawdown") deferrable initially immediate
+);
+
 -- step create:table:po_line (additive)
 create table "po_line" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"item" text not null,
 	"quantity" numeric not null,
 	"amount" numeric not null,
+	"invoiced_quantity" numeric default 0 not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_po_line_d1d21638"("item")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_po_line_d1d21638"("item"), ''))) stored,
 	"po" uuid not null,
-	constraint "po_line__ck__fd9e3d00" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 3) = "quantity"),
-	constraint "po_line__ck__e5be4ef3" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount")
-);
-
--- step create:table:supplier (additive)
-create table "supplier" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text not null,
-	"country" text,
-	"payment_terms" text,
-	"products" text,
-	"notes" text,
-	"is_active" boolean default true not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_supplier_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_supplier_93340fdd"("name"), ''))) stored,
-	constraint "supplier__uq__7b9c2684" unique ("name")
+	constraint "po_line__ck__c25ace36" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 3) = "quantity" and "quantity" >= 0),
+	constraint "po_line__ck__6ed3a672" check ("amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("amount", 2) = "amount" and "amount" >= 0)
 );
 
 -- step create:engine:bolt_history (additive)
@@ -1755,10 +1892,7 @@ select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"em
 select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:bank (additive)
-select bolt_history_register('bank','{"audit":true,"fields":{"code":{"kind":"text","max":20},"cut_off_time":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"name":{"kind":"text"},"terms_notes":{"kind":"text","optional":true}},"record_label":"record.code","unique":[{"fields":["code"],"import_key":true,"name":"bank_code"}]}'::jsonb);
-
--- step create:history:schema:bank_contact (additive)
-select bolt_history_register('bank_contact','{"audit":true,"fields":{"bank":{"inverse":"contacts","kind":"ref","on_delete":"cascade","to":"bank"},"email":{"format":"email","kind":"text","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"role":{"default":"other","kind":"enum","values":["relationship_manager","client_service","trade_operations","other"]}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('bank','{"audit":true,"fields":{"code":{"kind":"text","max":20},"contacts":{"kind":"json","optional":true,"shape":{"fields":{"email":{"format":"email","kind":"text","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"kind":"text","optional":true},"role":{"kind":"enum","values":["relationship_manager","client_service","trade_operations","other"]}},"kind":"object","many":true}},"cut_off_time":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"name":{"kind":"text"},"offered_products":{"kind":"enum","many":true,"optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"settlement_instructions":{"kind":"text","optional":true},"terms_notes":{"kind":"text","optional":true}},"record_label":"record.code","unique":[{"fields":["code"],"import_key":true,"name":"bank_code"}]}'::jsonb);
 
 -- step create:history:schema:letter_of_offer (additive)
 select bolt_history_register('letter_of_offer','{"audit":true,"fields":{"bank":{"inverse":"letters_of_offer","kind":"ref","to":"bank"},"document":{"accept":["application/pdf"],"kind":"file","max":"10MiB","optional":true},"facility":{"inverse":"letters_of_offer","kind":"ref","on_delete":"set_null","optional":true,"to":"facility"},"next_review_date":{"kind":"date","optional":true},"notes":{"kind":"text","optional":true},"offer_date":{"kind":"date","optional":true},"title":{"kind":"text"}},"record_label":"record.title"}'::jsonb);
@@ -1766,47 +1900,62 @@ select bolt_history_register('letter_of_offer','{"audit":true,"fields":{"bank":{
 -- step create:history:schema:watch_point (additive)
 select bolt_history_register('watch_point','{"audit":true,"fields":{"bank":{"inverse":"watch_points","kind":"ref","on_delete":"cascade","to":"bank"},"category":{"default":"other","kind":"enum","values":["suppliers","restriction","documents","settlement","pricing","other"]},"facility":{"inverse":"watch_points","kind":"ref","on_delete":"set_null","optional":true,"to":"facility"},"is_active":{"default":true,"kind":"bool"},"text":{"kind":"text"}},"record_label":"record.text"}'::jsonb);
 
+-- step create:history:schema:business_partner (additive)
+select bolt_history_register('business_partner','{"audit":true,"fields":{"aliases":{"kind":"text","many":true,"optional":true},"country":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"is_customer":{"default":false,"kind":"bool"},"is_supplier":{"default":true,"kind":"bool"},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"payment_terms":{"kind":"text","optional":true},"products":{"kind":"text","optional":true},"relationship_since":{"kind":"date","optional":true}},"record_label":"record.name","search":{"text":["name","aliases"]},"unique":[{"fields":["name"],"import_key":true,"name":"partner_name"}],"was":"supplier"}'::jsonb);
+
+-- step create:history:schema:supplier_bank (additive)
+select bolt_history_register('supplier_bank','{"audit":true,"fields":{"bank":{"inverse":"eligible_suppliers","kind":"ref","on_delete":"cascade","to":"bank"},"supplier":{"inverse":"eligible_banks","kind":"ref","on_delete":"cascade","to":"business_partner"}},"record_label":"record.bank.code","unique":[{"fields":["supplier","bank"],"name":"one_per_pair"}]}'::jsonb);
+
 -- step create:history:schema:drawdown (additive)
-select bolt_history_register('drawdown','{"audit":true,"fields":{"amount":{"kind":"decimal","scale":2},"application_date":{"kind":"date","optional":true},"bank_reference":{"kind":"text","optional":true},"bill_number":{"kind":"text","optional":true},"charge_rate_pct":{"kind":"decimal","optional":true,"scale":6},"currency":{"default":"USD","kind":"currency"},"day_count_basis":{"default":"actual_360","kind":"enum","values":["actual_360","actual_365"]},"due_date":{"kind":"date","optional":true},"earliest_invoice_date":{"kind":"date","optional":true},"expected_draw_date":{"kind":"date","optional":true},"facility":{"inverse":"drawdowns","kind":"ref","on_delete":"restrict","optional":true,"to":"facility"},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"is_archived":{"default":false,"kind":"bool"},"lc_expiry_date":{"kind":"date","optional":true},"lc_number":{"kind":"text","optional":true},"notes":{"kind":"text","optional":true},"product":{"default":"if","kind":"enum","values":["if","if_after_lc_or_da","lc","import_bill","da","dp","tb","twc","stl","bg","cash","other"]},"purpose":{"kind":"text","optional":true},"released_date":{"kind":"date","optional":true},"settled_interest":{"kind":"decimal","optional":true,"scale":2},"settled_principal":{"kind":"decimal","optional":true,"scale":2},"settlement_date":{"kind":"date","optional":true},"start_date":{"kind":"date","optional":true},"status":{"default":"active","kind":"enum","values":["earmarked","applied","active","settled","cancelled","unclear"]},"supplier":{"inverse":"drawdowns","kind":"ref","on_delete":"restrict","optional":true,"to":"supplier"}},"indexes":[{"on":["status","due_date"]}],"record_label":"record.bank_reference","search":{"text":["bank_reference","lc_number","bill_number"]}}'::jsonb);
+select bolt_history_register('drawdown','{"audit":true,"computed":{"amount_usd":{"expr":{"round":[{"times":[{"field":"amount"},{"field":"fx_rate_to_usd"}]},2]},"kind":"decimal","scale":2}},"fields":{"amount":{"kind":"decimal","min":0,"scale":2},"application_date":{"kind":"date","optional":true},"bank_reference":{"kind":"text","optional":true},"bill_number":{"kind":"text","optional":true},"charge_rate_pct":{"kind":"decimal","optional":true,"scale":6},"converted_from":{"inverse":"converted_into","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"currency":{"default":"USD","kind":"currency"},"day_count_basis":{"default":"actual_360","kind":"enum","values":["actual_360","actual_365"]},"discrepancy_note":{"kind":"text","optional":true,"was":"review_note"},"due_date":{"kind":"date","optional":true},"earliest_invoice_date":{"kind":"date","optional":true},"expected_draw_date":{"kind":"date","optional":true},"facility":{"inverse":"drawdowns","kind":"ref","on_delete":"restrict","optional":true,"to":"facility"},"fx_rate_to_usd":{"default":1,"kind":"decimal","scale":12},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"is_archived":{"default":false,"kind":"bool"},"lc_expiry_date":{"kind":"date","optional":true},"lc_number":{"kind":"text","optional":true},"notes":{"kind":"text","optional":true},"product":{"default":"if","kind":"enum","values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"purpose":{"kind":"text","optional":true},"rate_source":{"kind":"enum","optional":true,"values":["manual","bank_advice"]},"released_date":{"kind":"date","optional":true},"requested_by":{"kind":"text","optional":true},"settled_by":{"kind":"enum","optional":true,"values":["repaid","cash","converted"]},"settled_interest":{"kind":"decimal","optional":true,"scale":2},"settled_principal":{"kind":"decimal","optional":true,"scale":2},"settlement_date":{"kind":"date","optional":true},"start_date":{"kind":"date","optional":true},"status":{"default":"active","kind":"enum","values":["earmarked","applied","active","settled","cancelled","unclear"]},"supplier":{"inverse":"drawdowns","kind":"ref","on_delete":"restrict","optional":true,"to":"business_partner"},"terms_days":{"kind":"int","min":0,"optional":true}},"indexes":[{"on":["status","due_date"]}],"locks":{"sealed_line":{"except":["is_archived","discrepancy_note","notes"],"where":{"status":{"in":["settled","cancelled"]}}}},"record_label":"(record.bank_reference != null ? record.bank_reference : string(record.product)) + '' · '' + record.currency + '' '' + string(record.amount)","search":{"text":["bank_reference","lc_number","bill_number"]}}'::jsonb);
 
 -- step create:history:schema:bank_document (additive)
-select bolt_history_register('bank_document','{"audit":true,"fields":{"advice_date":{"kind":"date","optional":true},"advice_reference":{"kind":"text","optional":true},"bank":{"inverse":"documents","kind":"ref","on_delete":"set_null","optional":true,"to":"bank"},"doc_type":{"default":"other","kind":"enum","values":["drawdown_advice","settlement_advice","other"]},"drawdown":{"inverse":"documents","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"file":{"accept":["application/pdf"],"kind":"file","max":"10MiB"},"notes":{"kind":"text","optional":true},"read_note":{"kind":"text","optional":true},"read_status":{"default":"uploaded","kind":"enum","values":["uploaded","checked","applied","failed"]}},"record_label":"record.advice_reference"}'::jsonb);
+select bolt_history_register('bank_document','{"audit":true,"fields":{"advice_date":{"kind":"date","optional":true},"advice_reference":{"kind":"text","optional":true},"bank":{"inverse":"documents","kind":"ref","on_delete":"set_null","optional":true,"to":"bank"},"doc_type":{"default":"other","kind":"enum","values":["drawdown_advice","settlement_advice","other"]},"drawdown":{"inverse":"documents","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"extracted":{"kind":"json","optional":true,"shape":{"fields":{"bank_reference":{"kind":"text","optional":true},"bill_number":{"kind":"text","optional":true},"charges":{"fields":{"amount_usd":{"kind":"decimal","scale":2},"charge_type":{"kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"description":{"kind":"text","optional":true}},"kind":"object","many":true,"optional":true},"currency":{"kind":"currency","optional":true},"due_date":{"kind":"date","optional":true},"interest_amount":{"kind":"decimal","optional":true,"scale":2},"interest_days":{"kind":"int","optional":true},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"lc_number":{"kind":"text","optional":true},"principal":{"kind":"decimal","optional":true,"scale":2},"product":{"kind":"enum","optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"start_date":{"kind":"date","optional":true},"supplier_name":{"kind":"text","optional":true},"total_debited":{"kind":"decimal","optional":true,"scale":2},"uncertain":{"kind":"text","many":true,"optional":true}},"kind":"object"}},"file":{"accept":["application/pdf"],"kind":"file","max":"10MiB"},"notes":{"kind":"text","optional":true},"read_note":{"kind":"text","optional":true},"read_status":{"default":"uploaded","kind":"enum","values":["uploaded","checked","applied","failed"]}},"locks":{"submitted_advice":{"except":["notes"],"where":{"read_status":{"eq":"applied"}}}},"record_label":"record.advice_reference != null ? record.advice_reference : ''Advice''"}'::jsonb);
 
 -- step create:history:schema:drawdown_charge (additive)
-select bolt_history_register('drawdown_charge','{"audit":true,"fields":{"amount":{"kind":"decimal","scale":2},"charge_type":{"default":"commission","kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"currency":{"default":"USD","kind":"currency"},"description":{"kind":"text","optional":true},"drawdown":{"inverse":"charges","kind":"ref","on_delete":"cascade","to":"drawdown"},"is_estimate":{"default":true,"kind":"bool"},"stage":{"default":"drawdown","kind":"enum","values":["drawdown","settlement"]}},"record_label":"record.charge_type"}'::jsonb);
+select bolt_history_register('drawdown_charge','{"audit":true,"computed":{"amount_usd":{"expr":{"round":[{"times":[{"field":"amount"},{"field":"fx_rate_to_usd"}]},2]},"kind":"decimal","scale":2}},"fields":{"amount":{"kind":"decimal","scale":2},"charge_type":{"default":"commission","kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"currency":{"default":"USD","kind":"currency"},"description":{"kind":"text","optional":true},"drawdown":{"inverse":"charges","kind":"ref","on_delete":"cascade","to":"drawdown"},"fx_rate_to_usd":{"default":1,"kind":"decimal","min":0,"scale":12},"stage":{"default":"drawdown","kind":"enum","values":["drawdown","settlement"]}},"record_label":"record.charge_type"}'::jsonb);
 
 -- step create:history:schema:facility (additive)
-select bolt_history_register('facility','{"audit":true,"fields":{"bank":{"inverse":"facilities","kind":"ref","to":"bank"},"currency":{"default":"USD","kind":"currency"},"day_count_basis":{"default":"actual_360","kind":"enum","values":["actual_360","actual_365"]},"entity":{"kind":"text","optional":true},"expiry_date":{"kind":"date","optional":true},"interest_rounding":{"default":"nearest_cent","kind":"enum","values":["nearest_cent","down_to_cent"]},"limit":{"default":0,"kind":"decimal","scale":2},"margin_pct":{"kind":"decimal","optional":true,"scale":6},"max_tenor_days":{"kind":"int","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"pricing_basis":{"kind":"text","optional":true},"review_date":{"kind":"date","optional":true},"security":{"kind":"text","optional":true},"status":{"default":"active","kind":"enum","values":["active","expired"]}},"record_label":"record.name","unique":[{"fields":["bank","name"],"name":"facility_name_per_bank"}]}'::jsonb);
+select bolt_history_register('facility','{"audit":true,"fields":{"bank":{"inverse":"facilities","kind":"ref","to":"bank"},"currency":{"default":"USD","kind":"currency"},"day_count_basis":{"default":"actual_360","kind":"enum","values":["actual_360","actual_365"]},"early_settlement_penalty":{"kind":"text","optional":true},"entity":{"kind":"text","optional":true},"expiry_date":{"kind":"date","optional":true},"interest_rounding":{"default":"nearest_cent","kind":"enum","values":["nearest_cent","down_to_cent"]},"limit":{"default":0,"kind":"decimal","scale":2},"margin_pct":{"kind":"decimal","optional":true,"scale":6},"max_tenor_days":{"kind":"int","min":0,"optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"pledged_deposit":{"kind":"decimal","optional":true,"scale":2},"pricing_basis":{"kind":"text","optional":true},"pricing_notes":{"kind":"text","optional":true},"review_date":{"kind":"date","optional":true},"security":{"kind":"text","optional":true},"status":{"default":"active","kind":"enum","values":["active","expired"]},"tenor_start_rule":{"kind":"enum","optional":true,"values":["invoice_date","disbursement_date","bill_of_lading_date"]}},"record_label":"record.name","unique":[{"fields":["bank","name"],"name":"facility_name_per_bank"}]}'::jsonb);
 
 -- step create:history:schema:facility_fee (additive)
-select bolt_history_register('facility_fee','{"audit":true,"fields":{"amount":{"kind":"decimal","optional":true,"scale":2},"facility":{"inverse":"fees","kind":"ref","on_delete":"cascade","to":"facility"},"fee_type":{"default":"commission","kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"include_in_estimates":{"default":true,"kind":"bool"},"method":{"default":"percent","kind":"enum","values":["percent","flat"]},"minimum_amount":{"kind":"decimal","optional":true,"scale":2},"notes":{"kind":"text","optional":true},"product":{"kind":"text","optional":true},"rate_pct":{"kind":"decimal","optional":true,"scale":6},"stage":{"default":"drawdown","kind":"enum","values":["drawdown","settlement"]}},"record_label":"record.fee_type"}'::jsonb);
+select bolt_history_register('facility_fee','{"audit":true,"fields":{"amount":{"kind":"decimal","optional":true,"scale":2},"currency":{"default":"USD","kind":"currency"},"facility":{"inverse":"fees","kind":"ref","on_delete":"cascade","to":"facility"},"fee_type":{"default":"commission","kind":"enum","values":["commission","cable","swift","cost_of_funds_transfer","processing","tr_extension","penalty","other"]},"include_in_estimates":{"default":true,"kind":"bool"},"method":{"default":"percent","kind":"enum","values":["percent","flat"]},"minimum_amount":{"kind":"decimal","optional":true,"scale":2},"minimum_currency":{"default":"USD","kind":"currency"},"notes":{"kind":"text","optional":true},"product":{"kind":"enum","optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"rate_pct":{"kind":"decimal","optional":true,"scale":6},"stage":{"default":"drawdown","kind":"enum","values":["drawdown","settlement"]}},"record_label":"record.fee_type"}'::jsonb);
 
 -- step create:history:schema:sub_limit (additive)
-select bolt_history_register('sub_limit','{"audit":true,"fields":{"facility":{"inverse":"sub_limits","kind":"ref","on_delete":"cascade","to":"facility"},"limit":{"kind":"decimal","scale":2},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"product":{"kind":"text","optional":true},"supplier":{"inverse":"sub_limits","kind":"ref","on_delete":"set_null","optional":true,"to":"supplier"}},"record_label":"record.name"}'::jsonb);
+select bolt_history_register('sub_limit','{"audit":true,"fields":{"facility":{"inverse":"sub_limits","kind":"ref","on_delete":"cascade","to":"facility"},"limit":{"kind":"decimal","scale":2},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"product":{"kind":"enum","optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"supplier":{"inverse":"sub_limits","kind":"ref","on_delete":"set_null","optional":true,"to":"business_partner"}},"record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:fx_rate (additive)
 select bolt_history_register('fx_rate','{"audit":true,"fields":{"currency":{"kind":"currency"},"is_month_end":{"default":false,"kind":"bool"},"rate_date":{"kind":"date"},"source":{"kind":"text","optional":true},"usd_per_unit":{"kind":"decimal","scale":12}},"record_label":"record.currency","unique":[{"fields":["currency","rate_date"],"name":"fx_per_day"}]}'::jsonb);
 
 -- step create:history:schema:month_end (additive)
-select bolt_history_register('month_end','{"audit":true,"fields":{"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"average_tenor_days":{"kind":"decimal","optional":true,"scale":2},"bank_borrowings":{"kind":"decimal","optional":true,"scale":2},"banker_guarantee":{"kind":"decimal","optional":true,"scale":2},"credit_line":{"kind":"decimal","optional":true,"scale":2},"highest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"is_locked":{"default":false,"kind":"bool"},"letters_of_credit":{"kind":"decimal","optional":true,"scale":2},"lowest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"month":{"kind":"date"},"notes":{"kind":"text","optional":true},"simple_average_rate_pct":{"kind":"decimal","optional":true,"scale":6},"source":{"default":"portal","kind":"enum","values":["portal","excel"]},"term_bills":{"kind":"decimal","optional":true,"scale":2},"total_utilised":{"kind":"decimal","optional":true,"scale":2},"weighted_average_rate_pct":{"kind":"decimal","optional":true,"scale":6}},"record_label":"record.month","unique":[{"fields":["month"],"name":"one_report_per_month"}]}'::jsonb);
+select bolt_history_register('month_end','{"audit":true,"fields":{"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"available":{"kind":"decimal","optional":true,"scale":2},"average_tenor_days":{"kind":"decimal","optional":true,"scale":2},"bank_borrowings":{"kind":"decimal","optional":true,"scale":2},"banker_guarantee":{"kind":"decimal","optional":true,"scale":2},"credit_line":{"kind":"decimal","optional":true,"scale":2},"highest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"is_locked":{"default":false,"kind":"bool"},"letters_of_credit":{"kind":"decimal","optional":true,"scale":2},"locked_at":{"kind":"instant","optional":true},"lowest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"month":{"kind":"date"},"notes":{"kind":"text","optional":true},"simple_average_rate_pct":{"kind":"decimal","optional":true,"scale":6},"source":{"default":"portal","kind":"enum","values":["portal","excel"]},"term_bills":{"kind":"decimal","optional":true,"scale":2},"total_utilised":{"kind":"decimal","optional":true,"scale":2},"weighted_average_rate_pct":{"kind":"decimal","optional":true,"scale":6}},"locks":{"imported_report":{"except":["notes"],"where":{"source":{"eq":"excel"}}},"locked_month":{"except":["is_locked","notes"],"where":{"is_locked":{"eq":true}}}},"record_label":"string(record.month)","unique":[{"fields":["month"],"name":"one_report_per_month"}]}'::jsonb);
 
 -- step create:history:schema:month_end_line (additive)
-select bolt_history_register('month_end_line','{"audit":true,"fields":{"accrued_days":{"kind":"int","optional":true},"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"amount":{"kind":"decimal","scale":2},"amount_usd":{"kind":"decimal","optional":true,"scale":2},"bank_code":{"kind":"text"},"charges":{"kind":"decimal","optional":true,"scale":2},"currency":{"default":"USD","kind":"currency"},"drawdown":{"inverse":"month_end_lines","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"interest_to_maturity":{"kind":"decimal","optional":true,"scale":2},"month_end":{"inverse":"lines","kind":"ref","on_delete":"cascade","to":"month_end"},"product":{"kind":"text","optional":true},"reference":{"kind":"text","optional":true},"supplier":{"kind":"text","optional":true}},"record_label":"record.reference"}'::jsonb);
+select bolt_history_register('month_end_line','{"audit":true,"fields":{"accrued_days":{"kind":"int","optional":true},"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"amount":{"kind":"decimal","scale":2},"amount_usd":{"kind":"decimal","optional":true,"scale":2},"bank_code":{"kind":"text"},"charges":{"kind":"decimal","optional":true,"scale":2},"currency":{"default":"USD","kind":"currency"},"day_count_basis":{"default":"actual_360","kind":"enum","values":["actual_360","actual_365"]},"drawdown":{"inverse":"month_end_lines","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"due_date":{"kind":"date","optional":true},"fx_rate_to_usd":{"default":1,"kind":"decimal","scale":12},"interest_rate_pct":{"kind":"decimal","optional":true,"scale":6},"interest_to_maturity":{"kind":"decimal","optional":true,"scale":2},"month_end":{"inverse":"lines","kind":"ref","on_delete":"cascade","to":"month_end"},"product":{"kind":"enum","optional":true,"values":["lc","import_bill","da","dp","tb","ba","bad","if","if_after_lc_or_da","pif","twc","oaf","apf","psil","psbl","ofcl","mctf","tradepay","packing","fbep","dbep","ecr","badd","stl","term","efs","lis","tbl","ma","property","bg","sg","awb","sblc","fx","card","cash"]},"reference":{"kind":"text","optional":true},"start_date":{"kind":"date","optional":true},"supplier":{"kind":"text","optional":true},"tenor_days":{"kind":"int","optional":true}},"record_label":"record.bank_code + '' · '' + (record.reference != null ? record.reference : ''—'')"}'::jsonb);
 
 -- step create:history:schema:purchase_order (additive)
-select bolt_history_register('purchase_order','{"audit":true,"fields":{"currency":{"default":"USD","kind":"currency"},"is_cancelled":{"default":false,"kind":"bool"},"lc_requested":{"default":false,"kind":"bool"},"notes":{"kind":"text","optional":true},"po_date":{"kind":"date"},"po_number":{"kind":"text","max":60},"purchaser":{"kind":"text","optional":true},"salesperson":{"kind":"text","optional":true},"ship_to_country":{"kind":"text","optional":true},"supplier":{"inverse":"purchase_orders","kind":"ref","to":"supplier"}},"record_label":"record.po_number","unique":[{"fields":["po_number"],"import_key":true,"name":"po_number"}]}'::jsonb);
+select bolt_history_register('purchase_order','{"audit":true,"fields":{"amount":{"kind":"sum","of":"lines.amount"},"currency":{"default":"USD","kind":"currency"},"invoice_count":{"kind":"count","of":"invoices"},"invoiced_amount":{"kind":"sum","of":"invoices.amount"},"is_cancelled":{"default":false,"kind":"bool"},"lc_requested":{"default":false,"kind":"bool"},"notes":{"kind":"text","optional":true},"po_date":{"kind":"date"},"po_number":{"kind":"text","max":60},"purchaser":{"kind":"text","optional":true},"quantity":{"kind":"sum","of":"lines.quantity"},"salesperson":{"kind":"text","optional":true},"ship_to_country":{"kind":"text","optional":true},"supplier":{"inverse":"purchase_orders","kind":"ref","to":"business_partner"}},"record_label":"record.po_number","unique":[{"fields":["po_number"],"import_key":true,"name":"po_number"}]}'::jsonb);
+
+-- step create:history:schema:facility_form (additive)
+select bolt_history_register('facility_form','{"audit":true,"fields":{"amount":{"kind":"decimal","optional":true,"scale":2},"buyer":{"kind":"text","optional":true},"currency":{"default":"USD","kind":"currency"},"customer_po_number":{"kind":"text","optional":true},"documents_presentation_days":{"kind":"int","min":0,"optional":true},"expected_arrival":{"kind":"text","optional":true},"facility_required":{"default":"tt","kind":"enum","values":["tt","lc"]},"freight":{"kind":"text","optional":true},"intended_period_of_sales":{"kind":"text","optional":true},"latest_shipment_date":{"kind":"date","optional":true},"lc_expiry_date":{"kind":"date","optional":true},"partial_shipment":{"default":false,"kind":"bool"},"pay_by_date":{"kind":"date","optional":true},"payment_terms":{"kind":"text","optional":true},"po_date":{"kind":"date","optional":true},"po_number":{"kind":"text","max":60},"product_description":{"kind":"text","optional":true},"projected_sales":{"kind":"text","optional":true},"purchase_order":{"inverse":"facility_forms","kind":"ref","on_delete":"set_null","optional":true,"to":"purchase_order"},"purpose":{"kind":"text","optional":true},"read_note":{"kind":"text","optional":true},"remarks":{"kind":"text","optional":true},"requested_by":{"kind":"text","optional":true},"ship_date":{"kind":"date","optional":true},"shipment_from":{"kind":"text","optional":true},"shipment_to":{"kind":"text","optional":true},"shipping_terms":{"kind":"text","optional":true},"transhipment":{"default":false,"kind":"bool"},"vendor":{"kind":"text","optional":true}},"record_label":"record.po_number","search":{"text":["po_number","vendor","customer_po_number"]}}'::jsonb);
+
+-- step create:history:schema:facility_attachment (additive)
+select bolt_history_register('facility_attachment','{"audit":true,"fields":{"file":{"accept":["application/pdf","image/jpeg","image/png"],"kind":"file","max":"10MiB"},"form":{"inverse":"attachments","kind":"ref","on_delete":"cascade","to":"facility_form"},"kind":{"default":"other","kind":"enum","values":["proforma","purchase_order","customer_po","planning_detail","other"]},"title":{"kind":"text"}},"record_label":"record.title"}'::jsonb);
 
 -- step create:history:schema:invoice (additive)
-select bolt_history_register('invoice','{"audit":true,"fields":{"amount":{"kind":"decimal","scale":2},"bank_bill_number":{"kind":"text","optional":true},"currency":{"default":"USD","kind":"currency"},"drawdown":{"inverse":"invoices","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"invoice_date":{"kind":"date"},"invoice_number":{"kind":"text","max":60},"notes":{"kind":"text","optional":true},"po":{"inverse":"invoices","kind":"ref","on_delete":"cascade","to":"purchase_order"}},"record_label":"record.invoice_number"}'::jsonb);
+select bolt_history_register('invoice','{"audit":true,"fields":{"amount":{"kind":"decimal","min":0,"scale":2},"bank_bill_number":{"kind":"text","optional":true},"currency":{"default":"USD","kind":"currency"},"drawdown":{"inverse":"invoices","kind":"ref","on_delete":"set_null","optional":true,"to":"drawdown"},"invoice_date":{"kind":"date"},"invoice_number":{"kind":"text","max":60},"notes":{"kind":"text","optional":true},"po":{"inverse":"invoices","kind":"ref","on_delete":"cascade","to":"purchase_order"}},"record_label":"record.invoice_number","unique":[{"fields":["po","invoice_number"],"name":"invoice_per_po"}]}'::jsonb);
+
+-- step create:history:schema:invoice_line (additive)
+select bolt_history_register('invoice_line','{"audit":true,"fields":{"amount":{"kind":"decimal","min":0,"scale":2},"invoice":{"inverse":"lines","kind":"ref","on_delete":"cascade","to":"invoice"},"po_line":{"inverse":"invoice_lines","kind":"ref","on_delete":"restrict","to":"po_line"},"quantity":{"kind":"decimal","min":0,"scale":3}},"record_label":"record.po_line.item"}'::jsonb);
 
 -- step create:history:schema:po_document (additive)
 select bolt_history_register('po_document','{"audit":true,"fields":{"file":{"accept":["application/pdf","image/jpeg","image/png"],"kind":"file","max":"10MiB"},"kind":{"default":"supporting","kind":"enum","values":["purchase_order","supporting","issued_lc","commercial_invoice","other"]},"notes":{"kind":"text","optional":true},"po":{"inverse":"documents","kind":"ref","on_delete":"cascade","to":"purchase_order"},"title":{"kind":"text"}},"record_label":"record.title"}'::jsonb);
 
--- step create:history:schema:po_line (additive)
-select bolt_history_register('po_line','{"audit":true,"fields":{"amount":{"kind":"decimal","scale":2},"item":{"kind":"text"},"po":{"inverse":"lines","kind":"ref","on_delete":"cascade","to":"purchase_order"},"quantity":{"kind":"decimal","scale":3}},"record_label":"record.item"}'::jsonb);
+-- step create:history:schema:po_financing (additive)
+select bolt_history_register('po_financing','{"audit":true,"fields":{"drawdown":{"inverse":"financings","kind":"ref","on_delete":"cascade","to":"drawdown"},"purchase_order":{"inverse":"financings","kind":"ref","on_delete":"cascade","to":"purchase_order"}},"record_label":"record.purchase_order.po_number + '' · '' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))","unique":[{"fields":["purchase_order","drawdown"],"name":"one_link"}]}'::jsonb);
 
--- step create:history:schema:supplier (additive)
-select bolt_history_register('supplier','{"audit":true,"fields":{"country":{"kind":"text","optional":true},"is_active":{"default":true,"kind":"bool"},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"payment_terms":{"kind":"text","optional":true},"products":{"kind":"text","optional":true}},"record_label":"record.name","unique":[{"fields":["name"],"import_key":true,"name":"supplier_name"}]}'::jsonb);
+-- step create:history:schema:po_line (additive)
+select bolt_history_register('po_line','{"audit":true,"fields":{"amount":{"kind":"decimal","min":0,"scale":2},"invoiced_quantity":{"kind":"sum","of":"invoice_lines.quantity"},"item":{"kind":"text"},"po":{"inverse":"lines","kind":"ref","on_delete":"cascade","to":"purchase_order"},"quantity":{"kind":"decimal","min":0,"scale":3}},"record_label":"record.item"}'::jsonb);
 
 -- step create:fk:requestor.requestor__fk__5c80de5d (additive)
 alter table "requestor" add constraint "requestor__fk__5c80de5d" foreign key ("approval_request_id") references "approval_request" ("id") on delete restrict on update restrict;
@@ -1847,9 +1996,6 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 -- step create:fk:sys_sync_row.sys_sync_row__fk__328a1493 (additive)
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
 
--- step create:fk:bank_contact.bank_contact__fk__297cf64e (additive)
-alter table "bank_contact" add constraint "bank_contact__fk__297cf64e" foreign key ("bank") references "bank" ("id") on delete cascade on update restrict;
-
 -- step create:fk:letter_of_offer.letter_of_offer__fk__fdf900a4 (additive)
 alter table "letter_of_offer" add constraint "letter_of_offer__fk__fdf900a4" foreign key ("bank") references "bank" ("id") on delete restrict on update restrict;
 
@@ -1862,11 +2008,20 @@ alter table "watch_point" add constraint "watch_point__fk__297cf64e" foreign key
 -- step create:fk:watch_point.watch_point__fk__41abb9ec (additive)
 alter table "watch_point" add constraint "watch_point__fk__41abb9ec" foreign key ("facility") references "facility" ("id") on delete set null on update restrict;
 
+-- step create:fk:supplier_bank.supplier_bank__fk__fe8eb912 (additive)
+alter table "supplier_bank" add constraint "supplier_bank__fk__fe8eb912" foreign key ("supplier") references "business_partner" ("id") on delete cascade on update restrict;
+
+-- step create:fk:supplier_bank.supplier_bank__fk__297cf64e (additive)
+alter table "supplier_bank" add constraint "supplier_bank__fk__297cf64e" foreign key ("bank") references "bank" ("id") on delete cascade on update restrict;
+
 -- step create:fk:drawdown.drawdown__fk__e874c5da (additive)
 alter table "drawdown" add constraint "drawdown__fk__e874c5da" foreign key ("facility") references "facility" ("id") on delete restrict on update restrict;
 
--- step create:fk:drawdown.drawdown__fk__9396e111 (additive)
-alter table "drawdown" add constraint "drawdown__fk__9396e111" foreign key ("supplier") references "supplier" ("id") on delete restrict on update restrict;
+-- step create:fk:drawdown.drawdown__fk__cf0cc03b (additive)
+alter table "drawdown" add constraint "drawdown__fk__cf0cc03b" foreign key ("supplier") references "business_partner" ("id") on delete restrict on update restrict;
+
+-- step create:fk:drawdown.drawdown__fk__5c336046 (additive)
+alter table "drawdown" add constraint "drawdown__fk__5c336046" foreign key ("converted_from") references "drawdown" ("id") on delete set null on update restrict;
 
 -- step create:fk:bank_document.bank_document__fk__75c13407 (additive)
 alter table "bank_document" add constraint "bank_document__fk__75c13407" foreign key ("bank") references "bank" ("id") on delete set null on update restrict;
@@ -1886,8 +2041,8 @@ alter table "facility_fee" add constraint "facility_fee__fk__caec4a34" foreign k
 -- step create:fk:sub_limit.sub_limit__fk__caec4a34 (additive)
 alter table "sub_limit" add constraint "sub_limit__fk__caec4a34" foreign key ("facility") references "facility" ("id") on delete cascade on update restrict;
 
--- step create:fk:sub_limit.sub_limit__fk__a8719878 (additive)
-alter table "sub_limit" add constraint "sub_limit__fk__a8719878" foreign key ("supplier") references "supplier" ("id") on delete set null on update restrict;
+-- step create:fk:sub_limit.sub_limit__fk__c872457f (additive)
+alter table "sub_limit" add constraint "sub_limit__fk__c872457f" foreign key ("supplier") references "business_partner" ("id") on delete set null on update restrict;
 
 -- step create:fk:month_end_line.month_end_line__fk__fda489c5 (additive)
 alter table "month_end_line" add constraint "month_end_line__fk__fda489c5" foreign key ("month_end") references "month_end" ("id") on delete cascade on update restrict;
@@ -1895,8 +2050,14 @@ alter table "month_end_line" add constraint "month_end_line__fk__fda489c5" forei
 -- step create:fk:month_end_line.month_end_line__fk__d4a68204 (additive)
 alter table "month_end_line" add constraint "month_end_line__fk__d4a68204" foreign key ("drawdown") references "drawdown" ("id") on delete set null on update restrict;
 
--- step create:fk:purchase_order.purchase_order__fk__9396e111 (additive)
-alter table "purchase_order" add constraint "purchase_order__fk__9396e111" foreign key ("supplier") references "supplier" ("id") on delete restrict on update restrict;
+-- step create:fk:purchase_order.purchase_order__fk__cf0cc03b (additive)
+alter table "purchase_order" add constraint "purchase_order__fk__cf0cc03b" foreign key ("supplier") references "business_partner" ("id") on delete restrict on update restrict;
+
+-- step create:fk:facility_form.facility_form__fk__2bce541b (additive)
+alter table "facility_form" add constraint "facility_form__fk__2bce541b" foreign key ("purchase_order") references "purchase_order" ("id") on delete set null on update restrict;
+
+-- step create:fk:facility_attachment.facility_attachment__fk__1499c133 (additive)
+alter table "facility_attachment" add constraint "facility_attachment__fk__1499c133" foreign key ("form") references "facility_form" ("id") on delete cascade on update restrict;
 
 -- step create:fk:invoice.invoice__fk__9b2b971c (additive)
 alter table "invoice" add constraint "invoice__fk__9b2b971c" foreign key ("po") references "purchase_order" ("id") on delete cascade on update restrict;
@@ -1904,8 +2065,20 @@ alter table "invoice" add constraint "invoice__fk__9b2b971c" foreign key ("po") 
 -- step create:fk:invoice.invoice__fk__d4a68204 (additive)
 alter table "invoice" add constraint "invoice__fk__d4a68204" foreign key ("drawdown") references "drawdown" ("id") on delete set null on update restrict;
 
+-- step create:fk:invoice_line.invoice_line__fk__45850dbf (additive)
+alter table "invoice_line" add constraint "invoice_line__fk__45850dbf" foreign key ("invoice") references "invoice" ("id") on delete cascade on update restrict;
+
+-- step create:fk:invoice_line.invoice_line__fk__eb9fcbaa (additive)
+alter table "invoice_line" add constraint "invoice_line__fk__eb9fcbaa" foreign key ("po_line") references "po_line" ("id") on delete restrict on update restrict;
+
 -- step create:fk:po_document.po_document__fk__9b2b971c (additive)
 alter table "po_document" add constraint "po_document__fk__9b2b971c" foreign key ("po") references "purchase_order" ("id") on delete cascade on update restrict;
+
+-- step create:fk:po_financing.po_financing__fk__f47a3884 (additive)
+alter table "po_financing" add constraint "po_financing__fk__f47a3884" foreign key ("purchase_order") references "purchase_order" ("id") on delete cascade on update restrict;
+
+-- step create:fk:po_financing.po_financing__fk__e9d40258 (additive)
+alter table "po_financing" add constraint "po_financing__fk__e9d40258" foreign key ("drawdown") references "drawdown" ("id") on delete cascade on update restrict;
 
 -- step create:fk:po_line.po_line__fk__9b2b971c (additive)
 alter table "po_line" add constraint "po_line__fk__9b2b971c" foreign key ("po") references "purchase_order" ("id") on delete cascade on update restrict;
@@ -2099,14 +2272,11 @@ create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 -- step create:trigger:bank.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "bank" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
+-- step create:index:bank.bank__gin__3ce77b84 (additive)
+create index "bank__gin__3ce77b84" on "bank" using gin ("offered_products");
+
 -- step create:index:bank.bank__gin__73732636 (additive)
 create index "bank__gin__73732636" on "bank" using gin (bolt_search);
-
--- step create:trigger:bank_contact.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "bank_contact" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:bank_contact.bank_contact__gin__73732636 (additive)
-create index "bank_contact__gin__73732636" on "bank_contact" using gin (bolt_search);
 
 -- step create:trigger:letter_of_offer.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "letter_of_offer" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
@@ -2120,8 +2290,26 @@ create trigger store_row_rules before insert or update or delete on "watch_point
 -- step create:index:watch_point.watch_point__gin__73732636 (additive)
 create index "watch_point__gin__73732636" on "watch_point" using gin (bolt_search);
 
+-- step create:trigger:business_partner.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "business_partner" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:business_partner.business_partner__gin__ca5f1447 (additive)
+create index "business_partner__gin__ca5f1447" on "business_partner" using gin ("aliases");
+
+-- step create:index:business_partner.business_partner__gin__73732636 (additive)
+create index "business_partner__gin__73732636" on "business_partner" using gin (bolt_search);
+
+-- step create:trigger:supplier_bank.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "supplier_bank" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
 -- step create:trigger:drawdown.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "drawdown" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:trigger:drawdown.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "drawdown" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"amount":["amount"],"application_date":["application_date"],"bank_reference":["bank_reference"],"bill_number":["bill_number"],"charge_rate_pct":["charge_rate_pct"],"converted_from":["converted_from"],"currency":["currency"],"day_count_basis":["day_count_basis"],"discrepancy_note":["discrepancy_note"],"due_date":["due_date"],"earliest_invoice_date":["earliest_invoice_date"],"expected_draw_date":["expected_draw_date"],"facility":["facility"],"fx_rate_to_usd":["fx_rate_to_usd"],"interest_rate_pct":["interest_rate_pct"],"is_archived":["is_archived"],"lc_expiry_date":["lc_expiry_date"],"lc_number":["lc_number"],"notes":["notes"],"product":["product"],"purpose":["purpose"],"rate_source":["rate_source"],"released_date":["released_date"],"requested_by":["requested_by"],"settled_by":["settled_by"],"settled_interest":["settled_interest"],"settled_principal":["settled_principal"],"settlement_date":["settlement_date"],"start_date":["start_date"],"status":["status"],"supplier":["supplier"],"terms_days":["terms_days"]},"key":["id"],"locks":[{"constraint":"drawdown__lock__e8982d0f","except":["is_archived","discrepancy_note","notes"],"name":"sealed_line","sql":"(coalesce(t.\"status\" = any(array[''settled''::text, ''cancelled''::text]::text[]), false))"}],"parents":[],"states":{}}');
+
+-- step create:trigger:drawdown.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "drawdown" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"amount":["amount"],"application_date":["application_date"],"bank_reference":["bank_reference"],"bill_number":["bill_number"],"charge_rate_pct":["charge_rate_pct"],"converted_from":["converted_from"],"currency":["currency"],"day_count_basis":["day_count_basis"],"discrepancy_note":["discrepancy_note"],"due_date":["due_date"],"earliest_invoice_date":["earliest_invoice_date"],"expected_draw_date":["expected_draw_date"],"facility":["facility"],"fx_rate_to_usd":["fx_rate_to_usd"],"interest_rate_pct":["interest_rate_pct"],"is_archived":["is_archived"],"lc_expiry_date":["lc_expiry_date"],"lc_number":["lc_number"],"notes":["notes"],"product":["product"],"purpose":["purpose"],"rate_source":["rate_source"],"released_date":["released_date"],"requested_by":["requested_by"],"settled_by":["settled_by"],"settled_interest":["settled_interest"],"settled_principal":["settled_principal"],"settlement_date":["settlement_date"],"start_date":["start_date"],"status":["status"],"supplier":["supplier"],"terms_days":["terms_days"]},"key":["id"],"locks":[{"constraint":"drawdown__lock__e8982d0f","except":["is_archived","discrepancy_note","notes"],"name":"sealed_line","sql":"(coalesce(t.\"status\" = any(array[''settled''::text, ''cancelled''::text]::text[]), false))"}],"parents":[],"states":{}}');
 
 -- step create:index:drawdown.drawdown__gin__73732636 (additive)
 create index "drawdown__gin__73732636" on "drawdown" using gin (bolt_search);
@@ -2131,6 +2319,12 @@ create index "drawdown__ix__c3041393" on "drawdown" ("status", "due_date");
 
 -- step create:trigger:bank_document.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "bank_document" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:trigger:bank_document.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "bank_document" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"advice_date":["advice_date"],"advice_reference":["advice_reference"],"bank":["bank"],"doc_type":["doc_type"],"drawdown":["drawdown"],"extracted":["extracted"],"file":["file"],"notes":["notes"],"read_note":["read_note"],"read_status":["read_status"]},"key":["id"],"locks":[{"constraint":"bank_document__lock__ead0a4db","except":["notes"],"name":"submitted_advice","sql":"(coalesce(t.\"read_status\" = ''applied''::text, false))"}],"parents":[],"states":{}}');
+
+-- step create:trigger:bank_document.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "bank_document" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"advice_date":["advice_date"],"advice_reference":["advice_reference"],"bank":["bank"],"doc_type":["doc_type"],"drawdown":["drawdown"],"extracted":["extracted"],"file":["file"],"notes":["notes"],"read_note":["read_note"],"read_status":["read_status"]},"key":["id"],"locks":[{"constraint":"bank_document__lock__ead0a4db","except":["notes"],"name":"submitted_advice","sql":"(coalesce(t.\"read_status\" = ''applied''::text, false))"}],"parents":[],"states":{}}');
 
 -- step create:index:bank_document.bank_document__gin__73732636 (additive)
 create index "bank_document__gin__73732636" on "bank_document" using gin (bolt_search);
@@ -2168,6 +2362,12 @@ create index "fx_rate__gin__73732636" on "fx_rate" using gin (bolt_search);
 -- step create:trigger:month_end.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "month_end" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
+-- step create:trigger:month_end.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "month_end" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"accrued_interest":["accrued_interest"],"available":["available"],"average_tenor_days":["average_tenor_days"],"bank_borrowings":["bank_borrowings"],"banker_guarantee":["banker_guarantee"],"credit_line":["credit_line"],"highest_rate_pct":["highest_rate_pct"],"is_locked":["is_locked"],"letters_of_credit":["letters_of_credit"],"locked_at":["locked_at"],"lowest_rate_pct":["lowest_rate_pct"],"month":["month"],"notes":["notes"],"simple_average_rate_pct":["simple_average_rate_pct"],"source":["source"],"term_bills":["term_bills"],"total_utilised":["total_utilised"],"weighted_average_rate_pct":["weighted_average_rate_pct"]},"key":["id"],"locks":[{"constraint":"month_end__lock__96b61cc7","except":["notes"],"name":"imported_report","sql":"(coalesce(t.\"source\" = ''excel''::text, false))"},{"constraint":"month_end__lock__5067032f","except":["is_locked","notes"],"name":"locked_month","sql":"(coalesce(t.\"is_locked\" = true, false))"}],"parents":[],"states":{}}');
+
+-- step create:trigger:month_end.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "month_end" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"accrued_interest":["accrued_interest"],"available":["available"],"average_tenor_days":["average_tenor_days"],"bank_borrowings":["bank_borrowings"],"banker_guarantee":["banker_guarantee"],"credit_line":["credit_line"],"highest_rate_pct":["highest_rate_pct"],"is_locked":["is_locked"],"letters_of_credit":["letters_of_credit"],"locked_at":["locked_at"],"lowest_rate_pct":["lowest_rate_pct"],"month":["month"],"notes":["notes"],"simple_average_rate_pct":["simple_average_rate_pct"],"source":["source"],"term_bills":["term_bills"],"total_utilised":["total_utilised"],"weighted_average_rate_pct":["weighted_average_rate_pct"]},"key":["id"],"locks":[{"constraint":"month_end__lock__96b61cc7","except":["notes"],"name":"imported_report","sql":"(coalesce(t.\"source\" = ''excel''::text, false))"},{"constraint":"month_end__lock__5067032f","except":["is_locked","notes"],"name":"locked_month","sql":"(coalesce(t.\"is_locked\" = true, false))"}],"parents":[],"states":{}}');
+
 -- step create:index:month_end.month_end__gin__73732636 (additive)
 create index "month_end__gin__73732636" on "month_end" using gin (bolt_search);
 
@@ -2183,11 +2383,26 @@ create trigger store_row_rules before insert or update or delete on "purchase_or
 -- step create:index:purchase_order.purchase_order__gin__73732636 (additive)
 create index "purchase_order__gin__73732636" on "purchase_order" using gin (bolt_search);
 
+-- step create:trigger:facility_form.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "facility_form" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:facility_form.facility_form__gin__73732636 (additive)
+create index "facility_form__gin__73732636" on "facility_form" using gin (bolt_search);
+
+-- step create:trigger:facility_attachment.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "facility_attachment" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:facility_attachment.facility_attachment__gin__73732636 (additive)
+create index "facility_attachment__gin__73732636" on "facility_attachment" using gin (bolt_search);
+
 -- step create:trigger:invoice.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "invoice" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:invoice.invoice__gin__73732636 (additive)
 create index "invoice__gin__73732636" on "invoice" using gin (bolt_search);
+
+-- step create:trigger:invoice_line.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "invoice_line" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:trigger:po_document.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "po_document" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
@@ -2195,17 +2410,14 @@ create trigger store_row_rules before insert or update or delete on "po_document
 -- step create:index:po_document.po_document__gin__73732636 (additive)
 create index "po_document__gin__73732636" on "po_document" using gin (bolt_search);
 
+-- step create:trigger:po_financing.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "po_financing" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
 -- step create:trigger:po_line.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "po_line" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
 -- step create:index:po_line.po_line__gin__73732636 (additive)
 create index "po_line__gin__73732636" on "po_line" using gin (bolt_search);
-
--- step create:trigger:supplier.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "supplier" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:supplier.supplier__gin__73732636 (additive)
-create index "supplier__gin__73732636" on "supplier" using gin (bolt_search);
 
 -- step create:index:requestor.requestor__ix__084de4b0 (additive)
 create index "requestor__ix__084de4b0" on "requestor" ("approval_request_id");
@@ -2246,9 +2458,6 @@ create index "sys_sync__ix__8be7dc72" on "sys_sync" ("instance");
 -- step create:index:sys_sync_row.sys_sync_row__ix__8be7dc72 (additive)
 create index "sys_sync_row__ix__8be7dc72" on "sys_sync_row" ("instance");
 
--- step create:index:bank_contact.bank_contact__ix__1d24c71e (additive)
-create index "bank_contact__ix__1d24c71e" on "bank_contact" ("bank");
-
 -- step create:index:letter_of_offer.letter_of_offer__ix__1d24c71e (additive)
 create index "letter_of_offer__ix__1d24c71e" on "letter_of_offer" ("bank");
 
@@ -2261,11 +2470,20 @@ create index "watch_point__ix__1d24c71e" on "watch_point" ("bank");
 -- step create:index:watch_point.watch_point__ix__73609f24 (additive)
 create index "watch_point__ix__73609f24" on "watch_point" ("facility");
 
+-- step create:index:supplier_bank.supplier_bank__ix__a75d4d17 (additive)
+create index "supplier_bank__ix__a75d4d17" on "supplier_bank" ("supplier");
+
+-- step create:index:supplier_bank.supplier_bank__ix__1d24c71e (additive)
+create index "supplier_bank__ix__1d24c71e" on "supplier_bank" ("bank");
+
 -- step create:index:drawdown.drawdown__ix__73609f24 (additive)
 create index "drawdown__ix__73609f24" on "drawdown" ("facility");
 
 -- step create:index:drawdown.drawdown__ix__a75d4d17 (additive)
 create index "drawdown__ix__a75d4d17" on "drawdown" ("supplier");
+
+-- step create:index:drawdown.drawdown__ix__3bb5d64f (additive)
+create index "drawdown__ix__3bb5d64f" on "drawdown" ("converted_from");
 
 -- step create:index:bank_document.bank_document__ix__1d24c71e (additive)
 create index "bank_document__ix__1d24c71e" on "bank_document" ("bank");
@@ -2297,30 +2515,43 @@ create index "month_end_line__ix__c812023b" on "month_end_line" ("drawdown");
 -- step create:index:purchase_order.purchase_order__ix__a75d4d17 (additive)
 create index "purchase_order__ix__a75d4d17" on "purchase_order" ("supplier");
 
+-- step create:index:facility_form.facility_form__ix__c323e145 (additive)
+create index "facility_form__ix__c323e145" on "facility_form" ("purchase_order");
+
+-- step create:index:facility_attachment.facility_attachment__ix__565bff54 (additive)
+create index "facility_attachment__ix__565bff54" on "facility_attachment" ("form");
+
 -- step create:index:invoice.invoice__ix__637a9b52 (additive)
 create index "invoice__ix__637a9b52" on "invoice" ("po");
 
 -- step create:index:invoice.invoice__ix__c812023b (additive)
 create index "invoice__ix__c812023b" on "invoice" ("drawdown");
 
+-- step create:index:invoice_line.invoice_line__ix__56cadccd (additive)
+create index "invoice_line__ix__56cadccd" on "invoice_line" ("invoice");
+
+-- step create:index:invoice_line.invoice_line__ix__34f85bd1 (additive)
+create index "invoice_line__ix__34f85bd1" on "invoice_line" ("po_line");
+
 -- step create:index:po_document.po_document__ix__637a9b52 (additive)
 create index "po_document__ix__637a9b52" on "po_document" ("po");
+
+-- step create:index:po_financing.po_financing__ix__c323e145 (additive)
+create index "po_financing__ix__c323e145" on "po_financing" ("purchase_order");
+
+-- step create:index:po_financing.po_financing__ix__c812023b (additive)
+create index "po_financing__ix__c812023b" on "po_financing" ("drawdown");
 
 -- step create:index:po_line.po_line__ix__637a9b52 (additive)
 create index "po_line__ix__637a9b52" on "po_line" ("po");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['approval_request','bank','bank_contact','bank_document','drawdown','drawdown_charge','facility','facility_fee','fx_rate','invoice','letter_of_offer','month_end','month_end_line','po_document','po_line','purchase_order','sub_limit','supplier','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','watch_point']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['approval_request','bank','bank_document','business_partner','drawdown','drawdown_charge','facility','facility_attachment','facility_fee','facility_form','fx_rate','invoice','invoice_line','letter_of_offer','month_end','month_end_line','po_document','po_financing','po_line','purchase_order','sub_limit','supplier_bank','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','watch_point']::text[]));
 
 -- step create:engine:audit:bank (additive)
 drop trigger if exists bolt_audit_mark on "bank";
 drop trigger if exists bolt_audit on "bank";
 create trigger bolt_audit after insert or update or delete on "bank" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
-
--- step create:engine:audit:bank_contact (additive)
-drop trigger if exists bolt_audit_mark on "bank_contact";
-drop trigger if exists bolt_audit on "bank_contact";
-create trigger bolt_audit after insert or update or delete on "bank_contact" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["bank","bank"]]');
 
 -- step create:engine:audit:letter_of_offer (additive)
 drop trigger if exists bolt_audit_mark on "letter_of_offer";
@@ -2332,10 +2563,20 @@ drop trigger if exists bolt_audit_mark on "watch_point";
 drop trigger if exists bolt_audit on "watch_point";
 create trigger bolt_audit after insert or update or delete on "watch_point" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["bank","bank"],["facility","facility"]]');
 
+-- step create:engine:audit:business_partner (additive)
+drop trigger if exists bolt_audit_mark on "business_partner";
+drop trigger if exists bolt_audit on "business_partner";
+create trigger bolt_audit after insert or update or delete on "business_partner" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
+
+-- step create:engine:audit:supplier_bank (additive)
+drop trigger if exists bolt_audit_mark on "supplier_bank";
+drop trigger if exists bolt_audit on "supplier_bank";
+create trigger bolt_audit after insert or update or delete on "supplier_bank" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["bank","bank"],["supplier","business_partner"]]');
+
 -- step create:engine:audit:drawdown (additive)
 drop trigger if exists bolt_audit_mark on "drawdown";
 drop trigger if exists bolt_audit on "drawdown";
-create trigger bolt_audit after insert or update or delete on "drawdown" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["facility","facility"],["supplier","supplier"]]');
+create trigger bolt_audit after insert or update or delete on "drawdown" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["converted_from","drawdown"],["facility","facility"],["supplier","business_partner"]]');
 
 -- step create:engine:audit:bank_document (additive)
 drop trigger if exists bolt_audit_mark on "bank_document";
@@ -2360,7 +2601,7 @@ create trigger bolt_audit after insert or update or delete on "facility_fee" for
 -- step create:engine:audit:sub_limit (additive)
 drop trigger if exists bolt_audit_mark on "sub_limit";
 drop trigger if exists bolt_audit on "sub_limit";
-create trigger bolt_audit after insert or update or delete on "sub_limit" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["facility","facility"],["supplier","supplier"]]');
+create trigger bolt_audit after insert or update or delete on "sub_limit" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["facility","facility"],["supplier","business_partner"]]');
 
 -- step create:engine:audit:fx_rate (additive)
 drop trigger if exists bolt_audit_mark on "fx_rate";
@@ -2380,24 +2621,39 @@ create trigger bolt_audit after insert or update or delete on "month_end_line" f
 -- step create:engine:audit:purchase_order (additive)
 drop trigger if exists bolt_audit_mark on "purchase_order";
 drop trigger if exists bolt_audit on "purchase_order";
-create trigger bolt_audit after insert or update or delete on "purchase_order" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["supplier","supplier"]]');
+create trigger bolt_audit after insert or update or delete on "purchase_order" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["supplier","business_partner"]]');
+
+-- step create:engine:audit:facility_form (additive)
+drop trigger if exists bolt_audit_mark on "facility_form";
+drop trigger if exists bolt_audit on "facility_form";
+create trigger bolt_audit after insert or update or delete on "facility_form" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["purchase_order","purchase_order"]]');
+
+-- step create:engine:audit:facility_attachment (additive)
+drop trigger if exists bolt_audit_mark on "facility_attachment";
+drop trigger if exists bolt_audit on "facility_attachment";
+create trigger bolt_audit after insert or update or delete on "facility_attachment" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["form","facility_form"]]');
 
 -- step create:engine:audit:invoice (additive)
 drop trigger if exists bolt_audit_mark on "invoice";
 drop trigger if exists bolt_audit on "invoice";
 create trigger bolt_audit after insert or update or delete on "invoice" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["drawdown","drawdown"],["po","purchase_order"]]');
 
+-- step create:engine:audit:invoice_line (additive)
+drop trigger if exists bolt_audit_mark on "invoice_line";
+drop trigger if exists bolt_audit on "invoice_line";
+create trigger bolt_audit after insert or update or delete on "invoice_line" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["invoice","invoice"],["po_line","po_line"]]');
+
 -- step create:engine:audit:po_document (additive)
 drop trigger if exists bolt_audit_mark on "po_document";
 drop trigger if exists bolt_audit on "po_document";
 create trigger bolt_audit after insert or update or delete on "po_document" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["po","purchase_order"]]');
 
+-- step create:engine:audit:po_financing (additive)
+drop trigger if exists bolt_audit_mark on "po_financing";
+drop trigger if exists bolt_audit on "po_financing";
+create trigger bolt_audit after insert or update or delete on "po_financing" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["drawdown","drawdown"],["purchase_order","purchase_order"]]');
+
 -- step create:engine:audit:po_line (additive)
 drop trigger if exists bolt_audit_mark on "po_line";
 drop trigger if exists bolt_audit on "po_line";
 create trigger bolt_audit after insert or update or delete on "po_line" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["po","purchase_order"]]');
-
--- step create:engine:audit:supplier (additive)
-drop trigger if exists bolt_audit_mark on "supplier";
-drop trigger if exists bolt_audit on "supplier";
-create trigger bolt_audit after insert or update or delete on "supplier" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');

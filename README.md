@@ -103,8 +103,7 @@ not a catalogue:
 ```
 
 Drop `assets/thumbnail.svg` once for website cards and `og:image` — no manifest field needed
-unless the path differs. `counts` are checked against the source tree by `bun run templates:check`, so
-they cannot drift. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
+unless the path differs. `bolt build` regenerates `counts` from source roles before packing the release. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
 in-product picker, and it is independent of which repository the template lives in.
 
 ## Release and tenant lifecycle

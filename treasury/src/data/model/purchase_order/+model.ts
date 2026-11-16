@@ -23,7 +23,7 @@ export default model('purchase_order', {
 	fields: {
 		po_number: { kind: 'text', max: 60 },
 		po_date: { kind: 'date' },
-		supplier: { kind: 'ref', to: 'supplier', inverse: 'purchase_orders' },
+		supplier: { kind: 'ref', to: 'business_partner', inverse: 'purchase_orders' },
 		purchaser: { kind: 'text', optional: true },
 		salesperson: { kind: 'text', optional: true },
 		currency: { kind: 'currency', default: 'USD' },
@@ -34,8 +34,7 @@ export default model('purchase_order', {
 		amount: { kind: 'sum', of: 'lines.amount' },
 		quantity: { kind: 'sum', of: 'lines.quantity' },
 		invoiced_amount: { kind: 'sum', of: 'invoices.amount' },
-		invoice_count: { kind: 'count', of: 'invoices' },
-		lc_links: { kind: 'count', of: 'financings', where: { is_lc: { eq: true } } }
+		invoice_count: { kind: 'count', of: 'invoices' }
 	},
 	constraints: {
 		po_number: { unique: ['po_number'], import_key: true }
@@ -52,7 +51,7 @@ export default model('purchase_order', {
 			},
 			documents: { fields: ['kind', 'title', 'file'] },
 			financings: {
-				fields: ['drawdown', 'is_lc'],
+				fields: ['drawdown'],
 				drawdown: {
 					fields: [
 						'bank_reference',

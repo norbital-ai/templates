@@ -8,6 +8,7 @@ import {
 	confirmationCheck,
 	confirmationHash,
 	confirmationRead,
+	confirmationScopeRead,
 	quotationExport,
 	quotationRead
 } from '../src/lib/confirmation.js';
@@ -33,12 +34,17 @@ const settled = <A>(result: Result.Result<A, string>) =>
 	Result.isSuccess(result)
 		? Effect.succeed(result.success)
 		: Effect.fail(new Refusal({ message: result.failure }));
+export const confirmationReadOf = Effect.fnUntraced(function* (as: Reader, order: Id<'orders'>) {
+	const scope = (yield* as.query(confirmationScopeRead(order))).orders.rows[0];
+	if (!scope) return yield* new Refusal({ message: 'errors.configuration_missing' });
+	return yield* as.query(confirmationRead(scope));
+});
 export const confirmationOf = Effect.fnUntraced(function* (
 	as: Reader,
 	input: { order: Id<'orders'>; revision?: number | null; as_of: string }
 ) {
 	const check = yield* settled(
-		confirmationCheck(yield* as.query(confirmationRead(input.order)), input)
+		confirmationCheck(yield* confirmationReadOf(as, input.order), input)
 	);
 	return { ...check, check_hash: yield* confirmationHash(check) };
 });

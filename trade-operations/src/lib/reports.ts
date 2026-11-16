@@ -633,7 +633,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					style: 'currency',
 					currency: denomination
 				}).resolvedOptions().maximumFractionDigits ?? 2;
-			const legacyCost =
+			const lotCost =
 				source.lot_number && source.unit_cost !== null
 					? BigDecimal.multiply(
 							BigDecimal.fromStringUnsafe(source.unit_cost),
@@ -642,11 +642,11 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					: null;
 			const bookedCost =
 				source.booked_cost == null ? null : BigDecimal.fromStringUnsafe(source.booked_cost);
-			const cost = bookedCost ?? legacyCost;
+			const cost = bookedCost ?? lotCost;
 			const costCurrency =
 				bookedCost !== null
 					? (source.booked_cost_currency ?? null)
-					: legacyCost !== null
+					: lotCost !== null
 						? denomination
 						: null;
 			const costDigits = costCurrency

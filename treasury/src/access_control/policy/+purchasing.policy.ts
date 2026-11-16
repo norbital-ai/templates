@@ -10,9 +10,12 @@ const OWN_PO = { po: { is: OWN } } as const;
  */
 export default policy({
 	description: 'Purchasing: raise and change your own purchase orders; prepare facility forms.',
-	capabilities: { apps: ['purchasing'], automations: ['facility_form_read', 'facility_form_pack'] },
+	capabilities: {
+		apps: ['purchasing', 'business_partners'],
+		automations: ['facility_form_read', 'facility_form_pack']
+	},
 	grants: {
-		supplier: { outputs: { default: {} } },
+		business_partner: { outputs: { default: {} } },
 		purchase_order: {
 			outputs: { default: { where: OWN } },
 			create: {},

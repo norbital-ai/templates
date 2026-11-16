@@ -15,7 +15,6 @@
 		maturities,
 		maturityLadder,
 		periodCost,
-		simpleRate,
 		utilisation,
 		weightedRate
 	} from '../../lib/treasury.js';
@@ -31,7 +30,6 @@
 	const day = ctx.clock('day');
 	let picked = $state<string | null>(null);
 	const as_of = $derived(picked ?? day.today);
-	const OPEN = ['applied', 'active'] as const;
 
 	const read = ctx.query({
 		facility: { fields: [...FACILITY_FIELDS], bank: { fields: ['code'] } },
@@ -42,14 +40,20 @@
 		month_end: {
 			order_by: { month: 'desc' },
 			limit: 1,
-			fields: ['month', 'source', 'is_locked', 'total_utilised']
+			fields: ['month', 'source', 'is_locked']
 		},
 		purchase_order: {
-			where: { lc_requested: { eq: true }, is_cancelled: { eq: false }, lc_links: { eq: 0 } },
-			aggregate: { count: true }
+			where: { lc_requested: { eq: true }, is_cancelled: { eq: false } },
+			fields: ['po_number'],
+			financings: { fields: [], drawdown: { fields: ['product', 'lc_number'] } }
 		}
 	});
 	const facilities = $derived(read.current?.facility.rows ?? []);
+	const incomplete = $derived(
+		[read.current?.facility, read.current?.drawdown, read.current?.purchase_order].some(
+			(page) => page?.next != null
+		)
+	);
 	const lines = $derived(read.current?.drawdown.rows ?? []);
 	const open = $derived(lines.filter((l) => l.status === 'applied' || l.status === 'active'));
 	const usage = $derived(utilisation(facilities, lines));
@@ -76,7 +80,7 @@
 		{
 			value: 'last_month',
 			label: t('app.dashboard.last_month'),
-			from: addMonths(as_of, -1),
+			from: monthStart(addMonths(as_of, -1)),
 			to: monthEnd(addMonths(as_of, -1))
 		},
 		{
@@ -99,7 +103,7 @@
 	const costAll = $derived(cost.find((c) => c.bank === 'all'));
 
 	const usd = (value: string | null | undefined) =>
-		value == null ? '—' : format({ kind: 'money' }, value, { locale: ctx.locale, currency: 'USD' });
+		value == null ? '—' : format({ kind: 'decimal', scale: 2 }, value, { locale: ctx.locale });
 	const rate = (value: string | null) => (value === null ? '—' : `${Number(value).toFixed(2)}%`);
 	const tiles = $derived([
 		[t('app.dashboard.limit'), usd(usage.total.limit)],
@@ -107,9 +111,7 @@
 		[t('app.dashboard.available'), usd(usage.total.available)],
 		[t('app.dashboard.earmarked'), usd(usage.total.earmarked)],
 		[t('app.dashboard.free_after_earmarks'), usd(usage.total.free_after_earmarks)],
-		[t('app.dashboard.cost_of_funds'), rate(weightedRate(open))],
-		[t('app.dashboard.simple_average'), rate(simpleRate(open))],
-		[t('app.dashboard.open_lines'), String(open.length)]
+		[t('app.dashboard.cost_of_funds'), rate(weightedRate(open))]
 	]);
 	const BUCKETS = {
 		past: 'app.dashboard.bucket_past',
@@ -141,27 +143,29 @@
 			<EmptyState title={t('app.dashboard.error')} hint={String(read.error)} />
 		{:else if read.current === undefined}
 			<EmptyState title={t('app.dashboard.loading')} />
+		{:else if incomplete}
+			<EmptyState title={t('app.dashboard.error')} hint={t('reports.incomplete')} />
 		{:else if facilities.length === 0}
 			<EmptyState title={t('app.dashboard.empty')} hint={t('app.dashboard.empty_hint')} />
 		{:else}
 			<Stack gap="lg">
-				<Grid minimum="compact">
+				<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
 					{#each tiles as [title, value] (title)}
-						<div class="rounded-xl border border-border bg-card p-4">
+						<div class="min-w-0">
 							<p class="text-meta">{title}</p>
-							<p class="mt-1 text-xl font-semibold tabular-nums">{value}</p>
+							<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
 						</div>
 					{/each}
 				</Grid>
-				<Grid minimum="compact">
+				<Grid tracks="repeat(auto-fit, minmax(min(100%, 9rem), 1fr))">
 					{#each due as bucket (bucket.key)}
-						<div class="rounded-xl border border-border bg-card p-4">
+						<div class="min-w-0">
 							<p class="text-meta">{t(BUCKETS[bucket.key])}</p>
 							<p class="mt-1 text-lg font-semibold tabular-nums">{usd(bucket.amount)}</p>
 							<p class="text-meta">{t('app.dashboard.lines', { count: bucket.count })}</p>
 						</div>
 					{/each}
-					<div class="rounded-xl border border-border bg-card p-4">
+					<div class="min-w-0">
 						<p class="text-meta">{t('app.dashboard.month_end')}</p>
 						<p class="mt-1 text-lg font-semibold">
 							{latest === undefined ? '—' : monthLabel(latest.month.slice(0, 7))}
@@ -170,26 +174,33 @@
 							{latest === undefined
 								? t('app.dashboard.no_month_end')
 								: latest.source === 'portal' && latest.is_locked
-									? t('app.dashboard.locked', { amount: usd(latest.total_utilised) })
+									? t('app.dashboard.closed')
 									: t('app.dashboard.unlocked')}
 						</p>
 					</div>
-					<div class="rounded-xl border border-border bg-card p-4">
+					<div class="min-w-0">
 						<p class="text-meta">{t('app.dashboard.alerts')}</p>
 						<p class="mt-1 text-lg font-semibold tabular-nums">
-							{usage.banks.filter((b) => b.high).length} · {read.current.purchase_order.count}
+							{usage.banks.filter((b) => b.high).length} · {read.current.purchase_order.rows.filter(
+								(po) =>
+									!po.financings.some(
+										(f) => f.drawdown?.product === 'lc' || f.drawdown?.lc_number != null
+									)
+							).length}
 						</p>
 						<p class="text-meta">{t('app.dashboard.alerts_hint')}</p>
 					</div>
 				</Grid>
-				<Grid minimum="panel">
-					<Bound size="viewport">
+				<Grid
+					tracks="repeat(auto-fit, minmax(min(100%, max(18rem, calc((100% - 2rem) / 3))), 1fr))"
+				>
+					<Bound class="h-72">
 						<Chart
 							{ctx}
 							of={usage.banks.map((b) => ({
 								bank: b.bank,
 								used: Number(b.used),
-								available: Number(b.available)
+								available: Math.max(0, Number(b.available))
 							}))}
 							x="bank"
 							y={['used', 'available']}
@@ -198,7 +209,7 @@
 							title={t('app.dashboard.usage_by_bank')}
 						/>
 					</Bound>
-					<Bound size="viewport">
+					<Bound class="h-72">
 						<Chart
 							{ctx}
 							of={ladder}
@@ -208,7 +219,7 @@
 							title={t('app.dashboard.ladder')}
 						/>
 					</Bound>
-					<Bound size="viewport">
+					<Bound class="h-72">
 						<Chart
 							{ctx}
 							of={trend.map((p) => ({
@@ -216,63 +227,9 @@
 								month: monthLabel(p.month)
 							}))}
 							x="month"
-							y={['weighted', 'simple']}
+							y="weighted"
 							kind="line"
 							title={t('app.dashboard.trend')}
-						/>
-					</Bound>
-					<Bound size="viewport">
-						<Chart
-							{ctx}
-							of="drawdown"
-							where={{ status: { in: OPEN } }}
-							x="currency"
-							y="sum.amount_usd"
-							kind="donut"
-							title={t('app.dashboard.fx_exposure')}
-						/>
-					</Bound>
-					<Bound size="viewport">
-						<Chart
-							{ctx}
-							of="drawdown"
-							where={{ status: { in: OPEN } }}
-							x="product"
-							y="sum.amount_usd"
-							kind="bar"
-							title={t('app.dashboard.by_product')}
-						/>
-					</Bound>
-					<Bound size="viewport">
-						<Chart
-							{ctx}
-							of="drawdown"
-							where={{ status: { in: ['earmarked', 'applied', 'active'] } }}
-							x="status"
-							y="sum.amount_usd"
-							kind="donut"
-							title={t('app.dashboard.by_status')}
-						/>
-					</Bound>
-					<Bound size="viewport">
-						<Chart
-							{ctx}
-							of="facility"
-							where={{ status: { eq: 'active' } }}
-							x="name"
-							y="sum.limit"
-							kind="bar"
-							title={t('app.dashboard.limit_by_facility')}
-						/>
-					</Bound>
-					<Bound size="viewport">
-						<Chart
-							{ctx}
-							of="drawdown_charge"
-							x="charge_type"
-							y="sum.amount_usd"
-							kind="bar"
-							title={t('app.dashboard.charges_by_type')}
 						/>
 					</Bound>
 				</Grid>

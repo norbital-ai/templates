@@ -8,6 +8,7 @@
 		confirmationCheck,
 		confirmationHash,
 		confirmationRead,
+		confirmationScopeRead,
 		quotationFifoCosts
 	} from '../../../lib/confirmation.js';
 	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
@@ -80,11 +81,13 @@
 	const sourceState = $derived(ledger ? kingdeeConnectionStatus(ledger) : null);
 	// credit freshness is judged against the minute, so the check re-answers as the minute turns
 	const clock = ctx.clock('minute');
-	const checkRead = $derived(
+	const checkScopeRead = $derived(
 		id && view.mode !== 'create' && view.record.status === 'draft' && commercial
-			? ctx.query(confirmationRead(id))
+			? ctx.query(confirmationScopeRead(id))
 			: null
 	);
+	const checkScope = $derived(checkScopeRead?.current?.orders.rows[0]);
+	const checkRead = $derived(checkScope ? ctx.query(confirmationRead(checkScope)) : null);
 	const check = $derived(
 		checkRead?.current && view.mode !== 'create'
 			? confirmationCheck(checkRead.current, {
@@ -331,7 +334,7 @@
 	{/if}
 {/snippet}
 {#snippet sealButton(form: FormState)}
-	{#if checkRead && draft}
+	{#if checkScopeRead && draft}
 		{@const blocked = archived
 			? ctx.t('component.order_archived')
 			: form.dirty
@@ -339,7 +342,9 @@
 				: check && Result.isFailure(check)
 					? ctx.t(check.failure)
 					: !check
-						? (checkRead.error?.message ?? ctx.t('component.check_loading'))
+						? (checkScopeRead.error?.message ??
+							checkRead?.error?.message ??
+							ctx.t('component.check_loading'))
 						: null}
 		<Button
 			disabled={save.pending || form.pending || Boolean(blocked)}
