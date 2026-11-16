@@ -9,7 +9,7 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { payBasis } from '../../src/lib/payroll_engine/engine.ts';
 import { ownLines, run } from '../amendment_kit.ts';
-import { WORK, lawAt, lawWith, pack, workspace, packTerms } from '../kit.ts';
+import { EMPLOYMENT, WORK, lawAt, lawWith, pack, workspace, packTerms, uuid } from '../kit.ts';
 
 describe('the day rate', () => {
 	it('carries an allowance in the rate, and none outside it', () => {
@@ -55,6 +55,61 @@ describe('the day rate', () => {
 });
 
 describe('the hour rate', () => {
+	it.live('a conversion reading the monthly wage uses the wage of the day worked', () => {
+		const base = pack(
+			'MY',
+			'Asia/Kuala_Lumpur',
+			packTerms(3000, 'MANUAL_LABOUR'),
+			{},
+			[
+				{ date: '2025-12-22', shift: WORK, hours: 10, overtime: 2 },
+				{ date: '2026-01-05', shift: WORK, hours: 10, overtime: 2 }
+			],
+			[]
+		);
+		const seed = lawWith(
+			{
+				...base,
+				pay_group: (base.pay_group ?? []).map((row) => ({
+					...row,
+					payment_schedule: {
+						frequency: 'MONTHLY',
+						business_day: 'PREVIOUS',
+						non_working_weekdays: [0, 6],
+						short_month: 'LAST_DAY',
+						pay_cutoff_day: 21,
+						pay_days: [25]
+					}
+				})),
+				contract_terms: [
+					...(base.contract_terms ?? []),
+					{
+						id: uuid(99),
+						employment_id: EMPLOYMENT,
+						effective_from: '2026-01-01',
+						rate: { amount: 6000, unit: 'MONTHLY' }
+					}
+				]
+			},
+			{
+				overtime_catalog: {
+					OVERTIME: {
+						conversion:
+							'return sum(ctx.work.days.map((day) => day.overtime_hours)) * ctx.month_wage / 173;'
+					}
+				}
+			}
+		);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* run(t, '2026-01');
+			assert.equal(
+				(yield* ownLines(t, '2026-01'))['OVERTIME/EMPLOYEE'],
+				Number(((2 * 3000 + 2 * 6000) / 173).toFixed(2))
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-01-25T02:00:00.000Z' })));
+	});
+
 	it.live('on a FIXED basis is the month over its hours, priced by the overtime row', () => {
 		const SALARY = 1927;
 		const HOURS = 173;

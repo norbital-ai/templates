@@ -641,7 +641,11 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const paidMonth = DateTime.formatIsoDate(
 		DateTime.startOf(DateTime.makeUnsafe(coverage.from), 'month')
 	);
-	const ratesBy = new Map<string, { readonly hour_rate: number; readonly day_rate: number }>();
+	const ratesBy = new Map<
+		string,
+		{ readonly hour_rate: number; readonly day_rate: number; readonly month_wage: number }
+	>();
+	const wagesByDay = new Map<string, number>();
 	const work = {
 		days: (input.work?.days ?? []).map((day) => {
 			const { terms: worked, ...rest } = day;
@@ -658,10 +662,20 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 					{ ...input, employment: { ...input.employment, terms } },
 					month.from === paidMonth ? coverage : month
 				);
-				rates = { hour_rate: own.overtime_hour_rate, day_rate: own.day_rate };
+				rates = {
+					hour_rate: own.overtime_hour_rate,
+					day_rate: own.day_rate,
+					month_wage: own.month_wage
+				};
 				ratesBy.set(key, rates);
 			}
-			return { ...rest, ...rates };
+			wagesByDay.set(String(day.date), rates.month_wage);
+			return {
+				...rest,
+				date: String(day.date),
+				hour_rate: rates.hour_rate,
+				day_rate: rates.day_rate
+			};
 		})
 	};
 	// the constants view: a row reads the jurisdiction's settings fields under ctx.lookup, then its own lookup
@@ -912,7 +926,8 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			// an overtime row prices the days at their own rates: one evaluation for each rate the window holds
 			const byRate = Map.groupBy(
 				work.days,
-				(day) => `${String(day.hour_rate)}/${String(day.day_rate)}`
+				(day) =>
+					`${String(day.hour_rate)}/${String(day.day_rate)}/${String(wagesByDay.get(String(day.date)))}`
 			);
 			const value =
 				model !== 'overtime_catalog' || byRate.size === 0
@@ -927,6 +942,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 										...context,
 										hour_rate: Number(first?.hour_rate),
 										day_rate: Number(first?.day_rate),
+										month_wage: wagesByDay.get(String(first?.date)) ?? basis.month_wage,
 										work: { days }
 									},
 									`${code}.conversion`,

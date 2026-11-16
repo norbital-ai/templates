@@ -151,7 +151,7 @@
 				id="treasury-analysis-date"
 				of="date"
 				value={as_of}
-				on_change={(value) => (picked = value)}
+				on_change={(value: string | null) => (picked = value)}
 			/>
 		</div>
 	</label>

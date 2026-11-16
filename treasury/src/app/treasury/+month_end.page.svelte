@@ -137,7 +137,7 @@
 			id="treasury-report-month"
 			of="month"
 			value={month.slice(0, 7)}
-			on_change={(value) => (picked = value)}
+			on_change={(value: string | null) => (picked = value)}
 		/></label
 	>
 {/snippet}
