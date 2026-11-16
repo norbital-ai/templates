@@ -2,6 +2,7 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'The Kingdee syncs mirror ledger rows.',
 	grants: {
+		sys_user: { outputs: { default: {} } },
 		sys_integration: {
 			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
 		},
@@ -67,7 +68,7 @@ export default policy({
 		orders: {
 			outputs: { default: {} },
 			create: {},
-			update: {}
+			update: { moves: { status: ['draft->confirmed'] } }
 		},
 		order_lines: {
 			outputs: { default: {} },

@@ -86,6 +86,12 @@ const priced = Effect.fnUntraced(function* (
 		const order = orders.find((o) => o.id === orderId);
 		const product = products.rows.find((p) => p.id === productId);
 		if (!order || order.archived) return yield* ctx.refuse('errors.order_archived');
+		if (
+			order.status === 'draft' &&
+			order.source_order_key?.startsWith('kingdee:') &&
+			ctx.actor.kind !== 'system'
+		)
+			return yield* ctx.refuse('errors.evidence_sealed');
 		if (!product?.active) return yield* ctx.refuse('errors.product_inactive');
 		if (product.source !== order.ledger)
 			return yield* ctx.refuse('errors.ledger_mismatch', { field: 'product' });

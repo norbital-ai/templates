@@ -273,11 +273,11 @@ SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,hea
  CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,
  head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,head.FClosed AS closed,
  ${textId('head.FCheckerID')} AS checker,CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,
- ${textId('head.FCustID')} AS customer_id,customer.FName AS customer_name,
+ ${textId('head.FEmpID')} AS employee_id,${textId('head.FCustID')} AS customer_id,customer.FName AS customer_name,
  CONVERT(varchar(10),head.FDate,23) AS ordered_on,settlement.FNumber AS settlement,
  CONVERT(varchar(100),head.FExchangeRate) AS exchange_rate,
  CONVERT(varchar(33),head.FChangeDate,126) AS changed_at,${textId('head.FChangeUser')} AS changed_by,
- CONVERT(varchar(18),head.FOperDate,1) AS rowversion
+ CONVERT(varchar(18),CONVERT(binary(8),head.FOperDate),1) AS rowversion
 FROM dbo.SEOrder head
  LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID
  LEFT JOIN dbo.t_Organization customer ON customer.FItemID=head.FCustID
@@ -286,6 +286,56 @@ WHERE head.FBrNo=@branch AND EXISTS (
  SELECT 1 FROM dbo.SEOrder anchor WHERE anchor.FBrNo=head.FBrNo AND anchor.FBillNo=head.FBillNo
  AND anchor.FUUID IN ${ids})`
 };
+/** Discovery is pinned to a verified account and branch, independent of local ownership. */
+export const discoverSalesOrders = Effect.fnUntraced(function* (
+	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
+	account: string
+) {
+	const projection = {
+		sql:
+			salesFamilyProjection.sql.slice(0, salesFamilyProjection.sql.indexOf('WHERE head.FBrNo=')) +
+			'WHERE head.FBrNo=@branch AND head.FChangeMark=0'
+	};
+	const values = { branch: ctx.configuration.branchNo, account };
+	const headers = yield* readNativeRows(ctx, projection, values);
+	const lines = yield* selectByIds(
+		ctx,
+		salesLineProjection,
+		headers.map((row) => exactId(row, 'fid')),
+		ctx.configuration.branchNo,
+		account
+	);
+	const verified = yield* readNativeRows(ctx, projection, values);
+	if (JSON.stringify(headers) !== JSON.stringify(verified))
+		return yield* new SourceRowInvalid({
+			column: 'FOperDate',
+			reason: 'The source changed during order discovery; retry the whole observation'
+		});
+	return yield* checked(() => {
+		const orders = headers.map((live) =>
+			kingdeeOrder({
+				live,
+				headers: [live],
+				reference: text(live, 'reference'),
+				lines: lines.filter((line) => exactId(line, 'fid') === exactId(live, 'fid'))
+			})
+		);
+		const uuids = new Set<string>(),
+			references = new Set<string>();
+		for (const order of orders) {
+			if (
+				!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(order.uuid) ||
+				uuids.has(order.uuid)
+			)
+				invalid('FUUID', 'Discovery requires one unique native UUID per live order');
+			if (references.has(order.reference) || !/^\d{3}$/.test(order.version))
+				invalid('FBillNo', 'Discovery found an ambiguous bill family or version');
+			uuids.add(order.uuid);
+			references.add(order.reference);
+		}
+		return orders;
+	});
+});
 /** One owned SO family: its live header, every archived version, and their lines. */
 export type SourceFamily = {
 	readonly order: Id<'orders'>;
@@ -402,7 +452,7 @@ const uniqueEntries = (lines: readonly SqlRow[]) => {
 	return lines;
 };
 /** What Kingdee holds for one owned SO: its live header and lines. */
-export const kingdeeOrder = (family: SourceFamily) => {
+export const kingdeeOrder = (family: Omit<SourceFamily, 'order'>) => {
 	const header = family.live;
 	const fid = exactId(header, 'fid');
 	return {
@@ -415,6 +465,7 @@ export const kingdeeOrder = (family: SourceFamily) => {
 		exchange_rate: columns(header).decimalText('exchange_rate'),
 		currency: isoCurrency(header),
 		customer: exactId(header, 'customer_id'),
+		employee: header['employee_id'] == null ? null : exactId(header, 'employee_id'),
 		payment_terms: text(header, 'settlement'),
 		ordered_on: text(header, 'ordered_on'),
 		lines: uniqueEntries(family.lines.filter((line) => exactId(line, 'fid') === fid))

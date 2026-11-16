@@ -1,3 +1,4 @@
+import { importedOrderIdentity } from './order-identity.js';
 import { BigDecimal, Effect } from 'effect';
 import type { Id, InstanceId, Row, Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
@@ -94,6 +95,7 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 		}
 		rows.push({
 			$id: binding(ctx.configuration.branchNo, source.fid, order.source_order_key),
+			source_order_key: order.source_order_key,
 			$version: yield* headerVersion(source),
 			kingdee: {
 				fid: source.fid,
@@ -283,6 +285,13 @@ export const pushOrder = Effect.fnUntraced(function* (
 	)
 		return null;
 	const key = order.source_order_key;
+	const identity = importedOrderIdentity(key);
+	if (
+		identity &&
+		(identity.account !== order.write_target.account ||
+			identity.branch !== encodeURIComponent(order.write_target.branch))
+	)
+		return yield* refuse('The imported SO belongs to another account or branch.');
 	const uuid = yield* sourceOrderUuid(order.id, key);
 	const observe = () =>
 		readSourceOrderFamilies([{ order: order.id, uuid }], ctx).pipe(
@@ -299,7 +308,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 	const payload: OrderPayload = {
 		order_id: order.id,
 		key,
-		reference: order.number,
+		reference: before?.reference ?? order.number,
 		direction: 'sales',
 		owner_id: order.owner,
 		ordered_on: order.ordered_on,
@@ -325,6 +334,8 @@ export const pushOrder = Effect.fnUntraced(function* (
 			};
 		})
 	};
+	if (!before && identity)
+		return yield* refuse('The imported Kingdee SO is missing; it will not be recreated.');
 	if (!before)
 		yield* submitOrder(payload, ctx).pipe(Effect.catchTag('SourceRowInvalid', sourceRefused));
 	else {

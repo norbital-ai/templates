@@ -384,6 +384,8 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							.filter((row) => {
 								if (typeof row.__key !== 'string' || row.__key <= after) return false;
 								if (table === 'SEOrder') {
+									if (statement.includes('head.FChangeMark=0'))
+										return row.branch === args.branch && !row.archive;
 									if (statement.includes('kingdee-sales-orders')) {
 										const refs = new Set(
 											(tables.SEOrder ?? [])

@@ -1,3 +1,4 @@
+import { importedOrderIdentity } from './order-identity.js';
 import { BigDecimal, Effect, Schema } from 'effect';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
@@ -77,13 +78,16 @@ const json = (value: string) =>
 	Effect.try({ try: (): unknown => JSON.parse(value), catch: failure });
 
 /** Existing ERP FUUID carries provenance; the namespace makes it independent of document numbering. */
-export const sourceOrderUuid = (orderId: string, key: string) =>
-	sha256Hex(JSON.stringify(['norbital-kingdee-order-v1', orderId, key])).pipe(
+export const sourceOrderUuid = (orderId: string, key: string) => {
+	const imported = importedOrderIdentity(key);
+	if (imported?.uuid) return Effect.succeed(imported.uuid);
+	return sha256Hex(JSON.stringify(['norbital-kingdee-order-v1', orderId, key])).pipe(
 		Effect.map((digest) => {
 			const hex = `${digest.slice(0, 12)}8${digest.slice(13, 16)}${((Number.parseInt(digest[16] ?? '0', 16) & 3) | 8).toString(16)}${digest.slice(17, 32)}`;
 			return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 		})
 	);
+};
 
 const lookupSql = `${requireWriteAccount}
 DECLARE @lines xml=CONVERT(xml,@items);
@@ -358,7 +362,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				params:
 					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73)' +
 					(payload.previous
-						? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200)'
+						? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200),@preserve_source_header bit'
 						: ''),
 				document,
 				branch: config.branchNo,
@@ -369,6 +373,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				...(payload.previous && previousDocument !== null
 					? {
 							previous_document: previousDocument,
+							preserve_source_header: importedOrderIdentity(payload.key) !== null,
 							source_id: payload.previous.source_id,
 							source_version: payload.previous.source_version,
 							source_exchange_rate: payload.previous.source_exchange_rate,

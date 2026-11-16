@@ -259,12 +259,46 @@ export default model('orders', {
 	indexes: { search: { text: ['number', 'title', 'party_name'] } },
 	create: {
 		// each line prices itself in its own `create.transform`, after this one
-		fields: [...terms, 'source_order_key'],
+		fields: [
+			...terms,
+			'source_order_key',
+			'status',
+			'ledger',
+			'write_target',
+			'kingdee',
+			'party_name'
+		],
 		lines: {
-			fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate', 'print_values']
+			fields: [
+				'product',
+				'quantity',
+				'unit_price',
+				'discount_pct',
+				'tax_rate',
+				'print_values',
+				'line_key',
+				'source_entry_id'
+			]
 		},
-		filled: { fields: [], lines: { fields: ['unit_price', 'tax_rate'] } },
+		filled: { fields: ['status', 'ledger'], lines: { fields: ['unit_price', 'tax_rate'] } },
 		transform: function* (changes, ctx) {
+			if (
+				ctx.actor.kind === 'system' &&
+				'automation' in ctx.actor.by &&
+				ctx.actor.by.automation === 'import_kingdee_orders'
+			)
+				return changes.map(({ set }) => set);
+			if (
+				changes.some(
+					({ after, set }) =>
+						after.status !== 'draft' ||
+						set.write_target ||
+						set.kingdee ||
+						set.ledger ||
+						set.party_name
+				)
+			)
+				return yield* ctx.refuse('errors.save_before_confirm');
 			const rows = changes.map(({ after }) => after);
 			const {
 				parties,
@@ -329,8 +363,19 @@ export default model('orders', {
 		},
 		transform: function* (changes, ctx) {
 			// the Kingdee read writes what the SO holds
-			if (ctx.actor.kind === 'system' && 'sync' in ctx.actor.by)
+			if (
+				ctx.actor.kind === 'system' &&
+				('sync' in ctx.actor.by ||
+					('automation' in ctx.actor.by && ctx.actor.by.automation === 'import_kingdee_orders'))
+			)
 				return changes.map(({ set }) => set);
+			if (
+				changes.some(
+					({ before }) =>
+						before.status === 'draft' && before.source_order_key?.startsWith('kingdee:')
+				)
+			)
+				return yield* ctx.refuse('errors.evidence_sealed');
 			const ids = changes.map((c) => c.before.id);
 			const {
 				parties,

@@ -147,7 +147,20 @@ SELECT @actual_version=FVersionNo FROM dbo.SEOrder WITH (UPDLOCK,HOLDLOCK) WHERE
 IF @actual_version IS NULL ${fail('The verified source order identity moved or disappeared')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Ambiguous source correlation')}
 IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND CAST(FExchangeRate AS decimal(28,10))=@source_exchange_rate) ${moved}
-IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND ${header.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
+IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND ${header
+	.map((name) => {
+		const same =
+			name === 'FBrNo' || name === 'FBillNo'
+				? sameText(`actual.${q(name)}`, `expected.${q(name)}`)
+				: `actual.${q(name)}=expected.${q(name)}`;
+		// Native-origin headers retain fields our model does not own; amendments only change entries and version metadata.
+		if (['FDeptID', 'FEmpID', 'FAreaPS', 'FSaleStyle', 'FSettleDate'].includes(name))
+			return `(@preserve_source_header=1 OR (${same}))`;
+		if (name === 'FDate')
+			return `((${same}) OR (@preserve_source_header=1 AND CONVERT(date,actual.FDate)=CONVERT(date,expected.FDate)))`;
+		return same;
+	})
+	.join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
 IF EXISTS(SELECT FEntryID FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Source entry identities are ambiguous')}
 IF @actual_version=@new_version BEGIN
  IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) OR EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${targetMatches})) ${fail('The amended source order differs from the frozen submission')}
