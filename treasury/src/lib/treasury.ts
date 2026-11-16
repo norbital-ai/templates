@@ -1086,7 +1086,10 @@ export function lineWarnings(
 	if (f === null)
 		return line.status === 'earmarked' ? [{ key: 'warning.unallocated', values: {} }] : [];
 	const others = context.lines.filter((l) => l.facility === f.id && l.id !== line.id);
-	const used = BigDecimal.sum(sum(others.filter(usesLimit).map(usd)), usd(line));
+	const used = BigDecimal.sum(
+		sum(others.filter(usesLimit).map(usd)),
+		PRODUCTS[line.product].uses_limit ? usd(line) : ZERO
+	);
 	const withEarmarks = BigDecimal.sum(
 		used,
 		sum(others.filter((l) => l.status === 'earmarked').map(usd))

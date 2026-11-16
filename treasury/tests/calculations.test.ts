@@ -595,6 +595,26 @@ describe('facility sublimits', () => {
 			}
 		);
 		expect(warnings.map((w) => w.key)).toEqual(['warning.over_cap']);
+		expect(
+			lineWarnings(
+				{
+					...current,
+					product: 'fx',
+					amount_usd: '1000000',
+					fx_rate_to_usd: '1',
+					lc_expiry_date: null,
+					earliest_invoice_date: null
+				},
+				{
+					facility: facility('f1', 'AAA', '10000'),
+					offered: [],
+					lines: [],
+					eligible_banks: null,
+					sub_limits: subLimitUsage({ ...current, product: 'fx' }, caps, lines),
+					today: '2026-01-02'
+				}
+			)
+		).toEqual([]);
 		const [quote] = compareInvoice(
 			{
 				amount: '40',

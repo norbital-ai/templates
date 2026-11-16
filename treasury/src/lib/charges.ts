@@ -17,7 +17,7 @@ export const CHARGE_TYPES = [
 ] as const;
 export type ChargeType = (typeof CHARGE_TYPES)[number];
 
-/** The figures read from an advice, checked by a person against the PDF before anything is applied. */
+/** Extracted advice facts, submitted with the original PDF for native Treasury approval. */
 export const ADVICE = {
 	kind: 'object',
 	fields: {

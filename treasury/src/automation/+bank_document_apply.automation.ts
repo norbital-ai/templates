@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 
 /**
- * Applies a checked advice to its line: a drawdown advice records the drawdown, a settlement advice settles it, each
+ * Submits extracted advice to its line: a drawdown advice records the drawdown, a settlement advice settles it, each
  * with the advice's figures and charges. The figures are held with the PDF in the native financing approval.
  */
 export default automation({
