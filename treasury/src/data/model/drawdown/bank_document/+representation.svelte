@@ -164,18 +164,8 @@
 									{sections}
 								/>
 								{@render arithmetic()}
-								<RunsFor
-									{ctx}
-									automation="bank_document_read"
-									limit={20}
-									where={runWhere}
-								/>
-								<RunsFor
-									{ctx}
-									automation="bank_document_apply"
-									limit={20}
-									where={runWhere}
-								/>
+								<RunsFor {ctx} automation="bank_document_read" limit={20} where={runWhere} />
+								<RunsFor {ctx} automation="bank_document_apply" limit={20} where={runWhere} />
 							</Stack>
 						</Scroll>
 					{/snippet}

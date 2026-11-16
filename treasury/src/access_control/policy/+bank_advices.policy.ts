@@ -19,7 +19,15 @@ export default policy({
 		bank_document: {
 			outputs: { default: {} },
 			update: {
-				fields: ['extracted', 'read_status', 'read_note', 'advice_reference', 'doc_type', 'drawdown', 'bank']
+				fields: [
+					'extracted',
+					'read_status',
+					'read_note',
+					'advice_reference',
+					'doc_type',
+					'drawdown',
+					'bank'
+				]
 			}
 		}
 	}

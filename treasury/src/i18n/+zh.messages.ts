@@ -33,7 +33,8 @@ export default messages({
 	'errors.conversion_product': '该票据不能转换为此产品。',
 	'errors.conversion_due': '转换需要新融资的到期日。',
 	'errors.one_advice': '每次只能应用一份通知书。',
-	'errors.advice_submitted': '已提交的通知书数字和原 PDF 已锁定。请先拒绝待审批的提案，再更正资料。',
+	'errors.advice_submitted':
+		'已提交的通知书数字和原 PDF 已锁定。请先拒绝待审批的提案，再更正资料。',
 	'errors.advice_unmatched': '请先将通知书匹配到融资并核对数据。',
 	'errors.advice_incomplete': '通知书缺少必要数据（编号、日期或本金）。',
 	'errors.advice_type': '只能应用提款或结算通知书。',

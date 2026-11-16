@@ -37,7 +37,8 @@ export default messages({
 	'errors.conversion_product': 'This bill cannot convert into that product.',
 	'errors.conversion_due': 'A conversion needs the new line’s due date.',
 	'errors.one_advice': 'Apply one advice at a time.',
-	'errors.advice_submitted': 'Submitted advice figures and the original PDF are locked. Reject a pending proposal before correcting them.',
+	'errors.advice_submitted':
+		'Submitted advice figures and the original PDF are locked. Reject a pending proposal before correcting them.',
 	'errors.advice_unmatched': 'Match the advice to a line and check its figures first.',
 	'errors.advice_incomplete':
 		'The advice is missing figures it needs (reference, dates or principal).',
@@ -157,7 +158,8 @@ export default messages({
 	'app.alerts.lcs': 'LCs to open',
 	'app.alerts.tt': 'T/T payments',
 	'app.advices.title': 'Bank advices',
-	'app.advices.description': 'Upload a PDF. Its figures are read automatically and matching financing changes go to Treasury for approval.',
+	'app.advices.description':
+		'Upload a PDF. Its figures are read automatically and matching financing changes go to Treasury for approval.',
 	'app.advices.inbox': 'To check',
 	'app.advices.applied': 'Submitted',
 	'app.advices.reread': 'Read again',
@@ -166,8 +168,10 @@ export default messages({
 	'app.advices.details': 'Reference and notes',
 	'app.advices.upload_hint': 'Creating the advice starts parsing automatically.',
 	'app.advices.read_hint': 'Extraction runs automatically after upload. Use Read again to retry.',
-	'app.advices.link_hint': 'Match the advice to one financing line to submit its figures for approval.',
-	'app.advices.review_hint': 'Compare the PDF and figures. Financing changes require Treasury approval.',
+	'app.advices.link_hint':
+		'Match the advice to one financing line to submit its figures for approval.',
+	'app.advices.review_hint':
+		'Compare the PDF and figures. Financing changes require Treasury approval.',
 	'app.advices.checks': 'Checks',
 	'app.advices.no_checks': 'No figures to check yet: read the advice or type its figures in.',
 	'check.days': 'Days: due − start = {actual}; the advice prints {printed}.',

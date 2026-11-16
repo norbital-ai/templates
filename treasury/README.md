@@ -65,8 +65,8 @@ for Treasury approval, alongside checks of days, interest with the bank's roundi
 | Minimum currency                       | The currency of a percentage fee's minimum; it can differ from the currency of a flat fee. Missing FX makes the estimate unknown.                                                                                                               |
 | All-in cost                            | Estimated interest plus applicable fees, annualised over the proposed tenor. It is a comparison based on stored history and rules, not a bank quote.                                                                                            |
 | Basis points (bps)                     | One percentage point is 100 bps. The spread compares a bank's recent rate with the group's recent rate.                                                                                                                                         |
-| Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                                       |
-| Ready to review / submitted advice       | Ready to review means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                                                                      |
+| Bank advice                            | A bank's drawdown or repayment notice. Uploading starts extraction and submits a uniquely matched line update through Treasury approval.                                                                                                        |
+| Ready to review / submitted advice     | Ready to review means extraction finished. Submitted means the line operation was written; its native approval state distinguishes pending review from approved changes.                                                                        |
 | PO / proforma / commercial invoice     | A purchase order is the order; a proforma proposes supply and payment terms; a commercial invoice records what was supplied and billed. They have distinct roles.                                                                               |
 | Facility form / T/T / pay by LC        | The purchasing requisition; T/T is a bank transfer request, LC requests a letter of credit. Saving an LC form linked to a PO marks that PO as requesting an LC.                                                                                 |
 | Month-end lock                         | A locked report keeps frozen detail lines and headline totals. A summary imported without detail lines becomes a full snapshot when locked.                                                                                                     |
@@ -220,8 +220,8 @@ totals. Configure provider connections and host capabilities separately from bus
 | `drawdown_record_advice` | Records the drawdown advice; the line becomes active            |
 | `drawdown_settle`        | Records the settlement advice; flags a differing interest       |
 | `drawdown_close_bill`    | Pays a bill in cash or converts it into financing               |
-| `bank_document_read`     | Automatically extracts and matches uploaded bank advices                   |
-| `bank_document_apply`    | Submits advice figures through Treasury approval                            |
+| `bank_document_read`     | Automatically extracts and matches uploaded bank advices        |
+| `bank_document_apply`    | Submits advice figures through Treasury approval                |
 | `month_end_lock`         | Freezes a month's lines and figures                             |
 | `month_end_unlock`       | Lets a month follow live data again                             |
 | `facility_form_read`     | Fills a facility form from its PO, proforma and customer PO     |
