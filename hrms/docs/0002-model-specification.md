@@ -184,6 +184,8 @@ write ──► registered_rule (collection, event) ──► refuse | commit
 commit ──► registered_effect (collection, event) ──► target_action write
 ```
 
+`reads` is data: a layer per model with its `where`, `fields` and `limit`. A layer needs a key (the person, stint, company or record it reads by) and should state the window its expression uses, as dates from the row (`{ "var": "add_months(ctx.entry.work_date, -12)" }`, `month_start(…)`, `month_end(…)`, `add_days(…)`). All of a batch's reads go out as one request per model; a bound every reader of that model declares on a date, period, code, kind, state or run is applied in the database, and each rule's own `where` then picks its rows. A read with no window reads the whole history of its key, so leave one out only where the law counts the whole history.
+
 The employment and the company a rule or effect reads are in [the architecture](0001-hrms-calculation-architecture.md#7-rules-effects-and-tasks).
 
 ## 6. Employer, employee and calendar
