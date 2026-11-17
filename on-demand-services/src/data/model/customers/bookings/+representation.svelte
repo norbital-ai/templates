@@ -127,7 +127,7 @@
 			service !== null &&
 			start !== null &&
 			(preference === 'any' || helpers.length > 0) &&
-			shown?.some((d) => d.starts.includes(start!)) === true
+			shown?.some((d) => d.starts.some((s) => s === start)) === true
 	);
 	const save = use_act(ctx);
 	function book() {

@@ -390,6 +390,7 @@ export default messages({
 	'errors.no_helper_free': 'No helper is free at that time.',
 	'errors.booking_cancelled': 'This booking is already cancelled.',
 	'errors.recommend_not_scheduled': 'Only a scheduled visit can have a replacement.',
+	'errors.visit_open_ended': 'This visit has no end time, so it cannot be placed.',
 	'errors.visit_started': 'This visit has already started. Choose a new future time.',
 	'errors.no_recommendation': 'This scheduled visit has no recommendation to approve.',
 	'errors.cancel_not_scheduled': 'Only a scheduled visit can be cancelled.',

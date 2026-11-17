@@ -491,7 +491,7 @@ describe('advice and invoice checks', () => {
 				amount: '210',
 				lines: [{ po_line: 'l1', quantity: '100', amount: '210' }]
 			},
-			{ ...po, lines: [{ ...po.lines[0]!, invoiced_quantity: '100' }] },
+			{ ...po, lines: po.lines.map((line) => ({ ...line, invoiced_quantity: '100' })) },
 			null
 		);
 		expect(priced.map((f) => f.key)).toEqual(['finding.price']);

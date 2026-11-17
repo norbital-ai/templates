@@ -32,7 +32,14 @@ export const bookService = Effect.fnUntraced(function* (
 	const address = input.address ?? customer.address;
 	const location = input.address === undefined ? customer.location : (input.location ?? null);
 	const area = input.address === undefined ? (input.area ?? customer.area) : (input.area ?? null);
-	const pool = yield* loadPool(ctx, starts[0]!, starts.at(-1)!, [location]);
+	const firstStart = starts.at(0);
+	const lastStart = starts.at(-1);
+	if (firstStart === undefined || lastStart === undefined)
+		return yield* ctx.refuse('errors.no_helper_for_occurrence', {
+			field: 'start',
+			values: { occurrence: 1 }
+		});
+	const pool = yield* loadPool(ctx, firstStart, lastStart, [location]);
 	for (const id of preferred) {
 		const h = pool.helpers.find((h) => h.id === id);
 		if (h === undefined)
@@ -65,6 +72,8 @@ export const bookService = Effect.fnUntraced(function* (
 		attention: 'none' as const
 	}));
 
+	const firstVisit = visits.at(0);
+	if (firstVisit === undefined) return yield* ctx.refuse('errors.booking_not_created');
 	const repeats =
 		input.repeat === 'once' ? '' : ` (${input.repeat}, ${visits.length} visits booked ahead)`;
 	const { records } = yield* ctx.act({
@@ -86,8 +95,8 @@ export const bookService = Effect.fnUntraced(function* (
 		'customer_notices.create': [
 			{
 				customer: customer.id,
-				subject: `Booking confirmed: ${service.name}, ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}`,
-				body: `Your ${service.name} is booked for ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(visits[0]!.slot.start))}${repeats} at ${address}. We will message you if anything changes.`
+				subject: `Booking confirmed: ${service.name}, ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(firstVisit.slot.start))}`,
+				body: `Your ${service.name} is booked for ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(firstVisit.slot.start))}${repeats} at ${address}. We will message you if anything changes.`
 			}
 		],
 		...(also.request === undefined ? {} : { 'booking_requests.update': also.request })

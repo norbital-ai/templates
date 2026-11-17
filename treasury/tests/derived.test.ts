@@ -151,7 +151,7 @@ it.layer(
 				const rows = Schema.decodeUnknownSync(
 					Schema.Struct({
 						drawdown: Schema.Struct({
-							rows: Schema.Array(Schema.Struct({ invoiced_amount: Schema.String }))
+							rows: Schema.Tuple([Schema.Struct({ invoiced_amount: Schema.String })])
 						})
 					})
 				)(read).drawdown.rows;
@@ -159,7 +159,7 @@ it.layer(
 				const findings = invoiceFindings(
 					{ invoice_number: 'SHARED-0', currency: 'USD', amount: '140', lines: [] },
 					{ currency: 'USD', supplier: partner.id, lines: [] },
-					{ supplier: partner.id, amount: '200', invoiced: rows[0]!.invoiced_amount }
+					{ supplier: partner.id, amount: '200', invoiced: rows[0].invoiced_amount }
 				);
 				expect(findings.map((f) => f.key)).toContain('finding.financing_over');
 			})

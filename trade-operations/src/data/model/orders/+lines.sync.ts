@@ -48,7 +48,8 @@ export default sync('orders', 'lines', {
 					(product.external_code === record.product_code ||
 						product.source_number === record.product_code)
 			);
-			if (matches.length !== 1) {
+			const product = matches[0];
+			if (matches.length !== 1 || product === undefined) {
 				findings.push({
 					at,
 					field: 'Product code',
@@ -60,7 +61,6 @@ export default sync('orders', 'lines', {
 				});
 				continue;
 			}
-			const product = matches[0]!;
 			const existing = lineAt(order.id, record.line_key ?? undefined);
 			if (existing && existing.product !== product.id) {
 				findings.push({

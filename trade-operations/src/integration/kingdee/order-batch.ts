@@ -1,5 +1,5 @@
 import { BigDecimal, DateTime } from 'effect';
-import { price } from '../../lib/commercial.js';
+import { price, numeric } from '../../lib/commercial.js';
 import { currency, PlainDate, SourceRowInvalid } from './polling.js';
 
 type OrderLine = {
@@ -263,7 +263,7 @@ export function sourceOrderBatch(
 			useGrouping: false,
 			minimumFractionDigits: Math.max(0, rate.scale),
 			maximumFractionDigits: Math.max(0, rate.scale)
-		}).format(BigDecimal.format(rate) as Intl.StringNumericLiteral),
+		}).format(numeric(BigDecimal.format(rate))),
 		FDeptID: sourceInteger(bindings.departmentId, 'FDeptID'),
 		FEmpID: sourceInteger(bindings.employeeId, 'FEmpID'),
 		FBillerID: sourceInteger(bindings.billerId, 'FBillerID'),
@@ -352,77 +352,77 @@ export function sourceOrderBatch(
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, quantity.scale),
 				maximumFractionDigits: Math.max(0, quantity.scale)
-			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(quantity))),
 			Fauxqty: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, quantity.scale),
 				maximumFractionDigits: Math.max(0, quantity.scale)
-			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(quantity))),
 			FAuxStockAwaitQty: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, quantity.scale),
 				maximumFractionDigits: Math.max(0, quantity.scale)
-			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(quantity))),
 			FComplexQty: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, quantity.scale),
 				maximumFractionDigits: Math.max(0, quantity.scale)
-			}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(quantity))),
 			Fauxprice: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: exclusive.scale,
 				maximumFractionDigits: exclusive.scale
-			}).format(BigDecimal.format(exclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(exclusive))),
 			FPrice: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: exclusive.scale,
 				maximumFractionDigits: exclusive.scale
-			}).format(BigDecimal.format(exclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(exclusive))),
 			FAuxTaxPrice: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: inclusive.scale,
 				maximumFractionDigits: inclusive.scale
-			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(inclusive))),
 			FTaxPrice: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: inclusive.scale,
 				maximumFractionDigits: inclusive.scale
-			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(inclusive))),
 			FPriceDiscount: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: inclusive.scale,
 				maximumFractionDigits: inclusive.scale
-			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(inclusive))),
 			FAuxPriceDiscount: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: inclusive.scale,
 				maximumFractionDigits: inclusive.scale
-			}).format(BigDecimal.format(inclusive) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(inclusive))),
 			FCESS: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, taxRate.scale),
 				maximumFractionDigits: Math.max(0, taxRate.scale)
-			}).format(BigDecimal.format(taxRate) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(taxRate))),
 			FAmount: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: actual.net.scale,
 				maximumFractionDigits: actual.net.scale
-			}).format(BigDecimal.format(actual.net) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(actual.net))),
 			FAllAmount: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: actual.total.scale,
 				maximumFractionDigits: actual.total.scale
-			}).format(BigDecimal.format(actual.total) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(actual.total))),
 			FAllStdAmount: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: standard.scale,
 				maximumFractionDigits: standard.scale
-			}).format(BigDecimal.format(standard) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(standard))),
 			FTaxAmt: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: actual.tax.scale,
 				maximumFractionDigits: actual.tax.scale
-			}).format(BigDecimal.format(actual.tax) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(actual.tax))),
 			FDate: date,
 			FAdviceConsignDate: date,
 			FNote: '',

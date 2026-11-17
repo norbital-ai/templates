@@ -117,10 +117,11 @@ export const planRebooking = Effect.fnUntraced(function* (
 		return yield* ctx.refuse('errors.customer_change_window', {
 			values: { hours: free_change_hours }
 		});
+	if (v.slot.end === null) return yield* ctx.refuse('errors.visit_open_ended');
 	const slot = slotOf(
 		start,
 		Duration.toMinutes(
-			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
 		)
 	);
 	const pool = yield* loadPool(ctx, start, start, [v.location]);

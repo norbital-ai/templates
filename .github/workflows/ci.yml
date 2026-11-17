@@ -2,8 +2,9 @@ name: CI
 run-name: ${{ inputs.template && format('CI ({0})', inputs.template) || 'CI' }}
 
 # One workflow, one build per template: the repository's static checks, then each template's install, `bolt check`,
-# ONE `bolt build` and `bolt test` against that build, whose release (bundle, source, seed, each by digest) uploads to R2 under
-# `releases/` on `main`. Nothing reaches a tenant until `env deploy promote --release=<bundle digest>` names it.
+# ONE `bolt build`, whose release (bundle, source, seed, each by digest) uploads to R2 under `releases/` on `main`, and
+# `bolt test`, whose kit compiles the same source into its own checkpoint (committed migrations, `seed/test` pack): it
+# does not read that build. Nothing reaches a tenant until `env deploy promote --release=<bundle digest>` names it.
 on:
   pull_request:
   push:
@@ -97,7 +98,7 @@ jobs:
       - name: bolt check
         working-directory: ${{ matrix.template }}
         run: bun x bolt check .
-      # the one build: its bundle and public seed pack are what the tests read and what the release uploads
+      # the one build: its bundle, source and seed packs are what the release uploads
       - name: bolt build
         working-directory: ${{ matrix.template }}
         run: bun x bolt build .

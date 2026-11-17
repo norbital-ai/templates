@@ -83,7 +83,8 @@ export default sync('orders', 'sheet', {
 					party.external_code === record.party_code || party.source_number === record.party_code
 			);
 			const scoped = existing ? matches.filter((p) => p.source === existing.ledger) : matches;
-			if (scoped.length !== 1) {
+			const party = scoped[0];
+			if (scoped.length !== 1 || party === undefined) {
 				findings.push({
 					at,
 					field: 'Party code',
@@ -95,7 +96,6 @@ export default sync('orders', 'sheet', {
 				});
 				continue;
 			}
-			const party = scoped[0]!;
 			const kind = record.direction === 'sales' ? 'customer' : 'supplier';
 			if (!party.active || (party.kind !== kind && party.kind !== 'both')) {
 				findings.push({
@@ -152,8 +152,10 @@ export default sync('orders', 'sheet', {
 				row.source_order_key = existing.source_order_key;
 			}
 			if (warehouse) row.warehouse = warehouse.id;
-			if (text(record.owner)) row.owner = text(record.owner)!;
-			if (text(record.logistics_handler)) row.logistics_handler = text(record.logistics_handler)!;
+			const owner = text(record.owner);
+			if (owner) row.owner = owner;
+			const handler = text(record.logistics_handler);
+			if (handler) row.logistics_handler = handler;
 			for (const field of [
 				'delivery_terms',
 				'shipping_terms',
@@ -177,12 +179,12 @@ export default sync('orders', 'sheet', {
 				if (value !== undefined) row[field] = value;
 			}
 			if (record.tax_inclusive != null) row.tax_inclusive = record.tax_inclusive;
+			const before = new Map<string, unknown>(existing ? Object.entries(existing) : []);
 			const changed =
 				existing === undefined ||
 				Object.entries(row).some(
 					([field, value]) =>
-						field !== 'source_order_key' &&
-						String(existing[field as keyof typeof existing] ?? '') !== String(value ?? '')
+						field !== 'source_order_key' && String(before.get(field) ?? '') !== String(value ?? '')
 				);
 			if (changed) rows.push(row);
 		}

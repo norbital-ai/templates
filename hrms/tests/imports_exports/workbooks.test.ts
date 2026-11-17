@@ -342,8 +342,10 @@ describe('roster workbook', () => {
 				assert.ok(error instanceof WorkbookRowsError);
 				assert.equal(error.message, '7 problems need fixing before this file can be imported.');
 				assert.equal(error.detail.length, 1);
-				assert.match(error.detail[0]!, /^Clock in with no clock out: 1001 on 2026-03-01 \(row 2\)/);
-				assert.match(error.detail[0]!, /1001 on 2026-03-06 \(row 7\); and 1 more\.$/);
+				const [first] = error.detail;
+				assert.ok(first !== undefined);
+				assert.match(first, /^Clock in with no clock out: 1001 on 2026-03-01 \(row 2\)/);
+				assert.match(first, /1001 on 2026-03-06 \(row 7\); and 1 more\.$/);
 				return true;
 			}
 		);

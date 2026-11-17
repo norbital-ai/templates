@@ -148,8 +148,8 @@
 	};
 	const timeline = $derived.by(() => {
 		const byMessage = Map.groupBy(
-			photos.filter((p) => p.messageId != null),
-			(p) => p.messageId!
+			photos.flatMap((p) => (p.messageId == null ? [] : [{ ...p, messageId: p.messageId }])),
+			(p) => p.messageId
 		);
 		const items: Item[] = [
 			...logs.rows.map((m) => ({

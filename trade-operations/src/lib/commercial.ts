@@ -2,6 +2,8 @@ import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
 import type { Row } from '@norbital-ai/bolt';
 
+/** Decimal text as the numeric literal `Intl.NumberFormat` formats at full precision; anything else throws. */
+export const numeric = Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]));
 export function price(
 	document: Pick<Row<'orders'>, 'currency' | 'tax_inclusive'>,
 	line: {
@@ -159,17 +161,17 @@ export function snapshot(
 			useGrouping: false,
 			minimumFractionDigits: net.scale,
 			maximumFractionDigits: net.scale
-		}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+		}).format(numeric(BigDecimal.format(net))),
 		tax: new Intl.NumberFormat('en', {
 			useGrouping: false,
 			minimumFractionDigits: tax.scale,
 			maximumFractionDigits: tax.scale
-		}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
+		}).format(numeric(BigDecimal.format(tax))),
 		total: new Intl.NumberFormat('en', {
 			useGrouping: false,
 			minimumFractionDigits: total.scale,
 			maximumFractionDigits: total.scale
-		}).format(BigDecimal.format(total) as Intl.StringNumericLiteral)
+		}).format(numeric(BigDecimal.format(total)))
 	};
 }
 /** An order's commercial terms as its documents render them. */
@@ -233,9 +235,11 @@ export function creditWarning(
 		credit !== undefined &&
 		(credit.credit_hold ||
 			(!unavailable &&
+				credit.credit_used !== null &&
+				credit.credit_limit !== null &&
 				BigDecimal.isGreaterThan(
-					BigDecimal.sum(BigDecimal.fromStringUnsafe(credit.credit_used!), gross),
-					BigDecimal.fromStringUnsafe(credit.credit_limit!)
+					BigDecimal.sum(BigDecimal.fromStringUnsafe(credit.credit_used), gross),
+					BigDecimal.fromStringUnsafe(credit.credit_limit)
 				)));
 	return { warning: unavailable || adverse, unavailable };
 }

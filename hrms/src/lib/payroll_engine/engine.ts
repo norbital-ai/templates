@@ -1,6 +1,11 @@
 import { BigDecimal, DateTime, Option } from 'effect';
 import type { JsonObject, Lookup, Party, Direction, Rounding, Unit } from './contracts.js';
-import { lookupOf, ROUNDING_MODES as roundingModes, settingsConstants } from './contracts.js';
+import {
+	lookupOf,
+	ROUNDING_MODES as roundingModes,
+	settingsConstants,
+	UNITS
+} from './contracts.js';
 import { contextRoots, evaluate } from './expressions.js';
 import { programOf } from './programs.js';
 import { Refusal, daysIn, isJsonObject, leaveEntry } from './foundation.js';
@@ -113,11 +118,10 @@ const amount = (value: unknown, field: string): number => {
 const id = (row: JsonObject): string => text(row, 'id');
 const period = (run: JsonObject): { from: string; to: string } => {
 	const coverage = run.salary_coverage;
-	if (coverage === null || typeof coverage !== 'object' || Array.isArray(coverage))
+	if (!isJsonObject(coverage))
 		throw new Refusal({ message: 'Payroll requires an explicit salary coverage period.' });
-	const value = coverage as JsonObject;
-	const from = value.from,
-		to = value.to;
+	const from = coverage.from,
+		to = coverage.to;
 	if (
 		typeof from !== 'string' ||
 		typeof to !== 'string' ||
@@ -180,7 +184,10 @@ export function statutoryOrder(rows: readonly JsonObject[]): readonly JsonObject
 		if (row === undefined) throw new Refusal({ message: `${code}: unknown statutory dependency.` });
 		if (visiting.has(code)) throw new Refusal({ message: `${code}: statutory dependency cycle.` });
 		visiting.add(code);
-		for (const dependency of (row.depends_on ?? []) as readonly string[]) visit(dependency);
+		const dependencies = row.depends_on ?? [];
+		if (!Array.isArray(dependencies))
+			throw new Refusal({ message: `${code}: depends_on lists scheme codes.` });
+		for (const dependency of dependencies) visit(String(dependency));
 		visiting.delete(code);
 		done.add(code);
 		ordered.push(row);
@@ -958,7 +965,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 					subtotal,
 					amount: round(input.settings, value),
 					direction:
-						model === 'overtime_catalog' ? ((producer.direction as Direction) ?? 'ADD') : 'ADD',
+						model === 'overtime_catalog' && producer.direction === 'DEDUCT' ? 'DEDUCT' : 'ADD',
 					incurred_on: coverage.to,
 					coverage,
 					source: producer,
@@ -1100,6 +1107,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 							const held = (posted[scheme] ??= {});
 							held[side] = (held[side] ?? 0) + sign * paid;
 						}
+				const unit = UNITS.find((one) => one === entry.unit);
 				subtotalLines.push(
 					line({
 						code,
@@ -1108,15 +1116,15 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 						amount: paid,
 						direction: net < 0 ? 'DEDUCT' : 'ADD',
 						party:
-							group.model === 'adhoc_catalog'
-								? ((catalog.party as Party) ?? 'EMPLOYEE')
+							group.model === 'adhoc_catalog' && catalog.party === 'EMPLOYER'
+								? 'EMPLOYER'
 								: 'EMPLOYEE',
 						incurred_on: String(entry.incurred_on ?? coverage.to),
 						coverage,
 						source: entry,
 						model: group.entryModel,
 						...(typeof entry.quantity === 'number' ? { quantity: entry.quantity } : {}),
-						...(entry.unit === undefined ? {} : { unit: entry.unit as Unit })
+						...(unit === undefined ? {} : { unit })
 					})
 				);
 			}

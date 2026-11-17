@@ -170,17 +170,20 @@ export function averageLotCost(
 			r.currency === currency &&
 			BigDecimal.isPositive(BigDecimal.fromStringUnsafe(r.on_hand))
 	);
-	if (!lots.length || lots.some((r) => r.unit_cost === null)) return null;
-	return BigDecimal.round(
-		BigDecimal.divideUnsafe(
-			BigDecimal.sumAll(
-				lots.map((r) =>
+	const valued = lots.flatMap((r) =>
+		r.unit_cost === null
+			? []
+			: [
 					BigDecimal.multiply(
 						BigDecimal.fromStringUnsafe(r.on_hand),
-						BigDecimal.fromStringUnsafe(r.unit_cost!)
+						BigDecimal.fromStringUnsafe(r.unit_cost)
 					)
-				)
-			),
+				]
+	);
+	if (!lots.length || valued.length < lots.length) return null;
+	return BigDecimal.round(
+		BigDecimal.divideUnsafe(
+			BigDecimal.sumAll(valued),
 			BigDecimal.sumAll(lots.map((r) => BigDecimal.fromStringUnsafe(r.on_hand)))
 		),
 		{ scale: 8 }

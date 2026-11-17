@@ -63,12 +63,13 @@ export default automation({
 			}
 		>();
 		for (const day of days)
-			for (const [a, b] of legsOf(day, homes.get(day[0]!.helper) ?? null)) {
+			for (const [a, b] of legsOf(day, homes.get(day[0].helper) ?? null)) {
+				if (a === null || b === null) continue;
 				const leg = legOf(a, b);
 				if (leg === null || drive.has(leg)) continue;
-				const o = todo.get(cellOf(a!)) ?? { from: a!, to: new Map<string, Point>() };
-				o.to.set(cellOf(b!), b!);
-				todo.set(cellOf(a!), o);
+				const o = todo.get(cellOf(a)) ?? { from: a, to: new Map<string, Point>() };
+				o.to.set(cellOf(b), b);
+				todo.set(cellOf(a), o);
 			}
 		const learned = yield* learnLegs(
 			ctx,
@@ -82,8 +83,9 @@ export default automation({
 		// walk each day: a visit too close to the last one kept moves, and the next is checked against that one
 		const late = new Map<Id<'helpers'>, Id<'visits'>[]>();
 		for (const day of days) {
-			let last: Busy = day[0]!;
-			for (const b of day.slice(1)) {
+			const [first, ...rest] = day;
+			let last: Busy = first;
+			for (const b of rest) {
 				const start = DateTime.makeUnsafe(b.slot.start);
 				const reachable = DateTime.isGreaterThanOrEqualTo(
 					start,

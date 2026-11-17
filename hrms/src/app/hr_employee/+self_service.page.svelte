@@ -16,8 +16,7 @@
 		Table,
 		Tabs,
 		set_ui_text,
-		ui_text,
-		type UiTextKey,
+		ui_text_for,
 		format
 	} from '@norbital-ai/ui';
 	import ClaimRequest from '../../lib/ui/person/claim_request.svelte';
@@ -26,21 +25,8 @@
 	import { pageLaws } from '../../lib/ui/law.svelte.js';
 	import FaceEnrollFlow from '../../lib/ui/person/face_enroll_flow.svelte';
 	let { ctx }: { ctx: PageContext } = $props();
-	const inheritedChrome = ui_text();
-	// Keep inherited translations while describing the native virtual-label search in employee terms.
-	set_ui_text(
-		new Proxy<Partial<Record<UiTextKey, string>>>(
-			{},
-			{
-				get: (_target, key) =>
-					typeof key !== 'string'
-						? undefined
-						: key === 'searchFields'
-							? ctx.t('v2.search_records_hint')
-							: inheritedChrome(key as UiTextKey)
-			}
-		)
-	);
+	// the shell's chrome in the page's locale, with the native virtual-label search described in employee terms
+	set_ui_text({ ...ui_text_for(ctx.locale), searchFields: ctx.t('v2.search_records_hint') });
 
 	const clock = ctx.clock('day');
 	const today = $derived(clock.today);

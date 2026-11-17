@@ -199,14 +199,14 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			});
 			yield* confirm(t, order);
 			const document = yield* documentOf(admin, { order });
-			expect(document.print?.file.id).toBe(upload.output.id);
+			const print = document.print;
+			expect(print?.file.id).toBe(upload.output.id);
+			if (!print) throw new Error('Print layout required');
 			printed.length = 0;
 			expect(yield* renderPreview(t, document)).toBe(
-				renderPrintLayout(html, document.print!.fields, document.print!.lines)
+				renderPrintLayout(html, print.fields, print.lines)
 			);
-			expect(printed).toEqual([
-				renderPrintLayout(html, document.print!.fields, document.print!.lines)
-			]);
+			expect(printed).toEqual([renderPrintLayout(html, print.fields, print.lines)]);
 			expect(printed[0]).toContain('<h1>Approved print layout</h1>');
 			expect(printed[0]).toContain('<b>21.80</b><p>Delivery by arrangement.</p>');
 			expect(printed[0]).toContain('0.010 t · 2,180.00 · Synthetic &amp; Co');

@@ -41,7 +41,8 @@ export const memberByContact = <I extends string>(
 	const found = members.filter((member) =>
 		[...contactKeys(member.email), ...contactKeys(member.phone)].some((key) => keys.has(key))
 	);
-	return found.length === 1 ? found[0]!.id : null;
+	const [only, ...rest] = found;
+	return only !== undefined && rest.length === 0 ? only.id : null;
 };
 /** A WhatsApp identity: a phone number's JID, or a group, linked-device, broadcast or channel one. */
 const JID = /@(?:s\.whatsapp\.net|c\.us|g\.us|lid|broadcast|newsletter)$/;

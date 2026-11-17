@@ -3,7 +3,7 @@
 	 * A new stint with its first terms and statutory parameters, in one write: a hire or a rehire, or (given the stint
 	 * the person leaves) a transfer, which ends that stint the day before and starts the next under the other company
 	 * on the terms carried over. A transfer's loans move with the person under the same law, and are settled or opened
-	 * again under another.
+	 * again under another, in the same write. A write whose outcome is unknown goes again as it was, under its key.
 	 */
 	import type { Id, PlainDate } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -21,17 +21,17 @@
 	} from '@norbital-ai/ui';
 	import { run } from '@norbital-ai/ui/effect';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { DateTime } from 'effect';
+	import { DateTime, Effect } from 'effect';
 	import { inForce } from '../../dated.js';
 	import { accountsOf, latestLeft } from '../../ledger/core.js';
 	import { parametersChange, termsChange } from '../../person.js';
-	import { jsonObject, type Json, type JsonObject } from '../../payroll_engine/foundation.js';
+	import { jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_QUESTION, paidPeriods } from '../payroll/paid_period.svelte.js';
 	import { categoryValues } from './contract_categories.js';
 	import ContractTermsEditor, { datedKind } from './contract_terms_editor.svelte';
 	import type { PersonRead, StintRow } from './person_read.svelte.js';
-	import { outstandingOf, transferOrSettleLoans } from './stint_loans.js';
+	import { loansRead, outstandingOf, transferActs, type Writes } from './stint_loans.js';
 
 	let {
 		ctx,
@@ -73,6 +73,9 @@
 	let note = $state('');
 	let saving = $state(false);
 	let failure = $state<string | null>(null);
+	/** The write sent and not settled: its outcome unknown or still running, the form holds still until it is. */
+	let sent = $state.raw<{ readonly acts: Writes; readonly key: string } | null>(null);
+	const locked = $derived(saving || sent !== null);
 
 	const lastDay = $derived(
 		from === null || firstDay === null
@@ -177,77 +180,71 @@
 		termsEdit = null;
 		parametersEdit = null;
 	}
-	async function commit() {
+	/** The sheet as one act map under a fresh key, or none while it is incomplete or HR declines to amend a paid period. */
+	async function prepared() {
 		const target = law;
-		if (!valid || saving || entity === null || firstDay === null || target === undefined) return;
+		if (!valid || entity === null || firstDay === null || target === undefined) return null;
+		// a stint that starts in a paid period amends it: HR is asked first, as on an entry
+		if (paid.covers(firstDay, entity) && !(await run(confirm_action(PAID_QUESTION)))) return null;
+		const told = jsonObject(parameters);
+		const next = jsonObject({
+			employee_id: person,
+			entity_id: entity,
+			effective_range: { from: firstDay, to: null },
+			...(from === null
+				? serviceStart === null
+					? {}
+					: { service_started_on: serviceStart }
+				: {
+						// credited service and the dated events move with the person inside one jurisdiction
+						...(sameLaw && from.service_started_on != null
+							? { service_started_on: from.service_started_on }
+							: {}),
+						...(sameLaw && from.events != null ? { events: from.events } : {})
+					}),
+			terms: [{ ...jsonObject(terms), effective_from: firstDay }],
+			...(Object.keys(told).length === 0
+				? {}
+				: { parameters: [{ ...told, effective_from: firstDay }] })
+		});
+		const acts: Writes =
+			from === null || lastDay === null
+				? { 'employment.create': [next] }
+				: transferActs(
+						await ctx.query(loansRead(from.id)),
+						from,
+						{
+							lastDay,
+							reason: `${t('contract.transfer')}${note.trim() === '' ? '' : ` · ${note.trim()}`}`
+						},
+						next,
+						{ entityId: entity, law: target, carry: sameLaw, settle: settleLoans }
+					);
+		return { acts, key: crypto.randomUUID() };
+	}
+	async function commit() {
+		if (saving) return;
 		saving = true;
 		failure = null;
 		try {
-			// a stint that starts in a paid period amends it: HR is asked first, as on an entry
-			if (paid.covers(firstDay, entity) && !(await run(confirm_action(PAID_QUESTION)))) return;
-			const told = jsonObject(parameters);
-			const loans =
-				from === null || lastDay === null
-					? null
-					: await transferOrSettleLoans(
-							ctx,
-							{
-								id: from.id,
-								entity_id: from.entity_id,
-								employee_id: person,
-								employee_number: from.employee_number
-							},
-							{ entityId: entity, law: target },
-							lastDay,
-							sameLaw,
-							settleLoans
-						);
-			const acts: Record<string, Json> = {
-				...loans?.writes,
-				...(from === null || lastDay === null
-					? {}
-					: {
-							'employment.update': [
-								{
-									target: { id: from.id, revision: from.revision },
-									set: {
-										effective_range: { from: from.effective_range.from, to: lastDay },
-										reason: `${t('contract.transfer')}${note.trim() === '' ? '' : ` · ${note.trim()}`}`
-									}
-								}
-							]
-						}),
-				'employment.create': [
-					jsonObject({
-						employee_id: person,
-						entity_id: entity,
-						effective_range: { from: firstDay, to: null },
-						...(from === null
-							? serviceStart === null
-								? {}
-								: { service_started_on: serviceStart }
-							: {
-									// credited service and the dated events move with the person inside one jurisdiction
-									...(sameLaw && from.service_started_on != null
-										? { service_started_on: from.service_started_on }
-										: {}),
-									...(sameLaw && from.events != null ? { events: from.events } : {})
-								}),
-						terms: [{ ...jsonObject(terms), effective_from: firstDay }],
-						...(Object.keys(told).length === 0
-							? {}
-							: { parameters: [{ ...told, effective_from: firstDay }] })
+			const request = sent ?? (await prepared());
+			if (request === null) return;
+			sent = request;
+			const outcome = await run(
+				ctx.act(request.acts, { key: request.key }).pipe(
+					Effect.catchTags({
+						ActRefused: ({ message }) => Effect.succeed({ kind: 'refused' as const, message }),
+						ActConflict: () => Effect.succeed({ kind: 'conflict' as const }),
+						ActUnknown: () => Effect.succeed({ kind: 'unknown' as const })
 					})
-				]
-			};
-			const outcome = await run(ctx.act(acts));
+				)
+			);
 			notify_outcome(ctx, outcome);
-			if (outcome.kind !== 'committed') return;
-			const created = outcome.records.flatMap((row) =>
-				row.model === 'employment' && row.id !== from?.id ? [row.id] : []
-			)[0];
-			if (loans !== null && created !== undefined) await loans.follow(created);
-			onclose();
+			// not known yet: the same write goes again under its key, and answers from its commit if it made one
+			if (outcome.kind === 'unknown' || outcome.kind === 'running') return;
+			sent = null;
+			if (outcome.kind === 'refused') failure = outcome.message;
+			else if (outcome.kind !== 'conflict') onclose();
 		} catch (error) {
 			failure = error instanceof Error ? error.message : t('component.error');
 			toast.error(failure);
@@ -268,7 +265,7 @@
 					id="stint-month"
 					options={months}
 					value={firstDay}
-					disabled={saving}
+					disabled={locked}
 					on_change={(next) => (firstDay = next)}
 				/>
 				{#if !valid && lastDay !== null && lastDay < from.effective_range.from}
@@ -284,7 +281,7 @@
 				id="stint-entity"
 				options={read.companies.map((row) => ({ value: row.id, label: row.name }))}
 				value={entity}
-				disabled={saving}
+				disabled={locked}
 				on_change={chooseEntity}
 			/>
 		</Stack>
@@ -297,7 +294,7 @@
 					name="first_day"
 					kind={{ kind: 'date' }}
 					value={firstDay}
-					disabled={saving}
+					disabled={locked}
 					on_change={(next) => (firstDay = next == null ? null : String(next))}
 				/>
 			</Stack>
@@ -309,7 +306,7 @@
 					name="service_started_on"
 					kind={{ kind: 'date', optional: true }}
 					value={serviceStart}
-					disabled={saving}
+					disabled={locked}
 					on_change={(next) => (serviceStart = next == null ? null : String(next))}
 				/>
 			</Stack>
@@ -325,7 +322,7 @@
 						name: 'terms',
 						kind: datedKind(ctx, 'contract_terms'),
 						value: terms,
-						disabled: saving,
+						disabled: locked,
 						on_change: (next) => (termsEdit = next)
 					}}
 				/>
@@ -340,7 +337,7 @@
 						name: 'parameters',
 						kind: datedKind(ctx, 'statutory_parameters'),
 						value: parameters,
-						disabled: saving,
+						disabled: locked,
 						on_change: (next) => (parametersEdit = next)
 					}}
 				/>
@@ -355,7 +352,7 @@
 						name="settle_loans"
 						kind={{ kind: 'bool' }}
 						value={settleLoans}
-						disabled={saving}
+						disabled={locked}
 						on_change={(next) => (settleLoans = next === true)}
 					/>
 					<Label for="stint-settle-loans">{t('contract.settle_loan')}</Label>
@@ -369,7 +366,7 @@
 					name="reason"
 					kind={{ kind: 'text' }}
 					value={note}
-					disabled={saving}
+					disabled={locked}
 					on_change={(next) => (note = next == null ? '' : String(next))}
 				/>
 			</Stack>
@@ -390,7 +387,7 @@
 		{/if}
 		<Cluster gap="sm" justify="end">
 			<Button variant="outline" disabled={saving} onclick={onclose}>{t('component.cancel')}</Button>
-			<Button disabled={saving || !valid} onclick={commit}>{title}</Button>
+			<Button disabled={saving || (sent === null && !valid)} onclick={commit}>{title}</Button>
 		</Cluster>
 	</Stack>
 </Sheet>

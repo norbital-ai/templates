@@ -16,7 +16,7 @@ import type {
 	Row,
 	Where
 } from '@norbital-ai/bolt';
-import { hash } from './commercial.js';
+import { hash, numeric } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
@@ -205,14 +205,14 @@ function commissionRows(orders: readonly ReportOrder[]) {
 					useGrouping: false,
 					minimumFractionDigits: 8,
 					maximumFractionDigits: 8
-				}).format(BigDecimal.format(spread) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(spread))),
 			amount:
 				amount &&
 				new Intl.NumberFormat('en', {
 					useGrouping: false,
 					minimumFractionDigits: amount.scale,
 					maximumFractionDigits: amount.scale
-				}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(amount))),
 			owner_name: '',
 			order: order.id,
 			number: order.number,
@@ -253,14 +253,14 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 					useGrouping: false,
 					minimumFractionDigits: 8,
 					maximumFractionDigits: 8
-				}).format(BigDecimal.format(line.spread) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(line.spread))),
 			amount:
 				line.amount &&
 				new Intl.NumberFormat('en', {
 					useGrouping: false,
 					minimumFractionDigits: line.amount.scale,
 					maximumFractionDigits: line.amount.scale
-				}).format(BigDecimal.format(line.amount) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(line.amount))),
 			reason: line.reason
 		}))
 	};
@@ -372,7 +372,7 @@ export const reportPages = <A extends { readonly id: string }, E>(
 	first: Page<A> & { readonly total: number },
 	read: (after: Cursor) => Effect.Effect<Page<A>, E>
 ) =>
-	Stream.paginate(null as Cursor | null, (after) =>
+	Stream.paginate<Cursor | null, A, E>(null, (after) =>
 		Effect.map(
 			after === null ? Effect.succeed(first) : read(after),
 			(page) => [page.rows, Option.fromNullOr(page.next)] as const
@@ -562,47 +562,35 @@ export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(
-						BigDecimal.format(BigDecimal.round(row.net, { scale })) as Intl.StringNumericLiteral
-					),
+					}).format(numeric(BigDecimal.format(BigDecimal.round(row.net, { scale })))),
 				source_net:
 					row.source_net &&
 					new Intl.NumberFormat('en', {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(
-						BigDecimal.format(
-							BigDecimal.round(row.source_net, { scale })
-						) as Intl.StringNumericLiteral
-					),
+					}).format(numeric(BigDecimal.format(BigDecimal.round(row.source_net, { scale })))),
 				tax:
 					row.tax &&
 					new Intl.NumberFormat('en', {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(
-						BigDecimal.format(BigDecimal.round(row.tax, { scale })) as Intl.StringNumericLiteral
-					),
+					}).format(numeric(BigDecimal.format(BigDecimal.round(row.tax, { scale })))),
 				total:
 					row.total &&
 					new Intl.NumberFormat('en', {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(
-						BigDecimal.format(BigDecimal.round(row.total, { scale })) as Intl.StringNumericLiteral
-					),
+					}).format(numeric(BigDecimal.format(BigDecimal.round(row.total, { scale })))),
 				freight:
 					row.freight &&
 					new Intl.NumberFormat('en', {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(
-						BigDecimal.format(BigDecimal.round(row.freight, { scale })) as Intl.StringNumericLiteral
-					)
+					}).format(numeric(BigDecimal.format(BigDecimal.round(row.freight, { scale }))))
 			};
 		})
 		.sort(
@@ -670,15 +658,17 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 									minimumFractionDigits: 8,
 									maximumFractionDigits: 8
 								}).format(
-									BigDecimal.format(
-										BigDecimal.round(
-											BigDecimal.divideUnsafe(
-												BigDecimal.fromStringUnsafe(net),
-												BigDecimal.fromStringUnsafe(source.quantity)
-											),
-											{ scale: 8 }
+									numeric(
+										BigDecimal.format(
+											BigDecimal.round(
+												BigDecimal.divideUnsafe(
+													BigDecimal.fromStringUnsafe(net),
+													BigDecimal.fromStringUnsafe(source.quantity)
+												),
+												{ scale: 8 }
+											)
 										)
-									) as Intl.StringNumericLiteral
+									)
 								),
 					floor_net: line?.floor_net ?? null,
 					order_number: order?.number ?? '',
@@ -700,9 +690,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 									minimumFractionDigits: costDigits,
 									maximumFractionDigits: costDigits
 								}).format(
-									BigDecimal.format(
-										BigDecimal.round(cost, { scale: costDigits })
-									) as Intl.StringNumericLiteral
+									numeric(BigDecimal.format(BigDecimal.round(cost, { scale: costDigits })))
 								),
 					cost_currency: costCurrency,
 					margin:
@@ -712,9 +700,11 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 									minimumFractionDigits: digits,
 									maximumFractionDigits: digits
 								}).format(
-									BigDecimal.format(
-										BigDecimal.round(BigDecimal.subtract(booked, cost), { scale: digits })
-									) as Intl.StringNumericLiteral
+									numeric(
+										BigDecimal.format(
+											BigDecimal.round(BigDecimal.subtract(booked, cost), { scale: digits })
+										)
+									)
 								)
 							: null,
 					currency: denomination,
@@ -726,11 +716,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 							useGrouping: false,
 							minimumFractionDigits: digits,
 							maximumFractionDigits: digits
-						}).format(
-							BigDecimal.format(
-								BigDecimal.round(booked, { scale: digits })
-							) as Intl.StringNumericLiteral
-						),
+						}).format(numeric(BigDecimal.format(BigDecimal.round(booked, { scale: digits })))),
 					tax,
 					freight,
 					total:
@@ -741,15 +727,17 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 									minimumFractionDigits: digits,
 									maximumFractionDigits: digits
 								}).format(
-									BigDecimal.format(
-										BigDecimal.round(
-											BigDecimal.sum(
-												BigDecimal.fromStringUnsafe(net),
-												BigDecimal.fromStringUnsafe(tax)
-											),
-											{ scale: digits }
+									numeric(
+										BigDecimal.format(
+											BigDecimal.round(
+												BigDecimal.sum(
+													BigDecimal.fromStringUnsafe(net),
+													BigDecimal.fromStringUnsafe(tax)
+												),
+												{ scale: digits }
+											)
 										)
-									) as Intl.StringNumericLiteral
+									)
 								)
 				}
 			];
@@ -918,14 +906,14 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 					useGrouping: false,
 					minimumFractionDigits: raw.scale,
 					maximumFractionDigits: raw.scale
-				}).format(BigDecimal.format(raw) as Intl.StringNumericLiteral);
+				}).format(numeric(BigDecimal.format(raw)));
 		const credit =
 			BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
 				? new Intl.NumberFormat('en', {
 						useGrouping: false,
 						minimumFractionDigits: raw.scale,
 						maximumFractionDigits: raw.scale
-					}).format(BigDecimal.format(BigDecimal.negate(raw)) as Intl.StringNumericLiteral)
+					}).format(numeric(BigDecimal.format(BigDecimal.negate(raw))))
 				: zero;
 		const overpaid =
 			!BigDecimal.isNegative(total) && BigDecimal.isNegative(raw)
@@ -933,7 +921,7 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 						useGrouping: false,
 						minimumFractionDigits: raw.scale,
 						maximumFractionDigits: raw.scale
-					}).format(BigDecimal.format(BigDecimal.negate(raw)) as Intl.StringNumericLiteral)
+					}).format(numeric(BigDecimal.format(BigDecimal.negate(raw))))
 				: zero;
 		return [
 			{
@@ -1002,7 +990,7 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 									useGrouping: false,
 									minimumFractionDigits: amount.scale,
 									maximumFractionDigits: amount.scale
-								}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
+								}).format(numeric(BigDecimal.format(amount))),
 					overpaid: zero,
 					credit:
 						!receipt && BigDecimal.isNegative(amount)
@@ -1010,14 +998,14 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 									useGrouping: false,
 									minimumFractionDigits: amount.scale,
 									maximumFractionDigits: amount.scale
-								}).format(BigDecimal.format(BigDecimal.negate(amount)) as Intl.StringNumericLiteral)
+								}).format(numeric(BigDecimal.format(BigDecimal.negate(amount))))
 							: zero,
 					unapplied: receipt
 						? new Intl.NumberFormat('en', {
 								useGrouping: false,
 								minimumFractionDigits: amount.scale,
 								maximumFractionDigits: amount.scale
-							}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral)
+							}).format(numeric(BigDecimal.format(amount)))
 						: zero,
 					bucket: receipt ? ('unapplied' as const) : agingBucket(entry.due_on ?? null, as_of)
 				}
@@ -1127,12 +1115,12 @@ export function estimateAging(details: readonly AgingDetail[]) {
 					useGrouping: false,
 					minimumFractionDigits: applied.scale,
 					maximumFractionDigits: applied.scale
-				}).format(BigDecimal.format(applied) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(applied))),
 				estimated_balance: new Intl.NumberFormat('en', {
 					useGrouping: false,
 					minimumFractionDigits: remaining.scale,
 					maximumFractionDigits: remaining.scale
-				}).format(BigDecimal.format(remaining) as Intl.StringNumericLiteral)
+				}).format(numeric(BigDecimal.format(remaining)))
 			});
 		}
 	}
@@ -1145,9 +1133,7 @@ export function estimateAging(details: readonly AgingDetail[]) {
 							minimumFractionDigits: BigDecimal.fromStringUnsafe(row.credit).scale,
 							maximumFractionDigits: BigDecimal.fromStringUnsafe(row.credit).scale
 						}).format(
-							BigDecimal.format(
-								BigDecimal.negate(BigDecimal.fromStringUnsafe(row.credit))
-							) as Intl.StringNumericLiteral
+							numeric(BigDecimal.format(BigDecimal.negate(BigDecimal.fromStringUnsafe(row.credit))))
 						),
 						estimated_balance: zero
 					}
@@ -1200,7 +1186,7 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 				useGrouping: false,
 				minimumFractionDigits: total.scale,
 				maximumFractionDigits: total.scale
-			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+			}).format(numeric(BigDecimal.format(total)));
 		}
 		if (row.estimated_balance != null) {
 			const total = BigDecimal.sum(
@@ -1211,7 +1197,7 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 				useGrouping: false,
 				minimumFractionDigits: total.scale,
 				maximumFractionDigits: total.scale
-			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+			}).format(numeric(BigDecimal.format(total)));
 		}
 		if (row.bucket !== 'unapplied') {
 			const total = BigDecimal.sum(
@@ -1222,7 +1208,7 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 				useGrouping: false,
 				minimumFractionDigits: total.scale,
 				maximumFractionDigits: total.scale
-			}).format(BigDecimal.format(total) as Intl.StringNumericLiteral);
+			}).format(numeric(BigDecimal.format(total)));
 		}
 		groups.set(group, summary);
 	}
@@ -1238,7 +1224,7 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 					useGrouping: false,
 					minimumFractionDigits: net.scale,
 					maximumFractionDigits: net.scale
-				}).format(BigDecimal.format(net) as Intl.StringNumericLiteral)
+				}).format(numeric(BigDecimal.format(net)))
 			};
 		})
 		.sort(

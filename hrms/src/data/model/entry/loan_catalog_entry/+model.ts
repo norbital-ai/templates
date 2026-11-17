@@ -119,8 +119,38 @@ export default model('loan_catalog_entry', {
 			// the loan's catalogue row says where each instalment lands on a payslip: another row amends every period
 			// that took one
 			const moved = changes.filter((c) => c.changed('catalog_code')).map((c) => c.before.id);
+			// a loan moved to another stint or company (a transfer) takes the instalments no run has taken, in this same
+			// write: a repayment stands where its loan does; one a run took keeps the stint and company that paid it
+			const relocated = changes.filter((c) => c.changed('employment_id') || c.changed('entity_id'));
+			const open =
+				relocated.length === 0
+					? []
+					: (yield* ctx.query({
+							loan_catalog_entry_repayment: {
+								where: {
+									loan_id: { in: relocated.map((c) => c.before.id) },
+									payroll_run_id: { is_null: true }
+								},
+								fields: ['id', 'revision', 'loan_id'],
+								limit: 10000
+							}
+						})).loan_catalog_entry_repayment.rows;
+			const follow = open.flatMap((row) => {
+				const loan = relocated.find((c) => c.before.id === row.loan_id)?.after;
+				return loan === undefined
+					? []
+					: [
+							{
+								target: { id: row.id, revision: row.revision },
+								set: { entity_id: loan.entity_id, employment_id: loan.employment_id }
+							}
+						];
+			});
 			return {
 				sets: changes.map((c) => c.set),
+				...(follow.length === 0
+					? {}
+					: { with: { loan_catalog_entry_repayment: { update: follow } } }),
 				on_approved: yield* instalmentAmendments(ctx.query, moved).pipe(refusing(ctx))
 			};
 		},

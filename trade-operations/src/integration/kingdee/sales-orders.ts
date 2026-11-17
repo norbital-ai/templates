@@ -2,7 +2,7 @@ import { importedOrderIdentity, importedOrderKey } from './order-identity.js';
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { Id, InstanceId, Row, Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { hash } from '../../lib/commercial.js';
+import { hash, numeric } from '../../lib/commercial.js';
 import { sealedCommission } from '../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from './configuration.js';
 import type { SourceRowInvalid, SqlRow } from './polling.js';
@@ -363,7 +363,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 							useGrouping: false,
 							minimumFractionDigits: price.scale,
 							maximumFractionDigits: price.scale
-						}).format(BigDecimal.format(price) as Intl.StringNumericLiteral),
+						}).format(numeric(BigDecimal.format(price))),
 				discount_pct: kept ? line.discount_pct : '0',
 				tax_rate: entry.tax_rate,
 				product_code: entry.item,

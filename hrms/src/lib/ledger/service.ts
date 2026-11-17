@@ -200,9 +200,11 @@ export const carry = (
 	posted: readonly JsonObject[],
 	balances: readonly JsonObject[]
 ) => {
+	const create: LedgerRow[] = [];
+	const update: BalanceMove[] = [];
 	const carried = {
-		ledger_entry: { create: [] as LedgerRow[] },
-		employee_balance: { update: [] as BalanceMove[] }
+		ledger_entry: { create },
+		employee_balance: { update }
 	} satisfies CarriedWrites;
 	const held = Map.groupBy(posted, (row) => planKey(String(row.balance_id), String(row.source)));
 	const moves = new Map<string, Movement[]>();

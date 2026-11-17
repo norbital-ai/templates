@@ -11,7 +11,7 @@ const variables = ['reference', 'title', 'agreement', 'version'];
 export function validateDocumentTemplate(body: string) {
 	if (!body.trim() || !body.includes('{agreement}')) throw new Error('Agreement required');
 	for (const [, key] of body.matchAll(/\{([^{}]+)\}/g))
-		if (!variables.includes(key!)) throw new Error('Unknown variable');
+		if (!variables.some((name) => name === key)) throw new Error('Unknown variable');
 }
 export function renderOrderDocument(
 	title: string,
@@ -150,8 +150,8 @@ function printValues(
 			tax: seal.tax,
 			total: seal.total
 		},
-		lines: seal.lines.map((line, index) => ({
-			...amounts.lines[index]!,
+		lines: amounts.lines.map(({ line, ...amount }) => ({
+			...amount,
 			...printDetailFields(template.print_fields, 'line', line.print_values),
 			product: line.product_name,
 			product_code: line.product_code,
@@ -181,10 +181,11 @@ export function renderPrintLayout(
 	const sections = source.split(/\{\{#lines\}\}([\s\S]*?)\{\{\/lines\}\}/);
 	if (sections.length > 3 || sections.some((part) => /\{\{[#/]/.test(part)))
 		throw new Error('Use one matched print line block');
-	return sections.length === 3
-		? fill(sections[0]!, fields) +
-				lines.map((line) => fill(sections[1]!, { ...fields, ...line })).join('') +
-				fill(sections[2]!, fields)
+	const [head, block, tail] = sections;
+	return head !== undefined && block !== undefined && tail !== undefined
+		? fill(head, fields) +
+				lines.map((line) => fill(block, { ...fields, ...line })).join('') +
+				fill(tail, fields)
 		: fill(source, fields);
 }
 

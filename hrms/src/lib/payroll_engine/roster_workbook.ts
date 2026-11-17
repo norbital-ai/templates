@@ -232,10 +232,11 @@ const rowsOf = (grids: WorkbookSheetGrids) => {
 			)
 		: [];
 	const months = [...new Set([...plan, ...work].map((row) => row.day.slice(0, 7)))].toSorted();
-	if (months.length === 0) throw new WorkbookRowsError('The file has no work-day rows.');
+	const [month] = months;
+	if (month === undefined) throw new WorkbookRowsError('The file has no work-day rows.');
 	if (months.length > 1)
 		throw new WorkbookRowsError(`The file spans ${months.join(', ')}; import one month at a time.`);
-	return { plan, work, month: months[0]! };
+	return { plan, work, month };
 };
 
 /** Every row's month; one file is one month. */
@@ -297,12 +298,14 @@ const clockAt = (
 	}
 	// an instant with its offset, or a wall time `YYYY-MM-DD HH:MM[:SS]` read in the zone
 	const wall = /^(\d{4}-\d{2}-\d{2})[T ]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(text);
+	const wallDate = wall?.[1];
 	const instant = (
 		/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})$/i.test(text)
 			? DateTime.make(text)
 			: wall !== null &&
-				  Option.exists(DateTime.make(wall[1]!), (d) => DateTime.formatIsoDate(d) === wall[1])
-				? DateTime.makeZoned(`${wall[1]}T${wall[2]}:${wall[3]}:${wall[4] ?? '00'}`, {
+				  wallDate !== undefined &&
+				  Option.exists(DateTime.make(wallDate), (d) => DateTime.formatIsoDate(d) === wallDate)
+				? DateTime.makeZoned(`${wallDate}T${wall[2]}:${wall[3]}:${wall[4] ?? '00'}`, {
 						timeZone: zone,
 						adjustForTimeZone: true
 					})
@@ -410,7 +413,8 @@ const shiftOf = (
 			shift.code.trim().toUpperCase() === code.trim().toUpperCase() &&
 			inRange(day, { from: shift.from ?? '0000-01-01', to: shift.to })
 	);
-	if (matches.length === 1) return matches[0]!;
+	const [only] = matches;
+	if (only !== undefined && matches.length === 1) return only;
 	problems.push({
 		issue:
 			matches.length === 0
@@ -572,9 +576,9 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 	}
 	for (const shifts of worked.values()) {
 		const list = shifts.toSorted((left, right) => left.day.localeCompare(right.day));
-		for (let index = 1; index < list.length; index++) {
-			const previous = list[index - 1]!;
-			const next = list[index]!;
+		for (const [index, next] of list.entries()) {
+			const previous = list[index - 1];
+			if (previous === undefined) continue;
 			if (Date.parse(next.interval.start) < Date.parse(previous.interval.end))
 				problems.push({
 					issue: 'Clock times overlap the day before',

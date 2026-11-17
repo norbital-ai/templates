@@ -15,6 +15,7 @@ import {
 	type Where
 } from '@norbital-ai/bolt';
 import {
+	closedSlot,
 	DEFAULTS,
 	improve,
 	lookups,
@@ -347,10 +348,14 @@ export const planReassignment = Effect.fnUntraced(function* (
 	away: Id<'helpers'>
 ) {
 	const starts = visits.map((v) => v.slot.start).sort();
+	const first = starts.at(0);
+	const last = starts.at(-1);
+	if (first === undefined || last === undefined)
+		return { updates: [], notices: [], assigned: 0, unassigned: 0 };
 	const pool = yield* loadPool(
 		ctx,
-		starts[0]!,
-		starts.at(-1)!,
+		first,
+		last,
 		visits.map((v) => v.location)
 	);
 	const helpers = pool.helpers.filter((h) => h.id !== away);
@@ -360,7 +365,8 @@ export const planReassignment = Effect.fnUntraced(function* (
 	const notices: CreateInput<'customer_notices'>[] = [];
 	let unassigned = 0;
 	for (const v of visits) {
-		const slot = { start: v.slot.start, end: v.slot.end! };
+		const slot = closedSlot(v.slot);
+		if (slot === null) continue;
 		const need = { skill: v.skill, slot, location: v.location, area: v.area, visit: v.id };
 		const best = rank(need, { ...pool, helpers, busy }, ctx.tz)[0];
 		if (best === undefined) unassigned += 1;
@@ -416,18 +422,21 @@ export const recommend = Effect.fnUntraced(function* (
 	away: Id<'helpers'>,
 	lapsed: boolean
 ) {
-	if (visits.length === 0) return;
 	const ordered = [...visits].sort((a, b) => a.slot.start.localeCompare(b.slot.start));
+	const first = ordered.at(0);
+	const last = ordered.at(-1);
+	if (first === undefined || last === undefined) return;
 	const pool = yield* loadPool(
 		ctx,
-		ordered[0]!.slot.start,
-		ordered.at(-1)!.slot.start,
+		first.slot.start,
+		last.slot.start,
 		ordered.map((v) => v.location)
 	);
 	const helpers = pool.helpers.filter((h) => h.id !== away);
 	const busy = pool.busy.filter((b) => !visits.some((v) => v.id === b.id));
-	const updates = ordered.map((v) => {
-		const slot = { start: v.slot.start, end: v.slot.end! };
+	const updates = ordered.flatMap((v) => {
+		const slot = closedSlot(v.slot);
+		if (slot === null) return [];
 		const best = rank(
 			{ skill: v.skill, slot, location: v.location, area: v.area, visit: v.id },
 			{ ...pool, helpers, busy },
@@ -435,26 +444,28 @@ export const recommend = Effect.fnUntraced(function* (
 		)[0];
 		if (best !== undefined)
 			busy.push({ id: v.id, helper: best.helper, slot, location: v.location });
-		return {
-			target: targetOf(v),
-			set: {
-				...(lapsed ? { shift_check: 'no_response' as const } : {}),
-				helper: null,
-				unavailable_helper: away,
-				proposed_helper: best?.helper ?? null,
-				proposed_slot: best === undefined ? null : slot,
-				attention: best === undefined ? ('unassigned' as const) : ('awaiting_approval' as const),
-				eta_minutes: null,
-				eta_checked_at: null
+		return [
+			{
+				target: targetOf(v),
+				set: {
+					...(lapsed ? { shift_check: 'no_response' as const } : {}),
+					helper: null,
+					unavailable_helper: away,
+					proposed_helper: best?.helper ?? null,
+					proposed_slot: best === undefined ? null : slot,
+					attention: best === undefined ? ('unassigned' as const) : ('awaiting_approval' as const),
+					eta_minutes: null,
+					eta_checked_at: null
+				}
 			}
-		};
+		];
 	});
 	yield* ctx.act({ 'visits.update': updates });
 	yield* ctx.notify({
 		title: 'Approve replacement cleaners',
 		description: `${visits.length} visit${visits.length === 1 ? '' : 's'} need your decision. Recommendations include travel and workload; no replacement is assigned until approval.`,
 		to: [{ team: 'operations' }],
-		link: { model: 'visits', id: ordered[0]!.id }
+		link: { model: 'visits', id: first.id }
 	});
 });
 /**
@@ -485,13 +496,12 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	})).visits;
 	const movable = rows
 		.filter((v) => v.booking?.preference === 'any' && v.slot.start >= from)
-		.map((v) => ({
-			visit: v.id,
-			skill: v.skill,
-			slot: { start: v.slot.start, end: v.slot.end! },
-			location: v.location,
-			area: v.area
-		}));
+		.flatMap((v) => {
+			const slot = closedSlot(v.slot);
+			return slot === null
+				? []
+				: [{ visit: v.id, skill: v.skill, slot, location: v.location, area: v.area }];
+		});
 	if (movable.length === 0) return;
 	const pool = yield* loadPool(
 		ctx,
@@ -503,10 +513,10 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 	if (result.moves.length === 0) return;
 	const read = new Map(rows.map((v) => [v.id, v]));
 	yield* ctx.act({
-		'visits.update': result.moves.map((m) => ({
-			target: targetOf(read.get(m.visit)!),
-			set: { helper: m.to }
-		}))
+		'visits.update': result.moves.flatMap((m) => {
+			const row = read.get(m.visit);
+			return row === undefined ? [] : [{ target: targetOf(row), set: { helper: m.to } }];
+		})
 	});
 	yield* ctx.notify({
 		title: `Schedule optimised: ${result.moves.length} reassignment${result.moves.length === 1 ? '' : 's'}`,
@@ -538,13 +548,13 @@ export const alertHelpers = Effect.fnUntraced(function* (
 	})).visits;
 	yield* ctx.notify(
 		rows.flatMap((v) =>
-			v.helper!.user === null
+			v.helper === null || v.helper.user === null
 				? []
 				: [
 						{
 							title: 'Your route has a new assignment',
 							description: `${v.number}: ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}, ${v.address}. Open My Day to review your route.`,
-							to: [{ user: v.helper!.user }],
+							to: [{ user: v.helper.user }],
 							link: { model: 'visits', id: v.id }
 						}
 					]
@@ -552,7 +562,8 @@ export const alertHelpers = Effect.fnUntraced(function* (
 	);
 	const byHelper = new Map<Id<'helpers'>, { phone: string; lines: string[] }>();
 	for (const v of [...rows].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
-		const h = v.helper!;
+		const h = v.helper;
+		if (h === null) continue;
 		const entry = byHelper.get(h.id) ?? { phone: h.phone, lines: [] };
 		entry.lines.push(
 			`• ${v.number}: ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}, ${v.address}`

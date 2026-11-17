@@ -5,6 +5,7 @@ import { kingdeeStockLotCostAccount } from './configuration.js';
 import { readChangedSnapshot, snapshotFingerprint, snapshotStatement } from './changed-snapshot.js';
 import { checked } from './order-source.js';
 import { SourceRowInvalid, SourceUnavailable, type DatabaseContext } from './polling.js';
+import { numeric } from '../../lib/commercial.js';
 
 const price = `CONVERT(decimal(28,10),e.FAmount)/NULLIF(CONVERT(decimal(28,10),e.FQty),0)`;
 const lotCosts = snapshotStatement(`/* kingdee-stock-lot-costs */
@@ -120,15 +121,17 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 					useGrouping: false,
 					minimumFractionDigits: Math.max(0, received.scale),
 					maximumFractionDigits: Math.max(0, received.scale)
-				}).format(BigDecimal.format(received) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(received))),
 				unit_cost: new Intl.NumberFormat('en', {
 					useGrouping: false,
 					minimumFractionDigits: 10,
 					maximumFractionDigits: 10
 				}).format(
-					BigDecimal.format(
-						BigDecimal.round(BigDecimal.divideUnsafe(amount, received), { scale: 10 })
-					) as Intl.StringNumericLiteral
+					numeric(
+						BigDecimal.format(
+							BigDecimal.round(BigDecimal.divideUnsafe(amount, received), { scale: 10 })
+						)
+					)
 				)
 			};
 		});

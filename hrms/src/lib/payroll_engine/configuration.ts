@@ -15,6 +15,7 @@ import { paidShareOf, statutoryOrder, subtotalChain } from './engine.js';
 import { checkExpression } from './expressions.js';
 import {
 	getErrorMessage,
+	isDynObject,
 	isJsonObject,
 	Refusal,
 	stableJson,
@@ -30,20 +31,14 @@ const conversionArmError = (row: {
 	readonly conversions?: unknown;
 	readonly code?: unknown;
 }): string | undefined => {
-	if (
-		row.conversions === null ||
-		typeof row.conversions !== 'object' ||
-		Array.isArray(row.conversions)
-	)
-		return undefined;
-	const conversions = row.conversions as Record<string, unknown>;
+	const conversions = row.conversions;
+	if (!isDynObject(conversions)) return undefined;
 	for (const [name, unit] of [
 		['day', 'days'],
 		['hour', 'hours']
 	] as const) {
-		const arm = conversions[name];
-		if (arm === null || typeof arm !== 'object' || Array.isArray(arm)) continue;
-		const value = arm as Record<string, unknown>;
+		const value = conversions[name];
+		if (!isDynObject(value)) continue;
 		const fixed = value.basis === 'FIXED';
 		const divisor = value[unit];
 		const code = String(row.code ?? 'settings');

@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Effect, Record as Records, Schema } from 'effect';
 import type { ActInput, ActOutput, Callable } from '@norbital-ai/bolt';
 import type { ActFailure, ProtocolFailed } from '@norbital-ai/bolt/errors';
 import type { CellValue } from 'exceljs';
@@ -165,7 +165,7 @@ const runSelectedWorkbook = Effect.fnUntraced(function* <P>(
 
 /** One callable's act map. */
 export const only = <const A extends string, V>(action: A, input: V) =>
-	({ [action]: input }) as { readonly [K in A]: V };
+	Records.singleton(action, input);
 
 /** One picked workbook, one native act, and its complete result rendered as a toast. */
 export const runWorkbookImport = Effect.fnUntraced(function* <const A extends string>(

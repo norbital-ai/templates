@@ -113,13 +113,14 @@
 	);
 	const stops = $derived(route.filter((v) => v.status !== 'done'));
 	const routeUrl = $derived.by(() => {
-		if (stops.length === 0 || stops.length > 4) return null;
+		const last = stops.at(-1);
+		if (last === undefined || stops.length > 4) return null;
 		const place = (v: (typeof stops)[number]) =>
 			v.location === null ? v.address : `${v.location.lat},${v.location.lng}`;
 		const params = new URLSearchParams({
 			api: '1',
 			travelmode: 'driving',
-			destination: place(stops.at(-1)!)
+			destination: place(last)
 		});
 		if (stops.length > 1) params.set('waypoints', stops.slice(0, -1).map(place).join('|'));
 		return `https://www.google.com/maps/dir/?${params}`;

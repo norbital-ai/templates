@@ -10,6 +10,7 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { DateTime, Effect } from 'effect';
 	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
+	import { idOf } from '../../payroll_engine/reads.js';
 	import { employmentOn, segmentsOf } from '../../person.js';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
@@ -175,11 +176,10 @@
 			byPerson.set(employee, [...(byPerson.get(employee) ?? []), stint]);
 		}
 		return [...byPerson]
-			.map(([employee, rows]): BoardPerson => {
+			.flatMap(([employee, rows]): BoardPerson[] => {
 				const ordered = rows.toSorted((left, right) =>
 					String(left.effective_range.from).localeCompare(String(right.effective_range.from))
 				);
-				const latest = ordered.at(-1) ?? rows[0]!;
 				// a stint runs one shift pattern between its changes of terms
 				const spells = ordered.flatMap((stint) => {
 					const parts = {
@@ -200,17 +200,23 @@
 						};
 					});
 				});
+				const latest = ordered.at(-1);
+				const current = spells.at(-1);
+				// a stint with no day in it has nothing to draw
+				if (latest === undefined || current === undefined) return [];
 				const entries = spells.flatMap(({ id }) => entriesByEmployment.get(id) ?? []);
-				return {
-					...spells.at(-1)!,
-					id: employee,
-					employee,
-					contracts: spells,
-					number: latest.employee_number,
-					name: latest.employee_id?.name ?? '',
-					locked: entries.some((entry) => entry.payroll_run_id != null),
-					entries
-				};
+				return [
+					{
+						...current,
+						id: employee,
+						employee,
+						contracts: spells,
+						number: latest.employee_number,
+						name: latest.employee_id?.name ?? '',
+						locked: entries.some((entry) => entry.payroll_run_id != null),
+						entries
+					}
+				];
 			})
 			.toSorted(
 				(left, right) =>
@@ -261,7 +267,7 @@
 		}
 		if (person.locked) return;
 		if (day.employmentId == null) return;
-		creating = { employmentId: day.employmentId as Id<'employment'>, date: day.date };
+		creating = { employmentId: idOf('employment', day.employmentId), date: day.date };
 	}
 
 	let importing = $state(false);

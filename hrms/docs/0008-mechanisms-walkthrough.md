@@ -110,10 +110,9 @@ What to expect:
 
 ## 6. Loans
 
-| HR does                                       | The system writes                                                                 | Where it shows |
-| --------------------------------------------- | --------------------------------------------------------------------------------- | -------------- |
-| Creates a loan of 1,200 repaid over 12 months | A `loan_catalog_entry`. The row's eligibility rule, if it has one, is checked now | Events → Loans |
-| Generates the schedule                        | Twelve `loan_catalog_entry_repayment` rows of 100, one a month                    | Events → Loans |
+| HR does                                       | The system writes                                                                                                                                                        | Where it shows |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| Creates a loan of 1,200 repaid over 12 months | A `loan_catalog_entry` and, in the same write, twelve `loan_catalog_entry_repayment` rows of 100, one a month. The row's eligibility rule, if it has one, is checked now | Events → Loans |
 
 What to expect:
 

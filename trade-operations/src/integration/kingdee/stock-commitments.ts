@@ -1,6 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
-import { sha256Hex } from '../../lib/commercial.js';
+import { sha256Hex, numeric } from '../../lib/commercial.js';
 import { kingdeeStockAvailabilityAccount } from './configuration.js';
 import { checked } from './order-source.js';
 import { SourceRowInvalid, SourceUnavailable, type DatabaseContext } from './polling.js';
@@ -128,7 +128,7 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 				useGrouping: false,
 				minimumFractionDigits: Math.max(0, entry.quantity.scale),
 				maximumFractionDigits: Math.max(0, entry.quantity.scale)
-			}).format(BigDecimal.format(entry.quantity) as Intl.StringNumericLiteral)
+			}).format(numeric(BigDecimal.format(entry.quantity)))
 		}));
 	});
 	return { rows: [{ ...header, entries }], cursor: checkpoint, more: false };

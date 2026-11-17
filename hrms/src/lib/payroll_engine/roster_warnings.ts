@@ -131,7 +131,11 @@ export const dayFindings = (
 			workedByWeek.set(key, (workedByWeek.get(key) ?? 0) + 1);
 		}
 	}
-	const consecutive = [...worked].sort().reduce(
+	const consecutive = [...worked].sort().reduce<{
+		readonly last: string | null;
+		readonly run: number;
+		readonly longest: number;
+	}>(
 		(state, date) => {
 			const previous = state.last;
 			const next =
@@ -143,7 +147,7 @@ export const dayFindings = (
 					: 1;
 			return { last: date, run: next, longest: Math.max(state.longest, next) };
 		},
-		{ last: null as string | null, run: 0, longest: 0 }
+		{ last: null, run: 0, longest: 0 }
 	).longest;
 	return (entry: JsonObject): Finding[] => {
 		const findings: Finding[] = [];
@@ -268,6 +272,9 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		])
 		.map(String)
 		.sort();
+	const [first] = bounds;
+	const last = bounds.at(-1);
+	if (first === undefined || last === undefined) return findings;
 	// each day's shift, for its type: the stored days carry theirs, the supplied days name theirs
 	const named = [
 		...new Set(
@@ -280,7 +287,7 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		roster_entry: {
 			where: {
 				employment_id: { in: idsOf('employment', capsOf.keys()) },
-				work_date: { gte: bounds[0]!, lte: bounds.at(-1)! }
+				work_date: { gte: first, lte: last }
 			},
 			fields: [
 				'employment_id',
@@ -323,9 +330,13 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 				.filter((row) => String(row.employment_id) === employment)
 				.map((row) => [day(row.work_date), row] as const)
 		);
-		for (const index of indexes) days.set(day(supplied[index]?.work_date), supplied[index]!);
+		const entries = indexes.flatMap((index) => {
+			const entry = supplied[index];
+			return entry === undefined ? [] : [{ index, entry }];
+		});
+		for (const { entry } of entries) days.set(day(entry.work_date), entry);
 		const own = dayFindings(caps, [...days.values()], typeOf);
-		for (const index of indexes) findings[index] = own(supplied[index]!);
+		for (const { index, entry } of entries) findings[index] = own(entry);
 	}
 	return findings;
 });

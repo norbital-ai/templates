@@ -5,6 +5,7 @@
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
 	import {
+		configurationRead,
 		confirmationCheck,
 		confirmationHash,
 		confirmationRead,
@@ -88,9 +89,11 @@
 	);
 	const checkScope = $derived(checkScopeRead?.current?.orders.rows[0]);
 	const checkRead = $derived(checkScope ? ctx.query(confirmationRead(checkScope)) : null);
+	// the same read for every draft: open orders share its one live answer
+	const configuration = $derived(checkScopeRead ? ctx.query(configurationRead) : null);
 	const check = $derived(
-		checkRead?.current && view.mode !== 'create'
-			? confirmationCheck(checkRead.current, {
+		checkRead?.current && configuration?.current && view.mode !== 'create'
+			? confirmationCheck(checkRead.current, configuration.current, {
 					revision: view.record.revision,
 					as_of: clock.now
 				})

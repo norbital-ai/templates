@@ -1,4 +1,4 @@
-import { Effect, Schema } from 'effect';
+import { Effect, Predicate, Record as Records, Schema } from 'effect';
 import {
 	id_of,
 	type Id,
@@ -7,7 +7,7 @@ import {
 	type WorkspaceQuery
 } from '@norbital-ai/bolt';
 import { JsonObject } from './contracts.js';
-import { jsonValues, Refusal } from './foundation.js';
+import { getErrorMessage, jsonValues, Refusal } from './foundation.js';
 
 /** A server body's typed read: every request is a literal over model names, bounded by its `limit`. */
 export type Reader = WorkspaceQuery['query'];
@@ -18,22 +18,19 @@ export type Reader = WorkspaceQuery['query'];
 export const queryRows = <const R extends ReadRequestBase>(read: Reader, request: ReadRequest<R>) =>
 	read(request).pipe(
 		Effect.flatMap((pages) =>
-			Effect.gen(function* () {
-				const result: Record<string, readonly JsonObject[]> = {};
-				for (const [name, page] of Object.entries(pages)) {
-					if (typeof page !== 'object' || page === null || !('rows' in page))
-						return yield* Effect.fail(
-							new Refusal({ message: `${name}: the read answered no rows.` })
-						);
-					if ('next' in page && page.next != null)
-						return yield* Effect.fail(
-							new Refusal({
+			Effect.try({
+				try: () =>
+					Records.map<keyof R & string, unknown, readonly JsonObject[]>(pages, (page, name) => {
+						if (!Predicate.hasProperty(page, 'rows'))
+							throw new Refusal({ message: `${name}: the read answered no rows.` });
+						if (Predicate.hasProperty(page, 'next') && page.next != null)
+							throw new Refusal({
 								message: `${name}: more rows than its read's limit; calculation cannot use an incomplete page.`
-							})
-						);
-					result[name] = Schema.decodeUnknownSync(Schema.Array(JsonObject))(jsonValues(page.rows));
-				}
-				return result as { readonly [K in keyof R]: readonly JsonObject[] };
+							});
+						return Schema.decodeUnknownSync(Schema.Array(JsonObject))(jsonValues(page.rows));
+					}),
+				catch: (error) =>
+					error instanceof Refusal ? error : new Refusal({ message: getErrorMessage(error) })
 			})
 		)
 	);

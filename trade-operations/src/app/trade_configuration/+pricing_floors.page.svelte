@@ -31,10 +31,10 @@
 		}
 		const codes = new Set(names.keys());
 		for (const row of catalog.current?.pricing_floors.rows ?? []) codes.add(row.key.group_code);
-		return [...codes].sort().map((code) => ({
-			value: code,
-			label: names.has(code) ? `${code} · ${names.get(code)!.join(', ')}` : code
-		}));
+		return [...codes].sort().map((code) => {
+			const list = names.get(code);
+			return { value: code, label: list ? `${code} · ${list.join(', ')}` : code };
+		});
 	});
 	/** The group and currency that already hold the most prices, so the book opens on a real pair. */
 	const defaultPair = $derived.by(() => {

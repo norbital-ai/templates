@@ -1,6 +1,6 @@
 import { expect, it } from '@effect/vitest';
 import { Effect, Exit } from 'effect';
-import type { Json as SourceJson } from '@norbital-ai/bolt/engine';
+import type { Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
 import { workspace } from './kit.js';
@@ -37,11 +37,17 @@ const fields = (
 ).map(([bit, caption, operator]) => ({ bit, caption, operator }));
 const setup = Effect.fnUntraced(function* () {
 	const fixture = kingdeeFixture();
-	const rows: SourceJson[] = [credit];
-	const state = {
-		rows,
-		options: [{ mask: '255', control_range: '3', control: 2 }] as SourceJson[],
-		fields: fields as SourceJson[],
+	const state: {
+		rows: Json[];
+		options: Json[];
+		fields: Json[];
+		observed: string;
+		unavailable: boolean;
+		reads: number;
+	} = {
+		rows: [credit],
+		options: [{ mask: '255', control_range: '3', control: 2 }],
+		fields,
 		observed: '2026-11-17T03:00:00.000Z',
 		unavailable: false,
 		reads: 0
@@ -291,7 +297,7 @@ it.live(
 			s.state.options = [{ mask: '255', control_range: '3', control: 2 }];
 			for (const catalogue of [
 				fields.slice(1),
-				[...fields, fields[0]!],
+				[...fields, firstRow(fields)],
 				fields.map((f) => (f.bit === 4 ? { ...f, operator: '+' } : f)),
 				fields.map((f) => (f.bit === 4 ? { ...f, caption: 'unmapped' } : f)),
 				fields.map((f) => (f.bit === 4 ? { ...f, caption: '已审核发票金额', operator: '+' } : f))

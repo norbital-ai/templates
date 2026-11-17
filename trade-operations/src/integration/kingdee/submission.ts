@@ -2,7 +2,7 @@ import { importedOrderIdentity } from './order-identity.js';
 import { BigDecimal, Effect, Schema } from 'effect';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
-import { sha256Hex } from '../../lib/commercial.js';
+import { sha256Hex, numeric } from '../../lib/commercial.js';
 import {
 	headerTypes,
 	itemTypes,
@@ -315,7 +315,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 					useGrouping: false,
 					minimumFractionDigits: Math.max(0, rate.scale),
 					maximumFractionDigits: Math.max(0, rate.scale)
-				}).format(BigDecimal.format(rate) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(rate))),
 				packagingId: config.packagingId ? sourceInteger(config.packagingId, 'packagingId') : '',
 				creditDays: selected.rule.creditDays,
 				fromMonthEnd: selected.rule.fromMonthEnd,

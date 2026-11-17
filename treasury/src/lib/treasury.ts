@@ -300,10 +300,10 @@ export function headroom(
 /** Open lines falling due: past due (no settlement advice yet), then within 30, 60 and 90 days. */
 export function maturities(lines: readonly LineRow[], as_of: string) {
 	const buckets = {
-		past: [] as LineRow[],
-		d30: [] as LineRow[],
-		d60: [] as LineRow[],
-		d90: [] as LineRow[]
+		past: new Array<LineRow>(),
+		d30: new Array<LineRow>(),
+		d60: new Array<LineRow>(),
+		d90: new Array<LineRow>()
 	};
 	for (const l of lines) {
 		if (!OPEN.includes(l.status) || l.due_date === null) continue;
@@ -322,12 +322,14 @@ export function maturities(lines: readonly LineRow[], as_of: string) {
 /** Open amount by due month from the as-of month on; earlier and later dues gathered at the ends. */
 export function maturityLadder(lines: readonly LineRow[], as_of: string, months = 12) {
 	const keys = Array.from({ length: months }, (_, i) => addMonths(as_of, i).slice(0, 7));
+	const first = addMonths(as_of, 0).slice(0, 7);
+	const last = addMonths(as_of, months - 1).slice(0, 7);
 	const totals = new Map<string, BigDecimal.BigDecimal>();
 	const counts = new Map<string, number>();
 	for (const l of lines) {
 		if (!OPEN.includes(l.status) || l.due_date === null) continue;
 		const month = l.due_date.slice(0, 7);
-		const key = month < keys[0]! ? 'earlier' : month > keys[keys.length - 1]! ? 'later' : month;
+		const key = month < first ? 'earlier' : month > last ? 'later' : month;
 		totals.set(key, BigDecimal.sum(totals.get(key) ?? ZERO, usd(l)));
 		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
@@ -340,17 +342,29 @@ export function maturityLadder(lines: readonly LineRow[], as_of: string, months 
 		}));
 }
 
-/** When a line was open: from its start (application when unknown) until repaid (due date when not recorded). */
-const opened = (l: LineRow) => l.start_date ?? l.application_date ?? l.due_date;
-const closed = (l: LineRow) => l.settlement_date ?? l.due_date;
-const owed = (l: LineRow) =>
-	(OPEN.includes(l.status) || l.status === 'settled') && l.due_date !== null;
+/**
+ * The lines that were open, each with the span it was open: from its start (application when unknown) until repaid
+ * (due date when not recorded). A line without a due date is not owed.
+ */
+const owedLines = <L extends LineRow>(lines: readonly L[]) =>
+	lines.flatMap((l) =>
+		(OPEN.includes(l.status) || l.status === 'settled') && l.due_date !== null
+			? [
+					{
+						...l,
+						opened: l.start_date ?? l.application_date ?? l.due_date,
+						closed: l.settlement_date ?? l.due_date
+					}
+				]
+			: []
+	);
 
 /** The weighted and simple rate of everything outstanding at each month-end. */
 export function costOfFundsTrend(lines: readonly LineRow[], as_of: string, months = 24) {
+	const owed = owedLines(lines);
 	return Array.from({ length: months }, (_, i) => monthEnd(addMonths(as_of, i - months + 1))).map(
 		(end) => {
-			const live = lines.filter((l) => owed(l) && opened(l)! <= end && end < closed(l)!);
+			const live = owed.filter((l) => l.opened <= end && end < l.closed);
 			const w = weightedRate(live);
 			const s = simpleRate(live);
 			const outstanding = sum(live.map(usd));
@@ -405,10 +419,9 @@ export function periodCost(
 		}
 		acc.set(key, a);
 	};
-	for (const l of lines) {
-		if (!owed(l)) continue;
-		const from = opened(l)! > start ? opened(l)! : start;
-		const to = closed(l)! < stop ? closed(l)! : stop;
+	for (const l of owedLines(lines)) {
+		const from = l.opened > start ? l.opened : start;
+		const to = l.closed < stop ? l.closed : stop;
 		const days = daysBetween(from, to);
 		if (days <= 0) continue;
 		add('all', l, days);
@@ -715,6 +728,12 @@ const compared = (l: LineRow) =>
 	l.interest_rate_pct !== null &&
 	['applied', 'active', 'settled', 'unclear'].includes(l.status);
 const startOf = (l: LineRow) => l.start_date ?? l.application_date;
+/** The compared lines that started by `as_of`, each with its `start`. */
+const startedBy = <L extends LineRow>(lines: readonly L[], as_of: string) =>
+	lines.flatMap((l) => {
+		const start = startOf(l);
+		return compared(l) && start !== null && start <= as_of ? [{ ...l, start }] : [];
+	});
 
 /** The weighted rate on lines started each month, per bank and for all banks: the negotiation heat-map. */
 export function rateByMonth(
@@ -726,7 +745,7 @@ export function rateByMonth(
 	const keys = Array.from({ length: months }, (_, i) =>
 		addMonths(as_of, i - months + 1).slice(0, 7)
 	);
-	const rated = lines.filter((l) => compared(l) && startOf(l) !== null && startOf(l)! <= as_of);
+	const rated = startedBy(lines, as_of);
 	const codes = [
 		...new Set(rated.flatMap((l) => (l.facility === null ? [] : [banks.get(l.facility) ?? '—'])))
 	].sort();
@@ -736,7 +755,7 @@ export function rateByMonth(
 			keys.map((month) => {
 				const cell = rated.filter(
 					(l) =>
-						startOf(l)!.slice(0, 7) === month &&
+						l.start.slice(0, 7) === month &&
 						(bank === 'all' || banks.get(l.facility ?? '') === bank)
 				);
 				return [month, weightedRate(cell)];
@@ -744,6 +763,9 @@ export function rateByMonth(
 		)
 	}));
 }
+
+/** Why a bank's estimate for an invoice is not eligible or complete. */
+export type CompareNote = 'supplier' | 'room' | 'tenor' | 'rate' | 'fx';
 
 /**
  * For one invoice (amount, tenor, product, supplier), each bank's estimated interest and charges, cheapest eligible
@@ -765,24 +787,23 @@ export function compareInvoice(
 	caps: Parameters<typeof subLimitUsage>[1]
 ) {
 	const recentFrom = addDays(input.as_of, -RECENT_DAYS);
+	const started = startedBy(lines, input.as_of);
 	const room = new Map(headroom(facilities, lines).map((h) => [h.facility, h.available]));
 	const rows = facilities
 		.filter((f) => f.status === 'active' && BigDecimal.isPositive(decimal(f.limit)))
 		.map((f) => {
-			const mine = lines.filter(
-				(l) => l.facility === f.id && compared(l) && startOf(l)! <= input.as_of
-			);
+			const mine = started.filter((l) => l.facility === f.id);
 			const product = mine.filter((l) => family(input.product).includes(l.product));
-			const recent = product.filter((l) => startOf(l)! > recentFrom);
-			const last = [...product].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
-			const lastTrade = [...mine].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
+			const recent = product.filter((l) => l.start > recentFrom);
+			const last = [...product].sort((a, b) => b.start.localeCompare(a.start))[0];
+			const lastTrade = [...mine].sort((a, b) => b.start.localeCompare(a.start))[0];
 			const rate =
 				weightedRate(recent) ??
 				last?.interest_rate_pct ??
-				weightedRate(mine.filter((l) => startOf(l)! > recentFrom)) ??
+				weightedRate(mine.filter((l) => l.start > recentFrom)) ??
 				lastTrade?.interest_rate_pct ??
 				null;
-			const notes: string[] = [];
+			const notes: CompareNote[] = [];
 			if (input.eligible !== null && !input.eligible.has(f.bank?.code ?? '—'))
 				notes.push('supplier');
 			if (BigDecimal.isGreaterThan(decimal(input.amount), decimal(room.get(f.id) ?? f.limit)))
@@ -856,15 +877,15 @@ export function bankSummary(
 	charges: ReturnType<typeof chargesSummary>
 ) {
 	const recentFrom = addDays(as_of, -RECENT_DAYS);
-	const rated = lines.filter((l) => compared(l) && startOf(l)! <= as_of);
-	const group = weightedRate(rated.filter((l) => startOf(l)! > recentFrom));
+	const rated = startedBy(lines, as_of);
+	const group = weightedRate(rated.filter((l) => l.start > recentFrom));
 	const room = new Map(headroom(facilities, lines).map((h) => [h.facility, h.available]));
 	const rows = facilities
 		.filter((f) => f.status === 'active')
 		.map((f) => {
 			const mine = rated.filter((l) => l.facility === f.id);
-			const latest = [...mine].sort((a, b) => startOf(b)!.localeCompare(startOf(a)!))[0];
-			const recent = weightedRate(mine.filter((l) => startOf(l)! > recentFrom));
+			const latest = [...mine].sort((a, b) => b.start.localeCompare(a.start))[0];
+			const recent = weightedRate(mine.filter((l) => l.start > recentFrom));
 			const charge = charges.find((c) => c.bank === f.bank?.code);
 			const reference = recent ?? latest?.interest_rate_pct ?? null;
 			return {

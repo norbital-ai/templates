@@ -9,4 +9,4 @@ export const HOLIDAY_KINDS = [
 ] as const;
 export type HolidayKind = (typeof HOLIDAY_KINDS)[number];
 export const isHolidayKind = (value: string): value is HolidayKind =>
-	(HOLIDAY_KINDS as readonly string[]).includes(value);
+	HOLIDAY_KINDS.some((kind) => kind === value);

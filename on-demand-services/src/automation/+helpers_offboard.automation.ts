@@ -2,7 +2,7 @@ import { automation } from '@norbital-ai/bolt';
 import { DateTime } from 'effect';
 import { type ActInput, type CreateInput } from '@norbital-ai/bolt';
 import { loadPool, targetOf } from '../lib/dispatch.js';
-import { proposal } from '../lib/matching.js';
+import { closedSlot, proposal, type Pool } from '../lib/matching.js';
 
 export default automation({
 	description:
@@ -42,26 +42,27 @@ export default automation({
 				}
 			})).visits;
 			const starts = later.map((v) => v.slot.start).sort();
-			const pool =
-				later.length === 0
-					? null
+			const first = starts.at(0);
+			const last = starts.at(-1);
+			const pool: Pool =
+				first === undefined || last === undefined
+					? { helpers: [], busy: [], off: [] }
 					: yield* loadPool(
 							ctx,
-							starts[0]!,
-							starts.at(-1)!,
+							first,
+							last,
 							later.map((v) => v.location)
 						);
-			const others = {
-				...pool!,
-				helpers: (pool?.helpers ?? []).filter((h) => h.id !== helper.id)
-			};
-			const busy = [...(pool?.busy ?? [])];
+			const others = { ...pool, helpers: pool.helpers.filter((h) => h.id !== helper.id) };
+			const busy = [...pool.busy];
 			const names = new Map(others.helpers.map((h) => [h.id, h.name]));
 			let open = 0;
 			for (const v of later) {
+				const slot = closedSlot(v.slot);
+				if (slot === null) continue;
 				const need = {
 					skill: v.skill,
-					slot: { start: v.slot.start, end: v.slot.end! },
+					slot,
 					location: v.location,
 					area: v.area,
 					visit: v.id

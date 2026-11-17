@@ -49,16 +49,21 @@ export default automation({
 							.search(r.address)
 							.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as([]))));
 			const location = savedLocation ?? hits[0]?.point ?? null;
-			const days = Array.from({ length: 14 }, (_, i) =>
-				DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }))
-			);
+			const horizon = 14;
+			const day = (i: number) =>
+				DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }));
+			const days = Array.from({ length: horizon }, (_, i) => day(i));
 			const from = DateTime.formatIso(
-				DateTime.makeZonedUnsafe(days[0]!, { timeZone: ctx.tz, adjustForTimeZone: true })
+				DateTime.makeZonedUnsafe(day(0), { timeZone: ctx.tz, adjustForTimeZone: true })
 			);
 			const last = DateTime.formatIso(
-				DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: ctx.tz, adjustForTimeZone: true })
+				DateTime.makeZonedUnsafe(day(horizon - 1), { timeZone: ctx.tz, adjustForTimeZone: true })
 			);
-			const end = occurrences(last, r.repeat, BOOKING_AHEAD, ctx.tz).at(-1)!;
+			const end = occurrences(last, r.repeat, BOOKING_AHEAD, ctx.tz).at(-1);
+			if (end === undefined) {
+				yield* fail('The booking has no visits.');
+				continue;
+			}
 			const pool = yield* loadPool(ctx, from, end, [location]);
 			const preferred = r.preference === 'preferred' && r.helper !== null ? [r.helper] : [];
 			const selected = pool.helpers.find((h) => h.id === r.helper);

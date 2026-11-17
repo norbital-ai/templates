@@ -44,14 +44,16 @@
 			today
 	);
 	const month = $derived.by(() => {
-		if (days.length === 0) return '';
+		const first = days.at(0);
+		const last = days.at(-1);
+		if (first === undefined || last === undefined) return '';
 		// a calendar date reads at UTC midnight, so no zone shifts its day
 		const f = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
-		const a = f.format(new Date(days[0]!.day)),
-			b = f.format(new Date(days.at(-1)!.day));
+		const a = f.format(new Date(first.day)),
+			b = f.format(new Date(last.day));
 		return a === b
 			? a
-			: `${new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(new Date(days[0]!.day))} – ${b}`;
+			: `${new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(new Date(first.day))} – ${b}`;
 	});
 	/** The day's starts by part of the day: morning, afternoon, evening. */
 	const PARTS: readonly {

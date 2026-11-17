@@ -2,7 +2,14 @@ import type { Instant } from '@norbital-ai/bolt';
 import { DateTime } from 'effect';
 import { model } from '@norbital-ai/bolt';
 import { alertHelpers } from '../../../../../lib/dispatch.js';
-import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../../../lib/matching.js';
+import {
+	AREAS,
+	closedSlot,
+	lookups,
+	refusal,
+	SKILLS,
+	type Refusal
+} from '../../../../../lib/matching.js';
 const WHY = {
 	left: 'errors.helper.left',
 	skill: 'errors.helper.skill',
@@ -221,24 +228,18 @@ export default model('visits', {
 				held.set(String(v.id), {
 					id: v.id,
 					helper: v.helper,
-					slot: { start: v.slot.start, end: v.slot.end! },
+					slot: v.slot,
 					location: v.location,
 					status: v.status
 				});
 			const holds = {
 				helpers: helpers.rows,
-				busy: [...held.values()].flatMap((v) =>
-					v.helper === null || v.status === 'cancelled'
+				busy: [...held.values()].flatMap((v) => {
+					const slot = closedSlot(v.slot);
+					return v.helper === null || v.status === 'cancelled' || slot === null
 						? []
-						: [
-								{
-									id: v.id,
-									helper: v.helper,
-									slot: { start: v.slot.start, end: v.slot.end! },
-									location: v.location
-								}
-							]
-				),
+						: [{ id: v.id, helper: v.helper, slot, location: v.location }];
+				}),
 				off: off.rows
 			};
 			const legs = lookups(
@@ -262,13 +263,21 @@ export default model('visits', {
 					helper != null &&
 					after.status !== 'cancelled'
 				) {
-					const h = pool.helpers.find((x) => x.id === helper)!;
-					const slot = after.slot;
+					const h = pool.helpers.find((x) => x.id === helper);
+					if (h === undefined)
+						return yield* ctx.refuse(WHY.left, {
+							field: 'helper',
+							row,
+							values: { name: String(helper) }
+						});
+					const slot = closedSlot(after.slot);
+					if (slot === null)
+						return yield* ctx.refuse('errors.visit_open_ended', { field: 'slot', row });
 					const no = refusal(
 						h,
 						{
 							skill: before.skill,
-							slot: { start: slot.start, end: slot.end! },
+							slot,
 							location: before.location,
 							area: before.area,
 							visit: before.id

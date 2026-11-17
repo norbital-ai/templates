@@ -134,7 +134,8 @@ export function employeeOn<E extends DatedEmployee>(
 		return null;
 	}
 	const active = candidates.filter((employee) => inRange(day, employee));
-	if (active.length === 1) return active[0]!;
+	const [only] = active;
+	if (only !== undefined && active.length === 1) return only;
 	if (active.length > 1) {
 		problems.push({
 			issue: "The number names more than one employment that day; import it from its entity's page",

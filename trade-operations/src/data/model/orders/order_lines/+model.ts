@@ -1,7 +1,7 @@
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { price } from '../../../../lib/commercial.js';
+import { price, numeric } from '../../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -187,17 +187,17 @@ const priced = Effect.fnUntraced(function* (
 				useGrouping: false,
 				minimumFractionDigits: amounts.net.scale,
 				maximumFractionDigits: amounts.net.scale
-			}).format(BigDecimal.format(amounts.net) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(amounts.net))),
 			tax: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: amounts.tax.scale,
 				maximumFractionDigits: amounts.tax.scale
-			}).format(BigDecimal.format(amounts.tax) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(amounts.tax))),
 			total: new Intl.NumberFormat('en', {
 				useGrouping: false,
 				minimumFractionDigits: amounts.total.scale,
 				maximumFractionDigits: amounts.total.scale
-			}).format(BigDecimal.format(amounts.total) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(amounts.total))),
 			floor_net,
 			floor_on: floor?.effective_on ?? null,
 			commission_basis_unit: changedProduct

@@ -9,7 +9,8 @@ import { Effect, Schema } from 'effect';
 import {
 	buildLoanSchedule,
 	FINAL_SETTLEMENT,
-	loanRecovery
+	loanRecovery,
+	newLoanRepayments
 } from '../../src/lib/payroll_engine/loan_schedule.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
@@ -28,12 +29,15 @@ import {
 	current,
 	decimalNumber,
 	packTerms,
-	endStint
+	endStint,
+	withSister
 } from '../kit.ts';
 
 const NOW = '2026-08-20T02:00:00.000Z';
 const EMPLOYMENT = idOf('employment', uuid(6));
 const LOAN = idOf('loan_catalog_entry', uuid(300));
+// `withSister`'s company
+const SISTER = idOf('entity', uuid(900));
 const FLOOR = 40;
 const FESTIVE = 'LOAN_RECOVERY_FESTIVE_ADVANCE';
 // no leave row pays out, so an exit here raises no cash-out request for a run to wait on
@@ -107,35 +111,76 @@ const amended = (t: Kit) =>
 const HELD = /Run \d+ holds this person and is not paid yet/;
 
 describe('a loan and its schedule', () => {
-	it.live('are one write: the loan arrives with its instalments', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const instalment = (paid_on: string) => ({
+	// what the loan's create form sends: the loan with the instalments its terms make, nested in its one create
+	const TERMS = { principal: 1000, from: '2026-09-01', to: '2026-11-30' };
+	const schedule = newLoanRepayments({ entity_id: ENTITY, employment_id: EMPLOYMENT }, TERMS);
+	const created = (repayments: typeof schedule) => ({
+		'loan_catalog_entry.create': [
+			{
 				entity_id: ENTITY,
 				employment_id: EMPLOYMENT,
-				amount: '500',
-				paid_on
-			});
-			yield* (yield* t.as(t.admin)).act({
-				'loan_catalog_entry.create': [
-					{
-						entity_id: ENTITY,
-						employment_id: EMPLOYMENT,
-						catalog_code: FESTIVE,
-						quantity: '1000',
-						repayment_period: { from: '2026-09-01', to: '2026-10-31' },
-						repayments: [instalment('2026-09-01'), instalment('2026-10-01')]
-					}
-				]
-			});
-			const { loan_catalog_entry_repayment } = yield* storedQuery(t, {
-				loan_catalog_entry_repayment: { where: { loan_id: { ne: LOAN } }, limit: 10 }
-			});
+				catalog_code: FESTIVE,
+				quantity: '1000',
+				repayment_period: { from: TERMS.from, to: TERMS.to },
+				repayments
+			}
+		]
+	});
+	/** The loans written beside the seeded one, and every instalment as stored. */
+	const made = (t: Kit) =>
+		storedQuery(t, {
+			loan_catalog_entry: { where: { id: { ne: LOAN } }, fields: ['id'], limit: 10 },
+			loan_catalog_entry_repayment: {
+				fields: ['loan_id', 'entity_id', 'employment_id', 'amount', 'paid_on'],
+				limit: 100
+			}
+		});
+
+	it.live('are one write: the loan arrives with its whole schedule', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			assert.equal((yield* (yield* t.as(t.admin)).act(created(schedule))).kind, 'committed');
+			const after = yield* made(t);
+			const [loan, ...others] = after.loan_catalog_entry.rows;
+			assert.ok(loan !== undefined);
+			assert.deepEqual(others, []);
+			// every month of the period under the loan, whole cents, the cent left over on the last: the principal exactly
 			assert.deepEqual(
-				loan_catalog_entry_repayment.rows.map((row) => String(row.paid_on)).toSorted(),
-				['2026-09-01', '2026-10-01']
+				after.loan_catalog_entry_repayment.rows
+					.toSorted((left, right) => String(left.paid_on).localeCompare(String(right.paid_on)))
+					.map((row) => [
+						row.loan_id,
+						row.entity_id,
+						row.employment_id,
+						String(row.paid_on),
+						decimalNumber(row.amount)
+					]),
+				[
+					[loan.id, ENTITY, EMPLOYMENT, '2026-09-01', 333.33],
+					[loan.id, ENTITY, EMPLOYMENT, '2026-10-01', 333.33],
+					[loan.id, ENTITY, EMPLOYMENT, '2026-11-01', 333.34]
+				]
 			);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+
+	it.live('refused in one instalment, writes neither the loan nor any instalment', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			// the last instalment names another company than its loan: its write callback refuses it
+			const last = schedule.length - 1;
+			const failed = yield* refused(
+				(yield* t.as(t.admin)).act(
+					created(
+						schedule.map((row, index) => (index === last ? { ...row, entity_id: SISTER } : row))
+					)
+				)
+			);
+			assert.match(failed, /belongs to the employment and company of its loan/);
+			const after = yield* made(t);
+			assert.deepEqual(after.loan_catalog_entry.rows, []);
+			assert.deepEqual(after.loan_catalog_entry_repayment.rows, []);
+		}).pipe(Effect.provide(workspace({ seed: withSister(seed), now: NOW })))
 	);
 });
 const repayments = (t: Kit) =>

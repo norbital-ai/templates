@@ -18,9 +18,9 @@ export default automation({
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
-		const days = Array.from({ length: AHEAD }, (_, i) =>
-			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }))
-		);
+		const day = (i: number) =>
+			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }));
+		const days = Array.from({ length: AHEAD }, (_, i) => day(i));
 		const [{ services, openings: stored }, pool] = yield* Effect.all(
 			[
 				ctx.query({ services: { where: { active: { eq: true } } }, openings: {} }),
@@ -30,7 +30,7 @@ export default automation({
 						DateTime.makeZonedUnsafe(ctx.today, { timeZone: ctx.tz, adjustForTimeZone: true })
 					),
 					DateTime.formatIso(
-						DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: ctx.tz, adjustForTimeZone: true })
+						DateTime.makeZonedUnsafe(day(AHEAD - 1), { timeZone: ctx.tz, adjustForTimeZone: true })
 					)
 				)
 			],

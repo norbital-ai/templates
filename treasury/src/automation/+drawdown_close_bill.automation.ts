@@ -60,8 +60,9 @@ export default automation({
 			});
 			return {};
 		}
-		const product = input.new_product ?? options[0]!;
-		if (!options.includes(product)) return yield* ctx.refuse('errors.conversion_product');
+		const product = input.new_product ?? options[0];
+		if (product === undefined || !options.includes(product))
+			return yield* ctx.refuse('errors.conversion_product');
 		if (input.due_date == null) return yield* ctx.refuse('errors.conversion_due');
 		const converted = new_id('drawdown');
 		const keepsBill = ['da', 'import_bill', 'tb'].includes(bill.product);

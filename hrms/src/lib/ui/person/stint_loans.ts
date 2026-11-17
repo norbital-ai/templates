@@ -1,25 +1,22 @@
-import type { Id, PlainDate } from '@norbital-ai/bolt';
-import type { PageContext } from '@norbital-ai/bolt/page';
-import { run } from '@norbital-ai/ui/effect';
+import { new_id, type Id, type PlainDate, type ReadAnswer } from '@norbital-ai/bolt';
 import { DateTime } from 'effect';
 import type { Law } from '../../law.js';
-import { isJsonObject, type Json } from '../../payroll_engine/foundation.js';
+import type { Json, JsonObject } from '../../payroll_engine/foundation.js';
 import {
 	buildLoanSchedule,
 	FINAL_SETTLEMENT,
 	loanDisposition,
-	loanRecovery
+	loanRecovery,
+	newLoanRepayments
 } from '../../payroll_engine/loan_schedule.js';
 
-type Ctx = Pick<PageContext, 'query' | 'act'>;
 /** The stint a person leaves, as its loans name it. */
 export type Leaving = {
 	readonly id: Id<'employment'>;
 	readonly entity_id: Id<'entity'>;
 	readonly employee_id: Id<'employee_profile'>;
-	readonly employee_number: string;
 };
-/** Rows by callable, for one `ctx.act` map. */
+/** Rows by callable, for one `ctx.act` map: planned in the order its callables were added. */
 export type Writes = Record<string, Json[]>;
 
 const add = (writes: Writes, callable: string, rows: readonly Json[]) => {
@@ -48,8 +45,9 @@ export function outstandingOf<L extends { readonly id: unknown; readonly quantit
 		.filter((item) => item.amount > 0.000001);
 }
 
-export async function readLoans(ctx: Ctx, stint: Id<'employment'>) {
-	const held = await ctx.query({
+/** A stint's loans and instalments with the revisions a write targets: the read a leaver's or a transfer's plan takes. */
+export const loansRead = (stint: Id<'employment'>) =>
+	({
 		loan_catalog_entry: {
 			where: { employment_id: { eq: stint } },
 			fields: ['id', 'revision', 'catalog_code', 'quantity', 'repayment_period'],
@@ -60,56 +58,57 @@ export async function readLoans(ctx: Ctx, stint: Id<'employment'>) {
 			fields: ['id', 'revision', 'loan_id', 'amount', 'payroll_run_id'],
 			limit: 10000
 		}
-	});
-	return {
-		held,
-		outstanding: outstandingOf(held.loan_catalog_entry.rows, held.loan_catalog_entry_repayment.rows)
-	};
-}
+	}) as const;
+export type Loans = ReadAnswer<ReturnType<typeof loansRead>>;
 
-/** The instalments of the outstanding loans no run has taken. */
-const openSchedule = ({ held, outstanding }: Awaited<ReturnType<typeof readLoans>>) => {
-	const loanIds = new Set(outstanding.map((item) => String(item.row.id)));
-	return held.loan_catalog_entry_repayment.rows.filter(
-		(row) => loanIds.has(String(row.loan_id)) && row.payroll_run_id == null
+/** The outstanding loans, and the instalments of theirs no run has taken. */
+const position = (held: Loans) => {
+	const outstanding = outstandingOf(
+		held.loan_catalog_entry.rows,
+		held.loan_catalog_entry_repayment.rows
 	);
+	const loans = new Set(outstanding.map((item) => item.row.id));
+	return {
+		outstanding,
+		open: held.loan_catalog_entry_repayment.rows.filter(
+			(row) => loans.has(row.loan_id) && row.payroll_run_id == null
+		)
+	};
 };
+const targetOf = (row: { readonly id: string; readonly revision: number }) => ({
+	target: { id: row.id, revision: row.revision }
+});
 
 /**
  * A leaver's loans: final pay repays what the recovery allows, the rest stays open on a recalibrated schedule from
  * the month after the last day, and HR gets a task to chase it. The rows go in the write that ends the stint.
  */
-export async function recoverLoans(
-	ctx: Ctx,
+export function recoverLoans(
+	held: Loans,
 	current: Leaving,
-	day: PlainDate,
+	lastDay: PlainDate,
 	pay: {
 		readonly expectedPay: number | null;
 		readonly floorPercent: number;
 		readonly decimals: number;
 	},
 	task: (remaining: number) => string
-): Promise<Writes> {
-	const position = await readLoans(ctx, current.id);
-	const { outstanding } = position;
+): Writes {
+	const { outstanding, open } = position(held);
 	const writes: Writes = {};
 	if (outstanding.length === 0 || pay.expectedPay === null) return writes;
 	const plan = loanRecovery({
-		loans: outstanding.map((item) => ({ id: String(item.row.id), outstanding: item.amount })),
+		loans: outstanding.map((item) => ({ id: item.row.id, outstanding: item.amount })),
 		expectedPay: pay.expectedPay,
 		floorPercent: pay.floorPercent,
 		decimals: pay.decimals
 	});
-	add(
-		writes,
-		'loan_catalog_entry_repayment.delete',
-		openSchedule(position).map((row) => ({ target: { id: row.id, revision: row.revision } }))
-	);
+	add(writes, 'loan_catalog_entry_repayment.delete', open.map(targetOf));
 	const nextMonth = DateTime.formatIsoDateUtc(
-		DateTime.add(DateTime.startOf(DateTime.makeUnsafe(day), 'month'), { months: 1 })
+		DateTime.add(DateTime.startOf(DateTime.makeUnsafe(lastDay), 'month'), { months: 1 })
 	);
 	for (const item of outstanding) {
-		const share = plan.allocations.find((row) => row.id === String(item.row.id));
+		const share = plan.allocations.find((row) => row.id === item.row.id);
 		if (share === undefined) continue;
 		if (share.final > 0)
 			add(writes, 'loan_catalog_entry_repayment.create', [
@@ -118,24 +117,25 @@ export async function recoverLoans(
 					employment_id: current.id,
 					loan_id: item.row.id,
 					amount: plain(share.final),
-					paid_on: day,
+					paid_on: lastDay,
 					payment_reference:
 						share.remaining > 0 ? `${FINAL_SETTLEMENT} (partial)` : FINAL_SETTLEMENT
 				}
 			]);
 		if (share.remaining <= 0) continue;
-		const period = item.row.repayment_period;
-		const oldEnd = isJsonObject(period) && typeof period.to === 'string' ? period.to : '';
+		const oldEnd = item.row.repayment_period.to;
 		const end =
-			oldEnd.slice(0, 7) >= nextMonth.slice(0, 7)
+			oldEnd !== null && oldEnd.slice(0, 7) >= nextMonth.slice(0, 7)
 				? oldEnd
 				: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(nextMonth), { months: 11 }));
 		add(writes, 'loan_catalog_entry.update', [
 			{
-				target: { id: item.row.id, revision: item.row.revision },
+				...targetOf(item.row),
 				set: {
 					repayment_period: {
-						from: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(day), { days: 1 })),
+						from: DateTime.formatIsoDateUtc(
+							DateTime.add(DateTime.makeUnsafe(lastDay), { days: 1 })
+						),
 						to: end
 					}
 				}
@@ -166,119 +166,100 @@ export async function recoverLoans(
 				employment_id: current.id,
 				title: task(plan.remaining),
 				due_on: nextMonth,
-				occurrence_key: `LOAN_RECOVERY:${current.id}:exit:${day}`
+				occurrence_key: `LOAN_RECOVERY:${current.id}:exit:${lastDay}`
 			}
 		]);
 	return writes;
 }
 
 /**
- * A transferred person's loans. Under the same law they move with the person; under another, each is settled from
- * the old stint's final pay or opened again under the target's catalogue. `writes` go in the write that ends the old
- * stint and creates the next; `follow` writes what names the new stint, once it has an id.
+ * A transfer as one act map, planned in its order: the old stint ends on `lastDay`, the next (`next`, its first terms
+ * and parameters) starts under an id minted here, and the old stint's outstanding loans follow it. Under the same law
+ * (`carry`) each loan moves to the next stint and its company, and its write takes its open schedule along. Under
+ * another the open schedule goes, and each loan is settled from the old stint's final pay, or opened again on the next
+ * stint under the target law's row of its code with a fresh schedule.
  */
-export async function transferOrSettleLoans(
-	ctx: Ctx,
-	current: Leaving,
-	target: { readonly entityId: Id<'entity'>; readonly law: Law },
-	day: PlainDate,
-	carry: boolean,
-	settle: boolean
-): Promise<{ writes: Writes; follow: (stint: Id<'employment'>) => Promise<void> }> {
-	const position = await readLoans(ctx, current.id);
-	const { outstanding } = position;
-	const writes: Writes = {};
-	if (outstanding.length === 0) return { writes, follow: async () => {} };
-	if (carry)
-		return {
-			writes,
-			follow: async (stint) => {
-				const set = { entity_id: target.entityId, employment_id: stint };
-				const moves: Writes = {};
-				add(
-					moves,
-					'loan_catalog_entry.update',
-					outstanding.map((item) => ({
-						target: { id: item.row.id, revision: item.row.revision },
-						set
-					}))
-				);
-				add(
-					moves,
-					'loan_catalog_entry_repayment.update',
-					openSchedule(position).map((row) => ({
-						target: { id: row.id, revision: row.revision },
-						set
-					}))
-				);
-				const moved = await run(ctx.act(moves));
-				if (moved.kind !== 'committed')
-					throw new Error('The carried loan could not be moved to the new employment.');
+export function transferActs(
+	held: Loans,
+	from: Omit<Leaving, 'employee_id'> & {
+		readonly revision: number;
+		readonly effective_range: { readonly from: PlainDate };
+	},
+	end: { readonly lastDay: PlainDate; readonly reason: string },
+	next: JsonObject,
+	target: {
+		readonly entityId: Id<'entity'>;
+		readonly law: Law;
+		readonly carry: boolean;
+		readonly settle: boolean;
+	}
+): Writes {
+	const stint = new_id('employment');
+	const writes: Writes = {
+		'employment.update': [
+			{
+				target: { id: from.id, revision: from.revision },
+				set: {
+					effective_range: { from: from.effective_range.from, to: end.lastDay },
+					reason: end.reason
+				}
 			}
-		};
-	add(
-		writes,
-		'loan_catalog_entry_repayment.delete',
-		openSchedule(position).map((row) => ({ target: { id: row.id, revision: row.revision } }))
-	);
-	const moving: typeof outstanding = [];
+		],
+		'employment.create': [{ ...next, id: stint }]
+	};
+	const { outstanding, open } = position(held);
+	if (target.carry) {
+		// each loan's own write takes its open instalments along
+		const set = { entity_id: target.entityId, employment_id: stint };
+		add(
+			writes,
+			'loan_catalog_entry.update',
+			outstanding.map((item) => ({ ...targetOf(item.row), set }))
+		);
+		return writes;
+	}
+	add(writes, 'loan_catalog_entry_repayment.delete', open.map(targetOf));
+	const start = DateTime.add(DateTime.makeUnsafe(end.lastDay), { days: 1 });
+	const first = DateTime.formatIsoDateUtc(start);
 	for (const item of outstanding) {
 		// the loan keeps its code where the target law has a row of it
 		const targetCatalog = target.law.rows.loan_catalog.some(
 			(row) => row.code === item.row.catalog_code
 		);
-		if (loanDisposition({ carry, settle, targetCatalog }) === 'SETTLE')
+		if (
+			loanDisposition({ carry: target.carry, settle: target.settle, targetCatalog }) === 'SETTLE'
+		) {
 			add(writes, 'loan_catalog_entry_repayment.create', [
 				{
-					entity_id: current.entity_id,
-					employment_id: current.id,
+					entity_id: from.entity_id,
+					employment_id: from.id,
 					loan_id: item.row.id,
 					amount: plain(item.amount),
-					paid_on: day,
+					paid_on: end.lastDay,
 					payment_reference: 'Transfer settlement'
 				}
 			]);
-		else moving.push(item);
-	}
-	return {
-		writes,
-		// one write: each replacement loan arrives with its schedule
-		follow: async (stint) => {
-			if (moving.length === 0) return;
-			const start = DateTime.add(DateTime.makeUnsafe(day), { days: 1 });
-			const opened = await run(
-				ctx.act({
-					'loan_catalog_entry.create': moving.map((item) => {
-						const period = item.row.repayment_period;
-						const oldEnd = isJsonObject(period) && typeof period.to === 'string' ? period.to : '';
-						const from = DateTime.formatIsoDateUtc(start);
-						const to =
-							oldEnd !== '' && oldEnd > from
-								? oldEnd
-								: DateTime.formatIsoDateUtc(DateTime.add(start, { months: 12 }));
-						return {
-							entity_id: target.entityId,
-							employment_id: stint,
-							catalog_code: item.row.catalog_code,
-							quantity: plain(item.amount),
-							repayment_period: { from, to },
-							repayments: buildLoanSchedule({
-								principal: item.amount,
-								from,
-								to,
-								repayments: []
-							}).create.map((row) => ({
-								entity_id: target.entityId,
-								employment_id: stint,
-								amount: plain(row.amount),
-								paid_on: row.paid_on
-							}))
-						};
-					})
-				})
-			);
-			if (opened.kind !== 'committed')
-				throw new Error('The replacement loans could not be created.');
+			continue;
 		}
-	};
+		const oldEnd = item.row.repayment_period.to;
+		const to =
+			oldEnd !== null && oldEnd > first
+				? oldEnd
+				: DateTime.formatIsoDateUtc(DateTime.add(start, { months: 12 }));
+		// a replacement loan arrives with its schedule
+		add(writes, 'loan_catalog_entry.create', [
+			{
+				entity_id: target.entityId,
+				employment_id: stint,
+				catalog_code: item.row.catalog_code,
+				quantity: plain(item.amount),
+				repayment_period: { from: first, to },
+				repayments: newLoanRepayments(
+					{ entity_id: target.entityId, employment_id: stint },
+					{ principal: item.amount, from: first, to }
+				)
+			}
+		]);
+	}
+	return writes;
 }

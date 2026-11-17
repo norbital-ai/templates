@@ -1,6 +1,6 @@
 import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
-import { hash, sha256Hex } from '../../lib/commercial.js';
+import { hash, sha256Hex, numeric } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
 import {
@@ -1098,14 +1098,14 @@ export const readTransactions = Effect.fnUntraced(function* (
 									useGrouping: false,
 									minimumFractionDigits: document.total.scale,
 									maximumFractionDigits: document.total.scale
-								}).format(BigDecimal.format(document.total) as Intl.StringNumericLiteral),
+								}).format(numeric(BigDecimal.format(document.total))),
 					items: [...items.values()].map((item) => ({
 						...item,
 						quantity: new Intl.NumberFormat('en', {
 							useGrouping: false,
 							minimumFractionDigits: item.quantity.scale,
 							maximumFractionDigits: item.quantity.scale
-						}).format(BigDecimal.format(item.quantity) as Intl.StringNumericLiteral),
+						}).format(numeric(BigDecimal.format(item.quantity))),
 						net_amount:
 							item.net_amount === null
 								? null
@@ -1113,7 +1113,7 @@ export const readTransactions = Effect.fnUntraced(function* (
 										useGrouping: false,
 										minimumFractionDigits: item.net_amount.scale,
 										maximumFractionDigits: item.net_amount.scale
-									}).format(BigDecimal.format(item.net_amount) as Intl.StringNumericLiteral)
+									}).format(numeric(BigDecimal.format(item.net_amount)))
 					})),
 					documents: [],
 					source_updated_at: graph.observedAt

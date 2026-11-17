@@ -17,6 +17,7 @@ import {
 	type SqlRow
 } from './polling.js';
 import { kingdeeDeliveryCostAccount } from './configuration.js';
+import { numeric } from '../../lib/commercial.js';
 
 const invalid = (column: string, reason: string): never => {
 	throw new SourceRowInvalid({ column, reason });
@@ -155,7 +156,7 @@ export function mapSalesFacts(
 						useGrouping: false,
 						minimumFractionDigits: line.quantity.scale,
 						maximumFractionDigits: line.quantity.scale
-					}).format(BigDecimal.format(line.quantity) as Intl.StringNumericLiteral),
+					}).format(numeric(BigDecimal.format(line.quantity))),
 					currency: currency(invoice.currency),
 					lot_number: source.line.lotNumber,
 					unit_cost: null,
@@ -168,7 +169,7 @@ export function mapSalesFacts(
 									useGrouping: false,
 									minimumFractionDigits: net.scale,
 									maximumFractionDigits: net.scale
-								}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+								}).format(numeric(BigDecimal.format(net))),
 					tax_amount:
 						tax === null
 							? null
@@ -176,7 +177,7 @@ export function mapSalesFacts(
 									useGrouping: false,
 									minimumFractionDigits: tax.scale,
 									maximumFractionDigits: tax.scale
-								}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
+								}).format(numeric(BigDecimal.format(tax))),
 					freight: null,
 					active: true
 				};
@@ -211,18 +212,20 @@ export function mapSalesFacts(
 				minimumFractionDigits: 10,
 				maximumFractionDigits: 10
 			}).format(
-				BigDecimal.format(
-					BigDecimal.round(
-						BigDecimal.divideUnsafe(
-							BigDecimal.multiply(
-								deliveryLine.costAmount,
-								BigDecimal.fromStringUnsafe(fact.quantity)
+				numeric(
+					BigDecimal.format(
+						BigDecimal.round(
+							BigDecimal.divideUnsafe(
+								BigDecimal.multiply(
+									deliveryLine.costAmount,
+									BigDecimal.fromStringUnsafe(fact.quantity)
+								),
+								deliveryLine.quantity
 							),
-							deliveryLine.quantity
-						),
-						{ scale: 10 }
+							{ scale: 10 }
+						)
 					)
-				) as Intl.StringNumericLiteral
+				)
 			),
 			booked_cost_currency: costCurrency
 		};
@@ -279,7 +282,7 @@ export function mapSalesFacts(
 					useGrouping: false,
 					minimumFractionDigits: line.quantity.scale,
 					maximumFractionDigits: line.quantity.scale
-				}).format(BigDecimal.format(line.quantity) as Intl.StringNumericLiteral),
+				}).format(numeric(BigDecimal.format(line.quantity))),
 				currency: currency(delivery.currency),
 				lot_number: line.lotNumber,
 				unit_cost: null,
@@ -290,7 +293,7 @@ export function mapSalesFacts(
 								useGrouping: false,
 								minimumFractionDigits: booked.scale,
 								maximumFractionDigits: booked.scale
-							}).format(BigDecimal.format(booked) as Intl.StringNumericLiteral),
+							}).format(numeric(BigDecimal.format(booked))),
 				booked_cost_currency: booked === null ? null : (costCurrency ?? null),
 				net_amount:
 					net === null
@@ -299,7 +302,7 @@ export function mapSalesFacts(
 								useGrouping: false,
 								minimumFractionDigits: net.scale,
 								maximumFractionDigits: net.scale
-							}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+							}).format(numeric(BigDecimal.format(net))),
 				tax_amount:
 					tax === null
 						? null
@@ -307,7 +310,7 @@ export function mapSalesFacts(
 								useGrouping: false,
 								minimumFractionDigits: tax.scale,
 								maximumFractionDigits: tax.scale
-							}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
+							}).format(numeric(BigDecimal.format(tax))),
 				freight: null,
 				active: delivery.status === 'issued'
 			};
@@ -462,7 +465,7 @@ export function mapPayments(
 				useGrouping: false,
 				minimumFractionDigits: amount.scale,
 				maximumFractionDigits: amount.scale
-			}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral),
+			}).format(numeric(BigDecimal.format(amount))),
 			active: true
 		});
 	}

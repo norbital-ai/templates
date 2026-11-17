@@ -489,11 +489,13 @@ class Interpreter {
 			}
 			case 'TemplateLiteral':
 				return node.quasis
-					.map(
-						(q, i) =>
+					.map((q, i) => {
+						const expression = node.expressions[i];
+						return (
 							(q.value.cooked ?? q.value.raw) +
-							(i < node.expressions.length ? show(this.eval(node.expressions[i]!, env)) : '')
-					)
+							(expression === undefined ? '' : show(this.eval(expression, env)))
+						);
+					})
 					.join('');
 			case 'AssignmentExpression': {
 				if (node.left.type !== 'Identifier') return bad('Only local variables can be assigned.');

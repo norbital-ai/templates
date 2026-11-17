@@ -91,6 +91,7 @@ const items = {
 	已审核的销售出库单金额: { column: 'stock_out_audited', sign: 1 },
 	已钩稽的销售出库单金额: { column: 'stock_out_hooked', sign: -1 }
 } as const;
+const catalogue = new Map(Object.entries(items));
 
 const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: string) {
 	const current = yield* readChangedSnapshot(
@@ -125,13 +126,13 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 		for (let bit = 1; bit <= mask; bit *= 2) {
 			if (!(mask & bit)) continue;
 			const fields = page.fields.filter((f) => f.bit === bit),
-				field = fields[0];
-			if (fields.length !== 1 || !field || !Object.hasOwn(items, field.caption))
+				field = fields[0],
+				item = field && catalogue.get(field.caption);
+			if (fields.length !== 1 || !field || !item)
 				throw invalid(
 					'ICCreditField',
 					'Every selected credit bit requires one known catalogue item'
 				);
-			const item = items[field.caption as keyof typeof items];
 			if (plan.includes(item) || field.operator !== (item.sign === 1 ? '+' : '-'))
 				throw invalid('ICCreditField', 'Duplicate credit item or an unsupported native operator');
 			plan.push(item);

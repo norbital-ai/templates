@@ -2024,5 +2024,7 @@ export const ROW_PARAMS = {
 	}
 } as const;
 
-export const paramsFor = (family: string, code: string) =>
-	(ROW_PARAMS as Record<string, Record<string, Schema.ConstraintDecoder<unknown>>>)[family]?.[code];
+const BY_ROW: Readonly<
+	Record<string, Readonly<Record<string, Schema.ConstraintDecoder<unknown>>>>
+> = ROW_PARAMS;
+export const paramsFor = (family: string, code: string) => BY_ROW[family]?.[code];

@@ -89,18 +89,18 @@ const OWN_DAY: Readonly<Record<string, (row: JsonObject) => unknown>> = {
 	work_event: (row) => row.from
 };
 
-/** Resolve the small expression language `reads` declarations use. */
-const expression = (source: string, data: Record<string, unknown>): Json => {
+/** Resolve the small expression language `reads` declarations use; the read it fills is decoded where it is made. */
+const expression = (source: string, data: Record<string, unknown>): unknown => {
 	const text = source.trim();
-	const variable = /^(?:ctx\.)?([A-Za-z0-9_.]+)$/.exec(text);
-	if (variable !== null) {
-		const value = pathValue(data, variable[1]!);
+	const variable = /^(?:ctx\.)?([A-Za-z0-9_.]+)$/.exec(text)?.[1];
+	if (variable !== undefined) {
+		const value = pathValue(data, variable);
 		if (isJsonObject(value) && typeof value.id === 'string') return value.id;
-		return (value ?? null) as Json;
+		return value ?? null;
 	}
-	const call = /^(month_start|month_end|add_days|add_months)\((.*)\)$/.exec(text);
-	if (call !== null) {
-		const args = call[2]!.split(',').map((part) => part.trim());
+	const [, name, inner] = /^(month_start|month_end|add_days|add_months)\((.*)\)$/.exec(text) ?? [];
+	if (name !== undefined && inner !== undefined) {
+		const args = inner.split(',').map((part) => part.trim());
 		const first = args[0] === undefined ? null : expression(args[0], data);
 		const second = args[1] === undefined ? null : expression(args[1], data);
 		const date =
@@ -109,7 +109,7 @@ const expression = (source: string, data: Record<string, unknown>): Json => {
 				: null;
 		const count = Number(second);
 		if (date === null) return null;
-		switch (call[1]) {
+		switch (name) {
 			case 'month_start':
 				return DateTime.formatIsoDate(DateTime.startOf(date, 'month'));
 			case 'month_end':
@@ -124,17 +124,16 @@ const expression = (source: string, data: Record<string, unknown>): Json => {
 					: null;
 		}
 	}
-	return evaluate(`return ${text};`, 'CALCULATION', data, 'reads') as Json;
+	return evaluate(`return ${text};`, 'CALCULATION', data, 'reads');
 };
 
-export const resolveRead = (value: Json, data: Record<string, unknown>): Json => {
-	if (Array.isArray(value)) return value.map((item) => resolveRead(item as Json, data));
+export const resolveRead = (value: unknown, data: Record<string, unknown>): unknown => {
+	if (Array.isArray(value)) return value.map((item) => resolveRead(item, data));
 	if (value !== null && typeof value === 'object') {
-		const keys = Object.keys(value);
-		if (keys.length === 1 && typeof (value as Record<string, Json>).var === 'string')
-			return expression(String((value as Record<string, Json>).var), data);
+		if (Object.keys(value).length === 1 && 'var' in value && typeof value.var === 'string')
+			return expression(value.var, data);
 		return Object.fromEntries(
-			Object.entries(value).map(([key, item]) => [key, resolveRead(item as Json, data)])
+			Object.entries(value).map(([key, item]) => [key, resolveRead(item, data)])
 		);
 	}
 	if (
@@ -694,14 +693,14 @@ const registered = (
 	);
 
 /** The law family an entry's `catalog_code` names. */
-const CATALOG = {
+const CATALOG: Readonly<Record<string, keyof Law['rows']>> = {
 	adhoc_catalog_entry: 'adhoc_catalog',
 	claim_catalog_entry: 'claim_catalog',
 	leave_catalog_entry: 'leave_catalog',
 	loan_catalog_entry: 'loan_catalog',
 	workplace_case_catalog_entry: 'workplace_case_catalog',
 	work_event: 'work_event_catalog'
-} as const satisfies Readonly<Record<string, keyof Law['rows']>>;
+};
 /** The days of an entry payroll prices by date, and whether one after the stint's last day may stand. */
 const PRICED_DAYS: Readonly<
 	Record<
@@ -731,9 +730,7 @@ const assertPlaced = Effect.fnUntraced(function* (
 	rows: readonly JsonObject[],
 	laws: readonly UnderLaw[]
 ) {
-	const family = Object.hasOwn(CATALOG, collection)
-		? CATALOG[collection as keyof typeof CATALOG]
-		: undefined;
+	const family = Object.hasOwn(CATALOG, collection) ? CATALOG[collection] : undefined;
 	if (family === undefined) return;
 	for (const { law, at } of laws) {
 		const codes = new Set(law.rows[family].map((row) => String(row.code)));

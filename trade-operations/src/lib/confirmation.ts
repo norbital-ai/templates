@@ -14,14 +14,19 @@ import {
 	fifoStockFields,
 	type PurchaseLotCosts
 } from './lot-cost.js';
-import { agreementText, agreementTemplate, sealDocument } from './order-document.js';
-/** One draft's quotation read: the order with its party and lines, the published templates and the settings. */
+import { agreementTemplate, sealDocument } from './order-document.js';
+/**
+ * The published templates and the default settings a draft is quoted and confirmed against. It names no order, so every
+ * open draft's page shares one live read of it; the order update re-reads both when it confirms.
+ */
+export const configurationRead = {
+	document_templates: { where: { status: { eq: 'published' } } },
+	commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
+} as const;
+type Configuration = ReadAnswer<typeof configurationRead>;
+/** One draft's quotation read: the order with its party and lines. */
 export const quotationRead = (order: Id<'orders'>) =>
-	({
-		orders: { where: { id: { eq: order } }, limit: 1, party: {}, lines: {} },
-		document_templates: { where: { status: { eq: 'published' } } },
-		commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
-	}) as const;
+	({ orders: { where: { id: { eq: order } }, limit: 1, party: {}, lines: {} } }) as const;
 /** The saved order facts needed to scope its confirmation read. */
 export const confirmationScopeRead = (order: Id<'orders'>) =>
 	({
@@ -38,7 +43,6 @@ export const confirmationRead = (
 ) => {
 	const products = [...new Set(order.lines.map((line) => line.product))];
 	return {
-		...quotationRead(order.id),
 		orders: {
 			...quotationRead(order.id).orders,
 			// A concurrent edit must refresh the scope before these catalogues can confirm it.
@@ -71,33 +75,20 @@ export const confirmationRead = (
 };
 type QuotationAnswer = ReadAnswer<ReturnType<typeof quotationRead>>;
 /** The draft and its configuration, or why it cannot be quoted or confirmed. */
-function draftOf(answer: QuotationAnswer, revision: number | null | undefined) {
+function draftOf(
+	answer: QuotationAnswer,
+	configuration: Configuration,
+	revision: number | null | undefined
+) {
 	const doc = answer.orders.rows[0];
-	const config = answer.commercial_settings.rows[0];
-	const template = doc && agreementTemplate(answer.document_templates.rows, doc.document_template);
+	const config = configuration.commercial_settings.rows[0];
+	const template =
+		doc && agreementTemplate(configuration.document_templates.rows, doc.document_template);
 	if (!doc || !doc.party || !config) return Result.fail('errors.configuration_missing' as const);
 	if (!template) return Result.fail('errors.document_layout_unpublished' as const);
 	if (revision != null && revision !== doc.revision)
 		return Result.fail('errors.check_changed' as const);
 	return Result.succeed({ doc, party: doc.party, config, template });
-}
-/** The current saved commercial terms of a draft order. */
-export function quotationExport(answer: QuotationAnswer, revision?: number | null) {
-	const draft = draftOf(answer, revision);
-	if (Result.isFailure(draft)) return Result.fail(draft.failure);
-	const { doc, party, template } = draft.success;
-	if (doc.status !== 'draft') return Result.fail('errors.order_sealed' as const);
-	if (!doc.lines.length) return Result.fail('errors.lines_required' as const);
-	return Result.succeed({
-		number: doc.number,
-		revision: doc.revision,
-		contract: agreementText(
-			template,
-			snapshot(doc, party, doc.lines, template.version),
-			doc.number,
-			doc.ordered_on
-		)
-	});
 }
 /**
  * A draft's confirmation checks at `as_of` (credit freshness): the `basis` its acknowledgement hashes
@@ -106,9 +97,10 @@ export function quotationExport(answer: QuotationAnswer, revision?: number | nul
  */
 export function confirmationCheck(
 	answer: ReadAnswer<ReturnType<typeof confirmationRead>>,
+	configuration: Configuration,
 	input: { revision?: number | null; as_of: string }
 ) {
-	const draft = draftOf(answer, input.revision);
+	const draft = draftOf(answer, configuration, input.revision);
 	if (Result.isFailure(draft)) return Result.fail(draft.failure);
 	const { doc, party, config, template } = draft.success;
 	if (!doc.lines.length) return Result.fail('errors.lines_required' as const);

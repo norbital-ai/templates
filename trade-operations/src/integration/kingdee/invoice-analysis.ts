@@ -12,6 +12,7 @@ import {
 } from './polling.js';
 import { preserveSource } from './reconciliation.js';
 import type { SourceProjection } from './sql.js';
+import { numeric } from '../../lib/commercial.js';
 
 const ref = (tableAlias: string, name: string) => ({ tableAlias, name });
 const field = (tableAlias: string, name: string) => ({ column: ref(tableAlias, name) });
@@ -102,7 +103,7 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 			useGrouping: false,
 			minimumFractionDigits: quantity.scale,
 			maximumFractionDigits: quantity.scale
-		}).format(BigDecimal.format(quantity) as Intl.StringNumericLiteral),
+		}).format(numeric(BigDecimal.format(quantity))),
 		currency: isoCurrency(row),
 		net_amount:
 			net === null
@@ -111,7 +112,7 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 						useGrouping: false,
 						minimumFractionDigits: net.scale,
 						maximumFractionDigits: net.scale
-					}).format(BigDecimal.format(net) as Intl.StringNumericLiteral),
+					}).format(numeric(BigDecimal.format(net))),
 		tax_amount:
 			tax === null
 				? null
@@ -119,7 +120,7 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 						useGrouping: false,
 						minimumFractionDigits: tax.scale,
 						maximumFractionDigits: tax.scale
-					}).format(BigDecimal.format(tax) as Intl.StringNumericLiteral),
+					}).format(numeric(BigDecimal.format(tax))),
 		source_dimensions: {
 			customer: nullableText(row, 'customer'),
 			product: nullableText(row, 'product'),

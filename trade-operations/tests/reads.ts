@@ -5,11 +5,11 @@ import type { Id, PlainDate } from '@norbital-ai/bolt';
 import type { Typed } from './test-runtime.js';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';
 import {
+	configurationRead,
 	confirmationCheck,
 	confirmationHash,
 	confirmationRead,
 	confirmationScopeRead,
-	quotationExport,
 	quotationRead
 } from '../src/lib/confirmation.js';
 import { inventoryCost, inventoryCostRead } from '../src/lib/lot-cost.js';
@@ -44,17 +44,13 @@ export const confirmationOf = Effect.fnUntraced(function* (
 	input: { order: Id<'orders'>; revision?: number | null; as_of: string }
 ) {
 	const check = yield* settled(
-		confirmationCheck(yield* confirmationReadOf(as, input.order), input)
+		confirmationCheck(
+			yield* confirmationReadOf(as, input.order),
+			yield* as.query(configurationRead),
+			input
+		)
 	);
 	return { ...check, check_hash: yield* confirmationHash(check) };
-});
-export const quotationOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { order: Id<'orders'>; revision?: number | null }
-) {
-	return yield* settled(
-		quotationExport(yield* as.query(quotationRead(input.order)), input.revision)
-	);
 });
 export const documentOf = Effect.fnUntraced(function* (as: Reader, input: { order: Id<'orders'> }) {
 	return yield* orderDocument(yield* as.query(documentRead(input.order)));

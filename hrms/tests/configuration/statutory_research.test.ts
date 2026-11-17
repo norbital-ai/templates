@@ -314,7 +314,9 @@ describe('statutory research', () => {
 					const { findings, changes } = yield* ledger(t);
 					assert.equal(findings.length, 1);
 					assert.equal(changes.length, 1);
-					assert.equal((findings[0]?.source_urls as readonly string[]).length, 2);
+					const urls = findings[0]?.source_urls;
+					assert.ok(Array.isArray(urls));
+					assert.equal(urls.length, 2);
 				})
 		)
 	);

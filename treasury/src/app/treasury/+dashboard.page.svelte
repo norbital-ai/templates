@@ -95,8 +95,14 @@
 	const fy = $derived(
 		`${Number(as_of.slice(0, 4)) - (Number(as_of.slice(5, 7)) < 4 ? 1 : 0)}-04-01`
 	);
+	const thisMonth = $derived({
+		value: 'month',
+		label: t('app.dashboard.this_month'),
+		from: monthStart(as_of),
+		to: as_of
+	});
 	const picks = $derived([
-		{ value: 'month', label: t('app.dashboard.this_month'), from: monthStart(as_of), to: as_of },
+		thisMonth,
 		{
 			value: 'last_month',
 			label: t('app.dashboard.last_month'),
@@ -126,7 +132,7 @@
 			? { from: selectedRange.from, to: selectedRange.to }
 			: null
 	);
-	const window = $derived(customRange ?? picks.find((p) => p.value === period) ?? picks[0]!);
+	const window = $derived(customRange ?? picks.find((p) => p.value === period) ?? thisMonth);
 	const cost = $derived(periodCost(lines, banks, window.from, window.to));
 	const costAll = $derived(cost.find((c) => c.bank === 'all'));
 

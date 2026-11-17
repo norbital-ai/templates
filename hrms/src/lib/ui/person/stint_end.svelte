@@ -21,7 +21,7 @@
 	import { loanRecovery, monthlyEquivalent } from '../../payroll_engine/loan_schedule.js';
 	import { pageLaws } from '../law.svelte.js';
 	import type { PersonRead, StintRow } from './person_read.svelte.js';
-	import { outstandingOf, recoverLoans } from './stint_loans.js';
+	import { loansRead, outstandingOf, recoverLoans } from './stint_loans.js';
 
 	let {
 		ctx,
@@ -156,19 +156,14 @@
 		failure = null;
 		try {
 			const acts: Record<string, Json> = {
-				...(await recoverLoans(
-					ctx,
-					{
-						id: stint.id,
-						entity_id: stint.entity_id,
-						employee_id: stint.employee_id,
-						employee_number: stint.employee_number
-					},
+				...recoverLoans(
+					await ctx.query(loansRead(stint.id)),
+					stint,
 					day,
 					{ expectedPay, floorPercent, decimals },
 					(remaining) =>
 						t('contract.loan_recovery_task', { number: stint.employee_number, amount: remaining })
-				)),
+				),
 				'employment.update': [
 					{
 						target: { id: stint.id, revision: stint.revision },

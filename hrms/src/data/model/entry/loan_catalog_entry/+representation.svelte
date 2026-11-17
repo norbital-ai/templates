@@ -18,7 +18,6 @@
 	import { Effect } from 'effect';
 	import { untrack } from 'svelte';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { numberOf } from '../../../../lib/payroll_engine/foundation.js';
 	import LoanCreateFields from '../../../../lib/ui/payroll/loan_create_fields.svelte';
 	import CatalogField from '../../../../lib/ui/settings/catalog_field.svelte';
 	import {
@@ -220,54 +219,6 @@
 			)
 		);
 	};
-
-	const createRepayments = (outcome: {
-		readonly kind: string;
-		readonly records?: readonly { readonly model: string; readonly id: string }[];
-	}) => {
-		if (outcome.kind !== 'committed') return;
-		const loanId = outcome.records?.find((row) => row.model === 'loan_catalog_entry')?.id;
-		if (loanId === undefined) return;
-		fork(
-			Effect.gen(function* () {
-				const answer = yield* ctx.query({
-					loan_catalog_entry: {
-						where: { id: { eq: loanId as Id<'loan_catalog_entry'> } },
-						fields: ['quantity', 'repayment_period', 'entity_id', 'employment_id'],
-						limit: 1
-					}
-				});
-				const loan = answer.loan_catalog_entry.rows[0];
-				if (loan === undefined) return;
-				const plan = buildLoanSchedule({
-					principal: numberOf(loan.quantity) ?? 0,
-					from: String(loan.repayment_period.from),
-					to: String(loan.repayment_period.to),
-					repayments: []
-				});
-				if (plan.create.length === 0) return;
-				yield* ctx.act({
-					'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
-						entity_id: loan.entity_id,
-						employment_id: loan.employment_id,
-						loan_id: loanId as Id<'loan_catalog_entry'>,
-						amount: new Intl.NumberFormat('en', {
-							useGrouping: false,
-							maximumFractionDigits: 20
-						}).format(row.amount),
-						paid_on: row.paid_on
-					}))
-				});
-			}).pipe(
-				// the loan is saved; its schedule is not: say so, Generate makes it
-				Effect.catch((error) =>
-					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-					)
-				)
-			)
-		);
-	};
 </script>
 
 {#snippet amountCell({ row }: { row: Repayment })}
@@ -336,7 +287,6 @@
 			of="loan_catalog_entry"
 			mode="create"
 			values={view.mode === 'create' ? view.values : {}}
-			on_outcome={createRepayments}
 			size="content"
 		>
 			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}

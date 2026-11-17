@@ -264,3 +264,21 @@ export const buildLoanSchedule = (
 		)
 	};
 };
+
+/**
+ * A new loan's instalments as its create nests them (`repayments`), so the loan and its schedule are one write: the
+ * principal monthly over the period, each under the loan's company and stint (`under`).
+ */
+export const newLoanRepayments = <
+	U extends { readonly entity_id: unknown; readonly employment_id: unknown }
+>(
+	under: U,
+	terms: { readonly principal: number; readonly from: string; readonly to: string }
+) =>
+	buildLoanSchedule({ ...terms, repayments: [] }).create.map((row) => ({
+		...under,
+		amount: new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 20 }).format(
+			row.amount
+		),
+		paid_on: row.paid_on
+	}));

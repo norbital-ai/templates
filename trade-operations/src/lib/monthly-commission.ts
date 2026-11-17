@@ -10,7 +10,7 @@ import {
 	type ReportOrder
 } from './reports.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
-import { hash } from './commercial.js';
+import { hash, numeric } from './commercial.js';
 type MonthlyOrder = ReportOrder;
 /** The fields a statement's sign-off compares (the board and the statement create read them). */
 const statementFields = [
@@ -121,7 +121,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 											useGrouping: false,
 											minimumFractionDigits: current.amount.scale,
 											maximumFractionDigits: current.amount.scale
-										}).format(BigDecimal.format(current.amount) as Intl.StringNumericLiteral),
+										}).format(numeric(BigDecimal.format(current.amount))),
 							unresolved_lines: current.unresolved_lines,
 							awaiting_approval: false
 						}))
@@ -145,16 +145,18 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 									minimumFractionDigits: digits,
 									maximumFractionDigits: digits
 								}).format(
-									BigDecimal.format(
-										BigDecimal.round(
-											BigDecimal.sumAll(
-												snapshot.flatMap((row) =>
-													row.amount === null ? [] : [BigDecimal.fromStringUnsafe(row.amount)]
-												)
-											),
-											{ scale: digits }
+									numeric(
+										BigDecimal.format(
+											BigDecimal.round(
+												BigDecimal.sumAll(
+													snapshot.flatMap((row) =>
+														row.amount === null ? [] : [BigDecimal.fromStringUnsafe(row.amount)]
+													)
+												),
+												{ scale: digits }
+											)
 										)
-									) as Intl.StringNumericLiteral
+									)
 								);
 					return hash({
 						owner: group.owner,

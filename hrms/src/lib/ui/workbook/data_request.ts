@@ -916,7 +916,9 @@ export const planDataRequest = (
 				name,
 				payment_schedule: schedule,
 				pay_cutoff_day: Number(
-					(entity.payment_schedule as Record<string, unknown> | undefined)?.pay_cutoff_day ?? 1
+					(isJsonObject(entity.payment_schedule)
+						? entity.payment_schedule.pay_cutoff_day
+						: undefined) ?? 1
 				)
 			});
 		const registrations = registrationsOf(

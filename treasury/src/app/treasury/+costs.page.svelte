@@ -81,7 +81,7 @@
 					read.current?.sub_limit.rows ?? []
 				).map((q) => ({
 					...q,
-					notes: q.notes.map((n) => t(NOTES[n as keyof typeof NOTES])).join(' · ')
+					notes: q.notes.map((n) => t(NOTES[n])).join(' · ')
 				}))
 			: []
 	);

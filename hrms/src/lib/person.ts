@@ -305,11 +305,13 @@ export const startsOf = (
 		? unbroken.slice(0, -1).reduce(
 				(total, served) =>
 					// only the newest employment is open
-					total +
-					Duration.toDays(
-						DateTime.distance(DateTime.makeUnsafe(served.from), DateTime.makeUnsafe(served.to!))
-					) +
-					1,
+					served.to === null
+						? total
+						: total +
+							Duration.toDays(
+								DateTime.distance(DateTime.makeUnsafe(served.from), DateTime.makeUnsafe(served.to))
+							) +
+							1,
 				0
 			)
 		: 0;

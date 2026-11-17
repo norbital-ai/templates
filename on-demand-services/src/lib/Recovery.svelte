@@ -15,6 +15,7 @@
 	import SlotPicker from './SlotPicker.svelte';
 	import Countdown from './Countdown.svelte';
 	import { livePool } from './pool.svelte.js';
+	import { closedSlot } from './matching.js';
 	import { candidatesFor, rebookingSlots, rebookingWindow, type Rematch } from './slots.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let {
@@ -56,9 +57,12 @@
 	);
 	const v = $derived(stored.current?.visits.rows[0]);
 	/** The visit as a re-match reads it. */
-	const rematch = $derived<Rematch | undefined>(
-		v === undefined ? undefined : { ...v, unavailable_helper: v.unavailable_helper?.id ?? null }
-	);
+	const rematch = $derived.by<Rematch | undefined>(() => {
+		const slot = v === undefined ? null : closedSlot(v.slot);
+		return v === undefined || slot === null
+			? undefined
+			: { ...v, slot, unavailable_helper: v.unavailable_helper?.id ?? null };
+	});
 	let newTime = $state(false);
 	let picked = $state<string | null>(null);
 	let chosen = $state<Id<'helpers'> | null>(null);
@@ -95,7 +99,7 @@
 		() =>
 			!newTime || rematch === undefined
 				? null
-				: { ...rebookingWindow(fortnight, zone), spots: [rematch.location] },
+				: { ...rebookingWindow(from, 14, zone), spots: [rematch.location] },
 		zone
 	);
 	const days = $derived(

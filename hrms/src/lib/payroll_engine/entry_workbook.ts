@@ -281,17 +281,17 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 			.map((part) => part.trim())
 			.filter((part) => part !== '')) {
 			const found = /^(\d{4}-\d{2}-\d{2})(?:\s*(?:\/|\s)\s*(AM|PM))?$/i.exec(token);
+			const date = found?.[1];
 			if (
-				found == null ||
-				!Option.exists(DateTime.make(found[1]!), (d) => DateTime.formatIsoDate(d) === found[1])
+				date === undefined ||
+				!Option.exists(DateTime.make(date), (d) => DateTime.formatIsoDate(d) === date)
 			) {
 				problems.push(`Row ${row.at}: "${token}" is not a date, optionally followed by AM or PM.`);
 				continue;
 			}
-			const date = found[1]!;
-			const part = found[2]?.toUpperCase() as 'AM' | 'PM' | undefined;
-			if (part == null) slots.push({ date, part: 'AM' }, { date, part: 'PM' });
-			else slots.push({ date, part });
+			const part = found?.[2]?.toUpperCase();
+			if (part === undefined) slots.push({ date, part: 'AM' }, { date, part: 'PM' });
+			else slots.push({ date, part: part === 'PM' ? 'PM' : 'AM' });
 		}
 	} else {
 		const from = cellDay(row.cells.from);
@@ -375,7 +375,8 @@ export function parseLeaveSheet(
 		if (cellText(row.cells.description) !== '') ignoredDescription = true;
 		const slots = leaveSlots(row, problems);
 		if (slots == null) continue;
-		const first = slots[0]!.date;
+		const first = slots[0]?.date;
+		if (first === undefined) continue;
 		const employee = employeeOn(
 			known.employees,
 			known.entity.name,
@@ -403,13 +404,15 @@ export function parseLeaveSheet(
 			);
 			continue;
 		}
-		const keys = slots.map((slot) => `${String(employee.id)}:${slot.date}:${slot.part}`);
-		const duplicateRow = keys
-			.map((key, index) => ({ key, index }))
-			.find(({ key }) => seen.has(key));
+		const keyed = slots.map((slot) => ({
+			slot,
+			key: `${String(employee.id)}:${slot.date}:${slot.part}`
+		}));
+		const keys = keyed.map(({ key }) => key);
+		const duplicateRow = keyed.find(({ key }) => seen.has(key));
 		if (duplicateRow != null)
 			problems.push(
-				`Row ${row.at}: repeats ${number} ${slots[duplicateRow.index]!.date} ${slots[duplicateRow.index]!.part} from row ${seen.get(duplicateRow.key)}.`
+				`Row ${row.at}: repeats ${number} ${duplicateRow.slot.date} ${duplicateRow.slot.part} from row ${seen.get(duplicateRow.key)}.`
 			);
 		const heldCode = keys.map((key) => held.get(key)).find((code) => code !== undefined);
 		if (heldCode !== undefined && duplicateRow == null)

@@ -1,6 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
-import { sha256Hex } from '../../lib/commercial.js';
+import { sha256Hex, numeric } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
 import {
 	checked,
@@ -127,7 +127,7 @@ function mapEntry(row: SqlRow) {
 		useGrouping: false,
 		minimumFractionDigits: remainingAmount.scale,
 		maximumFractionDigits: remainingAmount.scale
-	}).format(BigDecimal.format(remainingAmount) as Intl.StringNumericLiteral);
+	}).format(numeric(BigDecimal.format(remainingAmount)));
 	return {
 		contact_id,
 		customer_id,
@@ -147,7 +147,7 @@ function mapEntry(row: SqlRow) {
 						useGrouping: false,
 						minimumFractionDigits: scale,
 						maximumFractionDigits: scale
-					}).format(BigDecimal.format(amount) as Intl.StringNumericLiteral)
+					}).format(numeric(BigDecimal.format(amount)))
 				};
 			}
 		)

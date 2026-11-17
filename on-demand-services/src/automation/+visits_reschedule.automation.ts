@@ -28,10 +28,11 @@ export default automation({
 				return yield* ctx.refuse('errors.move_window', { values: { hours: free_change_hours } });
 			if (Date.parse(start) <= Date.parse(ctx.now))
 				return yield* ctx.refuse('errors.start_in_past', { field: 'start' });
+			if (v.slot.end === null) return yield* ctx.refuse('errors.visit_open_ended');
 			const slot = slotOf(
 				start,
 				Duration.toMinutes(
-					DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+					DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
 				)
 			);
 			const pool = yield* loadPool(ctx, slot.start, slot.start, [v.location]);

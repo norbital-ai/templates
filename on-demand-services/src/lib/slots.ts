@@ -13,8 +13,12 @@ import {
 	rank,
 	slotOf,
 	type Point,
-	type Pool
+	type Pool,
+	type Slot
 } from './matching.js';
+/** The calendar date `i` days after `from`. */
+const dayOf = (from: PlainDate, i: number) =>
+	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(from), { days: i }));
 /** The days a booking picker lists and the full recurring horizon its pool must cover. */
 export function bookingWindow(
 	input: {
@@ -25,18 +29,13 @@ export function bookingWindow(
 	},
 	zone: string
 ) {
-	const days = Array.from({ length: input.days }, (_, i) =>
-		DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(input.from), { days: i }))
-	);
-	const last = DateTime.formatIso(
-		DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: zone, adjustForTimeZone: true })
-	);
+	const days = Array.from({ length: input.days }, (_, i) => dayOf(input.from, i));
+	const edge = rebookingWindow(input.from, input.days, zone);
 	return {
 		days,
-		from: DateTime.formatIso(
-			DateTime.makeZonedUnsafe(days[0]!, { timeZone: zone, adjustForTimeZone: true })
-		),
-		to: occurrences(last, input.repeat, input.visits ?? BOOKING_AHEAD, zone).at(-1)!
+		from: edge.from,
+		// no further occurrence: the window ends at the last day's midnight
+		to: occurrences(edge.to, input.repeat, input.visits ?? BOOKING_AHEAD, zone).at(-1) ?? edge.to
 	};
 }
 /**
@@ -90,23 +89,20 @@ export function bookingSlots(
 /** What a re-match reads of the visit it moves. */
 export type Rematch = {
 	readonly id: Id<'visits'>;
-	readonly slot: { readonly start: Instant; readonly end: Instant | null };
+	readonly slot: Slot;
 	readonly skill: string;
 	readonly location: Point | null;
 	readonly area: string | null;
 	readonly helper: Id<'helpers'> | null;
 	readonly unavailable_helper: Id<'helpers'> | null;
 };
-/** The pool window of `rebookingSlots`: midnight of the first and of the last day. */
-export function rebookingWindow(days: readonly PlainDate[], zone: string) {
-	return {
-		from: DateTime.formatIso(
-			DateTime.makeZonedUnsafe(days[0]!, { timeZone: zone, adjustForTimeZone: true })
-		),
-		to: DateTime.formatIso(
-			DateTime.makeZonedUnsafe(days.at(-1)!, { timeZone: zone, adjustForTimeZone: true })
-		)
-	};
+/** The pool window of `rebookingSlots` over `days` days from `from`: midnight of the first and of the last day. */
+export function rebookingWindow(from: PlainDate, days: number, zone: string) {
+	const midnight = (i: number) =>
+		DateTime.formatIso(
+			DateTime.makeZonedUnsafe(dayOf(from, i), { timeZone: zone, adjustForTimeZone: true })
+		);
+	return { from: midnight(0), to: midnight(days - 1) };
 }
 /** Feasible replacement starts for a scheduled visit on each of `days`, adjacent travel included. */
 export function rebookingSlots(
@@ -126,14 +122,14 @@ export function rebookingSlots(
 		location: v.location,
 		area: v.area,
 		minutes: Duration.toMinutes(
-			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
 		)
 	};
 	const starts = new Map(days.map((d) => [d, new Set<Instant>()]));
 	for (const h of freed.helpers)
 		for (const d of openSlots(h, need, days, freed, zone, now))
-			for (const start of d.starts) starts.get(d.day)!.add(start);
-	return days.map((day) => ({ day, starts: [...starts.get(day)!].sort() }));
+			for (const start of d.starts) starts.get(d.day)?.add(start);
+	return days.map((day) => ({ day, starts: [...(starts.get(day) ?? [])].sort() }));
 }
 /**
  * The helpers who could take the visit instead (at `start`, else its own time), best match first; at its own time its
@@ -145,7 +141,7 @@ export function candidatesFor(v: Rematch, start: Instant | undefined, pool: Pool
 		slot: slotOf(
 			start ?? v.slot.start,
 			Duration.toMinutes(
-				DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end!))
+				DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
 			)
 		),
 		location: v.location,

@@ -53,6 +53,11 @@ export type Slot = {
 	readonly start: Instant;
 	readonly end: Instant;
 };
+/** A visit's slot as matching reads it, both ends set: an open-ended slot has no length to place, so `null`. */
+export const closedSlot = (slot: {
+	readonly start: Instant;
+	readonly end: Instant | null;
+}): Slot | null => (slot.end === null ? null : { start: slot.start, end: slot.end });
 export type Helper = {
 	readonly id: Id<'helpers'>;
 	readonly name: string;
@@ -153,7 +158,7 @@ export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): R
 	const length = Duration.toMinutes(
 		DateTime.distance(DateTime.makeUnsafe(need.slot.start), DateTime.makeUnsafe(need.slot.end))
 	);
-	if (!helper.work_days.includes(DAYS[parts.weekDay]!)) return 'day';
+	if (!helper.work_days.some((d) => d === DAYS.at(parts.weekDay))) return 'day';
 	if (
 		minutes <
 			Duration.toMinutes(
@@ -262,7 +267,7 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 		(day) => {
 			const d = DateTime.formatIsoDate(day);
 			return (
-				helper.work_days.includes(DAYS[DateTime.toParts(day).weekDay]!) &&
+				helper.work_days.some((d) => d === DAYS.at(DateTime.toParts(day).weekDay)) &&
 				!pool.off.some(
 					(o) =>
 						o.helper === helper.id &&
@@ -307,7 +312,6 @@ export function rank(
 						),
 				0
 			);
-	const extras = new Map(pool.helpers.map((h) => [h.id, scarcity(h)]));
 	return pool.helpers
 		.filter((h) => refusal(h, need, pool, zone) === null)
 		.map((h) => {
@@ -324,29 +328,33 @@ export function rank(
 				(LOAD_BALANCE * ((load.minutes + added) ** 2 - load.minutes ** 2)) /
 				Math.max(1, load.capacity) ** 2;
 			return {
-				helper: h.id,
-				name: h.name,
-				score: -drive - balance + (h.id === keep ? CONTINUITY : 0),
-				drive_minutes: drive,
-				same_area: need.area !== null && h.home_area === need.area,
-				week_hours: BigDecimal.toNumberUnsafe(
-					BigDecimal.round(
-						BigDecimal.fromNumberUnsafe(Duration.toHours(Duration.minutes(load.service))),
-						{
-							scale: 1,
-							mode: 'half-ceil'
-						}
+				extra: scarcity(h),
+				candidate: {
+					helper: h.id,
+					name: h.name,
+					score: -drive - balance + (h.id === keep ? CONTINUITY : 0),
+					drive_minutes: drive,
+					same_area: need.area !== null && h.home_area === need.area,
+					week_hours: BigDecimal.toNumberUnsafe(
+						BigDecimal.round(
+							BigDecimal.fromNumberUnsafe(Duration.toHours(Duration.minutes(load.service))),
+							{
+								scale: 1,
+								mode: 'half-ceil'
+							}
+						)
 					)
-				)
+				}
 			};
 		})
 		.sort(
 			(a, b) =>
-				b.score - a.score ||
-				extras.get(a.helper)! - extras.get(b.helper)! ||
-				a.name.localeCompare(b.name) ||
-				a.helper.localeCompare(b.helper)
-		);
+				b.candidate.score - a.candidate.score ||
+				a.extra - b.extra ||
+				a.candidate.name.localeCompare(b.candidate.name) ||
+				a.candidate.helper.localeCompare(b.candidate.helper)
+		)
+		.map(({ candidate }) => candidate);
 }
 /** One shared plan for availability and confirmation. No rows are written by planning. */
 export function planBooking(
@@ -404,7 +412,11 @@ export function availableSlots(
 	const helpers = pool.helpers.filter((h) => preferred.length === 0 || preferred.includes(h.id));
 	return days.map((day) => {
 		const possible = [
-			...new Set(helpers.flatMap((h) => openSlots(h, need, [day], pool, zone, now)[0]!.starts))
+			...new Set(
+				helpers.flatMap((h) =>
+					openSlots(h, need, [day], pool, zone, now).flatMap((open) => open.starts)
+				)
+			)
 		].sort();
 		return {
 			day,
@@ -417,11 +429,13 @@ export function availableSlots(
 	});
 }
 /** Each helper's visits grouped by local day, in order: the day as it will be driven. */
-export function routes(pool: Pool, zone: string): Busy[][] {
-	const by = new Map<string, Busy[]>();
+export function routes(pool: Pool, zone: string): [Busy, ...Busy[]][] {
+	const by = new Map<string, [Busy, ...Busy[]]>();
 	for (const b of pool.busy) {
 		const key = `${b.helper}|${DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }))}`;
-		by.set(key, [...(by.get(key) ?? []), b]);
+		const held = by.get(key);
+		if (held === undefined) by.set(key, [b]);
+		else held.push(b);
 	}
 	return [...by.values()].map((day) =>
 		day.sort((a, b) => Date.parse(a.slot.start) - Date.parse(b.slot.start))
@@ -429,12 +443,17 @@ export function routes(pool: Pool, zone: string): Busy[][] {
 }
 /** The legs driven on a day: home to the first visit, then visit to visit. */
 export function legsOf(day: readonly Busy[], home: Point | null): [Point | null, Point | null][] {
-	return day.map((b, i) => [i === 0 ? home : day[i - 1]!.location, b.location]);
+	let from = home;
+	return day.map((b): [Point | null, Point | null] => {
+		const leg: [Point | null, Point | null] = [from, b.location];
+		from = b.location;
+		return leg;
+	});
 }
 /** Every leg a match over `spots` may ask about: each planned leg, and each spot to and from every visit and home. */
 export function lookups(pool: Pool, spots: readonly (Point | null)[], zone: string): string[] {
 	const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
-	const legs = routes(pool, zone).flatMap((day) => legsOf(day, homes.get(day[0]!.helper) ?? null));
+	const legs = routes(pool, zone).flatMap((day) => legsOf(day, homes.get(day[0].helper) ?? null));
 	for (const s of spots) {
 		for (const b of pool.busy) legs.push([b.location, s], [s, b.location]);
 		for (const h of pool.helpers) legs.push([h.home_location, s]);
@@ -447,7 +466,7 @@ function travelMinutes(pool: Pool, zone: string): number {
 	return routes(pool, zone).reduce(
 		(sum, day) =>
 			sum +
-			legsOf(day, homes.get(day[0]!.helper) ?? null).reduce(
+			legsOf(day, homes.get(day[0].helper) ?? null).reduce(
 				(total, [a, b]) => total + driveMinutes(a, b, pool.drive),
 				0
 			),
@@ -633,13 +652,16 @@ export function proposal(
 		);
 		const found = rank({ ...need, slot }, pool, zone);
 		if (found.length === 0) continue;
-		const skills = new Map(pool.helpers.map((h) => [h.id, h.skills]));
-		const best = [...found].sort(
-			(a, b) =>
-				skillSimilarity(leaving, skills.get(b.helper)!) -
-					skillSimilarity(leaving, skills.get(a.helper)!) || b.score - a.score
-		)[0]!;
-		return { helper: best.helper, slot };
+		const [best] = found
+			.flatMap((c) => {
+				const helper = pool.helpers.find((h) => h.id === c.helper);
+				return helper === undefined
+					? []
+					: [{ candidate: c, similarity: skillSimilarity(leaving, helper.skills) }];
+			})
+			.sort((a, b) => b.similarity - a.similarity || b.candidate.score - a.candidate.score);
+		if (best === undefined) continue;
+		return { helper: best.candidate.helper, slot };
 	}
 	return null;
 }

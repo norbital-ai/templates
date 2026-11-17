@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 export const kingdeeCreditPolicy = 'kis-sales-out-v1';
 export const kingdeeConfiguration = {
 	baseCurrency: { kind: 'text', default: 'CNY' },
@@ -48,6 +50,7 @@ export const kingdeeConfiguration = {
 
 const guid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const writeAccountPattern = new RegExp(`^${guid}/${guid}$`, 'i');
+const isConfiguration = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
 function accountPin(
 	configuration: unknown,
 	field:
@@ -59,9 +62,8 @@ function accountPin(
 		| 'deliveryCostAccount'
 		| 'creditAccount'
 ): string | null {
-	if (configuration === null || typeof configuration !== 'object' || !(field in configuration))
-		return null;
-	const pin = (configuration as Record<string, unknown>)[field];
+	if (!isConfiguration(configuration)) return null;
+	const pin = configuration[field];
 	return typeof pin === 'string' && writeAccountPattern.test(pin.trim())
 		? pin.trim().toLowerCase()
 		: null;

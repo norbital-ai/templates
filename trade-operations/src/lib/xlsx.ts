@@ -5,7 +5,6 @@ export type XlsxColumn = {
 	readonly numeric?: boolean;
 	readonly scale?: number;
 };
-type Cell = string | number | boolean | null | undefined;
 
 const encoder = new TextEncoder();
 const CRC_TABLE = (() => {
@@ -19,7 +18,7 @@ const CRC_TABLE = (() => {
 })();
 const crc32 = (bytes: Uint8Array) => {
 	let c = 0xffffffff;
-	for (const byte of bytes) c = CRC_TABLE[(c ^ byte) & 0xff]! ^ (c >>> 8);
+	for (const byte of bytes) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
 	return (c ^ 0xffffffff) >>> 0;
 };
 const xml = (value: string) =>
@@ -35,7 +34,7 @@ const columnName = (index: number) => {
 		name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
 	return name;
 };
-const number = (value: Cell) => {
+const number = (value: unknown) => {
 	if (typeof value === 'number') return Number.isFinite(value) ? value : null;
 	if (value === null || value === undefined || typeof value === 'boolean') return null;
 	const parsed = Number(String(value).trim());
@@ -43,7 +42,7 @@ const number = (value: Cell) => {
 };
 const cellXml = (
 	reference: string,
-	value: Cell,
+	value: unknown,
 	column?: { readonly numeric?: boolean; readonly scale?: number }
 ) => {
 	if (value === null || value === undefined) return '';
@@ -64,7 +63,7 @@ const sheetXml = (
 		.map((row, rowIndex) =>
 			columns
 				.map((column, columnIndex) =>
-					cellXml(`${columnName(columnIndex)}${rowIndex + 2}`, row[column.field] as Cell, column)
+					cellXml(`${columnName(columnIndex)}${rowIndex + 2}`, row[column.field], column)
 				)
 				.join('')
 		)

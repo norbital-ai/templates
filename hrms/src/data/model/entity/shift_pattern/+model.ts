@@ -5,8 +5,9 @@ import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
 
 const onePatternShape = (pattern: unknown) => {
 	if (typeof pattern !== 'object' || pattern === null) return false;
-	const held = pattern as { readonly days?: unknown; readonly cycle?: unknown };
-	return (held.days != null ? 1 : 0) + (Array.isArray(held.cycle) ? 1 : 0) === 1;
+	const days = 'days' in pattern && pattern.days != null;
+	const cycle = 'cycle' in pattern && Array.isArray(pattern.cycle);
+	return (days ? 1 : 0) + (cycle ? 1 : 0) === 1;
 };
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'pattern'] as const;

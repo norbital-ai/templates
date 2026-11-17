@@ -169,13 +169,11 @@ function selectInferencePhotos(
 		.filter((photo) => photoSignal(photo) > 0)
 		.sort((left, right) => photoSignal(right) - photoSignal(left) || byOrder(left, right))
 		.slice(0, MAX_SIGNAL_IMAGES);
-	const temporal = chronological.length
-		? [
-				chronological[0]!,
-				chronological[Math.floor((chronological.length - 1) / 2)]!,
-				chronological.at(-1)!
-			]
-		: [];
+	const temporal = [
+		chronological.at(0),
+		chronological.at(Math.floor((chronological.length - 1) / 2)),
+		chronological.at(-1)
+	].filter((photo) => photo !== undefined);
 	const selected: ReviewPhoto[] = [];
 	let bytes = 0;
 	for (const photo of [
@@ -742,10 +740,9 @@ const sceneCandidates = Effect.fnUntraced(function* (ctx: Ctx, facts: ReviewFact
 	const probes =
 		chronological.length <= MAX_PROBES
 			? chronological
-			: Array.from(
-					{ length: MAX_PROBES },
-					(_, i) => chronological[Math.round((i * (chronological.length - 1)) / (MAX_PROBES - 1))]!
-				);
+			: Array.from({ length: MAX_PROBES }, (_, i) =>
+					chronological.at(Math.round((i * (chronological.length - 1)) / (MAX_PROBES - 1)))
+				).filter((photo) => photo !== undefined);
 	const hits: {
 		readonly probe: Id<'photo_evidence'>;
 		readonly distance: number;

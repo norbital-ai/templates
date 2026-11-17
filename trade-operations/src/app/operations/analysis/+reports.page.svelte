@@ -292,10 +292,7 @@
 	) => {
 		const shaped = columns.map((column) => {
 			if (typeof column === 'string') return { field: column, label: column, numeric: false };
-			const kind =
-				'kind' in column && column.kind
-					? (column.kind as { kind?: string; scale?: number })
-					: undefined;
+			const kind = 'kind' in column ? column.kind : undefined;
 			const numeric =
 				('numeric' in column && column.numeric === true) ||
 				kind?.kind === 'money' ||

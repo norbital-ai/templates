@@ -240,10 +240,9 @@ The ledger and the exit routine:
 
 Each has its manual way out.
 
-| State                                                                     | Manual way out                                                        |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Someone who has left still owes after their last payslip                  | One task names the amount; it is settled outside payroll              |
-| A paid loan final settlement, and the exit was cancelled                  | It stands. The open schedule is untouched and the loan task is waived |
-| A fulfilled task whose cause was cancelled                                | It keeps its record                                                   |
-| The Transfer sheet starts the new stint and stops before the loans follow | HR regenerates the schedule from the loan form                        |
-| More amended periods than one run works out                               | They wait, shown as waiting, and the next run takes them              |
+| State                                                    | Manual way out                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| Someone who has left still owes after their last payslip | One task names the amount; it is settled outside payroll              |
+| A paid loan final settlement, and the exit was cancelled | It stands. The open schedule is untouched and the loan task is waived |
+| A fulfilled task whose cause was cancelled               | It keeps its record                                                   |
+| More amended periods than one run works out              | They wait, shown as waiting, and the next run takes them              |

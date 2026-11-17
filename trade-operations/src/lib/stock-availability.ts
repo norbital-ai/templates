@@ -30,6 +30,7 @@ type Product = Answer['products']['rows'][number];
 type Lot = Answer['stock_snapshots']['rows'][number];
 type Snapshot = Answer['source_stock_commitments']['rows'][number];
 type Commitment = Snapshot['entries'][number];
+type Group = { product: Product; lots: Lot[]; commitments: Commitment[] };
 const normalizeUnit = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase() || null;
 
 export function stockAvailability(answer: Answer, now: number, byWarehouse: boolean) {
@@ -45,7 +46,7 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 		)
 	);
 	const key = (source: string, product: string) => JSON.stringify([source, product]);
-	const groups = new Map<string, { product: Product; lots: Lot[]; commitments: Commitment[] }>();
+	const groups = new Map<string, Group>();
 	const products = new Map(answer.products.rows.map((row) => [row.id, row]));
 	const codes = new Map(
 		answer.products.rows.map((row) => [key(row.source, row.external_code), row])
@@ -54,7 +55,7 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 		const id = key(product.source, product.external_code);
 		const existing = groups.get(id);
 		if (existing) return existing;
-		const next = { product, lots: [] as Lot[], commitments: [] as Commitment[] };
+		const next: Group = { product, lots: [], commitments: [] };
 		groups.set(id, next);
 		return next;
 	};
@@ -88,8 +89,8 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 		const unattributed = commitments.some(
 			(row) => !row.warehouse || !warehouses.has(row.warehouse)
 		);
-		const locations = new Set([
-			...lots.map((lot) => lot.warehouse as string),
+		const locations = new Set<string | null>([
+			...lots.map((lot) => lot.warehouse),
 			...commitments.map((row) =>
 				row.warehouse && warehouses.has(row.warehouse) ? row.warehouse : null
 			)

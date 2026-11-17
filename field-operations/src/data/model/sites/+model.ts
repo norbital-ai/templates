@@ -66,7 +66,13 @@ const placed = Effect.fnUntraced(function* (
 			field: 'location',
 			row: unlocated
 		});
-	const keys = places.map((place) => siteKey(place.name, place.unit_number));
+	const sites = places.map((place) => ({
+		name: place.name,
+		address: place.address,
+		unit_number: place.unit_number,
+		site_key: siteKey(place.name, place.unit_number)
+	}));
+	const keys = sites.map((site) => site.site_key);
 	if (new Set(keys).size < keys.length) return yield* ctx.refuse('errors.sites_share_address');
 	const { sites: holders } = yield* ctx.query({
 		sites: { where: { site_key: { in: keys } }, fields: ['site_key', 'name'] }
@@ -81,12 +87,7 @@ const placed = Effect.fnUntraced(function* (
 				{ field: 'location', row, values: { name: holder.name } }
 			);
 	}
-	return places.map((place, i) => ({
-		name: place.name,
-		address: place.address,
-		unit_number: place.unit_number,
-		site_key: keys[i]!
-	}));
+	return sites;
 });
 /**
  * A physical site, named by its location. `site_key` includes the optional unit so two units at one location remain

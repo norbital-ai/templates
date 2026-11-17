@@ -35,13 +35,10 @@
 				description: String(row.code)
 			}))
 	);
-	const entries = $derived(
-		Object.entries(value_object(field.value) ? field.value : {}) as [string, Value][]
-	);
+	const entries = $derived(value_object(field.value) ? Object.entries(field.value) : []);
 	const amountOf = (value: Value): number =>
 		value_object(value) && typeof value.amount === 'number' ? value.amount : 0;
-	const record = (rows: readonly (readonly [string, Value])[]) =>
-		Object.fromEntries(rows) as Record<string, Value>;
+	const record = (rows: readonly (readonly [string, Value])[]) => Object.fromEntries(rows);
 	const set = (code: string, next: Value) =>
 		field.on_change(record(entries.map(([key, value]) => [key, key === code ? next : value])));
 	const rename = (from: string, to: string) => {

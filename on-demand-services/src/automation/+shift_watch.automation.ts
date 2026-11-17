@@ -48,28 +48,32 @@ export default automation({
 				helper: { fields: ['user', 'name', 'phone'] }
 			}
 		})).visits;
-		const first = new Map<string, (typeof soon)[number]>();
+		const first = new Map<
+			string,
+			{ visit: (typeof soon)[number]; helper: NonNullable<(typeof soon)[number]['helper']> }
+		>();
 		for (const v of [...soon].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
-			if (DateTime.isLessThan(DateTime.makeUnsafe(v.slot.start), now)) continue;
-			const key = `${v.helper!.id} ${dayOf(v.slot.start, ctx.tz).start}`;
-			if (!first.has(key)) first.set(key, v);
+			if (v.helper === null || DateTime.isLessThan(DateTime.makeUnsafe(v.slot.start), now))
+				continue;
+			const key = `${v.helper.id} ${dayOf(v.slot.start, ctx.tz).start}`;
+			if (!first.has(key)) first.set(key, { visit: v, helper: v.helper });
 		}
 		const ask = [...first.values()];
 		if (ask.length > 0) {
 			yield* ctx.act({
-				'visits.update': ask.map((v) => ({
+				'visits.update': ask.map(({ visit: v }) => ({
 					target: targetOf(v),
 					set: { shift_check: 'asked' as const, shift_asked_at: ctx.now }
 				}))
 			});
 			yield* ctx.notify(
-				ask.flatMap((v) =>
-					v.helper!.user === null
+				ask.flatMap(({ visit: v, helper }) =>
+					helper.user === null
 						? []
 						: [
 								{
 									title: 'Confirm your shift',
-									to: [{ user: v.helper!.user }],
+									to: [{ user: helper.user }],
 									description: `Your first visit today, ${v.number}, starts soon. Confirm you are coming, or tell us you cannot.`,
 									link: { model: 'visits', id: v.id },
 									once: `ask-${v.id}`
@@ -80,9 +84,9 @@ export default automation({
 			// the phone too: an inbox notice reaches only a helper who has the app open or push enabled
 			const account = yield* whatsappAccount(ctx);
 			if (account !== null)
-				for (const v of ask)
+				for (const { visit: v, helper } of ask)
 					yield* ctx.send(account, {
-						to: whatsapp(v.helper!.phone),
+						to: whatsapp(helper.phone),
 						text: `Your first visit today, ${v.number}, starts at ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}. Open My Day to confirm you are coming, or tell us you cannot.`
 					});
 		}
@@ -128,10 +132,11 @@ export default automation({
 			[declined, 'declined_without_mc']
 		] as const)
 			for (const v of rows) {
+				if (v.helper === null) continue;
 				const day = dayOf(v.slot.start, ctx.tz);
 				const key = `${v.helper} ${day.start}`;
 				if (!days.has(key))
-					days.set(key, { helper: v.helper!, visit: v.id, day, warn: v.mc ? null : reason });
+					days.set(key, { helper: v.helper, visit: v.id, day, warn: v.mc ? null : reason });
 			}
 		if (days.size === 0) return;
 		for (const d of days.values()) {

@@ -1,5 +1,6 @@
 import type { Terms } from './commercial.js';
 import type { Row } from '@norbital-ai/bolt';
+import { numeric } from './commercial.js';
 
 type Locale = Row<'document_templates'>['locale'];
 
@@ -99,16 +100,16 @@ export function commercialDocument(seal: Terms, locale: Locale, reference: strin
 		product: [line.product_name, line.product_code, line.product_spec].filter(Boolean).join(' · '),
 		numeric: [
 			`${line.quantity} ${line.unit}`,
-			amount.format(line.unit_price as Intl.StringNumericLiteral),
+			amount.format(numeric(line.unit_price)),
 			`${line.discount_pct}%`,
 			`${line.tax_rate}%`,
-			amount.format(line.total as Intl.StringNumericLiteral)
+			amount.format(numeric(line.total))
 		]
 	}));
 	const totals = [
-		[label.net, amount.format(seal.net as Intl.StringNumericLiteral)],
-		[label.tax, amount.format(seal.tax as Intl.StringNumericLiteral)],
-		[label.total, `${amount.format(seal.total as Intl.StringNumericLiteral)} ${seal.currency}`]
+		[label.net, amount.format(numeric(seal.net))],
+		[label.tax, amount.format(numeric(seal.tax))],
+		[label.total, `${amount.format(numeric(seal.total))} ${seal.currency}`]
 	];
 	const text = [
 		...terms.map(([key, value]) => `${key}: ${value}`),

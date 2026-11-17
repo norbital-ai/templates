@@ -42,18 +42,28 @@
 		>();
 		for (const v of ahead.current?.visits.rows ?? []) {
 			if (v.location === null || v.helper === null) continue;
-			if (v.status === 'scheduled' && DateTime.isLessThan(DateTime.makeUnsafe(v.slot.end!), now))
+			if (
+				v.status === 'scheduled' &&
+				v.slot.end != null &&
+				DateTime.isLessThan(DateTime.makeUnsafe(v.slot.end), now)
+			)
 				continue;
 			const held = next.get(v.helper.id);
 			const sooner = (a: typeof v) => (a.status === 'in_progress' ? 0 : Date.parse(a.slot.start));
 			if (held === undefined || sooner(v) < sooner(held)) next.set(v.helper.id, v);
 		}
-		return [...next.values()].map((v) => ({
-			lat: v.location!.lat,
-			lng: v.location!.lng,
-			text: `${v.helper!.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${new Intl.DateTimeFormat(ctx.locale, { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(new Date(v.slot.start))}`,
-			...(v.helper!.last_location === null ? {} : { from: v.helper!.last_location })
-		}));
+		return [...next.values()].flatMap((v) =>
+			v.location === null || v.helper === null
+				? []
+				: [
+						{
+							lat: v.location.lat,
+							lng: v.location.lng,
+							text: `${v.helper.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${new Intl.DateTimeFormat(ctx.locale, { timeZone: zone, hour: 'numeric', minute: '2-digit' }).format(new Date(v.slot.start))}`,
+							...(v.helper.last_location === null ? {} : { from: v.helper.last_location })
+						}
+					]
+		);
 	});
 </script>
 

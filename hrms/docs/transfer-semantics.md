@@ -90,6 +90,6 @@ Service for leave bands is a property of the person's stints, not of the latest 
 ## 5. Operator sequence
 
 1. Open the person's profile, Contract tab. An open stint offers **Transfer** and **Terminate**; the tab offers **Hire** or **Rehire**.
-2. **Transfer** is one sheet: the company, the first of the month the next stint starts, the terms and statutory parameters carried over, and what happens to the loans. Confirming ends the stint the day before, starts the next, and carries, transfers or settles the loans.
+2. **Transfer** is one sheet: the company, the first of the month the next stint starts, the terms and statutory parameters carried over, and what happens to the loans. Confirming ends the stint the day before, starts the next, and carries, transfers or settles the loans, all in one write: it commits whole or not at all.
 3. **Terminate** is one sheet: the last day, the reason, the exit ground, whether to pay out leave, and what final pay recovers of the loans. Confirming sets the last day and writes the loan rows in one write.
 4. Run the old entity's final payroll for the exit period; then run the new entity.

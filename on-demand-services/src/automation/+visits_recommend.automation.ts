@@ -1,7 +1,7 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput } from '@norbital-ai/bolt';
 import { loadPool } from '../lib/dispatch.js';
-import { rank } from '../lib/matching.js';
+import { closedSlot, rank } from '../lib/matching.js';
 
 export default automation({
 	description: 'Prepares a replacement recommendation; the controller must approve it.',
@@ -15,11 +15,13 @@ export default automation({
 			if (v.status !== 'scheduled') return yield* ctx.refuse('errors.recommend_not_scheduled');
 			if (Date.parse(v.slot.start) <= Date.parse(ctx.now))
 				return yield* ctx.refuse('errors.visit_started');
+			const slot = closedSlot(v.slot);
+			if (slot === null) return yield* ctx.refuse('errors.visit_open_ended');
 			const pool = yield* loadPool(ctx, v.slot.start, v.slot.start, [v.location]);
 			const best = rank(
 				{
 					skill: v.skill,
-					slot: { start: v.slot.start, end: v.slot.end! },
+					slot,
 					location: v.location,
 					area: v.area,
 					visit: v.id

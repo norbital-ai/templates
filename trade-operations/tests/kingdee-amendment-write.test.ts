@@ -179,12 +179,14 @@ it.effect(
 			const write = writes[0];
 			if (write?.op !== 'call') throw new Error('Amendment write required');
 			expect(write.transaction).toBe('serializable');
+			const previous = amended.previous;
+			if (!previous) throw new Error('Amended order required');
 			expect(write.arguments).toMatchObject({
 				source_id: '9002',
 				source_version: '007',
 				source_exchange_rate: '1',
-				correlation: amended.previous?.source_uuid,
-				previous_document: previousOrderDocument(amended.previous!, 'CNY')
+				correlation: previous.source_uuid,
+				previous_document: previousOrderDocument(previous, 'CNY')
 			});
 			expect(write.arguments.document).toContain('FEntryID="4"');
 			expect(write.arguments.correlation).not.toBe(

@@ -1,6 +1,7 @@
 import { BigDecimal } from 'effect';
 import { requireWriteAccount } from './sql.js';
 import { headerTypes, itemTypes, type OrderPayload, type SourceOrderBatch } from './order-batch.js';
+import { numeric } from '../../lib/commercial.js';
 
 const escape = (value: string) =>
 	value.replace(/[&<>"']/g, (character) => {
@@ -108,15 +109,17 @@ export function previousOrderDocument(
 					minimumFractionDigits: digits,
 					maximumFractionDigits: digits
 				}).format(
-					BigDecimal.format(
-						BigDecimal.round(
-							BigDecimal.multiply(
-								BigDecimal.fromStringUnsafe(line.total),
-								BigDecimal.fromStringUnsafe(previous.source_exchange_rate)
-							),
-							{ scale: digits }
+					numeric(
+						BigDecimal.format(
+							BigDecimal.round(
+								BigDecimal.multiply(
+									BigDecimal.fromStringUnsafe(line.total),
+									BigDecimal.fromStringUnsafe(previous.source_exchange_rate)
+								),
+								{ scale: digits }
+							)
 						)
-					) as Intl.StringNumericLiteral
+					)
 				)
 			};
 			return `<line ${Object.entries(values)

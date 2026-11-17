@@ -203,7 +203,9 @@ describe('a law row’s lookup', () => {
 		const later = row('later', '2026-10-01', {
 			leave_catalog: { ANNUAL: { lookup: { carry: 2 } } }
 		});
-		assert.deepEqual(reachOf([law[0]!, later], undefined, law[1], LAW_DEPTH), {
+		const [base, patch] = law;
+		assert.ok(base !== undefined);
+		assert.deepEqual(reachOf([base, later], undefined, patch, LAW_DEPTH), {
 			from: '2026-07-01',
 			to: null
 		});
