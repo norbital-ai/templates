@@ -12,6 +12,7 @@
 		open_record,
 		RecordShell,
 		Section,
+		Sheet,
 		Table,
 		Tabs,
 		type RecordView
@@ -27,6 +28,8 @@
 
 	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
+	/** The record of this company being added from one of its tabs: its create opens with the company set. */
+	let adding = $state<'pay_group' | 'shift_definition' | 'shift_pattern' | 'holiday' | null>(null);
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	const clock = ctx.clock('day');
 	const laws = pageLaws(ctx, () => (record === null ? [] : [record.settings_code]));
@@ -130,7 +133,7 @@
 			key="entity-holidays"
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ date: 'asc' }}
-			toolbar={{ title: t('app.settings.holidays'), new: true }}
+			toolbar={{ title: t('app.settings.holidays'), new: () => (adding = 'holiday') }}
 			columns={[
 				'date',
 				'name',
@@ -149,7 +152,7 @@
 			key="entity-pay-groups"
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ name: 'asc' }}
-			toolbar={{ title: t('entity.tab_pay_groups'), new: true }}
+			toolbar={{ title: t('entity.tab_pay_groups'), new: () => (adding = 'pay_group') }}
 			columns={['name', { field: 'payment_schedule', cell: schedule }]}
 		/>
 	{/if}
@@ -165,7 +168,7 @@
 			key="entity-shifts"
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ code: 'asc' }}
-			toolbar={{ title: t('entity.tab_shifts'), new: true }}
+			toolbar={{ title: t('entity.tab_shifts'), new: () => (adding = 'shift_definition') }}
 			columns={['code', 'name', 'effective_range']}
 		/>
 	{/if}
@@ -179,7 +182,7 @@
 			key="entity-shift-patterns"
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ code: 'asc' }}
-			toolbar={{ title: t('entity.tab_shift_patterns'), new: true }}
+			toolbar={{ title: t('entity.tab_shift_patterns'), new: () => (adding = 'shift_pattern') }}
 			columns={['code', 'name', 'effective_range']}
 		/>
 	{/if}
@@ -205,3 +208,18 @@
 		/>
 	{/if}
 </RecordShell>
+{#if adding !== null && record}
+	{@const values = { entity_id: record.id }}
+	{@const done = () => (adding = null)}
+	<Sheet open on_open_change={(open) => !open && done()} title={t(`models.${adding}.singular`)}>
+		{#if adding === 'pay_group'}
+			<RecordShell {ctx} of="pay_group" mode="create" {values} on_done={done} />
+		{:else if adding === 'shift_definition'}
+			<RecordShell {ctx} of="shift_definition" mode="create" {values} on_done={done} />
+		{:else if adding === 'shift_pattern'}
+			<RecordShell {ctx} of="shift_pattern" mode="create" {values} on_done={done} />
+		{:else}
+			<RecordShell {ctx} of="holiday" mode="create" {values} on_done={done} />
+		{/if}
+	</Sheet>
+{/if}
