@@ -39,6 +39,12 @@
 	});
 	/** A `YYYY-MM` month as the locale names it. */
 	const monthLabel = (month: string) => months.format(new Date(`${month}-01T00:00:00Z`));
+	const shortMonth = new Intl.DateTimeFormat(ctx.locale, { month: 'short', timeZone: 'UTC' });
+	/** Show the year only on the first tick and January so chart axes stay uncluttered. */
+	const axisMonth = (month: string, first: boolean) =>
+		first || month.endsWith('-01')
+			? monthLabel(month)
+			: shortMonth.format(new Date(`${month}-01T00:00:00Z`));
 	const day = ctx.clock('day');
 	let picked = $state<string | null>(null);
 	const as_of = $derived(picked ?? day.today);
@@ -77,10 +83,12 @@
 			month:
 				r.month === 'earlier' || r.month === 'later'
 					? t(r.month === 'earlier' ? 'app.dashboard.earlier' : 'app.dashboard.later')
-					: monthLabel(r.month)
+					: axisMonth(r.month, r.month === as_of.slice(0, 7))
 		}))
 	);
 	const trend = $derived(costOfFundsTrend(lines, as_of));
+	let showLadder = $state(false),
+		showTrend = $state(false);
 	const latest = $derived(read.current?.month_end.rows[0]);
 
 	// the cost-of-funds period: quick picks counted from the as-of day; the financial year starts 1 April
@@ -269,9 +277,25 @@
 				</section>
 				<section class="panel ladder">
 					<h2>{t('app.dashboard.ladder')}</h2>
-					<Bound class="mt-4 h-72"
-						><Chart {ctx} of={ladder} x="month" y="amount" kind="bar" /></Bound
-					>
+					<Bound size="fill"><Chart {ctx} of={ladder} x="month" y="amount" kind="bar" /></Bound>
+					<details class="mt-3" bind:open={showLadder}>
+						<summary class="cursor-pointer text-meta">{t('app.dashboard.show_table')}</summary>
+						{#if showLadder}<Table
+								{ctx}
+								of={ladder}
+								controlled
+								embedded
+								columns={[
+									{ field: 'month', label: t('app.dashboard.due_month') },
+									{ field: 'count', label: t('app.dashboard.lines_column') },
+									{
+										field: 'amount',
+										label: t('app.dashboard.amount_usd'),
+										kind: { kind: 'decimal', scale: 2 }
+									}
+								]}
+							/>{/if}
+					</details>
 				</section>
 				<section class="panel due">
 					<div class="panel-heading">
@@ -295,15 +319,55 @@
 				</section>
 				<section class="panel trend">
 					<h2>{t('app.dashboard.trend')}</h2>
-					<Bound class="mt-4 h-72"
+					<Bound size="fill"
 						><Chart
 							{ctx}
-							of={trend.map((point) => ({ ...point, month: monthLabel(point.month) }))}
+							of={trend.map((point, index) => ({
+								...point,
+								month: axisMonth(point.month, index === 0)
+							}))}
 							x="month"
 							y={['weighted', 'simple']}
 							kind="line"
 						/></Bound
 					>
+					<details class="mt-3" bind:open={showTrend}>
+						<summary class="cursor-pointer text-meta">{t('app.dashboard.show_table')}</summary>
+						{#if showTrend}<Table
+								{ctx}
+								of={trend}
+								controlled
+								embedded
+								columns={[
+									{
+										field: 'month_end',
+										label: t('app.dashboard.month_end_date'),
+										kind: { kind: 'date' }
+									},
+									{
+										field: 'weighted',
+										label: t('app.dashboard.current_rate'),
+										kind: { kind: 'decimal', scale: 4 }
+									},
+									{
+										field: 'simple',
+										label: t('app.dashboard.simple_average'),
+										kind: { kind: 'decimal', scale: 4 }
+									},
+									{
+										field: 'outstanding',
+										label: t('app.dashboard.outstanding_usd'),
+										kind: { kind: 'decimal', scale: 2 }
+									},
+									{ field: 'lines', label: t('app.dashboard.lines_column') },
+									{
+										field: 'coverage',
+										label: t('app.dashboard.rate_coverage'),
+										kind: { kind: 'decimal', scale: 2 }
+									}
+								]}
+							/>{/if}
+					</details>
 				</section>
 				<section class="panel attention">
 					<div class="panel-heading">
@@ -408,6 +472,13 @@
 		font-size: 1.125rem;
 		font-weight: 600;
 		overflow-wrap: anywhere;
+	}
+	.ladder,
+	.trend {
+		display: grid;
+		grid-template-rows: auto 18rem auto;
+		gap: 1rem;
+		align-content: start;
 	}
 	.usage-bar {
 		display: flex;

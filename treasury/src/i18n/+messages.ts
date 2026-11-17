@@ -196,6 +196,7 @@ export default messages({
 	'app.advices.details': 'Reference and notes',
 	'app.advices.upload_hint': 'Creating the advice starts parsing automatically.',
 	'app.advices.read_hint': 'Extraction runs automatically after upload. Use Read again to retry.',
+	'app.advices.reading_started': 'Reading advice in the background…',
 	'app.advices.link_hint':
 		'Match the advice to one financing line to submit its figures for approval.',
 	'app.advices.review_hint':
@@ -588,5 +589,11 @@ export default messages({
 	'app.month_end.details': 'Report details and history',
 	'app.month_end.imported': 'Imported historical summary',
 	'app.month_end.imported_hint':
-		'These are the original frozen figures. No line-level snapshot was supplied.'
+		'These are the original frozen figures. No line-level snapshot was supplied.',
+	'app.dashboard.show_table': 'Show as table',
+	'app.dashboard.due_month': 'Due month',
+	'app.dashboard.amount_usd': 'Amount (USD)',
+	'app.dashboard.month_end_date': 'Month-end',
+	'app.dashboard.outstanding_usd': 'Outstanding (USD)',
+	'app.dashboard.rate_coverage': 'Amount with rate (%)'
 });

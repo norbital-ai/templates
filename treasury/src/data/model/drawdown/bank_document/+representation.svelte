@@ -10,6 +10,8 @@
 		Form,
 		RecordShell,
 		RunsFor,
+		RunStatus,
+		Spinner,
 		use_act,
 		type RecordSection,
 		type RecordView
@@ -81,18 +83,23 @@
 	const subject = $derived(record?.id ?? null);
 	const runWhere = $derived(subject === null ? {} : { input: { eq: { advice: [subject] } } });
 	const act = use_act(ctx);
+	let run = $state<string | null>(null);
 	const retry = () => {
 		if (record === null) return;
 		if (record.read_status === 'uploaded') {
-			act.run(ctx.run('bank_document_read', { advice: [record.id] }));
+			const handle = ctx.run('bank_document_read', { advice: [record.id] });
+			run = handle.id;
+			act.run(handle, { saved: t('app.advices.reading_started') });
 			return;
 		}
+		run = null;
 		act.run(
 			ctx.act({
 				'bank_document.update': [
 					{ target: record, set: { read_status: 'uploaded', read_note: null } }
 				]
-			})
+			}),
+			{ saved: t('app.advices.reading_started') }
 		);
 	};
 </script>
@@ -112,6 +119,9 @@
 	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && ['uploaded', 'checked', 'failed'].includes(record.read_status)}
 		<Button variant="ghost" disabled={act.pending} onclick={retry}>{t('app.advices.reread')}</Button
 		>
+	{/if}
+	{#if run && record?.read_status === 'uploaded'}
+		<RunStatus {ctx} automation="bank_document_read" {run} />
 	{/if}
 {/snippet}
 
@@ -160,6 +170,14 @@
 					{#snippet end()}
 						<Scroll name={t('app.advices.figures')} size="fill">
 							<Stack gap="md">
+								{#if run && shown.record.read_status === 'uploaded'}
+									<Alert.Root variant="default">
+										<Alert.Description class="flex items-center gap-2">
+											<Spinner class="size-3.5 shrink-0" />
+											<span>{t('app.advices.reading_started')}</span>
+										</Alert.Description>
+									</Alert.Root>
+								{/if}
 								<Form
 									{ctx}
 									of="bank_document"
@@ -175,6 +193,7 @@
 										'advice_reference',
 										'advice_date',
 										'notes',
+										'read_status',
 										'read_note'
 									]}
 									{sections}

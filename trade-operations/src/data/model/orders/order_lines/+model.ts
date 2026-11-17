@@ -110,7 +110,8 @@ const priced = Effect.fnUntraced(function* (
 		// the field's `default: 0` reaches the callback as a number, not its decimal text
 		const discount_pct = String(input.discount_pct ?? old?.discount_pct ?? '0');
 		const tax_rate = input.tax_rate ?? old?.tax_rate ?? product.tax_rate;
-		const unit = old?.unit ?? product.unit;
+		const changedProduct = old != null && product.id !== old.product;
+		const unit = changedProduct ? product.unit : (old?.unit ?? product.unit);
 		if (unit == null || unit.trim() === '')
 			return yield* ctx.refuse('errors.unit_mismatch', { field: 'product' });
 		if (tax_rate == null) return yield* ctx.refuse('errors.percentage', { field: 'tax_rate' });
@@ -175,9 +176,11 @@ const priced = Effect.fnUntraced(function* (
 			discount_pct,
 			tax_rate,
 			...(input.print_values !== undefined ? { print_values } : {}),
-			product_code: old?.product_code ?? product.external_code,
-			product_name: old?.product_name ?? product.name,
-			product_spec: old ? old.product_spec : product.spec,
+			product_code: changedProduct
+				? product.external_code
+				: (old?.product_code ?? product.external_code),
+			product_name: changedProduct ? product.name : (old?.product_name ?? product.name),
+			product_spec: changedProduct ? product.spec : old ? old.product_spec : product.spec,
 			unit,
 			currency: amounts.currency,
 			net: new Intl.NumberFormat('en', {
@@ -197,8 +200,12 @@ const priced = Effect.fnUntraced(function* (
 			}).format(BigDecimal.format(amounts.total) as Intl.StringNumericLiteral),
 			floor_net,
 			floor_on: floor?.effective_on ?? null,
-			commission_basis_unit: old?.commission_basis_unit ?? product.commission_basis_unit,
-			commission_factor: old?.commission_factor ?? product.commission_factor
+			commission_basis_unit: changedProduct
+				? product.commission_basis_unit
+				: (old?.commission_basis_unit ?? product.commission_basis_unit),
+			commission_factor: changedProduct
+				? product.commission_factor
+				: (old?.commission_factor ?? product.commission_factor)
 		});
 	}
 	return out;
@@ -335,13 +342,20 @@ export default model('order_lines', {
 		}
 	},
 	update: {
-		fields: [...cells, 'print_values', 'source_entry_id', ...derived],
+		fields: ['product', ...cells, 'print_values', 'source_entry_id', ...derived],
 		transform: function* (changes, ctx) {
+			if (
+				changes.some(
+					({ before, set }) => set.product !== undefined && set.product !== before.product
+				) &&
+				ctx.actor.kind !== 'system'
+			)
+				return yield* ctx.refuse('errors.line_basis_locked', { field: 'product' });
 			const derived = yield* priced(
 				ctx,
 				changes.map(({ before, set }) => ({
 					order: before.order,
-					product: before.product,
+					product: set.product ?? before.product,
 					cells: set,
 					before,
 					...(set.source_entry_id !== undefined ? { source_entry_id: set.source_entry_id } : {})

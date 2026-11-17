@@ -19,6 +19,7 @@ import {
 	lineWarnings,
 	monthEndFrom,
 	maturities,
+	maturityLadder,
 	monthEndReport,
 	periodCost,
 	usdPerUnit,
@@ -131,6 +132,31 @@ describe('usage and maturities', () => {
 		];
 		expect(weightedRate(rated)).toBe('5.0976');
 		expect(costOfFundsTrend(rated, '2026-03-15', 2).map((p) => p.lines)).toEqual([2, 0]);
+		expect(costOfFundsTrend(rated, '2026-03-15')).toHaveLength(24);
+		expect(
+			costOfFundsTrend(
+				[...rated, line('unrated', { amount_usd: '1025000', interest_rate_pct: null })],
+				'2026-03-15',
+				2
+			)[0]
+		).toMatchObject({
+			outstanding: '2050000',
+			coverage: '50',
+			lines: 3,
+			weighted: 5.0976
+		});
+	});
+	it('keeps exact amounts and line counts in the maturity table', () => {
+		const ladder = maturityLadder(
+			[
+				line('earlier', { due_date: '2026-02-28', amount_usd: '0.10' }),
+				line('current', { due_date: '2026-03-31', amount_usd: '0.20' }),
+				line('excluded', { status: 'settled', due_date: '2026-03-31', amount_usd: '1' })
+			],
+			'2026-03-15'
+		);
+		expect(ladder[0]).toMatchObject({ month: 'earlier', amount: '0.1', count: 1 });
+		expect(ladder[1]).toMatchObject({ month: '2026-03', amount: '0.2', count: 1 });
 	});
 	it('weights a period by amount × the days each line was open in it', () => {
 		const banks = new Map([['f1', 'AAA']]);

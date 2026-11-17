@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { committed, workspace } from './kit.js';
-import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
+import { kingdeeCatalogue, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 import { sameDecimal } from './test-runtime.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
@@ -397,4 +397,199 @@ it.live('a header change on a Kingdee-bound confirmed order is refused with its 
 		expect((yield* s.read()).orders.rows[0]?.payment_terms).toBe('PROBE-NET30');
 		expect((yield* s.t.deliver()).delivered).toBe(0);
 	})
+);
+
+const twoProductCatalogue = () => {
+	const base = kingdeeCatalogue();
+	return {
+		...base,
+		'/products': [
+			...(base['/products'] ?? []),
+			{
+				external_code: '302',
+				source_number: 'ITEM-302',
+				name: 'Kingdee resin B',
+				spec: 'B',
+				unit: 'kg',
+				deleted: 0,
+				unused: 0,
+				detail_deleted: 0
+			}
+		]
+	};
+};
+
+it.live('every Kingdee-updated header and line field appears in Trade Operations', () =>
+	Effect.gen(function* () {
+		const fixture = kingdeeFixture(twoProductCatalogue);
+		const t = yield* workspace({ source: fixture.request });
+		const as = yield* t.as(t.admin);
+		const sale = yield* kingdeeSale(t, fixture);
+		yield* t.deliver();
+		yield* t.pull('products');
+		yield* t.pull('orders');
+		yield* t.pull('order_lines');
+		const fid = [...fixture.submissions.values()].at(-1)?.remote;
+		if (!fid) throw new Error('The writer must create the SO');
+
+		fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
+			row.fid === fid
+				? {
+						...row,
+						reference: 'SIM-SO-RENAMED',
+						currency: 'USD',
+						exchange_rate: '7.2000000000',
+						settlement: 'PROBE-NET60',
+						ordered_on: '2026-11-05',
+						version: '003',
+						checker: '701',
+						checked_on: '2026-11-05',
+						closed: 1
+					}
+				: row
+		);
+		const entry = (fixture.tables.SEOrderEntry ?? []).find((row) => row.fid === fid);
+		if (!entry) throw new Error('SO entry required');
+		fixture.tables.SEOrderEntry = [
+			...(fixture.tables.SEOrderEntry ?? []).filter((row) => row.fid !== fid),
+			{
+				...entry,
+				item_id: '302',
+				unit: 'kg',
+				quantity: '8.0000000000',
+				unit_price: '12.5000000000',
+				unit_price_inclusive: '13.2500000000',
+				tax_rate: '6.0000000000',
+				net_amount: '100.00',
+				tax_amount: '6.00',
+				gross_amount: '106.00'
+			}
+		];
+
+		yield* t.pull('orders');
+		yield* t.pull('order_lines');
+
+		const { orders, order_lines, products } = yield* as.query({
+			orders: { where: { id: { eq: sale.order } }, limit: 1 },
+			order_lines: { where: { order: { eq: sale.order } } },
+			products: { where: { external_code: { eq: '302' } }, limit: 1 }
+		});
+		const secondProduct = products.rows[0]?.id;
+		expect(secondProduct).toBeTruthy();
+		expect(orders.rows[0]).toMatchObject({
+			currency: 'USD',
+			payment_terms: 'PROBE-NET60',
+			ordered_on: '2026-11-05',
+			kingdee: {
+				fid,
+				reference: 'SIM-SO-RENAMED',
+				version: '003',
+				status: 'issued',
+				closed: true,
+				exchange_rate: '7.2000000000'
+			}
+		});
+		const line = order_lines.rows[0];
+		expect(line).toMatchObject({
+			product: secondProduct,
+			product_code: '302',
+			product_name: 'Kingdee resin B',
+			product_spec: 'B',
+			unit: 'kg',
+			currency: 'USD'
+		});
+		expect(sameDecimal(line?.quantity, '8')).toBe(true);
+		expect(sameDecimal(line?.unit_price, '12.5')).toBe(true);
+		expect(sameDecimal(line?.discount_pct, '0')).toBe(true);
+		expect(sameDecimal(line?.tax_rate, '6')).toBe(true);
+		expect(sameDecimal(line?.net, '100')).toBe(true);
+		expect(sameDecimal(line?.tax, '6')).toBe(true);
+		expect(sameDecimal(line?.total, '106')).toBe(true);
+	})
+);
+
+it.live(
+	'every two-way line edit (price, discount, tax, add, delete) amends Kingdee and reads back',
+	() =>
+		Effect.gen(function* () {
+			const fixture = kingdeeFixture(twoProductCatalogue);
+			const t = yield* workspace({ source: fixture.request });
+			const as = yield* t.as(t.admin);
+			const sale = yield* kingdeeSale(t, fixture);
+			yield* t.deliver();
+			const fid = [...fixture.submissions.values()].at(-1)?.remote;
+			if (!fid) throw new Error('The writer must create the SO');
+			fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) =>
+				row.fid === fid ? { ...row, checker: '701', checked_on: '2026-10-10' } : row
+			);
+			yield* t.pull('products');
+			yield* t.pull('orders');
+			yield* t.pull('order_lines');
+
+			// 1. Update quantity, unit_price, discount_pct and tax_rate on existing line (effective price = 9)
+			committed(
+				'order_lines',
+				yield* as.act({
+					'order_lines.update': [
+						{
+							target: yield* t.at('order_lines', sale.line),
+							set: { quantity: '5', unit_price: '10', discount_pct: '10', tax_rate: '6' }
+						}
+					]
+				})
+			);
+			yield* t.deliver();
+			let entries = (fixture.tables.SEOrderEntry ?? []).filter((row) => row.fid === fid);
+			expect(entries).toHaveLength(1);
+			expect(sameDecimal(String(entries[0]?.quantity), '5')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.unit_price), '9')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.tax_rate), '6')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.net_amount), '45')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.tax_amount), '2.7')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.gross_amount), '47.7')).toBe(true);
+			expect(fixture.tables.SEOrder?.find((row) => row.fid === fid)?.version).toBe('001');
+			expect(fixture.tables.ICOrderAlter).toHaveLength(1);
+
+			// 2. Replace product line atomically: add product 302 and remove old line 1
+			const secondProduct = (yield* as.query({
+				products: { where: { external_code: { eq: '302' } }, limit: 1 }
+			})).products.rows[0]?.id;
+			if (!secondProduct) throw new Error('Second product required');
+			const added = committed(
+				'order_lines',
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order: sale.order,
+							product: secondProduct,
+							quantity: '4',
+							unit_price: '20',
+							discount_pct: '0',
+							tax_rate: '13'
+						}
+					],
+					'order_lines.delete': [{ target: yield* t.at('order_lines', sale.line) }]
+				})
+			);
+			yield* t.deliver();
+			entries = (fixture.tables.SEOrderEntry ?? []).filter((row) => row.fid === fid);
+			expect(entries).toHaveLength(1);
+			expect(entries[0]).toMatchObject({ entry_id: '2', item_id: '302' });
+			expect(sameDecimal(String(entries[0]?.quantity), '4')).toBe(true);
+			expect(sameDecimal(String(entries[0]?.unit_price), '20')).toBe(true);
+			expect(fixture.tables.SEOrder?.find((row) => row.fid === fid)?.version).toBe('002');
+			expect(fixture.tables.ICOrderAlter).toHaveLength(2);
+
+			yield* t.pull('orders');
+			yield* t.pull('order_lines');
+			const after = yield* as.query({
+				orders: { where: { id: { eq: sale.order } }, limit: 1 },
+				order_lines: { where: { order: { eq: sale.order } } }
+			});
+			expect(after.orders.rows[0]?.kingdee).toMatchObject({ version: '002' });
+			expect(after.order_lines.rows).toMatchObject([
+				{ id: added, source_entry_id: '2', product: secondProduct }
+			]);
+			expect(after.order_lines.rows[0]?.$sync?.kingdee?.status).toBe('ok');
+		})
 );

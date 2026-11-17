@@ -185,6 +185,7 @@ export default messages({
 	'app.advices.details': '编号与备注',
 	'app.advices.upload_hint': '创建通知书后自动开始读取 PDF。',
 	'app.advices.read_hint': '上传后自动提取；如需重试，请点击“重新读取”。',
+	'app.advices.reading_started': '正在后台读取通知书…',
 	'app.advices.link_hint': '关联到一笔融资后，数据会自动提交审批。',
 	'app.advices.review_hint': '对照原始 PDF 核对数据，融资变更需由资金部审批。',
 	'app.advices.checks': '核对',
@@ -566,5 +567,11 @@ export default messages({
 	'models.drawdown.fields.discrepancy_note': '通知书差异',
 	'app.month_end.details': '报表详情及历史',
 	'app.month_end.imported': '导入的历史汇总',
-	'app.month_end.imported_hint': '此处保留原始冻结金额，来源未提供逐笔快照。'
+	'app.month_end.imported_hint': '此处保留原始冻结金额，来源未提供逐笔快照。',
+	'app.dashboard.show_table': '显示表格',
+	'app.dashboard.due_month': '到期月份',
+	'app.dashboard.amount_usd': '金额（美元）',
+	'app.dashboard.month_end_date': '月末',
+	'app.dashboard.outstanding_usd': '未偿金额（美元）',
+	'app.dashboard.rate_coverage': '有利率金额占比（%）'
 });

@@ -173,12 +173,13 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 			if (held.has(entry.entry)) continue;
 			const line = pairs.get(entry.entry);
 			const product = products.rows.find((row) => row.external_code === entry.item);
-			const productId = line?.product ?? product?.id;
+			const price = kingdeePrice(entry, order.tax_inclusive);
+			const changedItem = line !== undefined && line.product_code !== entry.item;
+			const productId = changedItem ? product?.id : (line?.product ?? product?.id);
 			if (!productId) {
 				issues.push(`${family.reference}: Kingdee item ${entry.item} is not synchronized.`);
 				continue;
 			}
-			const price = kingdeePrice(entry, order.tax_inclusive);
 			// the local price and discount stand while they give the SO's price
 			const kept = line && BigDecimal.equals(price, effective(line));
 			// the line's own transform prices it; a sync page names every field it writes
@@ -200,19 +201,30 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 				discount_pct: kept ? line.discount_pct : '0',
 				tax_rate: entry.tax_rate,
 				product_code: entry.item,
-				product_name: line?.product_name ?? product?.name ?? entry.item,
-				product_spec: line ? line.product_spec : (product?.spec ?? null),
+				product_name:
+					(changedItem ? product?.name : line?.product_name) ?? product?.name ?? entry.item,
+				product_spec: changedItem
+					? (product?.spec ?? null)
+					: line
+						? line.product_spec
+						: (product?.spec ?? null),
 				unit: entry.unit,
 				currency: order.currency,
 				net: entry.net,
 				tax: entry.tax,
 				total: entry.total,
-				floor_net: line?.floor_net ?? null,
-				floor_on: line?.floor_on ?? null,
-				commission_basis_unit: line
-					? line.commission_basis_unit
-					: (product?.commission_basis_unit ?? null),
-				commission_factor: line ? line.commission_factor : (product?.commission_factor ?? null)
+				floor_net: changedItem ? null : (line?.floor_net ?? null),
+				floor_on: changedItem ? null : (line?.floor_on ?? null),
+				commission_basis_unit: changedItem
+					? (product?.commission_basis_unit ?? null)
+					: line
+						? line.commission_basis_unit
+						: (product?.commission_basis_unit ?? null),
+				commission_factor: changedItem
+					? (product?.commission_factor ?? null)
+					: line
+						? line.commission_factor
+						: (product?.commission_factor ?? null)
 			});
 		}
 		for (const line of order.lines)

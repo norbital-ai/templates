@@ -323,15 +323,21 @@ export function maturities(lines: readonly LineRow[], as_of: string) {
 export function maturityLadder(lines: readonly LineRow[], as_of: string, months = 12) {
 	const keys = Array.from({ length: months }, (_, i) => addMonths(as_of, i).slice(0, 7));
 	const totals = new Map<string, BigDecimal.BigDecimal>();
+	const counts = new Map<string, number>();
 	for (const l of lines) {
 		if (!OPEN.includes(l.status) || l.due_date === null) continue;
 		const month = l.due_date.slice(0, 7);
 		const key = month < keys[0]! ? 'earlier' : month > keys[keys.length - 1]! ? 'later' : month;
 		totals.set(key, BigDecimal.sum(totals.get(key) ?? ZERO, usd(l)));
+		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return ['earlier', ...keys, 'later']
 		.filter((k) => (k !== 'earlier' && k !== 'later') || totals.has(k))
-		.map((month) => ({ month, amount: BigDecimal.toNumberUnsafe(totals.get(month) ?? ZERO) }));
+		.map((month) => ({
+			month,
+			amount: text(totals.get(month) ?? ZERO),
+			count: counts.get(month) ?? 0
+		}));
 }
 
 /** When a line was open: from its start (application when unknown) until repaid (due date when not recorded). */
@@ -341,17 +347,25 @@ const owed = (l: LineRow) =>
 	(OPEN.includes(l.status) || l.status === 'settled') && l.due_date !== null;
 
 /** The weighted and simple rate of everything outstanding at each month-end. */
-export function costOfFundsTrend(lines: readonly LineRow[], as_of: string, months = 12) {
+export function costOfFundsTrend(lines: readonly LineRow[], as_of: string, months = 24) {
 	return Array.from({ length: months }, (_, i) => monthEnd(addMonths(as_of, i - months + 1))).map(
 		(end) => {
 			const live = lines.filter((l) => owed(l) && opened(l)! <= end && end < closed(l)!);
 			const w = weightedRate(live);
 			const s = simpleRate(live);
+			const outstanding = sum(live.map(usd));
+			const coverage = ratio(
+				sum(live.filter((l) => l.interest_rate_pct !== null).map(usd)),
+				outstanding
+			);
 			return {
 				month: end.slice(0, 7),
+				month_end: end,
 				weighted: w === null ? null : Number(w),
 				simple: s === null ? null : Number(s),
-				lines: live.length
+				lines: live.length,
+				outstanding: text(outstanding),
+				coverage: coverage === null ? null : text(BigDecimal.multiply(coverage, decimal(100)))
 			};
 		}
 	);
