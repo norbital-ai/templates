@@ -5,10 +5,7 @@
     "": {
       "name": "@template/hrms",
       "dependencies": {
-        "@cfworker/json-schema": "4.1.1",
-        "@effect/platform-node": "4.0.6",
         "@iconify/svelte": "^5.2.2",
-        "@internationalized/date": "^3.12.4",
         "@noble/hashes": "2.0.1",
         "@norbital-ai/bolt": "0.0.16",
         "@norbital-ai/ui": "0.0.16",

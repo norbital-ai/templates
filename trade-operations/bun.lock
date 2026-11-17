@@ -5,7 +5,6 @@
     "": {
       "name": "@template/trade-operations",
       "dependencies": {
-        "@marcbachmann/cel-js": "8.0.0",
         "@norbital-ai/bolt": "0.0.16",
         "@norbital-ai/ui": "0.0.16",
         "effect": "4.0.6",

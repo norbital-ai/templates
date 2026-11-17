@@ -16,8 +16,7 @@
 		"runed": "^0.37.1",
 		"svelte": "5.57.3",
 		"vite": "8.3.5",
-		"effect": "4.0.6",
-		"@marcbachmann/cel-js": "8.0.0"
+		"effect": "4.0.6"
 	},
 	"devDependencies": {
 		"@norbital-ai/store": "0.0.16",
