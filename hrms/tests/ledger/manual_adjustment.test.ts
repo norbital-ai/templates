@@ -145,28 +145,51 @@ describe('a manual balance adjustment', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
+	// a service year that closes inside the law the template holds: the second runs to 31 May 2026
+	const closing = {
+		...seed,
+		employment: (seed.employment ?? []).map((row) => ({
+			...row,
+			service_started_on: '2024-06-01',
+			effective_range: { from: '2024-06-01', to: null }
+		})),
+		// the stint's first rows are dated with it
+		contract_terms: (seed.contract_terms ?? []).map((row) => ({
+			...row,
+			effective_from: '2024-06-01'
+		})),
+		statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+			...row,
+			effective_from: '2024-06-01'
+		}))
+	};
+
+	it.live(
+		'dated in a service year that closed earlier this calendar year: its people sync again and the carry follows',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const carried = () =>
+					accountsIn(t).pipe(
+						Effect.map(
+							(accounts) => accounts.leave?.['ANNUAL_LEAVE']?.['MY.S.2026-06-01']?.carried ?? 0
+						)
+					);
+				// the service year closes and what it left carries
+				t.clock.set('2026-06-03T02:00:00.000Z');
+				yield* syncAll(t);
+				const before = yield* carried();
+				assert.ok(before > 0);
+				yield* adjust(t, hrOf(t), 'ANNUAL_LEAVE', 2, 'company long-service award', '2026-05-04');
+				assert.deepEqual((yield* t.run_due()).failed, []);
+				assert.equal(yield* carried(), before + 2);
+			}).pipe(Effect.provide(workspace({ seed: closing, now: '2026-05-06T02:00:00.000Z' })))
+	);
+
 	it.live(
 		'lands in the window holding its date, and the closing settlement and carry keep it',
 		() => {
-			// a service year that closes inside the law the template holds: the second runs to 31 May 2026
-			const base = pack('MY', 'Asia/Kuala_Lumpur', TERMS, {}, [], []);
-			const closing = {
-				...base,
-				employment: (base.employment ?? []).map((row) => ({
-					...row,
-					service_started_on: '2024-06-01',
-					effective_range: { from: '2024-06-01', to: null }
-				})),
-				// the stint's first rows are dated with it
-				contract_terms: (base.contract_terms ?? []).map((row) => ({
-					...row,
-					effective_from: '2024-06-01'
-				})),
-				statutory_parameters: (base.statutory_parameters ?? []).map((row) => ({
-					...row,
-					effective_from: '2024-06-01'
-				}))
-			};
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* syncAll(t);

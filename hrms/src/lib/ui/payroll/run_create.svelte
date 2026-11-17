@@ -12,6 +12,7 @@
 	import { DateTime, Effect } from 'effect';
 	import { jsonObject } from '../../payroll_engine/foundation.js';
 	import { cycleOn, cycleStarted, cyclesIn } from '../../payroll_engine/pay_cycle.js';
+	import { periodLabel } from '../format/period_label.js';
 	import { pageLaws } from '../law.svelte.js';
 
 	let {
@@ -39,11 +40,14 @@
 	);
 	const code = $derived(known?.current?.entity.rows[0]?.settings_code);
 	const laws = pageLaws(ctx, () => (code === undefined ? [] : [code]));
-	// the ad hoc rows of the company's law today that an off-cycle run may pay
+	// the ad hoc rows of the company's law today that an off-cycle run may pay, each with its description
 	const offCycleCodes = $derived(
-		new Set(
-			(laws.on(code, String(today))?.rows.adhoc_catalog ?? []).flatMap((row) =>
-				row.off_cycle_eligible === true ? [String(row.code)] : []
+		new Map(
+			(laws.on(code, String(today))?.rows.adhoc_catalog ?? []).flatMap(
+				(row): [string, string | null][] =>
+					row.off_cycle_eligible === true
+						? [[String(row.code), typeof row.description === 'string' ? row.description : null]]
+						: []
 			)
 		)
 	);
@@ -70,14 +74,7 @@
 			.filter((cycle) => cycleStarted(cycle, today) && cycle.key > latest)
 			.map((cycle) => ({
 				value: cycle.key,
-				label:
-					cycle.key.length === 10
-						? format({ kind: 'date' }, cycle.key, { locale: ctx.locale })
-						: `${format({ kind: 'date', precision: 'month' }, `${cycle.key.slice(0, 7)}-01`, { locale: ctx.locale })}${
-								cycle.key.length === 9
-									? ` · ${ctx.t(cycle.key.endsWith('1') ? 'app.payroll.first_half' : 'app.payroll.second_half')}`
-									: ''
-							}`,
+				label: periodLabel(ctx, cycle.key),
 				description: format(
 					{ kind: 'period', of: 'date' },
 					{ from: cycle.from, to: cycle.to },
@@ -128,7 +125,9 @@
 		})
 	);
 	const unique = (values: readonly string[]) =>
-		[...new Set(values)].toSorted().map((value) => ({ value, label: value }));
+		[...new Set(values)]
+			.toSorted()
+			.map((value) => ({ value, label: offCycleCodes.get(value) ?? value, description: value }));
 	let who = $state<string[]>([]);
 	let what = $state<string[]>([]);
 	const people = $derived(

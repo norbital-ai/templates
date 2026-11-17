@@ -9,7 +9,6 @@
 	import { LAW_DEPTH, LAW_ROWS } from '../../law.js';
 	import type { JsonObject } from '../../payroll_engine/foundation.js';
 	import VersionTimeline from '../components/version_timeline.svelte';
-	import { LAW_FAMILY_LABEL } from './law_row.svelte';
 	import { changeOf, type LawChange } from './law_save.js';
 
 	let { ctx, chain, today }: { ctx: PageContext; chain: readonly LawChange[]; today: string } =
@@ -38,7 +37,7 @@
 					}
 				);
 				const shown = codes.length > 6 ? [...codes.slice(0, 6), '…'] : codes;
-				return `${rows === undefined ? title(family) : LAW_FAMILY_LABEL[rows]}: ${shown.join(', ')}`;
+				return `${rows === undefined ? title(family) : ctx.t(`law_family.${rows}`)}: ${shown.join(', ')}`;
 			})
 			.join(' · ');
 

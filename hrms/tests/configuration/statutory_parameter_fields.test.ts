@@ -4,12 +4,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
+import { isObject } from '../kit.ts';
 import { SEEDED } from './seeded.ts';
 
 const LABELS = ['employee_statutory_parameters', 'entity_statutory_parameters'] as const;
 const BUCKETS = new Set(['facts', 'term_facts', 'exit_facts', 'elections']);
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const sources = (dir: string): readonly string[] =>
 	readdirSync(dir).flatMap((name) => {

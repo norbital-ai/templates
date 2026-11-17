@@ -74,8 +74,8 @@
 	value={catalogCode}
 	options={choices.map((row) => ({
 		value: String(row.code),
-		label: String(row.code),
-		description: typeof row.description === 'string' ? row.description : '',
+		label: typeof row.description === 'string' ? row.description : String(row.code),
+		description: String(row.code),
 		...(family === 'claim_catalog' && remainingFor(row) != null
 			? { suffix: `${remainingFor(row)} left` }
 			: {})

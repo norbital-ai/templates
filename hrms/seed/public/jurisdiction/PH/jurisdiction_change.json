@@ -98,12 +98,20 @@
 					"description": "A commission, at the amount entered. It is wages for SSS and Pag-IBIG and is taxed with the month's pay; a sales commission that forms part of salary also counts toward 13th-month pay."
 				},
 				"THIRTEENTH_MONTH_PAY": {
-					"description": "13th-month pay at the amount entered: at least one twelfth of the basic salary earned in the calendar year, paid by 24 December (PD 851). Outside the SSS, PhilHealth and Pag-IBIG bases; tax-free with other benefits up to ₱90,000 a year.",
+					"description": "13th-month pay at the amount entered: at least one twelfth of the basic salary earned in the calendar year, paid by 24 December (PD 851). A task is raised when the year’s last payslip, or a leaver’s last, shows less. Outside the SSS, PhilHealth and Pag-IBIG bases; tax-free with other benefits up to ₱90,000 a year.",
 					"lookup": {},
 					"references": [
 						{
-							"title": "PD851/DOLE2024 Handbook ch.13 C-H; Reyes GR160233; PAL GR142399. Automatic calculation uses original payroll_history and ordered current.priced_lines: signed eligible basic by earning_year, documented personal-sales/integrated components, less actual13th/evidenced equivalent grants only for matching entitlement_year. Current component dependencies order maternity/basic-backpay/commission and other selected awards before13th regardless input order. HR supplies dated source-completeness and confirmed attendance/salary-through facts, not a calculated total. Year-end daily additional unpriced paid days multiply an unchanged captured daily rate. Future unknown records, missing original attribution/classification or unsupported rate changes require the existing dated reviewed residual-base fallback or refuse. A later change requires a differential. Generic gifts and separately promised CBA Christmas bonuses never become automatic credits.",
-							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+							"title": "Presidential Decree No. 851",
+							"locator": "s.1",
+							"url": "https://lawphil.net/statutes/presdecs/pd1975/pd_851_1975.html",
+							"quote": "a 13th-month pay not later than December 24 of every year"
+						},
+						{
+							"title": "DOLE Handbook on Workers' Statutory Monetary Benefits, 2024 Edition",
+							"locator": "ch.13 (Presidential Decree No. 851) §§B–C, E, G; note kk",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+							"quote": "The thirteenth-month pay shall not be less than one-twelfth (1/12) of the total basic salary earned by an employee in a calendar year. […] The term \"its equivalent\" shall include Christmas bonus, midyear bonus, cash bonuses, and other payments amounting to not less than one-twelfth (1/12) of the basic salary […] An employee who has resigned or whose services are terminated at any time before the time of payment of the thirteenth-month pay is entitled to this monetary benefit in proportion to the length of time he or she has worked during the year"
 						}
 					],
 					"off_cycle_eligible": true,
@@ -3282,7 +3290,10 @@
 					"lookup": {},
 					"references": [
 						{
-							"title": "RR 11-2018 s.2.79(B)(3): supplementary pay is taxed with the period's regular pay on its column. An off-cycle run has no regular pay of its own, so this row keeps the run's taxable regular pay by month. A memo row: it charges nobody and has no cost subtotal."
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.79(B)(3)",
+							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+							"quote": "Supplementary pay is taxed with the period's regular pay on its column. An off-cycle run has no regular pay of its own, so this row keeps the run's taxable regular pay by month. A memo row: it charges nobody and has no cost subtotal."
 						}
 					],
 					"kind": "TAX",
@@ -3492,7 +3503,9 @@
 					},
 					"references": [
 						{
-							"title": "Read 2026-10-31: rice and laundry ceilings apply independently to each calendar month; unused limits do not carry. The dependant medical allowance uses the statutory per-semester ceiling (PHP1,500 for each January-June and July-December period). The sum of each period's excess enters the separate PHP90,000 annual 13th-month/other-benefits pool. RR2-98 s.2.78.1(A)(3) as amended by RR11-2018/RR4-2025."
+							"title": "Revenue Regulations 2-98 as amended by RR 11-2018 and RR 4-2025",
+							"locator": "s.2.78.1(A)(3)",
+							"quote": "Rice and laundry ceilings apply to each calendar month on its own; unused limits do not carry. The dependants' medical allowance has its ceiling for each semester: PHP1,500 for January–June and for July–December. The sum of each period's excess enters the separate PHP90,000 yearly pool of 13th-month pay and other benefits."
 						},
 						{
 							"title": "National Internal Revenue Code (as amended by RA 10963)",
@@ -3521,12 +3534,16 @@
 							"quote": "A minimum wage earner is taxed on pay other than the statutory minimum wage and its holiday, overtime, night-shift and hazard pay."
 						},
 						{
-							"title": "RR 11-2018 s.2.79(B)(3): overtime and commissions are supplementary compensation, taxed with the period's regular pay on its column. The cumulative average method of s.2.79(B)(5)(a) is not computed: it divides by the count of payroll periods, which the balance does not hold, so the annualisation trues up the year.",
-							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.79(B)(3), (B)(5)(a)",
+							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+							"quote": "Overtime and commissions are supplementary compensation, taxed with the period's regular pay on its column. The cumulative average method of s.2.79(B)(5)(a) is not computed: it divides by the count of payroll periods, which the balance does not hold, so the annualisation trues up the year."
 						},
 						{
-							"title": "RR 11-2018 s.2.79(B)(5)(b): cash basis. The year is read from `ctx.balances`, the tax year's checkpoint and scheme totals before this run, plus this run. A previous employer's Form 2316 figures count when `previous_employer_year` is this year or unrecorded. A last run paid in the next calendar year is not annualised here: the balance has closed, so the December run paid in December is the last one.",
-							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.79(B)(5)(b)",
+							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+							"quote": "Cash basis. The year is read from `ctx.balances`, the tax year's checkpoint and scheme totals before this run, plus this run. A previous employer's Form 2316 figures count when `previous_employer_year` is this year or unrecorded. A last run paid in the next calendar year is not annualised here: the balance has closed, so the December run paid in December is the last one."
 						},
 						{
 							"title": "13th-month pay and other benefits are exempt to PHP90,000 in the aggregate",
@@ -3535,9 +3552,10 @@
 							"quote": "Read 2026-11-04. 13th-month pay and other benefits are excluded from gross compensation up to PHP90,000 for the calendar year; the excess is taxable compensation. The pool holds ADDITIONAL_WAGES - ORDINARY_WAGES and each de minimis class's excess over its ceiling; the part already used this year is the same figures read from `ctx.balances.ytd`. Exempt termination pay and SSS benefits post at GROSS, which WTAX does not read, except for a non-resident alien not engaged in trade or business, taxed on all of it."
 						},
 						{
-							"title": "Revenue Regulations 11-2018 s.2.78.1(A)(3)(a): the SIL cash-out (ANNUAL_LEAVE payout) posts to DE_MINIMIS_LEAVE, exempt to that many days of the day rate a year; the excess joins the ₱90,000 pool.",
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.78.1(A)(3)(a)",
 							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
-							"quote": "Read 2026-11-13. De minimis: \"Monetized unused vacation leave credits of private employees not exceeding ten (10) days during the year\"."
+							"quote": "\"Monetized unused vacation leave credits of private employees not exceeding ten (10) days during the year\" are de minimis. The SIL cash-out (ANNUAL_LEAVE payout) posts to DE_MINIMIS_LEAVE, exempt to that many days of the day rate a year; the excess joins the ₱90,000 pool."
 						},
 						{
 							"title": "NWPC Summary of Current Regional Daily Minimum Wage Rates (6 November 2026)",
@@ -5341,6 +5359,94 @@
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Medical Report (AMR) to the DOLE regional office\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-03-31',\n\t\toccurrence_key: \"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.entity_id + \":\" + String(get(ctx.entry, 'salary_coverage.to', '')).slice(0, 4)\n\t}\n];"
+				},
+				"THIRTEENTH_MONTH_FLOOR": {
+					"description": "Raises a task for each employee whose 13th-month pay and bonuses of the year come to less than one twelfth of the basic pay the year's payslips paid, when the year's last on-cycle run or the run holding the employee's last day is paid. Managerial employees and workers paid by the task are left out.",
+					"name": "13th-month pay below one twelfth of basic salary",
+					"lookup": {
+						"title": "13th-month pay below one twelfth of the basic salary earned in the year",
+						"not_entitled": ["MANAGERIAL", "TASK_BASIS"],
+						"minimum_months": 1
+					},
+					"references": [
+						{
+							"title": "Presidential Decree No. 851",
+							"locator": "s.1",
+							"url": "https://lawphil.net/statutes/presdecs/pd1975/pd_851_1975.html",
+							"quote": "a 13th-month pay not later than December 24 of every year"
+						},
+						{
+							"title": "DOLE Handbook on Workers' Statutory Monetary Benefits, 2024 Edition",
+							"locator": "ch.13 (Presidential Decree No. 851) §§B–C, E, G; note kk",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf",
+							"quote": "The thirteenth-month pay shall not be less than one-twelfth (1/12) of the total basic salary earned by an employee in a calendar year. […] The term \"its equivalent\" shall include Christmas bonus, midyear bonus, cash bonuses, and other payments amounting to not less than one-twelfth (1/12) of the basic salary […] An employee who has resigned or whose services are terminated at any time before the time of payment of the thirteenth-month pay is entitled to this monetary benefit in proportion to the length of time he or she has worked during the year"
+						}
+					],
+					"source_collection": "payroll_run",
+					"events": ["update"],
+					"reads": {
+						"obligation": {
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"like": {
+										"var": "'PH:THIRTEENTH_MONTH_FLOOR:' + ctx.entry.entity_id + ':%'"
+									}
+								}
+							},
+							"fields": ["occurrence_key"],
+							"limit": 10000
+						},
+						"payslip": {
+							"where": {
+								"payroll_run_id": {
+									"eq": {
+										"var": "ctx.entry.id"
+									}
+								}
+							},
+							"fields": ["employee_id", "employment_id"],
+							"limit": 10000
+						},
+						"employment": {
+							"where": {
+								"entity_id": {
+									"eq": {
+										"var": "ctx.entry.entity_id"
+									}
+								}
+							},
+							"fields": ["id", "employee_id", "effective_range", "service_started_on", "terms"],
+							"limit": 10000
+						},
+						"employee_balance": {
+							"where": {
+								"employee_id": {
+									"is": {
+										"employment": {
+											"some": {
+												"entity_id": {
+													"eq": {
+														"var": "ctx.entry.entity_id"
+													}
+												}
+											}
+										}
+									}
+								}
+							},
+							"fields": ["employee_id", "account"],
+							"limit": 10000
+						}
+					},
+					"condition": "return ctx.entry.state === 'PAID' && ctx.entry.kind === 'ON_CYCLE';",
+					"target_collection": "obligation",
+					"target_action": "create",
+					"effects": "// PD 851: the 13th-month pay is at least one twelfth of the basic salary earned in the calendar year; a leaver is paid in proportion at separation.\nconst run = ctx.entry;\nconst coverage = run.salary_coverage;\nconst paidOn = String(get(run, 'pay_date', coverage.to));\nconst year = paidOn.slice(0, 4);\n// The year's last pay: a further period of this length is paid in the next calendar year.\nconst yearEnds = add_days(paidOn, calendar_distance_days(coverage.from, coverage.to) + 1).slice(0, 4) !== year;\nconst contracts = get(ctx, 'reads.employment', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nconst raised = get(ctx, 'reads.obligation', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tif (contract == null) return [];\n\tconst leaving = String(get(contract, 'effective_range.to', null) ?? '');\n\tconst exits = leaving !== '' && leaving <= coverage.to;\n\tif (!yearEnds && !exits) return [];\n\tif (ctx.lookup.not_entitled.includes(get(contract, 'terms.statutory_work_category', ''))) return [];\n\tconst started = String(get(contract, 'service_started_on', get(contract, 'effective_range.from', coverage.to)));\n\tif (calendar_completed_months(started, coverage.to) < ctx.lookup.minimum_months) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\t// the year's checkpoint totals, as the balance holds them by pay date\n\tconst yearly = (code) => {\n\t\tconst periods = get(account, 'pay.' + code, {});\n\t\tconst key = 'PH.Y.' + year + '-01-01';\n\t\treturn Object.hasOwn(periods, key) ? Number(periods[key].total) : 0;\n\t};\n\tconst floor = round(yearly('BASIC_AFTER_UNPAID_LEAVE') / 12, ctx.lookup.minor_unit, 'HALF_UP');\n\t// 13th-month pay and its equivalents (Christmas and other cash bonuses) are the pay between these two checkpoints\n\tconst paid = yearly('ADDITIONAL_WAGES') - yearly('ORDINARY_WAGES');\n\tif (floor <= 0 || paid >= floor) return [];\n\tconst key = 'PH:THIRTEENTH_MONTH_FLOOR:' + run.entity_id + ':' + year + ':' + slip.employment_id;\n\tif (raised.some((task) => task.occurrence_key === key)) return [];\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': one twelfth is ₱' + floor.toFixed(2) + ', paid ₱' + paid.toFixed(2),\n\t\tdue_on: exits ? paidOn : year + '-12-24',\n\t\toccurrence_key: key\n\t}];\n});"
 				}
 			},
 			"registered_rule": {
@@ -7108,7 +7214,11 @@
 					},
 					"references": [
 						{
-							"title": "Read 2026-10-31: rice and laundry ceilings apply independently to each calendar month; unused limits do not carry. The dependant medical allowance uses the statutory per-semester alternative (PHP1,500 before 6 January 2026; PHP2,000 from that day), independently for January–June and July–December. The sum of each period’s excess enters the separate PHP90,000 annual 13th-month/other-benefits pool. RR29-2025 s.1(c),(d),(g), https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf; predecessor RR2-98 as amended by RR11-2018/RR4-2025."
+							"title": "Revenue Regulations 29-2025 amending RR 2-98",
+							"locator": "s.1(c), (d), (g), amending RR 2-98 s.2.78.1(A)(3)",
+							"url": "https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf",
+							"quote": "Rice and laundry ceilings apply to each calendar month on its own; unused limits do not carry. The dependants' medical allowance has its ceiling for each semester, January–June and July–December apart: PHP1,500 before 6 January 2026 and PHP2,000 from that day. The sum of each period's excess enters the separate PHP90,000 yearly pool of 13th-month pay and other benefits.",
+							"effective_from": "2026-01-06"
 						},
 						{
 							"title": "National Internal Revenue Code (as amended by RA 10963)",
@@ -7138,12 +7248,16 @@
 							"quote": "A minimum wage earner is taxed on pay other than the statutory minimum wage and its holiday, overtime, night-shift and hazard pay."
 						},
 						{
-							"title": "RR 11-2018 s.2.79(B)(3): overtime and commissions are supplementary compensation, taxed with the period's regular pay on its column. The cumulative average method of s.2.79(B)(5)(a) is not computed: it divides by the count of payroll periods, which the balance does not hold, so the annualisation trues up the year.",
-							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.79(B)(3), (B)(5)(a)",
+							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+							"quote": "Overtime and commissions are supplementary compensation, taxed with the period's regular pay on its column. The cumulative average method of s.2.79(B)(5)(a) is not computed: it divides by the count of payroll periods, which the balance does not hold, so the annualisation trues up the year."
 						},
 						{
-							"title": "RR 11-2018 s.2.79(B)(5)(b): cash basis. The year is read from `ctx.balances`, the tax year's checkpoint and scheme totals before this run, plus this run. A previous employer's Form 2316 figures count when `previous_employer_year` is this year or unrecorded. A last run paid in the next calendar year is not annualised here: the balance has closed, so the December run paid in December is the last one.",
-							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+							"title": "Revenue Regulations 11-2018",
+							"locator": "s.2.79(B)(5)(b)",
+							"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+							"quote": "Cash basis. The year is read from `ctx.balances`, the tax year's checkpoint and scheme totals before this run, plus this run. A previous employer's Form 2316 figures count when `previous_employer_year` is this year or unrecorded. A last run paid in the next calendar year is not annualised here: the balance has closed, so the December run paid in December is the last one."
 						},
 						{
 							"title": "13th-month pay and other benefits are exempt to PHP90,000 in the aggregate",
@@ -7152,10 +7266,10 @@
 							"quote": "Read 2026-11-04. 13th-month pay and other benefits are excluded from gross compensation up to PHP90,000 for the calendar year; the excess is taxable compensation. The pool holds ADDITIONAL_WAGES - ORDINARY_WAGES and each de minimis class's excess over its ceiling; the part already used this year is the same figures read from `ctx.balances.ytd`. Exempt termination pay and SSS benefits post at GROSS, which WTAX does not read, except for a non-resident alien not engaged in trade or business, taxed on all of it."
 						},
 						{
-							"title": "Revenue Regulations 29-2025 s.1, amending RR 2-98 s.2.78.1(A)(3)(a): the SIL cash-out (ANNUAL_LEAVE payout) posts to DE_MINIMIS_LEAVE, exempt to that many days of the day rate a year; the excess joins the ₱90,000 pool.",
+							"title": "Revenue Regulations 29-2025 amending RR 2-98",
+							"locator": "s.1(a), amending RR 2-98 s.2.78.1(A)(3)(a); s.3 effectivity (in force 6 January 2026)",
 							"url": "https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025.pdf",
-							"locator": "s.1(a); s.3 effectivity (in force 6 January 2026)",
-							"quote": "Read 2026-11-13. \"Monetized unused vacation leave credits of private employees not exceeding twelve (12) days during the year\"."
+							"quote": "\"Monetized unused vacation leave credits of private employees not exceeding twelve (12) days during the year\" are de minimis. The SIL cash-out (ANNUAL_LEAVE payout) posts to DE_MINIMIS_LEAVE, exempt to that many days of the day rate a year; the excess joins the ₱90,000 pool."
 						},
 						{
 							"title": "NWPC Summary of Current Regional Daily Minimum Wage Rates (6 November 2026)",

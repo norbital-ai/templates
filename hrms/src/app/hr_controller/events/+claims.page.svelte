@@ -38,7 +38,6 @@
 		action: 'claim_catalog_entry.create',
 		label: () => ctx.t('app.claims.title'),
 		held: () => held?.current,
-		loading: 'Employee and claim data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseClaimSheet(grids, {
 				...party,
@@ -83,7 +82,7 @@
 			toolbar={{
 				new: () => (creating = true),
 				title: ctx.t('app.claims.title'),
-				actions: [importClaims(ctx.t('holiday_calendar.import_spreadsheet'))]
+				actions: [importClaims(ctx.t('import.claims'))]
 			}}
 			columns={[
 				{ field: 'employment_id', cell: who },

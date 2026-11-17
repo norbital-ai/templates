@@ -39,7 +39,7 @@
 		const { insert } = skipHeldHolidays(parsed.rows, held.current?.holiday.rows ?? []);
 		if (insert.length === 0)
 			throw new WorkbookImportError({
-				message: 'This file has no holidays to import.',
+				message: ctx.t('import.no_holidays'),
 				detail: []
 			});
 		return insert.map((row) => ({
@@ -97,13 +97,13 @@
 				{
 					run: importHolidays,
 					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('holiday_calendar.import_spreadsheet'),
+					name: ctx.t('import.holidays'),
 					description: ctx.t('holiday_calendar.import_spreadsheet_description'),
 					disabled: () => (importing ? ctx.t('component.loading') : null)
 				}
 			]
 		}}
 		order_by={{ name: 'asc' }}
-		columns={['name', { field: 'settings_code', label: ctx.t('component.settings_lineage') }]}
+		columns={['name', 'settings_code']}
 	/>
 </AppShell>

@@ -864,15 +864,19 @@
 							"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
 						},
 						{
-							"title": "2026-10-31: PartA/C bonus note is specific to bonus and actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred.",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025"
+							"title": "KWSP, Third Schedule effective 1 October 2025",
+							"locator": "Parts A and C, bonus note",
+							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"quote": "The bonus note of Parts A and C is specific to a bonus and the actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred."
 						},
 						{
-							"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+							"title": "KWSP, Mandatory Contribution",
+							"locator": "Third Schedule; worked examples",
+							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
 						},
 						{
-							"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"",
+							"title": "Employees Provident Fund Act 1991 (Act 452)",
 							"locator": "s.2 definition of \"wages\"; Third Schedule Part A note under the RM5,000 row",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
 							"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\". The Part A note under the RM5,000 row charges the employer's 13% rate where a bonus lifts a month of wages of RM5,000 or below over RM5,000, so EPF is assessed on the month's wages including the bonus. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
@@ -950,15 +954,19 @@
 							"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
 						},
 						{
-							"title": "2026-10-31: PartA/C bonus note is specific to bonus and actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred.",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025"
+							"title": "KWSP, Third Schedule effective 1 October 2025",
+							"locator": "Parts A and C, bonus note",
+							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"quote": "The bonus note of Parts A and C is specific to a bonus and the actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred."
 						},
 						{
-							"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+							"title": "KWSP, Mandatory Contribution",
+							"locator": "Third Schedule; worked examples",
+							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
 						},
 						{
-							"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"",
+							"title": "Employees Provident Fund Act 1991 (Act 452)",
 							"locator": "s.2 definition of \"wages\"; Third Schedule Part C note under the RM5,000 row",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
 							"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\". Part C repeats the bonus note: a bonus that lifts a month of wages of RM5,000 or below over RM5,000 keeps the employer at 6.5% of the month's wages. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
@@ -1028,11 +1036,13 @@
 							"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
 						},
 						{
-							"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees"
+							"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
+							"locator": "Third Schedule; worked examples",
+							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
 						},
 						{
-							"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"; Act A1760 Part F",
+							"title": "Employees Provident Fund Act 1991 (Act 452) as amended by Act A1760",
 							"locator": "s.2 definition of \"wages\"; Part F para 1",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
 							"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\", and Part F charges the two 2% shares on the wages as they stand, with no ceiling. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
@@ -1101,7 +1111,7 @@
 							"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 						},
 						{
-							"title": "Employees' Social Security Act 1969 (Act 4) s.2(24)(e)",
+							"title": "Employees' Social Security Act 1969 (Act 4)",
 							"locator": "s.2(24) definition of \"wages\", paragraph (e)",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
 							"quote": "\"Wages\" is \"all remuneration payable in money by an employer to an employee including any payment in respect of leave, holidays, overtime, and extra work on holidays\" but does not include \"(e) annual bonus\". SOCSO is assessed on the ordinary wages in ORDINARY_WAGES; the annual bonus in ADDITIONAL_WAGES is outside the SOCSO base."
@@ -1246,7 +1256,7 @@
 							"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 						},
 						{
-							"title": "Employment Insurance System Act 2017 (Act 800) s.2 \"wages\"",
+							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
 							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
 							"quote": "\"Wages\" excludes \"(e) any annual bonus\", so EIS is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside the EIS base."
@@ -1304,8 +1314,8 @@
 							"quote": "s.6A(2)(a) RM400 rebate and s.6A(2)(b) RM400 spouse rebate when chargeable income P ≤ RM35,000. s.107(2): a non-resident is charged 30% of all remuneration. s.46(1)(n): SOCSO/EIS (and SKBBK) employee contributions are relieved only as claimed on Form TP1 item C14, up to RM350 a year. s.48(4): shared entitlement excludes a split solely between spouses living together. s.7(1)(a)-(c), (1A): residence by days in Malaysia — 182 or more days in the basis year (s.7(1)(a)); a stay unbroken from 182 or more consecutive days in the previous basis year (s.7(1)(b)); 90 or more days with 90 or more in three of the four preceding basis years (s.7(1)(c)(ii))."
 						},
 						{
-							"title": "Income Tax Act 1967 (Act 53), Schedule 6",
-							"locator": "paras 13, 15(1)(b), 21-22, 25C",
+							"title": "Income Tax Act 1967 (Act 53)",
+							"locator": "Schedule 6 paras 13, 15(1)(b), 21-22, 25C",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf",
 							"quote": "AGC online text as at 1 January 2026. Para 15(1)(b): compensation for loss of employment exempt up to RM10,000 a completed year of service. Para 25C: long service award exempt up to RM2,000 per employee per year of assessment only after more than ten years with the same employer. Para 21(a): a non-resident employed in Malaysia for no more than 60 days in the year is exempt; para 22(a): past 60 days the exempted months are recovered. Para 13: official travelling allowance up to RM6,000 a year and child care allowance up to RM3,000; past-achievement / service-excellence / long-service awards up to RM2,000 together; none for an employee who controls the employer."
 						},
@@ -1461,7 +1471,7 @@
 							"quote": "Excludes domestic servants and part-time wages."
 						},
 						{
-							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) s.2 \"wages\"",
+							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
 							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
 						}
@@ -4650,8 +4660,8 @@
 							"quote": "s.6A(2)(a) RM400 rebate and s.6A(2)(b) RM400 spouse rebate when chargeable income P ≤ RM35,000. s.107(2): a non-resident is charged 30% of all remuneration. s.46(1)(n): SOCSO/EIS (and SKBBK) employee contributions are relieved only as claimed on Form TP1 item C14, up to RM350 a year. s.48(4): shared entitlement excludes a split solely between spouses living together. s.7(1)(a)-(c), (1A): residence by days in Malaysia — 182 or more days in the basis year (s.7(1)(a)); a stay unbroken from 182 or more consecutive days in the previous basis year (s.7(1)(b)); 90 or more days with 90 or more in three of the four preceding basis years (s.7(1)(c)(ii))."
 						},
 						{
-							"title": "Income Tax Act 1967 (Act 53), Schedule 6",
-							"locator": "paras 13, 15(1)(b), 21-22, 25C",
+							"title": "Income Tax Act 1967 (Act 53)",
+							"locator": "Schedule 6 paras 13, 15(1)(b), 21-22, 25C",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf",
 							"quote": "AGC online text as at 1 January 2026. Para 15(1)(b): compensation for loss of employment exempt up to RM10,000 a completed year of service. Para 25C: long service award exempt up to RM2,000 per employee per year of assessment only after more than ten years with the same employer. Para 21(a): a non-resident employed in Malaysia for no more than 60 days in the year is exempt; para 22(a): past 60 days the exempted months are recovered. Para 13: official travelling allowance up to RM6,000 a year and child care allowance up to RM3,000; past-achievement / service-excellence / long-service awards up to RM2,000 together; none for an employee who controls the employer."
 						},
@@ -4714,16 +4724,22 @@
 							"quote": "Updated 1 January 2025; archived. The MTD formula and approved-profile formulas D(1)-(5) are unchanged between the 2025 and 2026 specifications; the YA2025 list of deductions a-p carries the same caps as 2026 except diagnosis/early intervention for a child with learning disabilities, limited to RM6,000 (raised to RM10,000 from YA2026). Tourist attractions (RM1,000) and food waste grinder/CCTV are YA2026 reliefs, not available in YA2025. Applied to assessment year 2025 (December 2025 pay)."
 						},
 						{
-							"title": "LHDN, Specification for MTD 2026 — claims and accumulated amounts: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
+							"locator": "claims and accumulated amounts",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract."
 						},
 						{
-							"title": "LHDN MTD2026 D additional Step1E and E1/E3/E5: truncate K2 to two decimals and apply the under-RM10 normal-MTD rule before computing annual normal MTD; Step2 recomputes K2 after actual additional EPF.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
+							"locator": "section D, additional remuneration, Step 1E; examples E1, E3, E5",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Truncate K2 to two decimals and apply the under-RM10 normal-MTD rule before computing annual normal MTD; Step 2 recomputes K2 after actual additional EPF."
 						},
 						{
-							"title": "MTD2026 D additional-remuneration note / ITA25(1): employment income is taxed in the year received. PCB uses actual payment-date month/year and the balance for that tax year; EPF and insurance retain their salary-period basis.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026; Income Tax Act 1967 (Act 53)",
+							"locator": "section D, additional-remuneration note; Act 53 s.25(1)",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Employment income is taxed in the year received. PCB uses actual payment-date month/year and the balance for that tax year; EPF and insurance retain their salary-period basis."
 						},
 						{
 							"title": "LHDN, MTD Calculation Specifications 2026 Using Computerized Calculation",
@@ -4787,7 +4803,7 @@
 							"quote": "January through December2026 wage contributions exempt for qualifying registered education employers. Official clarification expressly includes December payable15 January2027."
 						},
 						{
-							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) s.2 \"wages\"",
+							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
 							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
 						}
@@ -4850,8 +4866,8 @@
 							"quote": "s.6A(2)(a) RM400 rebate and s.6A(2)(b) RM400 spouse rebate when chargeable income P ≤ RM35,000. s.107(2): a non-resident is charged 30% of all remuneration. s.46(1)(n): SOCSO/EIS (and SKBBK) employee contributions are relieved only as claimed on Form TP1 item C14, up to RM350 a year. s.48(4): shared entitlement excludes a split solely between spouses living together. s.7(1)(a)-(c), (1A): residence by days in Malaysia — 182 or more days in the basis year (s.7(1)(a)); a stay unbroken from 182 or more consecutive days in the previous basis year (s.7(1)(b)); 90 or more days with 90 or more in three of the four preceding basis years (s.7(1)(c)(ii))."
 						},
 						{
-							"title": "Income Tax Act 1967 (Act 53), Schedule 6",
-							"locator": "paras 13, 15(1)(b), 21-22, 25C",
+							"title": "Income Tax Act 1967 (Act 53)",
+							"locator": "Schedule 6 paras 13, 15(1)(b), 21-22, 25C",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf",
 							"quote": "AGC online text as at 1 January 2026. Para 15(1)(b): compensation for loss of employment exempt up to RM10,000 a completed year of service. Para 25C: long service award exempt up to RM2,000 per employee per year of assessment only after more than ten years with the same employer. Para 21(a): a non-resident employed in Malaysia for no more than 60 days in the year is exempt; para 22(a): past 60 days the exempted months are recovered. Para 13: official travelling allowance up to RM6,000 a year and child care allowance up to RM3,000; past-achievement / service-excellence / long-service awards up to RM2,000 together; none for an employee who controls the employer."
 						},
@@ -4908,16 +4924,22 @@
 							"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 						},
 						{
-							"title": "LHDN, Specification for MTD 2026 — claims and accumulated amounts: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
+							"locator": "claims and accumulated amounts",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract."
 						},
 						{
-							"title": "LHDN MTD2026 D additional Step1E and E1/E3/E5: truncate K2 to two decimals and apply the under-RM10 normal-MTD rule before computing annual normal MTD; Step2 recomputes K2 after actual additional EPF.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
+							"locator": "section D, additional remuneration, Step 1E; examples E1, E3, E5",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Truncate K2 to two decimals and apply the under-RM10 normal-MTD rule before computing annual normal MTD; Step 2 recomputes K2 after actual additional EPF."
 						},
 						{
-							"title": "MTD2026 D additional-remuneration note / ITA25(1): employment income is taxed in the year received. PCB uses actual payment-date month/year and the balance for that tax year; EPF and insurance retain their salary-period basis.",
-							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+							"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026; Income Tax Act 1967 (Act 53)",
+							"locator": "section D, additional-remuneration note; Act 53 s.25(1)",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+							"quote": "Employment income is taxed in the year received. PCB uses actual payment-date month/year and the balance for that tax year; EPF and insurance retain their salary-period basis."
 						},
 						{
 							"title": "LHDN, MTD Calculation Specifications 2026 Using Computerized Calculation",
@@ -4977,7 +4999,7 @@
 							"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 						},
 						{
-							"title": "Employees' Social Security Act 1969 (Act 4) s.2(24)(e)",
+							"title": "Employees' Social Security Act 1969 (Act 4)",
 							"locator": "s.2(24) definition of \"wages\", paragraph (e); Act A1788 Third Schedule column (4)(B)",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
 							"quote": "\"Wages\" excludes \"(e) annual bonus\"; LINDUNG 24 Jam is charged on the same wage bands and ceiling as SOCSO. SKBBK is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside its base."
@@ -5097,7 +5119,7 @@
 							"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
 						},
 						{
-							"title": "Employees' Social Security Act 1969 (Act 4) s.2(24)(e)",
+							"title": "Employees' Social Security Act 1969 (Act 4)",
 							"locator": "s.2(24) definition of \"wages\", paragraph (e); Act A1788 Third Schedule column (4)(B)",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
 							"quote": "\"Wages\" excludes \"(e) annual bonus\"; LINDUNG 24 Jam is charged on the same wage bands and ceiling as SOCSO. SKBBK is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside its base."
@@ -5121,9 +5143,9 @@
 					"eligibility": "const employment = ctx.subject.employment;\n// Act 612 s.2: \"pekerja\" leaves out a domestic servant and \"upah\" (f) an apprentice's allowance.\nif (['PAYEE', 'PART_TIME', 'APPRENTICE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.statutory_work_category', '') === 'DOMESTIC') return false;\nif (get(employment, 'terms.residency_status', '') !== 'CITIZEN') return false;\nconst employer = ctx.subject.employer;\nif (get(employer, 'statutory_parameters.hrd_scope', '') === 'OUT_OF_SCOPE') return false;\n// HRD Corp Circular 01/2026: January to December 2026 wages stay exempt when paid in 2027.\nif (ctx.lookup.education_schedule_exempt === true || String(ctx.run.salary_coverage.from) <= '2026-12-31') {\n const schedule = get(employer, 'statutory_parameters.hrd_education_schedule_code', 'NONE');\n if (schedule !== '' && schedule !== 'NONE') return false;\n}\nreturn true;",
 					"references": [
 						{
-							"title": "HRD Corp Employers' Circular 01/2026: education-employer levy exemption, January to December 2026 wages",
+							"title": "HRD Corp Employers' Circular 01/2026",
+							"locator": "education-employer levy exemption, January to December 2026 wages; secondary summary of the circular; hrdcorp.gov.my refused automated access; read 2026-11-13",
 							"url": "https://www.learnsignal.com/blog/hrd-corp-grant-application-window-2027-change/",
-							"locator": "secondary summary of the circular; hrdcorp.gov.my refused automated access; read 2026-11-13",
 							"quote": "The exemption applies for a period of one year, from January 2026 to December 2026.",
 							"effective_from": "2027-01-01"
 						},
@@ -5172,12 +5194,95 @@
 							"quote": "January through December2026 wage contributions exempt for qualifying registered education employers. Official clarification expressly includes December payable15 January2027."
 						},
 						{
-							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) s.2 \"wages\"",
+							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
 							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
 						}
 					],
 					"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14). The 2026 education-employer exemption ended with December 2026 wages; those wages stay exempt when paid in 2027."
+				}
+			}
+		}
+	},
+	{
+		"id": "92db6df9-9e59-512d-a221-c742e887f4e4",
+		"jurisdiction_code": "MY",
+		"effective_from": "2028-06-01",
+		"law": {
+			"statutory_contribution_catalog": {
+				"SKBBK": {
+					"lookup": {
+						"total_rate": 0.01,
+						"own_rate": 0,
+						"round_to_half_step": false,
+						"bands": [
+							{
+								"up_to": 30,
+								"amount": 0.25
+							},
+							{
+								"up_to": 50,
+								"amount": 0.4
+							},
+							{
+								"up_to": 70,
+								"amount": 0.65
+							},
+							{
+								"up_to": 100,
+								"amount": 0.9
+							},
+							{
+								"up_to": 140,
+								"amount": 1.2
+							},
+							{
+								"up_to": 200,
+								"amount": 1.7
+							}
+						]
+					}
+				}
+			}
+		}
+	},
+	{
+		"id": "a34c4feb-5c06-5730-bdf6-6e474e75e281",
+		"jurisdiction_code": "MY",
+		"effective_from": "2031-06-01",
+		"law": {
+			"statutory_contribution_catalog": {
+				"SKBBK": {
+					"lookup": {
+						"total_rate": 0.0125,
+						"round_to_half_step": true,
+						"bands": [
+							{
+								"up_to": 30,
+								"amount": 0.3
+							},
+							{
+								"up_to": 50,
+								"amount": 0.5
+							},
+							{
+								"up_to": 70,
+								"amount": 0.8
+							},
+							{
+								"up_to": 100,
+								"amount": 1.1
+							},
+							{
+								"up_to": 140,
+								"amount": 1.5
+							},
+							{
+								"up_to": 200,
+								"amount": 2.1
+							}
+						]
+					}
 				}
 			}
 		}

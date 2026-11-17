@@ -15,6 +15,7 @@ import {
 	OFF,
 	lawWith,
 	leaveCreate,
+	nearestCent as cents,
 	REST,
 	WORK,
 	pack,
@@ -163,7 +164,6 @@ const half = (
 	halfDays: readonly { readonly date: string; readonly part: string }[],
 	absent: readonly string[] = []
 ) => calculatePayroll(halfInput(halfDays, absent)).subtotals[0]?.value ?? 0;
-const cents = (value: number) => Math.round(value * 100) / 100;
 
 describe('the proration basis', () => {
 	it('takes a day of the wage period on calendar days', () => {

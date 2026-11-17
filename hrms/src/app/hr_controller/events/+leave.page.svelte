@@ -37,7 +37,6 @@
 		action: 'leave_catalog_entry.create',
 		label: () => ctx.t('app.leave.title'),
 		held: () => held?.current,
-		loading: 'Employee and leave data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseLeaveSheet(grids, {
 				...party,
@@ -76,7 +75,7 @@
 			toolbar={{
 				new: () => (creating = true),
 				title: ctx.t('v2.leave_requests'),
-				actions: [importLeave(ctx.t('holiday_calendar.import_spreadsheet'))]
+				actions: [importLeave(ctx.t('import.leave'))]
 			}}
 			columns={[{ field: 'employment_id', cell: who }, 'catalog_code']}
 		/>{/if}{/snippet}

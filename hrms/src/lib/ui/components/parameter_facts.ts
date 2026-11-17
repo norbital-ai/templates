@@ -1,6 +1,5 @@
-import { is_json_schema, json_schema_kind, type Kind } from '@norbital-ai/ui';
+import { enum_text, is_json_schema, json_schema_kind, type Kind } from '@norbital-ai/ui';
 import { isJsonObject } from '../../payroll_engine/foundation.js';
-import { fieldLabel } from '../person/change_summary.js';
 
 /** The statutory parameters a law declares (`employee_statutory_parameters`, `entity_statutory_parameters`), by name. */
 export const declaredParameters = (
@@ -15,7 +14,7 @@ export const declaredParameters = (
 				label:
 					isJsonObject(property) && typeof property.title === 'string'
 						? property.title
-						: fieldLabel(name),
+						: enum_text(name),
 				kind: is_json_schema(property) ? json_schema_kind(property) : { kind: 'text' }
 			}
 		])

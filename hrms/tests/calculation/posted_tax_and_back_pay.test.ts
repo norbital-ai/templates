@@ -7,7 +7,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { verify } from '../integrity_oracle.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, pay, run, slip } from '../amendment_kit.ts';
 import {
@@ -15,7 +14,7 @@ import {
 	ledgerRows,
 	pack,
 	storedQuery,
-	storedReader,
+	ledgerWhole,
 	uuid,
 	workspace,
 	decimalNumber,
@@ -23,17 +22,6 @@ import {
 } from '../kit.ts';
 
 const EMPLOYMENT = idOf('employment', uuid(6));
-/** No queued work failed and the ledger holds no hard finding. */
-const ledgerWhole = (t: Kit) =>
-	Effect.gen(function* () {
-		assert.deepEqual((yield* t.run_due()).failed, []);
-		assert.deepEqual(
-			(yield* verify(storedReader(t), t.clock.now().slice(0, 10)))
-				.filter((finding) => finding.invariant !== 'W1')
-				.map((finding) => `${finding.invariant} ${finding.message}`),
-			[]
-		);
-	});
 const malaysia = (amount: number) => pack('MY', 'Asia/Kuala_Lumpur', packTerms(amount), {}, [], []);
 
 describe('a tax instalment posted to the tax scheme’s account', () => {

@@ -5,7 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { amendments, carriedFor, pay, rostered, run } from '../amendment_kit.ts';
+import { amendments, carriedFor, dropped, pay, rostered, run } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	REST,
@@ -489,4 +489,57 @@ describe('a change that waits for approval', () => {
 			}).pipe(Effect.provide(workspace({ seed: from, now: NOW })));
 		}
 	);
+
+	// a leave day is read by the run of its own window only: a request dated in a paid month does not stop the next run,
+	// so its last decision can come while that run is unpaid and holds the person
+	for (const way of ['paid', 'deleted'] as const)
+		it.live(
+			`a decision that reaches a paid period is refused under an unpaid run; the run ${way}, it passes and leaves its row`,
+			() => {
+				const from = seed();
+				return Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					const lead = yield* t.as(yield* t.sign_in('lead@example.test'));
+					const payroll = yield* t.as(yield* t.sign_in('payroll@example.test'));
+					yield* pay(t, '2026-02');
+					const asked = yield* t.as(t.member(['employee'], { id: uuid(3) })).pipe(
+						Effect.andThen((caller) =>
+							caller.act({
+								'leave_catalog_entry.create': [
+									leaveCreate({
+										entity_id: ENTITY,
+										employment_id: FIRST,
+										catalog_code: 'NPL',
+										days: wholeDays(DAY)
+									})
+								]
+							})
+						)
+					);
+					assert.ok(asked.kind === 'pending_approval');
+					yield* lead.approvals.decide(asked.request_id, { decision: 'approve' });
+					const march = yield* run(t, '2026-03');
+					const decision = payroll.approvals.decide(asked.request_id, { decision: 'approve' });
+					assert.match(
+						String(yield* Effect.flip(decision)),
+						/holds this person and is not paid yet/
+					);
+					assert.deepEqual(yield* amendments(t), [], 'a refused decision leaves no row');
+					if (way === 'deleted') yield* dropped(t, march);
+					else {
+						yield* (yield* t.as(t.admin)).act({
+							'payroll_run.update': [{ target: march, set: { state: 'PAID' } }]
+						});
+						yield* t.run_due();
+					}
+					// the request still waits: the same decision now passes, and writes the row beside its posting
+					yield* decision;
+					yield* t.run_due();
+					assert.deepEqual(
+						(yield* amendments(t)).map((row) => [row.period, row.payroll_run_id]),
+						[['2026-02', null]]
+					);
+				}).pipe(Effect.provide(workspace({ seed: from, now: NOW })));
+			}
+		);
 });

@@ -5,12 +5,11 @@ import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
 import { settingsConstants } from '../../src/lib/payroll_engine/contracts.ts';
 import { paramsFor } from '../../src/lib/payroll_engine/params.ts';
+import { isObject } from '../kit.ts';
 import { SEEDED } from './seeded.ts';
 
 /** Keys the engine builds in code rather than naming in a seed expression. `constants` is spread into `ctx.lookup`. */
 const CODE_READ = new Set(['cpf_rates', 'constants']);
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value);
 /** Every seeded law as it stands on each of its change dates. */
 const LAWS = SEEDED.flatMap(({ standing }) => standing);
 /** Every row of a law, with the family it belongs to. */

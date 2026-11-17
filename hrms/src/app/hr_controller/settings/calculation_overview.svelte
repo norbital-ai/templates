@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Accordion, Button, EmptyState, Icon, Popover } from '@norbital-ai/ui';
+	import { Accordion, Button, EmptyState, Icon, Popover, enum_text, label } from '@norbital-ai/ui';
 	import { Cluster } from '@norbital-ai/ui/layout';
 	import type { Law } from '../../../lib/law.js';
 	import type { JsonObject } from '../../../lib/payroll_engine/foundation.js';
@@ -52,30 +52,19 @@
 	);
 
 	/** What a checkpoint holds, for the codes every chain shares; any other is its name. */
-	const guide = (code: string): string => {
-		switch (code) {
-			case 'BASIC':
-				return 'The contract salary for the period. An off-cycle run starts at 0.';
-			case 'PRORATED':
-				return 'Basic less the days before a joiner started or after a leaver left, and less absences.';
-			case 'PAID_BASIC':
-				return 'Prorated basic less unpaid leave. Allowances, overtime, claims, one-off items and loans post after this.';
-			case 'ORDINARY_WAGES':
-				return 'Paid basic plus ordinary pay lines: fixed and recurring allowances, ordinary overtime and ordinary one-off items. Schemes that count ordinary wages read this value.';
-			case 'ADDITIONAL_WAGES':
-				return 'Ordinary wages plus bonus, backpay and other additional-wage lines. Tax schemes that work on the year so far read this running total.';
-			case 'GROSS':
-				return 'Additional wages plus gross wage adjustments. Tax schemes that read gross use this value before final settlements.';
-			case 'FINAL_PAY':
-				return 'Final and non-wage settlements: severance, notice, retirement lump sums, injury compensation. Not part of ordinary or additional wages.';
-			case 'RETIREMENT':
-				return 'Retirement allowances, kept outside gross wages. Separate retirement tax schemes read this checkpoint.';
-			case 'NET':
-				return 'What the employee is paid: everything above less employee contributions, tax, deductions and loan repayments.';
-			default:
-				return 'The previous checkpoint plus every line posted here.';
-		}
-	};
+	const GUIDED = [
+		'BASIC',
+		'PRORATED',
+		'PAID_BASIC',
+		'ORDINARY_WAGES',
+		'ADDITIONAL_WAGES',
+		'GROSS',
+		'FINAL_PAY',
+		'RETIREMENT',
+		'NET'
+	] as const;
+	const guide = (code: string) =>
+		ctx.t(`checkpoint.${GUIDED.find((known) => known === code) ?? 'other'}`);
 	const textOf = (value: unknown): string => (typeof value === 'string' ? value : '');
 	const directionOf = (row: Record<string, unknown>, model: string): string => {
 		const direction = textOf(row.direction);
@@ -113,6 +102,64 @@
 		code === 'NET' ? 'net' : code === 'BASIC' ? 'base' : '+ additions';
 </script>
 
+{#snippet line(family: LawRowTarget['family'], row: JsonObject, sign: string, tag: string)}
+	<div class="flex items-start gap-2 rounded border px-2 py-2">
+		<span
+			class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {sign ===
+			'−'
+				? 'border-destructive/30 bg-destructive/10 text-destructive'
+				: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
+			>{sign}</span
+		>
+		<button
+			type="button"
+			class="min-w-0 flex-1 text-left"
+			onclick={() => on_open({ family, code: String(row.code) })}
+		>
+			<span class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+				<span class="min-w-0 text-xs">{textOf(row.description) || row.code}</span>
+				<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">{tag}</span>
+			</span>
+			{#if textOf(row.description) !== ''}
+				<span class="mt-0.5 block font-mono text-[11px] leading-snug text-muted-foreground">
+					{row.code}
+				</span>
+			{/if}
+		</button>
+		<Popover.Root>
+			<Popover.Trigger
+				class="shrink-0 text-muted-foreground hover:text-foreground"
+				aria-label={ctx.t('overview.how', { code: String(row.code) })}
+				title={ctx.t('overview.view')}
+			>
+				<Icon name="lucide:info" class="size-3.5" />
+			</Popover.Trigger>
+			<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
+				<div class="space-y-1">
+					<span class="text-xs font-medium text-muted-foreground"
+						>{ctx.t('overview.eligibility')}</span
+					>
+					{#if eligibilityOf(row) !== ''}
+						<pre
+							class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+								>{eligibilityOf(row)}</code
+							></pre>
+					{:else}
+						<p class="text-muted-foreground">{ctx.t('overview.always_eligible')}</p>
+					{/if}
+				</div>
+				<div class="space-y-1">
+					<span class="text-xs font-medium text-muted-foreground">{ctx.t('overview.amount')}</span>
+					<pre
+						class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+							>{amountOf(row, family)}</code
+						></pre>
+				</div>
+			</Popover.Content>
+		</Popover.Root>
+	</div>
+{/snippet}
+
 {#if chain.length === 0}
 	<EmptyState title={ctx.t('v2.subtotals')} />
 {:else}
@@ -145,7 +192,7 @@
 						<Popover.Root>
 							<Popover.Trigger
 								class="text-muted-foreground hover:text-foreground"
-								aria-label={`How ${node.code} is calculated`}
+								aria-label={ctx.t('overview.how', { code: node.code })}
 							>
 								<Icon name="lucide:info" class="size-3.5" />
 							</Popover.Trigger>
@@ -174,128 +221,21 @@
 					<Accordion.Content>
 						<div class="grid gap-1 pb-2">
 							{#each producers.get(node.code) ?? [] as producer (producer.model + producer.row.code)}
-								<div class="flex items-start gap-2 rounded border px-2 py-2">
-									<span
-										class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {directionOf(
-											producer.row,
-											producer.model
-										) === '−'
-											? 'border-destructive/30 bg-destructive/10 text-destructive'
-											: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
-										>{directionOf(producer.row, producer.model)}</span
-									>
-									<div class="min-w-0 flex-1">
-										<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-											<span class="min-w-0 text-xs"
-												>{textOf(producer.row.description) || producer.row.code}</span
-											>
-											<Popover.Root>
-												<Popover.Trigger
-													class="shrink-0 text-muted-foreground hover:text-foreground"
-													aria-label={`How ${producer.row.code} is calculated`}
-													title="View eligibility and payroll amount"
-												>
-													<Icon name="lucide:info" class="size-3.5" />
-												</Popover.Trigger>
-												<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
-													<div class="space-y-1">
-														<span class="text-xs font-medium text-muted-foreground"
-															>Eligibility</span
-														>
-														{#if eligibilityOf(producer.row) !== ''}
-															<pre
-																class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
-																	>{eligibilityOf(producer.row)}</code
-																></pre>
-														{:else}
-															<p class="text-muted-foreground">Always eligible</p>
-														{/if}
-													</div>
-													<div class="space-y-1">
-														<span class="text-xs font-medium text-muted-foreground"
-															>Payroll amount</span
-														>
-														<pre
-															class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
-																>{amountOf(producer.row, producer.model)}</code
-															></pre>
-													</div>
-												</Popover.Content>
-											</Popover.Root>
-											<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">
-												{producer.model.replaceAll('_', ' ')}
-											</span>
-										</div>
-										{#if textOf(producer.row.description) !== ''}
-											<p class="mt-0.5 font-mono text-[11px] leading-snug text-muted-foreground">
-												{producer.row.code}
-											</p>
-										{/if}
-									</div>
-								</div>
+								{@render line(
+									producer.model,
+									producer.row,
+									directionOf(producer.row, producer.model),
+									ctx.t(`law_family.${producer.model}`)
+								)}
 							{/each}
-							{#if (statutories.get(node.code) ?? []).length > 0}
-								<div class="grid gap-1">
-									{#each statutories.get(node.code) ?? [] as scheme (scheme.code)}
-										<div class="flex items-start gap-2 rounded border px-2 py-2">
-											<span
-												class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border border-destructive/30 bg-destructive/10 font-mono text-[11px] text-destructive"
-												>−</span
-											>
-											<div class="min-w-0 flex-1">
-												<div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-													<span class="min-w-0 text-xs"
-														>{textOf(scheme.description) || scheme.code}</span
-													>
-													<Popover.Root>
-														<Popover.Trigger
-															class="shrink-0 text-muted-foreground hover:text-foreground"
-															aria-label={`How ${scheme.code} is calculated`}
-															title="View eligibility and payroll amount"
-														>
-															<Icon name="lucide:info" class="size-3.5" />
-														</Popover.Trigger>
-														<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
-															<div class="space-y-1">
-																<span class="text-xs font-medium text-muted-foreground"
-																	>Eligibility</span
-																>
-																{#if eligibilityOf(scheme) !== ''}
-																	<pre
-																		class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
-																			>{eligibilityOf(scheme)}</code
-																		></pre>
-																{:else}
-																	<p class="text-muted-foreground">Always eligible</p>
-																{/if}
-															</div>
-															<div class="space-y-1">
-																<span class="text-xs font-medium text-muted-foreground"
-																	>Payroll amount</span
-																>
-																<pre
-																	class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
-																		>{amountOf(scheme, 'statutory_contribution_catalog')}</code
-																	></pre>
-															</div>
-														</Popover.Content>
-													</Popover.Root>
-													<span class="ml-auto shrink-0 text-[10px] text-muted-foreground"
-														>{textOf(scheme.kind)}</span
-													>
-												</div>
-												{#if textOf(scheme.description) !== ''}
-													<p
-														class="mt-0.5 font-mono text-[11px] leading-snug text-muted-foreground"
-													>
-														{scheme.code}
-													</p>
-												{/if}
-											</div>
-										</div>
-									{/each}
-								</div>
-							{/if}
+							{#each statutories.get(node.code) ?? [] as scheme (scheme.code)}
+								{@render line(
+									'statutory_contribution_catalog',
+									scheme,
+									'−',
+									label(ctx, 'law', `kind.${textOf(scheme.kind)}`, enum_text(textOf(scheme.kind)))
+								)}
+							{/each}
 							{#if (producers.get(node.code) ?? []).length === 0 && (statutories.get(node.code) ?? []).length === 0}
 								<p class="px-1 text-xs text-muted-foreground">
 									{node.code === 'BASIC'

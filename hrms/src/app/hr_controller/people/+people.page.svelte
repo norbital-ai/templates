@@ -154,7 +154,7 @@
 				key={`people-${scope.id}`}
 				toolbar={{
 					title: ctx.t('app.people.profiles_title'),
-					new: false,
+					new: true,
 					actions: [
 						{
 							run: importRequest,

@@ -76,11 +76,11 @@
 	);
 </script>
 
+{#snippet actions()}{#if record?.state === 'UNPAID'}<Button disabled={paying} onclick={markPaid}
+			>{ctx.t('app.payroll.mark_paid')}</Button
+		>{/if}{/snippet}
 {#snippet summary()}<Stack size="fill" gap="sm"
 		>{#if record !== null}<Cluster gap="sm" justify="end">
-				{#if record.state === 'UNPAID'}<Button disabled={paying} onclick={markPaid}
-						>{ctx.t('app.payroll.mark_paid')}</Button
-					>{/if}
 				<Button variant="secondary" disabled={downloading} onclick={download}
 					>{ctx.t('app.payroll.export_listing')}</Button
 				>
@@ -121,7 +121,7 @@
 				{ctx}
 				of="pay_amendment"
 				key="run-amendments-waiting"
-				where={{ payroll_run_id: { is_null: true } }}
+				where={{ pay_group_id: { eq: record.pay_group_id }, payroll_run_id: { is_null: true } }}
 				toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_waiting') }}
 				columns={['employee_id', 'pay_group_id', 'period']}
 			/>
@@ -131,6 +131,7 @@
 	of="payroll_run"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
+	footer_actions={actions}
 >
 	{#if record === null}{@render summary()}{:else}<Tabs
 			tabs={[

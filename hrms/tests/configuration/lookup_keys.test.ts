@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
 import { LAW_ROWS } from '../../src/lib/law.ts';
+import { isObject } from '../kit.ts';
 import { SEEDED } from './seeded.ts';
 
 /** Every row of every seeded law on each of its change dates, and the settings beside them: each may hold a lookup. */
@@ -15,8 +16,6 @@ const sources = (dir: string): readonly string[] =>
 		const path = join(dir, name);
 		return statSync(path).isDirectory() ? sources(path) : /\.(ts|svelte)$/.test(name) ? [path] : [];
 	});
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value);
 /** Read by building the key, one per wage band. */
 const TABLES = new Set(['cpf_rates']);
 /** A row's named keys, and those of the objects directly under them. Deeper levels are tables, not settings. */

@@ -6,7 +6,7 @@ import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, current, pack, packTerms, storedQuery, uuid } from './kit.ts';
+import { ENTITY, WORK, accountsIn, current, pack, packTerms, storedQuery, uuid } from './kit.ts';
 
 export const dates = (month: string) => {
 	const last = new Date(
@@ -80,9 +80,47 @@ export const amendments = (t: Kit) =>
 	storedQuery(t, { pay_amendment: { limit: 1000 } }).pipe(
 		Effect.map(({ pay_amendment }) => pay_amendment.rows)
 	);
+/**
+ * An off-cycle run of a period that carries every waiting amended period: the way someone no on-cycle run of the company
+ * pays any more is paid what a correction owes them. Answers the act; the work it queues is the caller's to run.
+ */
+export const carriedOffCycle = (t: Kit, period: string) =>
+	Effect.gen(function* () {
+		const open = (yield* amendments(t)).filter((row) => row.payroll_run_id === null);
+		return yield* (yield* t.as(t.admin)).act({
+			'payroll_run.create': [
+				{
+					entity_id: ENTITY,
+					period,
+					kind: 'OFF_CYCLE',
+					amendments: open.map(({ id, revision }) => ({ id, revision }))
+				}
+			]
+		});
+	});
 export const signed = (line: { readonly direction: string; readonly amount: number }) =>
 	line.direction === 'DEDUCT' ? -line.amount : line.amount;
 export const cents = (value: number) => Number(value.toFixed(2));
+/** Each pay and statutory total of a month window, as the balance holds it. */
+export const monthTotals = (t: Kit) =>
+	accountsIn(t).pipe(
+		Effect.map((accounts) =>
+			Object.fromEntries(
+				(['pay', 'statutory'] as const).flatMap((family) =>
+					Object.entries(accounts[family] ?? {}).flatMap(([code, periods]) =>
+						Object.entries(periods)
+							.filter(([period]) => period.includes('.M.'))
+							.flatMap(([period, measures]) =>
+								Object.entries(measures).map(([measure, amount]) => [
+									`${family}/${code}/${period}/${measure}`,
+									cents(amount)
+								])
+							)
+					)
+				)
+			)
+		)
+	);
 /** A payslip's own lines (nothing it carries for an earlier period), signed, by code and party. */
 export const ownLines = (t: Kit, period: string, employee?: string) =>
 	slip(t, period, employee).pipe(

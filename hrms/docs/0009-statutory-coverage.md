@@ -2,7 +2,7 @@
 
 What law the public seed carries for each of its nine jurisdictions: the changes of law, the contributions and taxes, the leave types, the overtime rules, the other catalogue rows, and the rules and tasks the law registers. How these rows are used is in [the architecture](0001-hrms-calculation-architecture.md) and [the mechanisms, run through](0008-mechanisms-walkthrough.md).
 
-The tables were read from the 49 dated changes of `seed/public/jurisdiction/**`. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
+The tables were read from the 53 dated changes of `seed/public/jurisdiction/**`. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
 
 ## China (CN)
 
@@ -129,23 +129,23 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIO
 
 ### Contributions and taxes
 
-| Code                     | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                             | Value changed |
-| ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------- | ------------- |
-| `JHT`                    | contribution | BPJS old-age savings (JHT): 2% from the employee and 3.7% from the employer on the monthly wage, wh… | yes      | yes      | stops      | PP 46/2015 (+6 more)                                                   | —             |
-| `JP`                     | contribution | BPJS pension (JP): 1% from the employee and 2% from the employer on the monthly wage (basic pay plu… | yes      | yes      | stops      | PP 45/2015 (+5 more)                                                   | 2026-03-01    |
-| `JKK`                    | contribution | BPJS work accident insurance (JKK), paid by the employer only: 0.24% to 1.74% of the monthly wage b… | no       | yes      | stops      | PP 44/2015 (+5 more)                                                   | 2026-03-01    |
-| `JKM`                    | contribution | BPJS death insurance (JKM), paid by the employer only: 0.30% of the monthly wage (PP 44/2015 art.18… | no       | yes      | stops      | PP 44/2015 (+7 more)                                                   | —             |
-| `KESEHATAN`              | contribution | BPJS health insurance: 1% from the employee and 4% from the employer on the monthly wage, between t… | yes      | yes      | stops      | Perpres 82/2018 (+6 more)                                              | —             |
-| `JKP`                    | contribution | BPJS job loss insurance (JKP)                                                                        | no       | no       | stops      | PP 37/2021 as amended by PP 6/2025 (+5 more)                           | —             |
-| `PPH21`                  | tax          | Income tax withheld from the employee (PPh 21)                                                       | yes      | no       | refund     | PP 58/2023, art.2–3, art.3(4)–(6) (+11 more)                           | —             |
-| `PPH21_DTP`              | tax          | PPh 21 borne by the government in 2026 for employees of the labour-intensive industries listed, on…  | yes      | yes      | refund     | PMK 105/2025                                                           | 2026-01-01    |
-| `PPH21_FINAL_SEVERANCE`  | tax          | Final income tax on severance pay paid at once or within two calendar years, by its own rate ladder… | yes      | no       | refund     | PP 68/2009 arts.2(2),5–7: first two calendar years aggregat… (+1 more) | —             |
-| `PPH21_FINAL_PENSION`    | tax          | Final income tax on a pension benefit, old-age savings or JHT paid at once or within two calendar y… | yes      | no       | refund     | PP 68/2009 arts.2(2),5–7: first two calendar years aggregat… (+1 more) | —             |
-| `PPH21_BUKAN_PEGAWAI`    | tax          | Income tax on fees paid to an individual who is not an employee: the yearly rates on 50% of each pa… | yes      | no       | refund     | PMK 168/2023, arts.12(3)–(4), 13 (+2 more)                             | —             |
-| `PPH26`                  | tax          | Income tax on pay to a non-resident: 20% of the gross amount, final, or the tax treaty rate where a… | yes      | no       | stops      | UU 36/2008 (PPh) (+2 more)                                             | —             |
-| `DKPTKA`                 | contribution | The monthly compensation an employer pays for employing a foreign worker: USD 100 for each position… | no       | yes      | stops      | PP 34/2021, arts.1 angka 7, 23, 25                                     | —             |
-| `PPH21_BENEFIT_NONFINAL` | tax          | Income tax on severance or pension instalments paid from the third year after the first payment: th… | yes      | no       | refund     | PP68/2009 art.6; PMK16/PMK.03/2010 art.5 (+1 more)                     | —             |
-| `PPH21_EMPLOYER_BORNE`   | tax          | Where the contract says the employer bears the income tax, moves the month's PPh 21 from the employ… | yes      | yes      | refund     | UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP), art.…           | —             |
+| Code                     | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                    | Value changed |
+| ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ------------------------------------------------------------- | ------------- |
+| `JHT`                    | contribution | BPJS old-age savings (JHT): 2% from the employee and 3.7% from the employer on the monthly wage, wh… | yes      | yes      | stops      | PP 46/2015 (+6 more)                                          | —             |
+| `JP`                     | contribution | BPJS pension (JP): 1% from the employee and 2% from the employer on the monthly wage (basic pay plu… | yes      | yes      | stops      | PP 45/2015 (+5 more)                                          | 2026-03-01    |
+| `JKK`                    | contribution | BPJS work accident insurance (JKK), paid by the employer only: 0.24% to 1.74% of the monthly wage b… | no       | yes      | stops      | PP 44/2015 (+5 more)                                          | 2026-03-01    |
+| `JKM`                    | contribution | BPJS death insurance (JKM), paid by the employer only: 0.30% of the monthly wage (PP 44/2015 art.18… | no       | yes      | stops      | PP 44/2015 (+7 more)                                          | —             |
+| `KESEHATAN`              | contribution | BPJS health insurance: 1% from the employee and 4% from the employer on the monthly wage, between t… | yes      | yes      | stops      | Perpres 82/2018 (+6 more)                                     | —             |
+| `JKP`                    | contribution | BPJS job loss insurance (JKP)                                                                        | no       | no       | stops      | PP 37/2021 as amended by PP 6/2025 (+5 more)                  | —             |
+| `PPH21`                  | tax          | Income tax withheld from the employee (PPh 21)                                                       | yes      | no       | refund     | PP 58/2023, art.2–3, art.3(4)–(6) (+11 more)                  | —             |
+| `PPH21_DTP`              | tax          | PPh 21 borne by the government in 2026 for employees of the labour-intensive industries listed, on…  | yes      | yes      | refund     | PMK 105/2025                                                  | 2026-01-01    |
+| `PPH21_FINAL_SEVERANCE`  | tax          | Final income tax on severance pay paid at once or within two calendar years, by its own rate ladder… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                          | —             |
+| `PPH21_FINAL_PENSION`    | tax          | Final income tax on a pension benefit, old-age savings or JHT paid at once or within two calendar y… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                          | —             |
+| `PPH21_BUKAN_PEGAWAI`    | tax          | Income tax on fees paid to an individual who is not an employee: the yearly rates on 50% of each pa… | yes      | no       | refund     | PMK 168/2023, arts.12(3)–(4), 13 (+2 more)                    | —             |
+| `PPH26`                  | tax          | Income tax on pay to a non-resident: 20% of the gross amount, final, or the tax treaty rate where a… | yes      | no       | stops      | UU 36/2008 (PPh) (+2 more)                                    | —             |
+| `DKPTKA`                 | contribution | The monthly compensation an employer pays for employing a foreign worker: USD 100 for each position… | no       | yes      | stops      | PP 34/2021, arts.1 angka 7, 23, 25                            | —             |
+| `PPH21_BENEFIT_NONFINAL` | tax          | Income tax on severance or pension instalments paid from the third year after the first payment: th… | yes      | no       | refund     | PP 68/2009; PMK 16/PMK.03/2010 (+1 more)                      | —             |
+| `PPH21_EMPLOYER_BORNE`   | tax          | Where the contract says the employer bears the income tax, moves the month's PPh 21 from the employ… | yes      | yes      | refund     | UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP); PMK 1… | —             |
 
 ### Leave
 
@@ -332,13 +332,15 @@ Roster warnings (`ROSTER_DAILY_8H`): monthly overtime hours 45; consecutive days
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 7 later changes. Rows whose values differ from the law before each:
 
 - From 2026-01-01: statutory `HRDF`.
 - From 2026-03-01: ad hoc `ACCOMMODATION_RENT`.
 - From 2026-06-01: statutory `PCB`, `SKBBK`, `SOCSO`; effects `SOCSO_EIS_MONTHLY_CONTRIBUTION`; shared `lookup`.
 - From 2026-07-08: statutory `SKBBK`.
 - From 2027-01-01: statutory `HRDF`.
+- From 2028-06-01: statutory `SKBBK` (second phase, 1.00%).
+- From 2031-06-01: statutory `SKBBK` (third phase, 1.25%).
 
 ### Conversions and subtotal chain
 
@@ -348,16 +350,16 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `REGULAR_PAY` → `EXEMPT_ALL
 
 ### Contributions and taxes
 
-| Code              | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                                    | Value changed              |
-| ----------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------- | -------------------------- |
-| `EPF`             | contribution | Employees Provident Fund contribution for Malaysian citizens, and for permanent residents and pre-1… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Parts A and E (+13 more) | —                          |
-| `EPF_PR`          | contribution | Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Part C (+12 more)        | —                          |
-| `EPF_NON_CITIZEN` | contribution | Employees Provident Fund contribution for a non-citizen.                                             | yes      | yes      | refund     | Employees Provident Fund (Amendment) Act 2025 (Act A1760), s.10, Part F para 2 (+9 more)      | —                          |
-| `SOCSO`           | contribution | Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5… | yes      | yes      | refund     | Employees’ Social Security Act 1969 (Act 4) (+8 more)                                         | 2026-06-01                 |
-| `SKBBK`           | contribution | Contribution to the social security scheme for injuries outside work, paid by the employee only, fr… | yes      | no       | refund     | Employees’ Social Security (Amendment) Act 2026 (Act A1788) (+8 more)                         | new 2026-06-01, 2026-07-08 |
-| `EIS`             | contribution | Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution…  | yes      | yes      | refund     | Employment Insurance System Act 2017 (Act 800) (+7 more)                                      | —                          |
-| `PCB`             | tax          | Monthly tax deduction from the employee's pay: the year's tax is worked out from pay to date, relie… | yes      | no       | stops      | Income Tax Act 1967 (Act 53) (+17 more)                                                       | 2026-06-01                 |
-| `HRDF`            | contribution | Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no…  | no       | yes      | stops      | HRD Corp Employers' Circular 01/2026: education-employer le… (+10 more)                       | 2026-01-01, 2027-01-01     |
+| Code              | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                                    | Value changed                                      |
+| ----------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `EPF`             | contribution | Employees Provident Fund contribution for Malaysian citizens, and for permanent residents and pre-1… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Parts A and E (+13 more) | —                                                  |
+| `EPF_PR`          | contribution | Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Part C (+12 more)        | —                                                  |
+| `EPF_NON_CITIZEN` | contribution | Employees Provident Fund contribution for a non-citizen.                                             | yes      | yes      | refund     | Employees Provident Fund (Amendment) Act 2025 (Act A1760), s.10, Part F para 2 (+9 more)      | —                                                  |
+| `SOCSO`           | contribution | Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5… | yes      | yes      | refund     | Employees’ Social Security Act 1969 (Act 4) (+8 more)                                         | 2026-06-01                                         |
+| `SKBBK`           | contribution | Contribution to the social security scheme for injuries outside work, paid by the employee only, fr… | yes      | no       | refund     | Employees’ Social Security (Amendment) Act 2026 (Act A1788) (+8 more)                         | new 2026-06-01, 2026-07-08, 2028-06-01, 2031-06-01 |
+| `EIS`             | contribution | Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution…  | yes      | yes      | refund     | Employment Insurance System Act 2017 (Act 800) (+7 more)                                      | —                                                  |
+| `PCB`             | tax          | Monthly tax deduction from the employee's pay: the year's tax is worked out from pay to date, relie… | yes      | no       | stops      | Income Tax Act 1967 (Act 53) (+17 more)                                                       | 2026-06-01                                         |
+| `HRDF`            | contribution | Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no…  | no       | yes      | stops      | HRD Corp Employers' Circular 01/2026 (+10 more)                                               | 2026-01-01, 2027-01-01                             |
 
 ### Leave
 
@@ -445,8 +447,8 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `BASIC_AFTER_UNPAID_LEAVE` �
 | `SSS_EC`           | contribution | Employees' Compensation contribution, paid by the employer only: ₱10 a month where the salary credi… | no       | yes      | stops      | Presidential Decree 626 (Employees Compensation) as amended (+6 more)                               | —             |
 | `PHIC`             | contribution | PhilHealth premium: 5% of the monthly basic salary, between ₱10,000 and ₱100,000, shared equally by… | yes      | yes      | stops      | Republic Act 11223 (Universal Health Care Act), section 10 (+5 more)                                | —             |
 | `HDMF`             | contribution | Pag-IBIG Fund contribution on the month's pay up to ₱10,000: the employee pays 2% (1% on pay of ₱1,… | yes      | yes      | refund     | Republic Act 9679, ss.6-7 (+5 more)                                                                 | —             |
-| `WTAX_TAXABLE_PAY` | tax          | A record of the run's taxable regular pay, kept so that a later run in the same month taxes its pay… | no       | yes      | stops      | RR 11-2018 s.2.79(B)(3): supplementary pay is taxed with th…                                        | —             |
-| `WTAX`             | tax          | Income tax withheld on compensation: the withholding table for the pay period applied to taxable pa… | yes      | no       | refund     | Read 2026-10-31: rice and laundry ceilings apply independen… (+10 more)                             | 2026-01-06    |
+| `WTAX_TAXABLE_PAY` | tax          | A record of the run's taxable regular pay, kept so that a later run in the same month taxes its pay… | no       | yes      | stops      | Revenue Regulations 11-2018, s.2.79(B)(3)                                                           | —             |
+| `WTAX`             | tax          | Income tax withheld on compensation: the withholding table for the pay period applied to taxable pa… | yes      | no       | refund     | Revenue Regulations 29-2025 amending RR 2-98 (+10 more)                                             | 2026-01-06    |
 | `FBT`              | tax          | Fringe benefit tax on benefits given to managerial and supervisory employees, paid by the employer:… | no       | yes      | stops      | National Internal Revenue Code (as amended by RA 10963), section 33 (+1 more)                       | —             |
 
 ### Leave
@@ -502,12 +504,13 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; consecutive days 6; weekly 
 
 ### Registered effects: the tasks raised
 
-53 effects; every one writes `obligation.create`.
+54 effects; every one writes `obligation.create`.
 
 - **`employment`** on create, update (10): `ALIEN_EMPLOYMENT_PERMIT`, `BIR_EMPLOYEE_TIN_REGISTRATION`, `CAREGIVER_CONTRACT`, `COMPULSORY_RETIREMENT_AGE`, `HDMF_EMPLOYEE_REGISTRATION`, `KASAMBAHAY_CONTRACT_AND_REGISTRY`, `PHILHEALTH_EMPLOYEE_REPORT`, `PROBATIONARY_STANDARDS` and 2 more.
 - **`employment`** on exit (8): `AUTHORISED_CAUSE_TERMINATION_NOTICE`, `FINAL_PAY_RELEASE`, `HDMF_SEPARATION_REPORT`, `JUST_CAUSE_TWIN_NOTICE`, `KASAMBAHAY_TERMINATION_NOTICE`, `PERSONAL_DATA_DISPOSAL`, `PHILHEALTH_SEPARATION_REPORT`, `raise-exit-pay`.
 - **`entity_change`** on create, update (8): `BIR_WITHHOLDING_AGENT_REGISTRATION`, `DOLE_ESTABLISHMENT_REGISTRATION`, `DPO_DESIGNATION`, `HDMF_EMPLOYER_REGISTRATION`, `NPC_REGISTRATION`, `NPC_REGISTRATION_RENEWAL`, `PHILHEALTH_EMPLOYER_REGISTRATION`, `SSS_EMPLOYER_REGISTRATION`.
 - **`payroll_run`** on create (16): `ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES`, `BIR_1601C_MONTHLY_REMITTANCE`, `BIR_1603Q_FRINGE_BENEFITS`, `BIR_1604C_ANNUAL_ALPHALIST`, `BIR_2316_CERTIFICATE`, `BIR_2316_SUBSTITUTED_FILING_LIST`, `BIR_YEAR_END_ADJUSTMENT`, `DOLE_ANNUAL_EXPOSURE_DATA_REPORT` and 8 more.
+- **`payroll_run`** on update (1): `THIRTEENTH_MONTH_FLOOR`.
 - **`workplace_case_catalog_entry`** on create (11): `BIR_2316_LEAVER_CERTIFICATE`, `CERTIFICATE_OF_EMPLOYMENT`, `DOLE_DANGEROUS_OCCURRENCE_REPORT`, `DOLE_FLEXIBLE_WORK_ARRANGEMENT_NOTICE`, `DOLE_SERIOUS_ACCIDENT_NOTICE`, `DOLE_SUSPENSION_EXTENSION_REPORT`, `DOLE_TELECOMMUTING_NOTICE`, `DOLE_WORK_ACCIDENT_REPORT` and 3 more.
 
 ### Employer pay methods
@@ -630,11 +633,13 @@ Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 3 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
 - From 2025-12-07: statutory `PND1`; leave `CHILD_CARE_LEAVE`, `MATERNITY_LEAVE`, `PATERNITY_LEAVE`.
 - From 2026-01-01: statutory `SSO`.
 - From 2027-01-01: statutory `EWF`; workplace case `EQUIVALENT_WELFARE_BENEFICIARY_REQUEST`, `EQUIVALENT_WELFARE_EMPLOYMENT_END`, `EQUIVALENT_WELFARE_FIRST_WITHHOLDING`, `EQUIVALENT_WELFARE_INSPECTION_REQUEST`, `EQUIVALENT_WELFARE_SETUP`; effects `EWF_REMITTANCE`, `EWF_WELFARE_ACCOUNT_DISCLOSURE`, `EWF_WELFARE_ACCOUNT_INSPECTION`, `EWF_WELFARE_ACCOUNT_RETURN`, `EWF_WELFARE_BENEFICIARY_WITHDRAWAL` and 1 more.
+- From 2029-01-01: statutory `SSO` (wage ceiling 20,000 baht).
+- From 2032-01-01: statutory `SSO` (wage ceiling 23,000 baht).
 
 ### Conversions and subtotal chain
 
@@ -644,14 +649,14 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIO
 
 ### Contributions and taxes
 
-| Code             | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                   | Value changed  |
-| ---------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------------- | -------------- |
-| `SSO`            | contribution | Social security contribution: 5% each from the employee and the employer on the month's wage, count… | yes      | yes      | stops      | Social Security Act B.E. 2533 (1990) ss.33, 46, 47; Ministe… (+1 more)       | 2026-01-01     |
-| `WCF`            | contribution | Workmen's Compensation Fund contribution, paid by the employer only: the rate for the company's bus… | no       | yes      | stops      | Workmen's Compensation Act B.E. 2537 (1994) ss.5, 44-45; Mi…                 | —              |
-| `PVD`            | contribution | Provident fund contribution at the rates in the company's registered fund rules: 2% to 15% of wages… | yes      | yes      | stops      | Provident Fund Act B.E. 2530 (1987) s.10 (as amended by Act…, s.10 (+1 more) | —              |
-| `PND1`           | tax          | Income tax withheld from pay: the year's regular pay is projected, expenses (50%, up to 100,000 bah… | yes      | no       | stops      | Revenue Code ss.40(1), 42 bis, 47, 48, 50(1); Revenue Depar… (+5 more)       | 2025-12-07     |
-| `PND1_SEVERANCE` | tax          | Income tax on a lump sum paid on leaving after at least five years of service, taxed apart from oth… | yes      | no       | stops      | Revenue Code s.48(5), s.48(5) (+2 more)                                      | —              |
-| `EWF`            | contribution | Employee Welfare Fund contribution: 0.25% of the month’s ordinary wages each from the employee and…  | yes      | yes      | stops      | Labour Protection Act B.E. 2541 (1998) ss.126-131; Minister… (+2 more)       | new 2027-01-01 |
+| Code             | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                   | Value changed                      |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------------- | ---------------------------------- |
+| `SSO`            | contribution | Social security contribution: 5% each from the employee and the employer on the month's wage, count… | yes      | yes      | stops      | Social Security Act B.E. 2533 (1990), ss.33, 46, 47 (+2 more)                | 2026-01-01, 2029-01-01, 2032-01-01 |
+| `WCF`            | contribution | Workmen's Compensation Fund contribution, paid by the employer only: the rate for the company's bus… | no       | yes      | stops      | Workmen's Compensation Act B.E. 2537 (1994) ss.5, 44-45; Mi…                 | —                                  |
+| `PVD`            | contribution | Provident fund contribution at the rates in the company's registered fund rules: 2% to 15% of wages… | yes      | yes      | stops      | Provident Fund Act B.E. 2530 (1987) s.10 (as amended by Act…, s.10 (+1 more) | —                                  |
+| `PND1`           | tax          | Income tax withheld from pay: the year's regular pay is projected, expenses (50%, up to 100,000 bah… | yes      | no       | stops      | Revenue Code ss.40(1), 42 bis, 47, 48, 50(1); Revenue Depar… (+5 more)       | 2025-12-07                         |
+| `PND1_SEVERANCE` | tax          | Income tax on a lump sum paid on leaving after at least five years of service, taxed apart from oth… | yes      | no       | stops      | Revenue Code s.48(5), s.48(5) (+2 more)                                      | —                                  |
+| `EWF`            | contribution | Employee Welfare Fund contribution: 0.25% of the month’s ordinary wages each from the employee and…  | yes      | yes      | stops      | Labour Protection Act B.E. 2541 (1998) ss.126-131; Minister… (+2 more)       | new 2027-01-01                     |
 
 ### Leave
 
@@ -936,7 +941,7 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 ## How to read the tables
 
-- **Changes of law.** How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2028-07-01).
+- **Changes of law.** How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2032-01-01).
 - **Rounding.** Every law rounds the day rate before it multiplies the days, except the Philippines, which rounds only the amount (`rounding.day_rate: AMOUNT`).
 - **A run reads only its own law.** A payroll run reads the catalogues of its own jurisdiction's law on its pay date, never another country's.
 - **Contributions and taxes.** "Employee" and "Employer" say whether the row computes that side. "Below zero" says what the row does when a month's figure comes out negative: `refund` pays a refund line because its statute has the employer repay; `stops` stops at zero and the next run nets it. "First reference on the row" is the first of the row's own `references`; the row holds the full list, with locators, quotes and links.
@@ -949,16 +954,17 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 The seed carries no row for these, so nothing computes or enforces them.
 
-| Jurisdiction | Not enforced                                                                                                                                                               |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CN           | No rule caps a shift template's ordinary hours at eight a day. No registered rule in any jurisdiction checks a shift definition                                            |
-| CN           | No row values an equity incentive or applies its separate tax method                                                                                                       |
-| MY           | No row values a benefit in kind or living accommodation for the monthly tax deduction (PCB)                                                                                |
-| MY           | No row adjusts a results-paid worker's month with no results (Minimum Wages Order 2024 para 5(2))                                                                          |
-| PH           | No claim row carries a yearly limit, so a medical claim is not held to one                                                                                                 |
-| SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row |
-| SG           | No row records the employer's recovery of work-injury medical costs from its insurer                                                                                       |
-| All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                   |
+| Jurisdiction | Not enforced                                                                                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CN           | No rule caps a shift template's ordinary hours at eight a day. No registered rule in any jurisdiction checks a shift definition                                                                                     |
+| CN           | No row values an equity incentive or applies its separate tax method                                                                                                                                                |
+| MY           | No row values a benefit in kind or living accommodation for the monthly tax deduction (PCB)                                                                                                                         |
+| MY           | No row adjusts a results-paid worker's month with no results (Minimum Wages Order 2024 para 5(2))                                                                                                                   |
+| PH           | No claim row carries a yearly limit, so a medical claim is not held to one                                                                                                                                          |
+| PH           | The 13th-month task compares one twelfth of the year's basic pay with 13th-month pay and cash bonuses together, the one figure the balance holds for them, and counts no maternity salary differential as basic pay |
+| SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row                                          |
+| SG           | No row records the employer's recovery of work-injury medical costs from its insurer                                                                                                                                |
+| All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                                                            |
 
 ## How it is verified
 

@@ -2,6 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { EmptyState, Table, Tabs } from '@norbital-ai/ui';
+	import { periodLabel } from '../../../lib/ui/format/period_label.js';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -36,6 +37,10 @@
 			: `${title} (${rows.length === COUNTED ? `${COUNTED - 1}+` : rows.length})`;
 </script>
 
+{#snippet periodCell({ value }: { value: unknown })}{periodLabel(
+		ctx,
+		String(value ?? '')
+	)}{/snippet}
 {#snippet runs()}{#if company}<Table
 			{ctx}
 			of="payroll_run"
@@ -43,7 +48,12 @@
 			where={{ entity_id: { eq: company.id }, state: { eq: 'UNPAID' } }}
 			order_by={{ pay_date: 'asc' }}
 			toolbar={{ new: false, delete: false, title: ctx.t('app.month_close.runs') }}
-			columns={['period', 'pay_group_id', 'kind', 'pay_date']}
+			columns={[
+				{ field: 'period', label: ctx.t('app.payroll.period'), cell: periodCell },
+				'pay_group_id',
+				'kind',
+				'pay_date'
+			]}
 		/>{/if}{/snippet}
 {#snippet duties()}{#if company}<Table
 			{ctx}

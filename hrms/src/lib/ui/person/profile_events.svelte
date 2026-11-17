@@ -10,7 +10,9 @@
 		EmptyState,
 		Section,
 		Sheet,
+		enum_text,
 		format,
+		label,
 		value_object,
 		type Kind,
 		type Value
@@ -20,7 +22,6 @@
 	import { Effect } from 'effect';
 	import VersionTimeline from '../components/version_timeline.svelte';
 	import { paidPeriods } from '../payroll/paid_period.svelte.js';
-	import { fieldLabel } from './change_summary.js';
 	import type { PersonRead, StintRow } from './person_read.svelte.js';
 	import { saved } from './save.js';
 
@@ -51,15 +52,17 @@
 			.map((event, index) => ({
 				id: String(index),
 				period: day(event.on),
-				status: fieldLabel(event.kind.toLowerCase()),
+				status: enum_text(event.kind),
 				detail: [
 					...(event.opened_on == null
 						? []
-						: [`${fieldLabel('opened_on')}: ${day(event.opened_on)}`]),
-					...(event.ended_on == null ? [] : [`${fieldLabel('ended_on')}: ${day(event.ended_on)}`]),
+						: [`${label(ctx, 'employment', 'events.opened_on')}: ${day(event.opened_on)}`]),
+					...(event.ended_on == null
+						? []
+						: [`${label(ctx, 'employment', 'events.ended_on')}: ${day(event.ended_on)}`]),
 					...(event.allocated_days == null
 						? []
-						: [`${fieldLabel('allocated_days')}: ${event.allocated_days}`])
+						: [`${label(ctx, 'employment', 'events.allocated_days')}: ${event.allocated_days}`])
 				].join(' · ')
 			}));
 	/** The events as the stint stores them: the editor answers plain values. */

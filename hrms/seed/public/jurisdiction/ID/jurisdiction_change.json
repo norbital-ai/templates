@@ -3979,11 +3979,14 @@
 							"quote": "PPh 21 DTP (borne by the government) is not part of this scheme; see the PPh 21 DTP scheme."
 						},
 						{
-							"title": "PMK 168/2023 art.9(4)–(5): PTKP is the declared status at calendar-year start, or arrival part-year start for a new resident. Current marital or dependant changes do not alter that year.",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+							"title": "PMK 168/2023",
+							"locator": "art.9(4)–(5)",
+							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"quote": "PTKP is the declared status at calendar-year start, or arrival part-year start for a new resident. Current marital or dependant changes do not alter that year."
 						},
 						{
-							"title": "PMK168/2023 art19(1),(3)",
+							"title": "PMK 168/2023",
+							"locator": "art.19(1), (3)",
 							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						},
 						{
@@ -4185,11 +4188,14 @@
 					"employer_amount": "return 0;",
 					"references": [
 						{
-							"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded.",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+							"title": "PP 68/2009",
+							"locator": "arts.2(2), 5–7",
+							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						},
 						{
-							"title": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
+							"title": "PP 68/2009; PMK 16/PMK.03/2010",
+							"locator": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
 							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
 							"quote": "The 20% surcharge without an NPWP is stated only for the non-final withholding of the third year onward; arts.3–5 of the final schedule carry none, so this row adds none."
 						}
@@ -4220,11 +4226,14 @@
 					"employer_amount": "return 0;",
 					"references": [
 						{
-							"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded.",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+							"title": "PP 68/2009",
+							"locator": "arts.2(2), 5–7",
+							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						},
 						{
-							"title": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
+							"title": "PP 68/2009; PMK 16/PMK.03/2010",
+							"locator": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
 							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
 							"quote": "The 20% surcharge without an NPWP is stated only for the non-final withholding of the third year onward; arts.3–5 of the final schedule carry none, so this row adds none."
 						}
@@ -4257,7 +4266,8 @@
 							"quote": "20% more without a validated tax number."
 						},
 						{
-							"title": "PMK168/2023 art19(1),(3)",
+							"title": "PMK 168/2023",
+							"locator": "art.19(1), (3)",
 							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						}
 					],
@@ -4287,7 +4297,8 @@
 							"quote": "20% final, or the treaty rate where the non-resident gives the certificate of domicile."
 						},
 						{
-							"title": "PMK168/2023 art19(1),(3)",
+							"title": "PMK 168/2023",
+							"locator": "art.19(1), (3)",
 							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						}
 					],
@@ -4329,14 +4340,16 @@
 					"employer_amount": "return 0;",
 					"references": [
 						{
-							"title": "PP68/2009 art.6; PMK16/PMK.03/2010 art.5",
+							"title": "PP 68/2009; PMK 16/PMK.03/2010",
+							"locator": "PP 68/2009 art.6; PMK 16/PMK.03/2010 art.5(1)–(3); benefit first payment year plus two or later",
 							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
-							"locator": "art.5(1)–(3); benefit first payment year plus two or later",
 							"quote": "Apply one annual progressive ladder to the gross non-final severance and pension/THT/JHT instalments, with no PTKP or employment-expense deduction; invalid NPWP/NIK adds20%. Only native documented origins and due/payment dates in the same tax month are supported. Same-year ordinary employee/nonemployee income, active employment, negative corrections and missing/external opening evidence refuse."
 						},
 						{
-							"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded.",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+							"title": "PP 68/2009",
+							"locator": "arts.2(2), 5–7",
+							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						}
 					],
 					"balance_window": "MONTH",
@@ -4355,8 +4368,9 @@
 					"employer_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst tax = Number(get(ctx.statutory, 'PPH21.employee', 0)) + Number(get(ctx.statutory, 'PPH21_DTP.employee', 0));\nconst casual = ['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY')) ||\n\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')) ||\n\tget(employment, 'engagement', '') === 'PART_TIME';\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0)) +\n\tNumber(get(ctx.posted, 'BENEFIT.employer', 0));\n// PMK 168/2023 art.5(3)(d)–(e): a permanent employee's income carries the employer premiums.\nconst income = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + (casual ? 0 : premiums);\nconst items = get(ctx.run, 'kind', '') === 'OFF_CYCLE'\n\t? 0\n\t: sum(get(terms, 'employee_borne_tax_items', []).map((code) => Number(get(terms, 'allowances.' + code + '.amount', 0))));\nconst own = income > 0 ? round((tax * Math.min(items, income)) / income, ctx.lookup.whole_unit, 'HALF_UP') : 0;\nreturn Math.max(0, tax - own);",
 					"references": [
 						{
-							"title": "UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP), art.21(1)(a); PMK 168/2023 art.5",
-							"locator": "art.21(1)(a): the employer withholds and pays PPh 21 on employment income; the employment agreement decides who bears it"
+							"title": "UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP); PMK 168/2023",
+							"locator": "UU 7/1983 art.21(1)(a); PMK 168/2023 art.5",
+							"quote": "The employer withholds and pays PPh 21 on employment income; the employment agreement decides who bears it."
 						}
 					],
 					"balance_window": "YEAR",
@@ -6653,7 +6667,14 @@
 					"order": 18,
 					"lookup": {
 						"triggers": ["first_employed_on", "operations_started_on"]
-					}
+					},
+					"references": [
+						{
+							"title": "UU 7/1981",
+							"locator": "art.6(1)",
+							"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+						}
+					]
 				},
 				"ROSTER_UNDER_13": {
 					"description": "Refuses a roster day for a worker under 13; the same rule supplies the seeded daily and weekly work limits.",
@@ -16386,10 +16407,10 @@
 							"title": "UU 13/2003 art.59 as amended by UU 6/2023"
 						},
 						{
-							"title": "UU 27/2026",
-							"locator": "art.82(2); read 2026-11-13",
-							"url": "https://www.lawyerpontianak.com/2026/11/begini-ketentuan-uu-nomor-27-tahun-2026.html",
-							"quote": "An initial term of up to 2 years, with up to 2 extensions of up to 1 year each: at most 4 years. Same in regulasikerja.com and gebrak.id.",
+							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
+							"locator": "art.82(2)",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "ditentukan paling lama 2 (dua) tahun dan hanya dapat diperpanjang 2 (dua) kali dengan masing-masing perpanjangan paling lama 1 (satu) tahun.",
 							"effective_from": "2026-10-28"
 						}
 					],
@@ -16515,10 +16536,10 @@
 							"title": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PP 68/2009 art.1 angka 4 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26."
 						},
 						{
-							"title": "UU 27/2026",
-							"locator": "art.233(2); read 2026-11-13",
-							"url": "https://www.lawyerpontianak.com/2026/11/begini-ketentuan-uu-nomor-27-tahun-2026.html",
-							"quote": "Uang pisah \"dapat ditetapkan\" at a minimum of one month’s wage where the company has not regulated it: a discretion, so the pack keeps the amount entered (lower bound).",
+							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
+							"locator": "arts.233, 241(2), 242(1), 243(3), 245(3), (6)",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "Dalam hal Perusahaan tidak mengatur besaran uang pisah maka dapat ditetapkan besaran uang pisah paling sedikit 1 (satu) bulan Upah.",
 							"effective_from": "2026-10-28"
 						}
 					],
@@ -16531,7 +16552,7 @@
 							"MERGER_EMPLOYER_UNWILLING": 2,
 							"ACQUISITION": 1,
 							"ACQUISITION_TERMS_CHANGE_REJECTED": 1,
-							"EFFICIENCY_ACTUAL_LOSS": 1,
+							"EFFICIENCY_ACTUAL_LOSS": 0.5,
 							"EFFICIENCY_PREVENT_LOSS": 1,
 							"CLOSURE_LOSS": 1,
 							"CLOSURE_NO_LOSS": 1,
@@ -16557,20 +16578,21 @@
 						},
 						{
 							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
-							"locator": "arts.232, 236–249, 313; read 2026-11-13",
-							"url": "https://www.callmylawyer.id/artikel/pesangon-uu-27-2026",
-							"quote": "Multipliers (pesangon / UPMK): employer will not accept after a merger 2/1 (art.236(2)); closure after two years of loss 1/1 (art.237); closure by the owner 1/1.5 (art.238); force majeure, PKPU or bankruptcy 1/1 (arts.239–240); worker request for employer misconduct 2/1 (art.241(1)); violation after warnings 1/1 (art.244); long illness or disability 2/2 (art.246); retirement 2/1 (art.247); death 2/1 (art.249). Same table in lawyerpontianak.com; official text https://jdih.setneg.go.id/detailperaturan?jns=UU&no=27&thn=2026 not read.",
+							"locator": "arts.231, 232(1)–(3), 236–241, 244–247, 249, 250, 310, 313",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "Pemberi Kerja wajib membayar uang pesangon dan/atau uang penghargaan masa kerja dan uang penggantian hak yang seharusnya diterima dengan faktor pengali sesuai dengan alasan Pemutusan Hubungan Kerja (art.232(1)). Pesangon / UPMK: merger, consolidation, acquisition or separation where the worker will not continue 1/1 (art.236(1)), where the employer will not take the worker 2/1 (art.236(2)); closure after two years of loss 1/1 (art.237); permanent closure by the owner 1/1.5 (art.238); force majeure 1/1 (art.239); debt suspension or bankruptcy 1/1 (art.240); worker request for employer misconduct 2/1 (art.241(1)); violation after three warnings 1/1 (art.244); detention without loss to the company UPMK 1 only (art.245(4)); long illness or disability 2/2 (art.246); retirement 2/1 (art.247); death 2/1 (art.249). A micro or small enterprise pays the agreed amount (art.250). Art.231 lists no termination for efficiency: its factors stay those of PP 35/2021 art.43, in force under art.310 where not contrary to the Act.",
 							"effective_from": "2026-10-28"
 						},
 						{
-							"title": "UU 27/2026 art.234(1); UU 13/2003 art.157 (repealed 28 Oct 2026)",
-							"locator": "art.234(1); read 2026-11-13",
-							"url": "https://www.callmylawyer.id/artikel/pesangon-uu-27-2026",
-							"quote": "The base is upah pokok plus tunjangan tetap (art.234(1)). The 30-day month of a daily wage and the minimum-wage floor are kept from art.157 pending the official text of art.234."
+							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
+							"locator": "art.234(1)–(2), (4)",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "Komponen Upah yang digunakan sebagai dasar perhitungan uang pesangon dan uang penghargaan masa kerja terdiri atas: a. Upah pokok; dan b. tunjangan tetap yang diberikan kepada Pekerja/Buruh dan keluarganya. […] Upah sebulan sama dengan 30 (tiga puluh) dikalikan Upah 1 (satu) Hari.",
+							"effective_from": "2026-10-28"
 						}
 					],
-					"description": "Severance pay on termination: one month's wage (basic plus fixed allowances, at least the worksite minimum wage) for each year of service, up to nine, times the factor for the cause listed in the lookup — 2 for retirement, death, long illness or disability, a merger the employer will not take the worker into, or a worker's request for the employer's misconduct; 1 for every other cause (UU 27/2026 arts.232, 236–249). A micro or small enterprise pays the agreed amount.",
-					"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'statutory_parameters', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'statutory_parameters.agreed_pesangon_amount', null);\nif (get(ctx.subject.employment, 'statutory_parameters.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'statutory_parameters.termination_cause', null));\n// every listed cause has its factor in the lookup\nreturn wage * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 1);"
+					"description": "Severance pay on termination: one month's wage (basic plus fixed allowances, at least the worksite minimum wage) for each year of service, up to nine, times the factor for the cause listed in the lookup — 2 for retirement, death, long illness or disability, a merger the employer will not take the worker into, or a worker's request for the employer's misconduct; 0.5 for efficiency after losses, which the Act does not list (PP 35/2021 art.43(1)); 1 for every other cause (UU 27/2026 arts.232, 236–249). A micro or small enterprise pays the agreed amount.",
+					"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 27/2026 art.234(2)); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'statutory_parameters', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'statutory_parameters.agreed_pesangon_amount', null);\nif (get(ctx.subject.employment, 'statutory_parameters.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'statutory_parameters.termination_cause', null));\n// every listed cause has its factor in the lookup\nreturn wage * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 1);"
 				},
 				"UPMK": {
 					"lookup": {
@@ -16606,20 +16628,21 @@
 						},
 						{
 							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
-							"locator": "arts.232, 236–249, 313; read 2026-11-13",
-							"url": "https://www.callmylawyer.id/artikel/pesangon-uu-27-2026",
-							"quote": "Multipliers (pesangon / UPMK): employer will not accept after a merger 2/1 (art.236(2)); closure after two years of loss 1/1 (art.237); closure by the owner 1/1.5 (art.238); force majeure, PKPU or bankruptcy 1/1 (arts.239–240); worker request for employer misconduct 2/1 (art.241(1)); violation after warnings 1/1 (art.244); long illness or disability 2/2 (art.246); retirement 2/1 (art.247); death 2/1 (art.249). Same table in lawyerpontianak.com; official text https://jdih.setneg.go.id/detailperaturan?jns=UU&no=27&thn=2026 not read.",
+							"locator": "arts.231, 232(1)–(3), 236–241, 244–247, 249, 250, 310, 313",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "Pemberi Kerja wajib membayar uang pesangon dan/atau uang penghargaan masa kerja dan uang penggantian hak yang seharusnya diterima dengan faktor pengali sesuai dengan alasan Pemutusan Hubungan Kerja (art.232(1)). Pesangon / UPMK: merger, consolidation, acquisition or separation where the worker will not continue 1/1 (art.236(1)), where the employer will not take the worker 2/1 (art.236(2)); closure after two years of loss 1/1 (art.237); permanent closure by the owner 1/1.5 (art.238); force majeure 1/1 (art.239); debt suspension or bankruptcy 1/1 (art.240); worker request for employer misconduct 2/1 (art.241(1)); violation after three warnings 1/1 (art.244); detention without loss to the company UPMK 1 only (art.245(4)); long illness or disability 2/2 (art.246); retirement 2/1 (art.247); death 2/1 (art.249). A micro or small enterprise pays the agreed amount (art.250). Art.231 lists no termination for efficiency: its factors stay those of PP 35/2021 art.43, in force under art.310 where not contrary to the Act.",
 							"effective_from": "2026-10-28"
 						},
 						{
-							"title": "UU 27/2026 art.234(1); UU 13/2003 art.157 (repealed 28 Oct 2026)",
-							"locator": "art.234(1); read 2026-11-13",
-							"url": "https://www.callmylawyer.id/artikel/pesangon-uu-27-2026",
-							"quote": "The base is upah pokok plus tunjangan tetap (art.234(1)). The 30-day month of a daily wage and the minimum-wage floor are kept from art.157 pending the official text of art.234."
+							"title": "UU 27/2026 on Pelindungan Ketenagakerjaan",
+							"locator": "art.234(1)–(2), (4)",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
+							"quote": "Komponen Upah yang digunakan sebagai dasar perhitungan uang pesangon dan uang penghargaan masa kerja terdiri atas: a. Upah pokok; dan b. tunjangan tetap yang diberikan kepada Pekerja/Buruh dan keluarganya. […] Upah sebulan sama dengan 30 (tiga puluh) dikalikan Upah 1 (satu) Hari.",
+							"effective_from": "2026-10-28"
 						}
 					],
 					"description": "Long-service pay on termination: from two months' wage after three years of service up to ten months' after 24 years, times the factor for the cause listed in the lookup — 1.5 for a closure by the owner's decision, 2 for long illness or disability, 1 otherwise (UU 27/2026 arts.232(3), 238, 246). A micro or small enterprise pays the agreed amount.",
-					"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 13/2003 art.157(2) as amended); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'statutory_parameters', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'statutory_parameters.agreed_upmk_amount', null);\nif (get(ctx.subject.employment, 'statutory_parameters.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'statutory_parameters.termination_cause', null));\n// UU 27/2026 arts.238, 246: the UPMK factor of the cause, 1 unless the lookup names another\nreturn wage * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 1);"
+					"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\n// a daily wage's month is 30 days' wage (UU 27/2026 art.234(2)); month_wage is salary plus fixed allowances, so a day rate's allowance part is the difference\nconst monthly =\n\tget(get(terms, 'rate', {}), 'unit', 'MONTHLY') === 'DAILY'\n\t\t? ctx.day_rate * 30 + (ctx.month_wage - ctx.day_rate * ctx.working_days)\n\t\t: ctx.month_wage;\n\n// art.157(4) as amended: a month below the worksite minimum wage counts at the minimum wage (not for a micro or small enterprise)\nconst facts = get(ctx.subject.employer, 'statutory_parameters', {});\nconst region = get(ctx.subject.employment, 'terms.work_region', '') || get(facts, 'region', '');\nconst floor = get(facts, 'enterprise_size_class', '') === 'MICRO_OR_SMALL' ? 0 : get(ctx.lookup.by_region, region, 0);\nconst wage = Math.max(monthly, floor);\nconst months = calendar_completed_months(get(ctx.subject.employment, 'service_started_on', ctx.subject.employment.effective_range.from), get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'statutory_parameters.agreed_upmk_amount', null);\nif (get(ctx.subject.employment, 'statutory_parameters.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'statutory_parameters.termination_cause', null));\n// UU 27/2026 arts.238, 246: the UPMK factor of the cause, 1 unless the lookup names another\nreturn wage * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 1);"
 				}
 			}
 		}

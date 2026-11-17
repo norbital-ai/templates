@@ -215,7 +215,6 @@ export default messages({
 	'roster.leaving_on': 'Leaving on {date}',
 	'roster.plan_recorded': 'Planned',
 	'component.error': 'The request could not be completed. Try again.',
-	'component.settings_lineage': 'Country payroll rules',
 	'component.tab_overview': 'Overview',
 	'component.work_day_actual': 'Actual',
 	'calendar.published': 'Publication date',
@@ -567,10 +566,7 @@ export default messages({
 		'Record disbursements and allocated repayments against their original loan. Rehires retain the person’s outstanding principal.',
 	'v2.repayments': 'Loan repayments',
 	'v2.import_repayments': 'Import repayments',
-	'v2.board': 'Month board',
 	'v2.no_rosters': 'No employees with a sealed contract for this entity.',
-	'v2.shifts': 'Shift definitions',
-	'v2.patterns': 'Shift patterns',
 	'v2.work_help':
 		'Plan and validate the whole affected month. Actual attendance remains evidenced in dated revisions.',
 	'v2.balances': 'Balances',
@@ -785,8 +781,6 @@ export default messages({
 		'The agreement makes the employer bear the employee’s income tax. The jurisdiction formula determines any required gross-up.',
 	'models.contract_terms.help.employee_borne_tax_items':
 		'Where the employer bears the income tax: the agreed allowances whose tax the employee still pays, at their own rate.',
-	'models.statutory_parameters.help.work_authorisation_expires_on':
-		'The day the work pass or permit ends, an extension included. Where the law ties a contribution to the pass (Malaysia: provident fund stops in its last two months), the rule reads this day.',
 	'models.contract_terms.help.work_region':
 		'The worksite region key the jurisdiction minimum-wage tables use, where it differs from the employer region.',
 	'models.contract_terms.help.worksite':
@@ -808,7 +802,6 @@ export default messages({
 		'The statutory ground for ending the employment. It decides severance eligibility and exit duties; reason carries the narrative.',
 	'models.statutory_parameters.help.parameters':
 		"The employee data the jurisdiction's employee statutory parameters declares. A change that sets it replaces it whole.",
-	'models.statutory_parameters.help.nationality': 'ISO 3166-1 alpha-2 country code.',
 	'errors.contract_terms_rate_positive': 'The agreed rate must be more than zero.',
 	'errors.contract_terms_hours_per_day':
 		'The normal hours a day must be within the jurisdiction’s contract limits.',
@@ -839,5 +832,176 @@ export default messages({
 		'A kiosk enrols or refreshes a face; it never undoes an approval.',
 	'models.payroll_run.syncs.ocbc_fast.schema.fields.line': 'Record',
 	'models.payroll_run.syncs.metro_bank.schema.fields.line': 'Record',
-	'errors.payroll_refused': '{message}'
+	'errors.payroll_refused': '{message}',
+	'models.entity_change.fields.pay_methods.overtime_hour_basis.STATUTORY': 'Statutory',
+	'models.entity_change.fields.pay_methods.overtime_hour_basis.CONTRACT_WEEKLY':
+		'Contract weekly hours',
+	'models.entity_change.fields.pay_methods.night_differential_basis.WORKED': 'Hours worked',
+	'models.entity_change.fields.pay_methods.night_differential_basis.CLOCK_SPAN': 'Clocked span',
+	'models.entity_change.fields.pay_methods.night_differential_basis.WHOLE_NIGHT': 'Whole night',
+	'models.entity_change.fields.pay_methods.contribution_split.EVEN': 'Even',
+	'models.entity_change.fields.pay_methods.contribution_split.FIRST_RUN': 'First run',
+	'models.entity_change.fields.pay_methods.health_billing.CURRENT': 'Current month',
+	'models.entity_change.fields.pay_methods.health_billing.ARREARS': 'In arrears',
+	'models.entity_change.fields.pay_methods.benefit_exclusion.POOLED': 'Pooled',
+	'models.entity_change.fields.pay_methods.benefit_exclusion.EXCESS_TAXED': 'Excess taxed',
+	'models.employment.fields.events.opened_on': 'Opened on',
+	'models.employment.fields.events.ended_on': 'Ended on',
+	'models.employment.fields.events.allocated_days': 'Allocated days',
+	'models.law.fields.direction.ADD': 'Adds',
+	'models.law.fields.direction.DEDUCT': 'Deducts',
+	'models.law.fields.assessed.EARNED': 'Month earned',
+	'models.law.fields.assessed.PAID': 'Month paid',
+	'models.law.fields.kind.CONTRIBUTION': 'Contribution',
+	'models.law.fields.kind.TAX': 'Tax',
+	'models.law.fields.balance_window.MONTH': 'Month',
+	'models.law.fields.balance_window.YEAR': 'Year',
+	'models.law.help.eligibility': 'Who the row applies to.',
+	'models.law.help.conversion': 'How the entry or the agreed amount becomes money.',
+	'models.law.help.paid_share':
+		'The share of a normal day a day of this leave pays: empty is full pay, 0 is no pay, 0.5 is half pay.',
+	'models.law.help.payout': 'What a day paid out pays. Its presence makes the row cashable.',
+	'models.payroll_run.fields.state.UNPAID': 'Unpaid',
+	'models.payroll_run.fields.state.PAID': 'Paid',
+	'law_family.subtotal': 'Subtotals',
+	'law_family.allowance_catalog': 'Allowances',
+	'law_family.overtime_catalog': 'Overtime and work',
+	'law_family.statutory_contribution_catalog': 'Statutory contributions',
+	'law_family.leave_catalog': 'Leave',
+	'law_family.claim_catalog': 'Claims',
+	'law_family.adhoc_catalog': 'Ad hoc',
+	'law_family.loan_catalog': 'Loans',
+	'law_family.work_event_catalog': 'Work events',
+	'law_family.workplace_case_catalog': 'Workplace cases',
+	'law_family.registered_rule': 'Registered rules',
+	'law_family.registered_effect': 'Registered behaviour',
+	'law_family_about.allowance_catalog':
+		'Recurring contractual additions. Each row states who is eligible, how the amount is calculated (a prorated amount reads the share of the period paid) and whether it counts toward the ordinary rate.',
+	'law_family_about.overtime_catalog':
+		'Work-pattern pricing. Each row states eligibility, the paid multiplier or amount and whether the line adds or deducts.',
+	'law_family_about.statutory_contribution_catalog':
+		'Statutory schemes and their employee and employer amounts, dependencies and balance windows. The engine posts each scheme once per period.',
+	'law_family_about.leave_catalog':
+		'Leave and absence rules. Each row states eligibility, what the leave is worth (empty: a normal paid day; 0: no pay) and the subtotal that receives the difference.',
+	'law_family_about.claim_catalog':
+		'Employee claims and reimbursements. Each row states eligibility and what the claim reimburses.',
+	'law_family_about.adhoc_catalog':
+		'One-off payments and deductions. Each row states eligibility, the amount, whether an off-cycle run may pay it and whether the line adds or deducts.',
+	'law_family_about.loan_catalog':
+		'Loan and salary-advance types. Each row states who may be given the loan (checked when the loan is recorded) and the subtotal its repayments are deducted at.',
+	'law_family_about.workplace_case_catalog':
+		'Workplace cases such as accidents, harassment or data breaches. Each row declares the events and the lookup that drives the case workflow.',
+	'law_family_about.work_event_catalog':
+		'Event types such as a heat period, hurricane or epidemic. A work event names this row by its code; the row itself is the type, with no separate category enum.',
+	'law_row.section.definition': 'Definition',
+	'law_row.section.rule': 'Rule',
+	'law_row.section.posting': 'Posting',
+	'law_row.section.configuration': 'Configuration',
+	'law_row.section.reads': 'Reads',
+	'law_row.section.effect': 'Effect',
+	'law_row.hint.configuration': 'Lookup values and source references used by the rule.',
+	'law_row.hint.allowance_catalog.definition':
+		'The catalog row: its identity and the agreement it prices.',
+	'law_row.hint.allowance_catalog.rule':
+		'Who is eligible, how much is paid, and the economic date of the ledger line.',
+	'law_row.hint.allowance_catalog.posting': 'Where the amount lands and whether it is rated.',
+	'law_row.hint.overtime_catalog.definition':
+		'The catalog row: its identity and the work pattern it prices.',
+	'law_row.hint.overtime_catalog.rule':
+		'Eligibility, the paid multiplier and the economic date of the ledger line.',
+	'law_row.hint.overtime_catalog.posting': 'The subtotal and direction of the priced hours.',
+	'law_row.hint.statutory_contribution_catalog.definition': 'The scheme and its identity.',
+	'law_row.hint.statutory_contribution_catalog.rule':
+		'Eligibility and the employee and employer amounts.',
+	'law_row.hint.statutory_contribution_catalog.posting':
+		'The subtotals, scheme kind and balance window.',
+	'law_row.hint.leave_catalog.definition': 'The leave type, its identity and how it is paid.',
+	'law_row.hint.leave_catalog.rule':
+		'Eligibility, the share of a normal day a slot pays and what a cashed-out entry pays.',
+	'law_row.hint.leave_catalog.posting': 'The subtotal that receives a payout.',
+	'law_row.hint.claim_catalog.definition': 'The claim type, its identity and the entry it prices.',
+	'law_row.hint.claim_catalog.rule':
+		'Eligibility and the claim conversion; the entry owns the economic date.',
+	'law_row.hint.claim_catalog.posting': 'The subtotal that receives the reimbursement.',
+	'law_row.hint.adhoc_catalog.definition': 'The one-off payment or deduction and its identity.',
+	'law_row.hint.adhoc_catalog.rule':
+		'Eligibility, conversion and off-cycle eligibility; the entry owns the economic date.',
+	'law_row.hint.adhoc_catalog.posting': 'The subtotal, direction and party of the posting.',
+	'law_row.hint.loan_catalog.definition': 'The loan or salary-advance type and its identity.',
+	'law_row.hint.loan_catalog.rule':
+		'Who may be given this loan. Checked when a loan is recorded; a loan it refuses is not saved.',
+	'law_row.hint.loan_catalog.posting': 'The subtotal that receives advances and repayments.',
+	'law_row.hint.work_event_catalog.definition': 'The event type and its identity.',
+	'law_row.hint.work_event_catalog.posting':
+		'The subtotal that receives a priced event, where one exists.',
+	'law_row.hint.workplace_case_catalog.definition': 'The case type, its identity and what it does.',
+	'law_row.hint.workplace_case_catalog.configuration':
+		'Events, lookup values and source references used by the workflow.',
+	'law_row.hint.workplace_case_catalog.posting':
+		'The subtotal that receives a priced case outcome, where one exists.',
+	'law_row.hint.registered_rule.reads':
+		'The rows this rule loads before it runs. Each root is the same filter builder the tables use.',
+	'law_row.hint.registered_rule.rule': 'The condition and validation the rule runs.',
+	'law_row.hint.registered_effect.reads':
+		'The rows this effect loads before it runs, shown with the same filter builder as the tables.',
+	'law_row.hint.registered_effect.effect': 'The condition and the rows the effect writes.',
+	'checkpoint.BASIC': 'The contract salary for the period. An off-cycle run starts at 0.',
+	'checkpoint.PRORATED':
+		'Basic less the days before a joiner started or after a leaver left, and less absences.',
+	'checkpoint.PAID_BASIC':
+		'Prorated basic less unpaid leave. Allowances, overtime, claims, one-off items and loans post after this.',
+	'checkpoint.ORDINARY_WAGES':
+		'Paid basic plus ordinary pay lines: fixed and recurring allowances, ordinary overtime and ordinary one-off items. Schemes that count ordinary wages read this value.',
+	'checkpoint.ADDITIONAL_WAGES':
+		'Ordinary wages plus bonus, backpay and other additional-wage lines. Tax schemes that work on the year so far read this running total.',
+	'checkpoint.GROSS':
+		'Additional wages plus gross wage adjustments. Tax schemes that read gross use this value before final settlements.',
+	'checkpoint.FINAL_PAY':
+		'Final and non-wage settlements: severance, notice, retirement lump sums, injury compensation. Not part of ordinary or additional wages.',
+	'checkpoint.RETIREMENT':
+		'Retirement allowances, kept outside gross wages. Separate retirement tax schemes read this checkpoint.',
+	'checkpoint.NET':
+		'What the employee is paid: everything above less employee contributions, tax, deductions and loan repayments.',
+	'checkpoint.other': 'The previous checkpoint plus every line posted here.',
+	'app.settings.overview': 'Calculation overview',
+	'app.settings.catalog': 'Catalog',
+	'overview.how': 'How {code} is calculated',
+	'overview.view': 'View eligibility and payroll amount',
+	'overview.eligibility': 'Eligibility',
+	'overview.always_eligible': 'Always eligible',
+	'overview.amount': 'Payroll amount',
+	'models.pay_group.fields.payment_schedule': 'Schedule',
+	'models.pay_group.fields.payment_schedule.frequency': 'Frequency',
+	'models.pay_group.fields.payment_schedule.frequency.MONTHLY': 'Monthly',
+	'models.pay_group.fields.payment_schedule.frequency.SEMI_MONTHLY': 'Twice a month',
+	'models.pay_group.fields.payment_schedule.frequency.TEN_DAY': 'Every ten days',
+	'models.pay_group.fields.payment_schedule.frequency.INTEGER_MONTHS': 'Every few months',
+	'models.pay_group.fields.payment_schedule.frequency.WEEKLY': 'Weekly',
+	'models.pay_group.fields.payment_schedule.frequency.BIWEEKLY': 'Every two weeks',
+	'models.pay_group.fields.payment_schedule.frequency.DAILY': 'Daily',
+	'models.pay_group.fields.payment_schedule.pay_days': 'Pay days',
+	'models.pay_group.fields.payment_schedule.pay_cutoff_day': 'Cut-off day',
+	'models.pay_group.fields.payment_schedule.weekday': 'Pay weekday',
+	'models.pay_group.fields.payment_schedule.month_interval': 'Months between pay days',
+	'models.pay_group.fields.payment_schedule.anchor_date': 'First cycle starts on',
+	'models.pay_group.fields.payment_schedule.business_day': 'When the pay day is not a business day',
+	'models.pay_group.fields.payment_schedule.business_day.NONE': 'Pay on that day',
+	'models.pay_group.fields.payment_schedule.business_day.PREVIOUS':
+		'Pay on the business day before',
+	'models.pay_group.fields.payment_schedule.business_day.NEXT': 'Pay on the business day after',
+	'models.pay_group.fields.payment_schedule.non_working_weekdays': 'Non-working weekdays',
+	'models.pay_group.fields.payment_schedule.short_month': 'When the month has no such day',
+	'models.pay_group.fields.payment_schedule.short_month.LAST_DAY': 'Last day of the month',
+	'models.pay_group.fields.payment_schedule.short_month.REFUSE': 'Refuse',
+	'pay_group.pays_on': 'pays on day {days}',
+	'pay_group.cutoff': 'cut-off day {day}',
+	'entity.tab_shifts': 'Shifts',
+	'entity.tab_shift_patterns': 'Shift patterns',
+	'import.leave': 'Import leave',
+	'import.adhoc': 'Import one-off entries',
+	'import.claims': 'Import claims',
+	'import.loans': 'Import loans',
+	'import.cases': 'Import workplace cases',
+	'import.holidays': 'Import holidays',
+	'import.no_holidays': 'This file has no holidays to import.'
 });

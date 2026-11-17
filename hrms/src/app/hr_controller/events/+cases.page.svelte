@@ -50,7 +50,6 @@
 		action: 'workplace_case_catalog_entry.create',
 		label: () => t('app.cases.title'),
 		held: () => held?.current,
-		loading: 'Workplace case data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseCaseSheet(grids, {
 				...party,
@@ -104,7 +103,7 @@
 			toolbar={{
 				title: t('app.cases.title'),
 				new: () => (creating = 'workplace_case_catalog_entry'),
-				actions: [importCases(t('holiday_calendar.import_spreadsheet'))]
+				actions: [importCases(t('import.cases'))]
 			}}
 			columns={[{ field: 'kind', cell: caseCell }, 'opened_on', 'closed_on', 'payroll_run_id']}
 		/>

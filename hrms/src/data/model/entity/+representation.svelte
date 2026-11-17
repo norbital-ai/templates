@@ -8,6 +8,7 @@
 	import {
 		Field,
 		Form,
+		label,
 		open_record,
 		RecordShell,
 		Section,
@@ -21,8 +22,8 @@
 	import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
 	import DatedFacts from '../../../lib/ui/components/dated_facts.svelte';
 	import { declaredParameters } from '../../../lib/ui/components/parameter_facts.js';
-	import { fieldLabel } from '../../../lib/ui/person/change_summary.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
+	import { scheduleSummary } from '../../../lib/ui/payroll/schedule_summary.js';
 
 	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -53,11 +54,10 @@
 				.entity_statutory_parameters
 		);
 	const names = $derived([
-		...Object.keys(methods).map((key) => ({
-			value: `pay_methods.${key}`,
-			label: fieldLabel(key)
+		...[...Object.keys(methods).map((key) => `pay_methods.${key}`), ...own].map((value) => ({
+			value,
+			label: label(ctx, 'entity_change', value)
 		})),
-		...own.map((name) => ({ value: name, label: fieldLabel(name) })),
 		...Object.entries(declared(clock.today)).map(([value, { label }]) => ({ value, label }))
 	]);
 	const kindOf = (fact: Fact) => {
@@ -108,6 +108,7 @@
 							<DatedFacts
 								{ctx}
 								id="entity-facts"
+								of="entity_change"
 								{facts}
 								base={factsOf(rows, shape)}
 								{names}
@@ -149,7 +150,37 @@
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ name: 'asc' }}
 			toolbar={{ title: t('entity.tab_pay_groups'), new: true }}
-			columns={['name', 'payment_schedule']}
+			columns={['name', { field: 'payment_schedule', cell: schedule }]}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet schedule({ value }: { value: unknown })}{scheduleSummary(ctx, value)}{/snippet}
+
+{#snippet shiftsTab()}
+	{#if record}
+		<Table
+			{ctx}
+			of="shift_definition"
+			key="entity-shifts"
+			where={{ entity_id: { eq: record.id } }}
+			order_by={{ code: 'asc' }}
+			toolbar={{ title: t('entity.tab_shifts'), new: true }}
+			columns={['code', 'name', 'effective_range']}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet shiftPatternsTab()}
+	{#if record}
+		<Table
+			{ctx}
+			of="shift_pattern"
+			key="entity-shift-patterns"
+			where={{ entity_id: { eq: record.id } }}
+			order_by={{ code: 'asc' }}
+			toolbar={{ title: t('entity.tab_shift_patterns'), new: true }}
+			columns={['code', 'name', 'effective_range']}
 		/>
 	{/if}
 {/snippet}
@@ -167,6 +198,8 @@
 			tabs={[
 				{ name: 'general', title: t('person.tab_general'), body: general },
 				{ name: 'pay_groups', title: t('entity.tab_pay_groups'), body: payGroupsTab },
+				{ name: 'shifts', title: t('entity.tab_shifts'), body: shiftsTab },
+				{ name: 'shift_patterns', title: t('entity.tab_shift_patterns'), body: shiftPatternsTab },
 				{ name: 'holidays', title: t('entity.tab_holidays'), body: holidaysTab }
 			]}
 		/>

@@ -37,7 +37,6 @@
 		action: 'adhoc_catalog_entry.create',
 		label: () => ctx.t('app.adhoc.title'),
 		held: () => held?.current,
-		loading: 'Employee and ad hoc data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseAdhocSheet(grids, {
 				...party,
@@ -84,7 +83,7 @@
 			toolbar={{
 				new: () => (creating = true),
 				title: ctx.t('app.adhoc.title'),
-				actions: [importAdhoc(ctx.t('holiday_calendar.import_spreadsheet'))]
+				actions: [importAdhoc(ctx.t('import.adhoc'))]
 			}}
 			columns={[
 				{ field: 'employment_id', cell: who },

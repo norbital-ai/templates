@@ -17,8 +17,9 @@ const NOW = '2027-02-05T02:00:00.000Z';
 const ROW = 'EPF';
 const LINE = `${ROW}/EMPLOYEE`;
 const WAGE = 10_000;
-/** The first day the mistaken change is keyed for: the fixture's law has no change of its own on or after it. */
+/** The first day the mistaken change is keyed for: the fixture's law has no change of its own from it until `NEXT`. */
 const FROM = '2027-02-01';
+const NEXT = '2028-01-01';
 const SEED = pack(CODE, 'Asia/Kuala_Lumpur', packTerms(WAGE), {}, [], []);
 /** The row's table as the law in force holds it, its rate, and the one the mistaken change keys instead. */
 const LOOKUP = objectValue(
@@ -87,11 +88,11 @@ const scenario = (
 			})
 		)
 	);
-/** The one change filed on or after `FROM`, as stored now. */
+/** The one change filed from `FROM` and before the law's own next change, as stored now. */
 const filed = (t: Kit) =>
 	storedQuery(t, {
 		jurisdiction_change: {
-			where: { jurisdiction_code: { eq: CODE }, effective_from: { gte: FROM } },
+			where: { jurisdiction_code: { eq: CODE }, effective_from: { gte: FROM, lt: NEXT } },
 			limit: 10
 		}
 	}).pipe(

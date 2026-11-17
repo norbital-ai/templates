@@ -6,7 +6,7 @@
 	 */
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { EmptyState, Form, Section, format, type Value } from '@norbital-ai/ui';
+	import { EmptyState, Form, Section, format, label, type Value } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { DateTime } from 'effect';
 	import type { Snippet } from 'svelte';
@@ -18,7 +18,6 @@
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_QUESTION, paidPeriods } from '../payroll/paid_period.svelte.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
-	import { fieldLabel } from './change_summary.js';
 	import { categoryValues } from './contract_categories.js';
 	import type { PersonRead, StintRow } from './person_read.svelte.js';
 
@@ -69,7 +68,7 @@
 	const factsIn = (stint: StintRow) => drafts[stint.id] ?? factsOf(rowsOf(stint), shape);
 	const names = (stint: StintRow) =>
 		of === 'contract_terms'
-			? [...TERM_FIELDS, 'signed_on'].map((value) => ({ value, label: fieldLabel(value) }))
+			? [...TERM_FIELDS, 'signed_on'].map((value) => ({ value, label: label(ctx, of, value) }))
 			: Object.entries(
 					declaredParameters(lawOn(stint, clock.today)?.settings.employee_statutory_parameters)
 				).map(([value, { label }]) => ({ value, label }));
@@ -155,6 +154,7 @@
 					<DatedFacts
 						{ctx}
 						id="{of}-{stint.id}"
+						{of}
 						facts={factsIn(stint)}
 						base={factsOf(rowsOf(stint), shape)}
 						names={names(stint)}

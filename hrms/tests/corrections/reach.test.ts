@@ -4,11 +4,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
+import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
 import {
 	EMPLOYMENT,
 	amendments,
 	carriedFor,
+	carriedOffCycle,
+	cents,
 	claimed,
 	net,
 	ownLines,
@@ -18,17 +21,21 @@ import {
 	raisedFrom,
 	rostered,
 	run,
+	signed,
 	slip,
 	claimAt
 } from '../amendment_kit.ts';
 import {
 	ENTITY,
+	endStint,
 	lawAt,
 	leaveCreate,
 	wholeDays,
 	workspace,
 	storedQuery,
-	stintOver
+	stintOver,
+	uuid,
+	withSister
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
@@ -297,20 +304,6 @@ describe('what a correction reaches', () => {
 describe('someone no on-cycle run pays any more', () => {
 	/** The person's stint ended with February. */
 	const left = (from: Seed): Seed => stintOver(from, '2026-01-01', '2026-02-28');
-	const offCycle = (t: Kit) =>
-		Effect.gen(function* () {
-			const open = (yield* amendments(t)).filter((row) => row.payroll_run_id === null);
-			return yield* (yield* t.as(t.admin)).act({
-				'payroll_run.create': [
-					{
-						entity_id: ENTITY,
-						period: '2026-03',
-						kind: 'OFF_CYCLE',
-						amendments: open.map((row) => ({ id: row.id, revision: row.revision }))
-					}
-				]
-			});
-		});
 
 	it.live('an off-cycle run carries what they are owed, on a payslip of its own', () => {
 		const months = ['2026-02', '2026-03'];
@@ -318,7 +311,7 @@ describe('someone no on-cycle run pays any more', () => {
 			const t = yield* TestWorkspace;
 			yield* pay(t, '2026-02');
 			yield* overtimeKeyed(t, '2026-02-10');
-			yield* offCycle(t);
+			yield* carriedOffCycle(t, '2026-03');
 			yield* t.run_due();
 			const carried = yield* slip(t, '2026-03');
 			assert.ok(carried.net > 0);
@@ -344,37 +337,48 @@ describe('someone no on-cycle run pays any more', () => {
 		);
 	});
 
-	it.live('what they owe is not taken by a run that pays them nothing', () => {
-		const from = left(rostered(['2026-02', '2026-03']));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* (yield* t.as(t.admin)).act({
-				'adhoc_catalog_entry.create': [
-					{
-						entity_id: ENTITY,
-						employment_id: EMPLOYMENT,
-						catalog_code: 'BONUS',
-						description: 'Paid by mistake',
-						quantity: '400',
-						unit: 'MONEY',
-						incurred_on: '2026-02-20'
-					}
-				]
-			});
-			yield* t.run_due();
-			yield* pay(t, '2026-02');
-			const { adhoc_catalog_entry } = yield* storedQuery(t, { adhoc_catalog_entry: { limit: 10 } });
-			const [bonus] = adhoc_catalog_entry.rows;
-			assert.ok(bonus !== undefined);
-			yield* (yield* t.as(t.admin)).act({ 'adhoc_catalog_entry.delete': [{ target: bonus }] });
-			yield* t.run_due();
-			assert.match(
-				String(yield* Effect.flip(offCycle(t))),
-				/would take money back from someone it pays too little/
-			);
-			assert.equal((yield* amendments(t))[0]?.payroll_run_id, null, 'the row still waits');
-		}).pipe(Effect.provide(workspace({ seed: from, now: at('2026-03') })));
-	});
+	it.live(
+		'what they owe is not taken by a run that pays them nothing: it ends at zero and one task names it',
+		() => {
+			const from = left(rostered(['2026-02', '2026-03']));
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* (yield* t.as(t.admin)).act({
+					'adhoc_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: EMPLOYMENT,
+							catalog_code: 'BONUS',
+							description: 'Paid by mistake',
+							quantity: '400',
+							unit: 'MONEY',
+							incurred_on: '2026-02-20'
+						}
+					]
+				});
+				yield* t.run_due();
+				yield* pay(t, '2026-02');
+				const { adhoc_catalog_entry } = yield* storedQuery(t, {
+					adhoc_catalog_entry: { limit: 10 }
+				});
+				const [bonus] = adhoc_catalog_entry.rows;
+				assert.ok(bonus !== undefined);
+				yield* (yield* t.as(t.admin)).act({ 'adhoc_catalog_entry.delete': [{ target: bonus }] });
+				yield* t.run_due();
+				yield* carriedOffCycle(t, '2026-03');
+				yield* t.run_due();
+				assert.equal((yield* slip(t, '2026-03')).net, 0);
+				assert.ok(
+					(yield* amendments(t)).every((row) => row.payroll_run_id !== null),
+					'the run took the row: nothing waits'
+				);
+				const { obligation } = yield* storedQuery(t, { obligation: { limit: 500 } });
+				const tasks = obligation.rows.filter((row) => row.occurrence_key.startsWith('recovery:'));
+				assert.equal(tasks.length, 1);
+				assert.match(String(tasks[0]?.title), /^Recover \d+\.\d\d outside payroll/);
+			}).pipe(Effect.provide(workspace({ seed: from, now: at('2026-03') })));
+		}
+	);
 
 	it.live('what they still owe after their last payslip is one task for HR', () => {
 		const from = stintOver(rostered(['2026-02', '2026-03']), '2026-01-01', '2026-03-31');
@@ -408,6 +412,131 @@ describe('someone no on-cycle run pays any more', () => {
 			assert.equal(tasks.length, 1);
 			assert.equal(tasks[0]?.occurrence_key, `recovery:${EMPLOYMENT}:2026-03`);
 			assert.match(String(tasks[0]?.title), /^Recover \d+\.\d\d outside payroll/);
+			assert.deepEqual(
+				(yield* amendments(t)).filter((row) => row.payroll_run_id === null),
+				[],
+				'nothing waits for someone no run pays'
+			);
+			// HR collects it and fulfils the task; the exit is then withdrawn, so April works March out again
+			const march = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows.find(
+				(row) => row.period === '2026-03'
+			);
+			assert.ok(march !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: march, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
+			assert.ok(tasks[0] !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'obligation.update': [
+					{ target: tasks[0], set: { state: 'FULFILLED', fulfilled_on: '2026-03-28' } }
+				]
+			});
+			yield* endStint(t, null, 'Termination withdrawn');
+			yield* t.run_due();
+			t.clock.set(at('2026-04'));
+			yield* run(t, '2026-04');
+			assert.equal(
+				(yield* carriedFor(t, '2026-04', '2026-03'))['RECOVERY_CARRIED/EMPLOYEE'],
+				undefined,
+				'what HR recovered is not taken again'
+			);
 		}).pipe(Effect.provide(workspace({ seed: from, now: at('2026-03') })));
 	});
+});
+
+describe('someone transferred to a sister company', () => {
+	const SISTER = uuid(900);
+	const SISTER_GROUP = uuid(908);
+	const MOVED = uuid(907);
+	/** The stint with the first company ends with February; a new one with its sister starts the next day. */
+	const transferred = (overtime?: string): Seed => {
+		const seed = withSister(rostered(['2026-02'], overtime));
+		const [stint] = seed.employment ?? [];
+		const [terms] = seed.contract_terms ?? [];
+		const [parameters] = seed.statutory_parameters ?? [];
+		assert.ok(stint !== undefined && terms !== undefined && parameters !== undefined);
+		return {
+			...seed,
+			employment: [
+				{ ...stint, effective_range: { from: '2025-01-01', to: '2026-02-28' } },
+				{
+					...stint,
+					id: MOVED,
+					entity_id: SISTER,
+					effective_range: { from: '2026-03-01', to: null }
+				}
+			],
+			contract_terms: [
+				...(seed.contract_terms ?? []),
+				{
+					...terms,
+					id: uuid(914),
+					employment_id: MOVED,
+					effective_from: '2026-03-01',
+					pay_group_id: SISTER_GROUP
+				}
+			],
+			statutory_parameters: [
+				...(seed.statutory_parameters ?? []),
+				{ ...parameters, id: uuid(915), employment_id: MOVED, effective_from: '2026-03-01' }
+			]
+		};
+	};
+
+	it.live(
+		'a paid period of the old company corrected after the move waits past the new company’s run, and an off-cycle run of the old company pays it',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* pay(t, '2026-02');
+				yield* overtimeKeyed(t, '2026-02-10');
+				const waits = () =>
+					amendments(t).pipe(
+						Effect.map((rows) => rows.map((row) => [row.period, row.payroll_run_id]))
+					);
+				assert.deepEqual(yield* waits(), [['2026-02', null]]);
+				// the sister company pays the person now: its run works out only its own periods
+				yield* pay(t, '2026-03', SISTER_GROUP, SISTER);
+				const march = yield* slip(t, '2026-03');
+				assert.ok(march.net > 0);
+				assert.ok(march.breakdown.lines.every((line) => line.period === undefined));
+				assert.deepEqual(yield* waits(), [['2026-02', null]], 'the row still waits');
+				// an off-cycle run of the old company names the row: its payslip only carries the earlier period
+				yield* carriedOffCycle(t, '2026-03');
+				yield* t.run_due();
+				const [offCycle] = (yield* storedQuery(t, {
+					payroll_run: { where: { kind: { eq: 'OFF_CYCLE' } }, limit: 1 }
+				})).payroll_run.rows;
+				assert.ok(offCycle !== undefined);
+				assert.equal(offCycle.entity_id, ENTITY);
+				assert.deepEqual(yield* waits(), [['2026-02', offCycle.id]]);
+				const paid = (yield* storedQuery(t, { payslip: { limit: 100 } })).payslip.rows.find(
+					(row) => row.payroll_run_id === offCycle.id
+				);
+				assert.ok(paid !== undefined, 'the off-cycle payslip');
+				assert.ok(Number(paid.net_pay) > 0);
+				const { lines } = Schema.decodeUnknownSync(PayslipBreakdown)(paid.breakdown);
+				assert.ok(lines.every((line) => line.period === '2026-02'));
+				return cents(
+					lines
+						.filter((line) => line.code === 'OVERTIME' && line.party === 'EMPLOYEE')
+						.reduce((total, line) => total + signed(line), 0)
+				);
+			}).pipe(
+				Effect.provide(workspace({ seed: transferred(), now: at('2026-03') })),
+				Effect.flatMap((carried) =>
+					// a history in which the overtime was keyed in time: February pays it as its own
+					Effect.gen(function* () {
+						const t = yield* TestWorkspace;
+						yield* run(t, '2026-02');
+						const own = (yield* ownLines(t, '2026-02'))['OVERTIME/EMPLOYEE'];
+						assert.ok((own ?? 0) > 0);
+						assert.equal(carried, own);
+					}).pipe(
+						Effect.provide(workspace({ seed: transferred('2026-02-10'), now: at('2026-03') }))
+					)
+				)
+			)
+	);
 });

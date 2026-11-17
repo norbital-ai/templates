@@ -40,8 +40,6 @@ export function entryImport<const A extends string, H extends Held>(
 		readonly action: A extends Callable ? A : Callable;
 		readonly label: () => string;
 		readonly held: () => H | null | undefined;
-		/** The refusal while the held rows are still out. */
-		readonly loading: string;
 		build(
 			grids: WorkbookGrids,
 			current: H,
@@ -58,7 +56,7 @@ export function entryImport<const A extends string, H extends Held>(
 	const buildPayload = (grids: WorkbookGrids): ActInput<A> => {
 		const current = options.held();
 		const company = scope.company;
-		if (current == null || company == null) throw new Error(options.loading);
+		if (current == null || company == null) throw new Error(ctx.t('component.loading'));
 		const built = options.build(grids, current, {
 			entity: {
 				id: company.id,

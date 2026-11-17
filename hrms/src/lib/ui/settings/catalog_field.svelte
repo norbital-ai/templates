@@ -56,8 +56,8 @@
 		(laws.on(code, day)?.rows[of] ?? [])
 			.map((row) => ({
 				value: String(row.code),
-				label: String(row.code),
-				...(typeof row.description === 'string' ? { description: row.description } : {})
+				label: typeof row.description === 'string' ? row.description : String(row.code),
+				description: String(row.code)
 			}))
 			.toSorted((one, other) => one.value.localeCompare(other.value))
 	);

@@ -3,7 +3,7 @@
 // fixture, and a figure is compared with a history in which the record was never wrong.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
 import {
 	EMPLOYMENT,
@@ -11,6 +11,7 @@ import {
 	carriedFor,
 	cents,
 	claimed,
+	monthTotals,
 	net,
 	overtimeKeyed,
 	pay,
@@ -20,7 +21,7 @@ import {
 	slip,
 	claimAt
 } from '../amendment_kit.ts';
-import { ENTITY, accountsIn, lawAt, lawWith, workspace, storedQuery } from '../kit.ts';
+import { ENTITY, lawAt, lawWith, workspace, storedQuery } from '../kit.ts';
 
 const NOW = '2026-03-20T02:00:00.000Z';
 /** A claim as stored now: a write targets it at its current revision. */
@@ -121,26 +122,6 @@ describe('a paid period corrected at its source', () => {
 	it.live(
 		'what a run carries posts to the month it is tagged with: the month totals are those of a history never wrong',
 		() => {
-			/** Each pay and statutory total of a month window, as the balance holds it. */
-			const months = (t: Kit) =>
-				accountsIn(t).pipe(
-					Effect.map((accounts) =>
-						Object.fromEntries(
-							(['pay', 'statutory'] as const).flatMap((family) =>
-								Object.entries(accounts[family] ?? {}).flatMap(([code, periods]) =>
-									Object.entries(periods)
-										.filter(([period]) => period.includes('.M.'))
-										.flatMap(([period, measures]) =>
-											Object.entries(measures).map(([measure, amount]) => [
-												`${family}/${code}/${period}/${measure}`,
-												cents(amount)
-											])
-										)
-								)
-							)
-						)
-					)
-				);
 			// every scheme worked out for the month it is earned in: one assessed when paid is charged on the paying month
 			const earnedIn = (from: Seed): Seed =>
 				lawWith(from, {
@@ -156,7 +137,7 @@ describe('a paid period corrected at its source', () => {
 				yield* pay(t, '2026-02');
 				yield* overtimeKeyed(t, OVERTIME_DAY);
 				yield* run(t, '2026-03');
-				return yield* months(t);
+				return yield* monthTotals(t);
 			}).pipe(
 				Effect.provide(workspace({ seed: earnedIn(seed(false)), now: NOW })),
 				Effect.flatMap((corrected) =>
@@ -164,7 +145,7 @@ describe('a paid period corrected at its source', () => {
 						const t = yield* TestWorkspace;
 						yield* pay(t, '2026-02');
 						yield* run(t, '2026-03');
-						const intime = yield* months(t);
+						const intime = yield* monthTotals(t);
 						assert.ok(Object.keys(intime).some((key) => key.includes('.M.2026-02')));
 						assert.deepEqual(corrected, intime);
 					}).pipe(Effect.provide(workspace({ seed: earnedIn(seed(true)), now: NOW })))

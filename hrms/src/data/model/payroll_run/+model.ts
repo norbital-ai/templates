@@ -127,7 +127,7 @@ export default model('payroll_run', {
 				// the tasks already raised for what someone who has left still owes
 				obligation: {
 					where: { occurrence_key: { like: 'recovery:%' } },
-					fields: ['occurrence_key'],
+					fields: ['occurrence_key', 'state'],
 					limit: 10000
 				},
 				// what HR named that another run already paid or carried
@@ -277,8 +277,29 @@ export default model('payroll_run', {
 						runs: known.payroll_run.rows.map((entry) => jsonObject(entry)),
 						groups: known.pay_group.rows.map((entry) => jsonObject(entry)),
 						amendments: known.pay_amendment.rows.map((entry) => jsonObject(entry)),
-						entities: known.entity.rows.map((entry) => jsonObject(entry))
+						entities: known.entity.rows.map((entry) => jsonObject(entry)),
+						recovered: new Set(
+							known.obligation.rows
+								.filter((task) => task.state === 'FULFILLED')
+								.map((task) => task.occurrence_key)
+						)
 					}
+				);
+				// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
+				// paid by a later run. Someone no later run pays owes what could not be taken: HR recovers it.
+				const coveredTo = String(row.salary_coverage.to);
+				const leaving = result.deferred.filter(
+					(employee) =>
+						![
+							...new Map(
+								(data.employment ?? [])
+									.filter((contract) => String(contract.employee_id) === employee)
+									.map((contract) => [String(contract.id), contract])
+							).values()
+						].some((contract) => {
+							const to = jsonObject(contract.effective_range).to;
+							return contract.exit !== true || to == null || String(to) > coveredTo;
+						})
 				);
 				// an off-cycle run seals what it pays: an entry with no payslip here would never be paid
 				const paid = new Set(result.payslips.map((slip) => slip.employment_id));
@@ -290,14 +311,15 @@ export default model('payroll_run', {
 				)
 					return yield* ctx.refuse('errors.payroll_run_not_in_group');
 				if (frame.pays !== undefined) {
-					// someone it pays too little has nothing to take from: HR recovers it, or their next run does
-					if (result.deferred.length > 0)
+					// someone still employed it pays too little is left for their next on-cycle run. Someone who has left has
+					// no such run: the payslip ends at zero and one task names what they owe.
+					if (result.deferred.some((employee) => !leaving.includes(employee)))
 						return yield* ctx.refuse('errors.payroll_run_carry_takes_back');
 					// nothing negative posts to a balance, so a deduction that outruns the run waits for the next on-cycle run
 					if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
 						return yield* ctx.refuse('errors.payroll_run_below_zero');
 				}
-				working.push({ id, row, frame, data, result });
+				working.push({ id, row, frame, data, result, leaving });
 			}
 			const worked = working;
 			// one read for every run: where the people an off-cycle run pays work, and the rows each run seals, linked at
@@ -383,11 +405,16 @@ export default model('payroll_run', {
 				const own = new Set(wanted);
 				return rows.filter((row) => own.has(row.id)).map(({ id, revision }) => ({ id, revision }));
 			};
-			for (const { id, row, frame, data, result } of worked) {
+			for (const { id, row, frame, data, result, leaving } of worked) {
 				if (frame.pays !== undefined) {
-					// the month's totals hold both companies: on-cycle, each stands alone
+					// the month's totals hold both companies: on-cycle, each stands alone. A payslip that only carries earlier
+					// periods adds nothing to this month: someone who moved company is paid what the old one owes them
 					const { from, to } = row.salary_coverage;
-					const paid = new Set(result.payslips.map((slip) => slip.employee_id));
+					const paid = new Set(
+						result.payslips
+							.filter((slip) => slip.breakdown.lines.some((line) => line.period === undefined))
+							.map((slip) => slip.employee_id)
+					);
 					const both = sealed.employment.rows.some(
 						({ employee_id, entity_id, effective_range: range }) =>
 							paid.has(employee_id) &&
@@ -449,26 +476,13 @@ export default model('payroll_run', {
 					amendments: linked(sealed.pay_amendment.rows, result.taken)
 				});
 				posting.push({ id, pay_date: String(row.pay_date), payslips: payslips.map(jsonObject) });
-				// a recovery that outran someone's pay is taken by the next run: this run's own period is amended
-				// Someone who has left and still owes: no later run pays them, so the rest is HR's to recover. One task says so.
-				const coveredTo = String(row.salary_coverage.to);
-				for (const employee of result.deferred) {
+				// Someone who has left and still owes: no later run pays them, so the rest is HR's to recover. One task says so;
+				// fulfilling it settles the recovery. An off-cycle run may carry for the same person more than once.
+				for (const employee of leaving) {
 					const slip = result.payslips.find((entry) => entry.employee_id === employee);
-					// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
-					// paid by a later run
-					const stays = [
-						...new Map(
-							(data.employment ?? [])
-								.filter((contract) => String(contract.employee_id) === employee)
-								.map((contract) => [String(contract.id), contract])
-						).values()
-					].some((contract) => {
-						const to = jsonObject(contract.effective_range).to;
-						return contract.exit !== true || to == null || String(to) > coveredTo;
-					});
 					const owed = slip?.breakdown.lines.find((line) => line.code === RECOVERY)?.amount;
-					const occurrence_key = `recovery:${String(slip?.employment_id)}:${row.period}`;
-					if (slip === undefined || owed === undefined || stays) continue;
+					if (slip === undefined || owed === undefined) continue;
+					const occurrence_key = `recovery:${String(slip.employment_id)}:${row.period}${frame.pays === undefined ? '' : `:${String(id)}`}`;
 					if (known.obligation.rows.some((task) => task.occurrence_key === occurrence_key))
 						continue;
 					owing.push({
@@ -479,11 +493,14 @@ export default model('payroll_run', {
 						occurrence_key
 					});
 				}
+				// a recovery that outran the pay of someone still employed is taken by the next run: this run's own period is
+				// amended.
 				// a run made again after it was deleted finds the row its first making left: one open row a person and period
 				deferred.push(
 					...result.deferred
 						.filter(
 							(employee) =>
+								!leaving.includes(employee) &&
 								!known.pay_amendment.rows.some(
 									(held) =>
 										String(held.employee_id) === employee &&

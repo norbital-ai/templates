@@ -67,7 +67,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - **The last payslip settles the leave.** Nothing is keyed, nothing waits for approval and no law effect raises a task for it. The stint carries HR's decision `encash_leave` (default on), set in the termination sheet and changeable on the ended stint.
 - The on-cycle run whose salary period holds the last day reads, for each leave row with a `payout`, what is left in its newest window as that period saw it. Days left are paid out, unless HR switched it off or the exit is a dismissal for misconduct. Days taken beyond what the last day earned are taken back at the same payout rate, whatever HR decided.
 - The payslip lists them under `cash_out`, and its own posting moves the row's `used` days, so the balance ends at zero. Deleting the run undoes it.
-- Changing the decision, moving the last day or cancelling the exit after that run is paid amends the period: the next run carries the difference and the days follow. Someone no on-cycle run pays any more is paid by an off-cycle run that carries their waiting periods. Such a run takes nothing back; one task names what they would owe.
+- Changing the decision, moving the last day or cancelling the exit after that run is paid amends the period: the next run carries the difference and the days follow. Someone no on-cycle run pays any more is paid by an off-cycle run that carries their waiting periods. Such a run takes nothing back; one task names what they would owe. HR recovers it outside payroll (a demand letter) and fulfils the task, which settles it: no run takes it again (owner, 2026-11-18).
 - A cash-out for someone still employed is an ordinary leave entry HR keys (`encashment: true`): written directly, corrected or deleted in place like any entry.
 
 ### Company methods
@@ -453,7 +453,8 @@ The `ledger` automation works out what each person is owed for each leave or cla
 | A stint or a dependant is written; a terms or parameters row in force today is written | That person   |
 | A terms or parameters row dated ahead reaches its day                                  | Everyone      |
 | A profile changes how service counts, or its date of birth or gender is corrected      | That person   |
-| A leave posting or manual row is dated in an earlier year                              | That person   |
+| A leave posting or manual row is dated in a window that has closed                     | That person   |
+| A work event is written, or its day comes                                              | Everyone      |
 | A change of law is written, or its day comes; a finding is confirmed or rejected       | Everyone      |
 | A company change is written, or its day comes                                          | Everyone      |
 | A run is marked paid                                                                   | Everyone      |
@@ -522,12 +523,12 @@ A leave or claim entry's effects run in the `registered_effects` automation, und
 
 All run as the system identity under their declared policy. Each is safe to run again.
 
-| Automation           | Started by                                                                                                                                    | What it is for                                                                                                                                         |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ledger`             | A write to a stint, its dated rows, a dependant, a profile, a law or a company change; a run marked paid; each window boundary; 1 January; HR | Syncs entitlements, one run at a time. A whole-workspace pass also retires old periods, schedules the next boundary and ends with the integrity check. |
-| `registered_effects` | A leave or claim entry written or posted; a new profile                                                                                       | Applies the law's effects for records whose writer cannot read the law                                                                                 |
-| `statutory_research` | Every Saturday at 03:00 UTC; HR                                                                                                               | Reads official sources and files proposed findings and their dated changes. A change is not in force until a person confirms its finding               |
-| `invitation_profile` | Every minute while the workspace is in use                                                                                                    | Creates one employee profile per accepted staff invitation and links it to the user                                                                    |
+| Automation           | Started by                                                                                                                                                  | What it is for                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `ledger`             | A write to a stint, its dated rows, a dependant, a profile, a work event, a law or a company change; a run marked paid; each window boundary; 1 January; HR | Syncs entitlements, one run at a time. A whole-workspace pass also retires old periods and schedules the next boundary.                  |
+| `registered_effects` | A leave or claim entry written or posted; a new profile                                                                                                     | Applies the law's effects for records whose writer cannot read the law                                                                   |
+| `statutory_research` | Every Saturday at 03:00 UTC; HR                                                                                                                             | Reads official sources and files proposed findings and their dated changes. A change is not in force until a person confirms its finding |
+| `invitation_profile` | Every minute while the workspace is in use                                                                                                                  | Creates one employee profile per accepted staff invitation and links it to the user                                                      |
 
 `ledger` and `registered_effects` hold `payroll_execution`. `statutory_research` holds `configuration_execution`. `invitation_profile` holds its own policy. A sync or follow-up that fails for good raises a task.
 

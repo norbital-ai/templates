@@ -9,7 +9,17 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { payBasis } from '../../src/lib/payroll_engine/engine.ts';
 import { ownLines, run } from '../amendment_kit.ts';
-import { EMPLOYMENT, WORK, lawAt, lawWith, pack, workspace, packTerms, uuid } from '../kit.ts';
+import {
+	EMPLOYMENT,
+	WORK,
+	lawAt,
+	lawWith,
+	nearestCent as cents,
+	pack,
+	workspace,
+	packTerms,
+	uuid
+} from '../kit.ts';
 
 describe('the day rate', () => {
 	it('carries an allowance in the rate, and none outside it', () => {
@@ -127,7 +137,6 @@ describe('the hour rate', () => {
 		)(
 			lawAt('MY', '2026-02-25').rows.overtime_catalog.find((row) => row.code === 'OVERTIME')?.lookup
 		);
-		const cents = (value: number) => Math.round(value * 100) / 100;
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, '2026-02');

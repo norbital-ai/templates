@@ -59,7 +59,7 @@ In each case the next run pays or takes back the difference, and HR sees it befo
 
 ## 4. What it costs
 
-- **No foreign key to a catalogue row.** The write-time check and the integrity check hold what the key held.
+- **No foreign key to a catalogue row.** The write-time check holds what the key held.
 - **Catalogue screens are views.** Rows of the law are not records, so their tables, pickers and search are built over the folded document.
 - **A wide reach.** A corrected first row can reach every paid period of the tax year. Two bounds hold: a later tax year is not worked out again, and a run works out at most 240 earlier person-periods.
 

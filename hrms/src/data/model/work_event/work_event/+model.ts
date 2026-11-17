@@ -1,5 +1,6 @@
 import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
+import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 import { amendmentsFor, amendmentsIn, amendmentsOf, refusing } from '../../../../lib/amendments.js';
 import { model, type WriteCtx } from '@norbital-ai/bolt';
@@ -94,6 +95,11 @@ export default model('work_event', {
 				'work_event',
 				changes.map(({ after }) => ({ after }))
 			);
+			// an entitlement rule may read the event
+			yield* syncLedgerOn(
+				ctx,
+				changes.map(({ after }) => after.from)
+			);
 		}
 	},
 	update: {
@@ -118,6 +124,10 @@ export default model('work_event', {
 		},
 		effect: function* (changes, ctx) {
 			yield* tap(ctx, 'update', 'work_event', changes);
+			yield* syncLedgerOn(
+				ctx,
+				changes.flatMap(({ before, after }) => [before.from, after.from])
+			);
 		}
 	},
 	delete: {
@@ -135,6 +145,10 @@ export default model('work_event', {
 				'delete',
 				'work_event',
 				changes.map(({ before }) => ({ before }))
+			);
+			yield* syncLedgerOn(
+				ctx,
+				changes.map(({ before }) => before.from)
 			);
 		}
 	}

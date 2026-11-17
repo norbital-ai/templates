@@ -10,11 +10,12 @@
 		RecordShell,
 		Section,
 		Sheet,
-		format
+		enum_text,
+		format,
+		label
 	} from '@norbital-ai/ui';
 	import VersionTimeline from '../components/version_timeline.svelte';
 	import { paidPeriods } from '../payroll/paid_period.svelte.js';
-	import { fieldLabel } from './change_summary.js';
 	import type { PersonRead } from './person_read.svelte.js';
 
 	let {
@@ -38,11 +39,11 @@
 						: on === ''
 							? (row.name ?? '')
 							: `${t('person.expected')} · ${day(on)}`,
-				status: fieldLabel(row.relation.toLowerCase()),
+				status: label(ctx, 'dependant', `relation.${row.relation}`, enum_text(row.relation)),
 				detail: [
 					...(row.name == null || on === '' ? [] : [row.name]),
 					...(['has_income', 'disabled', 'studying'] as const).flatMap((flag) =>
-						row[flag] === true ? [fieldLabel(flag)] : []
+						row[flag] === true ? [label(ctx, 'dependant', flag)] : []
 					)
 				].join(' · ')
 			}))

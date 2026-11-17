@@ -7,11 +7,18 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { verify } from '../integrity_oracle.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { amendments, carriedFor, cents, pay, run, signed, slip } from '../amendment_kit.ts';
 import {
-	ENTITY,
+	amendments,
+	carriedFor,
+	carriedOffCycle,
+	cents,
+	pay,
+	run,
+	signed,
+	slip
+} from '../amendment_kit.ts';
+import {
 	PAY_GROUP,
 	accountsIn,
 	measureOf,
@@ -21,8 +28,7 @@ import {
 	workspace,
 	storedQuery,
 	current,
-	storedReader,
-	keyOf,
+	ledgerWhole,
 	packTerms,
 	agreedTerms
 } from '../kit.ts';
@@ -95,37 +101,16 @@ const nothingKeyed = (t: Kit) =>
 			)
 		)
 	);
-/** The person's waiting periods carried by an off-cycle run: the way someone no run pays any more is settled. */
-const carriedOffCycle = (t: Kit) =>
-	Effect.gen(function* () {
-		const open = (yield* amendments(t)).filter((row) => row.payroll_run_id === null);
-		return yield* (yield* t.as(t.admin)).act({
-			'payroll_run.create': [
-				{
-					entity_id: ENTITY,
-					period: '2026-11',
-					kind: 'OFF_CYCLE',
-					amendments: open.map(({ id, revision }) => ({ id, revision }))
-				}
-			]
-		});
-	});
-/**
- * The ledger after every case: each balance figure is the sum of its ledger rows, every source still exists, and no
- * queued work failed. Only the watch for a balance below zero may remain.
- */
-const ledgerWhole = Effect.gen(function* () {
-	const t = yield* TestWorkspace;
-	assert.deepEqual((yield* t.run_due()).failed, []);
-	assert.deepEqual(
-		(yield* verify(storedReader(t), t.clock.now().slice(0, 10)))
-			.filter((finding) => finding.invariant !== 'W1')
-			.map((finding) => `${finding.invariant} ${finding.message}`),
-		[]
-	);
-});
+/** A case, then the ledger after it: whole (`ledgerWhole`). */
 const at = (effect: Effect.Effect<void, unknown, TestWorkspace>, now = NOW) =>
-	effect.pipe(Effect.andThen(ledgerWhole), Effect.provide(workspace({ seed, now })));
+	effect.pipe(
+		Effect.andThen(
+			Effect.gen(function* () {
+				yield* ledgerWhole(yield* TestWorkspace);
+			})
+		),
+		Effect.provide(workspace({ seed, now }))
+	);
 
 describe('the leave an exit settles', () => {
 	it.live('what is left is paid out on the last payslip, and the balance ends at nothing', () =>
@@ -218,12 +203,13 @@ describe('the leave an exit settles', () => {
 						(yield* amendments(t)).map((row) => [row.period, row.payroll_run_id]),
 						[['2026-10', null]]
 					);
-					yield* carriedOffCycle(t);
+					yield* carriedOffCycle(t, '2026-11');
 					yield* t.run_due();
 					const owed = (yield* carriedFor(t, '2026-11', '2026-10'))[`${LEAVE}/EMPLOYEE`];
 					assert.ok((owed ?? 0) > 0);
 					assert.equal(yield* left(t), 0, `the ${String(days)} days are used now`);
-					// and back again: what was paid would have to come back from someone no run pays, so it waits for HR
+					// and back again: what was paid would have to come back from someone no run pays. The run takes nothing:
+					// the payslip ends at zero and one task names what they owe
 					const [offCycle] = (yield* storedQuery(t, {
 						payroll_run: { where: { kind: { eq: 'OFF_CYCLE' } }, limit: 1 }
 					})).payroll_run.rows;
@@ -233,9 +219,12 @@ describe('the leave an exit settles', () => {
 					});
 					yield* t.run_due();
 					yield* ended(t, { encash_leave: false });
+					yield* carriedOffCycle(t, '2026-11');
+					yield* t.run_due();
+					const { obligation } = yield* storedQuery(t, { obligation: { limit: 500 } });
 					assert.equal(
-						keyOf(yield* Effect.flip(carriedOffCycle(t))),
-						'errors.payroll_run_carry_takes_back'
+						obligation.rows.filter((row) => row.occurrence_key.startsWith('recovery:')).length,
+						1
 					);
 				}),
 				'2026-11-20T02:00:00.000Z'
@@ -263,6 +252,35 @@ describe('the leave an exit settles', () => {
 					assert.equal(yield* left(t), days);
 					// the paid payslip stands as it was
 					assert.deepEqual(yield* settled(t, '2026-10'), last);
+				}),
+				'2026-11-20T02:00:00.000Z'
+			)
+	);
+
+	it.live(
+		'the last day moved a month on after its payslip is paid: the next run takes the pay-out back and settles the new last day on the days returned',
+		() =>
+			at(
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					yield* syncAll(t);
+					yield* ended(t, { to: '2026-10-31' });
+					yield* pay(t, '2026-10');
+					const first = yield* settled(t, '2026-10');
+					const [[, paidOut = 0] = []] = first.days;
+					assert.ok(Number(paidOut) > 0);
+					yield* ended(t, { to: '2026-11-30' });
+					// what the later last day earned beyond October's; the days October paid out are still marked used
+					const earnedSince = yield* left(t);
+					yield* run(t, '2026-11');
+					assert.equal(
+						(yield* carriedFor(t, '2026-11', '2026-10'))[`${LEAVE}/EMPLOYEE`],
+						-first.paid
+					);
+					assert.deepEqual((yield* settled(t, '2026-11')).days, [
+						[LEAVE, earnedSince + Number(paidOut)]
+					]);
+					assert.equal(yield* left(t), 0);
 				}),
 				'2026-11-20T02:00:00.000Z'
 			)

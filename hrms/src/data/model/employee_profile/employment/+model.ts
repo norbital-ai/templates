@@ -542,7 +542,15 @@ const datedCheck = Effect.fnUntraced(function* (
 				.map((reach) => ({
 					employee: String(now.stint.employee_id),
 					from: reach.from,
-					to: reach.to === null || (last !== null && reach.to > last) ? last : reach.to
+					to: reach.to === null || (last !== null && reach.to > last) ? last : reach.to,
+					...(terms
+						? {
+								unpaid: true,
+								groups: now.terms.flatMap((row) =>
+									row.pay_group_id == null ? [] : [row.pay_group_id]
+								)
+							}
+						: {})
 				}))
 		);
 	}
@@ -779,7 +787,9 @@ const stintWrite = Effect.fnUntraced(function* (
 		touched.push(
 			...reached(before, after, (day) => starts.has(dayFrom(day, 1))).map((reach) => ({
 				employee: String(after.employee_id),
-				...reach
+				...reach,
+				// days the stint gains may lie in a period its group paid without the person
+				...(reach.soft === true ? {} : { unpaid: true })
 			}))
 		);
 	}

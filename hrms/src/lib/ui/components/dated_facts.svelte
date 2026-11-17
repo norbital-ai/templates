@@ -9,6 +9,8 @@
 		Combobox,
 		Editor,
 		confirm_action,
+		enum_text,
+		label,
 		use_form,
 		type Kind,
 		type Value
@@ -23,6 +25,7 @@
 	let {
 		ctx,
 		id,
+		of,
 		facts,
 		base,
 		names,
@@ -33,6 +36,8 @@
 	}: {
 		ctx: PageContext;
 		id: string;
+		/** The model whose fields the facts are: a choice reads its label from there. */
+		of: string;
 		facts: readonly Fact[];
 		/** The list as stored: a fact it did not already take away is asked about before it is saved so. */
 		base: readonly Fact[];
@@ -145,7 +150,19 @@
 						searchable
 						on_change={(next) => next !== null && put(index, { name: next, value: null })}
 					/>{/if}
-				{#if shape !== undefined}
+				{#if shape?.kind.kind === 'enum' && shape.kind.many !== true}
+					<Combobox
+						id="{id}-{index}-value"
+						clearable={shape.kind.optional === true}
+						readonly={viewing}
+						value={typeof fact.value === 'string' ? fact.value : null}
+						options={shape.kind.values.map((value) => ({
+							value,
+							label: label(ctx, of, `${fact.name}.${value}`, enum_text(value))
+						}))}
+						on_change={set}
+					/>
+				{:else if shape !== undefined}
 					<Editor
 						{ctx}
 						id="{id}-{index}-value"

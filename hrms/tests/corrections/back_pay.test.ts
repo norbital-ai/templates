@@ -12,11 +12,16 @@ import { amendments, carriedFor, dates, ownLines, pay, run } from '../amendment_
 import {
 	EMPLOYMENT,
 	ENTITY,
+	PAY_GROUP,
 	WORK,
+	agreedTerms,
+	endStint,
+	stintOf,
 	current,
 	lawAt,
 	leaveCreate,
 	pack,
+	stintOver,
 	wholeDays,
 	workspace,
 	storedQuery,
@@ -329,6 +334,85 @@ describe('a raise from a month already paid', () => {
 				);
 			}).pipe(Effect.provide(workspace({ seed: from, now: '2026-03-20T02:00:00.000Z' })));
 		}
+	);
+
+	it.live(
+		'a first day moved back into a month the group has paid, where the person had no payslip: the month is worked out and carried',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* pay(t, '2026-02');
+				const { payslip } = yield* storedQuery(t, { payslip: { limit: 10 } });
+				assert.deepEqual(payslip.rows, [], 'the stint had not begun: February paid nothing');
+				yield* (yield* t.as(t.admin)).act({
+					'employment.update': [
+						{
+							target: yield* current(t, 'employment', STINT),
+							set: { effective_range: { from: '2026-02-01', to: null } }
+						}
+					]
+				});
+				yield* t.run_due();
+				assert.deepEqual(
+					(yield* amendments(t)).map((row) => [row.period, row.payroll_run_id]),
+					[['2026-02', null]]
+				);
+				yield* run(t, '2026-03');
+				assert.equal((yield* ownLines(t, '2026-03'))['BASIC/EMPLOYEE'], 7500);
+				assert.equal((yield* carriedFor(t, '2026-03', '2026-02'))['BASIC/EMPLOYEE'], 7500);
+			}).pipe(
+				Effect.provide(
+					workspace({ seed: stintOver(seed(), '2026-03-01'), now: '2026-03-20T02:00:00.000Z' })
+				)
+			)
+	);
+
+	it.live(
+		'a stint keyed after its first month was paid without the person: the month is worked out and carried',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* endStint(t, '2026-02-28', 'Resignation');
+				yield* t.run_due();
+				yield* pay(t, '2026-02');
+				yield* pay(t, '2026-03');
+				const stint = yield* stintOf(t);
+				// back from 1 March, keyed in April
+				yield* (yield* t.as(t.admin)).act({
+					'employment.create': [
+						{
+							employee_id: stint.employee_id,
+							entity_id: stint.entity_id,
+							employee_number: stint.employee_number,
+							effective_range: { from: '2026-03-01', to: null },
+							reason: 'Rehired the next day',
+							terms: [
+								{
+									effective_from: '2026-03-01',
+									engagement: 'EMPLOYEE',
+									pay_group_id: idOf('pay_group', PAY_GROUP),
+									...agreedTerms(7500)
+								}
+							],
+							parameters: [
+								{
+									effective_from: '2026-03-01',
+									parameters: { residency_status: 'CITIZEN', marital_status: 'SINGLE' }
+								}
+							]
+						}
+					]
+				});
+				yield* t.run_due();
+				assert.ok(
+					(yield* amendments(t)).some(
+						(row) => row.period === '2026-03' && row.payroll_run_id === null
+					),
+					'March waits to be worked out'
+				);
+				yield* run(t, '2026-04');
+				assert.equal((yield* carriedFor(t, '2026-04', '2026-03'))['BASIC/EMPLOYEE'], 7500);
+			}).pipe(Effect.provide(workspace({ seed: seed(), now: '2026-04-20T02:00:00.000Z' })))
 	);
 
 	it.live('a hire signed after its first months: they are back pay of the signing month', () => {

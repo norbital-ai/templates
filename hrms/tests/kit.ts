@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -26,6 +27,7 @@ import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf, type Reader } from '../src/lib/payroll_engine/reads.ts';
 import { inForce } from '../src/lib/dated.ts';
 import { lawsOf, type Law } from '../src/lib/law.ts';
+import { verify } from './integrity_oracle.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */
 export const workspace = <P extends TestPorts = never>(
@@ -173,6 +175,12 @@ export const refusal = <A, E>(write: Effect.Effect<A, E>) =>
 /** The catalogue key a refused write names; another failure answers its tag. */
 export const keyOf = (failure: { readonly _tag: string; readonly key?: string | undefined }) =>
 	failure.key ?? failure._tag;
+
+/** A plain object: not an array, not null. */
+export const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+/** A figure to the nearest cent, as a test works one out by hand. */
+export const nearestCent = (value: number) => Math.round(value * 100) / 100;
 
 export const uuid = (n: number) => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 export const ENTITY = idOf('entity', uuid(1));
@@ -664,3 +672,14 @@ export const syncAll = (t: Kit) =>
 		Effect.andThen((admin) => admin.run('ledger', {}, JobResult)),
 		Effect.andThen(t.run_due())
 	);
+/** No queued work failed and the ledger holds no hard finding: only the watch for a balance below zero may remain. */
+export const ledgerWhole = (t: Kit) =>
+	Effect.gen(function* () {
+		assert.deepEqual((yield* t.run_due()).failed, []);
+		assert.deepEqual(
+			(yield* verify(storedReader(t), t.clock.now().slice(0, 10)))
+				.filter((finding) => finding.invariant !== 'W1')
+				.map((finding) => `${finding.invariant} ${finding.message}`),
+			[]
+		);
+	});

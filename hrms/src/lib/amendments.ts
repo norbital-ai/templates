@@ -23,6 +23,12 @@ export interface Touched {
 	readonly undated?: boolean;
 	/** Amends a paid period it reaches, and is not held by an unpaid run: that run has not settled anything yet. */
 	readonly soft?: boolean;
+	/**
+	 * Days of a stint or its terms (the person is named by `employee`): a paid period of their pay group that gave them
+	 * no payslip is reached too. `groups` names the pay groups of terms the write itself brings.
+	 */
+	readonly unpaid?: boolean;
+	readonly groups?: readonly unknown[];
 }
 
 /** A correction reaching more person-periods than this is made by pay group or by year. */
@@ -153,12 +159,34 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		'payroll_run',
 		touched.flatMap((touch) => (touch.run == null ? [] : [touch.run]))
 	);
+	const unpaid = touched.filter((touch) => touch.unpaid === true && touch.employee !== undefined);
 	const known = yield* queryRows(read, {
 		employment: {
 			where: { id: { in: employments } },
 			fields: ['employee_id'],
 			limit: 10000
 		},
+		// a stint's days may fall in a period its pay group has paid without the person: the groups their terms name, and
+		// those groups' paid periods since
+		...(unpaid.length === 0
+			? {}
+			: {
+					contract_terms: {
+						where: { employment_id: { is: { employee_id: { in: named } } } },
+						fields: ['pay_group_id'],
+						limit: 10000,
+						employment_id: { fields: ['employee_id'] }
+					},
+					payroll_run: {
+						where: {
+							kind: { eq: 'ON_CYCLE' },
+							state: { eq: 'PAID' },
+							salary_coverage: { overlaps: { from: since(unpaid), to: null } }
+						},
+						fields: [...RUN.fields, 'entity_id'],
+						limit: 10000
+					}
+				}),
 		payslip: {
 			where: {
 				employee_id: { is: theirs },
@@ -185,6 +213,41 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	const employeeOf = new Map(
 		(known.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
+	const slips = known.payslip ?? [];
+	const paid = new Set(
+		slips.map(
+			(slip) => `${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`
+		)
+	);
+	const groupsOf = Map.groupBy(
+		[
+			...(known.contract_terms ?? []).map((row) => ({
+				employee: String(objectValue(row.employment_id).employee_id),
+				group: String(row.pay_group_id)
+			})),
+			...unpaid.flatMap((touch) =>
+				(touch.groups ?? []).map((group) => ({
+					employee: String(touch.employee),
+					group: String(group)
+				}))
+			)
+		],
+		(row) => row.employee
+	);
+	// the periods a group paid without the person stand as payslips that paid nothing
+	const missed = [...groupsOf].flatMap(([employee, rows]) =>
+		(known.payroll_run ?? [])
+			.filter(
+				(run) =>
+					rows.some((row) => row.group === String(run.pay_group_id)) &&
+					!paid.has(`${employee}/${String(run.id)}`)
+			)
+			.map((run) => ({
+				employee_id: employee,
+				entity_id: run.entity_id ?? null,
+				payroll_run_id: run
+			}))
+	);
 	return yield* carried(
 		touched.flatMap((touch) => {
 			const employee = touch.employee ?? employeeOf.get(String(touch.employment));
@@ -202,7 +265,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 					];
 		}),
 		windowsOf(
-			known.payslip ?? [],
+			[...slips, ...missed],
 			new Map(
 				(known.pay_group ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
 			)

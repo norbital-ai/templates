@@ -7,7 +7,6 @@
 		EmptyState,
 		Field,
 		Form,
-		Label,
 		notify_outcome,
 		RecordShell,
 		Section,
@@ -55,11 +54,6 @@
 	);
 
 	let editing = $state<LawRowTarget | null>(null);
-	let saving = $state<{ patch: JsonObject; done: () => void } | null>(null);
-	const save = (patch: JsonObject, done: () => void) => {
-		if (Object.keys(patch).length === 0) return done();
-		saving = { patch, done };
-	};
 	const open = (target: LawRowTarget) => (editing = target);
 	let researching = $state(false);
 	function researchNow(code: string) {
@@ -122,22 +116,12 @@
 	};
 </script>
 
-{#snippet inForce()}{#if law && Object.keys(patch).length > 0}<Combobox
-			aria-label={ctx.t('law_save.title')}
-			options={[
-				{ value: 'from', label: ctx.t('law_save.from_date') },
-				{ value: 'always', label: ctx.t('law_save.always') }
-			]}
-			value={always ? 'always' : 'from'}
-			on_change={(next) => (always = next === 'always')}
-		/>{#if !always}<Label for="law-effective-from">{ctx.t('law_save.date')}</Label><Editor
-				{ctx}
-				id="law-effective-from"
-				name="effective_from"
-				kind={{ kind: 'date' }}
-				value={changesOn ?? law.on}
-				on_change={(next) => next != null && (changesOn = String(next))}
-			/>{/if}{/if}{/snippet}
+{#snippet inForce()}{#if law && Object.keys(patch).length > 0}<LawSave
+			{ctx}
+			id="law-effective-from"
+			bind:always
+			bind:date={() => changesOn ?? law.on, (next) => (changesOn = next)}
+		/>{/if}{/snippet}
 
 {#snippet general()}{#if head}<Form
 			{ctx}
@@ -207,7 +191,7 @@
 			<LawBlock {ctx} {law} family="lookup" bind:draft={drafts.lookup} />
 		</Form>{/if}{/snippet}
 
-{#snippet overview()}{#if law}<Scroll name="Calculation overview" size="fill" inset
+{#snippet overview()}{#if law}<Scroll name={ctx.t('app.settings.overview')} size="fill" inset
 			><CalculationOverview {ctx} {law} on_open={open} /></Scroll
 		>{/if}{/snippet}
 
@@ -216,7 +200,7 @@
 {#snippet rules()}{#if law}<LawTable
 			{ctx}
 			name="rules"
-			title="Registered rules"
+			title={ctx.t('law_family.registered_rule')}
 			rows={law.rows.registered_rule}
 			columns={[
 				'description',
@@ -234,7 +218,7 @@
 {#snippet behaviour()}{#if law}<LawTable
 			{ctx}
 			name="registered_effects"
-			title="Registered behaviour"
+			title={ctx.t('law_family.registered_effect')}
 			rows={law.rows.registered_effect}
 			columns={[
 				'description',
@@ -294,10 +278,10 @@
 							keep_alive: true
 						},
 						{ name: 'lookup', title: ctx.t('app.settings.lookup'), body: lookup, keep_alive: true },
-						{ name: 'overview', title: 'Calculation overview', body: overview },
-						{ name: 'catalog', title: 'Catalog', body: catalog },
-						{ name: 'rules', title: 'Registered rules', body: rules },
-						{ name: 'behaviour', title: 'Registered behaviour', body: behaviour },
+						{ name: 'overview', title: ctx.t('app.settings.overview'), body: overview },
+						{ name: 'catalog', title: ctx.t('app.settings.catalog'), body: catalog },
+						{ name: 'rules', title: ctx.t('law_family.registered_rule'), body: rules },
+						{ name: 'behaviour', title: ctx.t('law_family.registered_effect'), body: behaviour },
 						{ name: 'change_log', title: ctx.t('app.settings.change_log'), body: changeLog }
 					]}
 				/></RecordShell
@@ -306,12 +290,5 @@
 </AppShell>
 
 {#if law}
-	<LawRow {ctx} {law} bind:target={editing} {save} />
-	<LawSave
-		{ctx}
-		{law}
-		{chain}
-		bind:patch={() => saving?.patch ?? null, (next) => next === null && (saving = null)}
-		on_saved={() => saving?.done()}
-	/>
+	<LawRow {ctx} {law} {chain} bind:target={editing} />
 {/if}

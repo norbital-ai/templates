@@ -13,6 +13,7 @@ import {
 	WORK,
 	lawWith,
 	leaveCreate,
+	nearestCent as cents,
 	pack,
 	uuid,
 	wholeDays,
@@ -63,7 +64,6 @@ const june = (seed: Seed, dates: readonly string[]) =>
 		const at = (code: string) => breakdown.checkpoints.find((row) => row.code === code)?.value;
 		return { npl: npl?.amount, basic: at('BASIC'), paid: at('PAID_BASIC') };
 	}).pipe(Effect.provide(workspace({ seed, now: NOW })));
-const cents = (value: number) => Math.round(value * 100) / 100;
 const THREE = ['2026-06-10', '2026-06-11', '2026-06-12'];
 
 describe('a no-pay day on a day-rate basis', () => {

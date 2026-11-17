@@ -644,7 +644,8 @@ describe('a work event', () => {
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 0);
 				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-02', '2026-02-06', SECOND.employment);
-				yield* syncAll(t);
+				// the event's own write asks for the sync: nothing else has to wake it
+				assert.deepEqual((yield* t.run_due()).failed, []);
 				assert.equal(yield* entitled(t, uuid(4)), 0);
 				assert.equal(yield* entitled(t, SECOND.employee), 2);
 				yield* record(t, 'EMPLOYER_SHUTDOWN', '2026-02-09', '2026-02-13');

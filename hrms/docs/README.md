@@ -6,7 +6,7 @@ Read [section 0 of the architecture](0001-hrms-calculation-architecture.md#0-the
 
 - [Architecture](0001-hrms-calculation-architecture.md): the fixed design, the owners, the law by date, catalogues, the engine, the ledger, rules and effects, automations, roles and screens.
 - [Core mechanisms, run through](0008-mechanisms-walkthrough.md): one invented example from company setup to an exit.
-- [Corrections and integrity](0007-corrections-and-integrity.md): correcting a paid period at its source, how a period reads the employment, the ledger's invariants and the integrity check.
+- [Corrections and integrity](0007-corrections-and-integrity.md): correcting a paid period at its source, how a period reads the employment, and the ledger's invariants.
 - [Dated changes](0011-dated-changes.md): plain fields, self-dated records and dated change rows; the fold, and the decisions behind it.
 - [Model specification](0002-model-specification.md): every model, its fields and its write rules, and the expression context.
 - [Jurisdiction seed specification](0003-jurisdiction-seed-specification.md): how a law and its dated changes are authored in the public seed.

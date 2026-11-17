@@ -45,7 +45,6 @@
 		action: 'loan_catalog_entry.create',
 		label: () => ctx.t('app.loans.title'),
 		held: () => held?.current,
-		loading: 'Employee and loan data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseLoanSheet(grids, {
 				...party,
@@ -74,7 +73,6 @@
 		action: 'loan_catalog_entry_repayment.create',
 		label: () => ctx.t('v2.repayments'),
 		held: () => held?.current,
-		loading: 'Employee and loan data is still loading.',
 		build: (grids, current, party) => {
 			const parsed = parseRepaymentSheet(grids, {
 				...party,
@@ -123,7 +121,7 @@
 				new: () => (creating = true),
 				title: ctx.t('app.loans.title'),
 				actions: [
-					importLoans(ctx.t('holiday_calendar.import_spreadsheet')),
+					importLoans(ctx.t('import.loans')),
 					importRepayments(ctx.t('v2.import_repayments'))
 				]
 			}}

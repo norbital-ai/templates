@@ -14,10 +14,12 @@ import {
 	EMPLOYMENT,
 	amendments,
 	carriedFor,
+	monthTotals,
 	paidInAll,
 	pay,
 	raisedFrom,
 	rostered,
+	rosteredNeutral,
 	run,
 	slip
 } from '../amendment_kit.ts';
@@ -30,6 +32,7 @@ import {
 	accountsIn,
 	current,
 	lawAt,
+	lawWith,
 	leaveCreate,
 	ledgerRows,
 	measureOf,
@@ -60,12 +63,16 @@ const earned = (lines: Readonly<Record<string, number>>) =>
 			([key]) => !PAID.some((code) => key.startsWith(`${code}/`) || key.startsWith(`${code}_`))
 		)
 	);
-/** What a history leaves: every line paid in all (but schemes assessed when paid), and the leave ledger per key. */
-const outcome = (t: Kit, periods: readonly string[]) =>
+/**
+ * What a history leaves: every line paid in all (but schemes assessed when paid), and the leave ledger per key; with
+ * `money`, each pay and statutory total of a month on the balance too.
+ */
+const outcome = (t: Kit, periods: readonly string[], money = false) =>
 	Effect.gen(function* () {
 		return {
 			paid: earned(yield* paidInAll(t, ...periods)),
-			leave: (yield* projection(t)).filter((line) => line.startsWith('leave/'))
+			leave: (yield* projection(t)).filter((line) => line.startsWith('leave/')),
+			...(money ? { months: yield* monthTotals(t) } : {})
 		};
 	});
 /** Ledger work run again moves nothing, no queued work failed, and the integrity check finds nothing. */
@@ -100,6 +107,8 @@ const parity = <A>(
 		readonly right: Step<unknown>;
 		/** false where the correction moves the ledger and no pay (a paid leave day for a paid leave day) */
 		readonly carries?: boolean;
+		/** the month totals on the balance are compared too: for a law whose schemes are all assessed when earned */
+		readonly money?: boolean;
 	}
 ) =>
 	Effect.gen(function* () {
@@ -125,7 +134,7 @@ const parity = <A>(
 		if (history.carries === false) assert.deepEqual(carried, {});
 		else assert.notDeepEqual(carried, {}, 'February carries a difference for January');
 		yield* settledOnce(t);
-		return yield* outcome(t, MONTHS);
+		return yield* outcome(t, MONTHS, history.money);
 	}).pipe(
 		Effect.provide(workspace({ seed, now: at(MONTHS[1]) })),
 		Effect.flatMap((corrected) =>
@@ -136,7 +145,7 @@ const parity = <A>(
 				yield* pay(t, MONTHS[0]);
 				yield* run(t, MONTHS[1]);
 				assert.deepEqual(yield* amendments(t), []);
-				return yield* outcome(t, MONTHS);
+				return yield* outcome(t, MONTHS, history.money);
 			}).pipe(
 				Effect.provide(workspace({ seed, now: at(MONTHS[1]) })),
 				Effect.map((never) => assert.deepEqual(corrected, never))
@@ -217,6 +226,39 @@ describe('a fact of the person corrected after its month was paid', () => {
 				});
 			}
 		);
+
+	// the neutral law's tax is made to read the family, so no real law's reliefs are under test: divided by one more for
+	// each child
+	it.live(
+		'a child keyed after the month it was born in was paid: the next payslip carries the tax difference, as B',
+		() => {
+			const seed = lawWith(rosteredNeutral(MONTHS), {
+				statutory_contribution_catalog: {
+					TAX: {
+						employee_amount: [
+							"const fund = Object.hasOwn(ctx.statutory, 'FUND') ? ctx.statutory.FUND.employee : 0;",
+							"const children = get(ctx.subject.employment, 'family', []).filter((member) => member.relation === 'CHILD').length;",
+							'return ((ctx.subtotals.ORDINARY_WAGES - fund) * ctx.lookup.rate) / (1 + children);'
+						].join('\n')
+					}
+				}
+			});
+			const right = (t: Kit) =>
+				Effect.gen(function* () {
+					yield* (yield* t.as(t.admin)).act({
+						'dependant.create': [
+							{
+								employee_id: idOf('employee_profile', uuid(4)),
+								relation: 'CHILD',
+								born_on: '2026-01-10'
+							}
+						]
+					});
+					yield* t.run_due();
+				});
+			return parity(seed, { wrong: nothing, correct: right, right });
+		}
+	);
 });
 
 // ---- leave ----------------------------------------------------------------------------------------------------------
@@ -546,6 +588,35 @@ const holidayDeclared = (t: Kit) =>
 			]
 		})
 	);
+/** A holiday published before the month, on a day that was worked. */
+const HOLIDAY = idOf('holiday', uuid(20));
+const withHoliday = (): Seed => ({
+	...rostered(MONTHS),
+	holiday: [
+		{
+			id: HOLIDAY,
+			entity_id: ENTITY,
+			date: DAY,
+			name: 'PUBLIC_HOLIDAY',
+			kind: 'PUBLIC_HOLIDAY',
+			given_to: 'EVERYONE',
+			published_at: '2025-12-01T00:00:00.000Z'
+		}
+	]
+});
+const holidayGone = (t: Kit) =>
+	Effect.gen(function* () {
+		const target = yield* current(t, 'holiday', HOLIDAY);
+		yield* wrote(t, (hr) => hr.act({ 'holiday.delete': [{ target }] }));
+	});
+/** The holiday on another day: a Sunday nobody is rostered on. */
+const holidayMoved = (t: Kit) =>
+	Effect.gen(function* () {
+		const target = yield* current(t, 'holiday', HOLIDAY);
+		yield* wrote(t, (hr) =>
+			hr.act({ 'holiday.update': [{ target, set: { date: '2026-01-18' } }] })
+		);
+	});
 const rosterDayGone = (t: Kit, on: string = DAY) =>
 	Effect.gen(function* () {
 		const [day] = (yield* storedQuery(t, {
@@ -672,6 +743,12 @@ describe('every other record a run reads, corrected after its month was paid', (
 	);
 	it.live('a holiday declared on a day already paid as worked: as B', () =>
 		parity(rostered(MONTHS), { wrong: nothing, correct: holidayDeclared, right: holidayDeclared })
+	);
+	it.live('a holiday that never was, deleted after its day was paid as one worked: as B', () =>
+		parity(withHoliday(), { wrong: nothing, correct: holidayGone, right: holidayGone })
+	);
+	it.live('a holiday moved off the day already paid as a holiday worked: as B', () =>
+		parity(withHoliday(), { wrong: nothing, correct: holidayMoved, right: holidayMoved })
 	);
 	it.live('the company’s overtime hour, dated in the paid month: as B', () =>
 		parity(rostered(MONTHS, OVERTIME_DAY), {
@@ -1000,6 +1077,66 @@ describe('an agreed allowance corrected after its month was paid', () => {
 		const right = allowed(SUA(300));
 		return parity(joiner(NONE), { wrong: nothing, correct: right, right });
 	});
+});
+
+// ---- the contract's week --------------------------------------------------------------------------------------------
+
+/** The week agreed again from January, on a terms row of its own. */
+const weekAgreed =
+	(week: { readonly normal_hours_per_week: number; readonly normal_days_per_week?: number }) =>
+	(t: Kit) =>
+		wrote(t, (hr) =>
+			hr.act({
+				'contract_terms.create': [{ employment_id: STINT, effective_from: '2026-01-01', ...week }]
+			})
+		);
+/** The company pays overtime on its own hour, which divides the year's wage by the contract's weekly hours. */
+const onContractHour = (seed: Seed): Seed => ({
+	...seed,
+	entity_change: (seed.entity_change ?? []).map((row) => ({
+		...row,
+		pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' }
+	}))
+});
+
+describe('the contract’s hours or days a week corrected after their month was paid', () => {
+	// the day and hour rates divide by the contract's week: January's overtime is priced again on the new rate
+	it.live(
+		'the hours a week, where the company’s hour divides by them: the overtime is priced again, as B',
+		() => {
+			const right = weekAgreed({ normal_hours_per_week: 40 });
+			return parity(onContractHour(rostered(MONTHS, OVERTIME_DAY)), {
+				wrong: nothing,
+				correct: right,
+				right
+			});
+		}
+	);
+	it.live(
+		'the days a week: the day and hour rates move and the overtime is priced again, as B',
+		() => {
+			const right = weekAgreed({ normal_hours_per_week: 40, normal_days_per_week: 5 });
+			return parity(rostered(MONTHS, OVERTIME_DAY), { wrong: nothing, correct: right, right });
+		}
+	);
+});
+
+// ---- the balance's pay and statutory totals ------------------------------------------------------------------------
+
+describe('what a carry posts to the balance', () => {
+	// the neutral law assesses every scheme in the month earned, so nothing is charged on the paying month instead
+	it.live(
+		'a raise keyed after its month was paid, every scheme assessed when earned: each month’s pay and statutory totals are B’s',
+		() => {
+			const right = (t: Kit) => raisedFrom(t, '2026-01-01', 3100);
+			return parity(rosteredNeutral(MONTHS), {
+				wrong: nothing,
+				correct: right,
+				right,
+				money: true
+			});
+		}
+	);
 });
 
 // ---- any sequence of changes to the terms ---------------------------------------------------------------------------

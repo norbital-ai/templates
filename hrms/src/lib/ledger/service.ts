@@ -1709,18 +1709,21 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 	}
 });
 
-/** A leave posting or a manual adjustment dated before this year can change what carried since: its people sync again. */
+/** A leave posting or a manual adjustment in a window that has closed can change what carried since: its people sync again. */
 export const syncLate = Effect.fn('ledger.syncLate')(function* (
 	ctx: Pick<EffectCtx, 'query' | 'schedule' | 'today'>,
 	rows: readonly JsonObject[]
 ) {
-	const year = String(ctx.today).slice(0, 4);
+	// a window lasts a year: one that began a year ago or more has closed, whatever day of the year it opens on
+	const closed = DateTime.formatIsoDate(
+		DateTime.subtract(DateTime.makeUnsafe(String(ctx.today)), { years: 1 })
+	);
 	const late = rows.filter(
 		(row) =>
 			(String(row.source).startsWith('leave_catalog_entry:') ||
 				String(row.source).startsWith('manual:') ||
 				(String(row.source).startsWith('payroll_run:') && row.account === 'leave')) &&
-			String(row.effective_on).slice(0, 4) < year
+			String(row.period).slice(-10) <= closed
 	);
 	if (late.length === 0) return;
 	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
@@ -1745,7 +1748,7 @@ export const syncLatePosted = Effect.fn('ledger.syncLatePosted')(function* (
 	const { ledger_entry: posted = [] } = yield* queryRows(ctx.query, {
 		ledger_entry: {
 			where: { source: { in: [...sources] } },
-			fields: ['source', 'account', 'effective_on', 'balance_id'],
+			fields: ['source', 'account', 'period', 'balance_id'],
 			limit: 10000
 		}
 	});

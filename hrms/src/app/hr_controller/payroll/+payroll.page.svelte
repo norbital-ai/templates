@@ -6,21 +6,17 @@
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
 	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
+	import { periodLabel } from '../../../lib/ui/format/period_label.js';
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const scope = companyScope(ctx);
 	let creating = $state(false);
 </script>
 
-{#snippet periodCell({ value }: { value: unknown })}
-	{@const key = String(value ?? '')}
-	{key.length === 10
-		? format({ kind: 'date' }, key, { locale: ctx.locale })
-		: format({ kind: 'date', precision: 'month' }, `${key.slice(0, 7)}-01`, {
-				locale: ctx.locale
-			})}{#if key.length === 9}
-		· {ctx.t(key.endsWith('1') ? 'app.payroll.first_half' : 'app.payroll.second_half')}{/if}
-{/snippet}
+{#snippet periodCell({ value }: { value: unknown })}{periodLabel(
+		ctx,
+		String(value ?? '')
+	)}{/snippet}
 
 {#snippet payDateCell({ value }: { value: unknown })}
 	{value == null ? '' : format({ kind: 'date' }, String(value), { locale: ctx.locale })}

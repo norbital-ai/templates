@@ -104,6 +104,7 @@ const postingsBetween = (due: readonly Wanted[], paid: readonly Wanted[]): reado
 		return row === undefined || amount === 0 ? [] : [{ ...row, amount }];
 	});
 };
+const isMoney = (row: Wanted) => row.account === 'pay' || row.account === 'statutory';
 const movements = (rows: readonly Wanted[], sign: 1 | -1): readonly Movement[] =>
 	rows.map((row) => ({
 		account: row.account,
@@ -251,7 +252,7 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 				employee_id: { in: who },
 				payroll_run_id: { is: { pay_date: { gte: paidFrom } } }
 			},
-			fields: ['id', 'employee_id', 'payroll_run_id', 'breakdown'],
+			fields: ['id', 'employee_id', 'employment_id', 'payroll_run_id', 'breakdown'],
 			limit: 10000
 		},
 		// the runs that already carried for a period: what they sealed belongs to it
@@ -433,6 +434,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		readonly amendments: readonly JsonObject[];
 		/** The companies of those runs: each names its law (`settings_code`). */
 		readonly entities: readonly JsonObject[];
+		/** The recovery tasks HR has fulfilled (`recovery:<employment>:<period>`): that money came back outside payroll. */
+		readonly recovered: ReadonlySet<string>;
 	}
 ) {
 	const offCycle = own.frame.pays !== undefined;
@@ -769,14 +772,34 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 						-1
 					)
 				);
+			// a carried difference in leave or claims is in today's balance already: one for this period or later comes off
 			for (const entry of carriedFor(slip.breakdown)) {
 				const of = runOf.get(entry.run_id);
-				if (of !== undefined && orderOf(of) < at.order)
-					built = apply(built, movements(entry.postings, 1));
+				if (of === undefined) continue;
+				if (orderOf(of) < at.order)
+					built = apply(built, movements(entry.postings.filter(isMoney), 1));
+				else
+					rest = apply(
+						rest,
+						movements(
+							entry.postings.filter((row) => !isMoney(row)),
+							-1
+						)
+					);
 			}
 		}
+		// what this run carries is not in the balance yet
 		for (const entry of carried.get(employee) ?? [])
-			if (entry.period.order < at.order) built = apply(built, movements(entry.postings, 1));
+			if (entry.period.order < at.order) {
+				built = apply(built, movements(entry.postings.filter(isMoney), 1));
+				rest = apply(
+					rest,
+					movements(
+						entry.postings.filter((row) => !isMoney(row)),
+						1
+					)
+				);
+			}
 		for (const row of outside.get(employee) ?? []) {
 			const move: Wanted = {
 				account: String(row.account),
@@ -897,13 +920,19 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			const theirs = slipsOf(employee);
 			const paidSlip = theirs.find(({ run }) => String(run.id) === period.id);
 			const later = theirs.filter(({ order }) => order > period.order);
+			// a recovery HR has since collected outside payroll is settled: no run takes it again
+			const settled =
+				paidSlip !== undefined &&
+				known.recovered.has(
+					`recovery:${String(paidSlip.slip.employment_id)}:${String(period.run.period)}`
+				);
 			// what was paid for it: its payslip's own lines, and what later payslips carried for it
 			const paidLines = [
 				...linesOf(paidSlip?.slip.breakdown).filter((line) => line.period === undefined),
 				...later.flatMap(({ slip }) =>
 					linesOf(slip.breakdown).filter((line) => line.period === period.key.split('/')[1])
 				)
-			];
+			].filter((line) => !(settled && line.code === RECOVERY));
 			const paidPostings = [
 				...(paidSlip === undefined
 					? []
@@ -1079,10 +1108,16 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	return {
 		payslips,
 		attaches,
-		// a row is taken only when its person is on this run's payslips: nobody else carries it
+		// a row is taken only when its person is on this run's payslips and its period was worked out: nobody else
+		// carries it, and one this run could not reach waits on
 		taken: open
 			.filter(
-				(row) => people.includes(String(row.employee_id)) && done.has(String(row.employee_id))
+				(row) =>
+					people.includes(String(row.employee_id)) &&
+					done.has(String(row.employee_id)) &&
+					(again.get(String(row.employee_id)) ?? []).some(
+						(period) => period.key === `${String(row.pay_group_id)}/${String(row.period)}`
+					)
 			)
 			.map((row) => String(row.id)),
 		deferred,

@@ -3,11 +3,10 @@
 // never against a figure worked from the statute.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { verify } from '../integrity_oracle.ts';
 import { idOf } from '../../src/lib/payroll_engine/reads.ts';
 import { ownLines, pay, run } from '../amendment_kit.ts';
 import {
@@ -20,7 +19,7 @@ import {
 	wholeDays,
 	workspace,
 	storedQuery,
-	storedReader,
+	ledgerWhole,
 	packTerms
 } from '../kit.ts';
 
@@ -397,17 +396,6 @@ describe('benefit exclusion', () => {
 
 // Kept on ID: only the ID health-insurance rows read `health_billing`; MY's contributions have no arrears billing to vary.
 describe('health insurance billed a month in arrears', () => {
-	/** No queued work failed and the ledger holds no hard finding. */
-	const ledgerWhole = (t: Kit) =>
-		Effect.gen(function* () {
-			assert.deepEqual((yield* t.run_due()).failed, []);
-			assert.deepEqual(
-				(yield* verify(storedReader(t), t.clock.now().slice(0, 10)))
-					.filter((finding) => finding.invariant !== 'W1')
-					.map((finding) => `${finding.invariant} ${finding.message}`),
-				[]
-			);
-		});
 	const indonesia = (billing: 'CURRENT' | 'ARREARS'): Seed => {
 		const packed = withEmployer(
 			pack(

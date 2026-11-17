@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import type { MessageKey } from '@norbital-ai/bolt';
 	import type { Kind } from '@norbital-ai/ui';
 	import type { LawFamily } from '../../law.js';
 
@@ -6,9 +7,9 @@
 	type FieldSpec = readonly [name: string, kind: Kind | 'code' | 'subtotal'];
 	type SectionSpec = {
 		readonly name: string;
-		readonly title?: string;
+		readonly title?: MessageKey;
 		readonly icon?: string;
-		readonly hint?: string;
+		readonly hint?: MessageKey;
 		readonly closed?: true;
 		/** One field to a row; otherwise two. */
 		readonly stack?: true;
@@ -22,9 +23,9 @@
 	const DIRECTION: Kind = { kind: 'enum', values: ['ADD', 'DEDUCT'] };
 	const WINDOW: Kind = { kind: 'enum', values: ['MONTH', 'YEAR'] };
 
-	const definition = (hint: string): SectionSpec => ({
+	const definition = (hint: MessageKey): SectionSpec => ({
 		name: 'definition',
-		title: 'Definition',
+		title: 'law_row.section.definition',
 		icon: 'lucide:file-text',
 		hint,
 		stack: true,
@@ -33,16 +34,16 @@
 			['description', TEXT]
 		]
 	});
-	const rule = (hint: string, ...fields: FieldSpec[]): SectionSpec => ({
+	const rule = (hint: MessageKey, ...fields: FieldSpec[]): SectionSpec => ({
 		name: 'rule',
-		title: 'Rule',
+		title: 'law_row.section.rule',
 		icon: 'lucide:code',
 		hint,
 		fields
 	});
-	const posting = (hint: string, ...fields: FieldSpec[]): SectionSpec => ({
+	const posting = (hint: MessageKey, ...fields: FieldSpec[]): SectionSpec => ({
 		name: 'posting',
-		title: 'Posting',
+		title: 'law_row.section.posting',
 		icon: 'lucide:arrow-down-up',
 		hint,
 		closed: true,
@@ -50,9 +51,9 @@
 	});
 	const CONFIGURATION: SectionSpec = {
 		name: 'configuration',
-		title: 'Configuration',
+		title: 'law_row.section.configuration',
 		icon: 'lucide:database',
-		hint: 'Lookup values and source references used by the rule.',
+		hint: 'law_row.hint.configuration',
 		closed: true,
 		fields: [
 			['lookup', RECORD],
@@ -75,39 +76,28 @@
 			}
 		],
 		allowance_catalog: [
-			definition('The catalog row: its identity and the agreement it prices.'),
-			rule(
-				'Who is eligible, how much is paid, and the economic date of the ledger line.',
-				['eligibility', 'code'],
-				['conversion', 'code']
-			),
-			posting('Where the amount lands and whether it is rated.', [
-				'include_in_rate',
-				{ kind: 'bool' }
-			]),
+			definition('law_row.hint.allowance_catalog.definition'),
+			rule('law_row.hint.allowance_catalog.rule', ['eligibility', 'code'], ['conversion', 'code']),
+			posting('law_row.hint.allowance_catalog.posting', ['include_in_rate', { kind: 'bool' }]),
 			CONFIGURATION
 		],
 		overtime_catalog: [
-			definition('The catalog row: its identity and the work pattern it prices.'),
-			rule(
-				'Eligibility, the paid multiplier and the economic date of the ledger line.',
-				['eligibility', 'code'],
-				['conversion', 'code']
-			),
-			posting('The subtotal and direction of the priced hours.', ['direction', DIRECTION]),
+			definition('law_row.hint.overtime_catalog.definition'),
+			rule('law_row.hint.overtime_catalog.rule', ['eligibility', 'code'], ['conversion', 'code']),
+			posting('law_row.hint.overtime_catalog.posting', ['direction', DIRECTION]),
 			CONFIGURATION
 		],
 		statutory_contribution_catalog: [
-			definition('The scheme and its identity.'),
+			definition('law_row.hint.statutory_contribution_catalog.definition'),
 			rule(
-				'Eligibility and the employee and employer amounts.',
+				'law_row.hint.statutory_contribution_catalog.rule',
 				['eligibility', 'code'],
 				['employee_amount', 'code'],
 				['employer_amount', 'code'],
 				['depends_on', { kind: 'text', many: true }]
 			),
 			posting(
-				'The subtotals, scheme kind and balance window.',
+				'law_row.hint.statutory_contribution_catalog.posting',
 				['employer_cost_subtotal', 'subtotal'],
 				['kind', { kind: 'enum', values: ['CONTRIBUTION', 'TAX'] }],
 				['balance_window', WINDOW],
@@ -116,77 +106,70 @@
 			CONFIGURATION
 		],
 		leave_catalog: [
-			definition('The leave type, its identity and how it is paid.'),
+			definition('law_row.hint.leave_catalog.definition'),
 			rule(
-				'Eligibility, the share of a normal day a slot pays and what a cashed-out entry pays.',
+				'law_row.hint.leave_catalog.rule',
 				['eligibility', 'code'],
 				['paid_share', 'code'],
 				['payout', 'code']
 			),
-			posting('The subtotal that receives a payout.'),
+			posting('law_row.hint.leave_catalog.posting'),
 			CONFIGURATION
 		],
 		claim_catalog: [
-			definition('The claim type, its identity and the entry it prices.'),
-			rule(
-				'Eligibility and the claim conversion; the entry owns the economic date.',
-				['eligibility', 'code'],
-				['conversion', 'code']
-			),
-			posting('The subtotal that receives the reimbursement.'),
+			definition('law_row.hint.claim_catalog.definition'),
+			rule('law_row.hint.claim_catalog.rule', ['eligibility', 'code'], ['conversion', 'code']),
+			posting('law_row.hint.claim_catalog.posting'),
 			CONFIGURATION
 		],
 		adhoc_catalog: [
-			definition('The one-off payment or deduction and its identity.'),
+			definition('law_row.hint.adhoc_catalog.definition'),
 			rule(
-				'Eligibility, conversion and off-cycle eligibility; the entry owns the economic date.',
+				'law_row.hint.adhoc_catalog.rule',
 				['eligibility', 'code'],
 				['conversion', 'code'],
 				['off_cycle_eligible', { kind: 'bool' }]
 			),
 			posting(
-				'The subtotal, direction and party of the posting.',
+				'law_row.hint.adhoc_catalog.posting',
 				['direction', DIRECTION],
 				['party', { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'] }]
 			),
 			CONFIGURATION
 		],
 		loan_catalog: [
-			definition('The loan or salary-advance type and its identity.'),
+			definition('law_row.hint.loan_catalog.definition'),
 			{
-				...rule(
-					'Who may be given this loan. Checked when a loan is recorded; a loan it refuses is not saved.',
-					['eligibility', 'code']
-				),
+				...rule('law_row.hint.loan_catalog.rule', ['eligibility', 'code']),
 				stack: true
 			},
-			posting('The subtotal that receives advances and repayments.'),
+			posting('law_row.hint.loan_catalog.posting'),
 			CONFIGURATION
 		],
 		work_event_catalog: [
-			definition('The event type and its identity.'),
-			posting('The subtotal that receives a priced event, where one exists.'),
+			definition('law_row.hint.work_event_catalog.definition'),
+			posting('law_row.hint.work_event_catalog.posting'),
 			CONFIGURATION
 		],
 		workplace_case_catalog: [
-			definition('The case type, its identity and what it does.'),
+			definition('law_row.hint.workplace_case_catalog.definition'),
 			{
 				name: 'configuration',
-				title: 'Configuration',
+				title: 'law_row.section.configuration',
 				icon: 'lucide:database',
-				hint: 'Events, lookup values and source references used by the workflow.',
+				hint: 'law_row.hint.workplace_case_catalog.configuration',
 				fields: [
 					['events', RECORD],
 					['lookup', RECORD],
 					['references', REFERENCES]
 				]
 			},
-			posting('The subtotal that receives a priced case outcome, where one exists.')
+			posting('law_row.hint.workplace_case_catalog.posting')
 		],
 		registered_rule: [
 			{
 				name: 'definition',
-				title: 'Definition',
+				title: 'law_row.section.definition',
 				icon: 'lucide:file-text',
 				fields: [
 					['description', TEXT],
@@ -198,15 +181,15 @@
 			},
 			{
 				name: 'reads',
-				title: 'Reads',
+				title: 'law_row.section.reads',
 				icon: 'lucide:database',
-				hint: 'The rows this rule loads before it runs. Each root is the same filter builder the tables use.',
+				hint: 'law_row.hint.registered_rule.reads',
 				stack: true,
 				fields: [['reads', READS]]
 			},
 			{
 				...rule(
-					'The condition and validation the rule runs.',
+					'law_row.hint.registered_rule.rule',
 					['condition', 'code'],
 					['validate', 'code'],
 					['lookup', RECORD],
@@ -218,7 +201,7 @@
 		registered_effect: [
 			{
 				name: 'definition',
-				title: 'Definition',
+				title: 'law_row.section.definition',
 				icon: 'lucide:file-text',
 				fields: [
 					['description', TEXT],
@@ -235,18 +218,18 @@
 			},
 			{
 				name: 'reads',
-				title: 'Reads',
+				title: 'law_row.section.reads',
 				icon: 'lucide:database',
-				hint: 'The rows this effect loads before it runs, shown with the same filter builder as the tables.',
+				hint: 'law_row.hint.registered_effect.reads',
 				closed: true,
 				stack: true,
 				fields: [['reads', READS]]
 			},
 			{
 				name: 'effect',
-				title: 'Effect',
+				title: 'law_row.section.effect',
 				icon: 'lucide:code',
-				hint: 'The condition and the rows the effect writes.',
+				hint: 'law_row.hint.registered_effect.effect',
 				stack: true,
 				fields: [
 					['condition', 'code'],
@@ -258,47 +241,48 @@
 		]
 	};
 
-	export const LAW_FAMILY_LABEL: Record<LawFamily, string> = {
-		subtotal: 'Subtotals',
-		allowance_catalog: 'Allowances',
-		overtime_catalog: 'Overtime and work',
-		statutory_contribution_catalog: 'Statutory contributions',
-		leave_catalog: 'Leave',
-		claim_catalog: 'Claims',
-		adhoc_catalog: 'Ad hoc',
-		loan_catalog: 'Loans',
-		work_event_catalog: 'Work events',
-		workplace_case_catalog: 'Workplace cases',
-		registered_rule: 'Registered rules',
-		registered_effect: 'Registered behaviour'
-	};
-
 	/** The row of a law a screen is editing; `code` null is a row being added. */
 	export type LawRowTarget = { readonly family: LawFamily; readonly code: string | null };
 
-	const title = (name: string) => `${name[0]?.toUpperCase()}${name.slice(1).replaceAll('_', ' ')}`;
+	/** The expressions a sentence explains under their editor. */
+	const HELPED = ['eligibility', 'conversion', 'paid_share', 'payout'] as const;
 </script>
 
 <script lang="ts">
-	/** One row of a law, edited as the folded law holds it. Saving hands the patch to the one save question. */
+	/** One row of a law, edited as the folded law holds it. Its footer asks the one save question and writes the patch. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, CodeEditor, Combobox, Editor, Label, Section, Sheet } from '@norbital-ai/ui';
+	import {
+		Button,
+		CodeEditor,
+		Combobox,
+		Editor,
+		Label,
+		Section,
+		Sheet,
+		enum_text,
+		label,
+		notify_outcome,
+		toast
+	} from '@norbital-ai/ui';
+	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
+	import { Effect } from 'effect';
 	import { LAW_DEPTH, type Law } from '../../law.js';
 	import type { Json, JsonObject } from '../../payroll_engine/foundation.js';
 	import { patchOf } from '../../dated.js';
+	import LawSave from './law_save.svelte';
+	import { lawWrites, type LawChange } from './law_save.js';
 
 	let {
 		ctx,
 		law,
-		target = $bindable(),
-		save
+		chain,
+		target = $bindable()
 	}: {
 		ctx: PageContext;
 		law: Law;
+		chain: readonly LawChange[];
 		target: LawRowTarget | null;
-		/** Asks the save question for a patch; `done` runs once it is written. */
-		save: (patch: JsonObject, done: () => void) => void;
 	} = $props();
 
 	let edits = $state<Record<string, Json>>({});
@@ -321,29 +305,62 @@
 	);
 	const fields = (row: JsonObject | undefined): JsonObject =>
 		Object.fromEntries(Object.entries(row ?? {}).filter(([name]) => name !== 'code'));
+	const title = (name: string) => label(ctx, 'law', name);
+	let always = $state(false);
+	let chosen = $state<string | null>(null);
+	let saving = $state(false);
 	const close = () => {
 		target = null;
 		edits = {};
+		always = false;
+		chosen = null;
 	};
+	function write(patch: JsonObject) {
+		if (Object.keys(patch).length === 0) return close();
+		const writes = lawWrites(chain, law, patch, always ? null : (chosen ?? law.on));
+		if (writes.create.length === 0 && writes.update.length === 0) return close();
+		saving = true;
+		fork(
+			ctx
+				.act({
+					'jurisdiction_change.create': writes.create,
+					'jurisdiction_change.update': writes.update
+				})
+				.pipe(
+					Effect.tap((outcome) =>
+						Effect.sync(() => {
+							notify_outcome(ctx, outcome);
+							if (outcome.kind === 'committed') close();
+						})
+					),
+					Effect.catch((error) =>
+						Effect.sync(() =>
+							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
+						)
+					),
+					Effect.ensuring(Effect.sync(() => (saving = false)))
+				)
+		);
+	}
 	function submit() {
 		if (target === null || !valid) return;
 		const { family } = target;
-		save(
+		write(
 			patchOf(
 				{ [family]: held === undefined ? {} : { [code]: fields(held) } },
 				{ [family]: { [code]: fields(value) } },
 				LAW_DEPTH
-			),
-			close
+			)
 		);
 	}
 	function remove() {
 		if (target === null || target.code === null) return;
-		save({ [target.family]: { [target.code]: null } }, close);
+		write({ [target.family]: { [target.code]: null } });
 	}
 </script>
 
 {#snippet control([name, kind]: FieldSpec)}
+	{@const helped = HELPED.find((field) => field === name)}
 	<Stack gap="xs">
 		<Label for="law-row-{name}">{title(name)}</Label>
 		{#if kind === 'code'}
@@ -362,6 +379,16 @@
 				value={typeof value[name] === 'string' ? value[name] : null}
 				on_change={(next) => (edits[name] = next)}
 			/>
+		{:else if kind.kind === 'enum' && kind.many !== true}
+			<Combobox
+				id="law-row-{name}"
+				options={kind.values.map((option) => ({
+					value: option,
+					label: label(ctx, 'law', `${name}.${option}`, enum_text(option))
+				}))}
+				value={typeof value[name] === 'string' ? value[name] : null}
+				on_change={(next) => (edits[name] = next)}
+			/>
 		{:else}
 			<Editor
 				{ctx}
@@ -374,6 +401,7 @@
 				on_change={(next) => (edits[name] = next)}
 			/>
 		{/if}
+		{#if helped}<p class="text-meta">{ctx.t(`models.law.help.${helped}`)}</p>{/if}
 	</Stack>
 {/snippet}
 
@@ -384,7 +412,7 @@
 	}}
 	title={target === null
 		? ''
-		: `${LAW_FAMILY_LABEL[target.family]} · ${target.code ?? ctx.t('law_row.new')}`}
+		: `${ctx.t(`law_family.${target.family}`)} · ${target.code ?? ctx.t('law_row.new')}`}
 >
 	{#if target !== null}
 		<Stack gap="md">
@@ -393,9 +421,9 @@
 					name="law_row_{section.name}"
 					first={at === 0}
 					default_open={section.closed !== true}
-					{...section.title === undefined ? {} : { title: section.title }}
+					{...section.title === undefined ? {} : { title: ctx.t(section.title) }}
 					{...section.icon === undefined ? {} : { icon: section.icon }}
-					{...section.hint === undefined ? {} : { hint: section.hint }}
+					{...section.hint === undefined ? {} : { hint: ctx.t(section.hint) }}
 				>
 					{#if section.stack}
 						<Stack gap="md">
@@ -408,11 +436,19 @@
 					{/if}
 				</Section>
 			{/each}
-			<Cluster gap="sm" justify="end">
+			<Cluster as="footer" gap="sm" justify="end">
+				<LawSave
+					{ctx}
+					id="law-row-effective-from"
+					bind:always
+					bind:date={() => chosen ?? law.on, (next) => (chosen = next)}
+				/>
 				{#if !adding}
-					<Button variant="destructive" onclick={remove}>{ctx.t('law_row.remove')}</Button>
+					<Button variant="destructive" disabled={saving} onclick={remove}
+						>{ctx.t('law_row.remove')}</Button
+					>
 				{/if}
-				<Button disabled={!valid} onclick={submit}>{ctx.t('law_save.save')}</Button>
+				<Button disabled={!valid || saving} onclick={submit}>{ctx.t('law_save.save')}</Button>
 			</Cluster>
 		</Stack>
 	{/if}
