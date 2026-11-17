@@ -335,7 +335,7 @@ export default messages({
 	'models.credit_snapshots.fields.credit_limit': '信用额度',
 	'models.credit_snapshots.fields.credit_used': '已用信用额度',
 	'models.credit_snapshots.fields.credit_available': '可用信用额度',
-	'models.credit_snapshots.fields.credit_hold': '信用冻结',
+	'models.credit_snapshots.fields.credit_hold': '信用拦截',
 	'models.credit_snapshots.fields.as_of': '资料日期',
 	'models.credit_snapshots.fields.party': '往来单位',
 	'models.order_lines.label': '订单明细',

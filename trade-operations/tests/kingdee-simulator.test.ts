@@ -9,7 +9,7 @@ import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { workspace, committed, confirm } from './kit.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
-import { simulatorCreditPolicy } from '../src/integration/kingdee/configuration.js';
+import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
 const Access = Schema.Struct({
 	sqlHost: Schema.String,
 	sqlPort: Schema.Number,
@@ -162,7 +162,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 					receivablesAccount: a.accountIdentity,
 					invoiceAnalysisAccount: a.accountIdentity,
 					creditAccount: a.accountIdentity,
-					creditPolicy: simulatorCreditPolicy,
+					creditPolicy: kingdeeCreditPolicy,
 					billerId: '41',
 					salespersonBindings: JSON.stringify({
 						[owner]: { employeeId: '21', departmentId: '31' }

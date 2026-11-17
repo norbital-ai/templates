@@ -1,4 +1,4 @@
-export const simulatorCreditPolicy = 'simulator-kis-2017-v1';
+export const kingdeeCreditPolicy = 'kis-sales-out-v1';
 export const kingdeeConfiguration = {
 	baseCurrency: { kind: 'text', default: 'CNY' },
 	branchNo: { kind: 'text', default: '0' },
@@ -28,7 +28,7 @@ export const kingdeeConfiguration = {
 		optional: true
 	},
 	creditAccount: { kind: 'text', optional: true },
-	creditPolicy: { kind: 'enum', values: [simulatorCreditPolicy], optional: true },
+	creditPolicy: { kind: 'enum', values: [kingdeeCreditPolicy], optional: true },
 	billerId: { kind: 'text', optional: true },
 	packagingId: { kind: 'text', optional: true },
 	salespersonBindings: {

@@ -2,29 +2,71 @@ import { expect, it } from '@effect/vitest';
 import { Effect, Exit } from 'effect';
 import type { Json as SourceJson } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { simulatorCreditPolicy } from '../src/integration/kingdee/configuration.js';
+import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
 import { workspace } from './kit.js';
 import { kingdeeFixture } from './kingdee-fixture.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 
 const credit = {
 	customer_id: '101',
-	policy: simulatorCreditPolicy,
-	supported: true,
+	known_customer: true,
 	currency: 'CNY',
 	credit_limit: '100000.00',
-	credit_used: '113.00',
-	credit_hold: false
+	credit_days: 30,
+	invoices_audited: '200.00',
+	invoices_paid: '87.00',
+	refunds_unsettled: '0',
+	receipts_unsettled: '0',
+	advances_unsettled: '0',
+	stock_out_audited: '0',
+	stock_out_hooked: '0',
+	oldest_days: null,
+	invalid_terms: 0
 };
+const fields = (
+	[
+		[1, '当前单据金额', '+'],
+		[2, '已审核发票金额', '+'],
+		[4, '已审核的已收款发票金额', '-'],
+		[8, '已审核未核销的应收退款单金额', '+'],
+		[16, '已审核未核销的收款单金额', '-'],
+		[32, '已审核未核销的预收单金额', '-'],
+		[64, '已审核的销售出库单金额', '+'],
+		[128, '已钩稽的销售出库单金额', '-']
+	] as const
+).map(([bit, caption, operator]) => ({ bit, caption, operator }));
 const setup = Effect.fnUntraced(function* () {
 	const fixture = kingdeeFixture();
 	const rows: SourceJson[] = [credit];
-	const state = { rows, observed: '2026-11-17T03:00:00.000Z', unavailable: false, reads: 0 };
+	const state = {
+		rows,
+		options: [{ mask: '255', control_range: '3', control: 2 }] as SourceJson[],
+		fields: fields as SourceJson[],
+		observed: '2026-11-17T03:00:00.000Z',
+		unavailable: false,
+		reads: 0
+	};
 	const t = yield* workspace({
 		now: state.observed,
 		source: (op) => {
-			if (op.op !== 'call' || !String(op.arguments.stmt).includes('kingdee-simulator-credit'))
+			if (op.op !== 'call' || !String(op.arguments.stmt).includes('kingdee-native-credit'))
 				return fixture.request(op);
+			expect(String(op.arguments.stmt)).not.toMatch(
+				/\bsim\.|TradeOperationsProbe|FIsCreditMgr|FPassword|ICCreditManager/
+			);
+			for (const table of [
+				'ICCreditOption',
+				'ICCreditField',
+				'ICCreditObject',
+				't_Organization',
+				't_Currency',
+				't_RP_Contact',
+				'ICSale',
+				't_RP_NewReceiveBill',
+				'ICStockBill',
+				'ICStockBillEntry'
+			])
+				expect(String(op.arguments.stmt)).toContain('dbo.' + table);
 			state.reads++;
 			if (state.unavailable)
 				return Effect.fail(
@@ -40,7 +82,11 @@ const setup = Effect.fnUntraced(function* () {
 					{
 						fingerprint: 'A'.repeat(64),
 						oversized: false,
-						entries: JSON.stringify(state.rows),
+						entries: JSON.stringify({
+							options: state.options,
+							fields: state.fields,
+							customers: state.rows
+						}),
 						observed_at: state.observed
 					}
 				]
@@ -52,7 +98,7 @@ const setup = Effect.fnUntraced(function* () {
 	const configuration = {
 		...fixture.configuration('credit-test-owner'),
 		creditAccount: fixture.configuration('credit-test-owner').writeAccount,
-		creditPolicy: simulatorCreditPolicy
+		creditPolicy: kingdeeCreditPolicy
 	};
 	yield* as.act({
 		'sys_integration.update': [{ target: { id: instance }, set: { configuration } }]
@@ -72,7 +118,7 @@ it.live(
 			expect(sameDecimal(row.credit_used, '113')).toBe(true);
 			expect(sameDecimal(row.credit_available, '99887')).toBe(true);
 			const identity = row.id;
-			s.state.rows = [{ ...credit, credit_used: '88.00' }];
+			s.state.rows = [{ ...credit, invoices_paid: '112.00' }];
 			s.state.observed = '2026-11-17T03:01:00.000Z';
 			s.t.clock.advance('1min');
 			yield* s.t.run_due();
@@ -86,17 +132,20 @@ it.live(
 			expect(row.as_of).toBe(s.state.observed);
 			const retained = row;
 			for (const broken of [
-				[{ ...credit, supported: false }],
-				[{ ...credit, credit_used: '1e3' }],
+				[{ ...credit, known_customer: false }],
+				[{ ...credit, invoices_paid: '1e3' }],
 				[{ ...credit, customer_id: '999' }],
-				[{ ...credit, credit_hold: null }],
+				[{ ...credit, currency: 'USD' }],
+				[{ ...credit, credit_days: -1 }],
+				[{ ...credit, credit_limit: '-1' }],
+				[{ ...credit, invalid_terms: 1 }],
 				[credit, credit]
 			]) {
 				s.state.rows = broken;
 				expect(Exit.isFailure(yield* Effect.exit(s.t.pull('credit_snapshots')))).toBe(true);
 				expect(firstRow((yield* s.read()).credit_snapshots.rows)).toEqual(retained);
 			}
-			s.state.rows = [{ ...credit, credit_hold: true }];
+			s.state.rows = [{ ...credit, oldest_days: 31 }];
 			s.state.unavailable = true;
 			expect(Exit.isFailure(yield* Effect.exit(s.t.pull('credit_snapshots')))).toBe(true);
 			expect(firstRow((yield* s.read()).credit_snapshots.rows)).toEqual(retained);
@@ -164,5 +213,92 @@ it.live(
 			});
 			expect(Exit.isFailure(yield* Effect.exit(s.t.pull('credit_snapshots')))).toBe(true);
 			expect((yield* s.read()).credit_snapshots.rows).toEqual(retained);
+		})
+);
+
+it.live('uses the native selected formula, amount/term controls, and clears a removed limit', () =>
+	Effect.gen(function* () {
+		const s = yield* setup();
+		s.state.rows = [
+			{
+				...credit,
+				refunds_unsettled: '20',
+				receipts_unsettled: '10',
+				advances_unsettled: '5',
+				stock_out_audited: '200',
+				stock_out_hooked: '80'
+			}
+		];
+		yield* s.t.pull('credit_snapshots');
+		expect(sameDecimal(firstRow((yield* s.read()).credit_snapshots.rows).credit_used, '238')).toBe(
+			true
+		);
+		for (const [mask, used] of [
+			['6', '113'],
+			['2', '200'],
+			['1', '0']
+		] as const) {
+			s.state.options = [{ mask, control_range: '3', control: 2 }];
+			yield* s.t.pull('credit_snapshots');
+			expect(sameDecimal(firstRow((yield* s.read()).credit_snapshots.rows).credit_used, used)).toBe(
+				true
+			);
+		}
+		for (const [range, oldest, limit, blocked] of [
+			['1', 31, '113', false],
+			['1', 0, '112', true],
+			['2', 30, '1', false],
+			['2', 31, '100000', true]
+		] as const) {
+			s.state.options = [{ mask: '6', control_range: range, control: 2 }];
+			s.state.rows = [{ ...credit, credit_limit: limit, oldest_days: oldest }];
+			yield* s.t.pull('credit_snapshots');
+			expect(firstRow((yield* s.read()).credit_snapshots.rows).credit_hold).toBe(blocked);
+		}
+		s.state.rows = [];
+		yield* s.t.pull('credit_snapshots');
+		const row = firstRow((yield* s.read()).credit_snapshots.rows);
+		expect(row.credit_limit).toBeNull();
+		expect(row.credit_used).toBeNull();
+		expect(row.credit_available).toBeNull();
+		expect(row.credit_hold).toBe(false);
+	})
+);
+
+it.live(
+	'rejects unsupported native options and catalogue changes without updating any balance or timestamp',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* setup();
+			yield* s.t.pull('credit_snapshots');
+			const retained = (yield* s.read()).credit_snapshots.rows;
+			for (const options of [
+				[],
+				[{ mask: '255', control_range: '3', control: 1 }],
+				[{ mask: '255', control_range: '4', control: 2 }],
+				[{ mask: '256', control_range: '3', control: 2 }],
+				[{ mask: '2147483648', control_range: '3', control: 2 }],
+				[{ mask: '-1', control_range: '3', control: 2 }],
+				[
+					{ mask: '255', control_range: '3', control: 2 },
+					{ mask: '255', control_range: '3', control: 2 }
+				]
+			]) {
+				s.state.options = options;
+				expect(Exit.isFailure(yield* Effect.exit(s.t.pull('credit_snapshots')))).toBe(true);
+				expect((yield* s.read()).credit_snapshots.rows).toEqual(retained);
+			}
+			s.state.options = [{ mask: '255', control_range: '3', control: 2 }];
+			for (const catalogue of [
+				fields.slice(1),
+				[...fields, fields[0]!],
+				fields.map((f) => (f.bit === 4 ? { ...f, operator: '+' } : f)),
+				fields.map((f) => (f.bit === 4 ? { ...f, caption: 'unmapped' } : f)),
+				fields.map((f) => (f.bit === 4 ? { ...f, caption: '已审核发票金额', operator: '+' } : f))
+			]) {
+				s.state.fields = catalogue;
+				expect(Exit.isFailure(yield* Effect.exit(s.t.pull('credit_snapshots')))).toBe(true);
+				expect((yield* s.read()).credit_snapshots.rows).toEqual(retained);
+			}
 		})
 );

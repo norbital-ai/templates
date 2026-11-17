@@ -9,7 +9,7 @@ import {
 	kingdeeStockLotCostAccount,
 	kingdeeWriteAccount
 } from './configuration.js';
-import { kingdeeCreditAccount, simulatorCreditPolicy } from './configuration.js';
+import { kingdeeCreditAccount, kingdeeCreditPolicy } from './configuration.js';
 import { testCreditSource } from './credit-source.js';
 import { invoiceAnalysisProjection } from './invoice-analysis.js';
 import { testReceivables } from './receivables.js';
@@ -31,13 +31,13 @@ export default integration('kingdee', {
 		if (ctx.configuration.creditPolicy || ctx.configuration.creditAccount?.trim()) {
 			const account = kingdeeCreditAccount(ctx.configuration);
 			if (
-				ctx.configuration.creditPolicy !== simulatorCreditPolicy ||
+				ctx.configuration.creditPolicy !== kingdeeCreditPolicy ||
 				account === null ||
 				ctx.configuration.baseCurrency !== 'CNY'
 			)
 				return yield* new SourceUnavailable({
 					reason:
-						'Credit requires an explicit simulator policy, CNY and a verified account identity'
+						'Credit requires the native KIS sales-out policy, CNY and a verified account identity'
 				});
 			yield* testCreditSource(ctx, account);
 		}

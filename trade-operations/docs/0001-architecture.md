@@ -74,9 +74,10 @@ draft --(sales: approval; purchasing: record)--> confirmed --(change: approval f
 ### Parties, products and warehouses
 
 - `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their contacts and source evidence.
-- `credit_snapshots` is read-only credit evidence. The explicit `simulator-kis-2017-v1` policy and a verified
-  `creditAccount` bind simulator exposure and hold/overdue decisions. Its minute feed refreshes limit, used,
-  derived available credit and observation time. Unbound native policies refuse rather than inventing a hold.
+- `credit_snapshots` is read-only credit evidence. The explicit `kis-sales-out-v1` policy and a verified
+  `creditAccount` bind native sales-out exposure and amount/overdue blocking decisions. Its minute feed
+  reads native credit, invoice, receipt and DO tables; it refreshes limit, used, derived available credit
+  and observation time. Unsupported native settings preserve last-good evidence.
 - `products` holds the SKU, code, base unit, tax rate, optional price and commission settings.
 - `warehouses` holds warehouse rows and their `group_code`; a price floor is keyed by the group, not a single
   warehouse.
