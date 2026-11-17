@@ -91,6 +91,18 @@ const seed = {
 };
 const ONE = idOf('employment', uuid(1003));
 
+/**
+ * The budget's 2 s is the reference machine's (one Apple M-series core). This machine times the same fixed loop, and a
+ * slower one is held to the budget at its own pace; never to less than the reference.
+ */
+const REFERENCE_MILLIS = 140;
+const pace = (() => {
+	const from = process.cpuUsage();
+	let mixed = 1;
+	for (let at = 0; at < 50_000_000; at++) mixed = Math.imul(mixed ^ at, 0x9e3779b1);
+	assert.ok(Number.isInteger(mixed));
+	return Math.max(1, process.cpuUsage(from).user / 1000 / REFERENCE_MILLIS);
+})();
 /** Each guest session's round trips (waves of `ctx` calls) and CPU, gathered while one operation runs. */
 const sessions = new Map<string, { waves: number; nanos: bigint }>();
 const at = (session: string) => {
@@ -110,7 +122,10 @@ const measured = <A, E, R>(label: string, operation: Effect.Effect<A, E, R>) =>
 		const most = Math.max(0, ...all.map((one) => one.waves));
 		const cpu = Number(all.reduce((total, one) => total + one.nanos, 0n)) / 1e6;
 		assert.ok(most <= 5, `${label}: an invocation made ${most} round trips`);
-		assert.ok(cpu < 2000, `${label}: ${Math.round(cpu)} ms of guest CPU`);
+		assert.ok(
+			cpu < 2000 * pace,
+			`${label}: ${Math.round(cpu)} ms of guest CPU at ${pace.toFixed(2)} of the reference pace`
+		);
 		return answer;
 	});
 
