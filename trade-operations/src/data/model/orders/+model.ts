@@ -2,7 +2,7 @@ import { lineDeletes } from '../../../lib/order-review.js';
 import { logisticsDocument, logisticsLine, logisticsOrder } from '../../../lib/logistics.js';
 import { agreementTemplate, sealDocument } from '../../../lib/order-document.js';
 import { confirmationBasis } from '../../../lib/confirmation.js';
-import { COMMISSION_ENGINE } from '../../../lib/commission-expressions.js';
+import { sealedCommission } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
 import { model, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
@@ -282,11 +282,8 @@ export default model('orders', {
 		},
 		filled: { fields: ['status', 'ledger'], lines: { fields: ['unit_price', 'tax_rate'] } },
 		transform: function* (changes, ctx) {
-			if (
-				ctx.actor.kind === 'system' &&
-				'automation' in ctx.actor.by &&
-				ctx.actor.by.automation === 'import_kingdee_orders'
-			)
+			// the Kingdee read brings an SO created there in as it stands
+			if (ctx.actor.kind === 'system' && 'sync' in ctx.actor.by)
 				return changes.map(({ set }) => set);
 			if (
 				changes.some(
@@ -357,17 +354,24 @@ export default model('orders', {
 		}
 	},
 	update: {
-		fields: [...terms, 'status', 'check_hash', 'archived', 'source_order_key', 'kingdee'],
+		// the last three are the transform's own; the Kingdee read writes them for an SO that moves customer or arrives
+		fields: [
+			...terms,
+			'status',
+			'check_hash',
+			'archived',
+			'source_order_key',
+			'kingdee',
+			'party_name',
+			'commission',
+			'freight_treatment'
+		],
 		lines: {
 			fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate', 'print_values']
 		},
 		transform: function* (changes, ctx) {
 			// the Kingdee read writes what the SO holds
-			if (
-				ctx.actor.kind === 'system' &&
-				('sync' in ctx.actor.by ||
-					('automation' in ctx.actor.by && ctx.actor.by.automation === 'import_kingdee_orders'))
-			)
+			if (ctx.actor.kind === 'system' && 'sync' in ctx.actor.by)
 				return changes.map(({ set }) => set);
 			if (
 				changes.some(
@@ -431,7 +435,13 @@ export default model('orders', {
 				: [];
 			const transformed = [];
 			for (const { before: old, set: input, after } of changes) {
-				if (input.kingdee !== undefined) return yield* ctx.refuse('errors.evidence_sealed');
+				if (
+					input.kingdee !== undefined ||
+					input.party_name !== undefined ||
+					input.commission !== undefined ||
+					input.freight_treatment !== undefined
+				)
+					return yield* ctx.refuse('errors.evidence_sealed');
 				if (
 					input.source_order_key !== undefined &&
 					input.source_order_key !== old.source_order_key &&
@@ -534,11 +544,12 @@ export default model('orders', {
 					basis.some((l) => l.floor_net === null)
 				)
 					return yield* ctx.refuse('errors.floor_missing');
-				if (config.require_floor && old.direction === 'sales' && basis.some(quoteBelowFloor))
+				if (
+					config.require_floor &&
+					old.direction === 'sales' &&
+					basis.some((l) => quoteBelowFloor(l, old.tax_inclusive))
+				)
 					return yield* ctx.refuse('errors.floor_below');
-				const rule = rules.rows
-					.filter((r) => r.currency === old.currency && r.effective_on <= old.ordered_on)
-					.sort((a, b) => b.effective_on.localeCompare(a.effective_on))[0];
 				const writeTarget =
 					old.direction === 'sales'
 						? kingdeeWriteTarget(ledgers.find((l) => l.id === old.ledger)?.configuration)
@@ -549,20 +560,7 @@ export default model('orders', {
 					party_name: admitted.name,
 					freight_treatment: config.freight_treatment,
 					write_target: writeTarget,
-					commission: rule
-						? {
-								rule_id: rule.id,
-								engine_version: COMMISSION_ENGINE,
-								eligibility_expression: rule.eligibility_expression,
-								amount_expression: rule.amount_expression,
-								parameters: rule.parameters ?? [],
-								effective_on: rule.effective_on,
-								currency: rule.currency,
-								basis_unit: rule.basis_unit ?? '',
-								fixed_rate: rule.fixed_rate,
-								spread_pct: rule.spread_pct
-							}
-						: null
+					commission: sealedCommission(rules.rows, old.currency, old.ordered_on)
 				});
 			}
 			return transformed;

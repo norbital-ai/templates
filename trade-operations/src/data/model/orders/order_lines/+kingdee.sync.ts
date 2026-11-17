@@ -1,5 +1,9 @@
 import { sync } from '@norbital-ai/bolt';
-import { pushOrder, readKingdeeOrderLines } from '../../../../integration/kingdee/sales-orders.js';
+import {
+	importedLineId,
+	pushOrder,
+	readKingdeeOrderLines
+} from '../../../../integration/kingdee/sales-orders.js';
 
 // The Kingdee SO's lines: the read mirrors each entry, a write sends the whole order.
 export default sync('order_lines', 'kingdee', {
@@ -10,6 +14,10 @@ export default sync('order_lines', 'kingdee', {
 		return yield* readKingdeeOrderLines(instance, cursor, ctx);
 	},
 	write: function* ({ op, row, instance }, ctx) {
+		if (op === 'create') {
+			const imported = yield* importedLineId(row, ctx);
+			if (imported) return { $id: imported };
+		}
 		const written = yield* pushOrder(row.order, instance, ctx);
 		const entry = written?.lines.find((line) => line.line === row.id);
 		return op === 'delete' || !written || !entry ? null : { $id: `${written.$id}:${entry.entry}` };

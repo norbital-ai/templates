@@ -1,4 +1,4 @@
-import { BigDecimal, Duration, Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
 import { sha256Hex } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
@@ -207,12 +207,8 @@ export const readReceivables = Effect.fnUntraced(function* (
 			't_RP_Contact',
 			'Unclassified balances or undated settlements require review before publishing receivables'
 		);
-	if (
-		prior?.scope === scope &&
-		prior.fingerprint === before.fingerprint &&
-		Date.parse(before.observed_at) - Date.parse(prior.observed_at) <
-			Duration.toMillis(Duration.minutes(ctx.configuration.fullSnapshotMinutes))
-	)
+	// an unchanged ledger is never listed again
+	if (prior?.scope === scope && prior.fingerprint === before.fingerprint)
 		return { rows: [], cursor, more: false };
 	const rows = yield* readNativeRows(ctx, entries, { account, ids });
 	const after = yield* sourceCheckpoint(ctx, account, ids);

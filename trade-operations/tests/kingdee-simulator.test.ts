@@ -1,3 +1,4 @@
+import type { Id } from '@norbital-ai/bolt';
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -37,98 +38,148 @@ const ApiResponse = Schema.Struct({
 	orders: Schema.optionalKey(Schema.Array(NativeOrder))
 });
 
+/** The deployed simulator through the loopback relays, with its masters read. */
+const simulator = Effect.fnUntraced(function* () {
+	const a = Schema.decodeUnknownSync(Access)(
+		JSON.parse(process.env.TRADE_SIMULATOR_ACCESS ?? '{}')
+	);
+	assert.equal(a.sqlHost, '127.0.0.1');
+	assert.equal(new URL(a.url).hostname, '127.0.0.1');
+	const pool = yield* Effect.acquireRelease(
+		Effect.promise(() =>
+			new sql.ConnectionPool({
+				server: a.sqlHost,
+				port: a.sqlPort,
+				user: a.writer.user,
+				password: a.writer.password,
+				database: a.database,
+				options: { encrypt: true, trustServerCertificate: false, serverName: a.tlsServerName }
+			}).connect()
+		),
+		(pool) => Effect.promise(() => pool.close())
+	);
+	let cut = false,
+		lost = false,
+		requests = 0;
+	const api = async (path: string, b?: Record<string, unknown>) => {
+		const r = await fetch(a.url + '/api/' + path, {
+			method: b ? 'POST' : 'GET',
+			headers: {
+				authorization: 'Bearer ' + a.password,
+				'content-type': 'application/json',
+				'Idempotency-Key': randomUUID()
+			},
+			...(b ? { body: JSON.stringify(b) } : {})
+		});
+		const v = await r.json();
+		assert.equal(r.status, 200, path + ': ' + JSON.stringify(v));
+		return Schema.decodeUnknownSync(ApiResponse)(v);
+	};
+	const nativeOrder = async (id: number | undefined) => {
+		const row = (await api('state')).orders?.find((row) => row.id === id);
+		assert(row, 'Native order required');
+		return row;
+	};
+	const source: NonNullable<Parameters<typeof workspace>[0]>['source'] = (operation) =>
+		Effect.tryPromise({
+			try: async () => {
+				if (cut) {
+					cut = false;
+					throw Error('Injected SQL transport outage');
+				}
+				const c = compile_sql_server(await Effect.runPromise(validate_database_request(operation)));
+				const tx = pool.transaction();
+				await tx.begin(
+					c.transaction === 'serializable'
+						? sql.ISOLATION_LEVEL.SERIALIZABLE
+						: sql.ISOLATION_LEVEL.READ_COMMITTED
+				);
+				try {
+					const r = tx.request();
+					for (const [k, v] of Object.entries(c.parameters)) {
+						if (typeof v === 'string') r.input(k, sql.NVarChar(sql.MAX), v);
+						else r.input(k, v);
+					}
+					const result =
+						c.statement === undefined ? await r.execute(c.procedure) : await r.query(c.statement);
+					await tx.commit();
+					requests++;
+					// the write is in Kingdee; only its answer never arrives
+					if (lost && c.transaction === 'serializable') {
+						lost = false;
+						throw Error('Injected lost reply after commit');
+					}
+
+					return { rows: result.recordset || [] };
+				} catch (e) {
+					await tx.rollback().catch(() => {});
+					throw e;
+				}
+			},
+			catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
+		});
+	const t = yield* workspace({ source, now: '2026-11-17T03:00:00Z' }),
+		as = yield* t.as(t.admin),
+		instance = fixtureId('sys_integration', 'kingdee');
+	for (const model of ['parties', 'products', 'warehouses'] as const) yield* t.pull(model);
+	const masters = yield* as.query({
+		parties: { where: { source: { eq: instance }, external_code: { eq: '110' } } },
+		products: { where: { source: { eq: instance }, external_code: { in: ['210', '211'] } } },
+		warehouses: { where: { source: { eq: instance }, external_code: { eq: '311' } } }
+	});
+	assert.equal(masters.parties.rows.length, 1);
+	assert.equal(masters.products.rows.length, 2);
+	assert.equal(masters.warehouses.rows.length, 1);
+	const configure = (owner: string) => {
+		const config = {
+			baseCurrency: 'CNY',
+			branchNo: '0',
+			maxWindowMinutes: 15,
+			writeAccount: a.accountIdentity,
+			stockAvailabilityAccount: a.accountIdentity,
+			stockLotCostAccount: a.accountIdentity,
+			deliveryCostAccount: a.accountIdentity,
+			receivablesAccount: a.accountIdentity,
+			invoiceAnalysisAccount: a.accountIdentity,
+			creditAccount: a.accountIdentity,
+			creditPolicy: kingdeeCreditPolicy,
+			billerId: '41',
+			salespersonBindings: JSON.stringify({
+				[owner]: { employeeId: '21', departmentId: '31' }
+			}),
+			currencyBindings: '{"CNY":{"id":"1","base":true}}',
+			settlementRules: '{"NET30":{"creditDays":30,"fromMonthEnd":false}}'
+		};
+		return as.act({
+			'sys_integration.update': [{ target: { id: instance }, set: { configuration: config } }]
+		});
+	};
+	return {
+		api,
+		pool,
+		nativeOrder,
+		t,
+		as,
+		instance,
+		masters,
+		configure,
+		outage: () => {
+			cut = true;
+		},
+		loseReply: () => {
+			lost = true;
+		},
+		requests: () => requests
+	};
+});
+
 it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 	'the simulator completes the real two-way order, fulfillment and stock flow through a loopback link',
 	() =>
 		Effect.gen(function* () {
-			const a = Schema.decodeUnknownSync(Access)(
-				JSON.parse(process.env.TRADE_SIMULATOR_ACCESS ?? '{}')
-			);
-			assert.equal(a.sqlHost, '127.0.0.1');
-			assert.equal(new URL(a.url).hostname, '127.0.0.1');
-			const pool = yield* Effect.acquireRelease(
-				Effect.promise(() =>
-					new sql.ConnectionPool({
-						server: a.sqlHost,
-						port: a.sqlPort,
-						user: a.writer.user,
-						password: a.writer.password,
-						database: a.database,
-						options: { encrypt: true, trustServerCertificate: false, serverName: a.tlsServerName }
-					}).connect()
-				),
-				(pool) => Effect.promise(() => pool.close())
-			);
-			let cut = false,
-				requests = 0;
-			const api = async (path: string, b?: Record<string, unknown>) => {
-				const r = await fetch(a.url + '/api/' + path, {
-					method: b ? 'POST' : 'GET',
-					headers: {
-						authorization: 'Bearer ' + a.password,
-						'content-type': 'application/json',
-						'Idempotency-Key': randomUUID()
-					},
-					...(b ? { body: JSON.stringify(b) } : {})
-				});
-				const v = await r.json();
-				assert.equal(r.status, 200, path + ': ' + JSON.stringify(v));
-				return Schema.decodeUnknownSync(ApiResponse)(v);
-			};
-			const nativeOrder = async (id: number | undefined) => {
-				const row = (await api('state')).orders?.find((row) => row.id === id);
-				assert(row, 'Native order required');
-				return row;
-			};
-			const source: NonNullable<Parameters<typeof workspace>[0]>['source'] = (operation) =>
-				Effect.tryPromise({
-					try: async () => {
-						if (cut) {
-							cut = false;
-							throw Error('Injected SQL transport outage');
-						}
-						const c = compile_sql_server(
-							await Effect.runPromise(validate_database_request(operation))
-						);
-						const tx = pool.transaction();
-						await tx.begin(
-							c.transaction === 'serializable'
-								? sql.ISOLATION_LEVEL.SERIALIZABLE
-								: sql.ISOLATION_LEVEL.READ_COMMITTED
-						);
-						try {
-							const r = tx.request();
-							for (const [k, v] of Object.entries(c.parameters)) {
-								if (typeof v === 'string') r.input(k, sql.NVarChar(sql.MAX), v);
-								else r.input(k, v);
-							}
-							const result =
-								c.statement === undefined
-									? await r.execute(c.procedure)
-									: await r.query(c.statement);
-							await tx.commit();
-							requests++;
-							return { rows: result.recordset || [] };
-						} catch (e) {
-							await tx.rollback().catch(() => {});
-							throw e;
-						}
-					},
-					catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
-				});
+			const s = yield* simulator();
+			const { api, pool, nativeOrder, t, as, instance, masters } = s;
 			const report = yield* Effect.gen(function* () {
-				const t = yield* workspace({ source, now: '2026-11-17T03:00:00Z' }),
-					as = yield* t.as(t.admin),
-					instance = fixtureId('sys_integration', 'kingdee');
-				for (const model of ['parties', 'products', 'warehouses'] as const) yield* t.pull(model);
-				const masters = yield* as.query({
-					parties: { where: { source: { eq: instance }, external_code: { eq: '110' } } },
-					products: { where: { source: { eq: instance }, external_code: { in: ['210', '211'] } } },
-					warehouses: { where: { source: { eq: instance }, external_code: { eq: '311' } } }
-				});
-				assert.equal(masters.parties.rows.length, 1);
-				assert.equal(masters.products.rows.length, 2);
-				assert.equal(masters.warehouses.rows.length, 1);
 				const local = committed(
 					'orders',
 					yield* as.act({
@@ -150,29 +201,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 				const owner = firstRow(
 					(yield* as.query({ orders: { where: { id: { eq: local } } } })).orders.rows
 				).owner;
-				const config = {
-					baseCurrency: 'CNY',
-					branchNo: '0',
-					fullSnapshotMinutes: 1440,
-					maxWindowMinutes: 15,
-					writeAccount: a.accountIdentity,
-					stockAvailabilityAccount: a.accountIdentity,
-					stockLotCostAccount: a.accountIdentity,
-					deliveryCostAccount: a.accountIdentity,
-					receivablesAccount: a.accountIdentity,
-					invoiceAnalysisAccount: a.accountIdentity,
-					creditAccount: a.accountIdentity,
-					creditPolicy: kingdeeCreditPolicy,
-					billerId: '41',
-					salespersonBindings: JSON.stringify({
-						[owner]: { employeeId: '21', departmentId: '31' }
-					}),
-					currencyBindings: '{"CNY":{"id":"1","base":true}}',
-					settlementRules: '{"NET30":{"creditDays":30,"fromMonthEnd":false}}'
-				};
-				yield* as.act({
-					'sys_integration.update': [{ target: { id: instance }, set: { configuration: config } }]
-				});
+				yield* s.configure(owner);
 				const readCredit = () =>
 					as.query({
 						credit_snapshots: { where: { source: { eq: instance }, external_code: { eq: '110' } } }
@@ -273,8 +302,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 				yield* Effect.promise(() => api('orders/submit', { id: foreign.id }));
 				yield* Effect.promise(() => api('orders/approve', { id: foreign.id, actor: 21 }));
 				yield* Effect.promise(() => api('orders/approve', { id: foreign.id, actor: 42 }));
-				t.clock.advance('1min');
-				yield* t.run_due();
+				yield* t.pull('orders');
 				yield* t.deliver();
 				yield* t.pull('orders');
 				yield* t.pull('order_lines');
@@ -292,7 +320,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 						]
 					})
 				);
-				cut = true;
+				s.outage();
 				yield* t.deliver();
 				t.clock.advance('2min');
 				yield* t.deliver();
@@ -404,15 +432,14 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 					'Batch-aware stock snapshot required'
 				);
 				const count = (yield* readImported()).orders.rows.length;
-				t.clock.advance('1min');
-				yield* t.run_due();
+				yield* t.pull('orders');
 				yield* t.pull('orders');
 				yield* t.pull('order_lines');
 				assert.equal((yield* readImported()).orders.rows.length, count);
 				return {
 					passed: true,
 					certificateVerified: true,
-					requests,
+					requests: s.requests(),
 					pushedOrder: pushed,
 					importedOrder: foreign.id,
 					delivery: d.delivery,
@@ -421,7 +448,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 					stockRows: facts.stock_snapshots.rows.length,
 					creditMovementCny: ['0', '66.67', '133.34', '123.34', '56.67', '0'],
 					checks: [
-						'actual Bolt importer',
+						'Kingdee-created SO imported by the order read',
 						'atomic two-line import',
 						'local order push',
 						'both directions of line amendment',
@@ -438,5 +465,134 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 			if (process.env.TRADE_SIMULATOR_REPORT)
 				writeFileSync(process.env.TRADE_SIMULATOR_REPORT, JSON.stringify(report, null, 2) + '\n');
 			console.log('TWO_WAY_ACCEPTANCE ' + JSON.stringify(report));
+		})
+);
+
+it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
+	'the simulator keeps both sides equal through a lost reply, a native close, a refused change and a deleted SO',
+	() =>
+		Effect.gen(function* () {
+			const { api, pool, t, as, masters, configure, loseReply } = yield* simulator();
+			const draft = Effect.fnUntraced(function* () {
+				const order = committed(
+					'orders',
+					yield* as.act({
+						'orders.create': [
+							{
+								title: 'Consistency acceptance ' + randomUUID().slice(0, 8),
+								direction: 'sales',
+								party: firstRow(masters.parties.rows).id,
+								currency: 'CNY',
+								payment_terms: 'NET30'
+							}
+						]
+					})
+				);
+				yield* t.db.write({
+					text: 'UPDATE orders SET number = $2 WHERE id = $1',
+					params: [order, 'ACCEPTANCE-SYNC-' + randomUUID().slice(0, 8)]
+				});
+				const line = committed(
+					'order_lines',
+					yield* as.act({
+						'order_lines.create': [
+							{
+								order,
+								product: firstRow(masters.products.rows).id,
+								quantity: '10',
+								unit_price: '8',
+								discount_pct: '0',
+								tax_rate: '13'
+							}
+						]
+					})
+				);
+				return { order, line };
+			});
+			const read = (order: Id<'orders'>) =>
+				Effect.map(
+					as.query({ orders: { where: { id: { eq: order } }, lines: {} } }),
+					({ orders }) => firstRow(orders.rows)
+				);
+			const pull = Effect.gen(function* () {
+				yield* t.pull('orders');
+				yield* t.pull('order_lines');
+			});
+			const edit = Effect.fnUntraced(function* (line: Id<'order_lines'>, quantity: string) {
+				committed(
+					'order_lines',
+					yield* as.act({
+						'order_lines.update': [{ target: yield* t.at('order_lines', line), set: { quantity } }]
+					})
+				);
+				yield* t.deliver();
+			});
+			const status = (line: Id<'order_lines'>) =>
+				Effect.map(
+					as.query({ order_lines: { where: { id: { eq: line } }, limit: 1 } }),
+					({ order_lines }) => order_lines.rows[0]?.$sync?.kingdee?.status
+				);
+			const native = (statement: string, id: number) =>
+				Effect.promise(() => pool.request().input('id', sql.Int, id).query(statement));
+
+			const closed = yield* draft();
+			const deleted = yield* draft();
+			yield* configure((yield* read(closed.order)).owner);
+			yield* confirm(t, closed.order);
+			yield* confirm(t, deleted.order);
+			yield* t.deliver();
+			yield* pull;
+			const closedFid = Number((yield* read(closed.order)).kingdee?.fid);
+			const deletedFid = Number((yield* read(deleted.order)).kingdee?.fid);
+			assert(closedFid && deletedFid, 'Both orders must reach native SQL');
+
+			// the simulator closes as KIS does: FStatus 3 with FClosed left at 0
+			yield* Effect.promise(() => api('orders/submit', { id: closedFid }));
+			yield* Effect.promise(() => api('orders/approve', { id: closedFid, actor: 21 }));
+			yield* Effect.promise(() => api('orders/approve', { id: closedFid, actor: 42 }));
+			// an amendment Kingdee committed whose reply was lost is found there, not applied twice
+			loseReply();
+			yield* edit(closed.line, '12');
+			assert.equal(yield* status(closed.line), 'pending');
+			t.clock.advance('2min');
+			yield* t.deliver();
+			yield* pull;
+			const amended = yield* native(
+				`SELECT h.FVersionNo version,(SELECT COUNT(*) FROM dbo.ICOrderAlter a WHERE a.FInterID=h.FInterID) changes,(SELECT COUNT(*) FROM dbo.SEOrder x WHERE x.FBillNo=h.FBillNo AND x.FBrNo=h.FBrNo AND x.FChangeMark=1) archives FROM dbo.SEOrder h WHERE h.FInterID=@id AND h.FBrNo='0'`,
+				closedFid
+			);
+			assert.deepEqual(firstRow(amended.recordset), { version: '001', changes: 1, archives: 1 });
+			assert.equal(yield* status(closed.line), 'ok');
+			yield* Effect.promise(() => api('orders/close', { id: closedFid }));
+			yield* pull;
+			assert.deepEqual(
+				[(yield* read(closed.order)).kingdee?.status, (yield* read(closed.order)).kingdee?.closed],
+				['issued', true]
+			);
+			// Kingdee refuses a change to a closed SO for good: the line returns to the SO's terms
+			yield* edit(closed.line, '15');
+			yield* pull;
+			yield* t.deliver();
+			yield* pull;
+			const line = firstRow((yield* read(closed.order)).lines);
+			assert(sameDecimal(line.quantity, '12'), 'The refused change must return to the SO quantity');
+			const entries = yield* native(
+				`SELECT CONVERT(varchar(100),FQty) quantity FROM dbo.SEOrderEntry WHERE FInterID=@id AND FBrNO='0'`,
+				closedFid
+			);
+			assert(sameDecimal(String(firstRow(entries.recordset).quantity), '12'));
+
+			// an unaudited SO deleted in Kingdee is never recreated
+			yield* Effect.promise(() => api('orders/delete', { id: deletedFid }));
+			yield* pull;
+			yield* edit(deleted.line, '15');
+			const reference = (yield* read(deleted.order)).kingdee?.reference ?? '';
+			const recreated = yield* Effect.promise(() =>
+				pool
+					.request()
+					.input('reference', sql.NVarChar(255), reference)
+					.query(`SELECT 1 found FROM dbo.SEOrder WHERE FBillNo=@reference AND FBrNo='0'`)
+			);
+			assert.equal(recreated.recordset.length, 0);
 		})
 );

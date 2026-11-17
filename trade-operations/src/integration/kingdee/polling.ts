@@ -261,7 +261,6 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 	cursor: Json | null,
 	ctx: DatabaseContext & {
 		readonly configuration: {
-			readonly fullSnapshotMinutes: number;
 			readonly maxWindowMinutes: number;
 			readonly baseCurrency: string;
 		};
@@ -324,11 +323,9 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 		(state.continuation !== null && !Number.isFinite(Date.parse(state.continuation.started)))
 	)
 		return yield* new CheckpointInvalid({ reason: 'The saved source window has an invalid clock' });
-	const full =
-		state.fullAt === null ||
-		!versioned ||
-		Date.parse(current.now) - Date.parse(state.fullAt) >=
-			Duration.toMillis(Duration.minutes(ctx.configuration.fullSnapshotMinutes));
+	// one listing when a feed begins; after it only rows whose rowversion moved are read. Kingdee's deletes are
+	// soft: they move the row, so nothing is ever listed again to find what left.
+	const full = state.fullAt === null || !versioned;
 	const position = state.continuation ?? {
 		mode: full ? ('snapshot' as const) : ('changes' as const),
 		upper: current.maximum,

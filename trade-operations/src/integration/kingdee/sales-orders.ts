@@ -1,18 +1,22 @@
-import { importedOrderIdentity } from './order-identity.js';
-import { BigDecimal, Effect } from 'effect';
+import { importedOrderIdentity, importedOrderKey } from './order-identity.js';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { Id, InstanceId, Row, Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { hash } from '../../lib/commercial.js';
-import type { SourceRowInvalid } from './polling.js';
+import { sealedCommission } from '../../lib/commission-expressions.js';
+import { kingdeeWriteTarget } from './configuration.js';
+import type { SourceRowInvalid, SqlRow } from './polling.js';
 import {
 	checked,
+	flag,
 	kingdeeOrder,
-	observation,
+	orderWindow,
 	ownedSalesOrders,
-	ownershipSource,
 	pairLines,
 	readSourceOrderFamilies,
-	snapshotPage,
+	salesFamilyProjection,
+	selectByIds,
+	text,
 	type KingdeeOrder,
 	type OrderSourceContext
 } from './order-source.js';
@@ -74,69 +78,195 @@ const attention = <P extends object>(page: P, issues: readonly string[]) =>
 			}
 		: page;
 
-/** The SO headers of the confirmed sales orders this ledger receives: a Kingdee change updates the order. */
+const sourceHealth = <P extends object>(page: P, issues: readonly string[], backlog: boolean) =>
+	attention(
+		page,
+		backlog ? [...issues, 'More Kingdee SOs are waiting than this ledger retries.'] : issues
+	);
+/** A header row with no lines read: what the SO's header alone says. */
+const headerOnly = (live: SqlRow) =>
+	checked(() =>
+		kingdeeOrder({ live, headers: [live], reference: text(live, 'reference'), lines: [] })
+	);
+const uuidOf = (header: SqlRow) =>
+	checked(() => (flag(header, 'archive') ? null : text(header, 'uuid').toLowerCase()));
+
+/**
+ * The SO headers this ledger's orders mirror, read by rowversion window: a header that moved updates its confirmed
+ * order; a live SO no order holds yet arrives as a draft and is confirmed by the next read, so a Kingdee-created SO
+ * needs no listing of the branch. Kingdee keeps the header: its customer and salesperson move the order.
+ */
 export const readKingdeeOrders = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const observed = yield* observation(ctx, cursor);
 	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
-	const families = yield* readSourceOrderFamilies(anchors, ctx);
+	const {
+		orders: drafts,
+		parties,
+		sys_user
+	} = yield* ctx.query({
+		orders: {
+			where: { ledger: { eq: instance }, direction: { eq: 'sales' }, status: { eq: 'draft' } },
+			fields: ['source_order_key']
+		},
+		parties: {
+			where: { source: { eq: instance }, active: { eq: true } },
+			fields: ['external_code', 'name', 'kind']
+		},
+		sys_user: { where: { active: { eq: true } }, fields: ['id'] }
+	});
+	// an SO confirmed here keeps the commission rule and freight treatment in force, as a local confirmation does
+	const { commission_rules, commercial_settings } = yield* ctx.query({
+		commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
+		commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
+	});
+	const staged = new Map(
+		drafts.rows.flatMap((row) => {
+			const uuid = importedOrderIdentity(row.source_order_key ?? '')?.uuid;
+			return uuid && row.source_order_key ? [[uuid, row.source_order_key] as const] : [];
+		})
+	);
+	const bound = yield* checked(() =>
+		Object.entries(
+			Schema.decodeUnknownSync(
+				Schema.Record(Schema.String, Schema.Struct({ employeeId: Schema.String }))
+			)(JSON.parse(ctx.configuration.salespersonBindings ?? '{}'))
+		)
+	);
+	// what a waiting SO waits on: a salesperson binding or a customer arriving
+	const window = yield* orderWindow(
+		ctx,
+		cursor,
+		500,
+		yield* hash([ctx.configuration.salespersonBindings ?? '', parties.rows.length])
+	);
+	const target = kingdeeWriteTarget(ctx.configuration);
+	const moved = yield* Effect.forEach(window.headers, uuidOf);
+	const forced = window.first ? [...staged.keys(), ...window.retry] : [];
+	const wanted = [...new Set([...moved.flatMap((uuid) => uuid ?? []), ...forced])];
+	const mine = anchors.filter((anchor) => wanted.includes(anchor.uuid));
+	const families = yield* readSourceOrderFamilies(mine, ctx);
+	// a waiting or staged SO that did not move is read by its UUID; the rest are the window's own rows
+	const absent = forced.filter(
+		(uuid) => !mine.some((anchor) => anchor.uuid === uuid) && !moved.includes(uuid)
+	);
+	const fetched = absent.length
+		? yield* selectByIds(ctx, salesFamilyProjection, absent, ctx.configuration.branchNo)
+		: [];
 	const issues: string[] = [];
+	const waiting: string[] = [];
 	const rows = [];
+	const owner = (employee: string | null) => {
+		const people = bound.filter(([, person]) => person.employeeId === employee);
+		return people.length === 1
+			? sys_user.rows.find((row) => row.id === people[0]?.[0])?.id
+			: undefined;
+	};
+	const customer = (code: string) =>
+		parties.rows.find((row) => row.external_code === code && row.kind !== 'supplier');
+	const header = (source: KingdeeOrder) => ({
+		kingdee: {
+			fid: source.fid,
+			reference: source.reference,
+			version: source.version,
+			status: source.status,
+			closed: source.closed,
+			exchange_rate: source.exchange_rate
+		},
+		currency: source.currency,
+		payment_terms: source.payment_terms,
+		ordered_on: source.ordered_on
+	});
 	for (const family of families) {
 		const order = owned.find((row) => row.id === family.order);
 		if (!order) continue;
 		const source = yield* checked(() => kingdeeOrder(family));
-		if (source.customer !== order.party?.external_code) {
-			issues.push(`${family.reference}: the Kingdee SO names another customer.`);
+		// Kingdee keeps the header: a customer or salesperson changed there moves the order
+		const party = source.customer === order.party?.external_code ? null : customer(source.customer);
+		if (party === undefined) {
+			issues.push(`${source.reference}: Kingdee customer ${source.customer} is not synchronized.`);
+			waiting.push(source.uuid);
 			continue;
 		}
+		const person = owner(source.employee);
 		rows.push({
 			$id: binding(ctx.configuration.branchNo, source.fid, order.source_order_key),
 			source_order_key: order.source_order_key,
-			$version: yield* headerVersion(source),
-			kingdee: {
-				fid: source.fid,
-				reference: source.reference,
-				version: source.version,
-				status: source.status,
-				closed: source.closed,
-				exchange_rate: source.exchange_rate
-			},
-			currency: source.currency,
-			payment_terms: source.payment_terms,
-			ordered_on: source.ordered_on
+			// the salesperson binding is ours: one added later still moves the order
+			$version: yield* hash([yield* headerVersion(source), person ?? null]),
+			...(party ? { party: party.id, party_name: party.name } : {}),
+			...(person && person !== order.owner ? { owner: person } : {}),
+			...header(source)
 		});
 	}
-	return attention(
-		yield* snapshotPage(
-			rows,
-			cursor,
-			yield* ownershipSource(
-				observed.scope,
-				anchors.map((anchor) => anchor.uuid)
-			)
-		),
-		issues
-	);
+	// a live SO no order holds: Kingdee created it. It arrives as a draft, and the read after confirms it.
+	const known = new Set(anchors.map((anchor) => anchor.uuid));
+	for (const live of target && target.account === window.account
+		? [...window.headers, ...fetched]
+		: []) {
+		const uuid = yield* uuidOf(live);
+		if (
+			!uuid ||
+			known.has(uuid) ||
+			!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid)
+		)
+			continue;
+		known.add(uuid);
+		const source = yield* headerOnly(live);
+		const party = customer(source.customer);
+		const person = owner(source.employee);
+		if (!party || !person || !target) {
+			issues.push(
+				`${source.reference}: import waits for an active customer and one salesperson binding.`
+			);
+			waiting.push(uuid);
+			continue;
+		}
+		const key = staged.get(uuid) ?? importedOrderKey(target.account, target.branch, uuid);
+		rows.push({
+			$id: binding(ctx.configuration.branchNo, source.fid, key),
+			source_order_key: key,
+			$version: yield* hash([yield* headerVersion(source), person, staged.has(uuid)]),
+			title: source.reference,
+			direction: 'sales' as const,
+			party: party.id,
+			party_name: party.name,
+			owner: person,
+			ledger: instance,
+			write_target: target,
+			tax_inclusive: false,
+			...header(source),
+			...(staged.has(uuid)
+				? {
+						status: 'confirmed' as const,
+						commission: sealedCommission(commission_rules.rows, source.currency, source.ordered_on),
+						...(commercial_settings.rows[0]
+							? { freight_treatment: commercial_settings.rows[0].freight_treatment }
+							: {})
+					}
+				: { status: 'draft' as const })
+		});
+	}
+	const closed = yield* window.close(waiting);
+	return sourceHealth({ rows, cursor: closed.cursor, more: window.more }, issues, closed.backlog);
 });
 
 /**
- * The SO lines of the confirmed sales orders this ledger receives: a changed entry updates its line, a new entry adds
- * one, and a line whose entry left the SO is deleted. A line not yet sent keeps its local terms.
+ * The SO lines of the confirmed sales orders this ledger receives, read for the SOs whose header moved: a changed
+ * entry updates its line, a new entry adds one, and a line whose entry left the SO is deleted. A line not yet sent
+ * keeps its local terms. An order no entry is bound to yet, or one a write was refused on, is read without waiting
+ * for Kingdee to move.
  */
 export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const observed = yield* observation(ctx, cursor);
 	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
-	const families = yield* readSourceOrderFamilies(anchors, ctx);
 	const { products, order_lines } = yield* ctx.query({
-		// a line whose own write to the SO is still pending or failed keeps its local terms until it lands
+		// a line whose own write to the SO is still pending keeps its local terms until it lands
 		order_lines: {
 			where: { order: { in: owned.map((order) => order.id) } },
 			fields: ['source_entry_id']
@@ -153,22 +283,53 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 			]
 		}
 	});
+	const state = (line: { readonly id: string }) =>
+		order_lines.rows.find((row) => row.id === line.id)?.$sync?.kingdee?.status;
+	// a waiting SO waits on an item arriving
+	const window = yield* orderWindow(ctx, cursor, 100, String(products.rows.length));
+	const moved = yield* Effect.forEach(window.headers, uuidOf);
+	const unsettled = window.first
+		? owned
+				.filter(
+					(order) =>
+						order.lines.every((line) => !line.source_entry_id) ||
+						order.lines.some((line) => state(line) === 'failed')
+				)
+				.flatMap((order) => anchors.find((anchor) => anchor.order === order.id)?.uuid ?? [])
+		: [];
+	const wanted = new Set([
+		...moved.flatMap((uuid) => uuid ?? []),
+		...unsettled,
+		...(window.first ? window.retry : [])
+	]);
+	const families = yield* readSourceOrderFamilies(
+		anchors.filter((anchor) => wanted.has(anchor.uuid)),
+		ctx
+	);
 	const issues: string[] = [];
+	const waiting: string[] = [];
 	const rows = [];
 	for (const family of families) {
 		const order = owned.find((row) => row.id === family.order);
 		if (!order) continue;
 		const source = yield* checked(() => kingdeeOrder(family));
 		const id = binding(ctx.configuration.branchNo, source.fid, order.source_order_key);
-		const unsent = order.lines.filter((line) => {
-			const state = order_lines.rows.find((row) => row.id === line.id)?.$sync?.kingdee?.status;
-			return state === 'pending' || state === 'failed';
-		});
+		const unsent = order.lines.filter((line) => state(line) === 'pending');
+		// a write Kingdee refused for good is over: the SO's terms return, and a line it never took leaves
+		const refused = order.lines.filter((line) => state(line) === 'failed');
+		const orphans = refused.filter((line) => !line.source_entry_id);
 		const held = new Set(unsent.flatMap((line) => line.source_entry_id ?? []));
 		const pairs = pairLines(
-			order.lines.filter((line) => !unsent.includes(line)),
+			order.lines.filter((line) => !unsent.includes(line) && !orphans.includes(line)),
 			source.lines
 		);
+		for (const line of orphans)
+			rows.push({
+				$id: `${id}:refused:${line.id}`,
+				$deleted: true as const,
+				order: order.id,
+				line_key: line.line_key
+			});
 		for (const entry of source.lines) {
 			if (held.has(entry.entry)) continue;
 			const line = pairs.get(entry.entry);
@@ -178,6 +339,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 			const productId = changedItem ? product?.id : (line?.product ?? product?.id);
 			if (!productId) {
 				issues.push(`${family.reference}: Kingdee item ${entry.item} is not synchronized.`);
+				waiting.push(source.uuid);
 				continue;
 			}
 			// the local price and discount stand while they give the SO's price
@@ -185,7 +347,11 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 			// the line's own transform prices it; a sync page names every field it writes
 			rows.push({
 				$id: `${id}:${entry.entry}`,
-				$version: yield* lineVersion(entry),
+				// an unchanged entry has the version the id map holds: a refused line needs another to be written
+				$version:
+					line && refused.includes(line)
+						? yield* hash({ ...entry, refused: line.revision })
+						: yield* lineVersion(entry),
 				order: order.id,
 				line_key: line?.line_key ?? `kingdee:${entry.entry}`,
 				product: productId,
@@ -240,17 +406,8 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 					line_key: line.line_key
 				});
 	}
-	return attention(
-		yield* snapshotPage(
-			rows,
-			cursor,
-			yield* ownershipSource(
-				observed.scope,
-				anchors.map((anchor) => anchor.uuid)
-			)
-		),
-		issues
-	);
+	const closed = yield* window.close(waiting);
+	return sourceHealth({ rows, cursor: closed.cursor, more: window.more }, issues, closed.backlog);
 });
 
 const defer = (message: string) => new FacilityFailure({ kind: 'upstream', message });
@@ -275,6 +432,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 				'ledger',
 				'source_order_key',
 				'write_target',
+				'kingdee',
 				'currency',
 				'tax_inclusive',
 				'payment_terms',
@@ -346,8 +504,15 @@ export const pushOrder = Effect.fnUntraced(function* (
 			};
 		})
 	};
-	if (!before && identity)
-		return yield* refuse('The imported Kingdee SO is missing; it will not be recreated.');
+	if (!before && (identity || order.kingdee))
+		return yield* refuse('The Kingdee SO is missing; it will not be recreated.');
+	const bound = (so: KingdeeOrder) => {
+		const written = pairLines(lines, so.lines);
+		return {
+			$id: binding(ctx.configuration.branchNo, so.fid, key),
+			lines: so.lines.map((entry) => ({ line: written.get(entry.entry)?.id, entry: entry.entry }))
+		};
+	};
 	if (!before)
 		yield* submitOrder(payload, ctx).pipe(Effect.catchTag('SourceRowInvalid', sourceRefused));
 	else {
@@ -365,31 +530,44 @@ export const pushOrder = Effect.fnUntraced(function* (
 				const line = pairs.get(entry.entry);
 				return line !== undefined && sameLine(line, entry, order.tax_inclusive);
 			});
-		if (!same) {
-			if (before.status === 'void' || before.closed)
-				return yield* refuse('The Kingdee SO is void or closed.');
-			if (before.status !== 'issued')
-				return yield* defer('The Kingdee SO must be audited before its lines change.');
-			yield* submitOrder(
-				{
-					...payload,
-					previous: {
-						source_id: before.fid,
-						source_uuid: before.uuid,
-						source_version: before.version,
-						source_exchange_rate: before.exchange_rate,
-						lines: before.lines.map(({ detail: _, ...entry }) => entry)
-					}
-				},
-				ctx
-			).pipe(Effect.catchTag('SourceRowInvalid', sourceRefused));
-		}
+		// nothing to send: what was just read is what Kingdee holds
+		if (same) return bound(before);
+		if (before.status === 'void' || before.closed)
+			return yield* refuse('The Kingdee SO is void or closed.');
+		if (before.status !== 'issued')
+			return yield* defer('The Kingdee SO must be audited before its lines change.');
+		yield* submitOrder(
+			{
+				...payload,
+				previous: {
+					source_id: before.fid,
+					source_uuid: before.uuid,
+					source_version: before.version,
+					source_exchange_rate: before.exchange_rate,
+					lines: before.lines.map(({ detail: _, ...entry }) => entry)
+				}
+			},
+			ctx
+		).pipe(Effect.catchTag('SourceRowInvalid', sourceRefused));
 	}
 	const after = yield* observe();
 	if (!after) return yield* defer('Waiting for the Kingdee SO to appear.');
-	const written = pairLines(lines, after.lines);
-	return {
-		$id: binding(ctx.configuration.branchNo, after.fid, key),
-		lines: after.lines.map((entry) => ({ line: written.get(entry.entry)?.id, entry: entry.entry }))
-	};
+	return bound(after);
+});
+
+/**
+ * A line the import created with its SO entry holds what Kingdee holds: its identity is the order's SO and that
+ * entry, with no read of Kingdee. Any other line answers `null` and is sent.
+ */
+export const importedLineId = Effect.fnUntraced(function* (
+	line: Pick<Row<'order_lines'>, 'order' | 'source_entry_id'>,
+	ctx: OrderSourceContext
+) {
+	if (!line.source_entry_id) return null;
+	const order = (yield* ctx.query({
+		orders: { where: { id: { eq: line.order } }, fields: ['source_order_key', 'kingdee'], limit: 1 }
+	})).orders.rows[0];
+	return order?.source_order_key && order.kingdee && importedOrderIdentity(order.source_order_key)
+		? `${binding(ctx.configuration.branchNo, order.kingdee.fid, order.source_order_key)}:${line.source_entry_id}`
+		: null;
 });

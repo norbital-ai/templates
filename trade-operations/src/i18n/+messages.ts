@@ -23,8 +23,6 @@ export default messages({
 		'Currency to Kingdee ID bindings (JSON)',
 	'integrations.kingdee.configuration.fields.settlementRules':
 		'Settlement-number credit rules (JSON)',
-	'integrations.kingdee.configuration.fields.fullSnapshotMinutes':
-		'Full reconciliation interval (minutes)',
 	'integrations.kingdee.configuration.fields.maxWindowMinutes': 'Sync window age alert (minutes)',
 	'models.orders.syncs.sheet.schema.fields.number': 'Order number',
 	'models.orders.syncs.sheet.schema.fields.direction': 'Direction',

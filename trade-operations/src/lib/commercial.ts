@@ -276,16 +276,24 @@ export function currentFloors(
 	});
 }
 
-export const quoteBelowFloor = (line: Pick<Row<'order_lines'>, 'net' | 'quantity' | 'floor_net'>) =>
-	line.floor_net !== null &&
-	BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.quantity)) &&
-	BigDecimal.isLessThan(
-		BigDecimal.round(
-			BigDecimal.divideUnsafe(
-				BigDecimal.fromStringUnsafe(line.net),
-				BigDecimal.fromStringUnsafe(line.quantity)
-			),
-			{ scale: 8 }
-		),
-		BigDecimal.fromStringUnsafe(line.floor_net)
+/**
+ * A line is below its floor when its own net unit price is: the price after discount, before tax, at the floor's
+ * precision. The rounded line net over its quantity is not that price.
+ */
+export function quoteBelowFloor(
+	line: Pick<Row<'order_lines'>, 'unit_price' | 'discount_pct' | 'tax_rate' | 'floor_net'>,
+	inclusive: boolean
+) {
+	if (line.floor_net === null) return false;
+	const hundred = BigDecimal.fromBigInt(100n);
+	const charged = BigDecimal.multiply(
+		BigDecimal.fromStringUnsafe(line.unit_price),
+		BigDecimal.subtract(hundred, BigDecimal.fromStringUnsafe(line.discount_pct))
 	);
+	const net = BigDecimal.divideUnsafe(
+		charged,
+		inclusive ? BigDecimal.sum(hundred, BigDecimal.fromStringUnsafe(line.tax_rate)) : hundred
+	);
+	const floor = BigDecimal.fromStringUnsafe(line.floor_net);
+	return BigDecimal.isLessThan(BigDecimal.round(net, { scale: floor.scale }), floor);
+}

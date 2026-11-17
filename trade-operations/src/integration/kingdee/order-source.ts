@@ -1,4 +1,4 @@
-import { BigDecimal, Effect, Schema } from 'effect';
+import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
@@ -54,12 +54,6 @@ type DocumentReview = {
 	readonly held: Set<Id<'orders'>>;
 	readonly issues: DocumentIssue[];
 };
-type SalesGraph = DocumentReview & {
-	readonly deliveries: readonly SalesDocument[];
-	readonly invoices: readonly SalesDocument[];
-	readonly observedAt: string;
-	readonly source: string;
-};
 const invalid = (name: string, reason: string): never => {
 	throw new SourceRowInvalid({ column: name, reason });
 };
@@ -111,6 +105,8 @@ const nativeSql = Effect.fnUntraced(function* (
 		readonly branch?: string;
 		readonly after?: string;
 		readonly account?: string;
+		readonly from?: string;
+		readonly to?: string;
 	} = {}
 ) {
 	return yield* query(ctx, {
@@ -119,8 +115,10 @@ const nativeSql = Effect.fnUntraced(function* (
 		arguments: {
 			stmt: values.account ? requireReadAccount + '\n' + statement : statement,
 			params:
-				'@ids xml,@branch nvarchar(10),@after nvarchar(512)' +
+				'@ids xml,@branch nvarchar(10),@after nvarchar(512),@from varchar(18),@to varchar(18)' +
 				(values.account ? ',@read_account nvarchar(73)' : ''),
+			from: values.from ?? '0x0000000000000000',
+			to: values.to ?? '0x0000000000000000',
 			ids: values.ids ?? '<ids/>',
 			branch: values.branch ?? '',
 			after: values.after ?? '',
@@ -267,15 +265,16 @@ FROM (${documentIds(kind)}) candidate
 });
 
 /** Families are discovered from an owned UUID first; a bill number alone never establishes ownership. */
-const salesFamilyProjection: NativeProjection = {
+export const salesFamilyProjection: NativeProjection = {
 	sql: `/* kingdee-sales-orders */
 SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
  CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,
- head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,head.FClosed AS closed,
+ head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,
+ CASE WHEN head.FClosed<>0 OR head.FStatus=3 THEN 1 ELSE 0 END AS closed,
  ${textId('head.FCheckerID')} AS checker,CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,
  ${textId('head.FEmpID')} AS employee_id,${textId('head.FCustID')} AS customer_id,customer.FName AS customer_name,
  CONVERT(varchar(10),head.FDate,23) AS ordered_on,settlement.FNumber AS settlement,
- CONVERT(varchar(100),head.FExchangeRate) AS exchange_rate,
+ CONVERT(varchar(100),CAST(head.FExchangeRate AS decimal(28,10))) AS exchange_rate,
  CONVERT(varchar(33),head.FChangeDate,126) AS changed_at,${textId('head.FChangeUser')} AS changed_by,
  CONVERT(varchar(18),CONVERT(binary(8),head.FOperDate),1) AS rowversion
 FROM dbo.SEOrder head
@@ -286,56 +285,6 @@ WHERE head.FBrNo=@branch AND EXISTS (
  SELECT 1 FROM dbo.SEOrder anchor WHERE anchor.FBrNo=head.FBrNo AND anchor.FBillNo=head.FBillNo
  AND anchor.FUUID IN ${ids})`
 };
-/** Discovery is pinned to a verified account and branch, independent of local ownership. */
-export const discoverSalesOrders = Effect.fnUntraced(function* (
-	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
-	account: string
-) {
-	const projection = {
-		sql:
-			salesFamilyProjection.sql.slice(0, salesFamilyProjection.sql.indexOf('WHERE head.FBrNo=')) +
-			'WHERE head.FBrNo=@branch AND head.FChangeMark=0'
-	};
-	const values = { branch: ctx.configuration.branchNo, account };
-	const headers = yield* readNativeRows(ctx, projection, values);
-	const lines = yield* selectByIds(
-		ctx,
-		salesLineProjection,
-		headers.map((row) => exactId(row, 'fid')),
-		ctx.configuration.branchNo,
-		account
-	);
-	const verified = yield* readNativeRows(ctx, projection, values);
-	if (JSON.stringify(headers) !== JSON.stringify(verified))
-		return yield* new SourceRowInvalid({
-			column: 'FOperDate',
-			reason: 'The source changed during order discovery; retry the whole observation'
-		});
-	return yield* checked(() => {
-		const orders = headers.map((live) =>
-			kingdeeOrder({
-				live,
-				headers: [live],
-				reference: text(live, 'reference'),
-				lines: lines.filter((line) => exactId(line, 'fid') === exactId(live, 'fid'))
-			})
-		);
-		const uuids = new Set<string>(),
-			references = new Set<string>();
-		for (const order of orders) {
-			if (
-				!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(order.uuid) ||
-				uuids.has(order.uuid)
-			)
-				invalid('FUUID', 'Discovery requires one unique native UUID per live order');
-			if (references.has(order.reference) || !/^\d{3}$/.test(order.version))
-				invalid('FBillNo', 'Discovery found an ambiguous bill family or version');
-			uuids.add(order.uuid);
-			references.add(order.reference);
-		}
-		return orders;
-	});
-});
 /** One owned SO family: its live header, every archived version, and their lines. */
 export type SourceFamily = {
 	readonly order: Id<'orders'>;
@@ -590,25 +539,6 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 		})
 	);
 });
-const graphOrders = Effect.fnUntraced(function* (
-	instance: Id<'sys_integration'>,
-	ctx: OrderSourceContext
-) {
-	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
-	return {
-		orders: yield* readOwnedSales(
-			owned.flatMap((order) => {
-				const anchor = anchors.find((row) => row.order === order.id);
-				return anchor
-					? [{ order: order.id, uuid: anchor.uuid, currency: order.currency, lines: order.lines }]
-					: [];
-			}),
-			ctx
-		),
-		ownership: anchors.map((anchor) => anchor.uuid).sort()
-	};
-});
-
 export const readSalesDocuments = Effect.fnUntraced(function* (
 	orders: readonly OwnedSales[],
 	ctx: DatabaseContext,
@@ -842,43 +772,47 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	return { documents, pendingIds };
 });
 
-export const observation = Effect.fnUntraced(function* (
-	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
-	cursor: Json | null
-) {
-	const [current] = yield* nativeSql(
-		ctx,
-		`SELECT database_guid,recovery_fork_guid,
-CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at
-FROM sys.database_recovery_status WHERE database_id=DB_ID()`
-	);
-	const observed = yield* checked(() => ({
-		identity: {
-			database: text(current ?? {}, 'database_guid'),
-			fork: text(current ?? {}, 'recovery_fork_guid')
-		},
-		observedAt: Instant(text(current ?? {}, 'observed_at'))
-	}));
-	const scope = `${yield* sha256Hex(JSON.stringify(observed.identity))}:${yield* sha256Hex(ctx.configuration.branchNo)}`;
-	yield* verifyOwnedCursor(cursor, scope);
-	return { observedAt: observed.observedAt, scope };
-});
-export const ownershipSource = Effect.fnUntraced(function* (
-	scope: string,
-	ownership: readonly string[]
-) {
-	return `${scope}:${yield* sha256Hex(JSON.stringify(ownership))}`;
-});
 /** Read only records whose existing FUUID belongs to one local order; never adopt ERP history by bill number. */
 export const readSalesGraph = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext,
-	costAccount?: string
+	costAccount?: string,
+	/** What else an order held for review could be waiting on, beyond an order moving. */
+	local = ''
 ) {
-	const decoded = yield* observation(ctx, cursor);
-	const owned = yield* graphOrders(instance, ctx);
-	const orders = owned.orders;
+	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
+	const uuid = (order: Id<'orders'>) => anchors.find((anchor) => anchor.order === order)?.uuid;
+	// an order's documents are read when one of them moves in Kingdee, or when the order itself moved here: its SO
+	// was just read, audited or bound. Nothing lists every order's documents.
+	const latest = owned.reduce(
+		(max, order) => (order.updated_at > max ? order.updated_at : max),
+		''
+	);
+	const window = yield* orderWindow(ctx, cursor, 200, `${latest}|${local}`, documentWindow);
+	const before = window.before?.split('|')[0] ?? '';
+	// commits can land out of their timestamps' order: orders stamped a little before the last read are read again
+	const since =
+		latest === before || !before
+			? before
+			: new Date(Date.parse(before) - Duration.toMillis(Duration.minutes(10))).toISOString();
+	const moved = new Set(yield* checked(() => window.headers.map((row) => exactId(row, 'fid'))));
+	const touched = owned.filter(
+		(order) =>
+			(order.kingdee && moved.has(order.kingdee.fid)) ||
+			(window.first &&
+				((latest !== before && order.updated_at > since) ||
+					window.retry.includes(uuid(order.id) ?? '')))
+	);
+	const orders = yield* readOwnedSales(
+		touched.flatMap((order) => {
+			const anchor = uuid(order.id);
+			return anchor
+				? [{ order: order.id, uuid: anchor, currency: order.currency, lines: order.lines }]
+				: [];
+		}),
+		ctx
+	);
 	const { transactions: retained } = yield* ctx.query({
 		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
 	});
@@ -909,16 +843,27 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 		...review,
 		deliveries: delivery.documents.filter((doc) => !review.held.has(doc.owner.order)),
 		invoices: invoice.documents.filter((doc) => !review.held.has(doc.owner.order)),
-		observedAt: decoded.observedAt,
-		source: yield* ownershipSource(decoded.scope, owned.ownership)
-	} satisfies SalesGraph;
+		observedAt: window.observedAt,
+		/** The orders this read covered: only their rows can be found missing. */
+		affected: new Set(touched.map((order) => order.id)),
+		/** The page these rows make: an order held for review is read again when an order next moves. */
+		page: Effect.fnUntraced(function* <R>(rows: readonly (R & { readonly $id: string })[]) {
+			const closed = yield* window.close([...review.held].flatMap((order) => uuid(order) ?? []));
+			return reviewedPage<R>({ rows, cursor: closed.cursor, more: window.more }, review);
+		})
+	};
 });
 const Cursor = Schema.Struct({
 	protocol: Schema.Literal('kingdee-owned-v1'),
 	source: Schema.String,
 	after: Schema.String.check(Schema.isPattern(/^(?:[\x21-\x7e]{1,512})?$/)),
 	finish: Schema.Boolean,
-	fingerprint: Schema.optionalKey(Schema.String)
+	// the order reads: the rowversion every header below has been read to, the ceiling of a window still being paged,
+	// the SOs whose read is waiting on something local, and what they were waiting against
+	bookmark: Schema.optionalKey(Schema.String),
+	upper: Schema.optionalKey(Schema.String),
+	waiting: Schema.optionalKey(Schema.Array(Schema.String)),
+	token: Schema.optionalKey(Schema.String)
 });
 const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, source: string) {
 	const previous =
@@ -944,54 +889,121 @@ const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, sour
 		});
 	return previous;
 });
-/** Page an already collected owned listing. Callers explicitly void missing records; no native hard-delete reconciliation. */
-export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
-	rows: readonly (R & { readonly $id: string })[],
+const WAITING = 500;
+const within = (column: string) =>
+	`${column}>=CONVERT(binary(8),@from,1) AND ${column}<CONVERT(binary(8),@to,1)`;
+/** The SO headers of the branch that moved in the window. */
+const headerWindow = `${salesFamilyProjection.sql.slice(0, salesFamilyProjection.sql.indexOf('WHERE head.FBrNo='))}WHERE head.FBrNo=@branch AND ${within('head.FOperDate')} /* kingdee-order-window */`;
+/**
+ * The SOs a delivery, return, invoice or settlement that moved in the window belongs to. KIS stamps document
+ * headers, never their lines, so each is followed from its header to the SO its lines name; a receipt allocated to
+ * an invoice moves that invoice's open item in `t_RP_Contact`.
+ */
+const documentWindow = `/* kingdee-document-window */
+SELECT ${padded('moved.fid')} AS __key,${textId('moved.fid')} AS fid FROM (
+ SELECT line.FSourceInterId AS fid FROM dbo.ICStockBill head JOIN dbo.ICStockBillEntry line ON line.FInterID=head.FInterID
+ WHERE head.FTranType=21 AND line.FSourceTranType=81 AND ${within('head.FOperDate')}
+ UNION SELECT original.FSourceInterId FROM dbo.ICStockBill head
+ JOIN dbo.ICStockBillEntry red ON red.FInterID=head.FInterID AND red.FSourceTranType=21
+ JOIN dbo.ICStockBillEntry original ON original.FInterID=red.FSourceInterId AND original.FEntryID=red.FSourceEntryID
+ WHERE head.FTranType=21 AND original.FSourceTranType=81 AND ${within('head.FOperDate')}
+ UNION SELECT delivery.FSourceInterId FROM dbo.ICSale head
+ JOIN dbo.ICSaleEntry line ON line.FInterID=head.FInterID AND line.FSourceTranType=21
+ JOIN dbo.ICStockBillEntry delivery ON delivery.FInterID=line.FSourceInterId
+ WHERE delivery.FSourceTranType=81 AND ${within('head.FOperDate')}
+ UNION SELECT delivery.FSourceInterId FROM dbo.t_RP_Contact contact
+ JOIN dbo.ICSaleEntry line ON line.FInterID=contact.FInvoiceID AND line.FSourceTranType=21
+ JOIN dbo.ICStockBillEntry delivery ON delivery.FInterID=line.FSourceInterId
+ WHERE contact.FRP=1 AND contact.FType=3 AND delivery.FSourceTranType=81 AND ${within('contact.FModifyTime')}
+) moved WHERE moved.fid IS NOT NULL GROUP BY moved.fid`;
+const invalidCursor = (reason: string) => new SourceRowInvalid({ column: '$cursor', reason });
+/**
+ * The SO headers of the branch whose native rowversion moved since the bookmark, a page at a time: `[bookmark, upper)`
+ * with `upper` the server's oldest active rowversion, captured before any row. Nothing is listed in full: a header
+ * that did not move is not read, and Kingdee's deletes are soft, so they move a header too. An SO whose read waits on
+ * something local (a customer not synchronized yet) is kept by UUID and read again when `token`, the caller's summary
+ * of what it could be waiting on, changes.
+ */
+export const orderWindow = Effect.fnUntraced(function* (
+	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
 	cursor: Json | null,
-	source: string,
-	reuseCompleted?: boolean
-): Effect.fn.Return<SourcePage<R>, SourceRowInvalid> {
-	const previous = yield* verifyOwnedCursor(cursor, source);
-	// A newly owned order starts a new authoritative listing, never finishes the previous scope.
-	const current = previous?.source === source && !previous.finish ? previous : null;
-	const sorted = yield* checked(() => {
-		const result = [...rows].sort((a, b) => (a.$id < b.$id ? -1 : a.$id > b.$id ? 1 : 0));
-		if (result.some((row, index) => index > 0 && row.$id === result[index - 1]?.$id))
-			invalid('$id', 'Mapped Kingdee identities are not unique');
-		return result;
+	size: number,
+	token: string,
+	moved: string = headerWindow
+) {
+	const [current] = yield* nativeSql(
+		ctx,
+		`SELECT database_guid,recovery_fork_guid,
+CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at,
+CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS upper
+FROM sys.database_recovery_status WHERE database_id=DB_ID()`
+	);
+	const observed = yield* checked(() => {
+		const upper = text(current ?? {}, 'upper').toLowerCase();
+		if (!/^0x[0-9a-f]{16}$/.test(upper)) invalid('upper', 'The rowversion ceiling is unavailable');
+		return {
+			database: text(current ?? {}, 'database_guid'),
+			fork: text(current ?? {}, 'recovery_fork_guid'),
+			at: Instant(text(current ?? {}, 'observed_at')),
+			upper
+		};
 	});
-	const fingerprint =
-		reuseCompleted === undefined
-			? undefined
-			: yield* hash(sorted.map((row) => ({ ...row, source_updated_at: undefined }))).pipe(
-					Effect.mapError(
-						(cause) => new SourceRowInvalid({ column: '$cursor', reason: cause.message })
-					)
-				);
-	if (
-		reuseCompleted &&
-		fingerprint !== undefined &&
-		previous?.source === source &&
-		previous.finish &&
-		previous.fingerprint === fingerprint
-	)
-		return { rows: [], cursor: previous, more: false };
-	// A page can see a newer source image than the previous page. Only an intact sweep can be reused.
-	const completeFingerprint =
-		current === null || current.fingerprint === fingerprint ? fingerprint : undefined;
-	const pending = sorted.filter((row) => row.$id > (current?.after ?? ''));
-	const page = pending.slice(0, 999);
-	const more = pending.length > page.length;
+	const scope = `${yield* sha256Hex(JSON.stringify({ database: observed.database, fork: observed.fork }))}:${yield* sha256Hex(ctx.configuration.branchNo)}`;
+	const previous = yield* verifyOwnedCursor(cursor, scope);
+	const open = previous && !previous.finish && previous.upper ? previous : null;
+	const from = previous?.bookmark ?? '0x0000000000000000';
+	const to = open?.upper ?? observed.upper;
+	const after = open?.after ?? '';
+	if (to < from)
+		return yield* invalidCursor('The source rowversion moved behind the saved bookmark');
+	const page = yield* nativeSql(
+		ctx,
+		`SELECT TOP ${size + 1} * FROM (${moved}) AS source WHERE __key COLLATE Latin1_General_BIN2 > @after COLLATE Latin1_General_BIN2 ORDER BY __key COLLATE Latin1_General_BIN2`,
+		{ branch: ctx.configuration.branchNo, after, from, to }
+	);
+	const headers = page.slice(0, size);
+	const more = page.length > size;
+	const first = after === '';
+	const kept = previous?.waiting ?? [];
+	const retry = first && previous?.token !== token ? kept : [];
 	return {
-		rows: page,
+		account: `${observed.database}/${observed.fork}`.toLowerCase(),
+		observedAt: observed.at,
+		/** The token the last completed read left, `null` before any. */
+		before: previous?.token ?? null,
+		headers,
+		first,
 		more,
-		cursor: {
-			protocol: 'kingdee-owned-v1',
-			source,
-			after: more ? (page.at(-1)?.$id ?? '') : '',
-			finish: !more,
-			...(completeFingerprint === undefined ? {} : { fingerprint: completeFingerprint })
-		}
+		retry,
+		/** The cursor this page leaves, with the SOs still waiting; unchanged when nothing moved. */
+		close: Effect.fnUntraced(function* (waiting: readonly string[]) {
+			const next = [...new Set([...kept.filter((uuid) => !retry.includes(uuid)), ...waiting])];
+			const base = {
+				protocol: 'kingdee-owned-v1' as const,
+				source: scope,
+				...(next.length ? { waiting: next.slice(0, WAITING) } : {}),
+				token
+			};
+			const last = headers.at(-1);
+			return {
+				backlog: next.length > WAITING,
+				cursor: more
+					? {
+							...base,
+							after: yield* checked(() => text(last ?? {}, '__key')),
+							finish: false,
+							bookmark: from,
+							upper: to
+						}
+					: {
+							...base,
+							after: '',
+							finish: true,
+							// an empty window keeps its bookmark: the cursor does not move, so nothing is committed
+							bookmark: first && headers.length === 0 ? from : to
+						}
+			};
+		})
 	};
 });
 /** A document's transaction id: `<kind>:<FInterID>`, or the id an earlier read gave it. */
@@ -1110,18 +1122,12 @@ export const readTransactions = Effect.fnUntraced(function* (
 	);
 	const present = new Set(rows.map((row) => row.erp_id));
 	const missing = existing.rows
-		.filter((row) => !present.has(row.erp_id) && !graph.held.has(row.order))
+		.filter(
+			(row) =>
+				graph.affected.has(row.order) && !present.has(row.erp_id) && !graph.held.has(row.order)
+		)
 		.map((row) => ({ $id: row.erp_id, erp_id: row.erp_id, status: 'void' as const }));
-	const retained = new Set(existing.rows.map((row) => row.erp_id));
-	return reviewedPage(
-		yield* snapshotPage(
-			[...rows, ...missing],
-			cursor,
-			graph.source,
-			rows.every((row) => retained.has(row.erp_id))
-		),
-		graph
-	);
+	return yield* graph.page([...rows, ...missing]);
 });
 
 export const reviewedPage = <R>(page: SourcePage<R>, review: DocumentReview): SourcePage<R> =>

@@ -61,11 +61,17 @@ Feeds with a native SQL Server rowversion use `[bookmark, upper)` windows: only 
 completed window are read. The bookmark is the native marker, not a local timestamp. A joined field (for
 example a product's unit or brand) changes its own marker, so a joined edit is not missed.
 
-Feeds without a reliable marker use the smallest authoritative listing their verified bindings support:
-owned sales-order families and their linked documents stay scoped to those identities. A feed must not invent
-a timestamp or skip a dependency to claim that it is incremental. A periodic full listing also reconciles physical source
-deletions: rows absent from the source are marked inactive on the local mirror; they are not deleted. This keeps
-history, links and audit evidence.
+KIS stamps document headers, never their lines. The order feeds follow `SEOrder.FOperDate`; the delivery,
+invoice and receipt feeds follow `ICStockBill.FOperDate`, `ICSale.FOperDate` and the invoice's open item `t_RP_Contact.FModifyTime`
+from the header that moved to the SO its lines name, and read only those SOs' documents. An entry edited without
+its header being saved again would not be seen; KIS saves a bill whole.
+
+A row that cannot be applied yet (an SO whose customer is not synchronized, a document whose SO is not audited)
+does not hold the bookmark. Its SO is kept by identity in the cursor, at most 500, and read again when what it
+waits on changes here. `ICInventory` carries no marker: stock is the one feed that lists its table.
+
+An SO created in Kingdee arrives through the same order window: the read that first sees it creates a draft, the
+next confirms it under the commission rule and freight treatment in force, and its lines follow.
 
 ## 4. Why a network blip is safe
 
@@ -87,8 +93,8 @@ A network blip is an interrupted page, not a lost business fact. The design hand
    acknowledges after the source answers. A retry after an unknown outcome can therefore be resolved by source
    identity instead of guessing.
 
-A full reconciliation catches a source delete that no rowversion window could report. Until that pass, the local
-row remains; it is not silently dropped.
+Kingdee's deletes are soft and arrive as a moved row. A row removed outright from SQL is not looked for: the
+local row remains as last read, and no write recreates a missing SO.
 
 ### What is not guaranteed
 
@@ -148,8 +154,10 @@ or after an explicit operator request. A refresh of the browser never resets a c
 
 - **Pages, not per-row calls.** One SQL page returns up to 999 rows; one page is one local set-based upsert and
   one cursor compare-and-set. Work grows with changed pages, not with the number of rows in the local table.
-- **Changes only.** A rowversion window reads just what moved since the last completed bookmark. A daily full
-  listing (`fullSnapshotMinutes`, default 1440 minutes) reconciles deletes and joined-field drift.
+- **Changes only.** A rowversion window reads just what moved since the last completed bookmark. A feed lists
+  its table once, when it begins, and never again: Kingdee's deletes are soft, so a row that leaves moves too.
+  Orders, their lines, deliveries, invoices and receipts are all read this way; an idle minute costs each feed
+  one small request for the ceiling and one for an empty window.
 - **SQL does the aggregation.** Stock availability, open commitments, lot costs and AR aging are grouped and
   summed in SQL (`SUM`, `GROUP BY`, `TOP (10001)` guards); the local side maps typed rows, it does not scan
   history.
@@ -166,13 +174,14 @@ or after an explicit operator request. A refresh of the browser never resets a c
 
 ## 7. Failure states an operator will see
 
-| State                         | Meaning                                                              | Recovery                                                           |
-| ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `attention` / `parentPending` | A child feed arrived before its issued source order or invoice       | Wait for the parent sync; no local row is written                  |
-| `attention` / `windowLag`     | A source window is older than `maxWindowMinutes`                     | Check the SQL route, locks and source load; the cursor is kept     |
-| Connection error              | The SQL login, route or account set failed                           | Fix the connection in Settings → Integrations. Queued writes wait. |
-| `dead` outbox row             | A write-back exhausted retries or was refused by source verification | Read the dead letter, correct the cause, retry deliberately        |
-| Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess                 |
+| State                         | Meaning                                                              | Recovery                                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `attention` / `parentPending` | A child feed arrived before its issued source order or invoice       | Wait for the parent sync; no local row is written                                                                                |
+| `attention` / `windowLag`     | A source window is older than `maxWindowMinutes`                     | Check the SQL route, locks and source load; the cursor is kept                                                                   |
+| Connection error              | The SQL login, route or account set failed                           | Fix the connection in Settings → Integrations. Queued writes wait.                                                               |
+| `dead` outbox row             | A write-back exhausted retries or was refused by source verification | The next read returns a refused line to the SO's terms and removes a line the SO never took; read the dead letter for the reason |
+| SO removed outright from SQL  | Not a Kingdee delete (those are soft); the order stays as last read  | No write recreates the SO; the refused write names it                                                                            |
+| Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess                                                                               |
 
 `source_health` notifies configuration holders once per instance revision. The record's status is the source of
 truth; a notification is a prompt, not a second state.

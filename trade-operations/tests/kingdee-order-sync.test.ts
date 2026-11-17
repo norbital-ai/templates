@@ -1,8 +1,8 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { committed, workspace } from './kit.js';
 import { kingdeeCatalogue, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
-import { sameDecimal } from './test-runtime.js';
+import { fixtureId, sameDecimal } from './test-runtime.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
 /** A confirmed sale written to its SO, audited in Kingdee and read back on the order and its lines. */
@@ -592,4 +592,175 @@ it.live(
 			]);
 			expect(after.order_lines.rows[0]?.$sync?.kingdee?.status).toBe('ok');
 		})
+);
+
+it.live(
+	'a line change Kingdee refuses for good returns to the SO terms, and a refused new line leaves',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* syncedSale();
+			s.fixture.tables.SEOrder = (s.fixture.tables.SEOrder ?? []).map((row) =>
+				row.fid === s.fid ? { ...row, closed: 1 } : row
+			);
+			yield* setQuantity(s.t, s.sale.line, '15');
+			committed(
+				'order_lines',
+				yield* s.as.act({
+					'order_lines.create': [
+						{
+							order: s.sale.order,
+							product: s.sale.product,
+							quantity: '4',
+							unit_price: '2',
+							discount_pct: '0',
+							tax_rate: '13'
+						}
+					]
+				})
+			);
+			yield* s.t.deliver();
+			const status = Effect.map(
+				s.read(),
+				({ order_lines }) =>
+					order_lines.rows.find((row) => row.id === s.sale.line)?.$sync?.kingdee?.status
+			);
+			expect(yield* status).toBe('failed');
+			yield* s.pull;
+			const { order_lines } = yield* s.read();
+			expect(order_lines.rows.map((row) => row.id)).toEqual([s.sale.line]);
+			expect(sameDecimal(quantity(order_lines.rows), '10')).toBe(true);
+			yield* s.t.deliver();
+			yield* s.pull;
+			expect(yield* status).toBe('ok');
+			expect(sameDecimal(quantity((yield* s.read()).order_lines.rows), '10')).toBe(true);
+			expect(sameDecimal(String(s.entries()[0]?.quantity), '10')).toBe(true);
+			expect(s.fixture.tables.ICOrderAlter).toHaveLength(0);
+		})
+);
+
+it.live('an SO deleted in Kingdee is never recreated by a later change', () =>
+	Effect.gen(function* () {
+		const s = yield* syncedSale();
+		s.fixture.tables.SEOrder = [];
+		s.setEntries([]);
+		yield* s.pull;
+		// Kingdee's deletes are soft; a row removed outright leaves the order as last read
+		expect((yield* s.read()).orders.rows[0]).toMatchObject({
+			status: 'confirmed',
+			kingdee: { fid: s.fid }
+		});
+		yield* setQuantity(s.t, s.sale.line, '15');
+		yield* s.t.deliver();
+		expect(s.fixture.tables.SEOrder).toHaveLength(0);
+		expect((yield* s.read()).order_lines.rows[0]?.$sync?.kingdee?.status).toBe('failed');
+	})
+);
+
+it.live('a customer changed on the Kingdee SO moves the order to that customer', () =>
+	Effect.gen(function* () {
+		const fixture = kingdeeFixture(() => {
+			const base = kingdeeCatalogue();
+			const customer = base['/parties']?.[0];
+			if (customer === null || typeof customer !== 'object' || Array.isArray(customer))
+				throw new Error('Fixture customer required');
+			return {
+				...base,
+				'/parties': [
+					...(base['/parties'] ?? []),
+					{
+						...customer,
+						external_code: '102',
+						source_number: 'CUST-102',
+						customer_name: 'Second customer'
+					}
+				]
+			};
+		});
+		const t = yield* workspace({ source: fixture.request });
+		const as = yield* t.as(t.admin);
+		const sale = yield* kingdeeSale(t, fixture);
+		yield* t.deliver();
+		yield* t.pull('parties');
+		yield* t.pull('orders');
+		fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) => ({
+			...row,
+			customer_id: '102'
+		}));
+		yield* t.pull('orders');
+		const { orders, parties } = yield* as.query({
+			orders: { where: { id: { eq: sale.order } }, limit: 1 },
+			parties: { where: { external_code: { eq: '102' } }, limit: 1 }
+		});
+		expect(parties.rows[0]?.id).toBeTruthy();
+		expect(orders.rows[0]).toMatchObject({
+			party: parties.rows[0]?.id,
+			party_name: 'Second customer'
+		});
+	})
+);
+
+it.live('a salesperson changed on the Kingdee SO moves the order to the bound owner', () =>
+	Effect.gen(function* () {
+		const s = yield* syncedSale();
+		const instance = fixtureId('sys_integration', 'kingdee');
+		const second = fixtureId('sys_user', s.t.member(['sales']).id);
+		const { sys_integration } = yield* s.as.query({
+			sys_integration: { where: { id: { eq: instance } }, limit: 1 }
+		});
+		const configuration = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(
+			sys_integration.rows[0]?.configuration
+		);
+		const bindings = Schema.decodeUnknownSync(
+			Schema.fromJsonString(Schema.Record(Schema.String, Schema.Json))
+		)(configuration['salespersonBindings']);
+		yield* s.as.act({
+			'sys_integration.update': [
+				{
+					target: { id: instance },
+					set: {
+						configuration: {
+							...configuration,
+							salespersonBindings: JSON.stringify({
+								...bindings,
+								[second]: { employeeId: '702', departmentId: '601' }
+							})
+						}
+					}
+				}
+			]
+		});
+		s.fixture.tables.SEOrder = (s.fixture.tables.SEOrder ?? []).map((row) => ({
+			...row,
+			employee_id: '702'
+		}));
+		yield* s.pull;
+		expect((yield* s.read()).orders.rows[0]?.owner).toBe(second);
+		// an employee no one is bound to leaves the owner where it is
+		s.fixture.tables.SEOrder = (s.fixture.tables.SEOrder ?? []).map((row) => ({
+			...row,
+			employee_id: '999'
+		}));
+		yield* s.pull;
+		expect((yield* s.read()).orders.rows[0]?.owner).toBe(second);
+	})
+);
+
+it.live('an idle read asks Kingdee only for its rowversion ceiling and an empty window', () =>
+	Effect.gen(function* () {
+		const s = yield* syncedSale();
+		yield* s.pull;
+		const before = s.fixture.calls.length;
+		yield* s.pull;
+		const idle = s.fixture.calls
+			.slice(before)
+			.map((call) => (call.op === 'call' ? String(call.arguments.stmt) : ''));
+		// two feeds (orders, lines), each one ceiling and one window: no SO header, family or entry is read again
+		expect(idle).toHaveLength(4);
+		expect(idle.filter((stmt) => stmt.includes('MIN_ACTIVE_ROWVERSION'))).toHaveLength(2);
+		expect(idle.filter((stmt) => stmt.includes('kingdee-order-window'))).toHaveLength(2);
+		// a Kingdee edit moves its header: only then is the SO read
+		kingdeeQuantity(s, '12');
+		yield* s.pull;
+		expect(sameDecimal(quantity((yield* s.read()).order_lines.rows), '12')).toBe(true);
+	})
 );

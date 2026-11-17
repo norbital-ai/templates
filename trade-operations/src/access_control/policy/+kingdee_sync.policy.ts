@@ -6,6 +6,9 @@ export default policy({
 		sys_integration: {
 			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
 		},
+		// an SO created in Kingdee is confirmed here under the rule and freight treatment in force
+		commission_rules: { outputs: { default: {} } },
+		commercial_settings: { outputs: { default: {} } },
 		parties: {
 			outputs: { default: {} },
 			create: {},

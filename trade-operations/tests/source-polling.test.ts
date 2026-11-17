@@ -20,7 +20,6 @@ const snapshotSource: Projection = {
 	columns: source.columns
 };
 const defaults = {
-	fullSnapshotMinutes: 1440,
 	maxWindowMinutes: 15,
 	baseCurrency: 'CNY',
 	branchNo: '0'
@@ -180,24 +179,6 @@ test.effect('an unchanged native ceiling needs no data page and retains its curs
 		expect(ctx.calls.map(kind)).toEqual(['checkpoint']);
 		expect(page).toMatchObject({ rows: [], more: false, cursor: start.cursor });
 	})
-);
-test.effect(
-	'scheduled full reconciliation begins a new cycle and ignores the incremental range',
-	() =>
-		Effect.gen(function* () {
-			const start = yield* baseline();
-			const ctx = fixture({ maximum: 30, now: '2026-10-27T00:00:00.000Z' });
-			const page = yield* readSource(source, start.cursor, ctx, row);
-			expect(page).toMatchObject({ snapshot: 'begin', more: true });
-			expect(ctx.calls.map(kind).at(-1)).toBe('page');
-			expect(argumentsOf(ctx.calls.at(-1))).not.toHaveProperty('from');
-			const end = yield* readSource(source, page.cursor, ctx, row);
-			expect(end).toMatchObject({
-				snapshot: 'end',
-				more: false,
-				cursor: { bookmark: rv(30), fullAt: '2026-10-27T00:00:00.000Z' }
-			});
-		})
 );
 test.effect('feeds without reliable markers use a complete listing on every poll', () =>
 	Effect.gen(function* () {

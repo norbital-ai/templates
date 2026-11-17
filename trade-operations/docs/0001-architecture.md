@@ -33,7 +33,7 @@ at the read mirrors and the two-way sales-order sync.
 | Operations → Orders    | Sales orders; Purchase orders             | Draft, approve, confirm, change, archive and read one agreement                                        |
 | Operations → Partners  | Customers and suppliers                   | Parties, contacts, credit evidence, orders and agreement fulfilment                                    |
 | Operations → Warehouse | Products; Stock; Warehouses; Availability | Product master, lots, stock, warehouse groups and sellable quantities                                  |
-| Operations → Analysis  | Reports                                   | Sales, AR aging, credit, commission board and statements                                               |
+| Operations → Analysis  | Reports                                   | Sales, AR aging, commission board and statements, credit                                               |
 | Trade configuration    | Documents, Pricing                        | Templates with document and pricing defaults; dated price book, price history and CEL commission rules |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
@@ -110,6 +110,22 @@ version, currency, basis unit, fixed rate and spread.
 
 `commission_statements` is the one monthly salesperson review and approval workflow. There is no parallel
 per-order acknowledgment table. The commission board and statement retain their calculation basis.
+
+### Where this differs from SalesBridge, on purpose
+
+- **Commission accrues on what shipped and was invoiced**, in the delivery month. SalesBridge accrued on the
+  ordered quantity in the order month; an order that never ships earns nothing here.
+- **Below-floor is not a separate approval.** Every sales confirmation already waits for a Commercial Manager,
+  who sees the floor warning. `require_floor` is the hard gate for a workspace that wants none below it.
+- **A quantity band is its own dated row.** The newest row on or before the order date that the quantity meets
+  is the floor: retyping the base price on a later day replaces the bands of the earlier day.
+- **The floor book is kept in the line's unit.** There is no kg-to-tonne conversion; a book kept per tonne is
+  converted when it is imported.
+- **Kingdee owns void and close.** Trade Operations reads them and never writes them; archive is local only.
+- **A line change waits for Kingdee to audit the SO.** An unaudited SO is edited in Kingdee, and the change
+  reads back.
+- **Freight is not deducted by default.** No Kingdee feed carries it; a workspace that records freight chooses
+  `deduct` in its commercial settings.
 
 ## 5. Documents and files
 

@@ -65,10 +65,20 @@
 	const salesShown = $derived(Boolean(ctx.catalog?.source_sales_lines));
 	const agingShown = $derived(Boolean(ctx.catalog?.transactions && ctx.catalog?.source_payments));
 	const boardShown = $derived(Boolean(ctx.catalog?.commission_statements));
+	const creditShown = $derived(Boolean(ctx.catalog?.credit_snapshots));
 	// the header shows the open tab's scope
 	let chosenTab = $state<string | null>(null);
 	const tab = $derived(
-		chosenTab ?? (salesShown ? 'sales' : agingShown ? 'aging' : boardShown ? 'commission' : null)
+		chosenTab ??
+			(salesShown
+				? 'sales'
+				: agingShown
+					? 'aging'
+					: boardShown
+						? 'commission'
+						: creditShown
+							? 'credit'
+							: null)
 	);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
 	const agingDay = $derived(as_of ?? day.today);
@@ -864,6 +874,23 @@
 		{:else if boardAnswer?.error}<EmptyState tone="danger" title={boardAnswer.error.message} />
 		{:else}<EmptyState title={ctx.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
+{#snippet credit()}
+	<!-- each customer's Kingdee credit position as last read: limit, used, available and whether Kingdee blocks it -->
+	<Table
+		{ctx}
+		of="credit_snapshots"
+		columns={[
+			'party',
+			'external_code',
+			'currency',
+			'credit_limit',
+			'credit_used',
+			'credit_available',
+			'credit_hold',
+			'as_of'
+		]}
+	/>
+{/snippet}
 <AppShell
 	description={ctx.t('app.analysis.description')}
 	icon="lucide:chart-column"
@@ -876,7 +903,7 @@
 		{:else if tab === 'commission'}{@render commissionMonth()}
 		{/if}
 	{/snippet}
-	{#if salesShown || agingShown || boardShown}<Tabs
+	{#if salesShown || agingShown || boardShown || creditShown}<Tabs
 			{...tab === null ? {} : { value: tab }}
 			on_value_change={(value) => (chosenTab = value)}
 			tabs={[
@@ -886,6 +913,9 @@
 				...(agingShown ? [{ name: 'aging', title: ctx.t('component.ar_aging'), body: aging }] : []),
 				...(boardShown
 					? [{ name: 'commission', title: ctx.t('component.commission'), body: monthlyCommission }]
+					: []),
+				...(creditShown
+					? [{ name: 'credit', title: ctx.t('models.credit_snapshots.label'), body: credit }]
 					: [])
 			]}
 		/>{:else}<EmptyState title={ctx.t('component.reports_access')} />{/if}

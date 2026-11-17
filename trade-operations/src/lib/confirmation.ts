@@ -140,7 +140,7 @@ export function confirmationCheck(
 						unit: line.unit,
 						net: line.floor_net,
 						effective_on: line.floor_on,
-						below: quoteBelowFloor(line)
+						below: quoteBelowFloor(line, doc.tax_inclusive)
 					}))
 				: [],
 		below_inventory_cost:

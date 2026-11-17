@@ -1,3 +1,4 @@
+import type { Row } from '@norbital-ai/bolt';
 import { BigDecimal, Predicate, Result } from 'effect';
 import { compile, context, evaluate, formula, type Id, type ReadAnswer } from '@norbital-ai/bolt';
 
@@ -179,4 +180,29 @@ export function commissionPreview(
 	return Result.isFailure(evaluated)
 		? { currency: rule.currency, amount: null, reason: 'expression_error' as const }
 		: evaluated.success;
+}
+
+/** The commission rule in force for an order's currency and day, as the order keeps it. */
+export function sealedCommission(
+	rules: readonly Row<'commission_rules'>[],
+	currency: string,
+	ordered_on: string
+) {
+	const rule = rules
+		.filter((r) => r.currency === currency && r.effective_on <= ordered_on)
+		.sort((a, b) => b.effective_on.localeCompare(a.effective_on))[0];
+	return rule
+		? {
+				rule_id: rule.id,
+				engine_version: COMMISSION_ENGINE,
+				eligibility_expression: rule.eligibility_expression,
+				amount_expression: rule.amount_expression,
+				parameters: rule.parameters ?? [],
+				effective_on: rule.effective_on,
+				currency: rule.currency,
+				basis_unit: rule.basis_unit ?? '',
+				fixed_rate: rule.fixed_rate,
+				spread_pct: rule.spread_pct
+			}
+		: null;
 }

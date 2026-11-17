@@ -5,7 +5,6 @@ import {
 	readSalesGraph,
 	reviewedPage,
 	selectByIds,
-	snapshotPage,
 	type NativeProjection,
 	type OrderSourceContext
 } from './order-source.js';
@@ -490,7 +489,20 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Purchase payments have no verified original-order and invoice allocation binding'
 		});
-	const graph = yield* readSalesGraph(instance, cursor, ctx);
+	const { transactions: invoices } = yield* ctx.query({
+		transactions: {
+			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
+			fields: ['erp_id', 'order']
+		}
+	});
+	// a settlement waits for its invoice to arrive here
+	const graph = yield* readSalesGraph(
+		instance,
+		cursor,
+		ctx,
+		undefined,
+		String(invoices.rows.length)
+	);
 	const complete = yield* selectByIds(
 		ctx,
 		paymentProjection,
@@ -519,12 +531,6 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 				}
 			}
 		);
-	});
-	const { transactions: invoices } = yield* ctx.query({
-		transactions: {
-			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
-			fields: ['erp_id', 'order']
-		}
 	});
 	const current = yield* checked(() =>
 		facts
@@ -561,14 +567,13 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 				(row) =>
 					row.active &&
 					!present.has(row.external_code) &&
-					(row.order === null || !graph.held.has(row.order))
+					row.order !== null &&
+					graph.affected.has(row.order) &&
+					!graph.held.has(row.order)
 			)
 			.map((row) => ({ $id: row.external_code, external_code: row.external_code, active: false }))
 	];
-	return reviewedPage(
-		yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source),
-		graph
-	);
+	return yield* graph.page<(typeof rows)[number]>(rows);
 });
 
 export const readSalesFactSource = Effect.fnUntraced(function* (
@@ -618,12 +623,11 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 				(row) =>
 					row.active &&
 					!present.has(row.external_code) &&
-					(row.order === null || !graph.held.has(row.order))
+					row.order !== null &&
+					graph.affected.has(row.order) &&
+					!graph.held.has(row.order)
 			)
 			.map((row) => ({ $id: row.external_code, external_code: row.external_code, active: false }))
 	];
-	return reviewedPage(
-		yield* snapshotPage<(typeof rows)[number]>(rows, cursor, graph.source),
-		graph
-	);
+	return yield* graph.page<(typeof rows)[number]>(rows);
 });

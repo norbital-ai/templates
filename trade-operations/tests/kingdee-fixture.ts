@@ -118,6 +118,29 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		/** Runs once as the next amendment reaches Kingdee: another Kingdee writer's change in between. */
 		beforeAmendment?: (() => void) | undefined;
 	} = { unreachable: 0, loseNextReceipt: false, lostReceipts: 0, abortAmendments: 0 };
+	// SQL Server stamps a row it writes; KIS saves a bill whole, so an entry edit moves its header too
+	const stamps = new Map<string, { readonly image: string; readonly version: number }>();
+	let clock = 0;
+	const hex = (version: number) => `0x${version.toString(16).padStart(16, '0')}`;
+	const stamp = () => {
+		for (const row of tables.SEOrder ?? []) {
+			const fid = String(row.fid);
+			const image = JSON.stringify([
+				{ ...row, rowversion: null },
+				(tables.SEOrderEntry ?? []).filter((entry) => entry.fid === row.fid)
+			]);
+			if (stamps.get(fid)?.image !== image) stamps.set(fid, { image, version: ++clock });
+		}
+		// a document that moves is followed to its SO; here any document change names every SO
+		const image = JSON.stringify(
+			['ICStockBill', 'ICStockBillEntry', 'ICSale', 'ICSaleEntry', 't_rp_CheckEntry'].map(
+				(name) => tables[name] ?? []
+			)
+		);
+		if (documents.image !== image) documents = { image, version: ++clock };
+		return clock + 1;
+	};
+	let documents = { image: '', version: 0 };
 	const receipt = (remote: string, hash: string) => {
 		if (state.loseNextReceipt) {
 			state.loseNextReceipt = false;
@@ -131,7 +154,6 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		branchNo: '0',
 		writeAccount: `${identity}/${identity}`,
 		billerId: '1',
-		fullSnapshotMinutes: 1440,
 		maxWindowMinutes: 15,
 		salespersonBindings: JSON.stringify({ [owner]: { employeeId: '701', departmentId: '601' } }),
 		currencyBindings: JSON.stringify({ CNY: { id: '1', base: true } }),
@@ -159,6 +181,50 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		const statement = string(args.stmt, 'static SQL');
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
+				if (statement.includes('MIN_ACTIVE_ROWVERSION') && statement.includes('AS upper'))
+					return {
+						rows: [
+							{
+								database_guid: identity,
+								recovery_fork_guid: identity,
+								observed_at: '2026-10-10T00:00:00.000Z',
+								upper: hex(stamp())
+							}
+						]
+					};
+				if (statement.includes('kingdee-document-window')) {
+					const version = hex(documents.version);
+					return {
+						rows:
+							version >= string(args.from, 'window start') &&
+							version < string(args.to, 'window end')
+								? (tables.SEOrder ?? [])
+										.filter((row) => String(row.__key) > string(args.after, 'window continuation'))
+										.map((row): SqlRow => ({ __key: String(row.__key), fid: String(row.fid) }))
+										.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
+										.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
+								: []
+					};
+				}
+				if (statement.includes('kingdee-order-window')) {
+					const from = string(args.from, 'window start'),
+						to = string(args.to, 'window end'),
+						after = string(args.after, 'window continuation');
+					return {
+						rows: (tables.SEOrder ?? [])
+							.flatMap((row): SqlRow[] => {
+								const version = hex(stamps.get(String(row.fid))?.version ?? 0);
+								return row.branch === args.branch &&
+									version >= from &&
+									version < to &&
+									String(row.__key) > after
+									? [{ ...row, rowversion: version }]
+									: [];
+							})
+							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
+							.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
+					};
+				}
 				if (statement === sourceAmendmentSql) {
 					const race = state.beforeAmendment;
 					state.beforeAmendment = undefined;

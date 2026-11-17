@@ -7,8 +7,7 @@ import {
 	pairLines,
 	readOwnedSales,
 	readNativeRows,
-	readSalesDocuments,
-	snapshotPage
+	readSalesDocuments
 } from '../src/integration/kingdee/order-source.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 
@@ -390,65 +389,5 @@ test.effect(
 			expect(
 				yield* Effect.flip(readSalesDocuments(sales, foreignCurrency, 'invoice', deliveries))
 			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FCurrencyID' });
-		})
-);
-test.effect(
-	'owned paging finishes with the last data page and pins the account across completed polls',
-	() =>
-		Effect.gen(function* () {
-			const rows = [{ $id: 'sales:0:1:key', external_id: 'sales:0:1:key' }];
-			const first = yield* snapshotPage(rows, null, 'account-a:branch-a:scope-a');
-			expect(first).toMatchObject({ more: false, rows });
-			const next = yield* snapshotPage(rows, first.cursor, 'account-a:branch-a:scope-a');
-			expect(next).toEqual(first);
-			expect(first.snapshot).toBeUndefined();
-			const changed = yield* snapshotPage(rows, first.cursor, 'account-a:branch-a:scope-b');
-			expect(changed).toMatchObject({ more: false, rows });
-			for (const wrong of ['account-b:branch-a:scope-a', 'account-a:branch-b:scope-a'])
-				expect(yield* Effect.flip(snapshotPage(rows, first.cursor, wrong))).toMatchObject({
-					_tag: 'SourceRowInvalid',
-					column: '$cursor'
-				});
-			const empty = yield* snapshotPage<Readonly<Record<string, Json>>>([], null, 'empty');
-			expect(empty).toMatchObject({ more: false });
-			const many = Array.from({ length: 1001 }, (_, i) => ({ $id: key(i) }));
-			const page = yield* snapshotPage(many, null, 'account-a:scope-a');
-			expect(page).toMatchObject({ more: true, rows: many.slice(0, 999) });
-			const end = yield* snapshotPage(many, page.cursor, 'account-a:scope-a');
-			expect(end).toMatchObject({ more: false, rows: many.slice(999) });
-		})
-);
-
-test.effect(
-	'reuses a complete transaction cursor and repairs corrections behind an interrupted page',
-	() =>
-		Effect.gen(function* () {
-			const scope = 'account-a:branch-a:scope-a';
-			const rows = Array.from({ length: 1001 }, (_, index) => ({
-				$id: key(index),
-				status: 'issued',
-				source_updated_at: 'first observation'
-			}));
-			const first = yield* snapshotPage(rows, null, scope, false);
-			const corrected = rows.map((row, index) => ({
-				...row,
-				status: index === 0 ? 'void' : row.status,
-				source_updated_at: 'second observation'
-			}));
-			const resumed = yield* snapshotPage(corrected, first.cursor, scope, false);
-			expect(resumed).toMatchObject({ rows: corrected.slice(999), more: false });
-			const repair = yield* snapshotPage(corrected, resumed.cursor, scope, true);
-			expect(repair).toMatchObject({ rows: corrected.slice(0, 999), more: true });
-			const complete = yield* snapshotPage(corrected, repair.cursor, scope, true);
-			const observed = corrected.map((row) => ({ ...row, source_updated_at: 'third observation' }));
-			expect(yield* snapshotPage(observed, complete.cursor, scope, true)).toEqual({
-				rows: [],
-				cursor: complete.cursor,
-				more: false
-			});
-			expect(yield* snapshotPage(observed, complete.cursor, scope, false)).toMatchObject({
-				rows: observed.slice(0, 999),
-				more: true
-			});
 		})
 );

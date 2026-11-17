@@ -17,7 +17,6 @@ const confirmationWorkspace = () =>
 					configuration: {
 						baseCurrency: 'CNY',
 						branchNo: '0',
-						fullSnapshotMinutes: 1440,
 						maxWindowMinutes: 15
 					}
 				}

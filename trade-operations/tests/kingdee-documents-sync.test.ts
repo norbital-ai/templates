@@ -132,6 +132,8 @@ it.live(
 					.sys_integration.rows[0]
 			).toMatchObject({ status: { health: { state: 'attention', code: 'documentReview' } } });
 			clock.at = '2026-11-03T00:00:00.000Z';
+			// time passes here too: the order the SO read moves is what the document feeds read again
+			t.clock.advance('1min');
 			yield* t.pull('orders');
 			yield* t.pull('transactions');
 			yield* t.pull('source_sales_lines');

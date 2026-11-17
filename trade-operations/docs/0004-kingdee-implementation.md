@@ -76,7 +76,6 @@ Read settings:
 
 - `baseCurrency`: verified account-set base currency; the default is CNY for the reference ledger.
 - `branchNo`: source branch; the reference value is `0`.
-- `fullSnapshotMinutes`: master full-reconciliation interval, default 1440.
 - `maxWindowMinutes`: unfinished-window age alert, default 15.
 
 Connected ledgers start read-only. To authorize order writes, obtain the database and recovery
@@ -296,10 +295,13 @@ the SO identity (`$id`), so the next read brings back what Kingdee holds (identi
 state, entry ids) as the same values, never as a change that bounces back. A Kingdee change applies
 to the order directly; a sales rep's local change waits for a commercial manager, then writes the SO.
 
-The lines are ours and the header is Kingdee's. A line whose own write is still pending or failed
+The lines are ours and the header is Kingdee's. A line whose own write is still pending
 (`$sync.kingdee`) keeps its local terms through every read, including a Kingdee edit of the same
 entry; the write then amends the SO to the local terms, and Kingdee's `ICOrderAlter` keeps the
-value it replaced. A confirmed Kingdee-bound order refuses a local header change (customer,
+value it replaced. A write Kingdee refused for good (`failed`: the SO is void or closed, or the
+quantity is below what shipped) ends there: the next read returns the line to the SO's terms and
+removes a line the SO never took. A customer or salesperson changed on the SO moves the order to
+that customer and to the one user bound to that employee. An SO removed outright from Kingdee's SQL is not recreated by a later write. A confirmed Kingdee-bound order refuses a local header change (customer,
 currency, date, tax basis, owner, settlement) with its reason; Kingdee's header changes arrive by
 read, and a line write that meets a header the read has not brought in yet waits for it.
 

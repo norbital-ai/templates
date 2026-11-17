@@ -43,11 +43,6 @@ export const kingdeeConfiguration = {
 		kind: 'text',
 		optional: true
 	},
-	fullSnapshotMinutes: {
-		kind: 'int',
-		min: 1,
-		default: 1440
-	},
 	maxWindowMinutes: { kind: 'int', min: 1, default: 15 }
 } as const;
 

@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { committed, workspace } from './kit.js';
 import { kingdeeDraft, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
-import { sameDecimal } from './test-runtime.js';
+import { fixtureId, sameDecimal } from './test-runtime.js';
 
 /** A different native SO, created in Kingdee with its own UUID, not submitted by a local order. */
 const sourceSale = Effect.fnUntraced(function* () {
@@ -57,10 +57,10 @@ const sourceSale = Effect.fnUntraced(function* () {
 			entry_id: entry
 		});
 	fixture.submissions.set(uuid, { ...submitted, remote: fid, hash: 'native-created' });
+	// the first order read brings a Kingdee-created SO in as a draft, the second confirms it, then its lines arrive
 	const pull = Effect.gen(function* () {
-		t.clock.advance('1min');
-		yield* t.run_due();
 		yield* t.deliver();
+		yield* t.pull('orders');
 		yield* t.pull('orders');
 		yield* t.pull('order_lines');
 	});
@@ -131,7 +131,7 @@ it.live('imports a native multi-line SO once, then both directions retain its or
 );
 
 it.live(
-	'holds the entire source order until every item is synchronized, then retries without duplicates',
+	'an imported SO line waits for its item to be synchronized, then arrives without duplicates',
 	() =>
 		Effect.gen(function* () {
 			const s = yield* sourceSale();
@@ -139,7 +139,9 @@ it.live(
 				row.fid === s.fid && row.entry_id === '2' ? { ...row, item_id: '999999' } : row
 			);
 			yield* s.pull;
-			expect((yield* s.read()).orders.rows).toHaveLength(0);
+			expect(
+				(yield* s.read()).orders.rows.map((row) => row.lines.map((line) => line.source_entry_id))
+			).toEqual([['1']]);
 			s.fixture.tables.SEOrderEntry = (s.fixture.tables.SEOrderEntry ?? []).map((row) =>
 				row.fid === s.fid ? { ...row, item_id: '301' } : row
 			);
@@ -153,8 +155,7 @@ it.live('a source interruption commits no import and recovery imports one comple
 	Effect.gen(function* () {
 		const s = yield* sourceSale();
 		s.interrupt();
-		s.t.clock.advance('1min');
-		yield* s.t.run_due();
+		yield* Effect.exit(s.t.pull('orders'));
 		expect((yield* s.read()).orders.rows).toHaveLength(0);
 		yield* s.pull;
 		expect((yield* s.read()).orders.rows.map((row) => row.lines.length)).toEqual([2]);
@@ -208,4 +209,41 @@ it.live(
 				(yield* s.read()).orders.rows[0]?.lines.map((line) => line.source_entry_id).sort()
 			).toEqual(['1', '2']);
 		})
+);
+
+it.live('an imported Kingdee SO keeps the commission rule in force on its order date', () =>
+	Effect.gen(function* () {
+		const s = yield* sourceSale();
+		const rule = committed(
+			'commission_rules',
+			yield* s.as.act({
+				'commission_rules.create': [
+					{
+						currency: 'CNY',
+						effective_on: '2026-01-01',
+						basis_unit: 't',
+						fixed_rate: '10',
+						spread_pct: '20'
+					}
+				]
+			})
+		);
+		yield* s.as.act({
+			'commercial_settings.update': [
+				{
+					target: yield* s.t.at(
+						'commercial_settings',
+						fixtureId('commercial_settings', '00000000-0000-4000-8000-000000000401')
+					),
+					set: { freight_treatment: 'include' }
+				}
+			]
+		});
+		yield* s.pull;
+		expect((yield* s.read()).orders.rows[0]).toMatchObject({
+			status: 'confirmed',
+			freight_treatment: 'include',
+			commission: { rule_id: rule, currency: 'CNY', fixed_rate: '10' }
+		});
+	})
 );

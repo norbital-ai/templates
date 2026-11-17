@@ -9,6 +9,7 @@ import {
 	priceBookRows
 } from '../src/lib/price-book.js';
 import { PRODUCT, workspace } from './kit.js';
+import { quoteBelowFloor } from '../src/lib/commercial.js';
 import catalogue from '../src/i18n/+messages.js';
 
 it.live('imports atomically and refuses stale price book changes at the write boundary', () =>
@@ -128,3 +129,28 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 		]);
 	})
 );
+
+it('a line is below its floor by its own net unit price, never by its rounded total', () => {
+	const line = {
+		unit_price: '8500',
+		discount_pct: '0',
+		tax_rate: '13',
+		floor_net: '7522.12389381'
+	};
+	// tax-inclusive 8,500 at 13% is exactly the floor: the rounded line net over quantity read lower
+	expect(quoteBelowFloor(line, true)).toBe(false);
+	expect(quoteBelowFloor({ ...line, unit_price: '8499.99' }, true)).toBe(true);
+	// 0.3340 x 2 rounds to a net of 0.67, which hid the price under a 0.3350 floor
+	const small = {
+		unit_price: '0.3340',
+		discount_pct: '0',
+		tax_rate: '13',
+		floor_net: '0.33500000'
+	};
+	expect(quoteBelowFloor(small, false)).toBe(true);
+	expect(quoteBelowFloor({ ...small, unit_price: '0.3350' }, false)).toBe(false);
+	expect(
+		quoteBelowFloor({ ...small, unit_price: '8', discount_pct: '5', floor_net: '7.6' }, false)
+	).toBe(false);
+	expect(quoteBelowFloor({ ...small, floor_net: null }, false)).toBe(false);
+});
