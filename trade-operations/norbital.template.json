@@ -8,7 +8,7 @@
 	"counts": {
 		"models": 22,
 		"apps": 5,
-		"automations": 2
+		"automations": 1
 	},
 	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],
 	"name_zh": "贸易运营",
