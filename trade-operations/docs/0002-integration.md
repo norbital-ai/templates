@@ -96,7 +96,7 @@ row remains; it is not silently dropped.
 - The local mirror is **not** an audit log of every source change; the source system remains that log.
 - A failed feed stays visible through `sys_integration.status` and `source_health`; it is not retried forever
   in the background without surfacing.
-- Credit requires the explicit simulator policy below; other native credit policies, purchase payments and some
+- Credit requires the explicit native KIS policy below; other native credit policies, purchase payments and some
   legacy AR cases refuse rather than fabricate a result.
 - A source write is only as safe as its verification block. The SQL writer checks the source version, document
   family, line identities, quantities and audit/void state before it commits.
