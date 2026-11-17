@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
 import { RUN_STINT } from '../../../lib/payroll_engine/run_output.js';
 import { sealOnly } from '../../../lib/entries.js';
 import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
@@ -127,19 +128,26 @@ export default model('roster_entry', {
 		],
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ set }) => set);
-			const warned = yield* validateRegistered(
-				ctx.query,
-				'roster_entry',
-				'create',
-				rows.map((row) => jsonObject(row))
+			// independent reads: they cross together
+			const [warned, findings, on_approved] = yield* Effect.all(
+				[
+					validateRegistered(
+						ctx.query,
+						'roster_entry',
+						'create',
+						rows.map((row) => jsonObject(row))
+					),
+					rosterFindings(
+						ctx.query,
+						rows.map((row) => jsonObject(row))
+					).pipe(refusing(ctx)),
+					amendmentsFor(ctx.query, touched(rows))
+				],
+				{ concurrency: 'unbounded' }
 			);
-			const findings = yield* rosterFindings(
-				ctx.query,
-				rows.map((row) => jsonObject(row))
-			).pipe(refusing(ctx));
 			return {
 				sets: rows.map((row, index) => ({ ...row, findings: found(warned, findings, index) })),
-				on_approved: yield* amendmentsFor(ctx.query, touched(rows))
+				on_approved
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -164,16 +172,27 @@ export default model('roster_entry', {
 		],
 		transform: function* (changes, ctx) {
 			if (sealOnly(changes)) return changes.map((change) => change.set);
-			const warned = yield* validateRegistered(
-				ctx.query,
-				'roster_entry',
-				'update',
-				changes.map((change) => jsonObject(change.after))
+			// independent reads: they cross together
+			const [warned, findings, on_approved] = yield* Effect.all(
+				[
+					validateRegistered(
+						ctx.query,
+						'roster_entry',
+						'update',
+						changes.map((change) => jsonObject(change.after))
+					),
+					rosterFindings(
+						ctx.query,
+						changes.map((change) => jsonObject(change.after))
+					).pipe(refusing(ctx)),
+					// a day that moves touches the period it left and the period it joined
+					amendmentsFor(ctx.query, [
+						...touched(changes.map((change) => change.before)),
+						...touched(changes.map((change) => change.after))
+					])
+				],
+				{ concurrency: 'unbounded' }
 			);
-			const findings = yield* rosterFindings(
-				ctx.query,
-				changes.map((change) => jsonObject(change.after))
-			).pipe(refusing(ctx));
 			return {
 				sets: changes.map((change, index) => ({
 					...change.set,
@@ -183,11 +202,7 @@ export default model('roster_entry', {
 						: {}),
 					findings: found(warned, findings, index)
 				})),
-				// a day that moves touches the period it left and the period it joined
-				on_approved: yield* amendmentsFor(ctx.query, [
-					...touched(changes.map((change) => change.before)),
-					...touched(changes.map((change) => change.after))
-				])
+				on_approved
 			};
 		},
 		effect: function* (changes, ctx) {
@@ -197,14 +212,20 @@ export default model('roster_entry', {
 	delete: {
 		transform: function* (changes, ctx) {
 			const rows = changes.map(({ before }) => before);
-			yield* validateRegistered(
-				ctx.query,
-				'roster_entry',
-				'delete',
-				rows.map((row) => jsonObject(row))
-			).pipe(refusing(ctx));
 			// a deleted day is not a day off: the shift pattern takes over, and a paid period is worked out again
-			return { on_approved: yield* amendmentsFor(ctx.query, touched(rows)) };
+			const [, on_approved] = yield* Effect.all(
+				[
+					validateRegistered(
+						ctx.query,
+						'roster_entry',
+						'delete',
+						rows.map((row) => jsonObject(row))
+					).pipe(refusing(ctx)),
+					amendmentsFor(ctx.query, touched(rows))
+				],
+				{ concurrency: 'unbounded' }
+			);
+			return { on_approved };
 		},
 		effect: function* (changes, ctx) {
 			yield* tap(

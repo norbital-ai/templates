@@ -164,7 +164,7 @@ Every ledger row is written with the record that caused it, and only once that r
 - **A waiting request still holds its days.** The balance does not show it, but the check before a second leave entry counts it, so the same days cannot be asked for twice.
 - **No balance row, no entry.** An entry or a payslip for a person whose balance row is not open is refused, in the approving decision too.
 - **A run is not a decision.** A run refuses when an entry it would pay still waits for its decision, whoever runs it, including the reviewer whose step it is.
-- **Sync.** Entitlements owed by rule are settled by the `ledger` automation: one read, then one write per 50 balances. It writes the difference between what is owed and what is posted, so a retry writes nothing twice.
+- **Sync.** Entitlements owed by rule are settled by the `ledger` automation: its reads take three round trips for named people and five for everyone, then one write per 50 balances. It writes the difference between what is owed and what is posted, so a retry writes nothing twice.
 - **A late posting syncs its people.** A leave posting or a manual row in a window that has closed (one that began a year ago or more, whatever day of the year it opens on) syncs its people again, so what carried into the next window follows. A carry is settled from the window before it only: a posting two windows back does not settle the window between again.
 - **A work event syncs everyone**, when it is written and again on its day if dated ahead: an entitlement rule may read it.
 - **The law's effects on an entry** run under the system identity, whoever keyed the entry, and only once it stands. A request still waiting raises nothing; its posting on approval raises them.

@@ -2101,6 +2101,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -2148,6 +2153,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -2405,6 +2415,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -3286,6 +3301,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.statutory_parameters.work_authorisation_invalidated_on"
+									}
 								}
 							}
 						}
@@ -3437,6 +3457,14 @@
 									"eq": {
 										"var": "ctx.entry.employment_id"
 									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "month_start(ctx.entry.work_date)"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.work_date)"
+									}
 								}
 							}
 						}
@@ -3510,6 +3538,14 @@
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "ctx.entry.work_date.substring(0, 4) + '-01-01'"
+									},
+									"lte": {
+										"var": "ctx.entry.work_date.substring(0, 4) + '-12-31'"
 									}
 								}
 							}
@@ -3633,6 +3669,11 @@
 									"eq": {
 										"var": "ctx.entry.employment_id"
 									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									}
 								}
 							}
 						}
@@ -3667,6 +3708,14 @@
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(month_start(ctx.entry.work_date), -6)"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.work_date)"
 									}
 								}
 							}
@@ -3715,6 +3764,14 @@
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}

@@ -2747,6 +2747,11 @@
 									"eq": {
 										"var": "subject.employer.entity_id"
 									}
+								},
+								"date": {
+									"gt": {
+										"var": "entry.effective_range.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -3038,6 +3043,11 @@
 									"eq": {
 										"var": "entry.entity_id"
 									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "entry.effective_range.from"
+									}
 								}
 							},
 							"fields": ["effective_from"],
@@ -3087,6 +3097,11 @@
 									"eq": {
 										"var": "entry.entity_id"
 									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "entry.effective_range.from"
+									}
 								}
 							},
 							"fields": ["effective_from"],
@@ -3134,6 +3149,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "entry.entity_id"
+									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "entry.effective_range.from"
 									}
 								}
 							},
@@ -3650,6 +3670,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "entry.entity_id"
+									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "entry.effective_range.from"
 									}
 								}
 							},
@@ -4207,6 +4232,11 @@
 											}
 										}
 									}
+								},
+								"catalog_code": {
+									"eq": {
+										"var": "ctx.entry.catalog_code"
+									}
 								}
 							},
 							"fields": ["id", "catalog_code"],
@@ -4248,6 +4278,11 @@
 												"var": "ctx.subject.employment.employee_id"
 											}
 										}
+									}
+								},
+								"catalog_code": {
+									"eq": {
+										"var": "ctx.entry.catalog_code"
 									}
 								}
 							},
@@ -4383,10 +4418,18 @@
 									"eq": {
 										"var": "entry.employment_id"
 									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "add_days(entry.work_date, +6)"
+									}
 								}
 							},
 							"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"],
-							"limit": 10000
+							"limit": 13
 						}
 					},
 					"lookup": {}
@@ -4487,6 +4530,9 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"eq": "FIXED_TERM_CONTRACT_REQUEST"
 								}
 							}
 						}
@@ -4652,6 +4698,9 @@
 											}
 										}
 									}
+								},
+								"catalog_code": {
+									"in": ["ANNUAL_LEAVE", "PERSONAL_LEAVE_PAID", "SICK_LEAVE"]
 								}
 							},
 							"fields": ["id", "catalog_code"],
@@ -4666,6 +4715,11 @@
 												"var": "ctx.entry.employment_id"
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "add_months(first(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted()), -24)"
 									}
 								}
 							},
@@ -4713,6 +4767,11 @@
 											}
 										}
 									}
+								},
+								"catalog_code": {
+									"eq": {
+										"var": "ctx.entry.catalog_code"
+									}
 								}
 							},
 							"fields": ["id", "catalog_code"],
@@ -4727,6 +4786,14 @@
 												"var": "ctx.entry.employment_id"
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "month_start(first(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted()))"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted().at(-1))"
 									}
 								}
 							},

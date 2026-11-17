@@ -12,6 +12,7 @@ import { idOf } from '../../../lib/payroll_engine/reads.js';
 import { runPostings, syncLatePosted, undone } from '../../../lib/ledger/service.js';
 import { amendedRun, RECOVERY } from '../../../lib/payroll_engine/amended.js';
 import { loadRun } from '../../../lib/payroll_engine/run_calculation.js';
+import { lawsAt } from '../../../lib/law.js';
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
 
@@ -103,9 +104,11 @@ export default model('payroll_run', {
 				},
 				// a company's law is the jurisdiction it names, as it stands on the run's pay date
 				entity: { where: { id: { in: entityIds } }, fields: ['settings_code'], limit: 10000 },
-				// year-to-date only moves forward; a paid period worked out again is read off its own run
+				// year-to-date only moves forward; a paid period worked out again is read off its own run. Every on-cycle run of
+				// the company: an amended period, a late entry or late-signed terms reach back to any of them, and back pay to the
+				// one before. A payslip names its own run when the span reads it.
 				payroll_run: {
-					where: { entity_id: { in: entityIds } },
+					where: { entity_id: { in: entityIds }, kind: { eq: 'ON_CYCLE' } },
 					fields: [
 						'entity_id',
 						'pay_group_id',
@@ -124,9 +127,9 @@ export default model('payroll_run', {
 					fields: ['employee_id', 'pay_group_id', 'period', 'payroll_run_id'],
 					limit: 10000
 				},
-				// the tasks already raised for what someone who has left still owes
+				// the tasks already raised for what someone who has left still owes these companies
 				obligation: {
-					where: { occurrence_key: { like: 'recovery:%' } },
+					where: { entity_id: { in: entityIds }, occurrence_key: { like: 'recovery:%' } },
 					fields: ['occurrence_key', 'state'],
 					limit: 10000
 				},
@@ -251,181 +254,93 @@ export default model('payroll_run', {
 						: { attendance: attendanceOf(schedule, cycle) }
 				});
 			}
-			const rows = runs.map(({ row }) => row);
-			yield* validateRegistered(
-				ctx.query,
-				'payroll_run',
-				'create',
-				rows.map((row) => jsonObject(row))
-			);
-			const working = [];
-			const calculated = [];
-			const posting = [];
-			const deferred = [];
-			const owing = [];
-			for (const [index, { id, row, code, frame }] of runs.entries()) {
-				const data = yield* loadRun(ctx.query, jsonObject(row), frame, code);
-				if (data.law_settings?.[0] === undefined)
-					return yield* ctx.refuse('errors.payroll_run_no_law', {
-						row: index,
-						values: { code, date: row.pay_date }
-					});
-				const result = yield* amendedRun(
-					ctx.query,
-					{ id: String(id), row: jsonObject(row), frame, data },
-					{
-						runs: known.payroll_run.rows.map((entry) => jsonObject(entry)),
-						groups: known.pay_group.rows.map((entry) => jsonObject(entry)),
-						amendments: known.pay_amendment.rows.map((entry) => jsonObject(entry)),
-						entities: known.entity.rows.map((entry) => jsonObject(entry)),
-						recovered: new Set(
-							known.obligation.rows
-								.filter((task) => task.state === 'FULFILLED')
-								.map((task) => task.occurrence_key)
-						)
-					}
-				);
-				// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
-				// paid by a later run. Someone no later run pays owes what could not be taken: HR recovers it.
-				const coveredTo = String(row.salary_coverage.to);
-				const leaving = result.deferred.filter(
-					(employee) =>
-						![
-							...new Map(
-								(data.employment ?? [])
-									.filter((contract) => String(contract.employee_id) === employee)
-									.map((contract) => [String(contract.id), contract])
-							).values()
-						].some((contract) => {
-							const to = jsonObject(contract.effective_range).to;
-							return contract.exit !== true || to == null || String(to) > coveredTo;
-						})
-				);
-				// an off-cycle run seals what it pays: an entry with no payslip here would never be paid
-				const paid = new Set(result.payslips.map((slip) => slip.employment_id));
-				if (
-					frame.pays !== undefined &&
-					[...(data.adhoc_catalog_entry ?? []), ...(data.claim_catalog_entry ?? [])].some(
-						(entry) => !paid.has(String(entry.employment_id))
-					)
-				)
-					return yield* ctx.refuse('errors.payroll_run_not_in_group');
-				if (frame.pays !== undefined) {
-					// someone still employed it pays too little is left for their next on-cycle run. Someone who has left has
-					// no such run: the payslip ends at zero and one task names what they owe.
-					if (result.deferred.some((employee) => !leaving.includes(employee)))
-						return yield* ctx.refuse('errors.payroll_run_carry_takes_back');
-					// nothing negative posts to a balance, so a deduction that outruns the run waits for the next on-cycle run
-					if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
-						return yield* ctx.refuse('errors.payroll_run_below_zero');
-				}
-				working.push({ id, row, frame, data, result, leaving });
-			}
-			const worked = working;
-			// one read for every run: where the people an off-cycle run pays work, and the rows each run seals, linked at
-			// the revision read (a row changed since is a conflict)
-			const attaches = (layer: string) =>
-				worked.flatMap(({ result }) => result.attaches[layer] ?? []);
-			// a month of rosters runs past Bolt's 1,000 values a list: one read, the list in chunks
-			const anyOf = <T extends string>(list: readonly T[]) => ({
-				or: Array.from({ length: Math.ceil(list.length / 1000) || 1 }, (_, at) => ({
-					id: { in: list.slice(at * 1000, at * 1000 + 1000) }
-				}))
-			});
-			const sealed = yield* ctx.query({
-				employment: {
-					where: {
-						employee_id: {
-							in: worked.flatMap(({ frame, result }) =>
-								frame.pays === undefined
-									? []
-									: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
+			// fixed once the loop is done: the reads below close over it
+			const planned = [...runs];
+			const rows = planned.map(({ row }) => row);
+			// each run's one read and what it carries, one run after another, beside the registered rules' reads
+			const admit = Effect.gen(function* () {
+				const working = [];
+				for (const [index, { id, row, code, frame }] of planned.entries()) {
+					const data = yield* loadRun(ctx.query, jsonObject(row), frame, code);
+					if (data.law_settings?.[0] === undefined)
+						return yield* ctx.refuse('errors.payroll_run_no_law', {
+							row: index,
+							values: { code, date: row.pay_date }
+						});
+					const result = yield* amendedRun(
+						ctx.query,
+						{ id: String(id), row: jsonObject(row), frame, data },
+						{
+							runs: known.payroll_run.rows.map((entry) => jsonObject(entry)),
+							groups: known.pay_group.rows.map((entry) => jsonObject(entry)),
+							amendments: known.pay_amendment.rows.map((entry) => jsonObject(entry)),
+							entities: known.entity.rows.map((entry) => jsonObject(entry)),
+							recovered: new Set(
+								known.obligation.rows
+									.filter((task) => task.state === 'FULFILLED')
+									.map((task) => task.occurrence_key)
 							)
 						}
-					},
-					fields: ['employee_id', 'entity_id', 'effective_range'],
-					limit: 10000
-				},
-				leave_catalog_entry: {
-					where: anyOf(attaches('leave').map((entry) => idOf('leave_catalog_entry', entry))),
-					fields: ['revision'],
-					limit: 10000
-				},
-				leave_catalog_entry_day: {
-					where: anyOf(
-						attaches('leave_day').map((entry) => idOf('leave_catalog_entry_day', entry))
-					),
-					fields: ['revision'],
-					limit: 10000
-				},
-				claim_catalog_entry: {
-					where: anyOf(attaches('claim').map((entry) => idOf('claim_catalog_entry', entry))),
-					fields: ['revision'],
-					limit: 10000
-				},
-				adhoc_catalog_entry: {
-					where: anyOf(attaches('adhoc').map((entry) => idOf('adhoc_catalog_entry', entry))),
-					fields: ['revision'],
-					limit: 10000
-				},
-				loan_catalog_entry_repayment: {
-					where: anyOf(
-						attaches('repayment').map((entry) => idOf('loan_catalog_entry_repayment', entry))
-					),
-					fields: ['revision'],
-					limit: 10000
-				},
-				workplace_case_catalog_entry: {
-					where: anyOf(
-						attaches('case').map((entry) => idOf('workplace_case_catalog_entry', entry))
-					),
-					fields: ['revision'],
-					limit: 10000
-				},
-				roster_entry: {
-					where: anyOf(attaches('roster_entry').map((entry) => idOf('roster_entry', entry))),
-					fields: ['revision'],
-					limit: 10000
-				},
-				pay_amendment: {
-					where: anyOf(
-						worked
-							.flatMap(({ result }) => result.taken)
-							.map((entry) => idOf('pay_amendment', entry))
-					),
-					fields: ['revision'],
-					limit: 10000
+					);
+					// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
+					// paid by a later run. Someone no later run pays owes what could not be taken: HR recovers it.
+					const coveredTo = String(row.salary_coverage.to);
+					const leaving = result.deferred.filter(
+						(employee) =>
+							![
+								...new Map(
+									(data.employment ?? [])
+										.filter((contract) => String(contract.employee_id) === employee)
+										.map((contract) => [String(contract.id), contract])
+								).values()
+							].some((contract) => {
+								const to = jsonObject(contract.effective_range).to;
+								return contract.exit !== true || to == null || String(to) > coveredTo;
+							})
+					);
+					// an off-cycle run seals what it pays: an entry with no payslip here would never be paid
+					const paid = new Set(result.payslips.map((slip) => slip.employment_id));
+					if (
+						frame.pays !== undefined &&
+						[...(data.adhoc_catalog_entry ?? []), ...(data.claim_catalog_entry ?? [])].some(
+							(entry) => !paid.has(String(entry.employment_id))
+						)
+					)
+						return yield* ctx.refuse('errors.payroll_run_not_in_group');
+					if (frame.pays !== undefined) {
+						// someone still employed it pays too little is left for their next on-cycle run. Someone who has left has
+						// no such run: the payslip ends at zero and one task names what they owe.
+						if (result.deferred.some((employee) => !leaving.includes(employee)))
+							return yield* ctx.refuse('errors.payroll_run_carry_takes_back');
+						// nothing negative posts to a balance, so a deduction that outruns the run waits for the next on-cycle run
+						if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
+							return yield* ctx.refuse('errors.payroll_run_below_zero');
+					}
+					working.push({ id, row, frame, data, result, leaving });
 				}
+				return working;
 			});
-			/** A run's own rows of one layer, each at the revision read. */
-			const linked = <R extends { readonly id: string; readonly revision: number }>(
-				rows: readonly R[],
-				wanted: readonly string[]
-			) => {
-				const own = new Set(wanted);
-				return rows.filter((row) => own.has(row.id)).map(({ id, revision }) => ({ id, revision }));
-			};
-			for (const { id, row, frame, data, result, leaving } of worked) {
-				if (frame.pays !== undefined) {
-					// the month's totals hold both companies: on-cycle, each stands alone. A payslip that only carries earlier
-					// periods adds nothing to this month: someone who moved company is paid what the old one owes them
-					const { from, to } = row.salary_coverage;
-					const paid = new Set(
-						result.payslips
-							.filter((slip) => slip.breakdown.lines.some((line) => line.period === undefined))
-							.map((slip) => slip.employee_id)
-					);
-					const both = sealed.employment.rows.some(
-						({ employee_id, entity_id, effective_range: range }) =>
-							paid.has(employee_id) &&
-							entity_id !== row.entity_id &&
-							String(range.from) <= String(to) &&
-							(range.to == null || String(range.to) >= String(from))
-					);
-					if (both) return yield* ctx.refuse('errors.payroll_run_moved_company');
-				}
-				const ids = (layer: string) => result.attaches[layer] ?? [];
-				const payslips = result.payslips.map((slip) => ({
+			// a rule's refusal still comes first, as when the rules read before the runs
+			const [, admitted] = yield* Effect.all(
+				[
+					validateRegistered(
+						ctx.query,
+						'payroll_run',
+						'create',
+						rows.map((row) => jsonObject(row))
+					),
+					Effect.exit(admit)
+				],
+				{ concurrency: 'unbounded' }
+			);
+			const worked = yield* admitted;
+			const calculated = [];
+			const deferred = [];
+			const owing = [];
+			// each run's payslips as they are written and posted
+			const made = worked.map((entry) => ({
+				...entry,
+				payslips: entry.result.payslips.map((slip) => ({
 					employee_id: idOf('employee_profile', slip.employee_id),
 					employment_id: idOf('employment', slip.employment_id),
 					entity_id: idOf('entity', slip.entity_id),
@@ -462,7 +377,133 @@ export default model('payroll_run', {
 						maximumFractionDigits: 20
 					}).format(slip.tax_withheld),
 					breakdown: slip.breakdown
-				}));
+				}))
+			}));
+			const attaches = (layer: string) =>
+				worked.flatMap(({ result }) => result.attaches[layer] ?? []);
+			// a month of rosters runs past Bolt's 1,000 values a list: one read, the list in chunks
+			const anyOf = <T extends string>(list: readonly T[]) => ({
+				or: Array.from({ length: Math.ceil(list.length / 1000) || 1 }, (_, at) => ({
+					id: { in: list.slice(at * 1000, at * 1000 + 1000) }
+				}))
+			});
+			// what the runs post goes on the laws they were priced on, which this invocation has read
+			const laws = yield* lawsAt(
+				ctx.query,
+				planned.map(({ code }) => code)
+			);
+			// one read for every run, beside those postings: where the people an off-cycle run pays work, and the rows each
+			// run seals, linked at the revision read (a row changed since is a conflict)
+			const [sealed, posted] = yield* Effect.all(
+				[
+					ctx.query({
+						employment: {
+							where: {
+								employee_id: {
+									in: worked.flatMap(({ frame, result }) =>
+										frame.pays === undefined
+											? []
+											: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
+									)
+								}
+							},
+							fields: ['employee_id', 'entity_id', 'effective_range'],
+							limit: 10000
+						},
+						leave_catalog_entry: {
+							where: anyOf(attaches('leave').map((entry) => idOf('leave_catalog_entry', entry))),
+							fields: ['revision'],
+							limit: 10000
+						},
+						leave_catalog_entry_day: {
+							where: anyOf(
+								attaches('leave_day').map((entry) => idOf('leave_catalog_entry_day', entry))
+							),
+							fields: ['revision'],
+							limit: 10000
+						},
+						claim_catalog_entry: {
+							where: anyOf(attaches('claim').map((entry) => idOf('claim_catalog_entry', entry))),
+							fields: ['revision'],
+							limit: 10000
+						},
+						adhoc_catalog_entry: {
+							where: anyOf(attaches('adhoc').map((entry) => idOf('adhoc_catalog_entry', entry))),
+							fields: ['revision'],
+							limit: 10000
+						},
+						loan_catalog_entry_repayment: {
+							where: anyOf(
+								attaches('repayment').map((entry) => idOf('loan_catalog_entry_repayment', entry))
+							),
+							fields: ['revision'],
+							limit: 10000
+						},
+						workplace_case_catalog_entry: {
+							where: anyOf(
+								attaches('case').map((entry) => idOf('workplace_case_catalog_entry', entry))
+							),
+							fields: ['revision'],
+							limit: 10000
+						},
+						roster_entry: {
+							where: anyOf(attaches('roster_entry').map((entry) => idOf('roster_entry', entry))),
+							fields: ['revision'],
+							limit: 10000
+						},
+						pay_amendment: {
+							where: anyOf(
+								worked
+									.flatMap(({ result }) => result.taken)
+									.map((entry) => idOf('pay_amendment', entry))
+							),
+							fields: ['revision'],
+							limit: 10000
+						}
+					}),
+					// the runs' own refusals below still come first
+					Effect.exit(
+						runPostings(
+							ctx.query,
+							made.map(({ id, row, payslips }) => ({
+								id,
+								pay_date: String(row.pay_date),
+								payslips: payslips.map(jsonObject)
+							})),
+							laws
+						)
+					)
+				],
+				{ concurrency: 'unbounded' }
+			);
+			/** A run's own rows of one layer, each at the revision read. */
+			const linked = <R extends { readonly id: string; readonly revision: number }>(
+				rows: readonly R[],
+				wanted: readonly string[]
+			) => {
+				const own = new Set(wanted);
+				return rows.filter((row) => own.has(row.id)).map(({ id, revision }) => ({ id, revision }));
+			};
+			for (const { id, row, frame, result, leaving, payslips } of made) {
+				if (frame.pays !== undefined) {
+					// the month's totals hold both companies: on-cycle, each stands alone. A payslip that only carries earlier
+					// periods adds nothing to this month: someone who moved company is paid what the old one owes them
+					const { from, to } = row.salary_coverage;
+					const paid = new Set(
+						result.payslips
+							.filter((slip) => slip.breakdown.lines.some((line) => line.period === undefined))
+							.map((slip) => slip.employee_id)
+					);
+					const both = sealed.employment.rows.some(
+						({ employee_id, entity_id, effective_range: range }) =>
+							paid.has(employee_id) &&
+							entity_id !== row.entity_id &&
+							String(range.from) <= String(to) &&
+							(range.to == null || String(range.to) >= String(from))
+					);
+					if (both) return yield* ctx.refuse('errors.payroll_run_moved_company');
+				}
+				const ids = (layer: string) => result.attaches[layer] ?? [];
 				calculated.push({
 					...row,
 					payslips,
@@ -475,7 +516,6 @@ export default model('payroll_run', {
 					roster_entry: linked(sealed.roster_entry.rows, ids('roster_entry')),
 					amendments: linked(sealed.pay_amendment.rows, result.taken)
 				});
-				posting.push({ id, pay_date: String(row.pay_date), payslips: payslips.map(jsonObject) });
 				// Someone who has left and still owes: no later run pays them, so the rest is HR's to recover. One task says so;
 				// fulfilling it settles the recovery. An off-cycle run may carry for the same person more than once.
 				for (const employee of leaving) {
@@ -518,23 +558,28 @@ export default model('payroll_run', {
 			return {
 				sets: calculated,
 				on_approved: {
-					...(yield* runPostings(ctx.query, posting)),
+					...(yield* posted),
 					...(deferred.length === 0 ? {} : { pay_amendment: { create: deferred } }),
 					...(owing.length === 0 ? {} : { obligation: { create: owing } })
 				}
 			};
 		},
 		effect: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'create',
-				'payroll_run',
-				changes.map(({ after }) => ({ after }))
-			);
-			// leave a run posts into a year before this one can change what carried since
-			yield* syncLatePosted(
-				ctx,
-				changes.map(({ after }) => `payroll_run:${after.id}`)
+			yield* Effect.all(
+				[
+					tap(
+						ctx,
+						'create',
+						'payroll_run',
+						changes.map(({ after }) => ({ after }))
+					),
+					// leave a run posts into a year before this one can change what carried since
+					syncLatePosted(
+						ctx,
+						changes.map(({ after }) => `payroll_run:${after.id}`)
+					)
+				],
+				{ concurrency: 'unbounded' }
 			);
 		}
 	},
@@ -550,13 +595,27 @@ export default model('payroll_run', {
 			return changes.map((change) => change.set);
 		},
 		effect: function* (changes, ctx) {
-			yield* tap(ctx, 'update', 'payroll_run', changes);
-			// service bands and anniversaries move on no event of their own: every paid run looks
-			const paid = changes.filter(
-				({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'
+			const paid = changes.flatMap(({ before, after }) =>
+				before.state !== 'PAID' && after.state === 'PAID' ? [after.id] : []
 			);
-			if (paid.length === 0) return;
-			yield* ctx.schedule('ledger', {}, { key: 'ledger' });
+			// service bands and anniversaries move on no event of their own: a paid run looks again at whom it paid
+			const [, { payslip }] = yield* Effect.all(
+				[
+					tap(ctx, 'update', 'payroll_run', changes),
+					ctx.query({
+						payslip: {
+							where: { payroll_run_id: { in: paid } },
+							fields: ['employee_id'],
+							limit: 10000
+						}
+					})
+				],
+				{ concurrency: 'unbounded' }
+			);
+			if (payslip.rows.length === 0) return;
+			yield* ctx.schedule('ledger', {
+				employees: [...new Set(payslip.rows.map((row) => row.employee_id))]
+			});
 		}
 	},
 	// a paid run is locked (`paid_run`)
@@ -569,29 +628,37 @@ export default model('payroll_run', {
 				ids.map((id) => `payroll_run:${id}`)
 			);
 			if (ctx.approving) return { on_approved: yield* back };
-			// a later run's year-to-date already counts this one, for anyone paid in both
-			const { payslip: own, payroll_run: runs } = yield* ctx.query({
-				payslip: { where: { payroll_run_id: { in: ids } }, fields: ['employee_id'], limit: 10000 },
-				payroll_run: { fields: ['id', 'run_number'], limit: 10000 }
-			});
-			const first = Math.min(
-				...runs.rows.filter(({ id }) => ids.includes(id)).map((row) => row.run_number)
-			);
-			const later = runs.rows.filter((row) => row.run_number > first && !ids.includes(row.id));
-			if (later.length > 0 && own.rows.length > 0) {
+			// a later run's year-to-date already counts this one, for anyone paid in both, in any company of the same totals:
+			// the deleted runs' numbers and people, then one of their payslips in a run made after them
+			const counted = Effect.gen(function* () {
+				const { payslip: own, payroll_run: deleted } = yield* ctx.query({
+					payslip: {
+						where: { payroll_run_id: { in: ids } },
+						fields: ['employee_id'],
+						limit: 10000
+					},
+					payroll_run: { where: { id: { in: ids } }, fields: ['run_number'], limit: 10000 }
+				});
+				if (own.rows.length === 0 || deleted.rows.length === 0) return false;
+				const first = Math.min(...deleted.rows.map((row) => row.run_number));
 				const { payslip: shared } = yield* ctx.query({
 					payslip: {
 						where: {
-							employee_id: { in: own.rows.map((row) => row.employee_id) },
-							payroll_run_id: { in: later.map((row) => row.id) }
+							employee_id: { in: [...new Set(own.rows.map((row) => row.employee_id))] },
+							payroll_run_id: { is: { run_number: { gt: first } } }
 						},
-						fields: ['id'],
-						limit: 1
+						fields: ['payroll_run_id'],
+						// a deleted run made after the first is not a later one: past all their own payslips, one is
+						limit: own.rows.length + 1
 					}
 				});
-				if (shared.rows.length > 0) return yield* ctx.refuse('errors.payroll_run_counted_later');
-			}
-			return { on_approved: yield* back };
+				return shared.rows.some((row) => !ids.includes(row.payroll_run_id));
+			});
+			const [refused, undoing] = yield* Effect.all([counted, Effect.exit(back)], {
+				concurrency: 'unbounded'
+			});
+			if (refused) return yield* ctx.refuse('errors.payroll_run_counted_later');
+			return { on_approved: yield* undoing };
 		},
 		effect: function* (changes, ctx) {
 			yield* syncLatePosted(

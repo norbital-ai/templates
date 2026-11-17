@@ -3963,6 +3963,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4007,6 +4012,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.pay_date)"
 									}
 								}
 							},
@@ -4053,6 +4063,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.pay_date)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4097,6 +4112,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
 									}
 								}
 							},
@@ -4145,6 +4165,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4189,6 +4214,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.pay_date)"
 									}
 								}
 							},
@@ -4264,6 +4294,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4308,6 +4343,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.from"
 									}
 								}
 							},
@@ -4414,6 +4454,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.from"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4458,6 +4503,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.from"
 									}
 								}
 							},
@@ -4504,6 +4554,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.effective_range.from"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4544,6 +4599,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.effective_range.from)"
 									}
 								}
 							},
@@ -4642,6 +4702,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.effective_range.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4684,6 +4749,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.effective_range.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4725,6 +4795,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.effective_range.to)"
 									}
 								}
 							},
@@ -4828,6 +4903,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4875,6 +4955,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -4919,6 +5004,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.from"
 									}
 								}
 							},
@@ -4966,6 +5056,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.social_insurance_applicable_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -5008,6 +5103,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.labour_insurance_established_on"
 									}
 								}
 							},
@@ -5052,6 +5152,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.labour_insurance_established_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -5094,6 +5199,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.employment_insurance_established_on"
 									}
 								}
 							},
@@ -5138,6 +5248,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.payroll_office_opened_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -5180,6 +5295,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.incurred_on"
 									}
 								}
 							},
@@ -5433,6 +5553,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -5524,6 +5649,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "get(ctx.subject.employer, 'statutory_parameters.overtime_agreement_to', ctx.entry.salary_coverage.to)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -5566,6 +5696,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
 									}
 								}
 							},
@@ -5611,6 +5746,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
 									}
 								}
 							},
@@ -6000,6 +6140,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.effective_range.from"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6041,6 +6186,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.incurred_on"
 									}
 								}
 							},
@@ -6113,6 +6263,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_start(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6159,6 +6314,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.effective_range.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6198,6 +6358,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
 									}
 								}
 							},
@@ -6446,6 +6611,14 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "add_months(ctx.entry.period + '-01', -12)"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.period + '-01')"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6483,6 +6656,14 @@
 												"var": "ctx.entry.employment_id"
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "add_months(ctx.entry.period + '-01', -12)"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.period + '-01')"
 									}
 								}
 							},
@@ -6573,6 +6754,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6620,6 +6806,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6665,6 +6856,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -6709,6 +6905,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.from)"
 									}
 								}
 							},
@@ -6975,6 +7176,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -7019,6 +7225,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
 									}
 								}
 							},
@@ -7163,6 +7374,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "get(ctx.entry, 'inputs.changed_on', '') !== '' ? get(ctx.entry, 'inputs.changed_on', '') : ctx.entry.opened_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -7237,6 +7453,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.social_insurance_applicable_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -7279,6 +7500,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.statutory_parameters.labour_insurance_established_on"
+									}
 								}
 							},
 							"fields": ["date"],
@@ -7320,6 +7546,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on"
 									}
 								}
 							},
@@ -7364,6 +7595,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on"
 									}
 								}
 							},
@@ -8291,6 +8527,14 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["PREGNANCY_WORK_LIMIT_REQUEST"]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "month_end(ctx.entry.period + '-01')"
+									}
 								}
 							},
 							"fields": ["kind", "opened_on", "closed_on", "inputs", "employment_id"],
@@ -8375,6 +8619,18 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"in": [
+										"CHILDCARE_NO_OVERTIME_REQUEST",
+										"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST",
+										"CHILDCARE_OVERTIME_LIMIT_REQUEST"
+									]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "month_end(ctx.entry.period + '-01')"
+									}
 								}
 							},
 							"fields": ["kind", "opened_on", "closed_on", "inputs", "employment_id"],
@@ -8455,6 +8711,9 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["SHORT_TIME_COVERAGE_NOTICE", "SHORT_TIME_VOLUNTARY_APPROVAL"]
 								}
 							},
 							"fields": ["kind", "opened_on", "closed_on", "inputs"],
@@ -8536,6 +8795,9 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["DIGITAL_WAGE_PAYMENT_CONSENT"]
 								}
 							},
 							"fields": ["kind", "opened_on", "closed_on", "inputs", "employment_id"],
@@ -8722,6 +8984,14 @@
 											}
 										}
 									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "ctx.entry.period + '-01'"
+									},
+									"lte": {
+										"var": "month_end(ctx.entry.period + '-01')"
+									}
 								}
 							},
 							"fields": ["leave_entry_id", "incurred_on"],
@@ -8774,6 +9044,9 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"kind": {
+									"eq": "RETIREMENT_INCOME_DECLARATION"
 								}
 							},
 							"fields": ["kind", "opened_on", "closed_on", "inputs", "employment_id"],
@@ -9338,11 +9611,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9371,11 +9649,19 @@
 					"events": ["create", "update"],
 					"reads": {
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 13,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "add_days(ctx.entry.work_date, +6)"
 									}
 								}
 							}
@@ -9420,11 +9706,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9458,11 +9749,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9489,11 +9785,19 @@
 					"events": ["create", "update"],
 					"reads": {
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 13,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "add_days(ctx.entry.work_date, +6)"
 									}
 								}
 							}
@@ -9537,11 +9841,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9566,11 +9875,19 @@
 					"events": ["create", "update"],
 					"reads": {
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 13,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "add_days(ctx.entry.work_date, +6)"
 									}
 								}
 							}
@@ -9616,11 +9933,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9662,15 +9984,28 @@
 									"eq": {
 										"var": "ctx.subject.employment.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["PREGNANCY_WORK_LIMIT_REQUEST"]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9711,15 +10046,28 @@
 									"eq": {
 										"var": "ctx.subject.employment.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["PREGNANCY_WORK_LIMIT_REQUEST"]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9761,15 +10109,28 @@
 									"eq": {
 										"var": "ctx.subject.employment.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["CHILDCARE_NO_OVERTIME_REQUEST"]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9809,15 +10170,28 @@
 									"eq": {
 										"var": "ctx.subject.employment.entity_id"
 									}
+								},
+								"kind": {
+									"in": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"]
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -9853,11 +10227,16 @@
 							}
 						},
 						"roster_entry": {
-							"limit": 10000,
+							"limit": 1,
 							"where": {
 								"employment_id": {
 									"eq": {
 										"var": "ctx.entry.employment_id"
+									}
+								},
+								"work_date": {
+									"eq": {
+										"var": "ctx.entry.work_date"
 									}
 								}
 							}
@@ -10035,6 +10414,11 @@
 												"var": "ctx.entry.employment_id"
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "add_months(first(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted()), -12)"
 									}
 								}
 							},

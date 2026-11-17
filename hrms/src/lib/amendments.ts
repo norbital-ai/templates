@@ -137,6 +137,21 @@ const since = (touched: readonly Touched[]) =>
 			{ days: -62 }
 		)
 	);
+/** And to two months after the latest, unless a day runs on (`null`): a later cycle may attend it. */
+const until = (touched: readonly Touched[]) =>
+	touched.some((touch) => touch.to === null)
+		? null
+		: DateTime.formatIsoDate(
+				DateTime.add(
+					DateTime.makeUnsafe(
+						touched
+							.map((touch) => touch.to ?? touch.from)
+							.toSorted()
+							.at(-1) ?? '0001-01-01'
+					),
+					{ days: 62 }
+				)
+			);
 
 /** The amendment rows a write on these people carries. */
 export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
@@ -181,19 +196,29 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 						where: {
 							kind: { eq: 'ON_CYCLE' },
 							state: { eq: 'PAID' },
-							salary_coverage: { overlaps: { from: since(unpaid), to: null } }
+							salary_coverage: { overlaps: { from: since(unpaid), to: until(unpaid) } }
 						},
 						fields: [...RUN.fields, 'entity_id'],
 						limit: 10000
 					}
 				}),
+		// the paid periods the touched days fall in, any run not yet paid that holds the person from them on, and the runs
+		// that priced the touched rows
 		payslip: {
 			where: {
 				employee_id: { is: theirs },
 				or: [
 					{
 						payroll_run_id: {
-							is: { salary_coverage: { overlaps: { from: since(touched), to: null } } }
+							is: { salary_coverage: { overlaps: { from: since(touched), to: until(touched) } } }
+						}
+					},
+					{
+						payroll_run_id: {
+							is: {
+								state: { eq: 'UNPAID' },
+								salary_coverage: { overlaps: { from: since(touched), to: null } }
+							}
 						}
 					},
 					{ payroll_run_id: { in: sealing } }

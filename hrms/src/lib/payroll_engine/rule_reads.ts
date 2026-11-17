@@ -1,4 +1,5 @@
-import { Effect } from 'effect';
+import { DateTime, Effect, Option, Schema } from 'effect';
+import { id_of, type Id, type Row } from '@norbital-ai/bolt';
 import { isJsonObject, Refusal, type Json, type JsonObject } from './foundation.js';
 import { idsOf, queryRows, type Reader } from './reads.js';
 
@@ -7,7 +8,8 @@ import { idsOf, queryRows, type Reader } from './reads.js';
  * model), so the models and the keys a read may be found by are fixed here: each model's `KEYS` are the paths of its
  * `where` an `eq` or `in` may key it by. A read with none of them has no key and is refused, when the law is written
  * and when it is read. Every declared read of a batch is one typed request: each model once, by the keys its rules
- * named, and each rule's own `where` then picks its rows from the answer.
+ * named and the bounds all of them share (`range`, `set`), and each rule's own `where` then picks its rows from the
+ * answer.
  */
 const KEYS = {
 	contract_terms: ['employment_id', 'employment_id.is.employee_id'],
@@ -137,6 +139,105 @@ const matches = (row: JsonObject, where: JsonObject): boolean =>
 		return tested(row[key], test);
 	});
 
+/** An ISO date the database takes as one. */
+const isDay = (value: Json): value is string =>
+	typeof value === 'string' &&
+	/^\d{4}-\d{2}-\d{2}$/.test(value) &&
+	Option.exists(DateTime.make(value), (day) => DateTime.formatIsoDateUtc(day) === value);
+const isText = (value: Json): value is string => typeof value === 'string';
+const isRunId = Schema.is(id_of('payroll_run'));
+const isRun = (value: Json): value is Id<'payroll_run'> =>
+	typeof value === 'string' &&
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) &&
+	isRunId(value);
+type TaskState = Row<'obligation'>['state'];
+const TASK_STATES: readonly TaskState[] = ['OPEN', 'FULFILLED', 'WAIVED'];
+const isTaskState = (value: Json): value is TaskState =>
+	TASK_STATES.some((state) => state === value);
+
+const BOUNDING = ['eq', 'gt', 'gte', 'lt', 'lte'] as const;
+/**
+ * The test each of these reads makes on a field, when every one makes one and all its bounds are values `is` takes:
+ * one `null` bound, or one the database would refuse, and the field bounds nothing.
+ */
+const testsOf = (
+	needs: readonly Need[],
+	field: string,
+	is: (value: Json) => boolean
+): readonly JsonObject[] | undefined => {
+	const tests = needs.map(({ layer }) => testAt(whereOf(layer), field));
+	return tests.length > 0 &&
+		tests.every(
+			(test): test is JsonObject =>
+				test !== undefined &&
+				BOUNDING.every((op) => {
+					const value = test[op];
+					return value === undefined || is(value);
+				}) &&
+				(test.in === undefined || (Array.isArray(test.in) && test.in.every(is))) &&
+				(test.is_null === undefined || typeof test.is_null === 'boolean')
+		)
+		? tests
+		: undefined;
+};
+/** The `is_null` every test agrees on, if they do. */
+const agreed = (tests: readonly JsonObject[]): boolean | undefined => {
+	const [first] = tests;
+	const held = first?.is_null;
+	return typeof held === 'boolean' && tests.every((test) => test.is_null === held)
+		? held
+		: undefined;
+};
+/** Every value a test's `ops` and `in` name that `is` takes; all of them, or none when one test names none. */
+const named = <V extends Json>(
+	tests: readonly JsonObject[],
+	ops: readonly string[],
+	is: (value: Json) => value is V
+): readonly V[] => {
+	const each = tests.map((test) =>
+		[...ops.map((op) => test[op]), ...(Array.isArray(test.in) ? test.in : [])].filter(
+			(value): value is V => value !== undefined && is(value)
+		)
+	);
+	return each.every((values) => values.length > 0) ? each.flat() : [];
+};
+/**
+ * A date or period field bounded for every read of a model at once: from the earliest lower bound any of them holds it
+ * to, through the latest upper one, and `is_null` where they all agree. Each read's rows lie inside, so the answer
+ * holds them all and `matches` still picks each one's own.
+ */
+const range = (needs: readonly Need[], field: string, is: (value: Json) => value is string) => {
+	const tests = testsOf(needs, field, is);
+	if (tests === undefined) return [];
+	const low = named(tests, ['gte', 'gt', 'eq'], is).toSorted()[0];
+	const high = named(tests, ['lte', 'lt', 'eq'], is).toSorted().at(-1);
+	const nulls = agreed(tests);
+	const test = {
+		...(low === undefined ? {} : { gte: low }),
+		...(high === undefined ? {} : { lte: high }),
+		...(nulls === undefined ? {} : { is_null: nulls })
+	};
+	return Object.keys(test).length === 0 ? [] : [test];
+};
+/** Any other field bounded the same way: the values every read names by `eq` or `in`, at most an `in` list's 1,000. */
+const set = <V extends Json>(
+	needs: readonly Need[],
+	field: string,
+	is: (value: Json) => value is V
+) => {
+	const tests = testsOf(needs, field, is);
+	if (tests === undefined) return [];
+	const values = [...new Set(tests.flatMap((test) => named([test], ['eq'], is)))];
+	const listed =
+		tests.every((test) => test.eq !== undefined || test.in !== undefined) && values.length <= 1000;
+	const nulls = agreed(tests);
+	const test = {
+		...(listed ? { in: values } : {}),
+		...(nulls === undefined ? {} : { is_null: nulls })
+	};
+	return Object.keys(test).length === 0 ? [] : [test];
+};
+
 export type Need = { readonly model: string; readonly layer: JsonObject };
 /**
  * Every declared read of a batch, in one typed request. Each answer is its need's rows: those its own `where` picks,
@@ -155,6 +256,7 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		keyed.set(at, held);
 	}
 	const by = (model: Model, path: string) => [...(keyed.get(`${model}/${path}`) ?? [])];
+	const of = (model: Model) => needs.filter((need) => need.model === model);
 	const found = yield* queryRows(read, {
 		contract_terms: {
 			where: {
@@ -172,7 +274,10 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 							}
 						}
 					}
-				]
+				],
+				and: range(of('contract_terms'), 'effective_from', isDay).map((effective_from) => ({
+					effective_from
+				}))
 			},
 			limit: 10000,
 			employment_id: { fields: ['employee_id', 'entity_id'] }
@@ -205,11 +310,19 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		},
 		entity: { where: { id: { in: idsOf('entity', by('entity', 'id')) } }, limit: 50 },
 		entity_change: {
-			where: { entity_id: { in: idsOf('entity', by('entity_change', 'entity_id')) } },
+			where: {
+				entity_id: { in: idsOf('entity', by('entity_change', 'entity_id')) },
+				and: range(of('entity_change'), 'effective_from', isDay).map((effective_from) => ({
+					effective_from
+				}))
+			},
 			limit: 10000
 		},
 		holiday: {
-			where: { entity_id: { in: idsOf('entity', by('holiday', 'entity_id')) } },
+			where: {
+				entity_id: { in: idsOf('entity', by('holiday', 'entity_id')) },
+				and: range(of('holiday'), 'date', isDay).map((date) => ({ date }))
+			},
 			limit: 10000
 		},
 		leave_catalog_entry: {
@@ -232,6 +345,14 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 						}
 					},
 					{ entity_id: { in: idsOf('entity', by('leave_catalog_entry', 'entity_id')) } }
+				],
+				and: [
+					...set(of('leave_catalog_entry'), 'catalog_code', isText).map((catalog_code) => ({
+						catalog_code
+					})),
+					...set(of('leave_catalog_entry'), 'payroll_run_id', isRun).map((payroll_run_id) => ({
+						payroll_run_id
+					}))
 				]
 			},
 			limit: 10000,
@@ -276,6 +397,14 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 							}
 						}
 					}
+				],
+				and: [
+					...range(of('leave_catalog_entry_day'), 'incurred_on', isDay).map((incurred_on) => ({
+						incurred_on
+					})),
+					...set(of('leave_catalog_entry_day'), 'payroll_run_id', isRun).map((payroll_run_id) => ({
+						payroll_run_id
+					}))
 				]
 			},
 			limit: 10000,
@@ -291,6 +420,10 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 					{ employment_id: { in: idsOf('employment', by('obligation', 'employment_id')) } },
 					{ entity_id: { in: idsOf('entity', by('obligation', 'entity_id')) } },
 					{ employee_id: { in: idsOf('employee_profile', by('obligation', 'employee_id')) } }
+				],
+				and: [
+					...range(of('obligation'), 'due_on', isDay).map((due_on) => ({ due_on })),
+					...set(of('obligation'), 'state', isTaskState).map((state) => ({ state }))
 				]
 			},
 			limit: 10000
@@ -312,7 +445,8 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 							}
 						}
 					}
-				]
+				],
+				and: range(of('payslip'), 'period', isText).map((period) => ({ period }))
 			},
 			limit: 10000,
 			payroll_run_id: { fields: ['entity_id', 'pay_date'] }
@@ -330,6 +464,12 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 							}
 						}
 					}
+				],
+				and: [
+					...range(of('roster_entry'), 'work_date', isDay).map((work_date) => ({ work_date })),
+					...set(of('roster_entry'), 'payroll_run_id', isRun).map((payroll_run_id) => ({
+						payroll_run_id
+					}))
 				]
 			},
 			limit: 10000,
@@ -353,6 +493,12 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 						}
 					},
 					{ entity_id: { in: idsOf('entity', by('workplace_case_catalog_entry', 'entity_id')) } }
+				],
+				and: [
+					...set(of('workplace_case_catalog_entry'), 'kind', isText).map((kind) => ({ kind })),
+					...range(of('workplace_case_catalog_entry'), 'opened_on', isDay).map((opened_on) => ({
+						opened_on
+					}))
 				]
 			},
 			limit: 10000

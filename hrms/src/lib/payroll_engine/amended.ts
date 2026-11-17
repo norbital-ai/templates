@@ -1,4 +1,4 @@
-import { BigDecimal, DateTime, Effect } from 'effect';
+import { BigDecimal, Effect } from 'effect';
 import {
 	accountsOf,
 	apply,
@@ -15,7 +15,7 @@ import { isJsonObject, type JsonObject } from './foundation.js';
 import { attendanceOf, type PayWindow } from './pay_cycle.js';
 import { emptyPayslipBreakdown, type PayslipBreakdown } from './payslip_breakdown.js';
 import { idOf, idsOf, objectValue, queryRows, type Reader } from './reads.js';
-import { lawsOf, type Law } from '../law.js';
+import { lawsAt, type Law } from '../law.js';
 import {
 	calculateRun,
 	claimsAsPosted,
@@ -173,13 +173,17 @@ interface Period {
 const orderOf = (run: JsonObject) =>
 	`${String(run.pay_date)}/${String(run.run_number ?? '').padStart(12, '0')}`;
 
-/** Everything paid periods need to be worked out again, for these people, in one request. */
+/**
+ * Everything paid periods need to be worked out again, for these people, in one request; claims on a limited row read
+ * what they posted in a second, since their ids come from the first.
+ */
 const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	read: Reader,
 	entity: string,
 	people: readonly string[],
 	window: PayWindow,
-	paidFrom: string,
+	/** The pay date of the first paid period the span reaches: the balance holds what was paid before it. */
+	since: string,
 	runs: readonly string[],
 	/** The run's own read: a claim with no posting yet is limited as its law limits it. */
 	own: RunData
@@ -246,14 +250,17 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 			],
 			limit: 10000
 		},
-		// what was paid: every payslip of theirs since the earliest year a recalculated period reads
+		// what was paid from the first period worked out again, and since, whichever company: with its run and its law, as
+		// a payslip in the same totals took the balance past that period
 		payslip: {
 			where: {
 				employee_id: { in: who },
-				payroll_run_id: { is: { pay_date: { gte: paidFrom } } }
+				payroll_run_id: { is: { pay_date: { gte: since } } }
 			},
-			fields: ['id', 'employee_id', 'employment_id', 'payroll_run_id', 'breakdown'],
-			limit: 10000
+			fields: ['id', 'employee_id', 'employment_id', 'payroll_run_id', 'entity_id', 'breakdown'],
+			limit: 10000,
+			payroll_run_id: { fields: ['pay_date', 'run_number'] },
+			entity_id: { fields: ['settings_code'] }
 		},
 		// the runs that already carried for a period: what they sealed belongs to it
 		pay_amendment: {
@@ -270,7 +277,7 @@ const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 					{
 						account: { in: ['pay', 'statutory'] },
 						source: { like: 'adhoc_catalog_entry:%' },
-						effective_on: { gte: paidFrom }
+						effective_on: { gt: window.from }
 					}
 				]
 			},
@@ -418,7 +425,7 @@ export interface Amended {
 /**
  * One run with what it carries for earlier periods: an on-cycle run for everyone it pays, an off-cycle run for the
  * people whose open rows HR named, who may be paid nothing else by it (someone who has left). `own` is the run's own read; `known` is what the
- * transform already read of the company: its runs, its pay groups and every open amendment row.
+ * transform already read of the company: its on-cycle runs, its pay groups and every open amendment row.
  */
 export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	read: Reader,
@@ -469,9 +476,9 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const schedules = new Map(
 		known.groups.map((row) => [String(row.id), objectValue(row.payment_schedule)])
 	);
-	// a paid period is worked out on the law now in force on its own pay date
-	const laws = lawsOf(own.data);
+	// a paid period is worked out on the law now in force on its own pay date: the run's own law, read and folded once
 	const lawCode = new Map(known.entities.map((row) => [String(row.id), row.settings_code]));
+	const laws = yield* lawsAt(read, [lawCode.get(String(own.row.entity_id))]);
 	const lawFor = (run: JsonObject) =>
 		laws(lawCode.get(String(run.entity_id)), String(run.pay_date));
 	const { runs } = known;
@@ -565,32 +572,10 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	}
 	const waiting = open.filter((row) => !people.includes(String(row.employee_id))).length;
 	const from = people.map(earliestOf).toSorted()[0] ?? ownFrom;
-	// a period reads its own tax year so far and a year of months: what was paid is rebuilt from the start of the tax
-	// year a year before the earliest, and everything older is read from the balance as it stands
-	const yearBefore = DateTime.subtract(DateTime.makeUnsafe(from), { years: 1 });
-	const yearStarts = DateTime.makeUnsafe({
-		year: DateTime.getPartUtc(yearBefore, 'year'),
-		month: Number(settings?.tax_year_start_month ?? 1),
-		day: 1
-	});
-	const paidFrom = DateTime.formatIsoDate(
-		DateTime.isLessThanOrEqualTo(yearStarts, yearBefore)
-			? yearStarts
-			: DateTime.subtract(yearStarts, { years: 1 })
-	);
-	const before = paidRuns.filter((run) => String(run.pay_date) >= paidFrom);
-	const span = yield* loadSpan(
-		read,
-		String(own.row.entity_id),
-		people,
-		{ from: `${from.slice(0, 8)}01` < from ? `${from.slice(0, 8)}01` : from, to: ownFrom },
-		paidFrom,
-		before.map((run) => String(run.id)),
-		own.data
-	);
-	const spanData: RunData = { ...span, pay_group: known.groups };
-
-	const runOf = new Map(runs.map((run) => [String(run.id), run]));
+	const window = {
+		from: `${from.slice(0, 8)}01` < from ? `${from.slice(0, 8)}01` : from,
+		to: ownFrom
+	};
 	const periodOfRun = (run: JsonObject): Period | undefined => {
 		const schedule = schedules.get(String(run.pay_group_id));
 		const law = lawFor(run);
@@ -615,14 +600,52 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			)
 		};
 	};
-	const slips = (spanData.payslip ?? []).flatMap((slip) => {
-		const run = runOf.get(String(slip.payroll_run_id));
-		return run === undefined ? [] : [{ slip, run, order: orderOf(run) }];
+	// one period a run, whoever asks: the people it is worked out again for are priced together
+	const periods = new Map(
+		paidRuns
+			.toSorted((a, b) => orderOf(a).localeCompare(orderOf(b)))
+			.flatMap((run) => {
+				const period = periodOfRun(run);
+				return period === undefined ? [] : [[String(run.id), period] as const];
+			})
+	);
+	// every period worked out again closes in the span: what was paid is read from the first such, and before it the
+	// balance holds it
+	const paidSince =
+		[...periods.values()].find((period) => period.closes >= window.from)?.payDate ?? ownPayDate;
+	const span = yield* loadSpan(
+		read,
+		String(own.row.entity_id),
+		people,
+		window,
+		paidSince,
+		paidRuns.filter((run) => String(run.pay_date) >= paidSince).map((run) => String(run.id)),
+		own.data
+	);
+	const spanData: RunData = { ...span, pay_group: known.groups };
+
+	// each payslip with its run and its law; `ours` is one of the run's companies, whose payslips say what was paid
+	const slips = (spanData.payslip ?? []).map((slip) => {
+		const company = objectValue(slip.entity_id);
+		const run: JsonObject = { ...objectValue(slip.payroll_run_id), entity_id: company.id ?? null };
+		return {
+			slip,
+			run,
+			order: orderOf(run),
+			law: laws(company.settings_code, String(run.pay_date)),
+			ours: lawCode.has(String(company.id))
+		};
 	});
-	const slipsOf = (employee: string) =>
+	const paidOf = (employee: string) =>
 		slips
 			.filter(({ slip }) => String(slip.employee_id) === employee)
 			.toSorted((a, b) => a.order.localeCompare(b.order));
+	const slipsOf = (employee: string) => paidOf(employee).filter(({ ours }) => ours);
+	// the order of every run a payslip may have carried for, whichever company
+	const runOrder = new Map([
+		...slips.map(({ run, order }) => [String(run.id), order] as const),
+		...runs.map((run) => [String(run.id), orderOf(run)] as const)
+	]);
 	const versionsOf = (employee: string) =>
 		(spanData.employment ?? []).filter((row) => String(row.employee_id) === employee);
 	// the person's terms rows: each is signed on a day and applies from one
@@ -633,15 +656,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		(spanData.contract_terms ?? []).filter(
 			(row) => stintOwner.get(String(row.employment_id)) === employee
 		);
-	// one period a run, whoever asks: the people it is worked out again for are priced together
-	const periods = new Map(
-		paidRuns
-			.toSorted((a, b) => orderOf(a).localeCompare(orderOf(b)))
-			.flatMap((run) => {
-				const period = periodOfRun(run);
-				return period === undefined ? [] : [[String(run.id), period] as const];
-			})
-	);
 	/**
 	 * The person's paid on-cycle periods, oldest first: those that paid them, and those their stint was in with
 	 * nothing agreed yet (a hire signed after its first months), which a later period owes as back pay.
@@ -744,76 +758,42 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	/** What this run has worked out for earlier periods so far: their postings, by person. */
 	const carried = new Map<string, { period: Period; postings: readonly Wanted[] }[]>();
 	/**
-	 * The balance a period saw. Pay and contributions are rebuilt from what was paid before it, payslip by payslip, with
-	 * what this run has carried for earlier periods; leave and claims are today's less what was recorded after it closed.
+	 * The balance a period saw: today's, less what was paid at or after it and what records posted after it closed, with
+	 * what this run has carried for earlier periods. Pay and contributions come off every payslip in these totals; leave
+	 * and claims, off this company's.
 	 */
 	const accountsAt = (employee: string, at: Period): Accounts => {
-		const now = accountsOf(balances.get(employee)?.account);
-		const { pay, statutory, ...other } = now;
-		// a window that opened before the rebuild starts is kept as the balance holds it
-		const older = (codes: Accounts[string] | undefined): Accounts[string] =>
-			Object.fromEntries(
-				Object.entries(codes ?? {}).flatMap(([code, periods]) => {
-					const kept = Object.entries(periods).filter(([key]) => key.slice(-10) < paidFrom);
-					return kept.length === 0 ? [] : [[code, Object.fromEntries(kept)]];
-				})
-			);
-		let built: Accounts = { pay: older(pay), statutory: older(statutory) };
-		let rest: Accounts = other;
-		for (const { slip, run, order } of slipsOf(employee)) {
-			const posted = ownPostings(lawFor(run), run, slip.breakdown);
-			const money = posted.filter((row) => row.account === 'pay' || row.account === 'statutory');
-			if (order < at.order) built = apply(built, movements(money, 1));
-			else
-				rest = apply(
-					rest,
-					movements(
-						posted.filter((row) => row.account !== 'pay' && row.account !== 'statutory'),
-						-1
-					)
-				);
-			// a carried difference in leave or claims is in today's balance already: one for this period or later comes off
-			for (const entry of carriedFor(slip.breakdown)) {
-				const of = runOf.get(entry.run_id);
-				if (of === undefined) continue;
-				if (orderOf(of) < at.order)
-					built = apply(built, movements(entry.postings.filter(isMoney), 1));
-				else
-					rest = apply(
-						rest,
-						movements(
-							entry.postings.filter((row) => !isMoney(row)),
-							-1
-						)
-					);
-			}
+		const moves: Movement[] = [];
+		for (const { slip, run, order, law, ours } of paidOf(employee)) {
+			const kept = (rows: readonly Wanted[]) => rows.filter((row) => ours || isMoney(row));
+			if (order >= at.order)
+				moves.push(...movements(kept(ownPostings(law, run, slip.breakdown)), -1));
+			// a carried difference is the period's it is for: one for this period or later comes off
+			for (const entry of carriedFor(slip.breakdown))
+				if ((runOrder.get(entry.run_id) ?? '') >= at.order)
+					moves.push(...movements(kept(entry.postings), -1));
 		}
 		// what this run carries is not in the balance yet
 		for (const entry of carried.get(employee) ?? [])
-			if (entry.period.order < at.order) {
-				built = apply(built, movements(entry.postings.filter(isMoney), 1));
-				rest = apply(
-					rest,
-					movements(
-						entry.postings.filter((row) => !isMoney(row)),
-						1
+			if (entry.period.order < at.order) moves.push(...movements(entry.postings, 1));
+		for (const row of outside.get(employee) ?? [])
+			if (String(row.effective_on) > at.closes)
+				moves.push(
+					...movements(
+						[
+							{
+								account: String(row.account),
+								code: String(row.code),
+								period: periodOf(row.period),
+								measure: measureOf(row.measure),
+								amount: (row.operation === 'DEDUCT' ? -1 : 1) * Number(row.amount ?? 0),
+								effective_on: String(row.effective_on)
+							}
+						],
+						-1
 					)
 				);
-			}
-		for (const row of outside.get(employee) ?? []) {
-			const move: Wanted = {
-				account: String(row.account),
-				code: String(row.code),
-				period: periodOf(row.period),
-				measure: measureOf(row.measure),
-				amount: (row.operation === 'DEDUCT' ? -1 : 1) * Number(row.amount ?? 0),
-				effective_on: String(row.effective_on)
-			};
-			const money = move.account === 'pay' || move.account === 'statutory';
-			if (money && move.effective_on <= at.closes) built = apply(built, movements([move], 1));
-			if (!money && move.effective_on > at.closes) rest = apply(rest, movements([move], -1));
-		}
-		return { ...rest, ...built };
+		return apply(accountsOf(balances.get(employee)?.account), moves);
 	};
 	const carriersOf = (period: Period) => (employee: string) =>
 		new Set(
@@ -852,6 +832,28 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		);
 
 	/**
+	 * A person's earnings in an earlier period on the terms signed by a day, priced once: what one period's back pay counts
+	 * on its pay date is what the next one's counts on the pay date before.
+	 */
+	const earnings = new Map<string, number>();
+	const earnedOn = Effect.fn('payroll.earnedOn')(function* (
+		period: Period,
+		asOf: string,
+		who: readonly string[]
+	) {
+		const keyOf = (employee: string) => `${period.id}/${asOf}/${employee}`;
+		const missing = who.filter((employee) => !earnings.has(keyOf(employee)));
+		if (missing.length > 0) {
+			const { payslips } = yield* priced(period, missing, { termsAsOf: asOf });
+			for (const employee of missing)
+				earnings.set(
+					keyOf(employee),
+					earned(payslips.find((slip) => slip.employee_id === employee)?.breakdown)
+				);
+		}
+		return (employee: string) => earnings.get(keyOf(employee)) ?? 0;
+	});
+	/**
 	 * The back pay a period owes: for each earlier paid period, its earnings on the terms signed by this period's pay
 	 * date, less its earnings on the terms signed by the pay date before.
 	 */
@@ -874,13 +876,10 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			}
 		}
 		for (const { period, since, who: asked } of asks.values()) {
-			const now = yield* priced(period, asked, { termsAsOf: at.payDate });
-			const then = yield* priced(period, asked, { termsAsOf: since });
-			for (const employee of asked) {
-				const of = (slips: readonly CalculatedPayslip[]) =>
-					earned(slips.find((slip) => slip.employee_id === employee)?.breakdown);
-				owed.set(employee, (owed.get(employee) ?? 0) + of(now.payslips) - of(then.payslips));
-			}
+			const now = yield* earnedOn(period, at.payDate, asked);
+			const then = yield* earnedOn(period, since, asked);
+			for (const employee of asked)
+				owed.set(employee, (owed.get(employee) ?? 0) + now(employee) - then(employee));
 		}
 		return new Map(
 			[...owed].map(([employee, amount]) => [

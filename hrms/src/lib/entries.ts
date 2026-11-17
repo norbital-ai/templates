@@ -36,13 +36,20 @@ export const entryCreate = <M extends Dated, S>(
 	Effect.gen(function* () {
 		const rows = changes.map((c) => c.after);
 		const entries = rows.map((row) => jsonObject(row));
-		// the approving decision asks again only for what the entry posts: what it checked stands
-		const known = yield* entryRead(ctx.query, model, entries, ctx.approving ? undefined : 'create');
+		// the approving decision asks again only for what the entry posts: what it checked stands. The amendment rows'
+		// read crosses with it, and their refusal still comes after its own
+		const [known, amended] = yield* Effect.all(
+			[
+				entryRead(ctx.query, model, entries, ctx.approving ? undefined : 'create'),
+				Effect.exit(amend(touched(rows)))
+			],
+			{ concurrency: 'unbounded' }
+		);
 		return {
 			sets: changes.map((c) => c.set),
 			on_approved: {
 				...(yield* entryPostings(known, model, entries)),
-				...(yield* amend(touched(rows)))
+				...(yield* amended)
 			}
 		};
 	});
@@ -62,11 +69,15 @@ export const entryUpdate = <M extends Dated, S extends object>(
 	Effect.gen(function* () {
 		if (sealOnly(changes)) return changes.map((change) => change.set);
 		const proposed = changes.map((change) => jsonObject(change.after));
-		const known = yield* entryRead(
-			ctx.query,
-			model,
-			proposed,
-			ctx.approving ? undefined : 'update'
+		const [known, amended] = yield* Effect.all(
+			[
+				entryRead(ctx.query, model, proposed, ctx.approving ? undefined : 'update'),
+				// a date that moves touches the period it left and the period it joined
+				Effect.exit(
+					amend([...touched(changes.map((c) => c.before)), ...touched(changes.map((c) => c.after))])
+				)
+			],
+			{ concurrency: 'unbounded' }
 		);
 		return {
 			// a date that moves leaves the run that priced it: the period it joins prices it, and seals it
@@ -77,11 +88,7 @@ export const entryUpdate = <M extends Dated, S extends object>(
 			),
 			on_approved: {
 				...(yield* entryPostings(known, model, proposed)),
-				// a date that moves touches the period it left and the period it joined
-				...(yield* amend([
-					...touched(changes.map((c) => c.before)),
-					...touched(changes.map((c) => c.after))
-				]))
+				...(yield* amended)
 			}
 		};
 	});
@@ -96,16 +103,19 @@ export const entryDelete = <M extends Dated>(
 	Effect.gen(function* () {
 		const rows = changes.map((change) => change.before);
 		const entries = rows.map((row) => jsonObject(row));
-		const known = yield* entryRead(
-			ctx.query,
-			model,
-			entries,
-			ctx.approving ? undefined : 'delete'
-		).pipe(refusing(ctx));
+		const [known, amended] = yield* Effect.all(
+			[
+				entryRead(ctx.query, model, entries, ctx.approving ? undefined : 'delete').pipe(
+					refusing(ctx)
+				),
+				Effect.exit(amend(touched(rows)))
+			],
+			{ concurrency: 'unbounded' }
+		);
 		return {
 			on_approved: {
 				...entriesUndone(known, model, entries),
-				...(yield* amend(touched(rows)))
+				...(yield* amended)
 			}
 		};
 	});

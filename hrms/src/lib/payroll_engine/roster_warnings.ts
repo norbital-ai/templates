@@ -1,7 +1,7 @@
 import { DateTime, Duration, Effect } from 'effect';
 import { idsOf, queryRows, type Reader } from './reads.js';
 import { startOf } from './registrations.js';
-import { lawRead, lawsOf } from '../law.js';
+import { lawsAt } from '../law.js';
 import { Refusal, isJsonObject, type Json } from './foundation.js';
 import { intervalSpans } from './time_evidence.js';
 import type { JsonObject } from './contracts.js';
@@ -192,10 +192,11 @@ export const dayFindings = (
 
 /**
  * Roster-time warnings. A day sheet is accepted, but every cap it crosses is recorded on the entry
- * so the month board and the importer can show it before payroll runs. Every employment in the batch is read in one
- * wave: the stints with the law each answers to, then the stored days of the months and weeks the batch touches,
- * reaching back as far as the longest consecutive run its laws check. The answer is each supplied row's findings, in
- * order.
+ * so the month board and the importer can show it before payroll runs. Every employment in the batch is read together,
+ * in at most three trips: the stints with the stored days of the months and weeks the batch touches and the shifts it
+ * names; the law each stint answers to, none when the invocation has read it; and only when the longest consecutive run
+ * its laws check reaches before those months and weeks, the days it reaches. The answer is each supplied row's
+ * findings, in order.
  */
 export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	read: Reader,
@@ -210,27 +211,69 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	});
 	const dates = supplied.flatMap((entry) => day(entry.work_date) ?? []);
 	if (groups.size === 0 || dates.length === 0) return findings;
+	// the whole months and weeks the batch touches: what its monthly and weekly counts read
+	const bounds = dates
+		.flatMap((date) => [
+			DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(date), 'month')),
+			DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date), 'month')),
+			DateTime.formatIsoDate(
+				DateTime.startOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
+			),
+			DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 }))
+		])
+		.sort();
+	const [from] = bounds;
+	const last = bounds.at(-1);
+	if (from === undefined || last === undefined) return findings;
+	// each day's shift, for its type: the stored days carry theirs, the supplied days name theirs
+	const named = [
+		...new Set(
+			supplied.flatMap((entry) =>
+				typeof entry.shift_definition_id === 'string' ? [entry.shift_definition_id] : []
+			)
+		)
+	];
+	const stored = {
+		fields: [
+			'employment_id',
+			'work_date',
+			'shift_definition_id',
+			'actual_worked_intervals',
+			'planned_overtime_intervals'
+		],
+		limit: 10000,
+		shift_definition_id: { fields: ['variant'] }
+	} as const;
+	const employments = idsOf('employment', groups.keys());
 	const got = yield* queryRows(read, {
 		employment: {
-			where: { id: { in: idsOf('employment', groups.keys()) } },
+			where: { id: { in: employments } },
 			fields: ['id', 'entity_id', 'effective_range'],
 			limit: 10000,
 			entity_id: { fields: ['settings_code'] }
+		},
+		roster_entry: {
+			where: {
+				employment_id: { in: employments },
+				work_date: { gte: from, lte: last }
+			},
+			...stored
+		},
+		shift_definition: {
+			where: { id: { in: idsOf('shift_definition', named) } },
+			fields: ['entity_id', 'variant'],
+			limit: 1000
 		}
 	});
-	const laws = lawsOf(
-		yield* queryRows(
-			read,
-			lawRead(
-				got.employment.flatMap((contract) =>
-					isJsonObject(contract.entity_id) ? [String(contract.entity_id.settings_code)] : []
-				)
-			)
+	const laws = yield* lawsAt(
+		read,
+		got.employment.flatMap((contract) =>
+			isJsonObject(contract.entity_id) ? [String(contract.entity_id.settings_code)] : []
 		)
 	);
 	// the caps of the law in force on each sheet's first day: its roster rule's
 	const capsOf = new Map(
-		(got.employment ?? []).flatMap((contract) => {
+		got.employment.flatMap((contract) => {
 			const employment = String(contract.id);
 			const on = day(supplied[groups.get(employment)?.[0] ?? -1]?.work_date) ?? startOf(contract);
 			const law = laws(
@@ -255,58 +298,26 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 					];
 		})
 	);
-	// a streak can start before the batch: reach back by the longest run any law in force checks
+	// a streak can start before the months and weeks in view: reach back by the longest run any law in force checks
 	const streak = Math.max(0, ...[...capsOf.values()].map((caps) => caps.consecutive_days ?? 0));
-	// the whole months and weeks the batch touches: what its monthly and weekly counts read
-	const bounds = dates
-		.flatMap((date) => [
-			DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(date), 'month')),
-			DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date), 'month')),
-			DateTime.formatIsoDate(
-				DateTime.startOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
-			),
-			DateTime.formatIsoDate(
-				DateTime.endOf(DateTime.makeUnsafe(date), 'week', { weekStartsOn: 1 })
-			),
-			DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date), { days: -streak }))
-		])
-		.map(String)
-		.sort();
-	const [first] = bounds;
-	const last = bounds.at(-1);
-	if (first === undefined || last === undefined) return findings;
-	// each day's shift, for its type: the stored days carry theirs, the supplied days name theirs
-	const named = [
-		...new Set(
-			supplied.flatMap((entry) =>
-				typeof entry.shift_definition_id === 'string' ? [entry.shift_definition_id] : []
-			)
-		)
-	];
-	const { roster_entry: stored, shift_definition: shifts } = yield* queryRows(read, {
-		roster_entry: {
-			where: {
-				employment_id: { in: idsOf('employment', capsOf.keys()) },
-				work_date: { gte: first, lte: last }
-			},
-			fields: [
-				'employment_id',
-				'work_date',
-				'shift_definition_id',
-				'actual_worked_intervals',
-				'planned_overtime_intervals'
-			],
-			limit: 10000,
-			shift_definition_id: { fields: ['variant'] }
-		},
-		shift_definition: {
-			where: { id: { in: idsOf('shift_definition', named) } },
-			fields: ['entity_id', 'variant'],
-			limit: 1000
-		}
-	});
-	const shiftOf = new Map(shifts.map((row) => [String(row.id), row]));
-	const stintOf = new Map((got.employment ?? []).map((row) => [String(row.id), row]));
+	const [earliest = from] = dates.toSorted();
+	const first = DateTime.formatIsoDate(
+		DateTime.add(DateTime.makeUnsafe(earliest), { days: -streak })
+	);
+	const before =
+		first < from
+			? (yield* queryRows(read, {
+					roster_entry: {
+						where: {
+							employment_id: { in: idsOf('employment', capsOf.keys()) },
+							work_date: { gte: first, lt: from }
+						},
+						...stored
+					}
+				})).roster_entry
+			: [];
+	const shiftOf = new Map(got.shift_definition.map((row) => [String(row.id), row]));
+	const stintOf = new Map(got.employment.map((row) => [String(row.id), row]));
 	for (const entry of supplied) {
 		const problem = rosterDayProblem(
 			entry,
@@ -326,7 +337,7 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		if (caps === undefined) continue;
 		// a supplied day replaces the stored one: an employment has one entry a day
 		const days = new Map(
-			stored
+			[...got.roster_entry, ...before]
 				.filter((row) => String(row.employment_id) === employment)
 				.map((row) => [day(row.work_date), row] as const)
 		);

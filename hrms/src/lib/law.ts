@@ -1,6 +1,7 @@
 import { inForce, type Change } from './dated.js';
-import { Effect } from 'effect';
-import { isJsonObject, type JsonObject } from './payroll_engine/foundation.js';
+import { Deferred, Effect, Exit } from 'effect';
+import type { ReadFailed } from '@norbital-ai/bolt/errors';
+import { isJsonObject, type JsonObject, type Refusal } from './payroll_engine/foundation.js';
 import { idOf, queryRows, type Reader } from './payroll_engine/reads.js';
 
 /** The families of a law whose members are rows, each keyed by its code. Every other family is a value per key. */
@@ -139,6 +140,48 @@ export const lawsOf = (read: {
 	};
 };
 
+type LawRows = Readonly<Record<'jurisdiction' | 'jurisdiction_change', readonly JsonObject[]>>;
+type LawFailure = ReadFailed | Refusal;
+type Laws = ReturnType<typeof lawsOf>;
+const NO_LAW: LawRows = { jurisdiction: [], jurisdiction_change: [] };
+/**
+ * The laws each reader has read, by code, each folded once. A reader is one invocation's `ctx.query`: whoever asks again
+ * in the invocation, beside the first asker or after it, reuses its read and folds, and nothing reaches the next one.
+ */
+const readLaws = new WeakMap<Reader, Map<string, Deferred.Deferred<Laws, LawFailure>>>();
+/**
+ * The laws these codes name, read and folded once per invocation. `ask` sends the caller's own request with `law`:
+ * `lawRead` of `fresh`, the codes no asker of this reader has asked for. A code another asker reads is its answer. A
+ * read that fails takes its codes back, so the next asker reads them again.
+ */
+export const lawsWith = Effect.fnUntraced(function* <A extends LawRows>(
+	read: Reader,
+	codes: Iterable<unknown>,
+	ask: (law: ReturnType<typeof lawRead>, fresh: readonly string[]) => Effect.Effect<A, LawFailure>
+) {
+	const held = readLaws.get(read) ?? new Map<string, Deferred.Deferred<Laws, LawFailure>>();
+	readLaws.set(read, held);
+	const wanted = [...new Set([...codes].map(String))];
+	const fresh = wanted.filter((code) => !held.has(code));
+	const own = Deferred.makeUnsafe<Laws, LawFailure>();
+	for (const code of fresh) held.set(code, own);
+	const answers = wanted.map((code) => [code, held.get(code) ?? own] as const);
+	const got = yield* Effect.suspend(() => ask(lawRead(fresh), fresh)).pipe(
+		Effect.onExit((exit) => {
+			if (Exit.isFailure(exit)) for (const code of fresh) held.delete(code);
+			return Effect.asVoid(Deferred.done(own, Exit.map(exit, lawsOf)));
+		})
+	);
+	const folds = new Map<string, Laws>();
+	for (const [code, answer] of answers) folds.set(code, yield* Deferred.await(answer));
+	return { got, laws: (code: unknown, day: string) => folds.get(String(code))?.(code, day) };
+});
+/** `lawsWith` with nothing else to read: no trip when every code is already read. */
+export const lawsAt = (read: Reader, codes: Iterable<unknown>) =>
+	lawsWith(read, codes, (law, fresh): Effect.Effect<LawRows, LawFailure> =>
+		fresh.length === 0 ? Effect.succeed(NO_LAW) : queryRows(read, law)
+	).pipe(Effect.map(({ laws }) => laws));
+
 /** `lawRead` for the laws of these companies: one small read of their codes first. */
 export const lawReadOf = Effect.fn('payroll.lawReadOf')(function* (
 	read: Reader,
@@ -157,22 +200,24 @@ export const lawReadOf = Effect.fn('payroll.lawReadOf')(function* (
 const refId = (value: unknown): string | undefined =>
 	typeof value === 'string' ? value : isJsonObject(value) ? String(value.id) : undefined;
 
-/** The law each asker answers to: its company's jurisdiction as it stands on its day, all from one read. */
+/**
+ * The law each asker answers to: its company's jurisdiction as it stands on its day. Two reads, the companies' codes and
+ * then their laws; one when the invocation has read those laws already.
+ */
 export const lawOn = Effect.fn('payroll.lawOn')(function* (
 	read: Reader,
 	asked: readonly { readonly entity: unknown; readonly on: unknown }[]
 ) {
 	const entities = [...new Set(asked.flatMap(({ entity }) => refId(entity) ?? []))];
 	if (entities.length === 0) return asked.map((): Law | undefined => undefined);
-	const got = yield* queryRows(read, {
+	const { entity: companies } = yield* queryRows(read, {
 		entity: {
 			where: { id: { in: entities.map((id) => idOf('entity', id)) } },
 			fields: ['id', 'settings_code'],
 			limit: 50
-		},
-		...(yield* lawReadOf(read, entities))
+		}
 	});
-	const code = new Map((got.entity ?? []).map((row) => [String(row.id), row.settings_code]));
-	const laws = lawsOf(got);
+	const code = new Map(companies.map((row) => [String(row.id), row.settings_code]));
+	const laws = yield* lawsAt(read, code.values());
 	return asked.map(({ entity, on }) => laws(code.get(String(refId(entity))), String(on)));
 });

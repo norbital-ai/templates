@@ -5366,6 +5366,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SSO_CONTRIBUTION_REMITTANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5405,6 +5410,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PND1_FILING:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5439,6 +5449,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PVD_REMITTANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -5447,6 +5462,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.pay_date"
 									}
 								}
 							}
@@ -5481,6 +5501,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SKILL_DEVELOPMENT_FUND_PAYMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -5523,6 +5548,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PND1_KOR_ANNUAL:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5556,6 +5586,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WITHHOLDING_CERTIFICATE_ANNUAL:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5587,6 +5622,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_ANNUAL_CONTRIBUTION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5618,6 +5658,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_WAGE_STATEMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5651,6 +5696,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EMPLOYMENT_CONDITIONS_REPORT:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -5693,6 +5743,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'DISABLED_EMPLOYMENT_QUOTA:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -5735,6 +5790,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SSO_REGISTRATION:' + ctx.entry.entity_id + ':' + ctx.entry.employee_id"
+									}
 								}
 							}
 						}
@@ -5768,6 +5828,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EMPLOYEE_REGISTER:' + ctx.entry.entity_id + ':' + ctx.entry.employee_id"
+									}
 								}
 							}
 						},
@@ -5810,6 +5875,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SSO_EXIT_NOTIFICATION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -5850,6 +5920,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'FINAL_PAY:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -5883,6 +5958,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WITHHOLDING_CERTIFICATE_ON_EXIT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -5916,6 +5996,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'FOREIGN_WORKER_HIRE_NOTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -5949,6 +6034,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'FOREIGN_WORKER_EXIT_NOTIFICATION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -5980,6 +6070,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_ADDITIONAL_CONTRIBUTION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6013,6 +6108,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EMPLOYER_REGISTRATION:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -6022,9 +6122,15 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "ctx.entry.effective_range.from"
+									}
 								}
 							},
-							"fields": ["effective_from"]
+							"fields": ["effective_from"],
+							"limit": 1
 						}
 					},
 					"condition": "const entry = ctx.entry;\nconst facts = get(entry, \"statutory_parameters\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst isFirst = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from < entry.effective_range.from);\nif (firstEmployedOn === null) return false;\nreturn isFirst;",
@@ -6056,6 +6162,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WORK_RULES:' + ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -6099,6 +6210,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WORK_INJURY_NOTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -6143,6 +6259,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_CLOSING_WAGE_STATEMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -6152,9 +6273,15 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"effective_from": {
+									"gt": {
+										"var": "ctx.entry.effective_range.from"
+									}
 								}
 							},
-							"fields": ["effective_from"]
+							"fields": ["effective_from"],
+							"limit": 1
 						}
 					},
 					"condition": "const entry = ctx.entry;\nconst facts = get(entry, \"statutory_parameters\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst latest = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from > entry.effective_range.from);\nif (ceasedOn === null) return false;\nreturn latest;",
@@ -6187,6 +6314,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'YOUNG_WORKER_HIRE_NOTICE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6221,6 +6353,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'YOUNG_WORKER_EXIT_NOTICE:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -6255,6 +6392,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'TEMPORARY_SHUTDOWN_NOTICE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6288,6 +6430,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'TECHNOLOGY_REDUNDANCY_NOTICE:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -6319,6 +6466,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RETIREMENT_SEVERANCE:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -6353,6 +6505,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SECURITY_DEPOSIT_RETURN:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						},
@@ -6361,6 +6518,19 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"employment_id": {
+									"eq": {
+										"var": "ctx.entry.id"
+									}
+								},
+								"kind": {
+									"eq": "SECURITY_DEPOSIT_RECEIVED"
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -6435,6 +6605,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RECORDS_RETENTION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -6468,6 +6643,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SKILL_DEVELOPMENT_REGISTRATION:' + ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -6510,6 +6690,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SKILL_DEVELOPMENT_COURSE_CERTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -6553,6 +6738,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SKILL_DEVELOPMENT_COURSE_APPLICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6584,6 +6774,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_INSTALMENT_DEPOSIT:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6615,6 +6810,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'WCF_INSTALMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6646,6 +6846,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PDPA_PRIVACY_NOTICE:' + ctx.entry.entity_id + ':' + ctx.entry.employee_id"
+									}
 								}
 							}
 						}
@@ -6676,6 +6881,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PDPA_SENSITIVE_DATA_CONSENT:' + ctx.entry.entity_id + ':' + ctx.entry.employee_id"
+									}
 								}
 							}
 						}
@@ -6708,6 +6918,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PDPA_BREACH_NOTICE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6739,6 +6954,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PDPA_CROSS_BORDER_TRANSFER:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6770,6 +6990,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PDPA_PROCESSING_RECORDS:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -6779,9 +7004,15 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"effective_from": {
+									"lt": {
+										"var": "ctx.entry.effective_range.from"
+									}
 								}
 							},
-							"fields": ["effective_from"]
+							"fields": ["effective_from"],
+							"limit": 1
 						}
 					},
 					"condition": "const entry = ctx.entry;\nconst isFirst = !get(ctx, \"reads.entity_change\", []).some((v) => v.effective_from < entry.effective_range.from);\nreturn isFirst;",
@@ -6814,6 +7045,11 @@
 								},
 								"employee_id": {
 									"is_null": false
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -6847,6 +7083,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RELOCATION_POSTED_NOTICE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6880,6 +7121,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RELOCATION_SPECIAL_PAYMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6913,6 +7159,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RELOCATION_BOARD_PETITION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6946,6 +7197,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'RELOCATION_BOARD_ORDER_RESPONSE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -6979,6 +7235,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EMPLOYEE_REGISTER_PAYROLL_UPDATE:' + ctx.entry.id + ':' + ctx.entry.effective_range.from"
 									}
 								}
 							}
@@ -7033,6 +7294,14 @@
 									"eq": {
 										"var": "ctx.entry.employment_id"
 									}
+								},
+								"work_date": {
+									"gte": {
+										"var": "add_days(ctx.entry.work_date, -6)"
+									},
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							},
 							"fields": [
@@ -7041,7 +7310,7 @@
 								"actual_worked_intervals",
 								"planned_overtime_intervals"
 							],
-							"limit": 10000
+							"limit": 7
 						}
 					}
 				},
@@ -8216,6 +8485,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_WELFARE_ACCOUNT_RETURN:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -8250,6 +8524,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_WELFARE_ACCOUNT_DISCLOSURE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -8283,6 +8562,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_WELFARE_BENEFICIARY_WITHDRAWAL:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -8316,6 +8600,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_WELFARE_SETUP_VERIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -8355,6 +8644,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_REMITTANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -8409,6 +8703,11 @@
 								},
 								"employee_id": {
 									"is_null": true
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'EWF_WELFARE_ACCOUNT_INSPECTION:' + ctx.entry.id"
+									}
 								}
 							}
 						}

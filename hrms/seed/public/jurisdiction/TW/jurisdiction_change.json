@@ -4777,6 +4777,15 @@
 											}
 										}
 									}
+								},
+								"catalog_code": {
+									"in": [
+										"SICK_LEAVE",
+										"HOSPITALISED_SICK_LEAVE",
+										"MENSTRUAL_LEAVE",
+										"MENSTRUAL_LEAVE_UNPAID",
+										"SICK_LEAVE_UNPAID"
+									]
 								}
 							},
 							"fields": ["id", "catalog_code"]
@@ -4794,6 +4803,11 @@
 												}
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "add_months(first(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted()), -24)"
 									}
 								}
 							},

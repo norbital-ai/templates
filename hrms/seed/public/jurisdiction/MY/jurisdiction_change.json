@@ -3683,7 +3683,7 @@
 								},
 								"work_date": {
 									"gte": {
-										"var": "add_months(ctx.entry.leave_catalog_entry_day.0.incurred_on, -12)"
+										"var": "add_months(first(ctx.entry.leave_catalog_entry_day.map((d) => d.incurred_on).toSorted()), -12)"
 									}
 								}
 							},

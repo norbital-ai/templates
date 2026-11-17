@@ -26,7 +26,7 @@ import { Refusal, daysIn, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
 import { accountsOf, latestWindow, totalsScope, viewOf } from '../ledger/core.js';
 import { claimLeft, claimWanted } from '../ledger/service.js';
-import { lawRead, lawsOf, type Law } from '../law.js';
+import { lawsWith, type Law } from '../law.js';
 import { employerOn } from '../company.js';
 import {
 	chainOf,
@@ -86,10 +86,6 @@ export interface RunFrame {
 	readonly termsAsOf?: string;
 }
 
-/**
- * Everything a run needs, read once before any payslip: the window's rows and nothing outside it.
- * It is one request, so one statement, and neither the calculation nor the attachments read again.
- */
 const refOf = (value: unknown) => String(isJsonObject(value) ? value.id : value);
 
 /**
@@ -152,6 +148,12 @@ export const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 	};
 });
 
+/**
+ * Everything a run needs, before any payslip: the window's rows and nothing outside it, in one request. Its law rides in
+ * that request unless the invocation has read it already (`lawsWith`), and the rest of the invocation reuses it. A run
+ * with claims on a limited row reads what those posted in a second, since their ids come from the first. Neither the
+ * calculation nor the attachments read again.
+ */
 export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	read: Reader,
 	run: JsonObject,
@@ -213,90 +215,96 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			{ roster_entry: { some: { work_date: window } } }
 		]
 	};
-	const data = yield* queryRows(read, {
-		...lawRead([jurisdiction]),
-		// ponytail: the company's whole history of these; bound them to the run's window if a company outgrows the limit
-		work_event: { where: own, limit: 10000 },
-		shift_definition: { where: own, limit: 10000 },
-		shift_pattern: { where: own, limit: 10000 },
-		holiday: { where: own, limit: 10000 },
-		pay_group: {
-			where: { id: { eq: idOf('pay_group', run.pay_group_id) } },
-			fields: ['payment_schedule'],
-			limit: 1
-		},
-		// the company: its plain fields, and every dated change, folded on the day each period is priced for
-		entity: { where: { id: { eq: company } }, limit: 1 },
-		entity_change: { where: own, limit: 10000 },
-		// each stint with every dated row of it, its person and their dependants: how it stands on any day, a signed date
-		// included. All through the run's named read, by the one stint filter.
-		employment: { output: 'run', where: stint, limit: 10000 },
-		contract_terms: { output: 'run', where: { employment_id: { is: stint } }, limit: 10000 },
-		statutory_parameters: { output: 'run', where: { employment_id: { is: stint } }, limit: 10000 },
-		dependant: {
-			output: 'run',
-			where: { employee_id: { is: { employment: { some: stint } } } },
-			limit: 10000
-		},
-		employee_profile: {
-			output: 'run',
-			where: { employment: { some: stint } },
-			limit: 10000,
-			employment: {
-				fields: ['id', 'employee_id', 'effective_range', 'entity_id', 'service_started_on'],
-				limit: 10000,
-				entity_id: { fields: ['settings_code'] }
-			}
-		},
-		employee_balance: {
-			output: 'run',
-			where: { employee_id: { is: { employment: { some: stint } } } },
-			limit: 10000
-		},
-		roster_entry: {
-			output: 'run',
-			where: { employment_id: { is: paid }, work_date: window },
-			fields: [
-				'id',
-				'employment_id',
-				'payroll_run_id',
-				'work_date',
-				'shift_definition_id',
-				'actual_worked_intervals',
-				'planned_overtime_intervals',
-				'overtime_as_time_off'
-			],
-			limit: 10000
-		},
-		loan_catalog_entry: {
-			output: 'run',
-			where: { ...own, repayments: { some: repaid } },
-			limit: 10000
-		},
-		// a leave with a slot in this window, or one still pending
-		leave_catalog_entry: {
-			where: {
-				...own,
-				or: [{ leave_catalog_entry_day: { some: { incurred_on: window } } }, pendingLeave]
+	const { got: data, laws } = yield* lawsWith(read, [jurisdiction], (law) =>
+		queryRows(read, {
+			...law,
+			// ponytail: the company's whole history of these; bound them to the run's window if a company outgrows the limit
+			work_event: { where: own, limit: 10000 },
+			shift_definition: { where: own, limit: 10000 },
+			shift_pattern: { where: own, limit: 10000 },
+			holiday: { where: own, limit: 10000 },
+			pay_group: {
+				where: { id: { eq: idOf('pay_group', run.pay_group_id) } },
+				fields: ['payment_schedule'],
+				limit: 1
 			},
-			limit: 10000,
-			leave_catalog_entry_day: {
-				fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+			// the company: its plain fields, and every dated change, folded on the day each period is priced for
+			entity: { where: { id: { eq: company } }, limit: 1 },
+			entity_change: { where: own, limit: 10000 },
+			// each stint with every dated row of it, its person and their dependants: how it stands on any day, a signed date
+			// included. All through the run's named read, by the one stint filter.
+			employment: { output: 'run', where: stint, limit: 10000 },
+			contract_terms: { output: 'run', where: { employment_id: { is: stint } }, limit: 10000 },
+			statutory_parameters: {
+				output: 'run',
+				where: { employment_id: { is: stint } },
+				limit: 10000
+			},
+			dependant: {
+				output: 'run',
+				where: { employee_id: { is: { employment: { some: stint } } } },
+				limit: 10000
+			},
+			employee_profile: {
+				output: 'run',
+				where: { employment: { some: stint } },
+				limit: 10000,
+				employment: {
+					fields: ['id', 'employee_id', 'effective_range', 'entity_id', 'service_started_on'],
+					limit: 10000,
+					entity_id: { fields: ['settings_code'] }
+				}
+			},
+			employee_balance: {
+				output: 'run',
+				where: { employee_id: { is: { employment: { some: stint } } } },
+				limit: 10000
+			},
+			roster_entry: {
+				output: 'run',
+				where: { employment_id: { is: paid }, work_date: window },
+				fields: [
+					'id',
+					'employment_id',
+					'payroll_run_id',
+					'work_date',
+					'shift_definition_id',
+					'actual_worked_intervals',
+					'planned_overtime_intervals',
+					'overtime_as_time_off'
+				],
+				limit: 10000
+			},
+			loan_catalog_entry: {
+				output: 'run',
+				where: { ...own, repayments: { some: repaid } },
+				limit: 10000
+			},
+			// a leave with a slot in this window, or one still pending
+			leave_catalog_entry: {
+				where: {
+					...own,
+					or: [{ leave_catalog_entry_day: { some: { incurred_on: window } } }, pendingLeave]
+				},
+				limit: 10000,
+				leave_catalog_entry_day: {
+					fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+					limit: 10000
+				}
+			},
+			claim_catalog_entry: { where: unpaid('claim_catalog_entry'), limit: 10000 },
+			adhoc_catalog_entry: { where: unpaid('adhoc_catalog_entry'), limit: 10000 },
+			loan_catalog_entry_repayment: { where: repaid, limit: 10000 },
+			workplace_case_catalog_entry: {
+				where: { ...own, ...unsealed },
+				fields: ['id', 'employment_id', 'opened_on', 'closed_on'],
 				limit: 10000
 			}
-		},
-		claim_catalog_entry: { where: unpaid('claim_catalog_entry'), limit: 10000 },
-		adhoc_catalog_entry: { where: unpaid('adhoc_catalog_entry'), limit: 10000 },
-		loan_catalog_entry_repayment: { where: repaid, limit: 10000 },
-		workplace_case_catalog_entry: {
-			where: { ...own, ...unsealed },
-			fields: ['id', 'employment_id', 'opened_on', 'closed_on'],
-			limit: 10000
-		}
-	});
+		})
+	);
 	return yield* claimsAsPosted(read, {
 		...withStints(data),
-		...lawData(lawsOf(data)(jurisdiction, String(run.pay_date ?? coverage.to)))
+		...lawData(laws(jurisdiction, String(run.pay_date ?? coverage.to)))
 	});
 });
 

@@ -18,8 +18,8 @@ import {
 } from './workbook_import.js';
 
 /**
- * Reads one roster workbook for the scoped entity and writes what it changes as one import: a dry run first, whose
- * refusal lists every row the server refuses and writes nothing, then the import itself.
+ * Reads one roster workbook for the scoped entity and writes what it changes as one atomic import: a refusal lists every
+ * row the server refuses and writes nothing.
  */
 export const runRosterImport = (
 	ctx: Pick<PageContext, 't' | 'act' | 'query'>,
@@ -135,11 +135,9 @@ export const runRosterImport = (
 					catch: workbookImportError
 				});
 			}).pipe(Effect.mapError(workbookImportError)),
-		submit: (plan) => {
-			const input = { rows: plan.rows, on_conflict: 'update' } as const;
+		submit: (plan) =>
 			// the server judges the whole file through the write itself, then writes all of it or nothing
-			return ctx.act({ 'roster_entry.import': { ...input, dry_run: true as const } }).pipe(
-				Effect.andThen(ctx.act({ 'roster_entry.import': input })),
+			ctx.act({ 'roster_entry.import': { rows: plan.rows, on_conflict: 'update' } }).pipe(
 				Effect.as({
 					imported: plan.rows.length,
 					overwritten: plan.overwritten,
@@ -158,8 +156,7 @@ export const runRosterImport = (
 						new WorkbookImportError({ message: ctx.t('roster.import_interrupted'), detail: [] })
 					)
 				)
-			);
-		}
+			)
 	});
 
 /** The month as its two sheets: what the board shows, ready to fill in and import. */

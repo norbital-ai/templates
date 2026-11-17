@@ -2990,6 +2990,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:CPF_MONTHLY_SUBMISSION_AND_PAYMENT:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -2998,6 +3003,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.to)"
 									}
 								}
 							}
@@ -3040,6 +3050,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:SDL_REMITTANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -3048,6 +3063,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.to)"
 									}
 								}
 							}
@@ -3091,6 +3111,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:SHG_DEDUCTION_REMITTANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -3099,6 +3124,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.to)"
 									}
 								}
 							}
@@ -3135,6 +3165,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:NR_DIRECTOR_WITHHOLDING:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3180,6 +3215,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:NR_ENTERTAINER_WITHHOLDING:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -3222,6 +3262,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:FOREIGN_WORKER_LEVY:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -3239,6 +3284,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "ctx.entry.salary_coverage.to"
 									}
 								}
 							}
@@ -3275,6 +3325,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:SALARY_PAYMENT_DEADLINE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -3309,6 +3364,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:OVERTIME_PAYMENT_DEADLINE:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3351,6 +3411,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "get(ctx.entry, 'pay_date', null) ?? ctx.entry.salary_coverage.to"
 									}
 								}
 							}
@@ -3401,6 +3466,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:ANNUAL_EMPLOYMENT_INCOME_RETURN:' + ctx.entry.entity_id + ':' + ctx.entry.salary_coverage.to.slice(0, 4)"
+									}
 								}
 							}
 						}
@@ -3435,6 +3505,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:KEY_EMPLOYMENT_TERMS:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3473,6 +3548,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_PASS_IN_FORCE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -3507,6 +3587,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_INJURY_COMPENSATION_INSURANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -3538,6 +3623,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_CONSENT_PURPOSE_NOTIFICATION:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3574,6 +3664,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:FINAL_SALARY_PAYMENT:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						},
@@ -3582,6 +3677,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -3616,6 +3716,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
+									}
 								}
 							}
 						}
@@ -3648,6 +3753,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_PASS_CANCELLATION:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -3683,6 +3793,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:RETRENCHMENT_NOTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						},
@@ -3700,6 +3815,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gt": {
+										"var": "ctx.entry.opened_on"
 									}
 								}
 							}
@@ -3740,6 +3860,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3786,6 +3911,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:CHILDCARE_LEAVE_CLAIM:' + ctx.entry.entity_id + ':' + ctx.entry.salary_coverage.to.slice(0, 4)"
+									}
 								}
 							}
 						}
@@ -3819,6 +3949,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_ACCIDENT_REPORT:' + ctx.entry.id"
 									}
 								}
 							}
@@ -3865,6 +4000,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:CPF_SUBMISSION_NUMBER:' + ctx.entry.entity_id"
+									}
 								}
 							}
 						},
@@ -3873,6 +4013,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"date": {
+									"gte": {
+										"var": "month_end(ctx.entry.salary_coverage.to)"
 									}
 								}
 							}
@@ -3967,6 +4112,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:IR21_LEAVING_SINGAPORE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4000,6 +4150,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_PASS_MEDICAL_INSURANCE:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4032,6 +4187,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_PERMIT_SECURITY_BOND:' + ctx.entry.id"
 									}
 								}
 							}
@@ -4069,6 +4229,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:YOUNG_PERSON_NOTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4101,6 +4266,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:MISCONDUCT_DUE_INQUIRY:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -4135,6 +4305,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_DATA_PROTECTION_OFFICER:' + ctx.entry.entity_id"
 									}
 								}
 							}
@@ -4171,6 +4346,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:CPF_CONDITIONAL_WAGE_REFUND:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4204,6 +4384,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:FLEXIBLE_WORK_REQUEST_DECISION:' + ctx.entry.id"
 									}
 								}
 							}
@@ -4239,6 +4424,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_ACCESS_CORRECTION_REPLY:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4271,6 +4461,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_BREACH_ASSESSMENT:' + ctx.entry.id"
 									}
 								}
 							}
@@ -4305,6 +4500,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_BREACH_NOTIFICATION:' + ctx.entry.id + ':' + get(ctx.entry, 'inputs.notifiable_assessed_on', null)"
+									}
 								}
 							}
 						}
@@ -4337,6 +4537,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:PDPA_RETENTION_DISPOSAL:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
 									}
 								}
 							}
@@ -4371,6 +4576,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:NS_MAKE_UP_PAY_CLAIM:' + ctx.entry.id"
 									}
 								}
 							}
@@ -4423,6 +4633,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_INCIDENT_CASE_REPORT:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4462,6 +4677,11 @@
 									"eq": {
 										"var": "ctx.entry.entity_id"
 									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:WORK_INCIDENT_NOTIFICATION:' + ctx.entry.id"
+									}
 								}
 							}
 						}
@@ -4494,6 +4714,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:SUBSEQUENT_WORK_DEATH_NOTIFICATION:' + ctx.entry.id"
 									}
 								}
 							}
@@ -4528,6 +4753,11 @@
 								"entity_id": {
 									"eq": {
 										"var": "ctx.entry.entity_id"
+									}
+								},
+								"occurrence_key": {
+									"eq": {
+										"var": "'SG:OCCUPATIONAL_DISEASE_REPORT:' + ctx.entry.id"
 									}
 								}
 							}
@@ -5087,6 +5317,11 @@
 							"where": {
 								"employee_id": {
 									"eq": "ctx.entry.employee_id"
+								},
+								"period": {
+									"gte": {
+										"var": "String(get(ctx.entry, 'period', '')).slice(0, 4)"
+									}
 								}
 							},
 							"fields": ["period", "breakdown"]
@@ -5717,6 +5952,11 @@
 									"eq": {
 										"var": "ctx.subject.employment.entity_id"
 									}
+								},
+								"opened_on": {
+									"lte": {
+										"var": "ctx.entry.work_date"
+									}
 								}
 							},
 							"fields": ["opened_on", "closed_on"],
@@ -5884,6 +6124,9 @@
 									"eq": {
 										"var": "ctx.entry.employment_id"
 									}
+								},
+								"catalog_code": {
+									"in": ["SICK_LEAVE", "HOSPITALIZATION_LEAVE"]
 								}
 							},
 							"fields": ["id", "catalog_code"],
@@ -5898,6 +6141,14 @@
 												"var": "ctx.entry.employment_id"
 											}
 										}
+									}
+								},
+								"incurred_on": {
+									"gte": {
+										"var": "String(get(first(get(ctx.entry, 'leave_catalog_entry_day', [])), 'incurred_on', '')).slice(0, 4) + '-01-01'"
+									},
+									"lte": {
+										"var": "String(get(first(get(ctx.entry, 'leave_catalog_entry_day', [])), 'incurred_on', '')).slice(0, 4) + '-12-31'"
 									}
 								}
 							},
