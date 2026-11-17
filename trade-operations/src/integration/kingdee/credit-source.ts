@@ -78,10 +78,8 @@ const payload = Schema.fromJsonString(
 		)
 	})
 );
-const checkpoint = Schema.Struct({
-	protocol: Schema.Literal('kingdee-credit-v1'),
-	account: Schema.String
-});
+// Full snapshots retain only their account pin; projection changes need no history marker.
+const checkpoint = Schema.Struct({ account: Schema.String });
 const invalid = (column: string, reason: string) => new SourceRowInvalid({ column, reason });
 const items = {
 	当前单据金额: { column: null, sign: 1 },
@@ -259,7 +257,7 @@ export const readCreditSource = Effect.fnUntraced(function* (
 		}));
 	return {
 		rows: [...rows, ...removed],
-		cursor: { protocol: 'kingdee-credit-v1' as const, account },
+		cursor: { account },
 		more: false
 	};
 });

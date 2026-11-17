@@ -302,3 +302,25 @@ it.live(
 			}
 		})
 );
+
+it.live(
+	'resumes an account-pinned full snapshot when an earlier cursor carries extra profile metadata',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* setup();
+			yield* s.t.pull('credit_snapshots');
+			yield* s.t.db.write({
+				text: 'UPDATE sys_sync SET cursor=$2::jsonb WHERE instance=$1 AND sync=$3',
+				params: [
+					s.instance,
+					JSON.stringify({ account: s.configuration.creditAccount, protocol: 'prior-profile' }),
+					'credit_snapshots.sync.kingdee'
+				]
+			});
+			s.state.observed = '2026-11-17T03:03:00.000Z';
+			yield* s.t.pull('credit_snapshots');
+			const row = firstRow((yield* s.read()).credit_snapshots.rows);
+			expect(row.as_of).toBe(s.state.observed);
+			expect(sameDecimal(row.credit_used, '113')).toBe(true);
+		})
+);
