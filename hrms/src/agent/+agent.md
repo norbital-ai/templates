@@ -28,9 +28,13 @@ next payroll run works the period out again and carries the difference.
 - A law and its dated changes: its code, currency, time zone and tax year. The first change holds the
   whole law (conversions, lookup, catalogues, statutory schemes, registered rules and effects and the
   linear subtotal chain, each row keyed by its code); each later one holds only what changed from its
-  date. The law on a day is the changes dated on or before it, applied oldest first. A change of law
-  is a new change from its date; a mistake in one is corrected, moved or deleted on the change itself.
-  A change that research filed is out of force until a person confirms its finding.
+  date. The law on a day is the changes dated on or before it, applied oldest first; nothing else is
+  stored. A change is read three keys deep (family, row code, field): a field it names replaces that
+  field whole, except a row's `lookup`, whose keys it changes one by one. A scheme's rates and limits
+  sit in its row's `lookup`, and its formulas read them as `ctx.lookup`, over the law's own `lookup`
+  block. A change of law is a new change from its date; a mistake in one is corrected, moved or
+  deleted on the change itself. A change that research filed is out of force until a person confirms
+  its finding.
 - A company and its dated changes: the legal employer and its particulars (registrations, bank, time
   zone), then its own pay methods and statutory parameters, each from its date. A wrong change is
   corrected, moved or deleted on the change itself.

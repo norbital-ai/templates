@@ -103,6 +103,39 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Register work limits against roster creation and change; planned-work refusal is distinct from recording an actual violation.
 - Amounts in expected results are independently calculated, never copied from the formulas.
 
+### References
+
+- A reference's URL opens for a plain reader (curl, an agent's fetch): audits and research read it again. Fetch a URL before citing it, in a `url` field or inside a title or quote.
+- Where the authority's page refuses a reader, cite a copy that opens, in this order: the authority's own API or file endpoint; another official host carrying the same text; a dated `web.archive.org` snapshot of the page (`/web/<timestamp>/<url>`, with `id_` or `if_` after the timestamp for a PDF). Research treats an archived copy as the host it mirrors.
+- A reference says what its source says. Where the seed's method goes beyond the source's words, the quote names the method and why.
+- `tests/configuration/seeded_laws.test.ts` refuses a reference `url` on a host listed below.
+
+The seed cited 579 URLs on 18 November 2026 and 115 did not open for a plain reader. The hosts that refused, and what the seed cites instead:
+
+| Host                                           | Law | How it refuses   | Cited instead                                                                                                    |
+| ---------------------------------------------- | --- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `www.kwsp.gov.my`                              | MY  | bot challenge    | archive                                                                                                          |
+| `hrdcorp.gov.my`                               | MY  | bot challenge    | `supportcentre.hrdcorp.gov.my` for the levy guideline; the Minister's statement as reported for Circular 01/2026 |
+| `www.perkeso.gov.my`, `perkeso.gov.my`         | MY  | no connection    | archive; `lom.agc.gov.my` for Act A1788; `lawplayer.com` for Act 800                                             |
+| `jtksm.mohr.gov.my`, `gajiminimum.mohr.gov.my` | MY  | no connection    | archive                                                                                                          |
+| `sso.agc.gov.sg`                               | SG  | script challenge | archive, the capture of the provision cited                                                                      |
+| `peraturan.bpk.go.id` (`/Details/` pages)      | ID  | bot challenge    | archive; its `/Download/` files open                                                                             |
+| `jdih.kemenkeu.go.id`                          | ID  | times out        | archive; `jdih.kemnaker.go.id`; `pajak.go.id`                                                                    |
+| `www.peraturan.go.id`                          | ID  | no connection    | `jdih.kemnaker.go.id`                                                                                            |
+| `laws.e-gov.go.jp` (`/law/` pages)             | JP  | script-only page | its API, `/api/2/law_data/<law id>`                                                                              |
+| `www.mol.go.th`, `www.dsd.go.th`               | TH  | script challenge | archive; `infocenter.oic.go.th`; `sdfund.dsd.go.th`                                                              |
+| `www.sec.or.th`                                | TH  | block page       | archive                                                                                                          |
+| `laws.mol.gov.tw`                              | TW  | no connection    | `law.moj.gov.tw`; `www.mol.gov.tw`                                                                               |
+| `www.nhi.gov.tw` (HTML pages)                  | TW  | bot challenge    | `law.moj.gov.tw`; its PDF downloads open                                                                         |
+| `baohiemxahoi.gov.vn`                          | VN  | connection reset | the law's Gazette copy on `datafiles.chinhphu.vn`; a press relay                                                 |
+| `natlex.ilo.org`                               | VN  | bot challenge    | archive                                                                                                          |
+| `www.dole.gov.ph`, `car.`, `query.`            | PH  | bot challenge    | archive; `chanrobles.com` for the OSH Standards; `nwpc.dole.gov.ph` opens                                        |
+| `privacy.gov.ph`                               | PH  | bot challenge    | archive                                                                                                          |
+
+Single pages that had moved or gone were repointed the same way (LHDN Public Ruling 2/2026, MOM's Employment Pass conditions, the Shanghai housing fund notice, a Yunnan compilation, a Taipei worked example), and four press pages behind a challenge were replaced by the instrument itself or an archived copy.
+
+No readable copy was found for nine citations written inside reference titles, which stay as they are: two Indonesian regional wage pages (`data.sekadaukab.go.id`, `disnakertrans.kalselprov.go.id`), a Kalimantan Tengah notice on Facebook, one BPS table (`ppid.bps.go.id`), two WeChat articles and three Kunming pages (`jkq.`, `ybj.` and `zfgjj.km.gov.cn`). `web.archive.org` throttles bursts: one request every few seconds.
+
 ## 6. Acceptance
 
 A jurisdiction is accepted when its boundary scenarios pass: overtime inclusion, allowances, balance limits, a correction of a paid period and its retry, a run holding its people, dependent contributions, exits and carry-forward, where applicable.

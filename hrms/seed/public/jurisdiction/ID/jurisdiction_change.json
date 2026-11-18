@@ -30,7 +30,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.7(1), art.7(4)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 							"effective_from": "2021-02-02"
 						}
@@ -55,7 +55,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.61(2)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "The wage remains due although it is paid late.",
 							"effective_from": "2021-02-02"
 						}
@@ -74,7 +74,7 @@
 						{
 							"title": "Perpres 82/2018",
 							"locator": "art.30(1) as amended by Perpres 64/2020 (art.31 deleted), art.32",
-							"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf",
+							"url": "https://web.archive.org/web/20260726123441id_/https://jdih.kemenkeu.go.id/api/download/fulltext/2018/82TAHUN2018PERPRES.pdf",
 							"quote": "Iuran bagi Peserta PPU adalah 5% dari Gaji atau Upah per bulan: 4% dibayar Pemberi Kerja dan 1% dibayar Peserta.",
 							"effective_from": "2018-09-18"
 						}
@@ -88,7 +88,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.58, 63–64: a wage deduction names its kind (`entry.deduction_kind`): fines, damages and wage advances only as the employment agreement, company regulation or collective agreement provides; rent of company property and debts only on a written agreement; payments to a third party only on the worker’s written power of attorney — each by its reference (`entry.basis_reference`); an overpaid wage needs no consent (art.63(4)). Art.65 caps the total at 50% (WAGE_DEDUCTION_CEILING).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"off_cycle_eligible": false,
@@ -111,7 +111,7 @@
 						{
 							"title": "Perpres 82/2018",
 							"locator": "art.30(1) as amended by Perpres 64/2020 (art.31 deleted), art.32",
-							"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf",
+							"url": "https://web.archive.org/web/20260726123441id_/https://jdih.kemenkeu.go.id/api/download/fulltext/2018/82TAHUN2018PERPRES.pdf",
 							"quote": "Iuran bagi Peserta PPU adalah 5% dari Gaji atau Upah per bulan: 4% dibayar Pemberi Kerja dan 1% dibayar Peserta.",
 							"effective_from": "2018-09-18"
 						}
@@ -130,7 +130,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.61(2)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "The wage remains due although it is paid late.",
 							"effective_from": "2021-02-02"
 						}
@@ -451,7 +451,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.61(1)–(2): an employer paying the wage late owes a fine counted from the day it was due: from the 4th to the 8th day 5% of the wage due for each day late; after the 8th day 1% more for each further day, the month’s fine at most 50%; after a month the highest state-bank interest rate on top (entered separately by the employer). The wage itself stays due (art.61(2)); the fine is income received in connection with the work (PPh 21 additional). Days are counted from the due day as day 1 (“terhitung tanggal seharusnya Upah dibayarkan”, art.61(1)(a)): a wage paid three days after its due day is paid on the 4th day and carries 5%. The record takes this reading, the worker’s, of the counting the regulation leaves open.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"off_cycle_eligible": true,
@@ -539,7 +539,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.51: a seizure of the wage money by a bailiff on a court order may not exceed 20% of the wage payable (GARNISHMENT_CEILING holds the slip above it).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"off_cycle_eligible": false,
@@ -557,7 +557,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.50: a bankrupt worker’s wage falls outside the estate except as the judge decides, at most 25% of the wage and payments of the employment (BANKRUPTCY_CEILING).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"off_cycle_eligible": false,
@@ -1066,7 +1066,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "PPh 21/26 income and tax-subject rules",
-							"url": "https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"url": "https://web.archive.org/web/20251210080625id_/https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
 							"quote": "The actual work period and country determine the resident or non-resident treatment and the taxable employment income.",
 							"effective_from": "2024-01-01"
 						}
@@ -1469,7 +1469,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "PPh 21/26 income and tax-subject rules",
-							"url": "https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"url": "https://web.archive.org/web/20251210080625id_/https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
 							"quote": "The original wage payment and its earned period determine the taxable employment income.",
 							"effective_from": "2024-01-01"
 						}
@@ -1805,7 +1805,7 @@
 						{
 							"title": "PP 68/2009",
 							"locator": "art.1 angka 4, art.5",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"url": "https://web.archive.org/web/20260207080939/https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
 							"quote": "A benefit paid in connection with the end of service is severance income and carries the final PPh 21 rates.",
 							"effective_from": "2009-11-16"
 						}
@@ -2999,7 +2999,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.7(4)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 							"effective_from": "2021-02-02"
 						}
@@ -3016,7 +3016,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.7(4)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 							"effective_from": "2021-02-02"
 						}
@@ -3033,7 +3033,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.7(4)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 							"effective_from": "2021-02-02"
 						}
@@ -3088,7 +3088,7 @@
 						{
 							"title": "Perpres 109/2013; PP 37/2021 as amended by PP 6/2025",
 							"locator": "Perpres art.6(3)–(4); PP art.4(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2013/109TAHUN2013PERPRES.htm",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PERPRES_109_2013.pdf",
 							"quote": "Perpres art.6(3)(c) leaves JHT out for a micro enterprise, but PP art.4(3) enrols micro and small workers in at least JKK, JHT and JKM, and MICRO_OR_SMALL cannot split them, so JHT stays charged for both. Construction's day, piece and seasonal workers join JKK and JKM only (art.6(4))."
 						}
 					],
@@ -3141,7 +3141,7 @@
 						{
 							"title": "Perpres 109/2013; PP 37/2021 as amended by PP 6/2025",
 							"locator": "Perpres art.6(3)–(4); PP art.4(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2013/109TAHUN2013PERPRES.htm",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PERPRES_109_2013.pdf",
 							"quote": "Large and medium enterprises join JP; small and micro enterprises do not (art.6(3); PP art.4(3)), and construction's day, piece and seasonal workers join JKK and JKM only (art.6(4))."
 						}
 					],
@@ -3202,7 +3202,7 @@
 							"locator": "PP 7/2025 arts.1–3; PP 36/2025 art.10A; read 2026-11-13",
 							"quote": "50% of the JKK rate for the listed labour-intensive industries for the contribution months February 2025 to January 2026 (reduced_through); the company declares its industry in jkk_labour_intensive_industry.",
 							"effective_from": "2025-02-07",
-							"url": "https://www.peraturan.go.id/files/pp-no-36-tahun-2025.pdf"
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pp036.pdf"
 						},
 						{
 							"title": "UU 24/2011 (BPJS)",
@@ -3217,7 +3217,7 @@
 						{
 							"title": "Bisnis: 50% JKK discount extended to January 2026",
 							"locator": "read 2026-11-13",
-							"url": "https://finansial.bisnis.com/read/20250919/215/1912810/resmi-prabowo-perpanjang-diskon-50-iuran-jkk-bpjs-sampai-januari-2026",
+							"url": "https://web.archive.org/web/20250919055749/https://finansial.bisnis.com/read/20250919/215/1912810/resmi-prabowo-perpanjang-diskon-50-iuran-jkk-bpjs-sampai-januari-2026",
 							"quote": "Resmi! Prabowo Perpanjang Diskon 50% Iuran JKK BPJS Sampai Januari 2026",
 							"effective_from": "2025-09-04"
 						}
@@ -3943,7 +3943,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "arts.5(3), 8, 12, 13, 15(1)–(2), 21(1); the tables are PP 58/2023 Lampiran A–C",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"url": "https://web.archive.org/web/20240627151943id_/https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
 							"quote": "For each tax period other than the last, PPh 21 of a permanent employee is the month's gross income (penghasilan bruto: all regular and irregular pay of the month, art.5(1), including the employer-paid JKK, JKM and BPJS Kesehatan premiums; the employer's JHT and JP shares are not income) times the TER rate of the employee's category. Tables as reproduced in the PMK annex, upper bounds inclusive (\"s.d.\"): A (44 brackets, 0% to Rp5,400,000 up to 34% above Rp1,400,000,000), B (40, 0% to Rp6,200,000 up to 34% above Rp1,405,000,000), C (41, 0% to Rp6,600,000 up to 34% above Rp1,419,000,000). The last tax period — December, or the month a permanent employee stops working (art.15(1)(b)) — takes the year's tax at the UU PPh art.17(1)(a) rates on penghasilan kena pajak rounded down to the full thousand: the year's gross less biaya jabatan (5%, at most Rp6,000,000 a year, art.10), less the employee's own JHT and JP contributions, less PTKP; the tax withheld is that tax less the TER already withheld in the year; an excess must be returned to the employee at the latest by the end of the next month (art.21(1)): PPH21_REFUND returns it. Residents only: CITIZEN and RESIDENT_FOREIGNER; a NON_RESIDENT is taxed under PPh 26."
 						},
 						{
@@ -3981,13 +3981,13 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "art.9(4)–(5)",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"url": "https://web.archive.org/web/20240627151943id_/https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
 							"quote": "PTKP is the declared status at calendar-year start, or arrival part-year start for a new resident. Current marital or dependant changes do not alter that year."
 						},
 						{
 							"title": "PMK 168/2023",
 							"locator": "art.19(1), (3)",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+							"url": "https://web.archive.org/web/20240627151943id_/https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						},
 						{
 							"title": "PMK 168/2023",
@@ -4190,13 +4190,13 @@
 						{
 							"title": "PP 68/2009",
 							"locator": "arts.2(2), 5–7",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"url": "https://web.archive.org/web/20260207080939/https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
 							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						},
 						{
 							"title": "PP 68/2009; PMK 16/PMK.03/2010",
 							"locator": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
+							"url": "https://pajak.go.id/id/peraturan/tata-cara-pemotongan-pajak-penghasilan-pasal-21-atas-penghasilan-berupa-uang-pesangon",
 							"quote": "The 20% surcharge without an NPWP is stated only for the non-final withholding of the third year onward; arts.3–5 of the final schedule carry none, so this row adds none."
 						}
 					],
@@ -4228,13 +4228,13 @@
 						{
 							"title": "PP 68/2009",
 							"locator": "arts.2(2), 5–7",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"url": "https://web.archive.org/web/20260207080939/https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
 							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						},
 						{
 							"title": "PP 68/2009; PMK 16/PMK.03/2010",
 							"locator": "PP 68/2009 art.6(3); PMK 16/PMK.03/2010 art.5(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
+							"url": "https://pajak.go.id/id/peraturan/tata-cara-pemotongan-pajak-penghasilan-pasal-21-atas-penghasilan-berupa-uang-pesangon",
 							"quote": "The 20% surcharge without an NPWP is stated only for the non-final withholding of the third year onward; arts.3–5 of the final schedule carry none, so this row adds none."
 						}
 					],
@@ -4257,7 +4257,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "arts.12(3)–(4), 13",
-							"url": "https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+							"url": "https://web.archive.org/web/20251210080625id_/https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
 							"quote": "The PPh 21 of a Bukan Pegawai — an individual paid for services outside employment (expert, consultant, contractor, a commissioner not on the payroll) — is the art.17(1)(a) rates on 50% of the gross of each payment (art.12(3)); the gross is the whole fee, less materials or third-party costs the payee is reimbursed for (art.12(4)(b)). Each payment is taxed on its own (no cumulation). A non-resident payee is PPh 26 instead."
 						},
 						{
@@ -4268,7 +4268,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "art.19(1), (3)",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+							"url": "https://web.archive.org/web/20240627151943id_/https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						}
 					],
 					"balance_window": "MONTH",
@@ -4299,7 +4299,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "art.19(1), (3)",
-							"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+							"url": "https://web.archive.org/web/20240627151943id_/https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
 						}
 					],
 					"balance_window": "YEAR",
@@ -4342,13 +4342,13 @@
 						{
 							"title": "PP 68/2009; PMK 16/PMK.03/2010",
 							"locator": "PP 68/2009 art.6; PMK 16/PMK.03/2010 art.5(1)–(3); benefit first payment year plus two or later",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
+							"url": "https://pajak.go.id/id/peraturan/tata-cara-pemotongan-pajak-penghasilan-pasal-21-atas-penghasilan-berupa-uang-pesangon",
 							"quote": "Apply one annual progressive ladder to the gross non-final severance and pension/THT/JHT instalments, with no PTKP or employment-expense deduction; invalid NPWP/NIK adds20%. Only native documented origins and due/payment dates in the same tax month are supported. Same-year ordinary employee/nonemployee income, active employment, negative corrections and missing/external opening evidence refuse."
 						},
 						{
 							"title": "PP 68/2009",
 							"locator": "arts.2(2), 5–7",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
+							"url": "https://web.archive.org/web/20260207080939/https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm",
 							"quote": "First two calendar years aggregate; year three onward is non-final. With no part paid in an earlier year, this payment's year is the first; an earlier part needs first_payment_year recorded."
 						}
 					],
@@ -4383,7 +4383,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						},
 						{
 							"title": "PP 36/2021",
@@ -4399,7 +4399,7 @@
 						{
 							"title": "UU 13/2003",
 							"locator": "art.93(1)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						},
 						{
 							"title": "PP 36/2021",
@@ -4415,7 +4415,7 @@
 						{
 							"title": "UU 13/2003",
 							"locator": "art.145",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						},
 						{
 							"title": "PP 36/2021",
@@ -4430,7 +4430,7 @@
 						{
 							"title": "UU 13/2003",
 							"locator": "art.93(1)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						},
 						{
 							"title": "PP 36/2021",
@@ -4515,7 +4515,7 @@
 					"references": [
 						{
 							"title": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024",
-							"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+							"url": "https://web.archive.org/web/20260726123441id_/https://jdih.kemenkeu.go.id/api/download/fulltext/2018/82TAHUN2018PERPRES.pdf"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -4588,7 +4588,7 @@
 					"references": [
 						{
 							"title": "PMK 81/2024 art.94(2); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
-							"url": "https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
+							"url": "https://web.archive.org/web/20261004004231/https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -4708,7 +4708,7 @@
 						},
 						{
 							"title": "PER-11/PJ/2025",
-							"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+							"url": "https://web.archive.org/web/20260715045730/https://jdih.kemenkeu.go.id/dok/per-11pj2025"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -4761,7 +4761,7 @@
 						{
 							"title": "PER-11/PJ/2025",
 							"locator": "art.7(2)",
-							"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+							"url": "https://web.archive.org/web/20260715045730/https://jdih.kemenkeu.go.id/dok/per-11pj2025"
 						},
 						{
 							"title": "PMK 168/2023",
@@ -4881,7 +4881,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.53(2)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -4973,7 +4973,7 @@
 					"references": [
 						{
 							"title": "Perpres 82/2018 arts.13–14, 17 as amended",
-							"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+							"url": "https://web.archive.org/web/20260726123441id_/https://jdih.kemenkeu.go.id/api/download/fulltext/2018/82TAHUN2018PERPRES.pdf"
 						}
 					],
 					"source_collection": "employment",
@@ -5107,7 +5107,7 @@
 						{
 							"title": "PP 34/2021",
 							"locator": "arts.1 angka 7, 23",
-							"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
+							"url": "https://web.archive.org/web/20250806181756/https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
 						}
 					],
 					"source_collection": "employment",
@@ -5145,7 +5145,7 @@
 						{
 							"title": "PER-11/PJ/2025",
 							"locator": "art.7(2)",
-							"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+							"url": "https://web.archive.org/web/20260715045730/https://jdih.kemenkeu.go.id/dok/per-11pj2025"
 						},
 						{
 							"title": "PMK 168/2023",
@@ -5286,7 +5286,7 @@
 						{
 							"title": "UU 7/1981",
 							"locator": "art.6(1)",
-							"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+							"url": "https://web.archive.org/web/20251129131430/https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
 						},
 						{
 							"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
@@ -5327,7 +5327,7 @@
 						{
 							"title": "UU 7/1981",
 							"locator": "art.7(1) and Penjelasan Pasal 7; Permenaker 18/2017 as amended by Permenaker 4/2019",
-							"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+							"url": "https://web.archive.org/web/20251129131430/https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -5552,7 +5552,7 @@
 						{
 							"title": "PMK 168/2023",
 							"locator": "arts.19(2)–(3), 20(1)(b), 20(3)",
-							"url": "https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
+							"url": "https://web.archive.org/web/20260916003611/https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
 						},
 						{
 							"title": "PER-11/PJ/2025"
@@ -5752,7 +5752,7 @@
 						{
 							"title": "UU 8/2016",
 							"locator": "art.53(2)",
-							"url": "https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
+							"url": "https://web.archive.org/web/20261104101922/https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -5856,7 +5856,7 @@
 						{
 							"title": "PP 50/2012",
 							"locator": "art.5(2)",
-							"url": "https://peraturan.bpk.go.id/Details/5263/pp-no-50-tahun-2012"
+							"url": "https://web.archive.org/web/20261012075451/https://peraturan.bpk.go.id/Details/5263/pp-no-50-tahun-2012"
 						},
 						{
 							"title": "Permenaker 13/2025",
@@ -5946,7 +5946,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "arts.20–22",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -5984,7 +5984,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.21(2)–(3)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"source_collection": "employment",
@@ -6447,7 +6447,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "arts.55(1), 61(1)–(2)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -6565,7 +6565,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.88E(1)-(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)-(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 - the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.rate.amount` plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "Minimum wages from 1 January 2025 (PP 36/2021 as amended by PP 51/2023; Permenaker 16/2024: 6.5% on 2024). Keys and lookup as in the 2026 versions: every kota and kabupaten is listed at its UMK or at the UMP; the worksite (`terms.work_region`), else the company region, by exact key; an absent key or the bare key of a province whose localities are listed refuses. UMPs 2025 as the Kemnaker national list publishes them with their sen (hukumonline, UMP 2025 se-Indonesia): Aceh 3,685,616; Sumatera Utara 2,992,559; Sumatera Barat 2,994,193.47; Riau 3,508,776.22; Jambi 3,234,535; Sumatera Selatan 3,681,571; Bengkulu 2,670,039.39; Lampung 2,893,070; Bangka Belitung 3,876,600; Kepulauan Riau 3,623,654; DKI 5,396,761; DI Yogyakarta 2,264,080.95; Banten 2,905,119.90; Bali 2,996,561; NTB 2,602,931; NTT 2,328,969.69; Kalimantan Barat 2,878,286; Kalimantan Tengah 3,473,621.04; Kalimantan Selatan 3,496,195 (3,282,812.21 × 1.065; one report prints 3,496,150, below that product); Kalimantan Timur 3,579,313.77; Kalimantan Utara 3,580,160; Sulawesi Utara 3,775,425; Sulawesi Tengah 2,915,000; Sulawesi Selatan 3,657,527.37; Sulawesi Tenggara 3,073,551.70; Gorontalo 3,221,731; Sulawesi Barat 3,104,430; Maluku 3,141,700; Maluku Utara 3,408,000; Papua Barat 3,615,000; Papua Barat Daya 3,614,000; Papua, Papua Selatan and Papua Pegunungan 4,285,850; Papua Tengah 4,285,848. UMKs 2025: Jawa Barat 27 (Kep. 561.7/Kep.798-Kesra/2024), Jawa Tengah 35 (Kep. 561/45/2024), Jawa Timur 38 (Kep. 775/2024), Banten eight (Kep. 471/2024), Bali, Lampung, Kepulauan Riau, Riau, DIY as before; and, as each province restated them beside its 2026 decision or in its 2025 decree (secondary: detik, GoodStats, KitaLulus): Aceh — Banda Aceh 3,898,856, Aceh Tamiang 3,717,948; Sumatera Utara 22 UMKs (Kep. 188.44/833/KPTS/2024 for Medan); Jambi four (Kep. 953/Kep.Gub/DISNAKERTRANS-3.3/2024); Sumatera Selatan seven; Bengkulu four (Kep. M.647.DKKTRANS/2024); NTB nine (Lombok Barat at the UMP: the 2,444,067 one report prints is below it); NTT Kota Kupang 2,396,697; Kalimantan Barat eleven (Kep. 908/NAKERTRAN/2024); Kalimantan Tengah 14 (Kep. 188.44/578/2024); Kalimantan Selatan four (Kep. 100.3.3.1/01089/KUM/2024); Kalimantan Timur ten, Mahakam Ulu included; Kalimantan Utara five; Sulawesi Utara Kota Manado 3,824,264 (SK 697/2024); Sulawesi Tengah six; Sulawesi Selatan Makassar 3,880,136; Sulawesi Tenggara three; Sulawesi Barat Mamuju 3,122,680 (SK 1475/2024) and Pasangkayu 3,445,981; Maluku Kota Ambon 3,185,733; Maluku Utara Kota Ternate 3,461,250 (SK 626/KPTS/MU/2024); Papua Tengah Mimika 5,005,678; big-city UMKs Medan 4,014,072, Samarinda 3,724,437.20, Balikpapan 3,701,508, Bontang 3,780,012, Makassar 3,880,136, Palembang 3,916,635. Where two reports disagree the higher figure is seeded (the floor a worker can rely on): Kabupaten Bima 2,662,719, Murung Raya 3,793,932, Kotawaringin Timur 3,559,506.38, Gunung Mas 3,544,506, Tanah Bumbu 3,500,163, Pasangkayu 3,445,981 (one 2025 report lists only Mamuju with a UMK). Kalimantan Selatan UMKs 2025 re-read on Kep. 100.3.3.1/01089/KUM/2024 diktum KEDUA (the Disnakertrans Kalsel scan, 2026-10-08): Tanah Bumbu 3,500,163.21.",
@@ -6587,7 +6587,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					]
 				},
@@ -6703,7 +6703,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the sector decrees and KBLI are stated in the second reference. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel, bank category, class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (`statutory_parameters`), and the job category for the DKI bus and hospital rows (`statutory_parameters.umsp_job_category`); the worksite is `terms.work_region` or the company region.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.35D as in force in 2025 and Permenaker 16/2024 art.7: the governor’s sector minimum wages bind workers under one year of service. Version 1 (December 2025) seeds the 2025 decrees read from an official host: Mimika UMSK 2025 (Kep. Gubernur Papua Tengah 258/2024 diktum KESATU, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=783): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819, and a construction company working in the PT Freeport Indonesia area pays the mining rate (statutory_parameters.umsp_freeport_area). The matching rules of the 2026 table apply (a KBLI code or prefix of statutory_parameters.worksite_kbli; a province key covers its localities; micro and small enterprises excluded). Kalimantan Selatan UMSK 2025 (Kep. Gubernur 100.3.3.1/01089/KUM/2024, 18 Dec 2024, from 1 January 2025, diktum KETIGA; the signed scan “KEPGUB UMK DAN UMSK TAHUN 2025” in the Disnakertrans Kalsel download centre, https://disnakertrans.kalselprov.go.id/unduhan?page=2, read 2026-10-08): Banjarmasin banking 3,609,682.13 (KBLI 641), hotels 3,603,182.13 (5511 and 5512: no star floor in 2025), wood 3,601,682.13 (division 16); Kotabaru coal 3,653,000 (05100), palm-oil and cooking-oil industry 3,646,004 (1043), palm plantation 3,646,004 (01262) — the sectors named without KBLI and read as in the 2026 decree. Any other 2025 worksite area warns (VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, unseeded_sector.outside_tables)."
@@ -6724,7 +6724,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.25",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "Perpres 82/2018",
@@ -6744,7 +6744,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "arts.17, 23(3)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
@@ -6765,7 +6765,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.16(1)-(4)",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					]
 				},
@@ -6930,7 +6930,7 @@
 						{
 							"title": "UU 7/1981",
 							"locator": "art.6(1)",
-							"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+							"url": "https://web.archive.org/web/20251129131430/https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
 						}
 					]
 				},
@@ -6954,7 +6954,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE).",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						}
 					]
 				}
@@ -7521,7 +7521,7 @@
 						{
 							"title": "PP 36/2021",
 							"locator": "art.63(1)(e), art.65",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
 							"quote": "Pemotongan Upah untuk utang atau cicilan utang Pekerja/Buruh dilakukan berdasarkan perjanjian, paling banyak 50% dari setiap pembayaran Upah.",
 							"effective_from": "2021-02-02"
 						}
@@ -7563,7 +7563,7 @@
 						},
 						{
 							"title": "UU 13/2003 art.79(3) as amended by UU 6/2023 art.81 angka 25 — at least 12 working days after 12 months of continuous work; art.79(4) leaves how it is taken to the employment agreement, company regulation or collective agreement",
-							"url": "https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
+							"url": "https://web.archive.org/web/20261104155654/https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
 						}
 					],
 					"subtotal": "SEVERANCE",
@@ -7575,7 +7575,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.40(1): no wage for a day not worked — except the absences art.40(2)–(5) pays (illness, menstruation, family events, state duty, religious duty, union duty, company training, work withheld by the employer, rest and leave) and a suspension during dismissal (UU 13/2003 art.157A); an unpaid absence recorded with one of those reasons is refused. Breastfeeding time is working time (UU 13/2003 art.83; UU 4/2024 art.4(1)(c)) and is never booked as unpaid.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"subtotal": "PAID_BASIC",
@@ -7611,7 +7611,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(a), 41(1): 100% of the wage for the first four months of illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal. One row: a sick day pays in full; a confirmed LONG_ILLNESS case starts the count, and closing it ends the count.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"subtotal": "BASIC",
@@ -7666,7 +7666,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c)(5), 41(3)(e): two paid days when the wife gives birth or miscarries; UU 4/2024 art.6(1): two days for a birth, which may be extended by up to three more days or as agreed (PATERNITY_EXTENSION_LEAVE), two days for a miscarriage. Window EVENT.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "UU 4/2024 art.6(2); PP 36/2021 art.41(3)(e) — 2 days when the wife gives birth or miscarries",
@@ -7686,11 +7686,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(a) — 3 paid days when the worker marries",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 3 days for the worker's own marriage (PP 36/2021 art.41(3)(a))."
@@ -7706,11 +7706,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(b) — 2 paid days when the worker’s child marries",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 2 days for the marriage of the worker's child (PP 36/2021 art.41(3)(b))."
@@ -7726,11 +7726,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(c) — 2 paid days for a child’s circumcision",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 2 days for the circumcision of the worker's child (PP 36/2021 art.41(3)(c))."
@@ -7746,11 +7746,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(d) — 2 paid days for a child’s baptism",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 2 days for the baptism of the worker's child (PP 36/2021 art.41(3)(d))."
@@ -7766,11 +7766,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(f) — 2 paid days on the death of a spouse, parent, parent-in-law, child or child-in-law",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 2 days on the death of a spouse, parent, parent-in-law, child or child-in-law (PP 36/2021 art.41(3)(f))."
@@ -7786,11 +7786,11 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "PP 36/2021 art.41(3)(g) — 1 paid day on the death of another member of the household",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave of 1 day on the death of a member of the worker's household (PP 36/2021 art.41(3)(g))."
@@ -7800,7 +7800,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(b), 41(2): a female worker sick on the first and second days of menstruation is paid for the days taken, at most 2; UU 13/2003 art.81(1).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave for a female worker who is unwell on the first and second days of menstruation, at most two days (UU 13/2003 art.81(1); PP 36/2021 art.41(2))."
@@ -7809,8 +7809,8 @@
 					"lookup": {},
 					"references": [
 						{
-							"title": "UU 13/2003 art.82(2): 1.5 months of rest, or as the doctor or midwife certifies, after a miscarriage — read as one month and fifteen days from the first day (`entry.from`..`entry.to`); paid in full (PP 36/2021 art.40(5)(e), art.46, https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); UU 4/2024 art.4(2)(b).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"title": "UU 13/2003 art.82(2): 1.5 months of rest, or as the doctor or midwife certifies, after a miscarriage — read as one month and fifteen days from the first day (`entry.from`..`entry.to`); paid in full (PP 36/2021 art.40(5)(e), art.46, https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); UU 4/2024 art.4(2)(b).",
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Rest of one and a half months after a miscarriage, or as the doctor or midwife certifies, paid in full (UU 13/2003 art.82(2))."
@@ -7823,14 +7823,14 @@
 						{
 							"title": "UU 13/2003",
 							"locator": "art.85(1)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm",
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm",
 							"quote": "Pekerja/buruh tidak wajib bekerja pada hari-hari libur resmi.",
 							"effective_from": "2003-03-25"
 						},
 						{
 							"title": "UU 13/2003 art.85(2)–(3); PP 35/2021 art.31(2)–(3) — work on an official holiday is by agreement and is paid as overtime; the statute owes no day in lieu, so a day off in its place is the employer's by agreement, each granted through a leave adjustment",
 							"locator": "art.85(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm",
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm",
 							"quote": "Pengusaha yang mempekerjakan pekerja/buruh yang melakukan pekerjaan pada hari libur resmi sebagaimana dimaksud dalam ayat (2) wajib membayar upah kerja lembur."
 						}
 					],
@@ -7841,7 +7841,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(4)(b), 43: the wage is paid while the worker performs a religious duty their religion commands, only once during the employment with the company: a second event (another `event_id`, or none) is refused.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Paid leave to perform a duty the worker's religion commands, such as the pilgrimage, once during the employment with the company (PP 36/2021 art.43)."
@@ -7877,7 +7877,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(4)(a), 42: a worker performing a duty to the state for at most one year is paid the shortfall between the state’s pay and the usual wage (the HR controller enters the state’s pay on the Deduction item); the worker notifies in writing (art.42(3)).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Leave to perform a duty to the state, for at most one year. The employer pays the shortfall between what the state pays and the usual wage (PP 36/2021 art.42)."
@@ -7887,7 +7887,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(4)(c), 44: paid at the usual wage, with the employer’s consent shown by written notice (`entry.employer_consent`).",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Time away on trade union duties with the employer's written consent, paid at the usual wage (PP 36/2021 art.44)."
@@ -7897,7 +7897,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(4)(d), 45: paid at the usual wage.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Time away on training the company sends the worker to, paid at the usual wage (PP 36/2021 arts.40(4)(d) and 45)."
@@ -7907,7 +7907,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.40(2)(d): the worker was willing to do the agreed work but the employer did not employ them through its own fault or an avoidable obstacle — the wage is paid.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Days on which the worker was ready to work but the employer gave no work, through its own fault or an obstacle it could have avoided. The wage is paid (PP 36/2021 art.40(2)(d))."
@@ -7949,7 +7949,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it; PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						}
 					],
 					"description": "Long leave as the employment agreement, company regulation or collective agreement grants it, paid at the usual wage (UU 13/2003 art.79(5); PP 36/2021 art.46)."
@@ -7967,7 +7967,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.88E(1)-(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)-(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 - the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.rate.amount` plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "Minimum wages from 1 January 2026 (PP 36/2021 arts.23, 25 as amended by PP 51/2023 and PP 49/2025). `by_region` keys are “Provinsi X” (the UMP; only DKI Jakarta, which has no locality, keeps a bare key in use) or “Provinsi X/Kota|Kabupaten Y” — every kota and kabupaten of the 37 other provinces is listed, at its UMK, or at the UMP where the governor set none (no district wage council): the floor is read at the worker’s worksite (`terms.work_region`), else at the company’s region, by exact key. A key not listed, or a bare province key of a province whose localities are listed, is refused (MINIMUM_WAGE_REGION_UNKNOWN), never floored at a lower figure. Signed decrees read: Jawa Barat 27 UMKs (Kep. 561.7/Kep.862-Kesra/2025; UMP 2,317,601, Kep. 561/Kep.859-Kesra/2025, read from the BSrE-signed copies); Jawa Tengah 35 UMKs (Kep. 100.3.3.1/505/2025, UMP 2,327,386.07 Kep. 100.3.3.1/504/2025, ppid.semarangkota.go.id); Jawa Timur 38 UMKs (Kep. 100.3.3.1/937/013/2025, files.jdih.jatimprov.go.id); Banten UMP 3,100,881.40 (Kep. 701/2025) and eight UMKs (Kep. 703/2025); Kalimantan Timur nine UMKs (Pengumuman Gubernur 500.15.14.1/5096/DTKT.Srk-IV/2025, the announcement of Kep. 100.3.3.1/K.485–K.501/2025: Balikpapan 3,856,694.43, Kutai Barat 4,231,617.40, Paser 3,776,998.06, Berau 4,391,337.55, Penajam Paser Utara 4,181,134; Mahakam Ulu has none and takes the UMP 3,762,431); Kalimantan Selatan five UMKs (Kep. 100.3.3.1/01107/KUM/2025, the signed scan on ppidutama.kalselprov.go.id, Wayback copy of 7 Jun 2026; the other eight localities at the UMP 3,725,000). Provinces’ own decrees as reported (secondary: GoodStats Data from the decree copies, detik, Kontan, Bisnis): Aceh UMP 3,932,552 (Kep. 500.15.14.1/1488/2025), Kota Banda Aceh 4,162,965 (Kep. 500.15.14.1/1495/2025) and Aceh Tamiang 3,978,204 (Kep. 500.15.14.1/126/2026, signed 27 Feb 2026 and in force from 1 January 2026), 21 localities at the UMP; Sumatera Utara UMP 3,228,971 (Kep. 188.44/896/KPTS/2025, ditetapkan 22 Dec 2025, in force 31 Dec 2025 to 31 Dec 2026: number and dates from the Hukumonline register, lt694bb423946a8; the amount as Disnaker Sumut announced it on 23 Dec 2025, disnaker.sumutprov.go.id/artikel/gubernur-sumut-bapak-bobby-nasution-menetapkan-ump-sumut-2026-naik-79; the decree copy is on neither jdih.sumutprov.go.id nor the Disnaker site) and 22 UMKs (Kep. 188.44/908/KPTS/2025, 24 Dec 2025; the Kemnaker list prints the UMP as 3,228,949 — the province’s figure is kept), 11 localities at the UMP; Sumatera Barat UMP 3,182,955 (SK 562-851-2025), no UMK; Riau 12 UMKs (Kpts.1164/XII/2025; Kepulauan Meranti and Indragiri Hilir at the UMP 3,780,495.85); Jambi UMP 3,471,497 (Kep. 1153/KEP.GUB/DISNAKERTRANS-3.3/2025) and five UMKs (Kep. 1201/KEP.GUB/DISNAKERTRANS-3.3/2025); Sumatera Selatan UMP 3,942,963 (Kep. 963/KPTS/DISNAKERTRANS/2025) and eight UMKs (Kep. 982/KPTS/DISNAKERTRANS/2025); Bengkulu UMP 2,827,250.90 (Kep. K.646.DKKTRANS/2025) and five UMKs (Kep. K.647.DKKTRANS/2025); Lampung UMP 3,047,734 (Kep. G/865/V.08/HK/2025), five UMKs (Kep. G/881/V.08/HK/2025) and ten regencies at the UMP; Bangka Belitung 4,035,000 (Kep. 100.3.3.1/684/DISNAKER/2025), no UMK; Kepulauan Riau UMP 3,879,520 and seven UMKs (Kep. 1327, 1332, 1333/2025); DI Yogyakarta 2,417,495 (Kep. 442/2025) and five UMKs (Kep. 443/2025); Bali 3,207,459 (Kep. 1011/2025) and four UMKs (Kep. 1021/03-M/HK/2025); NTB UMP 2,673,861 and ten UMKs (Kep. 100.3.3.1-683/2025); NTT UMP 2,455,898 (Kep. 528/KEP/HK/2025) and Kota Kupang 2,532,853 (Kep. 535/KEP/HK/2025); Kalimantan Barat UMP 3,054,552 and 14 UMKs (Kep. 1355/NAKERTRAN/2025); Kalimantan Tengah UMP 3,686,138 (Kep. 188.44/477/2025) and 14 UMKs (Kep. 188.44/492/2025) — read 2026-10-08 on the signed scans the Disnakertrans Kalteng Facebook account posted (Kep. 492 Lampiran I, with their sen: Palangka Raya 3,724,677.99, Kapuas 3,710,096.50, Katingan 3,729,766.91, Seruyan 4,051,079.97, Kotawaringin Timur 3,756,643.61, Kotawaringin Barat 3,909,005.90, Sukamara 3,912,098.21, Gunung Mas 3,770,716.78, Barito Utara 4,093,071.54); Kalimantan Utara UMP 3,775,243 and five UMKs; Sulawesi Utara UMP 4,002,630 (SK 404/2025) and Kota Manado 4,022,017 (SK 407/2025); Sulawesi Tengah UMP 3,179,565 (Kep. 500.15.14.1/485/DIS.NAKERTRANS-G.ST/2025) and five UMKs (Kep. …/488/…/2025; Kota Palu 3,619,466.72); Sulawesi Selatan UMP 3,921,088.79 (Kep. 2129/XII/2025), Makassar 4,148,179 (SK 2142/XII/2025), Pangkajene dan Kepulauan 4,032,248, Luwu Timur 3,961,166; Sulawesi Tenggara UMP 3,306,496.18 (Kep. 100.3.3.1/581/2025) and three UMKs (Kep. 100.3.3.1/583/2025); Gorontalo 3,405,144 (SK 434/34/XII/2025), no UMK; Sulawesi Barat UMP 3,315,934 (SK 855/2025) and three UMKs (SK 858/2025); Maluku UMP 3,334,490 (SK 5430/2025) and Kota Ambon 3,381,225 (SK 5434/2025); Maluku Utara UMP 3,510,240 (SK 524/KPTS/MU/2025) and Kota Ternate 3,599,562; Papua 4,436,283 (Kep. 100.3.3.1/KEP.409/2025), Papua Barat 3,841,000 (SK 343/2025), Papua Pegunungan 4,508,714, Papua Selatan 4,508,100 (SK 500.15.14.1/376/2025) and Papua Barat Daya 3,766,000 (SK 100.3.3.1/266/12/2025), no UMK; Papua Tengah UMP 4,285,848 (SK 100.3.3.1/334/2025) and Mimika 5,005,678 (SK 100.3.3.1/337/2025); DKI Jakarta 5,729,876 (Kep. 1142/2025; no UMK). Where a report prints whole rupiah the decree figure may carry sen; the seeded amount is the one published.",
@@ -15942,10 +15942,10 @@
 					"references": [
 						{
 							"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the sector decrees and KBLI are stated in the second reference. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel, bank category, class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (`statutory_parameters`), and the job category for the DKI bus and hospital rows (`statutory_parameters.umsp_job_category`); the worksite is `terms.work_region` or the company region.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
-							"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025: the governor may set sector minimum wages (UMSP/UMSK), above the UMP/UMK, for the KBLI sectors listed; they bind workers under one year of service. `kbli` is a KBLI 2020 code or a prefix of one (a 2-digit division, a 3- or 4-digit group): a worksite whose `statutory_parameters.worksite_kbli` starts with it is covered. A province key covers every locality below it; a locality’s UMSK and its province’s UMSP both bind (the higher wins). Decrees read with their KBLI: DKI Kep. Gubernur 33/2026 (61 rows, jdih.jakarta.go.id); Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 (29 Dec 2025, revoking Kep. 863; 17 localities; medium and large enterprises; Purwakarta’s two KBLI 20302 rows: polyester 5,062,344, rayon viscose 5,193,876 — statutory_parameters.umsp_rayon_viscose; read from the transcription on llg-bwi.org); Jawa Tengah UMSP (Kep. 100.3.3.1/504/2025 Lampiran, 11 KBLI, medium and large) and UMSK (Kep. 100.3.3.1/505/2025 Lampiran II: Cilacap, Demak, Kabupaten and Kota Semarang, Tegal); Jawa Timur UMSP 2,571,426.91 (Kep. 100.3.3.1/935/013/2025, 7 KBLI) and UMSK of 11 localities (Kep. 100.3.3.1/938/013/2025); Banten Kep. 704/2025 Lampiran I–VII (Lebak, Kabupaten Tangerang sectors 1A–3A, Serang, Cilegon, Tangerang Selatan; sector 3B and Kota Tangerang sector V are bipartite agreements — not seeded); Kalimantan Timur (Pengumuman 500.15.14.1/5096/DTKT.Srk-IV/2025: Bontang, Balikpapan, Samarinda, Kutai Kartanegara, Kutai Timur, Paser, Penajam Paser Utara, Berau); Kalimantan Selatan UMSK (Kep. 100.3.3.1/01107/KUM/2025 diktum KETIGA: banking read as KBLI 641, four-star-and-above hotels as 55110 with statutory_parameters.umsp_hotel_star, wood as division 16); Bali, Badung and Lampung as before. Sector names reported without KBLI and read as KBLI groups (secondary reports of the decrees): Riau UMS (Kpts.1164/XII/2025: oil and gas = division 06, agriculture and plantations = 01, forestry 02, fisheries 03, pulp and paper 170); Kalimantan Utara UMSK (plywood 16211, oil 06100, mining = divisions 05–09, forestry 02, agriculture 01, wood 16); Kepulauan Riau UMSP 3,902,096 (basic chemicals 2011, ships 3011 and pleasure boats 30120, gas and geothermal 0620, oil 06100) and the Batam UMSK 5,374,672 for shipyards and offshore structures (3011); Jambi UMSP palm 3,513,120; Sulawesi Barat UMSP palm 3,324,301; Papua Barat UMSP (gas 06201 5,880,000, cement 23941 4,091,000, palm, forest timber 022, wood 16 and fish processing 102 3,991,000); Papua Barat Daya UMSP (oil and gas 06 5,549,000, mining other than quarrying 05/07 3,837,000, forestry 02 and plantations 012 3,802,000, fisheries 03 3,784,000); Papua Selatan UMSP (mining 05/07/08 and fisheries 03 4,517,120). Not seeded (tracker GAP ID-SETTINGS-15): the sector tables whose KBLI rows or amounts were not obtained. Kota Tangerang sectors I–IV (Banten Kep. 704/2025 Lampiran I: 5,777,364.09, 5,561,387.86, 5,480,396.78 and 5,453,399.75; Lampiran V names each sub-sector without KBLI, read here as KBLI 2020 by its Peraturan BPS 2/2020 title, read 2026-10-08 https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-kabupaten-dan-kota-tahun-2026-202512241555.pdf and https://ppid.bps.go.id/upload/doc/Peraturan_Badan_Pusat_Statistik_No__2_Tahun_2020_Klasifikasi_Baku_Lapangan_Usaha_Indonesia_1658133734.pdf); its star hotels of 3 to 5 stars are condition HOTEL_3_5 (statutory_parameters.umsp_hotel_star), large export toys and furniture EXPORT; not read as KBLI: “Jasa – Distributor”, “Minimarket (khusus distributor)”, “Rumah Sakit Type B”, “Industri Garment (bukan konveksi)” (KBLI 1411 is konveksi itself) and the hospital “Jasa” (no class or KBLI is named), and sector V (bipartite agreements of the named companies). Mimika UMSK 2026 (Kep. Gubernur Papua Tengah 100.3.3.1/337/2025 diktum KEDUA–KETIGA, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=551): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819; every company working in the PT Freeport Indonesia area pays the mining rate (statutory_parameters.umsp_freeport_area). Sulawesi Tengah (read 2026-10-08 on jdih.sultengprov.go.id, each record’s linked signed copy): UMSP Kep. 500.15.14.1/485/2025 (detailperaturan/1161): mining and quarrying (divisions 05–09) 3,352,956, palm plantation 01262 3,320,403; Morowali UMSK Kep. 487/2025 as amended by Kep. 495/2025 (1179): palm 01262 4,262,000, non-ferrous basic metal 24202, nickel ore 07295, iron and steel 24101, steel rolling 24102 and coal products 19100 4,627,000; Morowali Utara Kep. 488/2025 (1176): palm 01262 4,507,917, 24202 4,516,842, nickel ore 07295 4,521,306; Poso Kep. 489/2025 (1177): palm 01262 3,328,251, electricity 351 3,317,251; Kota Palu Kep. 486/2025 (1175): gravel/sand-and-stone quarrying 08103 3,658,497.15. Read 2026-10-08 on an official copy (round 8): Kalimantan Selatan UMSP Kep. 100.3.3.1/01101/KUM/2025 (23 Dec 2025) diktum KETIGA, the signed scan in the Disnakertrans Kalsel download centre (https://disnakertrans.kalselprov.go.id/unduhan?page=2, “KEPGUB KALSEL PENETAPAN UMP DAN UMSP 2026”): coal 05100 3,770,000, palm plantation 01262 and CPO 10431 3,730,000, wholesale of solid, liquid and gaseous fuels 46610 3,728,000, integrated power 35115 3,759,000, plywood 16211 3,728,000. Kalimantan Tengah UMSP Kep. 188.44/477/2025 (19 Dec 2025) Lampiran: CPO 10431, palm kernel oil 10432, palm cooking oil 10437 and palm plantation 01262 3,692,907, coal 05100 and gold and silver 07301 3,714,130; and UMSK Kep. 188.44/492/2025 (24 Dec 2025) Lampiran II for Kapuas, Seruyan, Kotawaringin Timur and Barat, Barito Selatan, Timur and Utara and Murung Raya by KBLI — both the signed scans the Disnakertrans Kalteng Facebook account posted (https://www.facebook.com/disnakertranskalteng/posts/1179509067627689 and /1183741693871093, linking drive.google.com files 1d8E-pDjpPPGfGSqHZ65QVn-aE7gnhkqk and 14epIlxAcjLvspZvIaYU5gTeHuwztWGNc); its hotel row is “Hotel Bintang” 55110 without a star floor. Aceh UMSP Kep. 500.15.14.1/1489/2025 (30 Dec 2025, from 1 January 2026) Lampiran, the Biro Hukum certified copy on jdih.acehprov.go.id (https://jdih.acehprov.go.id/dih/view/ebe6f9a2-424d-44f1-b818-233c68619ec7): palm 01262 and palm oil 10431 3,987,940, coal 05100, gold and silver 07301 and natural gas 06201 4,061,791, medium and large enterprises; every worker under one year of service in the five sectors, married or not — diktum KEEMPAT’s “pekerja/buruh lajang … masa kerja kurang dari 1 (satu) tahun” names the reference worker the amount is set for (a single worker’s needs), and diktum KEENAM bars every employer in the five sectors from paying below it. Kalimantan Barat UMSP Kep. 1350/NAKERTRAN/2025 (19 Dec 2025) as the Kabupaten Sekadau labour office (Disperindagnaker) publishes its table on the regency open-data portal (https://data.sekadaukab.go.id/dataset/product/upah-minimum-provinsi-dan-upah-minimum-sektoral-provinsi-kalimantan-barat): palm 01262 3,062,552, bauxite 07293 3,108,007, decorative and building stone 08101 3,062,552, CPO 10431 3,062,552 (the signed copy on sudahinakertrans.kalbarprov.go.id is Cloudflare-blocked to this reader; kalbaronline.com reports 3,062,552). Still not configured (each warns at the payslip, VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, from minimum_wage.unseeded_sector): Sulawesi Tenggara UMSP and Kolaka UMSK, Kayong Utara UMSK, the Jambi mining UMSP and the five Jambi UMSK, the Sumatera Utara UMSK (Kep. 188.44/909/KPTS/2025) and the Kota Tangerang Lampiran V sub-sectors. Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 was annulled by PTUN Bandung 26/G/2026/PTUN.BDG (30 Jun 2026, ordering a new decree at the bupati/walikota recommendations); the governor appealed on 31 Jul 2026, so the decree stands until the ruling is final (UU 5/1986 art.67(1): a suit does not suspend a decision) and stays seeded; a final ruling is a new version from its effective date. Kayong Utara UMSK 2026: KBLI 01262 and 10431, Rp3,404,291 from 1 January 2026; official Kabupaten media centre statement by the Bupati (31 December 2025), https://mediacenter.kayongutarakab.go.id/berita/detail/umk-kayong-utara-2026-ditetapkan-rp337-juta-naik-465-persen, read 2026-10-09. Sultra No.581/2025, dated 2025-12-24: mining/quarrying 3373843.20 and construction 3437546.64; Diktum KETUJUH limits UMSP to districts without UMK (Kendari, Kolaka and Konawe Utara excluded). Signed decree scan visually checked pages 2–3: https://www.scribd.com/document/987358059/39-UMP-UMSP-Sulawesi-Tenggara-2026 (read 2026-10-09). Jambi UMSP: Kep. 1154/KEP.GUB/DISNAKERTRANS-3.3/2025, signed 19 December 2025, Diktum KESATU 1–2 and KETIGA, effective 2026-01-01. Signed copy archived by ASPERINDO: https://drive.google.com/file/d/1bXVnPL3OVKRb8UC6VmaK_2qlb_ENfkHV/view (visually verified 2026-10-10): palm 01262/10431 Rp3,513,120; coal 05100, oil 06100 and natural gas Rp3,574,446. Natural gas maps to 06201 in the official OSS KBLI 2020 catalogue, https://oss.go.id/id/kbli/detail/14a422ed-0b71-422d-bd96-7b830eb2a539; geothermal 06202 is excluded. District UMSK remain separate unresolved decrees. Verified 2026-10-10 visually on the public scan of Sulawesi Tenggara governor decree 100.3.3.1/583/2025, https://www.scribd.com/document/979089012/Salinan-SK-Gubernur-UMK-UMSK-Kolaka-2026: diktum KESATU UMK 3,688,130.26; KEDUA mining and quarrying 3,713,476.49 (KBLI divisions 05-09), construction 3,844,359.65 (41-43); KEEMPAT under one year; KESEPULUH effective 1 January 2026. The decree names sectors without narrower KBLI restrictions. Verified 2026-10-10 on signed Sumatera Utara governor decree 188.44/909/KPTS/2025 dated 24 December 2025, https://www.scribd.com/document/973881227/UMSK-Prop-Sumatra-Utara-2026: annexes I-IV, VI-X and XII (pages 5-8, 14-18 and 24) are transcribed by printed KBLI and exact rupiah/sen amounts. Annex X prints 1262 and 1291, normalized to the five-digit KBLI 01262 and 01291. Annex IX mixes crumb rubber and crude palm oil in the name of KBLI 10431: only the printed code is configured; rubber KBLI 22123 remains a warning. Diktum KEDUA: paid from 1 January 2026; KETIGA under-one-year floor and longer-service wage structure; KEEMPAT excludes micro/small; KELIMA prohibits reducing existing higher wages. Annex V (Deli Serdang, pages 9-13) is also transcribed: all 55 printed KBLI rows and exact rupiah amounts, including lighting 27409 at 4,122,072, sawmill/metal 16102 and 24203 at 4,203,204, and all star hotels 55110 at 4,081,556 without an added star restriction. Annex XI (Medan, pages 19-23): all 71 printed rows configured with exact rupiah amounts. KBLI 2015 55111/55112/55113 convert to KBLI 2020 55110 with exact hotel class 5/4/3 respectively (floors 4465072/4465076/4464878); 64125 converts to 64121 only for private conventional foreign-exchange banks, and 64131 to 64122 only for foreign-exchange syariah banks, each 4508451. BPS official conversion table pages 335 and 340: https://ppid.bps.go.id/upload/doc/Tabel_kesesuaian_KBLI_2020_1711428500.pdf. The bank subclass is a required customer declaration, not inferred from the broader 2020 code. Missing hotel/bank scope warns. OSS KBLI 2020 confirms 66160 is money changer and 66420 rupiah cash processing; these printed codes are unchanged."
+							"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025: the governor may set sector minimum wages (UMSP/UMSK), above the UMP/UMK, for the KBLI sectors listed; they bind workers under one year of service. `kbli` is a KBLI 2020 code or a prefix of one (a 2-digit division, a 3- or 4-digit group): a worksite whose `statutory_parameters.worksite_kbli` starts with it is covered. A province key covers every locality below it; a locality’s UMSK and its province’s UMSP both bind (the higher wins). Decrees read with their KBLI: DKI Kep. Gubernur 33/2026 (61 rows, jdih.jakarta.go.id); Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 (29 Dec 2025, revoking Kep. 863; 17 localities; medium and large enterprises; Purwakarta’s two KBLI 20302 rows: polyester 5,062,344, rayon viscose 5,193,876 — statutory_parameters.umsp_rayon_viscose; read from the transcription on llg-bwi.org); Jawa Tengah UMSP (Kep. 100.3.3.1/504/2025 Lampiran, 11 KBLI, medium and large) and UMSK (Kep. 100.3.3.1/505/2025 Lampiran II: Cilacap, Demak, Kabupaten and Kota Semarang, Tegal); Jawa Timur UMSP 2,571,426.91 (Kep. 100.3.3.1/935/013/2025, 7 KBLI) and UMSK of 11 localities (Kep. 100.3.3.1/938/013/2025); Banten Kep. 704/2025 Lampiran I–VII (Lebak, Kabupaten Tangerang sectors 1A–3A, Serang, Cilegon, Tangerang Selatan; sector 3B and Kota Tangerang sector V are bipartite agreements — not seeded); Kalimantan Timur (Pengumuman 500.15.14.1/5096/DTKT.Srk-IV/2025: Bontang, Balikpapan, Samarinda, Kutai Kartanegara, Kutai Timur, Paser, Penajam Paser Utara, Berau); Kalimantan Selatan UMSK (Kep. 100.3.3.1/01107/KUM/2025 diktum KETIGA: banking read as KBLI 641, four-star-and-above hotels as 55110 with statutory_parameters.umsp_hotel_star, wood as division 16); Bali, Badung and Lampung as before. Sector names reported without KBLI and read as KBLI groups (secondary reports of the decrees): Riau UMS (Kpts.1164/XII/2025: oil and gas = division 06, agriculture and plantations = 01, forestry 02, fisheries 03, pulp and paper 170); Kalimantan Utara UMSK (plywood 16211, oil 06100, mining = divisions 05–09, forestry 02, agriculture 01, wood 16); Kepulauan Riau UMSP 3,902,096 (basic chemicals 2011, ships 3011 and pleasure boats 30120, gas and geothermal 0620, oil 06100) and the Batam UMSK 5,374,672 for shipyards and offshore structures (3011); Jambi UMSP palm 3,513,120; Sulawesi Barat UMSP palm 3,324,301; Papua Barat UMSP (gas 06201 5,880,000, cement 23941 4,091,000, palm, forest timber 022, wood 16 and fish processing 102 3,991,000); Papua Barat Daya UMSP (oil and gas 06 5,549,000, mining other than quarrying 05/07 3,837,000, forestry 02 and plantations 012 3,802,000, fisheries 03 3,784,000); Papua Selatan UMSP (mining 05/07/08 and fisheries 03 4,517,120). Not seeded (tracker GAP ID-SETTINGS-15): the sector tables whose KBLI rows or amounts were not obtained. Kota Tangerang sectors I–IV (Banten Kep. 704/2025 Lampiran I: 5,777,364.09, 5,561,387.86, 5,480,396.78 and 5,453,399.75; Lampiran V names each sub-sector without KBLI, read here as KBLI 2020 by its Peraturan BPS 2/2020 title, read 2026-10-08 https://ppid.bantenprov.go.id/informasi-publik/download/kepgub-banten-upah-minimum-sektoral-kabupaten-dan-kota-tahun-2026-202512241555.pdf and https://web.archive.org/web/20250621013942id_/https://ppid.bps.go.id/upload/doc/Peraturan_Badan_Pusat_Statistik_No__2_Tahun_2020_Klasifikasi_Baku_Lapangan_Usaha_Indonesia_1658133734.pdf); its star hotels of 3 to 5 stars are condition HOTEL_3_5 (statutory_parameters.umsp_hotel_star), large export toys and furniture EXPORT; not read as KBLI: “Jasa – Distributor”, “Minimarket (khusus distributor)”, “Rumah Sakit Type B”, “Industri Garment (bukan konveksi)” (KBLI 1411 is konveksi itself) and the hospital “Jasa” (no class or KBLI is named), and sector V (bipartite agreements of the named companies). Mimika UMSK 2026 (Kep. Gubernur Papua Tengah 100.3.3.1/337/2025 diktum KEDUA–KETIGA, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=551): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819; every company working in the PT Freeport Indonesia area pays the mining rate (statutory_parameters.umsp_freeport_area). Sulawesi Tengah (read 2026-10-08 on jdih.sultengprov.go.id, each record’s linked signed copy): UMSP Kep. 500.15.14.1/485/2025 (detailperaturan/1161): mining and quarrying (divisions 05–09) 3,352,956, palm plantation 01262 3,320,403; Morowali UMSK Kep. 487/2025 as amended by Kep. 495/2025 (1179): palm 01262 4,262,000, non-ferrous basic metal 24202, nickel ore 07295, iron and steel 24101, steel rolling 24102 and coal products 19100 4,627,000; Morowali Utara Kep. 488/2025 (1176): palm 01262 4,507,917, 24202 4,516,842, nickel ore 07295 4,521,306; Poso Kep. 489/2025 (1177): palm 01262 3,328,251, electricity 351 3,317,251; Kota Palu Kep. 486/2025 (1175): gravel/sand-and-stone quarrying 08103 3,658,497.15. Read 2026-10-08 on an official copy (round 8): Kalimantan Selatan UMSP Kep. 100.3.3.1/01101/KUM/2025 (23 Dec 2025) diktum KETIGA, the signed scan in the Disnakertrans Kalsel download centre (https://disnakertrans.kalselprov.go.id/unduhan?page=2, “KEPGUB KALSEL PENETAPAN UMP DAN UMSP 2026”): coal 05100 3,770,000, palm plantation 01262 and CPO 10431 3,730,000, wholesale of solid, liquid and gaseous fuels 46610 3,728,000, integrated power 35115 3,759,000, plywood 16211 3,728,000. Kalimantan Tengah UMSP Kep. 188.44/477/2025 (19 Dec 2025) Lampiran: CPO 10431, palm kernel oil 10432, palm cooking oil 10437 and palm plantation 01262 3,692,907, coal 05100 and gold and silver 07301 3,714,130; and UMSK Kep. 188.44/492/2025 (24 Dec 2025) Lampiran II for Kapuas, Seruyan, Kotawaringin Timur and Barat, Barito Selatan, Timur and Utara and Murung Raya by KBLI — both the signed scans the Disnakertrans Kalteng Facebook account posted (https://www.facebook.com/disnakertranskalteng/posts/1179509067627689 and /1183741693871093, linking drive.google.com files 1d8E-pDjpPPGfGSqHZ65QVn-aE7gnhkqk and 14epIlxAcjLvspZvIaYU5gTeHuwztWGNc); its hotel row is “Hotel Bintang” 55110 without a star floor. Aceh UMSP Kep. 500.15.14.1/1489/2025 (30 Dec 2025, from 1 January 2026) Lampiran, the Biro Hukum certified copy on jdih.acehprov.go.id (https://jdih.acehprov.go.id/dih/view/ebe6f9a2-424d-44f1-b818-233c68619ec7): palm 01262 and palm oil 10431 3,987,940, coal 05100, gold and silver 07301 and natural gas 06201 4,061,791, medium and large enterprises; every worker under one year of service in the five sectors, married or not — diktum KEEMPAT’s “pekerja/buruh lajang … masa kerja kurang dari 1 (satu) tahun” names the reference worker the amount is set for (a single worker’s needs), and diktum KEENAM bars every employer in the five sectors from paying below it. Kalimantan Barat UMSP Kep. 1350/NAKERTRAN/2025 (19 Dec 2025) as the Kabupaten Sekadau labour office (Disperindagnaker) publishes its table on the regency open-data portal (https://data.sekadaukab.go.id/dataset/product/upah-minimum-provinsi-dan-upah-minimum-sektoral-provinsi-kalimantan-barat): palm 01262 3,062,552, bauxite 07293 3,108,007, decorative and building stone 08101 3,062,552, CPO 10431 3,062,552 (the signed copy on sudahinakertrans.kalbarprov.go.id is Cloudflare-blocked to this reader; kalbaronline.com reports 3,062,552). Still not configured (each warns at the payslip, VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, from minimum_wage.unseeded_sector): Sulawesi Tenggara UMSP and Kolaka UMSK, Kayong Utara UMSK, the Jambi mining UMSP and the five Jambi UMSK, the Sumatera Utara UMSK (Kep. 188.44/909/KPTS/2025) and the Kota Tangerang Lampiran V sub-sectors. Jawa Barat Kep. 561.7/Kep.876-Kesra/2025 was annulled by PTUN Bandung 26/G/2026/PTUN.BDG (30 Jun 2026, ordering a new decree at the bupati/walikota recommendations); the governor appealed on 31 Jul 2026, so the decree stands until the ruling is final (UU 5/1986 art.67(1): a suit does not suspend a decision) and stays seeded; a final ruling is a new version from its effective date. Kayong Utara UMSK 2026: KBLI 01262 and 10431, Rp3,404,291 from 1 January 2026; official Kabupaten media centre statement by the Bupati (31 December 2025), https://mediacenter.kayongutarakab.go.id/berita/detail/umk-kayong-utara-2026-ditetapkan-rp337-juta-naik-465-persen, read 2026-10-09. Sultra No.581/2025, dated 2025-12-24: mining/quarrying 3373843.20 and construction 3437546.64; Diktum KETUJUH limits UMSP to districts without UMK (Kendari, Kolaka and Konawe Utara excluded). Signed decree scan visually checked pages 2–3: https://www.scribd.com/document/987358059/39-UMP-UMSP-Sulawesi-Tenggara-2026 (read 2026-10-09). Jambi UMSP: Kep. 1154/KEP.GUB/DISNAKERTRANS-3.3/2025, signed 19 December 2025, Diktum KESATU 1–2 and KETIGA, effective 2026-01-01. Signed copy archived by ASPERINDO: https://drive.google.com/file/d/1bXVnPL3OVKRb8UC6VmaK_2qlb_ENfkHV/view (visually verified 2026-10-10): palm 01262/10431 Rp3,513,120; coal 05100, oil 06100 and natural gas Rp3,574,446. Natural gas maps to 06201 in the official OSS KBLI 2020 catalogue, https://oss.go.id/id/kbli/detail/14a422ed-0b71-422d-bd96-7b830eb2a539; geothermal 06202 is excluded. District UMSK remain separate unresolved decrees. Verified 2026-10-10 visually on the public scan of Sulawesi Tenggara governor decree 100.3.3.1/583/2025, https://www.scribd.com/document/979089012/Salinan-SK-Gubernur-UMK-UMSK-Kolaka-2026: diktum KESATU UMK 3,688,130.26; KEDUA mining and quarrying 3,713,476.49 (KBLI divisions 05-09), construction 3,844,359.65 (41-43); KEEMPAT under one year; KESEPULUH effective 1 January 2026. The decree names sectors without narrower KBLI restrictions. Verified 2026-10-10 on signed Sumatera Utara governor decree 188.44/909/KPTS/2025 dated 24 December 2025, https://www.scribd.com/document/973881227/UMSK-Prop-Sumatra-Utara-2026: annexes I-IV, VI-X and XII (pages 5-8, 14-18 and 24) are transcribed by printed KBLI and exact rupiah/sen amounts. Annex X prints 1262 and 1291, normalized to the five-digit KBLI 01262 and 01291. Annex IX mixes crumb rubber and crude palm oil in the name of KBLI 10431: only the printed code is configured; rubber KBLI 22123 remains a warning. Diktum KEDUA: paid from 1 January 2026; KETIGA under-one-year floor and longer-service wage structure; KEEMPAT excludes micro/small; KELIMA prohibits reducing existing higher wages. Annex V (Deli Serdang, pages 9-13) is also transcribed: all 55 printed KBLI rows and exact rupiah amounts, including lighting 27409 at 4,122,072, sawmill/metal 16102 and 24203 at 4,203,204, and all star hotels 55110 at 4,081,556 without an added star restriction. Annex XI (Medan, pages 19-23): all 71 printed rows configured with exact rupiah amounts. KBLI 2015 55111/55112/55113 convert to KBLI 2020 55110 with exact hotel class 5/4/3 respectively (floors 4465072/4465076/4464878); 64125 converts to 64121 only for private conventional foreign-exchange banks, and 64131 to 64122 only for foreign-exchange syariah banks, each 4508451. BPS official conversion table pages 335 and 340: https://ppid.bps.go.id/upload/doc/Tabel_kesesuaian_KBLI_2020_1711428500.pdf. The bank subclass is a required customer declaration, not inferred from the broader 2020 code. Missing hotel/bank scope warns. OSS KBLI 2020 confirms 66160 is money changer and 66420 rupiah cash processing; these printed codes are unchanged."
 						}
 					]
 				}
@@ -16555,7 +16555,7 @@
 						{
 							"title": "Perpres 109/2013; PP 37/2021 as amended by PP 6/2025",
 							"locator": "Perpres art.6(3)–(4); PP art.4(3)",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2013/109TAHUN2013PERPRES.htm",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PERPRES_109_2013.pdf",
 							"quote": "Large and medium enterprises join JP; small and micro enterprises do not (art.6(3); PP art.4(3)), and construction's day, piece and seasonal workers join JKK and JKM only (art.6(4))."
 						}
 					]
@@ -16598,7 +16598,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.88E(1)-(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)-(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 - the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.rate.amount` plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "Minimum wages from 1 January 2026 (PP 36/2021 arts.23, 25 as amended by PP 51/2023 and PP 49/2025). `by_region` keys are “Provinsi X” (the UMP; only DKI Jakarta, which has no locality, keeps a bare key in use) or “Provinsi X/Kota|Kabupaten Y” — every kota and kabupaten of the 37 other provinces is listed, at its UMK, or at the UMP where the governor set none (no district wage council): the floor is read at the worker’s worksite (`terms.work_region`), else at the company’s region, by exact key. A key not listed, or a bare province key of a province whose localities are listed, is refused (MINIMUM_WAGE_REGION_UNKNOWN), never floored at a lower figure. Signed decrees read: Jawa Barat 27 UMKs (Kep. 561.7/Kep.862-Kesra/2025; UMP 2,317,601, Kep. 561/Kep.859-Kesra/2025, read from the BSrE-signed copies); Jawa Tengah 35 UMKs (Kep. 100.3.3.1/505/2025, UMP 2,327,386.07 Kep. 100.3.3.1/504/2025, ppid.semarangkota.go.id); Jawa Timur 38 UMKs (Kep. 100.3.3.1/937/013/2025, files.jdih.jatimprov.go.id); Banten UMP 3,100,881.40 (Kep. 701/2025) and eight UMKs (Kep. 703/2025); Kalimantan Timur nine UMKs (Pengumuman Gubernur 500.15.14.1/5096/DTKT.Srk-IV/2025, the announcement of Kep. 100.3.3.1/K.485–K.501/2025: Balikpapan 3,856,694.43, Kutai Barat 4,231,617.40, Paser 3,776,998.06, Berau 4,391,337.55, Penajam Paser Utara 4,181,134; Mahakam Ulu has none and takes the UMP 3,762,431); Kalimantan Selatan five UMKs (Kep. 100.3.3.1/01107/KUM/2025, the signed scan on ppidutama.kalselprov.go.id, Wayback copy of 7 Jun 2026; the other eight localities at the UMP 3,725,000). Provinces’ own decrees as reported (secondary: GoodStats Data from the decree copies, detik, Kontan, Bisnis): Aceh UMP 3,932,552 (Kep. 500.15.14.1/1488/2025), Kota Banda Aceh 4,162,965 (Kep. 500.15.14.1/1495/2025) and Aceh Tamiang 3,978,204 (Kep. 500.15.14.1/126/2026, signed 27 Feb 2026 and in force from 1 January 2026), 21 localities at the UMP; Sumatera Utara UMP 3,228,971 (Kep. 188.44/896/KPTS/2025, ditetapkan 22 Dec 2025, in force 31 Dec 2025 to 31 Dec 2026: number and dates from the Hukumonline register, lt694bb423946a8; the amount as Disnaker Sumut announced it on 23 Dec 2025, disnaker.sumutprov.go.id/artikel/gubernur-sumut-bapak-bobby-nasution-menetapkan-ump-sumut-2026-naik-79; the decree copy is on neither jdih.sumutprov.go.id nor the Disnaker site) and 22 UMKs (Kep. 188.44/908/KPTS/2025, 24 Dec 2025; the Kemnaker list prints the UMP as 3,228,949 — the province’s figure is kept), 11 localities at the UMP; Sumatera Barat UMP 3,182,955 (SK 562-851-2025), no UMK; Riau 12 UMKs (Kpts.1164/XII/2025; Kepulauan Meranti and Indragiri Hilir at the UMP 3,780,495.85); Jambi UMP 3,471,497 (Kep. 1153/KEP.GUB/DISNAKERTRANS-3.3/2025) and five UMKs (Kep. 1201/KEP.GUB/DISNAKERTRANS-3.3/2025); Sumatera Selatan UMP 3,942,963 (Kep. 963/KPTS/DISNAKERTRANS/2025) and eight UMKs (Kep. 982/KPTS/DISNAKERTRANS/2025); Bengkulu UMP 2,827,250.90 (Kep. K.646.DKKTRANS/2025) and five UMKs (Kep. K.647.DKKTRANS/2025); Lampung UMP 3,047,734 (Kep. G/865/V.08/HK/2025), five UMKs (Kep. G/881/V.08/HK/2025) and ten regencies at the UMP; Bangka Belitung 4,035,000 (Kep. 100.3.3.1/684/DISNAKER/2025), no UMK; Kepulauan Riau UMP 3,879,520 and seven UMKs (Kep. 1327, 1332, 1333/2025); DI Yogyakarta 2,417,495 (Kep. 442/2025) and five UMKs (Kep. 443/2025); Bali 3,207,459 (Kep. 1011/2025) and four UMKs (Kep. 1021/03-M/HK/2025); NTB UMP 2,673,861 and ten UMKs (Kep. 100.3.3.1-683/2025); NTT UMP 2,455,898 (Kep. 528/KEP/HK/2025) and Kota Kupang 2,532,853 (Kep. 535/KEP/HK/2025); Kalimantan Barat UMP 3,054,552 and 14 UMKs (Kep. 1355/NAKERTRAN/2025); Kalimantan Tengah UMP 3,686,138 (Kep. 188.44/477/2025) and 14 UMKs (Kep. 188.44/492/2025) — read 2026-10-08 on the signed scans the Disnakertrans Kalteng Facebook account posted (Kep. 492 Lampiran I, with their sen: Palangka Raya 3,724,677.99, Kapuas 3,710,096.50, Katingan 3,729,766.91, Seruyan 4,051,079.97, Kotawaringin Timur 3,756,643.61, Kotawaringin Barat 3,909,005.90, Sukamara 3,912,098.21, Gunung Mas 3,770,716.78, Barito Utara 4,093,071.54); Kalimantan Utara UMP 3,775,243 and five UMKs; Sulawesi Utara UMP 4,002,630 (SK 404/2025) and Kota Manado 4,022,017 (SK 407/2025); Sulawesi Tengah UMP 3,179,565 (Kep. 500.15.14.1/485/DIS.NAKERTRANS-G.ST/2025) and five UMKs (Kep. …/488/…/2025; Kota Palu 3,619,466.72); Sulawesi Selatan UMP 3,921,088.79 (Kep. 2129/XII/2025), Makassar 4,148,179 (SK 2142/XII/2025), Pangkajene dan Kepulauan 4,032,248, Luwu Timur 3,961,166; Sulawesi Tenggara UMP 3,306,496.18 (Kep. 100.3.3.1/581/2025) and three UMKs (Kep. 100.3.3.1/583/2025); Gorontalo 3,405,144 (SK 434/34/XII/2025), no UMK; Sulawesi Barat UMP 3,315,934 (SK 855/2025) and three UMKs (SK 858/2025); Maluku UMP 3,334,490 (SK 5430/2025) and Kota Ambon 3,381,225 (SK 5434/2025); Maluku Utara UMP 3,510,240 (SK 524/KPTS/MU/2025) and Kota Ternate 3,599,562; Papua 4,436,283 (Kep. 100.3.3.1/KEP.409/2025), Papua Barat 3,841,000 (SK 343/2025), Papua Pegunungan 4,508,714, Papua Selatan 4,508,100 (SK 500.15.14.1/376/2025) and Papua Barat Daya 3,766,000 (SK 100.3.3.1/266/12/2025), no UMK; Papua Tengah UMP 4,285,848 (SK 100.3.3.1/334/2025) and Mimika 5,005,678 (SK 100.3.3.1/337/2025); DKI Jakarta 5,729,876 (Kep. 1142/2025; no UMK). Where a report prints whole rupiah the decree figure may carry sen; the seeded amount is the one published.",
@@ -16681,7 +16681,7 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE).",
-							"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+							"url": "https://web.archive.org/web/20261107055456/https://jdih.kemenkeu.go.id/api/download/fullText/2003/13TAHUN2003UU.htm"
 						},
 						{
 							"title": "UU 27/2026",
@@ -16720,7 +16720,7 @@
 						},
 						{
 							"title": "UU 13/2003 art.79(3) as amended by UU 6/2023 art.81 angka 25 — at least 12 working days after 12 months of continuous work; art.79(4) leaves how it is taken to the employment agreement, company regulation or collective agreement",
-							"url": "https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
+							"url": "https://web.archive.org/web/20261104155654/https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
 						},
 						{
 							"title": "UU 27/2026",
@@ -16735,7 +16735,7 @@
 					"references": [
 						{
 							"title": "PP 36/2021 arts.40(3)(c)(5), 41(3)(e): two paid days when the wife gives birth or miscarries; UU 4/2024 art.6(1): two days for a birth, which may be extended by up to three more days or as agreed (PATERNITY_EXTENSION_LEAVE), two days for a miscarriage. Window EVENT.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "UU 4/2024 art.6(2); PP 36/2021 art.41(3)(e) — 2 days when the wife gives birth or miscarries",
@@ -16768,12 +16768,12 @@
 					"references": [
 						{
 							"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it; PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
-							"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 						},
 						{
 							"title": "UU 27/2026",
 							"locator": "art.118(2)(c); read 2026-11-13",
-							"url": "https://investortrust.id/national/121935/uu-pelindungan-ketenagakerjaan-berlaku-ini-aturan-cuti-besar-dan-cuti-bersama",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/2026uu027.pdf",
 							"quote": "Istirahat panjang diberikan selama 30 hari kalender … setelah pekerja/buruh bekerja secara berturut-turut selama 5 tahun atau kelipatannya",
 							"effective_from": "2026-10-28"
 						}

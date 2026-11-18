@@ -141,8 +141,13 @@ export const referenceSources = (
 		Array.isArray(row.references) ? row.references : []
 	)) {
 		if (!isDynObject(reference) || typeof reference.url !== 'string') continue;
-		const origin = URL.parse(reference.url)?.origin;
-		// an archive mirrors other hosts; it is nobody's source
+		// an archived copy is cited where the page itself refuses a reader: the source is the host it mirrors
+		const mirrored = /^https:\/\/web\.archive\.org\/web\/\d+(?:i[df]_)?\/https?:\/\/([^/:]+)/.exec(
+			reference.url
+		)?.[1];
+		const origin =
+			mirrored === undefined ? URL.parse(reference.url)?.origin : `https://${mirrored}`;
+		// the archive itself is nobody's source
 		if (origin === undefined || hostOf(origin) === 'web.archive.org') continue;
 		if (held.includes(origin) || hosts.has(origin)) continue;
 		hosts.set(origin, {

@@ -1840,7 +1840,7 @@
 					},
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (2025-03-01起, 单位9%含生育, 个人2%); 上海2025年度基数7460–37302; 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml 与 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml (单位7%+生育0.9%=7.9%, 个人2%); 2025-10起医疗基数4357–21789. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (2025-03-01起, 单位9%含生育, 个人2%); 上海2025年度基数7460–37302; 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml 与 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml (单位7%+生育0.9%=7.9%, 个人2%); 2025-10起医疗基数4357–21789. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
@@ -1999,9 +1999,10 @@
 						},
 						{
 							"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
-							"url": "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
+							"url": "https://m.cnfin.com/hg-lb//zixun/20250919/4305864_1.html",
 							"quote": "最高不超过37302元，最低不低于2690元",
-							"effective_from": "2025-07-01"
+							"effective_from": "2025-07-01",
+							"locator": "新华财经 2025-09-19 转述; 上海住房公积金网原文无法打开"
 						}
 					],
 					"kind": "CONTRIBUTION",
@@ -2021,9 +2022,10 @@
 						},
 						{
 							"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
-							"url": "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
+							"url": "https://m.cnfin.com/hg-lb//zixun/20250919/4305864_1.html",
 							"quote": "最高不超过37302元，最低不低于2690元",
-							"effective_from": "2025-07-01"
+							"effective_from": "2025-07-01",
+							"locator": "新华财经 2025-09-19 转述; 上海住房公积金网原文无法打开"
 						}
 					],
 					"kind": "CONTRIBUTION",
@@ -3069,7 +3071,7 @@
 					"references": [
 						{
 							"title": "社会保险法 第五十七条第二款: 用人单位的社会保险登记事项发生变更或者用人单位依法终止的, 应当自变更或者终止之日起三十日内, 到社会保险经办机构办理变更或者注销社会保险登记.",
-							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+							"url": "https://web.archive.org/web/20260809160253/https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
 					"source_collection": "entity_change",
@@ -3739,7 +3741,7 @@
 						{
 							"title": "劳动法",
 							"locator": "第五十八条、第六十五条",
-							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+							"url": "https://web.archive.org/web/20260809160253/https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
 					"source_collection": "employment",
@@ -3778,7 +3780,7 @@
 					"references": [
 						{
 							"title": "未成年工特殊保护规定 第六条第(二)项",
-							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+							"url": "https://web.archive.org/web/20260809160253/https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
 					"source_collection": "employment",
@@ -3816,7 +3818,7 @@
 					"references": [
 						{
 							"title": "劳动合同法 第十四条第二款第(一)项",
-							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+							"url": "https://web.archive.org/web/20260809160253/https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
 					"source_collection": "employment",
@@ -3853,7 +3855,7 @@
 					"references": [
 						{
 							"title": "社会保险法 第八十六条: 自欠缴之日起, 按日加收万分之五的滞纳金; 社会保险费征缴暂行条例 第二十条.",
-							"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+							"url": "https://web.archive.org/web/20260809160253/https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
 						}
 					],
 					"source_collection": "obligation",
@@ -6350,7 +6352,7 @@
 				"MEDICAL": {
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (至2026-02-28) 及 沪医保规〔2026〕2号 (2026-03-01至2027-02-28): 单位9%含生育, 个人2% https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2025年度基数7460–37302 (至2026-06-30); 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (至2026-02-28) 及 沪医保规〔2026〕2号 (2026-03-01至2027-02-28): 单位9%含生育, 个人2% https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2025年度基数7460–37302 (至2026-06-30); 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
@@ -6373,9 +6375,10 @@
 						},
 						{
 							"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
-							"url": "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
+							"url": "https://m.cnfin.com/hg-lb//zixun/20250919/4305864_1.html",
 							"quote": "最高不超过37302元，最低不低于2690元",
-							"effective_from": "2025-07-01"
+							"effective_from": "2025-07-01",
+							"locator": "新华财经 2025-09-19 转述; 上海住房公积金网原文无法打开"
 						}
 					]
 				}
@@ -6553,8 +6556,8 @@
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						}
 					]
@@ -6580,8 +6583,8 @@
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						}
 					]
@@ -6608,12 +6611,12 @@
 					"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'statutory_parameters.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('MEDICAL')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 人社部令第56号 第十六条、第十七条: past the statutory retirement date this scheme stops, unless an agreement signed on or after that date declares a contribution base\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'statutory_parameters.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\tif (ctx.run.salary_coverage.from < retires) return true;\n\tif (get(ctx.subject.employment, 'statutory_parameters.si_contribution_base', null) == null) return false;\n\treturn get(ctx.subject.employment, 'terms.signed_on', '') >= retires;",
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						},
 						{
@@ -6632,8 +6635,8 @@
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						}
 					]
@@ -6798,12 +6801,12 @@
 					},
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 2026-09起医疗基数4403–22017 (云人社发〔2026〕8号). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 2026-09起医疗基数4403–22017 (云人社发〔2026〕8号). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						},
 						{
@@ -6822,8 +6825,8 @@
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
-							"url": "https://www.bjnews.com.cn/detail/1789377196129051.html",
-							"quote": "上限为月额37,731元，下限为月额7,546元",
+							"url": "https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html",
+							"quote": "2026年7月1日起，本市社保缴费基数的上限调整为37731元/月，下限调整为7546元/月。",
 							"effective_from": "2026-07-01"
 						}
 					]

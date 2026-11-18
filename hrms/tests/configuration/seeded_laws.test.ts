@@ -16,6 +16,21 @@ const said = (law: Law): string =>
 		)
 	});
 
+/**
+ * Hosts that refuse a plain reader (docs/0003, "References"): a bot or script challenge, or no answer at all. A reference
+ * cites a copy that opens instead: the authority's own API or another official host, else a dated archive snapshot.
+ */
+const REFUSES =
+	/^https?:\/\/(?:(?:www\.)?kwsp\.gov\.my|hrdcorp\.gov\.my|(?:www\.)?perkeso\.gov\.my|(?:jtksm|gajiminimum)\.mohr\.gov\.my|sso\.agc\.gov\.sg|peraturan\.bpk\.go\.id\/Details|jdih\.kemenkeu\.go\.id|www\.peraturan\.go\.id|www\.mol\.go\.th|www\.dsd\.go\.th|www\.sec\.or\.th|laws\.mol\.gov\.tw|baohiemxahoi\.gov\.vn|natlex\.ilo\.org|privacy\.gov\.ph|(?:www|car|query)\.dole\.gov\.ph|laws\.e-gov\.go\.jp\/law)\//;
+const cited = (value: unknown): readonly string[] =>
+	Array.isArray(value)
+		? value.flatMap(cited)
+		: isJsonObject(value)
+			? Object.entries(value).flatMap(([key, held]) =>
+					key === 'url' && typeof held === 'string' ? [held] : cited(held)
+				)
+			: [];
+
 describe('the seeded laws', () => {
 	for (const { code, changes, standing } of SEEDED) {
 		it(`${code}: the first change is the whole law on 2025-12-01, and no two changes share a date`, () => {
@@ -26,6 +41,13 @@ describe('the seeded laws', () => {
 				assert.equal(row.jurisdiction_code, code);
 				assert.equal(row.finding_id ?? null, null, `${code} ${String(row.effective_from)}`);
 			}
+		});
+
+		it(`${code}: every reference cites a page a plain reader can open`, () => {
+			assert.deepEqual(
+				changes.flatMap((row) => cited(row.law)).filter((url) => REFUSES.test(url)),
+				[]
+			);
 		});
 
 		it(`${code}: every later change changes something on its date`, () => {

@@ -110,7 +110,7 @@
 					"party": "EMPLOYEE",
 					"references": [
 						{
-							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): a day's wages uses the actual s.2 wages of the twelve completed months immediately preceding termination, divided by365 under JTKSM's published formula. The exact original native payroll and documented same-employer prior_payroll records establish the amount and dates; no entered average, contractual-salary fallback or partial-history extrapolation is used. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it. reg.8: none is payable where the employee's service is transferred to and continued by the new employer on terms no less favourable, the service counting with that employer — TRANSFER and TRANSFER_TO_SUBSIDIARY are excluded. Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3–4 and 6: not less than 10 / 15 / 20 days' wages for every year of continuous service (under two, two to under five, five or more years), pro rata to the nearest month, a day's wages being the average true day's wages over the twelve completed months before (the exact original twelve-month statutory wage total divided by365; genuine external sources retain their documented dates and signed component amounts), the entered amount if higher; not on contractual retirement, a misconduct dismissal after inquiry or a resignation other than under s.13(2) / s.14(3); First Schedule para 1A takes s.60J from a non-manual employee above RM4,000. Taxable compensation for loss of employment above RM10,000 a completed year of service (ITA Sch.6 para 15(1)(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf; the RM20,000 rate applied only to exits in 2020–2021) — additional remuneration in PCB, less the exemption."
+							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): a day's wages uses the actual s.2 wages of the twelve completed months immediately preceding termination, divided by365 under JTKSM's published formula. The exact original native payroll and documented same-employer prior_payroll records establish the amount and dates; no entered average, contractual-salary fallback or partial-history extrapolation is used. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it. reg.8: none is payable where the employee's service is transferred to and continued by the new employer on terms no less favourable, the service counting with that employer — TRANSFER and TRANSFER_TO_SUBSIDIARY are excluded. Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://web.archive.org/web/20240714095559id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20%26%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3–4 and 6: not less than 10 / 15 / 20 days' wages for every year of continuous service (under two, two to under five, five or more years), pro rata to the nearest month, a day's wages being the average true day's wages over the twelve completed months before (the exact original twelve-month statutory wage total divided by365; genuine external sources retain their documented dates and signed component amounts), the entered amount if higher; not on contractual retirement, a misconduct dismissal after inquiry or a resignation other than under s.13(2) / s.14(3); First Schedule para 1A takes s.60J from a non-manual employee above RM4,000. Taxable compensation for loss of employment above RM10,000 a completed year of service (ITA Sch.6 para 15(1)(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf; the RM20,000 rate applied only to exits in 2020–2021) — additional remuneration in PCB, less the exemption."
 						}
 					],
 					"description": "Termination benefit for an employee with at least twelve months' service whose contract ends other than by misconduct, retirement or resignation: 10, 15 or 20 days' wages for each year of service (under two years, two to under five, five or more), a part year pro rata to the nearest month. The computed floor is the contract's monthly wage with its fixed allowances × 12 ÷ 365 per day; enter the amount from the actual twelve months' wages where it is higher (Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6)."
@@ -203,7 +203,7 @@
 					"party": "EMPLOYEE",
 					"references": [
 						{
-							"title": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 para 2; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date. EA s.24(4)(e)–(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a deduction for accommodation, services, food or meals only at the employee's written request (entry fact written_request) with the Director General's prior permission. The cap comes from the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations, not s.24."
+							"title": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 para 2; JTKSM accommodation FAQ (https://web.archive.org/web/20260402043057/https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date. EA s.24(4)(e)–(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a deduction for accommodation, services, food or meals only at the employee's written request (entry fact written_request) with the Director General's prior permission. The cap comes from the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations, not s.24."
 						}
 					],
 					"description": "Deducts the month's rent for employer-provided accommodation from net pay: the amount entered, and no more than RM100 a month (Workers' Minimum Standards of Housing and Amenities Act 1990)."
@@ -245,7 +245,7 @@
 					"party": "EMPLOYEE",
 					"references": [
 						{
-							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3(1)(b), 5 and 6: an employee whose pay depends on being given work, not given it on at least twelve normal working days in four consecutive weeks (rest days, holidays and leave not counted), is paid the reg.6 benefit; not EPF, SOCSO or EIS wages (lay-off benefits are excluded from each Act's wages). The entered amount if higher; the lay-off itself is the employer's record. A day's wages (reg.6(2), \"average true day's wages … over the period of twelve completed months' service\"): the twelve months' wages ÷ 365, JTKSM's published formula (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and, read 2026-10-07) — earned.months gross ÷ months × 12 ÷ 365, terms.monthly_wage × 12 ÷ 365 without history."
+							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://web.archive.org/web/20240714095559id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20%26%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3(1)(b), 5 and 6: an employee whose pay depends on being given work, not given it on at least twelve normal working days in four consecutive weeks (rest days, holidays and leave not counted), is paid the reg.6 benefit; not EPF, SOCSO or EIS wages (lay-off benefits are excluded from each Act's wages). The entered amount if higher; the lay-off itself is the employer's record. A day's wages (reg.6(2), \"average true day's wages … over the period of twelve completed months' service\"): the twelve months' wages ÷ 365, JTKSM's published formula (https://web.archive.org/web/20250811085045/https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and, read 2026-10-07) — earned.months gross ÷ months × 12 ÷ 365, terms.monthly_wage × 12 ÷ 365 without history."
 						}
 					],
 					"description": "Lay-off benefit for an employee with at least twelve months' service who is given no work on twelve normal working days in four consecutive weeks: 10, 15 or 20 days' wages for each year of service (under two years, two to under five, five or more), a part year pro rata to the nearest month. The computed floor is the contract's monthly wage with its fixed allowances × 12 ÷ 365 per day; enter the amount from the actual twelve months' wages where it is higher (Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6)."
@@ -489,7 +489,7 @@
 						{
 							"title": "PERKESO, Social Security Protection (2020)",
 							"locator": "report a work-related accident within 48 hours of notification",
-							"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+							"url": "https://web.archive.org/web/20220302070240id_/https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
 						}
 					]
 				}
@@ -597,7 +597,7 @@
 					},
 					"references": [
 						{
-							"title": "Overtime on a normal working day at not less than 1.5 × the hourly rate (EA s.60A(3)(a)); at most 104 hours in a month (Employment (Limitation of Overtime Work) Regulations 1980 reg.2). Rest-day and public-holiday overtime are their own lines. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 1.0× and beyond it at 1.5× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+							"title": "Overtime on a normal working day at not less than 1.5 × the hourly rate (EA s.60A(3)(a)); at most 104 hours in a month (Employment (Limitation of Overtime Work) Regulations 1980 reg.2). Rest-day and public-holiday overtime are their own lines. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://web.archive.org/web/20241206062433id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20(1).pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 1.0× and beyond it at 1.5× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
 						}
 					],
 					"subtotal": "ORDINARY_WAGES",
@@ -633,7 +633,7 @@
 					},
 					"references": [
 						{
-							"title": "Work on a rest day beyond the normal hours at not less than 2 × the hourly rate (EA s.60(3)(c), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the rest day’s paid hours beyond the normal hours a day, less any banked, the hours within them being REST_DAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 1.5× and beyond it at 2.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+							"title": "Work on a rest day beyond the normal hours at not less than 2 × the hourly rate (EA s.60(3)(c), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the rest day’s paid hours beyond the normal hours a day, less any banked, the hours within them being REST_DAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://web.archive.org/web/20241206062433id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20(1).pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 1.5× and beyond it at 2.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
 						}
 					],
 					"subtotal": "ORDINARY_WAGES",
@@ -665,7 +665,7 @@
 					},
 					"references": [
 						{
-							"title": "Overtime on a paid public holiday beyond the normal hours at not less than 3 × the hourly rate (EA s.60D(3)(a)(ii), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a holiday with planned hours counts its overtime past them, one planned with none its paid hours beyond the normal hours a day, less any banked, the hours within them being HOLIDAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 2.0× and beyond it at 3.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+							"title": "Overtime on a paid public holiday beyond the normal hours at not less than 3 × the hourly rate (EA s.60D(3)(a)(ii), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a holiday with planned hours counts its overtime past them, one planned with none its paid hours beyond the normal hours a day, less any banked, the hours within them being HOLIDAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.normal_daily_hours, 8 unrecorded). EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.normal_hours_per_day, else company.normal_daily_hours, else 8). Pay basis: terms.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://web.archive.org/web/20241206062433id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20(1).pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.normal_daily_hours, 8 by reg.4(1)) at 2.0× and beyond it at 3.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
 						}
 					],
 					"subtotal": "ORDINARY_WAGES",
@@ -823,14 +823,14 @@
 						{
 							"title": "KWSP, Third Schedule effective 1 October 2025",
 							"locator": "Part A p.12",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"url": "https://web.archive.org/web/20261030171834if_/https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
 							"quote": "Employee 11% of the band’s upper limit (or of the wage above RM20,000); employer 13% to RM5,000, where only additional wages lift the month over RM5,000, and 12% above; the employer’s share is the rounded total less the employee’s share.",
 							"effective_from": "2025-10-01"
 						},
 						{
 							"title": "KWSP, Employer Mandatory Contribution",
 							"locator": "note 1",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
 							"quote": "Contribution ceases at the age of 75."
 						},
 						{
@@ -841,7 +841,7 @@
 						},
 						{
 							"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+							"url": "https://web.archive.org/web/20260225120656/https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
 							"quote": "A non-citizen who became a member before 1 August 1998 stays on Part A below 60 (Part C from 60) rather than Part F."
 						},
 						{
@@ -866,13 +866,13 @@
 						{
 							"title": "KWSP, Third Schedule effective 1 October 2025",
 							"locator": "Parts A and C, bonus note",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"url": "https://web.archive.org/web/20261030171834if_/https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
 							"quote": "The bonus note of Parts A and C is specific to a bonus and the actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred."
 						},
 						{
 							"title": "KWSP, Mandatory Contribution",
 							"locator": "Third Schedule; worked examples",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
 							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
 						},
 						{
@@ -918,14 +918,14 @@
 						},
 						{
 							"title": "KWSP, Third Schedule effective 1 October 2025",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"url": "https://web.archive.org/web/20261030171834if_/https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
 							"quote": "Checked 2026-09-28 in a browser (kwsp.gov.my answers 403 to non-browser clients): all 1,200 printed rows of Parts A, C and E equal the rule above, so the bands are derived from the printed rates, not transcribed.",
 							"effective_from": "2025-10-01"
 						},
 						{
 							"title": "KWSP, Employer Mandatory Contribution",
 							"locator": "note 1",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
 							"quote": "Contribution ceases at the age of 75."
 						},
 						{
@@ -956,13 +956,13 @@
 						{
 							"title": "KWSP, Third Schedule effective 1 October 2025",
 							"locator": "Parts A and C, bonus note",
-							"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+							"url": "https://web.archive.org/web/20261030171834if_/https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
 							"quote": "The bonus note of Parts A and C is specific to a bonus and the actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred."
 						},
 						{
 							"title": "KWSP, Mandatory Contribution",
 							"locator": "Third Schedule; worked examples",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
 							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
 						},
 						{
@@ -994,20 +994,20 @@
 							"title": "Employees Provident Fund (Amendment) Act 2025 (Act A1760)",
 							"locator": "s.10, Part F para 2",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf",
-							"quote": "Part F: a non-citizen employee and the employer each contribute 2% of the wages, in operation 1 October 2025 (P.U.(B) 354/2025), mandatory from October 2025 wages (November 2025 contribution month). Charged on the wage as it stands: no Third Schedule bracketing and no wage ceiling. Para 2: “The total contribution which includes cents shall be rounded to the next ringgit”. It does not say which share carries the rounding; read here as the two 2% shares totalled and rounded up once, the employee share exact to the sen and the employer the rounded total less it (RM1,751: 35.02 + 35.02 = 70.04 → RM71; employee 35.02, employer 35.98). Prints no age because the exclusion sits in the First Schedule.",
+							"quote": "Part F: a non-citizen employee and the employer each contribute 2% of the wages, in operation 1 October 2025 (P.U.(B) 354/2025), mandatory from October 2025 wages (November 2025 contribution month). Charged on the wage as it stands: no Third Schedule bracketing and no wage ceiling. Para 2: “The total contribution which includes cents shall be rounded to the next ringgit”. It does not say how that ringgit is split between the two shares. Charged here by the Board's FAQ method: each 2% share rounded up to the next ringgit on its own (RM1,751: 35.02 → RM36 each, RM72), never less than para 2's total (70.04 → RM71), each share in whole ringgit as contributions are paid. Prints no age because the exclusion sits in the First Schedule.",
 							"effective_from": "2025-10-01"
 						},
 						{
 							"title": "Employees Provident Fund Act 1991 (Act 452)",
 							"locator": "First Schedule paras 3, (8), (13); s.2; s.48(1)-(2); s.51(2B)(a)",
 							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
-							"quote": "A person who has attained seventy-five is not an employee and s.51(2B)(a) credits nothing to a member after seventy-five, so Part F is not charged after the month the person turns 75: the Act and KWSP set no rule for a part month, so the status on the day before the wage period decides the whole month. s.2 excludes termination benefits and payment in lieu of notice. s.48(1)-(2): the employee deduction is no more than the contribution payable by the employee, so the employee share is never rounded up. An employee with the Board’s approval to join another scheme is not covered (para (8)). Pre-1-August-1998 non-citizen members remain on Parts A/C."
+							"quote": "A person who has attained seventy-five is not an employee and s.51(2B)(a) credits nothing to a member after seventy-five, so Part F is not charged after the month the person turns 75: the Act and KWSP set no rule for a part month, so the status on the day before the wage period decides the whole month. s.2 excludes termination benefits and payment in lieu of notice. s.48(1)-(2): the employee deduction is no more than the contribution payable by the employee, and the Board's FAQ states that contribution as the 2% share rounded up to the next ringgit, so that is what is deducted. An employee with the Board’s approval to join another scheme is not covered (para (8)). Pre-1-August-1998 non-citizen members remain on Parts A/C."
 						},
 						{
 							"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
-							"locator": "FAQ",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
-							"quote": "Liable below 75 years of age. The FAQ rounds each share up (RM36 + RM36 = RM72, February 2026); the Act governs and prevails."
+							"locator": "FAQ, calculation sample; copy archived 25 February 2026, read 2026-11-18",
+							"url": "https://web.archive.org/web/20260225120656/https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+							"quote": "Liable below 75 years of age. RM1,751 × 2% = RM35.02, “rounded up to the next ringgit”, RM36 for the employer and RM36 for the employee, RM72 in total. “If the calculated contribution amount includes cents, the amount must be rounded up to the next ringgit.” The method this row charges."
 						},
 						{
 							"title": "KWSP, Contribution for Non-Malaysian Citizen Employees (archived)",
@@ -1018,7 +1018,7 @@
 							"title": "KWSP, Employer Mandatory Contribution",
 							"locator": "example 2.4",
 							"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
-							"quote": "RM6,710 → 134.20 + 134.20 = RM269."
+							"quote": "Rounds only the total: RM6,710 → 134.20 + 134.20 = 268.40 → RM269, and does not say how RM269 is split between the shares. The FAQ method pays RM135 + RM135 = RM270 there."
 						},
 						{
 							"title": "Employment Act 1955",
@@ -1038,8 +1038,8 @@
 						{
 							"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
 							"locator": "Third Schedule; worked examples",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
-							"quote": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples."
+							"url": "https://web.archive.org/web/20260225120656/https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+							"quote": "The Third Schedule sets the two 2% rates. KWSP publishes two roundings: this FAQ rounds each share up, and example 2.4 of Employer Mandatory Contribution rounds the total. Only the FAQ states each share, so it is the one charged."
 						},
 						{
 							"title": "Employees Provident Fund Act 1991 (Act 452) as amended by Act A1760",
@@ -1080,7 +1080,7 @@
 						{
 							"title": "Employees’ Social Security (Amendment) Act 2026 (Act A1788)",
 							"locator": "Parts I and IV",
-							"url": "https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
 							"quote": "Wages up to RM200 use the printed rows 1–6 of the Third Schedule; the 1.25% employment-injury column rounds half to even (RM200.01–300 → RM3.10)."
 						},
 						{
@@ -1090,19 +1090,19 @@
 						{
 							"title": "PERKESO FAQ, Extension of the Invalidity Scheme to Foreign Workers",
 							"locator": "Q2, Q4",
-							"url": "https://www.perkeso.gov.my/images/pekerja_asing/250724%20-FAQ%20-%20INVALIDITY%20SCHEME%20FOREIGN%20WORKER.pdf",
+							"url": "https://web.archive.org/web/20250419104631id_/https://www.perkeso.gov.my/images/pekerja_asing/250724%20-FAQ%20-%20INVALIDITY%20SCHEME%20FOREIGN%20WORKER.pdf",
 							"quote": "Foreign workers contribute in the First Category (employment injury and invalidity) since 1 July 2024."
 						},
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
 						},
 						{
 							"title": "PERKESO Soalan Lazim",
 							"locator": "Q1; LINDUNG KERJAYA Q1",
-							"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+							"url": "https://web.archive.org/web/20261009082557/https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
 							"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
 						},
 						{
@@ -1220,7 +1220,7 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "First Schedule paras 8-10; Second Schedule; s.2",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "Covered employees contribute from age 18 until age 60; from 57 an employee for whom no contribution was payable before 57 is excluded (para 9). Para 10 excludes every foreign employee except (a) a permanent resident, (b) a lawful entrant allowed to reside twelve months or more and (c) a person born in Malaysia whose citizenship cannot be determined, both (b) and (c) holding a reg.5(3)(c) identity card (e.g. MyKAS). Wages up to RM200 use the printed rows 1–6 of the Second Schedule (5, 10, 15, 20, 25, 35 sen each side). The first contribution due date includes earlier employers and is independent of registration or actual payment. \"Wages\" (Act 4 s.2 / Act 800 s.2) exclude a retrenchment, lay-off or termination benefit and a payment in lieu of notice."
 						},
 						{
@@ -1229,7 +1229,7 @@
 						},
 						{
 							"title": "PERKESO FAQ, Domestic Workers",
-							"url": "https://www.perkeso.gov.my/images/pekerja_domestik/280721_-_FAQ_Domestic_Workers.pdf",
+							"url": "https://web.archive.org/web/20221201194705id_/https://perkeso.gov.my/images/pekerja_domestik/280721_-_FAQ_Domestic_Workers.pdf",
 							"quote": "Local domestic workers are covered since 1 June 2021; foreign domestic workers are not."
 						},
 						{
@@ -1241,13 +1241,13 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
 						},
 						{
 							"title": "PERKESO Soalan Lazim",
 							"locator": "Q1; LINDUNG KERJAYA Q1",
-							"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+							"url": "https://web.archive.org/web/20261009082557/https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
 							"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
 						},
 						{
@@ -1258,7 +1258,7 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "\"Wages\" excludes \"(e) any annual bonus\", so EIS is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside the EIS base."
 						}
 					],
@@ -1447,7 +1447,8 @@
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
-							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
+							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						},
 						{
 							"title": "Pembangunan Sumber Manusia Berhad (Imposition of Levy) order",
@@ -1460,7 +1461,9 @@
 						},
 						{
 							"title": "HRD Corp, Levy Calculation Guideline",
-							"quote": "Wages \"includes any leave pay and arrears of wages\"."
+							"quote": "Wages \"includes any leave pay and arrears of wages\". Sample: \"LEVY = [(BASIC SALARY - UNPAID LEAVE) + FIXED ALLOWANCE] x 1%\". The sample names neither arrears nor leave paid out in money; the definition includes both, and both are levied.",
+							"url": "https://supportcentre.hrdcorp.gov.my/portal/en/kb/articles/hrd-levy",
+							"locator": "read 2026-11-18"
 						},
 						{
 							"title": "HRD Corp Employers Circular 5/2018",
@@ -1473,7 +1476,8 @@
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
-							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
+							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						}
 					],
 					"kind": "CONTRIBUTION",
@@ -1487,7 +1491,7 @@
 					},
 					"eligibility": "const employment = ctx.subject.employment;\n// Act 612 s.2: \"pekerja\" leaves out a domestic servant and \"upah\" (f) an apprentice's allowance.\nif (['PAYEE', 'PART_TIME', 'APPRENTICE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.statutory_work_category', '') === 'DOMESTIC') return false;\nif (get(employment, 'terms.residency_status', '') !== 'CITIZEN') return false;\nconst employer = ctx.subject.employer;\nif (get(employer, 'statutory_parameters.hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (ctx.lookup.education_schedule_exempt === true) {\n const schedule = get(employer, 'statutory_parameters.hrd_education_schedule_code', 'NONE');\n if (schedule !== '' && schedule !== 'NONE') return false;\n}\nreturn true;",
 					"employee_amount": "return 0;",
-					"employer_amount": "const employer = ctx.subject.employer;\nconst registration = get(employer, 'statutory_parameters.hrd_registration_class', 'COMPULSORY');\nconst rate =\n\tregistration === 'OPTIONAL' ? ctx.lookup.optional_rate\n\t: registration === 'COMPULSORY' ? ctx.lookup.compulsory_rate\n\t: 0;\n// Act 612 s.2 \"upah\": basic pay, fixed allowances, leave pay and arrears; (e) no bonus or commission.\n// HRD Corp's levy formula is basic pay less unpaid leave plus fixed allowances: leave paid out in money is outside it.\nreturn Math.max(0, ctx.subtotals.WAGE_ARREARS - ctx.encashment) * rate;",
+					"employer_amount": "const employer = ctx.subject.employer;\nconst registration = get(employer, 'statutory_parameters.hrd_registration_class', 'COMPULSORY');\nconst rate =\n\tregistration === 'OPTIONAL' ? ctx.lookup.optional_rate\n\t: registration === 'COMPULSORY' ? ctx.lookup.compulsory_rate\n\t: 0;\n// Act 612 s.2 \"upah\": basic pay, fixed allowances, any leave pay and arrears; (e) no bonus or commission.\n// Leave paid out in money is leave pay and sits at WAGE_ARREARS. HRD Corp's sample formula (basic pay less unpaid leave plus fixed\n// allowances) names neither it nor arrears; the Act includes both.\nreturn Math.max(0, ctx.subtotals.WAGE_ARREARS) * rate;",
 					"balance_window": "YEAR",
 					"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14)."
 				}
@@ -1524,11 +1528,11 @@
 						{
 							"title": "KWSP, EPF Act 1991",
 							"locator": "Third Schedule",
-							"url": "https://www.kwsp.gov.my/en/epf-act-1991-third-schedule"
+							"url": "https://web.archive.org/web/20261109055608/https://www.kwsp.gov.my/en/epf-act-1991-third-schedule"
 						},
 						{
 							"title": "KWSP, Employer Mandatory Contribution",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -1558,7 +1562,7 @@
 					},
 					"references": [
 						{
-							"title": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)"
+							"title": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://lawplayer.com/my/act/act-800); PERKESO, Contribution Payment (https://web.archive.org/web/20260720222156/https://www.perkeso.gov.my/en/contribution-payment.html)"
 						}
 					],
 					"source_collection": "payroll_run",
@@ -1790,7 +1794,7 @@
 					"references": [
 						{
 							"title": "Employment Regulations 1957 [P.U.(A) 333/1983] reg. 8(1)-(2) with reg. 5(b)",
-							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/1.%20EMPLOYMENT%20REGULATIONS%201957_0.pdf"
+							"url": "https://web.archive.org/web/20240706092755id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/1.%20EMPLOYMENT%20REGULATIONS%201957_0.pdf"
 						}
 					],
 					"source_collection": "employment",
@@ -1829,7 +1833,7 @@
 						},
 						{
 							"title": "KWSP, Employer Mandatory Contribution",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+							"url": "https://web.archive.org/web/20261030171835/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
 						}
 					],
 					"source_collection": "employment",
@@ -1860,11 +1864,11 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.16(1)(b) and First Schedule",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf"
+							"url": "https://lawplayer.com/my/act/act-800"
 						},
 						{
 							"title": "PERKESO, Employer Registration",
-							"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
+							"url": "https://web.archive.org/web/20260728052918/https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
 						}
 					],
 					"source_collection": "employment",
@@ -2065,7 +2069,7 @@
 					},
 					"references": [
 						{
-							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+							"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://web.archive.org/web/20240714095559id_/https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20%26%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
 						}
 					],
 					"source_collection": "employment",
@@ -2140,7 +2144,7 @@
 						{
 							"title": "Employment Act 1955 (Act 265) s.63; Employment (Retrenchment) Notification 2004 [P.U.(B) 430/2004] Form PK",
 							"locator": "s.63; Form PK Parts I-IV, at least thirty days before the action",
-							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-01/Pemberitahuan-Pemberhentian-Pekerja-20014-Borang-PK.pdf"
+							"url": "https://web.archive.org/web/20240621151220id_/https://jtksm.mohr.gov.my/sites/default/files/2023-01/Pemberitahuan-Pemberhentian-Pekerja-20014-Borang-PK.pdf"
 						},
 						{
 							"title": "Employment Act 1955 (Act 265) ss.60N-60O",
@@ -2149,7 +2153,7 @@
 						},
 						{
 							"title": "JTKSM, Employees' Retrenchment FAQ",
-							"url": "https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
+							"url": "https://web.archive.org/web/20260402043057/https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
 						}
 					],
 					"source_collection": "employment",
@@ -2211,7 +2215,7 @@
 						},
 						{
 							"title": "KWSP, Employer Responsibilities - Registration",
-							"url": "https://www.kwsp.gov.my/en/employer/responsibilities/registration"
+							"url": "https://web.archive.org/web/20251001074451/https://www.kwsp.gov.my/en/employer/responsibilities/registration"
 						}
 					],
 					"source_collection": "entity_change",
@@ -2345,7 +2349,7 @@
 						{
 							"title": "PERKESO, Social Security Protection (2020)",
 							"locator": "report a work-related accident within 48 hours of notification",
-							"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+							"url": "https://web.archive.org/web/20220302070240id_/https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
 						}
 					],
 					"source_collection": "workplace_case_catalog_entry",
@@ -2380,11 +2384,11 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800) s.14(1), s.15",
 							"locator": "one PERKESO employer registration covers SOCSO and EIS",
-							"url": "https://www.perkeso.gov.my/images/imej/akta_dan_peraturan/EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017_Act%20800.pdf"
+							"url": "https://lawplayer.com/my/act/act-800"
 						},
 						{
 							"title": "PERKESO, Employer Registration",
-							"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
+							"url": "https://web.archive.org/web/20260728052918/https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
 						}
 					],
 					"source_collection": "entity_change",
@@ -2415,7 +2419,7 @@
 					"references": [
 						{
 							"title": "PERKESO, Social Security Protection leaflet (2020): \"within 30 days from of such cessation\"; PERKESO, Employer Registration — Cessation of Being An Employer.",
-							"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+							"url": "https://web.archive.org/web/20220302070240id_/https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
 						}
 					],
 					"source_collection": "entity_change",
@@ -2445,7 +2449,7 @@
 					},
 					"references": [
 						{
-							"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08."
+							"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://web.archive.org/web/20260104004501/https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08."
 						}
 					],
 					"source_collection": "entity_change",
@@ -2537,7 +2541,7 @@
 						{
 							"title": "Minimum Retirement Age Act 2012 (Act 753) ss.4-6",
 							"locator": "minimum retirement age sixty; optional retirement under the contract; a retirement below sixty is reviewed",
-							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf"
+							"url": "https://web.archive.org/web/20250609064726id_/http://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf"
 						}
 					],
 					"source_collection": "employment",
@@ -2568,7 +2572,7 @@
 					"references": [
 						{
 							"title": "Employment Act 1955 s.60Q: written decision within sixty days of receipt of the actual request.",
-							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf"
+							"url": "https://web.archive.org/web/20260927120231id_/https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf"
 						}
 					],
 					"source_collection": "workplace_case_catalog_entry",
@@ -3181,7 +3185,7 @@
 						{
 							"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 2, 3(1), 5(1)",
 							"locator": "RM1,700 a month for a monthly-rated employee; para 2 leaves out only a domestic employee as EA s.2(1) defines one. An apprentice is inside: the National Wages Consultative Council (Amendment) Act 2025 brought apprenticeship contracts into Act 732 from 1 August 2025.",
-							"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+							"url": "https://web.archive.org/web/20261010073552id_/http://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 						}
 					],
 					"validate": "// Minimum Wages Order 2024: a monthly-rated employee earns at least RM1,700 a month.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (['PART_TIME', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nif (['TASK_BASIS', 'DOMESTIC'].includes(get(ctx.entry, 'terms.statutory_work_category', null))) return true;\nconst facts = get(ctx.entry, 'statutory_parameters', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.monthly_wage;",
@@ -3199,7 +3203,7 @@
 						{
 							"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 							"locator": "RM8.72 an hour, including a part-time employee's rate derived from the agreed month, week or day.",
-							"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+							"url": "https://web.archive.org/web/20261010073552id_/http://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 						},
 						{
 							"title": "Employment (Part-Time Employees) Regulations 2010 [P.U.(A) 302/2010]",
@@ -3267,7 +3271,7 @@
 						{
 							"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 							"locator": "RM98.08, RM78.46 and RM65.38 a day for a four-, five- and six-day week.",
-							"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+							"url": "https://web.archive.org/web/20261010073552id_/http://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 						}
 					],
 					"validate": "// The daily floor follows the agreed number of working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'DAILY') return true;\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') === 'PAYEE') return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC') return true;\nconst facts = get(ctx.entry, 'statutory_parameters', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor;",
@@ -3284,7 +3288,7 @@
 						{
 							"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 							"locator": "RM8.72 an hour.",
-							"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+							"url": "https://web.archive.org/web/20261010073552id_/http://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 						}
 					],
 					"validate": "// An hourly rate is at least RM8.72.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'HOURLY') return true;\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') === 'PAYEE') return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC') return true;\nconst facts = get(ctx.entry, 'statutory_parameters', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.hourly_wage;",
@@ -4403,8 +4407,8 @@
 					},
 					"references": [
 						{
-							"title": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement. A CHILD_BIRTH event opens this row for the confinement that bears the allowance (fewer than five surviving natural children, counted from the CHILD_BIRTH and CHILD_DEATH events dated before it, and ninety days employed in the nine months before it) and MATERNITY_LEAVE_NO_ALLOWANCE for the one that does not. 98 days per confinement; births on one date are one confinement.",
-							"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf"
+							"title": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://web.archive.org/web/20250609064705id_/http://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20(MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE)%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement. A CHILD_BIRTH event opens this row for the confinement that bears the allowance (fewer than five surviving natural children, counted from the CHILD_BIRTH and CHILD_DEATH events dated before it, and ninety days employed in the nine months before it) and MATERNITY_LEAVE_NO_ALLOWANCE for the one that does not. 98 days per confinement; births on one date are one confinement.",
+							"url": "https://web.archive.org/web/20250609064705id_/http://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20(MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE)%20REGULATIONS%201976_0.pdf"
 						}
 					],
 					"description": "Paid maternity leave of 98 consecutive days for each confinement (Employment Act 1955 s.37). The maternity allowance needs at least 90 days' employment in the nine months before confinement and fewer than five surviving children."
@@ -4693,7 +4697,7 @@
 						},
 						{
 							"title": "LHDN Public Ruling 2/2026",
-							"url": "https://www.hasil.gov.my/media/ikelbhz0/pr-2-2026-tax-treatment-of-foreign-nationals-exercising-employment-in-malaysia.pdf",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/pr-2-2026-tax-treatment-of-foreign-nationals-exercising-employment-in-malaysia.pdf",
 							"quote": "Schedule 6 paragraph 21 applies to employment exercised while in Malaysia for no more than 60 days, not physical presence days alone."
 						},
 						{
@@ -4768,7 +4772,8 @@
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
-							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
+							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						},
 						{
 							"title": "Pembangunan Sumber Manusia Berhad (Imposition of Levy) order",
@@ -4781,7 +4786,9 @@
 						},
 						{
 							"title": "HRD Corp, Levy Calculation Guideline",
-							"quote": "Wages \"includes any leave pay and arrears of wages\"."
+							"quote": "Wages \"includes any leave pay and arrears of wages\". Sample: \"LEVY = [(BASIC SALARY - UNPAID LEAVE) + FIXED ALLOWANCE] x 1%\". The sample names neither arrears nor leave paid out in money; the definition includes both, and both are levied.",
+							"url": "https://supportcentre.hrdcorp.gov.my/portal/en/kb/articles/hrd-levy",
+							"locator": "read 2026-11-18"
 						},
 						{
 							"title": "HRD Corp Employers Circular 5/2018",
@@ -4799,13 +4806,15 @@
 						},
 						{
 							"title": "HRD Corp Employers Circular01/2026 and official implementation clarification",
-							"url": "https://hrdcorp.gov.my/wp-content/uploads/2026/01/Employers-Circular-No-01-2026.pdf",
-							"quote": "January through December2026 wage contributions exempt for qualifying registered education employers. Official clarification expressly includes December payable15 January2027."
+							"url": "https://www.sinarharian.com.my/article/764171/berita/nasional/pengecualian-levi-hrd-corp-untuk-institusi-pendidikan-swasta-bermula-2026",
+							"quote": "“Kerajaan melaksanakan pengecualian pembayaran Levi Pembangunan Sumber Manusia bagi majikan berdaftar dalam sektor pendidikan swasta selama setahun bermula Januari hingga Disember 2026.” The December 2026 levy, due on or before 15 January 2027, is inside the year.",
+							"locator": "the Minister's statement as reported by Sinar Harian, 15 January 2026; the circular's own PDF refuses a reader"
 						},
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
-							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
+							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						}
 					],
 					"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14). January to December 2026 wages are exempt for registered education employers with a scheduled MSIC code (HRD Corp Employers' Circular 01/2026)."
@@ -4832,7 +4841,7 @@
 							"effective_from": "2026-03-01"
 						},
 						{
-							"title": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM150 per worker per month from 1 March 2026 (RM100 before). A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date. EA s.24(4)(e)–(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a deduction for accommodation, services, food or meals only at the employee's written request (entry fact written_request) with the Director General's prior permission. The cap comes from the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations, not s.24."
+							"title": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://web.archive.org/web/20260402043057/https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM150 per worker per month from 1 March 2026 (RM100 before). A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date. EA s.24(4)(e)–(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a deduction for accommodation, services, food or meals only at the employee's written request (entry fact written_request) with the Director General's prior permission. The cap comes from the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations, not s.24."
 						}
 					],
 					"description": "Deducts the month's rent for employer-provided accommodation from net pay: the amount entered, and no more than RM150 a month (Workers' Minimum Standards of Housing and Amenities Act 1990)."
@@ -4899,7 +4908,7 @@
 						},
 						{
 							"title": "LHDN Public Ruling 2/2026",
-							"url": "https://www.hasil.gov.my/media/ikelbhz0/pr-2-2026-tax-treatment-of-foreign-nationals-exercising-employment-in-malaysia.pdf",
+							"url": "https://www.hasil.gov.my/wp-content/uploads/pr-2-2026-tax-treatment-of-foreign-nationals-exercising-employment-in-malaysia.pdf",
 							"quote": "Schedule 6 paragraph 21 applies to employment exercised while in Malaysia for no more than 60 days, not physical presence days alone."
 						},
 						{
@@ -4958,21 +4967,21 @@
 						{
 							"title": "Employees’ Social Security (Amendment) Act 2026 (Act A1788)",
 							"locator": "s.3 (Act 4 s.6(4)-(5), (11)); s.17, Third Schedule column (4)(B) \"Non-employment injury\"",
-							"url": "https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
 							"quote": "In operation 1 June 2026. First-category contributions by Part I, II or III and second-category by Part IV, V or VI of the Third Schedule for the First, Second and Third Phase; employee share only; the second-category column (4) is the same amount in every band. Introduces the Skim Kemalangan Bukan Bencana Kerja (LINDUNG 24 Jam) under Act 4. Wages to RM200 are the printed amounts; Phase I = round(1.25% × band midpoint, 5 sen, half to even) − 0.5% × midpoint (RM200.01–300 → RM1.85), Phase II = 1.00% × midpoint, Phase III = round(1.25% × midpoint, 5 sen, half to even). Employee share only, 0.75% of wages in Phase 1 (years 1-2 from 1 June 2026), rising to 1.00% in Phase 2 (years 3-5) and 1.25% in Phase 3 (year 6 onwards). Charged in both the First and the Second Category on the same wage bands and the same RM6,000 ceiling as SOCSO. The 65 rows are A1788 Third Schedule Part I column (4)(B) (Part IV column (4) for the Second Category, identical in every band). A six-month grace period from 1 June 2026 runs before penalties. The Second and Third Phase amounts (Parts II/V and III/VI) apply from 1 June 2028 and 1 June 2031. PERKESO’s consolidated Act 4 text (as at 1 September 2022) predates A1724/2024 and A1788 and is not the source of these amounts.",
 							"effective_from": "2026-06-01"
 						},
 						{
 							"title": "P.U. (B) 196/2026",
 							"locator": "paras (a)-(d)",
-							"url": "https://www.perkeso.gov.my/images/akta/ACT%204/P.U.(B)/PUB_196_2026_-_PENETAPAN_TARIKH_PERMULAAN_KUAT_KUASA.pdf",
+							"url": "https://web.archive.org/web/20260723004836id_/https://www.perkeso.gov.my/images/akta/ACT%204/P.U.(B)/PUB_196_2026_-_PENETAPAN_TARIKH_PERMULAAN_KUAT_KUASA.pdf",
 							"quote": "Para (a): Act A1788 in operation 1 June 2026. First Phase 1 June 2026 to 31 May 2028, Second Phase 1 June 2028 to 31 May 2031, Third Phase from 1 June 2031.",
 							"effective_from": "2026-06-01"
 						},
 						{
 							"title": "PERKESO, LINDUNG 24 Jam FAQ",
 							"locator": "Q4, Q9, Q11, Q21",
-							"url": "https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130826-FAQ%20_LINDUNG24Jam_EN_version.pdf",
+							"url": "https://web.archive.org/web/20260930181233id_/https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130826-FAQ%20_LINDUNG24Jam_EN_version.pdf",
 							"quote": "Q21: only the employer the employee designated deducts SKBBK. Q9, Q11: a release filed in the 13 July – 31 August 2026 window counts from the July 2026 wage month. Q4: no age limit."
 						},
 						{
@@ -4984,13 +4993,13 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
 						},
 						{
 							"title": "PERKESO Soalan Lazim",
 							"locator": "Q1; LINDUNG KERJAYA Q1",
-							"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+							"url": "https://web.archive.org/web/20261009082557/https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
 							"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
 						},
 						{
@@ -5071,14 +5080,14 @@
 						{
 							"title": "Employees’ Social Security (Amendment) Act 2026 (Act A1788)",
 							"locator": "s.3 (Act 4 s.6(4)-(5), (11)); s.17, Third Schedule column (4)(B) \"Non-employment injury\"",
-							"url": "https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3387077_BI/Act%20A1788%20-%20EMPLOYEES%20SOCIAL%20SECURITY%20(AMENDMENT)%20ACT%202026.pdf",
 							"quote": "In operation 1 June 2026. First-category contributions by Part I, II or III and second-category by Part IV, V or VI of the Third Schedule for the First, Second and Third Phase; employee share only; the second-category column (4) is the same amount in every band. Introduces the Skim Kemalangan Bukan Bencana Kerja (LINDUNG 24 Jam) under Act 4. Wages to RM200 are the printed amounts; Phase I = round(1.25% × band midpoint, 5 sen, half to even) − 0.5% × midpoint (RM200.01–300 → RM1.85), Phase II = 1.00% × midpoint, Phase III = round(1.25% × midpoint, 5 sen, half to even). PERKESO’s consolidated Act 4 text (as at 1 September 2022) predates A1724/2024 and A1788 and is not the source of these amounts.",
 							"effective_from": "2026-06-01"
 						},
 						{
 							"title": "P.U. (B) 196/2026",
 							"locator": "paras (a)-(d)",
-							"url": "https://www.perkeso.gov.my/images/akta/ACT%204/P.U.(B)/PUB_196_2026_-_PENETAPAN_TARIKH_PERMULAAN_KUAT_KUASA.pdf",
+							"url": "https://web.archive.org/web/20260723004836id_/https://www.perkeso.gov.my/images/akta/ACT%204/P.U.(B)/PUB_196_2026_-_PENETAPAN_TARIKH_PERMULAAN_KUAT_KUASA.pdf",
 							"quote": "Para (a): Act A1788 in operation 1 June 2026. First Phase 1 June 2026 to 31 May 2028, Second Phase 1 June 2028 to 31 May 2031, Third Phase from 1 June 2031.",
 							"effective_from": "2026-06-01"
 						},
@@ -5092,7 +5101,7 @@
 						{
 							"title": "PERKESO, LINDUNG 24 Jam FAQ",
 							"locator": "Q4, Q9, Q11, Q21",
-							"url": "https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130826-FAQ%20_LINDUNG24Jam_EN_version.pdf",
+							"url": "https://web.archive.org/web/20260930181233id_/https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130826-FAQ%20_LINDUNG24Jam_EN_version.pdf",
 							"quote": "Q21: only the employer the employee designated deducts SKBBK. Q9, Q11: a release filed in the 13 July – 31 August 2026 window counts from the July 2026 wage month. Q4: no age limit."
 						},
 						{
@@ -5104,13 +5113,13 @@
 						{
 							"title": "Employment Insurance System Act 2017 (Act 800)",
 							"locator": "s.2",
-							"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+							"url": "https://lawplayer.com/my/act/act-800",
 							"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
 						},
 						{
 							"title": "PERKESO Soalan Lazim",
 							"locator": "Q1; LINDUNG KERJAYA Q1",
-							"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+							"url": "https://web.archive.org/web/20261009082557/https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
 							"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
 						},
 						{
@@ -5144,9 +5153,9 @@
 					"references": [
 						{
 							"title": "HRD Corp Employers' Circular 01/2026",
-							"locator": "education-employer levy exemption, January to December 2026 wages; secondary summary of the circular; hrdcorp.gov.my refused automated access; read 2026-11-13",
-							"url": "https://www.learnsignal.com/blog/hrd-corp-grant-application-window-2027-change/",
-							"quote": "The exemption applies for a period of one year, from January 2026 to December 2026.",
+							"locator": "education-employer levy exemption, January to December 2026 wages; the Minister's statement as reported by Sinar Harian, 15 January 2026; read 2026-11-18",
+							"url": "https://www.sinarharian.com.my/article/764171/berita/nasional/pengecualian-levi-hrd-corp-untuk-institusi-pendidikan-swasta-bermula-2026",
+							"quote": "“… selama setahun bermula Januari hingga Disember 2026.”",
 							"effective_from": "2027-01-01"
 						},
 						{
@@ -5159,7 +5168,8 @@
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
-							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
+							"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						},
 						{
 							"title": "Pembangunan Sumber Manusia Berhad (Imposition of Levy) order",
@@ -5172,7 +5182,9 @@
 						},
 						{
 							"title": "HRD Corp, Levy Calculation Guideline",
-							"quote": "Wages \"includes any leave pay and arrears of wages\"."
+							"quote": "Wages \"includes any leave pay and arrears of wages\". Sample: \"LEVY = [(BASIC SALARY - UNPAID LEAVE) + FIXED ALLOWANCE] x 1%\". The sample names neither arrears nor leave paid out in money; the definition includes both, and both are levied.",
+							"url": "https://supportcentre.hrdcorp.gov.my/portal/en/kb/articles/hrd-levy",
+							"locator": "read 2026-11-18"
 						},
 						{
 							"title": "HRD Corp Employers Circular 5/2018",
@@ -5190,13 +5202,15 @@
 						},
 						{
 							"title": "HRD Corp Employers Circular01/2026 and official implementation clarification",
-							"url": "https://hrdcorp.gov.my/wp-content/uploads/2026/01/Employers-Circular-No-01-2026.pdf",
-							"quote": "January through December2026 wage contributions exempt for qualifying registered education employers. Official clarification expressly includes December payable15 January2027."
+							"url": "https://www.sinarharian.com.my/article/764171/berita/nasional/pengecualian-levi-hrd-corp-untuk-institusi-pendidikan-swasta-bermula-2026",
+							"quote": "“Kerajaan melaksanakan pengecualian pembayaran Levi Pembangunan Sumber Manusia bagi majikan berdaftar dalam sektor pendidikan swasta selama setahun bermula Januari hingga Disember 2026.” The December 2026 levy, due on or before 15 January 2027, is inside the year.",
+							"locator": "the Minister's statement as reported by Sinar Harian, 15 January 2026; the circular's own PDF refuses a reader"
 						},
 						{
 							"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
 							"locator": "s.2 definition of \"wages\", paragraph (e)",
-							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain."
+							"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the levy stops at the WAGE_ARREARS checkpoint: basic pay, allowances, rest-day and holiday work within the normal hours, and arrears. Commission, awards, overtime and the annual bonus come later in the chain.",
+							"url": "https://lawplayer.com/my/act/act-612"
 						}
 					],
 					"description": "Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no bonus, commission or overtime): 1% for a compulsory employer, 0.5% for an optional one (Pembangunan Sumber Manusia Berhad Act 2001 s.14). The 2026 education-employer exemption ended with December 2026 wages; those wages stay exempt when paid in 2027."

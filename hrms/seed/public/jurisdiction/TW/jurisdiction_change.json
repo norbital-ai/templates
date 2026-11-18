@@ -1937,8 +1937,8 @@
 						},
 						{
 							"title": "臺北市政府勞動局 休息日加班費計算範例",
-							"url": "https://www.laws.taipei.gov.tw/lawatt/SLaw/183067/02910703300008-002.pdf",
-							"locator": "休息日加班 12小時 (月薪以30日計: hours 9–12 at 2⅔); read 2026-11-13"
+							"url": "https://bola.gov.taipei/News_Content.aspx?n=FDEDF5DCB0A26A46&sms=87415A8B9CE81B16&s=473FFB4AD8DF5CC2",
+							"locator": "休息日加班費如何計算？休息日工作10小時的範例 (月薪以30日計); 第9至12小時另再加給2又2/3: 勞動部 https://www.mol.gov.tw/1607/28162/28166/28180/28198/28202/; read 2026-11-18"
 						}
 					],
 					"subtotal": "ORDINARY_WAGES",
@@ -2682,7 +2682,7 @@
 						{
 							"title": "全民健康保險法",
 							"locator": "§34",
-							"url": "https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html",
+							"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=34",
 							"quote": "The insuring unit pays 2.11% of the excess of the month's total salary income paid (薪資所得, 所得稅格式代號 50) over the total insured amounts of its insured, netted across the establishment, not person by person; never negative."
 						}
 					],
@@ -4494,7 +4494,7 @@
 					"references": [
 						{
 							"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: not an absence and the attendance bonus untouched; the day’s wage may be withheld.",
-							"url": "https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468"
+							"url": "https://www.mol.gov.tw/media/j2rlsucj/%E5%A4%A9%E7%84%B6%E7%81%BD%E5%AE%B3%E7%99%BC%E7%94%9F%E4%BA%8B%E6%A5%AD%E5%96%AE%E4%BD%8D%E5%8B%9E%E5%B7%A5%E5%87%BA%E5%8B%A4%E7%AE%A1%E7%90%86%E5%8F%8A%E5%B7%A5%E8%B3%87%E7%B5%A6%E4%BB%98%E8%A6%81%E9%BB%9E.pdf"
 						}
 					],
 					"description": "A natural disaster that interrupts work."
@@ -5716,7 +5716,7 @@
 					"references": [
 						{
 							"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: a worker who does not work on a day the authority stops work for a typhoon or other disaster may not be treated as absent, made to take another leave, or otherwise prejudiced; the wage of the day may be withheld (it does not reduce the attendance bonus).",
-							"url": "https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468"
+							"url": "https://www.mol.gov.tw/media/j2rlsucj/%E5%A4%A9%E7%84%B6%E7%81%BD%E5%AE%B3%E7%99%BC%E7%94%9F%E4%BA%8B%E6%A5%AD%E5%96%AE%E4%BD%8D%E5%8B%9E%E5%B7%A5%E5%87%BA%E5%8B%A4%E7%AE%A1%E7%90%86%E5%8F%8A%E5%B7%A5%E8%B3%87%E7%B5%A6%E4%BB%98%E8%A6%81%E9%BB%9E.pdf"
 						}
 					],
 					"subtotal": "NET",
@@ -5770,8 +5770,8 @@
 				"PERSONAL_LEAVE": {
 					"references": [
 						{
-							"title": "勞工請假規則 §7(1) ordinary personal leave is at most 14 unpaid days annually; the 2025-12-09 §7(2) amendment, effective 2026-01-01 under §12(2), grants an hourly unit only where the employee personally cares for a family member. Use the separate FAMILY_CARE_LEAVE row for that case; it consumes this 14-day quota. https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=7&id=FL014935 勞工請假規則 §7: 一年內合計不得超過十四日 — metered by calendar year.",
-							"url": "https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=7&id=FL014935"
+							"title": "勞工請假規則 §7(1) ordinary personal leave is at most 14 unpaid days annually; the 2025-12-09 §7(2) amendment, effective 2026-01-01 under §12(2), grants an hourly unit only where the employee personally cares for a family member. Use the separate FAMILY_CARE_LEAVE row for that case; it consumes this 14-day quota. https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=7 勞工請假規則 §7: 一年內合計不得超過十四日 — metered by calendar year.",
+							"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=7"
 						}
 					]
 				},

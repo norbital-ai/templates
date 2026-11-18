@@ -760,9 +760,10 @@
 							"quote": "Insurance salary = the monthly job or title wage, plus the wage allowances and the other supplements of a stated amount agreed in the contract and paid regularly and stably each pay period, excluding items that depend on or vary with productivity, work history or performance (fixed allowance rows count; a row marked not fixed stays outside). A part-time employee’s base is the pay of the month (art.7(2)). Occupational-accident contributions stay on the compulsory SI salary (art.43(2))."
 						},
 						{
-							"title": "Official BHXH guidance on early return SI and HI",
-							"url": "https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
-							"quote": "An early return from maternity leave resumes payroll HI."
+							"title": "Luật Bảo hiểm xã hội 41/2024/QH15; Luật Bảo hiểm y tế as amended by Luật 51/2024/QH15",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2024/9/41-2024-qh15.pdf",
+							"quote": "“người sử dụng lao động và người lao động có trách nhiệm đóng bảo hiểm xã hội bắt buộc cho thời gian người lao động trở lại làm việc.” Health insurance follows from the Law on Health Insurance: the agency pays it only for a month with 14 or more working days of maternity leave, so a month of early return with fewer is paid from payroll again. No current official text states the health-insurance part outright.",
+							"locator": "Điều 53 khoản 1; Luật BHYT Điều 12 khoản 2 điểm b (https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/01/luat51.pdf)"
 						},
 						{
 							"title": "Circular 12/2025/TT-BNV (Thông tư 12/2025/TT-BNV)",
@@ -3996,7 +3997,7 @@
 						},
 						{
 							"title": "ILO-hosted English text of Labour Code45/2019/QH14, article20",
-							"url": "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/110469/VNM110469%20Eng.pdf"
+							"url": "https://web.archive.org/web/20251207003205id_/https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/110469/VNM110469%20Eng.pdf"
 						}
 					]
 				},
@@ -5685,15 +5686,16 @@
 						},
 						{
 							"title": "Vietnam Social Security guidance",
-							"locator": "18 June 2026",
-							"url": "https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168&ItemID=26671",
-							"quote": "Where an unpaid-leave agreement continues compulsory SI, health insurance continues on that SI base.",
+							"locator": "as relayed by Báo Pháp luật Việt Nam, 19 June 2026; Luật BHXH 2024 Điều 33 khoản 5",
+							"url": "https://doanhnhan.baophapluat.vn/nghi-khong-luong-tren-2-tuan-quyen-loi-bhxh-bhyt-thay-doi-ra-sao-f66b2eac.html",
+							"quote": "Where the parties agree to keep paying compulsory social insurance through unpaid leave, “trách nhiệm đóng BHYT cũng sẽ được thực hiện tương ứng”; the social-insurance amount follows the most recent month before the leave. Stated by Vietnam Social Security, in no law or decree.",
 							"effective_from": "2026-06-18"
 						},
 						{
-							"title": "Official BHXH guidance on early return SI and HI",
-							"url": "https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
-							"quote": "An early return from maternity leave resumes payroll HI."
+							"title": "Luật Bảo hiểm xã hội 41/2024/QH15; Luật Bảo hiểm y tế as amended by Luật 51/2024/QH15",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2024/9/41-2024-qh15.pdf",
+							"quote": "“người sử dụng lao động và người lao động có trách nhiệm đóng bảo hiểm xã hội bắt buộc cho thời gian người lao động trở lại làm việc.” Health insurance follows from the Law on Health Insurance: the agency pays it only for a month with 14 or more working days of maternity leave, so a month of early return with fewer is paid from payroll again. No current official text states the health-insurance part outright.",
+							"locator": "Điều 53 khoản 1; Luật BHYT Điều 12 khoản 2 điểm b (https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/01/luat51.pdf)"
 						},
 						{
 							"title": "Circular 12/2025/TT-BNV (Thông tư 12/2025/TT-BNV)",
@@ -6082,15 +6084,16 @@
 						},
 						{
 							"title": "Vietnam Social Security guidance",
-							"locator": "18 June 2026",
-							"url": "https://baohiemxahoi.gov.vn/tintuc/Pages/linh-vuc-bao-hiem-xa-hoi.aspx?CateID=168&ItemID=26671",
-							"quote": "Where an unpaid-leave agreement continues compulsory SI, health insurance continues on that SI base.",
+							"locator": "as relayed by Báo Pháp luật Việt Nam, 19 June 2026; Luật BHXH 2024 Điều 33 khoản 5",
+							"url": "https://doanhnhan.baophapluat.vn/nghi-khong-luong-tren-2-tuan-quyen-loi-bhxh-bhyt-thay-doi-ra-sao-f66b2eac.html",
+							"quote": "Where the parties agree to keep paying compulsory social insurance through unpaid leave, “trách nhiệm đóng BHYT cũng sẽ được thực hiện tương ứng”; the social-insurance amount follows the most recent month before the leave. Stated by Vietnam Social Security, in no law or decree.",
 							"effective_from": "2026-06-18"
 						},
 						{
-							"title": "Official BHXH guidance on early return SI and HI",
-							"url": "https://baohiemxahoi.gov.vn/chuyen-trang-bhxh-bhyt/tu-van-hoi-dap/Pages/default.aspx?ItemID=5831",
-							"quote": "An early return from maternity leave resumes payroll HI."
+							"title": "Luật Bảo hiểm xã hội 41/2024/QH15; Luật Bảo hiểm y tế as amended by Luật 51/2024/QH15",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2024/9/41-2024-qh15.pdf",
+							"quote": "“người sử dụng lao động và người lao động có trách nhiệm đóng bảo hiểm xã hội bắt buộc cho thời gian người lao động trở lại làm việc.” Health insurance follows from the Law on Health Insurance: the agency pays it only for a month with 14 or more working days of maternity leave, so a month of early return with fewer is paid from payroll again. No current official text states the health-insurance part outright.",
+							"locator": "Điều 53 khoản 1; Luật BHYT Điều 12 khoản 2 điểm b (https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/01/luat51.pdf)"
 						},
 						{
 							"title": "Circular 12/2025/TT-BNV (Thông tư 12/2025/TT-BNV)",
