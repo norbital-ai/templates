@@ -269,14 +269,13 @@ describe('statutory research planning', () => {
 			{ references: [{ title: 'D', url: 'https://vanban.chinhphu.vn/d' }] },
 			{ references: [{ title: 'E', url: 'https://web.archive.org/e' }] },
 			{ references: [{ title: 'F', url: 'https://www.mom.gov.sg/f' }] },
-			// an archived copy stands for the host it mirrors, whatever scheme and port it was captured on
+			// an archived copy is cited where the host refuses a reader: the host is no source either
 			{
 				references: [
 					{
 						title: 'G',
 						url: 'https://web.archive.org/web/2020id_/http://www.agency.gov.ph:80/g.pdf'
-					},
-					{ title: 'H', url: 'https://web.archive.org/web/20260225120656/https://www.mom.gov.sg/h' }
+					}
 				]
 			}
 		];
@@ -284,8 +283,7 @@ describe('statutory research planning', () => {
 			referenceSources(rows, ['https://www.mom.gov.sg']).map((row) => [row.url, row.status]),
 			[
 				['https://www.cpf.gov.sg', 'ACTIVE'],
-				['https://vanban.chinhphu.vn', 'PROPOSED'],
-				['https://www.agency.gov.ph', 'ACTIVE']
+				['https://vanban.chinhphu.vn', 'PROPOSED']
 			]
 		);
 	});

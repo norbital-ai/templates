@@ -18,18 +18,20 @@ const said = (law: Law): string =>
 
 /**
  * Hosts that refuse a plain reader (docs/0003, "References"): a bot or script challenge, or no answer at all. A reference
- * cites a copy that opens instead: the authority's own API or another official host, else a dated archive snapshot.
+ * cites a copy that opens instead (the authority's own API, another official host, a dated archive snapshot), or names
+ * its instrument with no link: a source nobody can open is not cited.
  */
 const REFUSES =
-	/^https?:\/\/(?:(?:www\.)?kwsp\.gov\.my|hrdcorp\.gov\.my|(?:www\.)?perkeso\.gov\.my|(?:jtksm|gajiminimum)\.mohr\.gov\.my|sso\.agc\.gov\.sg|peraturan\.bpk\.go\.id\/Details|jdih\.kemenkeu\.go\.id|www\.peraturan\.go\.id|www\.mol\.go\.th|www\.dsd\.go\.th|www\.sec\.or\.th|laws\.mol\.gov\.tw|baohiemxahoi\.gov\.vn|natlex\.ilo\.org|privacy\.gov\.ph|(?:www|car|query)\.dole\.gov\.ph|laws\.e-gov\.go\.jp\/law)\//;
+	/^https?:\/\/(?:(?:www\.)?kwsp\.gov\.my|hrdcorp\.gov\.my|(?:www\.)?perkeso\.gov\.my|(?:jtksm|gajiminimum)\.mohr\.gov\.my|sso\.agc\.gov\.sg|peraturan\.bpk\.go\.id\/Details|jdih\.kemenkeu\.go\.id|www\.peraturan\.go\.id|www\.mol\.go\.th|www\.dsd\.go\.th|www\.sec\.or\.th|laws\.mol\.gov\.tw|baohiemxahoi\.gov\.vn|natlex\.ilo\.org|privacy\.gov\.ph|(?:www|car|query)\.dole\.gov\.ph|laws\.e-gov\.go\.jp\/law|(?:jkq|ybj|zfgjj)\.km\.gov\.cn|mp\.weixin\.qq\.com|www\.facebook\.com|ppid\.bps\.go\.id|data\.sekadaukab\.go\.id|disnakertrans\.kalselprov\.go\.id)\//;
+/** Every URL a value cites, in a `url` field or inside its wording. */
 const cited = (value: unknown): readonly string[] =>
-	Array.isArray(value)
-		? value.flatMap(cited)
-		: isJsonObject(value)
-			? Object.entries(value).flatMap(([key, held]) =>
-					key === 'url' && typeof held === 'string' ? [held] : cited(held)
-				)
-			: [];
+	typeof value === 'string'
+		? (value.match(/https?:\/\/[^\s"<>，。；：）（、」』】]+/g) ?? [])
+		: Array.isArray(value)
+			? value.flatMap(cited)
+			: isJsonObject(value)
+				? Object.values(value).flatMap(cited)
+				: [];
 
 describe('the seeded laws', () => {
 	for (const { code, changes, standing } of SEEDED) {

@@ -106,9 +106,10 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 ### References
 
 - A reference's URL opens for a plain reader (curl, an agent's fetch): audits and research read it again. Fetch a URL before citing it, in a `url` field or inside a title or quote.
-- Where the authority's page refuses a reader, cite a copy that opens, in this order: the authority's own API or file endpoint; another official host carrying the same text; a dated `web.archive.org` snapshot of the page (`/web/<timestamp>/<url>`, with `id_` or `if_` after the timestamp for a PDF). Research treats an archived copy as the host it mirrors.
+- Where the authority's page refuses a reader, cite a copy that opens, in this order: the authority's own API or file endpoint; another official host carrying the same text; a dated `web.archive.org` snapshot of the page (`/web/<timestamp>/<url>`, with `id_` or `if_` after the timestamp for a PDF).
+- A source that does not open is not cited: the reference names its instrument with no link, or goes. Research takes no host as a place to read unless a reference cites it directly.
 - A reference says what its source says. Where the seed's method goes beyond the source's words, the quote names the method and why.
-- `tests/configuration/seeded_laws.test.ts` refuses a reference `url` on a host listed below.
+- `tests/configuration/seeded_laws.test.ts` refuses a URL on a host listed below, in a `url` field or inside a reference's wording.
 
 The seed cited 579 URLs on 18 November 2026 and 115 did not open for a plain reader. The hosts that refused, and what the seed cites instead:
 
@@ -134,7 +135,7 @@ The seed cited 579 URLs on 18 November 2026 and 115 did not open for a plain rea
 
 Single pages that had moved or gone were repointed the same way (LHDN Public Ruling 2/2026, MOM's Employment Pass conditions, the Shanghai housing fund notice, a Yunnan compilation, a Taipei worked example), and four press pages behind a challenge were replaced by the instrument itself or an archived copy.
 
-No readable copy was found for nine citations written inside reference titles, which stay as they are: two Indonesian regional wage pages (`data.sekadaukab.go.id`, `disnakertrans.kalselprov.go.id`), a Kalimantan Tengah notice on Facebook, one BPS table (`ppid.bps.go.id`), two WeChat articles and three Kunming pages (`jkq.`, `ybj.` and `zfgjj.km.gov.cn`). `web.archive.org` throttles bursts: one request every few seconds.
+Nine citations had no copy that opens (two Indonesian regional wage pages, a Kalimantan Tengah notice on Facebook, a BPS table, two WeChat articles and three Kunming pages): their links were removed and the instruments stay named. `web.archive.org` throttles bursts: one request every few seconds.
 
 ## 6. Acceptance
 

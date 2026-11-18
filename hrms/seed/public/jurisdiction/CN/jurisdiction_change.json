@@ -1840,7 +1840,7 @@
 					},
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (2025-03-01起, 单位9%含生育, 个人2%); 上海2025年度基数7460–37302; 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml 与 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml (单位7%+生育0.9%=7.9%, 个人2%); 2025-10起医疗基数4357–21789. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (2025-03-01起, 单位9%含生育, 个人2%); 上海2025年度基数7460–37302; 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml 与 2024-07-18 通知 (单位7%+生育0.9%=7.9%, 个人2%); 2025-10起医疗基数4357–21789. 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
@@ -1869,7 +1869,7 @@
 					},
 					"references": [
 						{
-							"title": "昆明市医疗保障局2025-09-29通知: 2025-10起大额医疗费用补助单位43.57元/人/月, 个人1元/人/月 (基数4357–21789). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06) https://jkq.km.gov.cn/c/2024-08-16/6890397.shtml."
+							"title": "昆明市医疗保障局2025-09-29通知: 2025-10起大额医疗费用补助单位43.57元/人/月, 个人1元/人/月 (基数4357–21789). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06)."
 						},
 						{
 							"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
@@ -2859,7 +2859,7 @@
 					},
 					"references": [
 						{
-							"title": "国家税务总局上海市税务局通告2026年第1号《关于开展2026社保年度用人单位社会保险缴费工资申报工作的通告》: 申报时间2026年5月1日至2026年6月25日; 申报职工上一自然年度的月平均工资 https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html. KM: 国家税务总局云南省税务局 (云南税务 WeChat account, 2026-01-08) 《“社保费管理客户端”年度缴费工资申报操作指引——企业申报操作篇》: 企业2026年度社保费缴费工资集中申报截止时间为1月31日; 自2026年1月起, 企业缴费工资申报实现“一次申报、五险并用” https://mp.weixin.qq.com/s?__biz=MzA5NjY5OTEzNQ==&mid=2652065121&idx=1&sn=17e0daa2e4587ecf31522fb0cdce28fa; 国家税务总局西双版纳州税务局 (西双版纳税务, 2026-01-09) 《关于2026年用人单位社会保险费缴费工资申报的提示》: 2026年1月1日至1月31日为用人单位社会保险费缴费工资集中申报期; 各险种新申报缴费工资自2026年1月开始执行; 以职工本人上年度月平均工资据实申报 https://mp.weixin.qq.com/s?__biz=MzI5MTI4NDU3OQ==&mid=2247539265&idx=1&sn=11392640847f8a342c8ba029ee49ccba (both read 2026-10-08). The 2026 Kunming medical notice (禄劝县医疗保障局 2026-09-16, 2026年度昆明市职工医疗保险有关基数执行标准通知) moves only the base limits (4403–22017 from September 2026) and sets no declaration window."
+							"title": "国家税务总局上海市税务局通告2026年第1号《关于开展2026社保年度用人单位社会保险缴费工资申报工作的通告》: 申报时间2026年5月1日至2026年6月25日; 申报职工上一自然年度的月平均工资 https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html. KM: 国家税务总局云南省税务局 (云南税务 WeChat account, 2026-01-08) 《“社保费管理客户端”年度缴费工资申报操作指引——企业申报操作篇》: 企业2026年度社保费缴费工资集中申报截止时间为1月31日; 自2026年1月起, 企业缴费工资申报实现“一次申报、五险并用”; 国家税务总局西双版纳州税务局 (西双版纳税务, 2026-01-09) 《关于2026年用人单位社会保险费缴费工资申报的提示》: 2026年1月1日至1月31日为用人单位社会保险费缴费工资集中申报期; 各险种新申报缴费工资自2026年1月开始执行; 以职工本人上年度月平均工资据实申报 (both read 2026-10-08). The 2026 Kunming medical notice (禄劝县医疗保障局 2026-09-16, 2026年度昆明市职工医疗保险有关基数执行标准通知) moves only the base limits (4403–22017 from September 2026) and sets no declaration window."
 						}
 					],
 					"source_collection": "payroll_run",
@@ -6352,7 +6352,7 @@
 				"MEDICAL": {
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (至2026-02-28) 及 沪医保规〔2026〕2号 (2026-03-01至2027-02-28): 单位9%含生育, 个人2% https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2025年度基数7460–37302 (至2026-06-30); 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2025〕2号 (至2026-02-28) 及 沪医保规〔2026〕2号 (2026-03-01至2027-02-28): 单位9%含生育, 个人2% https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2025年度基数7460–37302 (至2026-06-30); 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "劳动合同法实施条例 第二十一条: 劳动者达到法定退休年龄的, 劳动合同终止; 退休年龄表按《国务院关于渐进式延迟法定退休年龄的办法》 (2025-01-01起)",
@@ -6371,7 +6371,7 @@
 				"HPF": {
 					"references": [
 						{
-							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2025〕8号 (2690–37302, 至2026-06-30, 5%–7%); 昆明2026年度上限32543 (昆公积金〔2026〕69号, 执行期2026-01-01至12-31 https://zfgjj.km.gov.cn/c/2026-09-04/5109614.shtml), 下限为当地最低工资2170/2020/1870 (至2026-08-31), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2025〕8号 (2690–37302, 至2026-06-30, 5%–7%); 昆明2026年度上限32543 (昆公积金〔2026〕69号, 执行期2026-01-01至12-31), 下限为当地最低工资2170/2020/1870 (至2026-08-31), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
 						},
 						{
 							"title": "沪公积金管委会〔2025〕8号 (2025-09-18): 2025年度住房公积金缴存基数 (2025-07-01至2026-06-30)",
@@ -6611,7 +6611,7 @@
 					"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\n\tconst exempt = get(ctx.subject.employment, 'statutory_parameters.si_exempt_schemes', []);\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('MEDICAL')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 人社部令第56号 第十六条、第十七条: past the statutory retirement date this scheme stops, unless an agreement signed on or after that date declares a contribution base\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'statutory_parameters.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\tif (ctx.run.salary_coverage.from < retires) return true;\n\tif (get(ctx.subject.employment, 'statutory_parameters.si_contribution_base', null) == null) return false;\n\treturn get(ctx.subject.employment, 'terms.signed_on', '') >= retires;",
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知)/个人2%, 医疗基数4357–21789 (至2026-08). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
@@ -6631,7 +6631,7 @@
 				"HPF": {
 					"references": [
 						{
-							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆明2026年度上限32543 (昆公积金〔2026〕69号, 执行期2026-01-01至12-31 https://zfgjj.km.gov.cn/c/2026-09-04/5109614.shtml), 下限为当地最低工资2170/2020/1870 (至2026-08-31), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆明2026年度上限32543 (昆公积金〔2026〕69号, 执行期2026-01-01至12-31), 下限为当地最低工资2170/2020/1870 (至2026-08-31), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
@@ -6645,7 +6645,7 @@
 					"eligibility": "const engagement = get(ctx.subject.employment, 'engagement', 'EMPLOYEE');\n\tconst excluded = ['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n\tconst end = get(ctx.subject.employment, 'effective_range.to', null);\n\tconst ended = end != null && end !== '' && end < ctx.run.salary_coverage.from;\nconst code = get(\n\t\tctx.subject.employer,\n\t\t'statutory_parameters.region',\n\t\tget(ctx.subject.employer, 'source_reference', '')\n\t);\n\tconst region = first((ctx.lookup.regions || []).filter((row) => row.code === code));\n\tconst exempt = get(ctx.subject.employment, 'statutory_parameters.si_exempt_schemes', []);\n\tif (region == null) return false;\n\tif (region.employee == null) return false;\n\t// a monthly charge: an off-cycle run carries only its own items\n\tif (get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE') return false;\n\tif (excluded) return false;\n\tif (ended) return false;\n\tif (Array.isArray(exempt) && exempt.includes('MEDICAL')) return false;\n\tconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\n\tif (born == null || born === '') return true;\n\t// 人社部令第56号 第十六条、第十七条: past the statutory retirement date this scheme stops, unless an agreement signed on or after that date declares a contribution base\n\tconst category =\n\t\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE'\n\t\t\t? get(ctx.subject.employment, 'statutory_parameters.retirement_category', 'FEMALE_50')\n\t\t\t: 'MALE';\n\tconst retirement = ctx.lookup.retirement.find((row) => row.category === category);\n\tconst deferred =\n\t\tborn < retirement.cutoff\n\t\t\t? 0\n\t\t\t: Math.min(\n\t\t\t\t\tretirement.max_deferral_months,\n\t\t\t\t\tMath.trunc(calendar_completed_months(retirement.cutoff, month_start(born)) / retirement.birth_months_per_step) + 1\n\t\t\t\t);\n\tconst retires = add_months(born, retirement.base_years * 12 + deferred);\n\tif (ctx.run.salary_coverage.from < retires) return true;\n\tif (get(ctx.subject.employment, 'statutory_parameters.si_contribution_base', null) == null) return false;\n\treturn get(ctx.subject.employment, 'terms.signed_on', '') >= retires;",
 					"references": [
 						{
-							"title": "昆明市医疗保障局2025-09-29通知: 2025-10起大额医疗费用补助单位43.57元/人/月, 个人1元/人/月 (基数4357–21789). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06) https://jkq.km.gov.cn/c/2024-08-16/6890397.shtml."
+							"title": "昆明市医疗保障局2025-09-29通知: 2025-10起大额医疗费用补助单位43.57元/人/月, 个人1元/人/月 (基数4357–21789). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06)."
 						}
 					]
 				}
@@ -6801,7 +6801,7 @@
 					},
 					"references": [
 						{
-							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知 https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml)/个人2%, 2026-09起医疗基数4403–22017 (云人社发〔2026〕8号). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
+							"title": "社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育, 个人2%) https://ybj.sh.gov.cn/gfxwj/20260313/921e047144694b61b6df8ca0c5ef2cfc.html; 上海2026年度基数7546–37731; 昆明单位7.9% (7%+生育0.9%: 昆明市医保局 2023-02-08 通知 https://web.archive.org/web/20260715050427/https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml; 2024-07-18 通知)/个人2%, 2026-09起医疗基数4403–22017 (云人社发〔2026〕8号). 未申报缴费基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴. 超龄劳动者: 人社部令第56号 第十七条, 同养老. 2026-11-06 复核: 未见2023年通知之后的昆明单位费率文件."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
@@ -6821,7 +6821,7 @@
 				"HPF": {
 					"references": [
 						{
-							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆明2026年度上限32543, 下限2270/2120/1970 (昆公积金〔2026〕69号: 2026-09-01起, 云人社发〔2026〕9号最低工资 https://zfgjj.km.gov.cn/c/2026-09-04/5109614.shtml), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
+							"title": "住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆明2026年度上限32543, 下限2270/2120/1970 (昆公积金〔2026〕69号: 2026-09-01起, 云人社发〔2026〕9号最低工资), 5%–12%. 未申报缴存基数时以本月实际基本工资为基数, 不按合同月薪. 无基本工资且无固定津贴的当期不计缴."
 						},
 						{
 							"title": "上海 2026年度社会保险缴费基数 (2026-07-01至2027-06-30): 上限37731元/月, 下限7546元/月; 住房公积金基数下限2740元",
@@ -6843,7 +6843,7 @@
 					},
 					"references": [
 						{
-							"title": "昆明市医疗保障局2026-09标准: 大额医疗费用补助单位44.03元/人/月, 个人1元/人/月 (基数4403–22017; 44.03=7339×0.6%, 数值为推算). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06) https://jkq.km.gov.cn/c/2024-08-16/6890397.shtml."
+							"title": "昆明市医疗保障局2026-09标准: 大额医疗费用补助单位44.03元/人/月, 个人1元/人/月 (基数4403–22017; 44.03=7339×0.6%, 数值为推算). 公式: 上年度全省全口径城镇单位就业人员月平均工资×0.6% (2024年官方通知: 43.06)."
 						}
 					]
 				}

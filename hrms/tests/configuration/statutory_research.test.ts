@@ -196,7 +196,7 @@ describe('statutory research', () => {
 				const first = yield* ledger(t);
 				assert.equal(first.findings.length, 0);
 				assert.ok(first.sources.some((row) => row.status === 'ACTIVE'));
-				assert.ok(first.sources.some((row) => row.url === 'https://www.kwsp.gov.my'));
+				assert.ok(first.sources.some((row) => row.url === 'https://www.hasil.gov.my'));
 				t.clock.set('2026-11-12T02:00:00.000Z');
 				yield* research(t);
 				const second = yield* ledger(t);
@@ -206,7 +206,7 @@ describe('statutory research', () => {
 						.every((row) => String(row.last_checked_on) === '2026-11-12')
 				);
 				const prompt = JSON.stringify(t.fakes.ai?.requests.at(-1));
-				assert.ok(prompt.includes('www.kwsp.gov.my'), 'the next run reads its active sources');
+				assert.ok(prompt.includes('www.hasil.gov.my'), 'the next run reads its active sources');
 			})
 		)
 	);
@@ -432,9 +432,9 @@ describe('statutory research', () => {
 						findings: [],
 						new_sources: [
 							{
-								url: 'https://www2.kwsp.gov.my',
+								url: 'https://www2.hasil.gov.my',
 								title: 'New legal portal',
-								replaces_url: 'https://www.kwsp.gov.my'
+								replaces_url: 'https://www.hasil.gov.my'
 							}
 						]
 					}),
@@ -452,7 +452,7 @@ describe('statutory research', () => {
 						yield* research(t);
 						const after = yield* ledger(t);
 						assert.equal(
-							after.sources.find((row) => row.url === 'https://www.kwsp.gov.my')?.status,
+							after.sources.find((row) => row.url === 'https://www.hasil.gov.my')?.status,
 							'RETIRED'
 						);
 					})
