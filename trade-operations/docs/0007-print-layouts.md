@@ -41,7 +41,7 @@ it does not supply a tenant's artwork or impose a separate signing workflow.
 | Images                     | `letterhead`, `stamp`, `signature`                                                                                                                                                                                                                                                                                                          |
 | Inside the line block      | `line_number`, `product`, `product_code`, `product_spec`, `brand`, `brand_en`, `producing_area`, `unit`, `quantity`, `unit_price`, `discount`, `tax_rate`, `net`, `tax`, `total`                                                                                                                                                            |
 
-Write fields with double braces. Use one `{{#lines}}` … `{{/lines}}` block for line items.
+Write fields with double braces. Use one `{{#lines}}` … `{{/lines}}` block for line items. Lines print in the order they were entered.
 Values are escaped as text. Write CSS and markup in the layout itself. The `terms` field holds
 the additional wording from the published body. The `agreement` field holds the complete
 saved agreement text, including lines and totals. Use `terms` when the layout already

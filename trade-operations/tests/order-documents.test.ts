@@ -287,6 +287,44 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			expect(next.print?.lines[0]).toMatchObject({ detail_brand: '', quantity_tonnes: '0.020' });
 		})
 	);
+	test.effect('a document lists lines in the order they were entered', () =>
+		Effect.gen(function* () {
+			const t = yield* Trade;
+			const admin = yield* t.as(t.admin);
+			// the purchase contract published above has an HTML print layout; lines are entered a second apart
+			const start = t.clock.now();
+			const { order, line } = yield* draft(t, 'purchasing');
+			const entered = [line];
+			for (const quantity of ['20', '30', '40', '50']) {
+				t.clock.advance('1s');
+				entered.push(
+					committed(
+						'order_lines',
+						yield* admin.act({
+							'order_lines.create': [
+								{
+									order,
+									product: PRODUCT,
+									quantity,
+									unit_price: '2',
+									discount_pct: '0',
+									tax_rate: '9'
+								}
+							]
+						})
+					)
+				);
+			}
+			t.clock.set(start);
+			const { order_lines } = yield* admin.query({
+				order_lines: { where: { order: { eq: order } }, fields: ['quantity'] }
+			});
+			const quantity = new Map(order_lines.rows.map((row) => [row.id, row.quantity]));
+			expect((yield* documentOf(admin, { order })).print?.lines.map((row) => row.quantity)).toEqual(
+				entered.map((id) => quantity.get(id))
+			);
+		})
+	);
 	test.effect('a published layout cannot be changed', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;

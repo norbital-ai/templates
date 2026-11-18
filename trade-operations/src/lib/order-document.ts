@@ -311,7 +311,16 @@ export const orderDocument = Effect.fnUntraced(function* (
 	);
 	if (lines.length !== order.lines.length)
 		return yield* new DocumentUnavailable({ message: 'Draft document is incomplete' });
-	const terms = snapshot(order, order.party, lines, template.version);
+	// documents list lines as they were entered; the sealed snapshot keeps its own (id) order
+	const entered = new Map(order.lines.map((line) => [line.id, line.created_at]));
+	const sealed = snapshot(order, order.party, lines, template.version);
+	const terms = {
+		...sealed,
+		lines: [...sealed.lines].sort(
+			(a, b) =>
+				(entered.get(a.id) ?? '').localeCompare(entered.get(b.id) ?? '') || a.id.localeCompare(b.id)
+		)
+	};
 	const names = new Map(answer.sys_user.rows.map((user) => [user.id, user.name]));
 	const title = template.title;
 	const text = agreementText(template, terms, reference, order.ordered_on);
