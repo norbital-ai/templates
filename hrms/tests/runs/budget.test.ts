@@ -92,17 +92,32 @@ const seed = {
 const ONE = idOf('employment', uuid(1003));
 
 /**
- * The budget's 2 s is the reference machine's (one Apple M-series core). This machine times the same fixed loop, and a
- * slower one is held to the budget at its own pace; never to less than the reference.
+ * The budget's 2 s is the reference machine's (one Apple M-series core). Beside each operation this machine times a
+ * fixed piece of the guest's kind of work (rows built, copied through JSON, keyed and sorted) on its own thread, as
+ * the guest's CPU is metered; a slower machine, or a busier moment, is held to the budget at that pace, never to less
+ * than the reference. Integer arithmetic alone does not slow as a guest does on a shared runner.
  */
-const REFERENCE_MILLIS = 140;
-const pace = (() => {
-	const from = process.cpuUsage();
-	let mixed = 1;
-	for (let at = 0; at < 50_000_000; at++) mixed = Math.imul(mixed ^ at, 0x9e3779b1);
-	assert.ok(Number.isInteger(mixed));
-	return Math.max(1, process.cpuUsage(from).user / 1000 / REFERENCE_MILLIS);
-})();
+const REFERENCE_MILLIS = 75;
+const pace = () => {
+	const from = process.threadCpuUsage();
+	let kept = 0;
+	for (let round = 0; round < 60; round++) {
+		const rows = Array.from({ length: 2000 }, (_, at) => ({
+			id: `row-${at}`,
+			on: `2026-03-${String((at % 28) + 1).padStart(2, '0')}`,
+			amount: at * 1.5
+		}));
+		const copied: unknown = JSON.parse(JSON.stringify(rows));
+		const keyed = new Map(rows.map((row) => [row.id, { ...row, amount: row.amount + 1 }]));
+		const sorted = [...keyed.values()].toSorted(
+			(left, right) => right.on.localeCompare(left.on) || left.id.localeCompare(right.id)
+		);
+		kept += sorted.length + (Array.isArray(copied) ? copied.length : 0);
+	}
+	assert.ok(kept > 0);
+	const used = process.threadCpuUsage(from);
+	return Math.max(1, (used.user + used.system) / 1000 / REFERENCE_MILLIS);
+};
 /** Each guest session's round trips (waves of `ctx` calls) and CPU, gathered while one operation runs. */
 const sessions = new Map<string, { waves: number; nanos: bigint }>();
 const at = (session: string) => {
@@ -117,14 +132,16 @@ const at = (session: string) => {
 const measured = <A, E, R>(label: string, operation: Effect.Effect<A, E, R>) =>
 	Effect.gen(function* () {
 		sessions.clear();
+		const before = pace();
 		const answer = yield* operation;
+		const speed = Math.max(before, pace());
 		const all = [...sessions.values()];
 		const most = Math.max(0, ...all.map((one) => one.waves));
 		const cpu = Number(all.reduce((total, one) => total + one.nanos, 0n)) / 1e6;
 		assert.ok(most <= 5, `${label}: an invocation made ${most} round trips`);
 		assert.ok(
-			cpu < 2000 * pace,
-			`${label}: ${Math.round(cpu)} ms of guest CPU at ${pace.toFixed(2)} of the reference pace`
+			cpu < 2000 * speed,
+			`${label}: ${Math.round(cpu)} ms of guest CPU at ${speed.toFixed(2)} of the reference pace`
 		);
 		return answer;
 	});
