@@ -1,4 +1,4 @@
--- 0001_initial.sql: 350 step(s), from an empty database to 3e678b7be5e03d82beb8b987a1ab440381ef60ea04b3392ecf8edf1bfcfedfbe.
+-- 0001_initial.sql: 347 step(s), from an empty database to deae3ce0a1164af41e4fc1a5a83afaa21973f07adc1a32b69f7a29d826de4dc8.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -561,6 +561,16 @@ create or replace function "bolt_record_label_sys_user_93340fdd"(text) returns t
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
+-- step create:function:bolt_record_label_sys_workspace_93340fdd (additive)
+create or replace function "bolt_record_label_sys_workspace_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
 -- step create:function:bolt_record_label_commercial_settings_c31fc1bb (additive)
 create or replace function "bolt_record_label_commercial_settings_c31fc1bb"() returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -620,16 +630,6 @@ create or replace function "bolt_record_label_activities_06f5fc13"(text) returns
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title")) AS j FROM (SELECT $1 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_ext_purchase_orders_813c0aa8 (additive)
-create or replace function "bolt_record_label_ext_purchase_orders_813c0aa8"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('reference', to_jsonb("reference")) AS j FROM (SELECT $1 AS "reference") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_order_files_06f5fc13 (additive)
 create or replace function "bolt_record_label_order_files_06f5fc13"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -700,6 +700,16 @@ create or replace function "bolt_record_label_products_93340fdd"(text) returns t
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_source_purchase_lines_813c0aa8 (additive)
+create or replace function "bolt_record_label_source_purchase_lines_813c0aa8"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['reference']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('reference', to_jsonb("reference")) AS j FROM (SELECT $1 AS "reference") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_warehouses_93340fdd (additive)
 create or replace function "bolt_record_label_warehouses_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -1292,6 +1302,7 @@ create table "sys_sync_row" ("id" uuid primary key,
 create table "sys_user" ("id" text primary key,
 	"email" text,
 	"name" text not null,
+	"preferences" jsonb default '{}'::jsonb not null,
 	"kind" text default 'staff'::text not null,
 	"active" boolean default true not null,
 	"admin" boolean default false not null,
@@ -1310,11 +1321,22 @@ create table "sys_user" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_user_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_user_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("email"::text, ''))) stored,
 	constraint "sys_user__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+	constraint "sys_user__ck__3996db29" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "sys_user__ck__73877b7a" check ("kind" in ('staff', 'external', 'anonymous')),
 	constraint "sys_user__ck__cceca9d3" check (("party" is null or store_json_valid("party", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_user__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_user__ck__9658c5b5" check (isfinite("last_seen")),
 	constraint "sys_user__ck__477bc0d2" check ((coalesce("admin" = false, false) or coalesce("kind" = 'staff'::text, false)))
+);
+
+-- step create:table:sys_workspace (additive)
+create table "sys_workspace" ("id" text primary key,
+	"name" text,
+	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_workspace_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_workspace_93340fdd"("name"), ''))) stored,
+	constraint "sys_workspace__ck__a12e11bb" check (char_length("name") <= 120),
+	constraint "sys_workspace__ck__4e7b428e" check ((coalesce("id" = '00000000-0000-0000-0000-000000000001'::text, false)))
 );
 
 -- step create:table:commercial_settings (additive)
@@ -1326,8 +1348,6 @@ create table "commercial_settings" ("id" uuid primary key, revision int not null
 	"stock_fresh_minutes" int default '30'::int not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_commercial_settings_c31fc1bb"()) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_commercial_settings_c31fc1bb"(), ''))) stored,
-	"default_document_layout" uuid,
-	"default_purchase_document_layout" uuid,
 	constraint "commercial_settings__ck__b83d984f" check ("freight_treatment" in ('deduct', 'include')),
 	constraint "commercial_settings__ck__f89a8caf" check ("code" in ('default')),
 	constraint "commercial_settings__ck__fa091954" check ("credit_fresh_minutes" >= 1),
@@ -1361,6 +1381,7 @@ create table "commission_rules" ("id" uuid primary key, revision int not null de
 
 -- step create:table:document_templates (additive)
 create table "document_templates" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"kind" text not null,
 	"locale" text not null,
 	"version" text not null,
 	"title" text not null,
@@ -1374,9 +1395,10 @@ create table "document_templates" ("id" uuid primary key, revision int not null 
 	"status" text default 'draft' not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_document_templates_06f5fc13"("title")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_document_templates_06f5fc13"("title"), '') || ' ' || coalesce("title"::text, ''))) stored,
+	constraint "document_templates__ck__b092a0a3" check ("kind" in ('quotation', 'sales_contract', 'purchase_contract')),
 	constraint "document_templates__ck__d73591a4" check ("locale" in ('en', 'zh')),
 	constraint "document_templates__ck__650fc83b" check ("layout" in ('text', 'table_v1')),
-	constraint "document_templates__ck__8bd21406" check (("print_fields" is null or store_json_valid("print_fields", '{"fields":{"default_value":{"kind":"text","optional":true},"key":{"kind":"text"},"label":{"kind":"text"},"multiline":{"kind":"bool","optional":true},"scope":{"kind":"enum","values":["order","line"]}},"kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "document_templates__ck__dd45050b" check (("print_fields" is null or store_json_valid("print_fields", '{"fields":{"default_value":{"kind":"text","optional":true},"key":{"kind":"text"},"label":{"kind":"text"},"multiline":{"kind":"bool","optional":true},"options":{"kind":"text","optional":true},"scope":{"kind":"enum","values":["order","line"]}},"kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "document_templates__ck__2d6b54cc" check (("print_layout" is null or store_json_valid("print_layout", '{"accept":["text/html"],"kind":"file","max":"3MiB","optional":true}'::jsonb) is true)),
 	constraint "document_templates__ck__24a3cb04" check (("letterhead" is null or store_json_valid("letterhead", '{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true}'::jsonb) is true)),
 	constraint "document_templates__ck__46490f34" check (("contract_stamp" is null or store_json_valid("contract_stamp", '{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true}'::jsonb) is true)),
@@ -1413,6 +1435,7 @@ create table "orders" ("id" uuid primary key, revision int not null default 1, c
 	"number" text not null,
 	"title" text not null,
 	"direction" text not null,
+	"document_locale" text default 'en'::text not null,
 	"source_order_key" text not null,
 	"archived" boolean default false not null,
 	"status" text default 'draft' not null,
@@ -1458,6 +1481,7 @@ create table "orders" ("id" uuid primary key, revision int not null default 1, c
 	constraint "orders__ck__b83d984f" check ("freight_treatment" in ('deduct', 'include')),
 	constraint "orders__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
 	constraint "orders__ck__107d7293" check ("direction" in ('sales', 'purchasing')),
+	constraint "orders__ck__f2969d22" check ("document_locale" in ('en', 'zh')),
 	constraint "orders__ck__2a213db2" check ("status" in ('confirmed', 'draft')),
 	constraint "orders__ck__a36ebd3c" check (isfinite("ordered_on")),
 	constraint "orders__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
@@ -1486,23 +1510,6 @@ create table "activities" ("id" uuid primary key, revision int not null default 
 	"owner" text not null,
 	constraint "activities__ck__7d4ad170" check ("kind" in ('task', 'call', 'meeting', 'note')),
 	constraint "activities__ck__b0edcbda" check (isfinite("due_on"))
-);
-
--- step create:table:ext_purchase_orders (additive)
-create table "ext_purchase_orders" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"external_id" text not null,
-	"reference" text not null,
-	"currency" text not null,
-	"status" text not null,
-	"source_updated_at" timestamptz,
-	"bolt_record_label" text generated always as ("bolt_record_label_ext_purchase_orders_813c0aa8"("reference")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_ext_purchase_orders_813c0aa8"("reference"), ''))) stored,
-	"source" text not null,
-	"order" uuid not null,
-	constraint "ext_purchase_orders__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
-	constraint "ext_purchase_orders__ck__838d5561" check ("status" in ('draft', 'issued', 'void')),
-	constraint "ext_purchase_orders__ck__dcfa7025" check (isfinite("source_updated_at")),
-	constraint "ext_purchase_orders__uq__169e6809" unique nulls not distinct ("source", "external_id")
 );
 
 -- step create:table:order_files (additive)
@@ -1570,7 +1577,7 @@ create table "source_payments" ("id" uuid primary key, revision int not null def
 	"source" text not null,
 	"invoice" uuid,
 	"order" uuid not null,
-	constraint "source_payments__ck__b0e0e9b9" check ("kind" in ('receipt', 'refund')),
+	constraint "source_payments__ck__3256edb7" check ("kind" in ('receipt', 'payment', 'refund')),
 	constraint "source_payments__ck__d669d8ca" check (isfinite("settled_on")),
 	constraint "source_payments__ck__dcfa7025" check (isfinite("source_updated_at")),
 	constraint "source_payments__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
@@ -1634,7 +1641,6 @@ create table "transactions" ("id" uuid primary key, revision int not null defaul
 	"bolt_record_label" text generated always as ("bolt_record_label_transactions_813c0aa8"("reference")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_transactions_813c0aa8"("reference"), '') || ' ' || coalesce("reference"::text, '') || ' ' || coalesce("kind"::text, ''))) stored,
 	"source" text not null,
-	"ext_purchase_order" uuid,
 	"order" uuid not null,
 	constraint "transactions__ck__c0940d25" check ("kind" in ('invoice', 'delivery')),
 	constraint "transactions__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
@@ -1690,6 +1696,7 @@ create table "credit_snapshots" ("id" uuid primary key, revision int not null de
 	"credit_used" numeric,
 	"credit_hold" boolean default false not null,
 	"as_of" timestamptz not null,
+	"credit_available" numeric generated always as (((("credit_limit")::numeric - ("credit_used")::numeric))::numeric) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("external_code"::text, ''))) stored,
 	"source" text not null,
 	"party" uuid not null,
@@ -1762,9 +1769,7 @@ create table "stock_snapshots" ("id" uuid primary key, revision int not null def
 	"external_code" text not null,
 	"unit" text,
 	"on_hand" numeric not null,
-	"erp_committed" numeric,
 	"as_of" timestamptz not null,
-	"orders_as_of" timestamptz,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("lot_number"::text, '') || ' ' || coalesce("external_code"::text, ''))) stored,
 	"source" text not null,
 	"product" uuid not null,
@@ -1772,9 +1777,7 @@ create table "stock_snapshots" ("id" uuid primary key, revision int not null def
 	constraint "stock_snapshots__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "stock_snapshots__ck__a902a197" check ("unit_cost" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("unit_cost", 8) = "unit_cost"),
 	constraint "stock_snapshots__ck__2deaea50" check ("on_hand" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("on_hand", 3) = "on_hand"),
-	constraint "stock_snapshots__ck__90f6f0c6" check ("erp_committed" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("erp_committed", 3) = "erp_committed"),
 	constraint "stock_snapshots__ck__225a8ac0" check (isfinite("as_of")),
-	constraint "stock_snapshots__ck__055ee210" check (isfinite("orders_as_of")),
 	constraint "stock_snapshots__uq__9a96c6fb" unique nulls not distinct ("source", "external_code")
 );
 
@@ -1790,6 +1793,48 @@ create table "source_lot_costs" ("id" uuid primary key, revision int not null de
 	constraint "source_lot_costs__uq__9de6968c" unique ("source")
 );
 
+-- step create:table:source_purchase_lines (additive)
+create table "source_purchase_lines" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"external_code" text not null,
+	"kind" text not null,
+	"reference" text not null,
+	"business_on" date not null,
+	"supplier_code" text,
+	"supplier_name" text,
+	"product_code" text not null,
+	"product_name" text,
+	"lot_number" text,
+	"warehouse_code" text,
+	"unit" text not null,
+	"quantity" numeric not null,
+	"currency" text not null,
+	"net_amount" numeric,
+	"tax_amount" numeric,
+	"order_reference" text,
+	"upstream" text,
+	"billed_amount" numeric,
+	"open_amount" numeric,
+	"due_on" date,
+	"paid_on" date,
+	"active" boolean default true not null,
+	"source_updated_at" timestamptz not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_source_purchase_lines_813c0aa8"("reference")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_source_purchase_lines_813c0aa8"("reference"), '') || ' ' || coalesce("reference"::text, '') || ' ' || coalesce("supplier_name"::text, '') || ' ' || coalesce("product_name"::text, '') || ' ' || coalesce("lot_number"::text, '') || ' ' || coalesce("order_reference"::text, ''))) stored,
+	"source" text not null,
+	constraint "source_purchase_lines__ck__89cacadd" check ("kind" in ('receipt', 'invoice')),
+	constraint "source_purchase_lines__ck__0cbab224" check (isfinite("business_on")),
+	constraint "source_purchase_lines__ck__fd9e3d00" check ("quantity" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("quantity", 3) = "quantity"),
+	constraint "source_purchase_lines__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
+	constraint "source_purchase_lines__ck__9d9aede9" check ("net_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("net_amount", bolt_minor_units("currency")) = "net_amount"),
+	constraint "source_purchase_lines__ck__4d11a03c" check ("tax_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("tax_amount", bolt_minor_units("currency")) = "tax_amount"),
+	constraint "source_purchase_lines__ck__51004070" check ("billed_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("billed_amount", bolt_minor_units("currency")) = "billed_amount"),
+	constraint "source_purchase_lines__ck__cbe0fad4" check ("open_amount" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("open_amount", bolt_minor_units("currency")) = "open_amount"),
+	constraint "source_purchase_lines__ck__b0edcbda" check (isfinite("due_on")),
+	constraint "source_purchase_lines__ck__09a1b7aa" check (isfinite("paid_on")),
+	constraint "source_purchase_lines__ck__dcfa7025" check (isfinite("source_updated_at")),
+	constraint "source_purchase_lines__uq__9a96c6fb" unique nulls not distinct ("source", "external_code")
+);
+
 -- step create:table:source_receivables (additive)
 create table "source_receivables" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"currency" text not null,
@@ -1798,7 +1843,7 @@ create table "source_receivables" ("id" uuid primary key, revision int not null 
 	"source" text not null,
 	constraint "source_receivables__ck__7414a4a0" check ("currency" ~ '^[A-Z]{3}$'),
 	constraint "source_receivables__ck__50d89d25" check (isfinite("observed_at")),
-	constraint "source_receivables__ck__46781a77" check (("entries" is null or store_json_valid("entries", '{"kind":"json","shape":{"kind":"json","many":true,"shape":{"fields":{"business_on":{"kind":"date"},"contact_id":{"kind":"text"},"customer":{"kind":"text"},"customer_id":{"kind":"text"},"due_on":{"kind":"date","optional":true},"kind":{"kind":"enum","values":["invoice","receipt"]},"reference":{"kind":"text"},"remaining":{"kind":"text"},"settlements":{"fields":{"amount":{"kind":"text"},"on":{"kind":"date"}},"kind":"object","many":true}},"kind":"object"}}}'::jsonb) is true)),
+	constraint "source_receivables__ck__98e1a67d" check (("entries" is null or store_json_valid("entries", '{"kind":"json","shape":{"kind":"json","many":true,"shape":{"fields":{"business_on":{"kind":"date"},"contact_id":{"kind":"text"},"customer":{"kind":"text"},"customer_id":{"kind":"text"},"delivered_on":{"kind":"date","optional":true},"due_on":{"kind":"date","optional":true},"kind":{"kind":"enum","values":["invoice","receipt"]},"reference":{"kind":"text"},"remaining":{"kind":"text"},"settlement":{"kind":"text","optional":true},"settlements":{"fields":{"amount":{"kind":"text"},"on":{"kind":"date"}},"kind":"object","many":true}},"kind":"object"}}}'::jsonb) is true)),
 	constraint "source_receivables__uq__9de6968c" unique ("source")
 );
 
@@ -1876,28 +1921,28 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+
+-- step create:history:schema:sys_workspace (additive)
+select bolt_history_register('sys_workspace','{"check":{"singleton":{"id":{"eq":"00000000-0000-0000-0000-000000000001"}}},"fields":{"name":{"kind":"text","max":120,"optional":true},"revision":{"default":1,"kind":"int"}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:commercial_settings (additive)
-select bolt_history_register('commercial_settings','{"audit":true,"fields":{"code":{"default":"default","hidden":true,"kind":"enum","values":["default"]},"credit_fresh_minutes":{"default":60,"kind":"int","min":1},"default_document_layout":{"kind":"ref","optional":true,"to":"document_templates","where":{"status":{"eq":"published"}}},"default_purchase_document_layout":{"kind":"ref","optional":true,"to":"document_templates","where":{"status":{"eq":"published"}}},"freight_treatment":{"default":"deduct","kind":"enum","values":["deduct","include"]},"require_floor":{"default":false,"kind":"bool"},"stock_fresh_minutes":{"default":30,"kind":"int","min":1}},"record_label":"''Commercial settings''","unique":[{"fields":["code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+select bolt_history_register('commercial_settings','{"audit":true,"fields":{"code":{"default":"default","hidden":true,"kind":"enum","values":["default"]},"credit_fresh_minutes":{"default":60,"kind":"int","min":1},"freight_treatment":{"default":"deduct","kind":"enum","values":["deduct","include"]},"require_floor":{"default":false,"kind":"bool"},"stock_fresh_minutes":{"default":30,"kind":"int","min":1}},"record_label":"''Commercial settings''","unique":[{"fields":["code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:commission_rules (additive)
 select bolt_history_register('commission_rules','{"audit":true,"check":{"fixed_rate_nonnegative":{"fixed_rate":{"gte":"0"}}},"fields":{"active":{"default":true,"kind":"bool"},"amount_expression":{"default":"basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)","format":"cel","kind":"text"},"basis_unit":{"kind":"text","optional":true},"code":{"default":"default","hidden":true,"kind":"enum","values":["default"]},"currency":{"kind":"currency"},"effective_on":{"kind":"date"},"eligibility_expression":{"default":"true","format":"cel","kind":"text"},"fixed_rate":{"currency":"currency","default":"0","kind":"money","scale":4},"parameters":{"kind":"json","optional":true,"shape":{"fields":{"name":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true}},"spread_pct":{"default":"0","kind":"decimal","max":100,"min":0,"scale":2}},"record_label":"string(record.currency) + '' · '' + string(record.effective_on)","search":{"text":["basis_unit"]},"unique":[{"fields":["code","currency","effective_on"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:document_templates (additive)
-select bolt_history_register('document_templates','{"audit":true,"fields":{"body":{"default":"{agreement}","kind":"text"},"contract_stamp":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"layout":{"kind":"enum","optional":true,"values":["text","table_v1"]},"letterhead":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"locale":{"kind":"enum","values":["en","zh"]},"print_fields":{"fields":{"default_value":{"kind":"text","optional":true},"key":{"kind":"text"},"label":{"kind":"text"},"multiline":{"kind":"bool","optional":true},"scope":{"kind":"enum","values":["order","line"]}},"kind":"object","many":true,"optional":true},"print_layout":{"accept":["text/html"],"kind":"file","max":"3MiB","optional":true},"published_at":{"kind":"instant","optional":true},"status":{"initial":"draft","kind":"state","states":{"draft":{"to":["published"]},"published":{}}},"title":{"kind":"text"},"version":{"kind":"text"}},"locks":{"published":{"where":{"status":{"eq":"published"}}}},"record_label":"record.title","search":{"text":["title"]}}'::jsonb);
+select bolt_history_register('document_templates','{"audit":true,"fields":{"body":{"default":"{agreement}","kind":"text"},"contract_stamp":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"kind":{"kind":"enum","values":["quotation","sales_contract","purchase_contract"]},"layout":{"kind":"enum","optional":true,"values":["text","table_v1"]},"letterhead":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"locale":{"kind":"enum","values":["en","zh"]},"print_fields":{"fields":{"default_value":{"kind":"text","optional":true},"key":{"kind":"text"},"label":{"kind":"text"},"multiline":{"kind":"bool","optional":true},"options":{"kind":"text","optional":true},"scope":{"kind":"enum","values":["order","line"]}},"kind":"object","many":true,"optional":true},"print_layout":{"accept":["text/html"],"kind":"file","max":"3MiB","optional":true},"published_at":{"kind":"instant","optional":true},"status":{"initial":"draft","kind":"state","states":{"draft":{"to":["published"]},"published":{}}},"title":{"kind":"text"},"version":{"kind":"text"}},"locks":{"published":{"where":{"status":{"eq":"published"}}}},"record_label":"record.title","search":{"text":["title"]}}'::jsonb);
 
 -- step create:history:schema:commission_statements (additive)
 select bolt_history_register('commission_statements','{"audit":true,"fields":{"acknowledged_at":{"kind":"instant"},"acknowledged_by":{"default":{"var":"actor.id"},"kind":"ref","to":"sys_user"},"amount":{"currency":"currency","kind":"money"},"calculation_hash":{"hidden":true,"kind":"text"},"currency":{"kind":"currency"},"number":{"kind":"seq","pattern":"CS-{yyyy}-{0000}"},"order_count":{"kind":"int"},"owner":{"kind":"ref","to":"sys_user"},"period":{"kind":"date"},"snapshot":{"hidden":true,"kind":"json","shape":{"fields":{"amount":{"kind":"text","optional":true},"awaiting_approval":{"kind":"bool"},"calculation_hash":{"kind":"text"},"number":{"kind":"text"},"order":{"kind":"text"},"unresolved_lines":{"kind":"int"}},"kind":"object","many":true}}},"record_label":"record.number","unique":[{"fields":["owner","period","currency","calculation_hash"],"name":"one_monthly_commission_statement"}]}'::jsonb);
 
 -- step create:history:schema:orders (additive)
-select bolt_history_register('orders','{"audit":true,"fields":{"archived":{"default":false,"kind":"bool"},"buyer_contact":{"kind":"text","optional":true},"buyer_mobile":{"format":"phone","kind":"text","optional":true},"check_hash":{"hidden":true,"kind":"text","optional":true},"commission":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"amount_expression":{"kind":"text","optional":true},"basis_unit":{"kind":"text"},"currency":{"kind":"text"},"effective_on":{"kind":"text"},"eligibility_expression":{"kind":"text","optional":true},"engine_version":{"kind":"text","optional":true},"fixed_rate":{"kind":"text"},"parameters":{"fields":{"name":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true,"optional":true},"rule_id":{"kind":"text"},"spread_pct":{"kind":"text"}},"kind":"object"},"was":"sealed_commission"},"currency":{"kind":"currency"},"delivery_address":{"kind":"text","optional":true},"delivery_date":{"kind":"date","optional":true},"delivery_terms":{"kind":"text","optional":true},"direction":{"kind":"enum","values":["sales","purchasing"]},"document_template":{"kind":"ref","optional":true,"to":"document_templates","where":{"status":{"eq":"published"}}},"freight_treatment":{"default":"deduct","kind":"enum","values":["deduct","include"]},"kingdee":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"closed":{"kind":"bool"},"exchange_rate":{"kind":"text"},"fid":{"kind":"text"},"reference":{"kind":"text"},"status":{"kind":"enum","values":["draft","issued","void"]},"version":{"kind":"text"}},"kind":"object"}},"ledger":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"line_count":{"kind":"count","of":"lines"},"logistics_handler":{"kind":"ref","optional":true,"to":"sys_user"},"net":{"kind":"sum","of":"lines.net"},"notes":{"kind":"text","optional":true},"number":{"kind":"seq","pattern":"TR-{yyyy}-{0000}"},"ordered_on":{"default":{"var":"today"},"kind":"date"},"other_terms":{"kind":"text","optional":true},"owner":{"default":{"var":"actor.id"},"kind":"ref","to":"sys_user"},"packaging":{"kind":"text","optional":true},"party":{"inverse":"orders","kind":"ref","to":"parties"},"party_name":{"kind":"text","optional":true},"payment_method":{"kind":"text","optional":true},"payment_terms":{"kind":"text"},"place_of_delivery":{"kind":"text","optional":true},"place_of_loading":{"kind":"text","optional":true},"print_values":{"fields":{"key":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true,"optional":true},"shipping_mark":{"kind":"text","optional":true},"shipping_terms":{"kind":"text","optional":true},"source_order_key":{"hidden":true,"kind":"text","optional":true},"status":{"initial":"draft","kind":"state","states":{"confirmed":{},"draft":{"to":["confirmed"]}}},"supporting_documents":{"accept":["application/pdf","image/jpeg","image/png","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],"kind":"file","many":true,"max":"20MiB","optional":true},"tax":{"kind":"sum","of":"lines.tax"},"tax_inclusive":{"default":false,"kind":"bool"},"time_of_shipment":{"kind":"text","optional":true},"title":{"kind":"text"},"total":{"kind":"sum","of":"lines.total"},"valid_from":{"kind":"date","optional":true},"valid_until":{"kind":"date","optional":true},"warehouse":{"kind":"ref","optional":true,"to":"warehouses"},"write_target":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"account":{"kind":"text"},"branch":{"kind":"text"}},"kind":"object"}}},"record_label":"record.number","search":{"text":["number","title","party_name"]},"unique":[{"fields":["source_order_key"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+select bolt_history_register('orders','{"audit":true,"fields":{"archived":{"default":false,"kind":"bool"},"buyer_contact":{"kind":"text","optional":true},"buyer_mobile":{"format":"phone","kind":"text","optional":true},"check_hash":{"hidden":true,"kind":"text","optional":true},"commission":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"amount_expression":{"kind":"text","optional":true},"basis_unit":{"kind":"text"},"currency":{"kind":"text"},"effective_on":{"kind":"text"},"eligibility_expression":{"kind":"text","optional":true},"engine_version":{"kind":"text","optional":true},"fixed_rate":{"kind":"text"},"parameters":{"fields":{"name":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true,"optional":true},"rule_id":{"kind":"text"},"spread_pct":{"kind":"text"}},"kind":"object"},"was":"sealed_commission"},"currency":{"kind":"currency"},"delivery_address":{"kind":"text","optional":true},"delivery_date":{"kind":"date","optional":true},"delivery_terms":{"kind":"text","optional":true},"direction":{"kind":"enum","values":["sales","purchasing"]},"document_locale":{"default":"en","kind":"enum","values":["en","zh"]},"document_template":{"kind":"ref","optional":true,"to":"document_templates","where":{"status":{"eq":"published"}}},"freight_treatment":{"default":"deduct","kind":"enum","values":["deduct","include"]},"kingdee":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"closed":{"kind":"bool"},"exchange_rate":{"kind":"text"},"fid":{"kind":"text"},"reference":{"kind":"text"},"status":{"kind":"enum","values":["draft","issued","void"]},"version":{"kind":"text"}},"kind":"object"}},"ledger":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"line_count":{"kind":"count","of":"lines"},"logistics_handler":{"kind":"ref","optional":true,"to":"sys_user"},"net":{"kind":"sum","of":"lines.net"},"notes":{"kind":"text","optional":true},"number":{"kind":"seq","pattern":"TR-{yyyy}-{0000}"},"ordered_on":{"default":{"var":"today"},"kind":"date"},"other_terms":{"kind":"text","optional":true},"owner":{"default":{"var":"actor.id"},"kind":"ref","to":"sys_user"},"packaging":{"kind":"text","optional":true},"party":{"inverse":"orders","kind":"ref","to":"parties"},"party_name":{"kind":"text","optional":true},"payment_method":{"kind":"text","optional":true},"payment_terms":{"kind":"text"},"place_of_delivery":{"kind":"text","optional":true},"place_of_loading":{"kind":"text","optional":true},"print_values":{"fields":{"key":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true,"optional":true},"shipping_mark":{"kind":"text","optional":true},"shipping_terms":{"kind":"text","optional":true},"source_order_key":{"hidden":true,"kind":"text","optional":true},"status":{"initial":"draft","kind":"state","states":{"confirmed":{},"draft":{"to":["confirmed"]}}},"supporting_documents":{"accept":["application/pdf","image/jpeg","image/png","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],"kind":"file","many":true,"max":"20MiB","optional":true},"tax":{"kind":"sum","of":"lines.tax"},"tax_inclusive":{"default":false,"kind":"bool"},"time_of_shipment":{"kind":"text","optional":true},"title":{"kind":"text"},"total":{"kind":"sum","of":"lines.total"},"valid_from":{"kind":"date","optional":true},"valid_until":{"kind":"date","optional":true},"warehouse":{"kind":"ref","optional":true,"to":"warehouses"},"write_target":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"account":{"kind":"text"},"branch":{"kind":"text"}},"kind":"object"}}},"record_label":"record.number","search":{"text":["number","title","party_name"]},"unique":[{"fields":["source_order_key"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:activities (additive)
 select bolt_history_register('activities','{"audit":true,"fields":{"done":{"default":false,"kind":"bool"},"due_on":{"default":{"var":"today"},"kind":"date"},"kind":{"default":"task","kind":"enum","values":["task","call","meeting","note"]},"notes":{"kind":"text","optional":true},"order":{"inverse":"activities","kind":"ref","to":"orders"},"owner":{"default":{"var":"actor.id"},"kind":"ref","to":"sys_user"},"title":{"kind":"text"}},"record_label":"record.title","search":{"text":["title","kind"]}}'::jsonb);
-
--- step create:history:schema:ext_purchase_orders (additive)
-select bolt_history_register('ext_purchase_orders','{"audit":true,"fields":{"currency":{"kind":"currency"},"external_id":{"hidden":true,"kind":"text"},"order":{"inverse":"ext_purchase_orders","kind":"ref","to":"orders"},"reference":{"kind":"text"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant","optional":true},"status":{"kind":"enum","values":["draft","issued","void"]}},"record_label":"record.reference","unique":[{"fields":["source","external_id"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:order_files (additive)
 select bolt_history_register('order_files','{"audit":true,"fields":{"file":{"accept":["application/pdf","image/jpeg","image/png"],"kind":"file","max":"20MiB"},"order":{"inverse":"filed_documents","kind":"ref","to":"orders"},"title":{"kind":"text"}},"record_label":"record.title"}'::jsonb);
@@ -1906,13 +1951,13 @@ select bolt_history_register('order_files','{"audit":true,"fields":{"file":{"acc
 select bolt_history_register('order_lines','{"audit":true,"check":{"unit_price_nonnegative":{"unit_price":{"gte":"0"}}},"fields":{"commission_basis_unit":{"kind":"text","optional":true},"commission_factor":{"kind":"decimal","min":0,"optional":true,"scale":6},"currency":{"kind":"currency"},"discount_pct":{"default":0,"kind":"decimal","max":100,"min":0,"scale":2},"floor_net":{"currency":"currency","kind":"money","optional":true,"scale":8},"floor_on":{"kind":"date","optional":true},"line_key":{"hidden":true,"kind":"text","optional":true},"net":{"currency":"currency","kind":"money"},"order":{"inverse":"lines","kind":"ref","owned":true,"to":"orders"},"print_values":{"fields":{"key":{"kind":"text"},"value":{"kind":"text"}},"kind":"object","many":true,"optional":true},"product":{"kind":"ref","to":"products"},"product_code":{"kind":"text"},"product_name":{"kind":"text"},"product_spec":{"kind":"text","optional":true},"quantity":{"kind":"decimal","min":0,"scale":3},"source_entry_id":{"hidden":true,"kind":"text","optional":true},"tax":{"currency":"currency","kind":"money"},"tax_rate":{"kind":"decimal","max":100,"min":0,"scale":2},"total":{"currency":"currency","kind":"money"},"unit":{"kind":"text"},"unit_price":{"currency":"currency","kind":"money","scale":4}},"record_label":"record.order.number + '' · '' + record.product_name","search":{"text":["product","product_code"]},"unique":[{"fields":["order","line_key"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:source_payments (additive)
-select bolt_history_register('source_payments','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"amount":{"currency":"currency","kind":"money"},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"invoice":{"kind":"ref","optional":true,"to":"transactions"},"kind":{"kind":"enum","values":["receipt","refund"]},"order":{"inverse":"source_payments","kind":"ref","to":"orders"},"reference":{"kind":"text"},"settled_on":{"kind":"date"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant"}},"record_label":"record.reference","unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"},{"fields":["order","reference"],"name":"one_source_receipt_per_order"}]}'::jsonb);
+select bolt_history_register('source_payments','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"amount":{"currency":"currency","kind":"money"},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"invoice":{"kind":"ref","optional":true,"to":"transactions"},"kind":{"kind":"enum","values":["receipt","payment","refund"]},"order":{"inverse":"source_payments","kind":"ref","to":"orders"},"reference":{"kind":"text"},"settled_on":{"kind":"date"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant"}},"record_label":"record.reference","unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"},{"fields":["order","reference"],"name":"one_source_receipt_per_order"}]}'::jsonb);
 
 -- step create:history:schema:source_sales_lines (additive)
 select bolt_history_register('source_sales_lines','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"booked_cost":{"kind":"decimal","optional":true,"scale":10},"booked_cost_currency":{"kind":"currency","optional":true},"business_on":{"kind":"date"},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"freight":{"currency":"currency","kind":"money","optional":true},"kind":{"kind":"enum","values":["shipment","return","invoice_only","invoice"]},"lot_number":{"kind":"text","optional":true},"net_amount":{"currency":"currency","kind":"money","optional":true},"order":{"inverse":"source_sales_lines","kind":"ref","optional":true,"to":"orders"},"order_line":{"hidden":true,"kind":"text","optional":true},"quantity":{"kind":"decimal","scale":3},"reference":{"kind":"text"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_dimensions":{"hidden":true,"kind":"json","optional":true,"shape":{"fields":{"customer":{"kind":"text","optional":true},"employee":{"kind":"text","optional":true},"employee_id":{"kind":"text","optional":true},"product":{"kind":"text","optional":true}},"kind":"object"}},"source_updated_at":{"kind":"instant"},"tax_amount":{"currency":"currency","kind":"money","optional":true},"unit":{"kind":"text"},"unit_cost":{"kind":"decimal","optional":true,"scale":8}},"record_label":"record.reference","unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:transactions (additive)
-select bolt_history_register('transactions','{"audit":true,"fields":{"currency":{"kind":"currency"},"documents":{"kind":"json","optional":true,"shape":{"fields":{"name":{"kind":"text"},"sha256":{"kind":"text"},"url":{"kind":"text"}},"kind":"object","many":true}},"due_on":{"kind":"date","optional":true},"erp_id":{"hidden":true,"kind":"text"},"ext_purchase_order":{"inverse":"transactions","kind":"ref","optional":true,"to":"ext_purchase_orders"},"issued_on":{"kind":"date","optional":true},"items":{"kind":"json","optional":true,"shape":{"fields":{"lot_number":{"kind":"text","optional":true},"net_amount":{"kind":"decimal","optional":true,"scale":8},"order_line_id":{"kind":"text"},"product_name":{"kind":"text"},"quantity":{"kind":"decimal","scale":3},"unit":{"kind":"text"},"unit_cost":{"kind":"decimal","optional":true,"scale":8},"unit_price":{"kind":"decimal","optional":true,"scale":4}},"kind":"object","many":true}},"kind":{"kind":"enum","values":["invoice","delivery"]},"order":{"inverse":"transactions","kind":"ref","to":"orders"},"reference":{"kind":"text"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant","optional":true},"status":{"default":"issued","kind":"enum","values":["issued","void"]},"total":{"currency":"currency","kind":"money","optional":true}},"record_label":"record.reference","search":{"text":["reference","kind"]},"unique":[{"fields":["source","erp_id"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+select bolt_history_register('transactions','{"audit":true,"fields":{"currency":{"kind":"currency"},"documents":{"kind":"json","optional":true,"shape":{"fields":{"name":{"kind":"text"},"sha256":{"kind":"text"},"url":{"kind":"text"}},"kind":"object","many":true}},"due_on":{"kind":"date","optional":true},"erp_id":{"hidden":true,"kind":"text"},"issued_on":{"kind":"date","optional":true},"items":{"kind":"json","optional":true,"shape":{"fields":{"lot_number":{"kind":"text","optional":true},"net_amount":{"kind":"decimal","optional":true,"scale":8},"order_line_id":{"kind":"text"},"product_name":{"kind":"text"},"quantity":{"kind":"decimal","scale":3},"unit":{"kind":"text"},"unit_cost":{"kind":"decimal","optional":true,"scale":8},"unit_price":{"kind":"decimal","optional":true,"scale":4}},"kind":"object","many":true}},"kind":{"kind":"enum","values":["invoice","delivery"]},"order":{"inverse":"transactions","kind":"ref","to":"orders"},"reference":{"kind":"text"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant","optional":true},"status":{"default":"issued","kind":"enum","values":["issued","void"]},"total":{"currency":"currency","kind":"money","optional":true}},"record_label":"record.reference","search":{"text":["reference","kind"]},"unique":[{"fields":["source","erp_id"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:parties (additive)
 select bolt_history_register('parties','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"address":{"kind":"text","optional":true},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"kind":{"kind":"enum","values":["customer","supplier","both"]},"name":{"kind":"text"},"phone":{"format":"phone","kind":"text","optional":true},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_number":{"kind":"text","optional":true},"source_updated_at":{"kind":"instant"}},"record_label":"record.name","search":{"text":["name","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
@@ -1921,7 +1966,7 @@ select bolt_history_register('parties','{"audit":true,"fields":{"active":{"defau
 select bolt_history_register('contacts','{"audit":true,"fields":{"email":{"format":"email","kind":"text","optional":true},"job_title":{"kind":"text","optional":true},"name":{"kind":"text"},"party":{"inverse":"contacts","kind":"ref","to":"parties"},"phone":{"format":"phone","kind":"text","optional":true}},"record_label":"record.name","search":{"text":["name","email","phone"]}}'::jsonb);
 
 -- step create:history:schema:credit_snapshots (additive)
-select bolt_history_register('credit_snapshots','{"audit":true,"fields":{"as_of":{"kind":"instant"},"credit_hold":{"default":false,"kind":"bool"},"credit_limit":{"currency":"currency","kind":"money","optional":true},"credit_used":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"party":{"kind":"ref","to":"parties"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.party.name","search":{"text":["party","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+select bolt_history_register('credit_snapshots','{"audit":true,"computed":{"credit_available":{"expr":{"minus":[{"field":"credit_limit"},{"field":"credit_used"}]},"kind":"decimal","scale":2}},"fields":{"as_of":{"kind":"instant"},"credit_hold":{"default":false,"kind":"bool"},"credit_limit":{"currency":"currency","kind":"money","optional":true},"credit_used":{"currency":"currency","kind":"money","optional":true},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"party":{"kind":"ref","to":"parties"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.party.name","search":{"text":["party","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:products (additive)
 select bolt_history_register('products','{"audit":true,"check":{"unit_price_nonnegative":{"or":[{"unit_price":{"is_null":true}},{"unit_price":{"gte":"0"}}]}},"fields":{"active":{"default":true,"kind":"bool"},"brand":{"kind":"text","optional":true},"brand_en":{"kind":"text","optional":true},"commission_basis_unit":{"kind":"text","optional":true},"commission_factor":{"kind":"decimal","min":0,"optional":true,"scale":6},"currency":{"kind":"currency"},"external_code":{"kind":"text"},"name":{"kind":"text"},"producing_area":{"kind":"text","optional":true},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_number":{"kind":"text","optional":true},"source_updated_at":{"kind":"instant"},"spec":{"kind":"text","optional":true},"tax_rate":{"kind":"decimal","max":100,"min":0,"optional":true,"scale":2},"unit":{"kind":"text","optional":true},"unit_price":{"currency":"currency","kind":"money","optional":true,"scale":4}},"record_label":"record.name","search":{"text":["name","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
@@ -1930,13 +1975,16 @@ select bolt_history_register('products','{"audit":true,"check":{"unit_price_nonn
 select bolt_history_register('pricing_floors','{"audit":true,"check":{"floor_price_nonnegative":{"floor_price":{"gte":"0"}},"import_revision_ephemeral":{"import_revision":{"is_null":true}}},"computed":{"floor_net":{"expr":{"round":[{"when":[{"field":"tax_inclusive"},{"div":[{"field":"floor_price"},{"plus":[1,{"div":[{"field":"tax_rate"},100]}]}]},{"field":"floor_price"}]},8]},"kind":"decimal","scale":8}},"fields":{"currency":{"kind":"currency"},"effective_on":{"kind":"date"},"floor_price":{"currency":"currency","kind":"money","scale":4},"group_code":{"kind":"text"},"import_revision":{"hidden":true,"kind":"int","min":0,"optional":true},"minimum_quantity":{"default":0,"kind":"decimal","min":0,"scale":3},"product":{"kind":"ref","to":"products"},"tax_inclusive":{"kind":"bool"},"tax_rate":{"default":0,"kind":"decimal","max":100,"min":0,"scale":2},"unit":{"kind":"text"}},"record_label":"record.product.name + '' · '' + record.group_code + '' · '' + string(record.effective_on)","search":{"text":["product","group_code","unit"]},"unique":[{"fields":["product","group_code","currency","effective_on","minimum_quantity"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:stock_snapshots (additive)
-select bolt_history_register('stock_snapshots','{"audit":true,"fields":{"as_of":{"kind":"instant"},"currency":{"kind":"currency","optional":true},"erp_committed":{"kind":"decimal","optional":true,"scale":3},"external_code":{"kind":"text"},"lot_number":{"kind":"text","optional":true},"on_hand":{"kind":"decimal","scale":3},"orders_as_of":{"kind":"instant","optional":true},"product":{"kind":"ref","to":"products"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"unit":{"kind":"text","optional":true},"unit_cost":{"kind":"decimal","optional":true,"scale":8},"warehouse":{"kind":"ref","to":"warehouses"}},"record_label":"record.product.name + '' · '' + record.warehouse.name + (record.lot_number != null ? '' · '' + record.lot_number : '''')","search":{"text":["product","warehouse","lot_number","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+select bolt_history_register('stock_snapshots','{"audit":true,"fields":{"as_of":{"kind":"instant"},"currency":{"kind":"currency","optional":true},"external_code":{"kind":"text"},"lot_number":{"kind":"text","optional":true},"on_hand":{"kind":"decimal","scale":3},"product":{"kind":"ref","to":"products"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"unit":{"kind":"text","optional":true},"unit_cost":{"kind":"decimal","optional":true,"scale":8},"warehouse":{"kind":"ref","to":"warehouses"}},"record_label":"record.product.name + '' · '' + record.warehouse.name + (record.lot_number != null ? '' · '' + record.lot_number : '''')","search":{"text":["product","warehouse","lot_number","external_code"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
 
 -- step create:history:schema:source_lot_costs (additive)
 select bolt_history_register('source_lot_costs','{"audit":true,"fields":{"currency":{"kind":"currency"},"entries":{"kind":"json","shape":{"fields":{"lot_number":{"kind":"text"},"product_code":{"kind":"text"},"received_on":{"kind":"date"},"received_qty":{"kind":"text"},"unit":{"kind":"text"},"unit_cost":{"kind":"text"}},"kind":"object","many":true}},"observed_at":{"kind":"instant"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.source.name","unique":[{"fields":["source"],"import_key":true,"name":"one_per_source"}]}'::jsonb);
 
+-- step create:history:schema:source_purchase_lines (additive)
+select bolt_history_register('source_purchase_lines','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"billed_amount":{"currency":"currency","kind":"money","optional":true},"business_on":{"kind":"date"},"currency":{"kind":"currency"},"due_on":{"kind":"date","optional":true},"external_code":{"kind":"text"},"kind":{"kind":"enum","values":["receipt","invoice"]},"lot_number":{"kind":"text","optional":true},"net_amount":{"currency":"currency","kind":"money","optional":true},"open_amount":{"currency":"currency","kind":"money","optional":true},"order_reference":{"kind":"text","optional":true},"paid_on":{"kind":"date","optional":true},"product_code":{"kind":"text"},"product_name":{"kind":"text","optional":true},"quantity":{"kind":"decimal","scale":3},"reference":{"kind":"text"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}},"source_updated_at":{"kind":"instant"},"supplier_code":{"kind":"text","optional":true},"supplier_name":{"kind":"text","optional":true},"tax_amount":{"currency":"currency","kind":"money","optional":true},"unit":{"kind":"text"},"upstream":{"kind":"text","optional":true},"warehouse_code":{"kind":"text","optional":true}},"record_label":"record.reference","search":{"text":["reference","supplier_name","product_name","lot_number","order_reference"]},"unique":[{"fields":["source","external_code"],"import_key":true,"name":"natural_key"}]}'::jsonb);
+
 -- step create:history:schema:source_receivables (additive)
-select bolt_history_register('source_receivables','{"audit":true,"fields":{"currency":{"kind":"currency"},"entries":{"kind":"json","shape":{"kind":"json","many":true,"shape":{"fields":{"business_on":{"kind":"date"},"contact_id":{"kind":"text"},"customer":{"kind":"text"},"customer_id":{"kind":"text"},"due_on":{"kind":"date","optional":true},"kind":{"kind":"enum","values":["invoice","receipt"]},"reference":{"kind":"text"},"remaining":{"kind":"text"},"settlements":{"fields":{"amount":{"kind":"text"},"on":{"kind":"date"}},"kind":"object","many":true}},"kind":"object"}}},"observed_at":{"kind":"instant"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.source.name","unique":[{"fields":["source"],"import_key":true,"name":"one_per_source"}]}'::jsonb);
+select bolt_history_register('source_receivables','{"audit":true,"fields":{"currency":{"kind":"currency"},"entries":{"kind":"json","shape":{"kind":"json","many":true,"shape":{"fields":{"business_on":{"kind":"date"},"contact_id":{"kind":"text"},"customer":{"kind":"text"},"customer_id":{"kind":"text"},"delivered_on":{"kind":"date","optional":true},"due_on":{"kind":"date","optional":true},"kind":{"kind":"enum","values":["invoice","receipt"]},"reference":{"kind":"text"},"remaining":{"kind":"text"},"settlement":{"kind":"text","optional":true},"settlements":{"fields":{"amount":{"kind":"text"},"on":{"kind":"date"}},"kind":"object","many":true}},"kind":"object"}}},"observed_at":{"kind":"instant"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.source.name","unique":[{"fields":["source"],"import_key":true,"name":"one_per_source"}]}'::jsonb);
 
 -- step create:history:schema:source_stock_commitments (additive)
 select bolt_history_register('source_stock_commitments','{"audit":true,"fields":{"entries":{"kind":"json","shape":{"fields":{"product_code":{"kind":"text"},"quantity":{"kind":"text"},"unit":{"kind":"text","optional":true},"warehouse":{"kind":"text","optional":true}},"kind":"object","many":true}},"observed_at":{"kind":"instant"},"source":{"kind":"ref","to":"sys_integration","where":{"integration":{"eq":"kingdee"}}}},"record_label":"record.source.name","unique":[{"fields":["source"],"import_key":true,"name":"one_per_source"}]}'::jsonb);
@@ -1983,12 +2031,6 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 -- step create:fk:sys_sync_row.sys_sync_row__fk__328a1493 (additive)
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
 
--- step create:fk:commercial_settings.commercial_settings__fk__72d13abd (additive)
-alter table "commercial_settings" add constraint "commercial_settings__fk__72d13abd" foreign key ("default_document_layout") references "document_templates" ("id") on delete restrict on update restrict;
-
--- step create:fk:commercial_settings.commercial_settings__fk__eafa4393 (additive)
-alter table "commercial_settings" add constraint "commercial_settings__fk__eafa4393" foreign key ("default_purchase_document_layout") references "document_templates" ("id") on delete restrict on update restrict;
-
 -- step create:fk:commission_statements.commission_statements__fk__6b4b5400 (additive)
 alter table "commission_statements" add constraint "commission_statements__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
 
@@ -2019,12 +2061,6 @@ alter table "activities" add constraint "activities__fk__b4f64f88" foreign key (
 -- step create:fk:activities.activities__fk__6b4b5400 (additive)
 alter table "activities" add constraint "activities__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
 
--- step create:fk:ext_purchase_orders.ext_purchase_orders__fk__5ddafbd8 (additive)
-alter table "ext_purchase_orders" add constraint "ext_purchase_orders__fk__5ddafbd8" foreign key ("source") references "sys_integration" ("id") on delete restrict on update restrict;
-
--- step create:fk:ext_purchase_orders.ext_purchase_orders__fk__b4f64f88 (additive)
-alter table "ext_purchase_orders" add constraint "ext_purchase_orders__fk__b4f64f88" foreign key ("order") references "orders" ("id") on delete restrict on update restrict;
-
 -- step create:fk:order_files.order_files__fk__b4f64f88 (additive)
 alter table "order_files" add constraint "order_files__fk__b4f64f88" foreign key ("order") references "orders" ("id") on delete restrict on update restrict;
 
@@ -2051,9 +2087,6 @@ alter table "source_sales_lines" add constraint "source_sales_lines__fk__b4f64f8
 
 -- step create:fk:transactions.transactions__fk__5ddafbd8 (additive)
 alter table "transactions" add constraint "transactions__fk__5ddafbd8" foreign key ("source") references "sys_integration" ("id") on delete restrict on update restrict;
-
--- step create:fk:transactions.transactions__fk__1f9cbe79 (additive)
-alter table "transactions" add constraint "transactions__fk__1f9cbe79" foreign key ("ext_purchase_order") references "ext_purchase_orders" ("id") on delete restrict on update restrict;
 
 -- step create:fk:transactions.transactions__fk__b4f64f88 (additive)
 alter table "transactions" add constraint "transactions__fk__b4f64f88" foreign key ("order") references "orders" ("id") on delete restrict on update restrict;
@@ -2087,6 +2120,9 @@ alter table "stock_snapshots" add constraint "stock_snapshots__fk__2ea5506e" for
 
 -- step create:fk:source_lot_costs.source_lot_costs__fk__5ddafbd8 (additive)
 alter table "source_lot_costs" add constraint "source_lot_costs__fk__5ddafbd8" foreign key ("source") references "sys_integration" ("id") on delete restrict on update restrict;
+
+-- step create:fk:source_purchase_lines.source_purchase_lines__fk__5ddafbd8 (additive)
+alter table "source_purchase_lines" add constraint "source_purchase_lines__fk__5ddafbd8" foreign key ("source") references "sys_integration" ("id") on delete restrict on update restrict;
 
 -- step create:fk:source_receivables.source_receivables__fk__5ddafbd8 (additive)
 alter table "source_receivables" add constraint "source_receivables__fk__5ddafbd8" foreign key ("source") references "sys_integration" ("id") on delete restrict on update restrict;
@@ -2283,6 +2319,12 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 -- step create:index:sys_user.sys_user__ux__1c9f4db2 (additive)
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
+-- step create:trigger:sys_workspace.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "sys_workspace" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
+
+-- step create:index:sys_workspace.sys_workspace__gin__73732636 (additive)
+create index "sys_workspace__gin__73732636" on "sys_workspace" using gin (bolt_search);
+
 -- step create:trigger:commercial_settings.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "commercial_settings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
@@ -2299,10 +2341,10 @@ create index "commission_rules__gin__73732636" on "commission_rules" using gin (
 create trigger store_row_rules before insert or update or delete on "document_templates" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
 
 -- step create:trigger:document_templates.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "document_templates" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"body":["body"],"contract_stamp":["contract_stamp"],"layout":["layout"],"letterhead":["letterhead"],"locale":["locale"],"print_fields":["print_fields"],"print_layout":["print_layout"],"published_at":["published_at"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"document_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
+create trigger store_statement_rules_update after update on "document_templates" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"body":["body"],"contract_stamp":["contract_stamp"],"kind":["kind"],"layout":["layout"],"letterhead":["letterhead"],"locale":["locale"],"print_fields":["print_fields"],"print_layout":["print_layout"],"published_at":["published_at"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"document_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
 
 -- step create:trigger:document_templates.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "document_templates" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"body":["body"],"contract_stamp":["contract_stamp"],"layout":["layout"],"letterhead":["letterhead"],"locale":["locale"],"print_fields":["print_fields"],"print_layout":["print_layout"],"published_at":["published_at"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"document_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
+create trigger store_statement_rules_delete after delete on "document_templates" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"body":["body"],"contract_stamp":["contract_stamp"],"kind":["kind"],"layout":["layout"],"letterhead":["letterhead"],"locale":["locale"],"print_fields":["print_fields"],"print_layout":["print_layout"],"published_at":["published_at"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"document_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
 
 -- step create:index:document_templates.document_templates__gin__73732636 (additive)
 create index "document_templates__gin__73732636" on "document_templates" using gin (bolt_search);
@@ -2324,12 +2366,6 @@ create trigger store_row_rules before insert or update or delete on "activities"
 
 -- step create:index:activities.activities__gin__73732636 (additive)
 create index "activities__gin__73732636" on "activities" using gin (bolt_search);
-
--- step create:trigger:ext_purchase_orders.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "ext_purchase_orders" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:ext_purchase_orders.ext_purchase_orders__gin__73732636 (additive)
-create index "ext_purchase_orders__gin__73732636" on "ext_purchase_orders" using gin (bolt_search);
 
 -- step create:trigger:order_files.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "order_files" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
@@ -2400,6 +2436,12 @@ create index "stock_snapshots__gin__73732636" on "stock_snapshots" using gin (bo
 -- step create:trigger:source_lot_costs.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "source_lot_costs" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
+-- step create:trigger:source_purchase_lines.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "source_purchase_lines" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:source_purchase_lines.source_purchase_lines__gin__73732636 (additive)
+create index "source_purchase_lines__gin__73732636" on "source_purchase_lines" using gin (bolt_search);
+
 -- step create:trigger:source_receivables.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "source_receivables" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
@@ -2451,12 +2493,6 @@ create index "sys_sync__ix__8be7dc72" on "sys_sync" ("instance");
 -- step create:index:sys_sync_row.sys_sync_row__ix__8be7dc72 (additive)
 create index "sys_sync_row__ix__8be7dc72" on "sys_sync_row" ("instance");
 
--- step create:index:commercial_settings.commercial_settings__ix__4548c5bd (additive)
-create index "commercial_settings__ix__4548c5bd" on "commercial_settings" ("default_document_layout");
-
--- step create:index:commercial_settings.commercial_settings__ix__0d0353f6 (additive)
-create index "commercial_settings__ix__0d0353f6" on "commercial_settings" ("default_purchase_document_layout");
-
 -- step create:index:commission_statements.commission_statements__ix__eb10cfe3 (additive)
 create index "commission_statements__ix__eb10cfe3" on "commission_statements" ("owner");
 
@@ -2487,12 +2523,6 @@ create index "activities__ix__4d0bb674" on "activities" ("order");
 -- step create:index:activities.activities__ix__eb10cfe3 (additive)
 create index "activities__ix__eb10cfe3" on "activities" ("owner");
 
--- step create:index:ext_purchase_orders.ext_purchase_orders__ix__7703c55b (additive)
-create index "ext_purchase_orders__ix__7703c55b" on "ext_purchase_orders" ("source");
-
--- step create:index:ext_purchase_orders.ext_purchase_orders__ix__4d0bb674 (additive)
-create index "ext_purchase_orders__ix__4d0bb674" on "ext_purchase_orders" ("order");
-
 -- step create:index:order_files.order_files__ix__4d0bb674 (additive)
 create index "order_files__ix__4d0bb674" on "order_files" ("order");
 
@@ -2519,9 +2549,6 @@ create index "source_sales_lines__ix__4d0bb674" on "source_sales_lines" ("order"
 
 -- step create:index:transactions.transactions__ix__7703c55b (additive)
 create index "transactions__ix__7703c55b" on "transactions" ("source");
-
--- step create:index:transactions.transactions__ix__d9b6ef62 (additive)
-create index "transactions__ix__d9b6ef62" on "transactions" ("ext_purchase_order");
 
 -- step create:index:transactions.transactions__ix__4d0bb674 (additive)
 create index "transactions__ix__4d0bb674" on "transactions" ("order");
@@ -2556,6 +2583,9 @@ create index "stock_snapshots__ix__2cd2b421" on "stock_snapshots" ("warehouse");
 -- step create:index:source_lot_costs.source_lot_costs__ix__7703c55b (additive)
 create index "source_lot_costs__ix__7703c55b" on "source_lot_costs" ("source");
 
+-- step create:index:source_purchase_lines.source_purchase_lines__ix__7703c55b (additive)
+create index "source_purchase_lines__ix__7703c55b" on "source_purchase_lines" ("source");
+
 -- step create:index:source_receivables.source_receivables__ix__7703c55b (additive)
 create index "source_receivables__ix__7703c55b" on "source_receivables" ("source");
 
@@ -2566,12 +2596,12 @@ create index "source_stock_commitments__ix__7703c55b" on "source_stock_commitmen
 create index "warehouses__ix__7703c55b" on "warehouses" ("source");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['activities','approval_request','commercial_settings','commission_rules','commission_statements','contacts','credit_snapshots','document_templates','ext_purchase_orders','order_files','order_lines','orders','parties','pricing_floors','products','source_lot_costs','source_payments','source_receivables','source_sales_lines','source_stock_commitments','stock_snapshots','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','transactions','warehouses']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['activities','approval_request','commercial_settings','commission_rules','commission_statements','contacts','credit_snapshots','document_templates','order_files','order_lines','orders','parties','pricing_floors','products','source_lot_costs','source_payments','source_purchase_lines','source_receivables','source_sales_lines','source_stock_commitments','stock_snapshots','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','sys_workspace','transactions','warehouses']::text[]));
 
 -- step create:engine:audit:commercial_settings (additive)
 drop trigger if exists bolt_audit_mark on "commercial_settings";
 drop trigger if exists bolt_audit on "commercial_settings";
-create trigger bolt_audit after insert or update or delete on "commercial_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["default_document_layout","document_templates"],["default_purchase_document_layout","document_templates"]]');
+create trigger bolt_audit after insert or update or delete on "commercial_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:commission_rules (additive)
 drop trigger if exists bolt_audit_mark on "commission_rules";
@@ -2598,11 +2628,6 @@ drop trigger if exists bolt_audit_mark on "activities";
 drop trigger if exists bolt_audit on "activities";
 create trigger bolt_audit after insert or update or delete on "activities" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["order","orders"],["owner","sys_user"]]');
 
--- step create:engine:audit:ext_purchase_orders (additive)
-drop trigger if exists bolt_audit_mark on "ext_purchase_orders";
-drop trigger if exists bolt_audit on "ext_purchase_orders";
-create trigger bolt_audit after insert or update or delete on "ext_purchase_orders" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["order","orders"],["source","sys_integration"]]');
-
 -- step create:engine:audit:order_files (additive)
 drop trigger if exists bolt_audit_mark on "order_files";
 drop trigger if exists bolt_audit on "order_files";
@@ -2626,7 +2651,7 @@ create trigger bolt_audit after insert or update or delete on "source_sales_line
 -- step create:engine:audit:transactions (additive)
 drop trigger if exists bolt_audit_mark on "transactions";
 drop trigger if exists bolt_audit on "transactions";
-create trigger bolt_audit after insert or update or delete on "transactions" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["ext_purchase_order","ext_purchase_orders"],["order","orders"],["source","sys_integration"]]');
+create trigger bolt_audit after insert or update or delete on "transactions" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["order","orders"],["source","sys_integration"]]');
 
 -- step create:engine:audit:parties (additive)
 drop trigger if exists bolt_audit_mark on "parties";
@@ -2662,6 +2687,11 @@ create trigger bolt_audit after insert or update or delete on "stock_snapshots" 
 drop trigger if exists bolt_audit_mark on "source_lot_costs";
 drop trigger if exists bolt_audit on "source_lot_costs";
 create trigger bolt_audit after insert or update or delete on "source_lot_costs" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["source","sys_integration"]]');
+
+-- step create:engine:audit:source_purchase_lines (additive)
+drop trigger if exists bolt_audit_mark on "source_purchase_lines";
+drop trigger if exists bolt_audit on "source_purchase_lines";
+create trigger bolt_audit after insert or update or delete on "source_purchase_lines" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["source","sys_integration"]]');
 
 -- step create:engine:audit:source_receivables (additive)
 drop trigger if exists bolt_audit_mark on "source_receivables";

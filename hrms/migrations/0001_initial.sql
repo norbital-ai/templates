@@ -1,4 +1,4 @@
--- 0001_initial.sql: 445 step(s), from an empty database to cb957048dfa9b28435232f76a84751396a73a2fcd8ec3d0c2790f104990143a0.
+-- 0001_initial.sql: 451 step(s), from an empty database to 0c9273c8cef15405f63ffd7b80bf35e1f217af989b332bb302b1b1a0508d4f29.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -559,6 +559,16 @@ create or replace function "bolt_record_label_sys_sync_row_605c7331"(text) retur
 
 -- step create:function:bolt_record_label_sys_user_93340fdd (additive)
 create or replace function "bolt_record_label_sys_user_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_workspace_93340fdd (additive)
+create or replace function "bolt_record_label_sys_workspace_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
 		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
 		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
@@ -1345,6 +1355,7 @@ create table "sys_sync_row" ("id" uuid primary key,
 create table "sys_user" ("id" text primary key,
 	"email" text,
 	"name" text not null,
+	"preferences" jsonb default '{}'::jsonb not null,
 	"kind" text default 'staff'::text not null,
 	"active" boolean default true not null,
 	"admin" boolean default false not null,
@@ -1363,11 +1374,22 @@ create table "sys_user" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_user_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_user_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("email"::text, ''))) stored,
 	constraint "sys_user__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+	constraint "sys_user__ck__3996db29" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "sys_user__ck__73877b7a" check ("kind" in ('staff', 'external', 'anonymous')),
 	constraint "sys_user__ck__cceca9d3" check (("party" is null or store_json_valid("party", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_user__ck__367d8eb4" check (isfinite("created_at")),
 	constraint "sys_user__ck__9658c5b5" check (isfinite("last_seen")),
 	constraint "sys_user__ck__477bc0d2" check ((coalesce("admin" = false, false) or coalesce("kind" = 'staff'::text, false)))
+);
+
+-- step create:table:sys_workspace (additive)
+create table "sys_workspace" ("id" text primary key,
+	"name" text,
+	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_workspace_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_workspace_93340fdd"("name"), ''))) stored,
+	constraint "sys_workspace__ck__a12e11bb" check (char_length("name") <= 120),
+	constraint "sys_workspace__ck__4e7b428e" check ((coalesce("id" = '00000000-0000-0000-0000-000000000001'::text, false)))
 );
 
 -- step create:table:employee_profile (additive)
@@ -1552,10 +1574,14 @@ create table "entity" ("id" uuid primary key, revision int not null default 1, c
 	"representative_name" text,
 	"registered_address" text,
 	"time_zone" text,
+	"late_notice_minutes" int,
+	"late_notice_policies" text[],
 	"bank" jsonb,
 	"source_reference" text,
 	"bolt_record_label" text generated always as ("bolt_record_label_entity_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_entity_93340fdd"("name"), '') || ' ' || coalesce("code"::text, '') || ' ' || coalesce("name"::text, ''))) stored,
+	constraint "entity__ck__c745e358" check ("late_notice_minutes" >= 1),
+	constraint "entity__ck__8e3518d2" check (not jsonb_path_exists(to_jsonb("late_notice_policies"), 'strict $[*] ? (@.type() != "string")') and "late_notice_policies" <@ array['supervisor', 'manager', 'hr_controller', 'hr_manager', 'senior_management']::text[]),
 	constraint "entity__ck__0633b9c6" check (("bank" is null or store_json_valid("bank", '{"kind":"custom","of":"bank","optional":true}'::jsonb) is true)),
 	constraint "entity__uq__81caf70b" unique ("code") deferrable initially immediate
 );
@@ -1565,7 +1591,6 @@ create table "entity_change" ("id" uuid primary key, revision int not null defau
 	"effective_from" date not null,
 	"pay_methods" jsonb,
 	"final_pay_loan_floor_percent" int,
-	"overtime_full_award_percent" int,
 	"statutory_parameters" jsonb,
 	"clears" text[],
 	"bolt_record_label" text generated always as ("bolt_record_label_entity_change_58d6e27a"("effective_from")) stored,
@@ -1574,7 +1599,6 @@ create table "entity_change" ("id" uuid primary key, revision int not null defau
 	constraint "entity_change__ck__30e69ba6" check (isfinite("effective_from")),
 	constraint "entity_change__ck__5b4de9d0" check (("pay_methods" is null or store_json_valid("pay_methods", '{"fields":{"benefit_exclusion":{"kind":"enum","optional":true,"values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"kind":"enum","optional":true,"values":["EVEN","FIRST_RUN"]},"health_billing":{"kind":"enum","optional":true,"values":["CURRENT","ARREARS"]},"night_differential_basis":{"kind":"enum","optional":true,"values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"kind":"enum","optional":true,"values":["STATUTORY","CONTRACT_WEEKLY"]},"paid_leave":{"kind":"text","many":true,"optional":true},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true}'::jsonb) is true)),
 	constraint "entity_change__ck__cea79742" check ("final_pay_loan_floor_percent" >= 0 and "final_pay_loan_floor_percent" <= 100),
-	constraint "entity_change__ck__dda23d17" check ("overtime_full_award_percent" >= 1 and "overtime_full_award_percent" <= 100),
 	constraint "entity_change__ck__ac87d3fe" check (("statutory_parameters" is null or store_json_valid("statutory_parameters", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true)),
 	constraint "entity_change__ck__64a2ceb8" check (not jsonb_path_exists(to_jsonb("clears"), 'strict $[*] ? (@.type() != "string")')),
 	constraint "entity_change__uq__27cd9d33" unique nulls not distinct ("entity_id", "effective_from") deferrable initially immediate
@@ -1991,7 +2015,10 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+
+-- step create:history:schema:sys_workspace (additive)
+select bolt_history_register('sys_workspace','{"check":{"singleton":{"id":{"eq":"00000000-0000-0000-0000-000000000001"}}},"fields":{"name":{"kind":"text","max":120,"optional":true},"revision":{"default":1,"kind":"int"}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:employee_profile (additive)
 select bolt_history_register('employee_profile','{"audit":true,"fields":{"address":{"kind":"text","optional":true},"bank":{"kind":"custom","of":"bank","optional":true},"birth_city":{"kind":"text","optional":true},"cumulative_service":{"default":false,"kind":"bool"},"date_of_birth":{"kind":"date","optional":true},"documents":{"accept":["application/pdf","image/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"email":{"format":"email","kind":"text","optional":true},"face_consent_at":{"kind":"instant","optional":true},"face_embedding":{"dim":1024,"kind":"vector","metric":"cosine","optional":true},"face_enrolled_at":{"kind":"instant","optional":true},"face_enrollment_status":{"default":"NONE","kind":"enum","values":["NONE","PENDING","APPROVED","SUSPENDED"]},"face_photo":{"accept":["image/jpeg","image/png"],"kind":"file","max":"5MiB","optional":true},"gender":{"kind":"enum","optional":true,"values":["MALE","FEMALE"]},"identity_number":{"kind":"text","optional":true},"invitation_id":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_invitation"},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"number":{"kind":"seq","pattern":"HR-{0000}"},"phone":{"format":"phone","kind":"text","optional":true},"source_reference":{"kind":"text","optional":true},"user_id":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_user"}},"record_label":"record.name","search":{"semantic":{"dim":1536,"fields":["address"],"model":"default"},"text":["name","email","phone"]},"unique":[{"fields":["invitation_id"],"name":"invitation_id"},{"fields":["user_id"],"name":"user_id"}]}'::jsonb);
@@ -2015,10 +2042,10 @@ select bolt_history_register('contract_terms','{"audit":true,"fields":{"allowanc
 select bolt_history_register('statutory_parameters','{"audit":true,"fields":{"clears":{"kind":"text","many":true,"optional":true},"effective_from":{"kind":"date"},"employment_id":{"inverse":"parameters","kind":"ref","on_delete":"cascade","to":"employment"},"parameters":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}},"record_label":"record.effective_from","unique":[{"fields":["employment_id","effective_from"],"name":"one_change"}]}'::jsonb);
 
 -- step create:history:schema:entity (additive)
-select bolt_history_register('entity','{"audit":true,"fields":{"bank":{"kind":"custom","of":"bank","optional":true},"code":{"kind":"text","optional":true},"name":{"kind":"text"},"registered_address":{"kind":"text","optional":true},"representative_name":{"kind":"text","optional":true},"settings_code":{"kind":"text"},"source_reference":{"kind":"text","optional":true},"time_zone":{"kind":"text","optional":true}},"record_label":"record.name","search":{"text":["code","name"]},"unique":[{"fields":["code"],"name":"code"}]}'::jsonb);
+select bolt_history_register('entity','{"audit":true,"fields":{"bank":{"kind":"custom","of":"bank","optional":true},"code":{"kind":"text","optional":true},"late_notice_minutes":{"kind":"int","min":1,"optional":true},"late_notice_policies":{"kind":"enum","many":true,"optional":true,"values":["supervisor","manager","hr_controller","hr_manager","senior_management"]},"name":{"kind":"text"},"registered_address":{"kind":"text","optional":true},"representative_name":{"kind":"text","optional":true},"settings_code":{"kind":"text"},"source_reference":{"kind":"text","optional":true},"time_zone":{"kind":"text","optional":true}},"record_label":"record.name","search":{"text":["code","name"]},"unique":[{"fields":["code"],"name":"code"}]}'::jsonb);
 
 -- step create:history:schema:entity_change (additive)
-select bolt_history_register('entity_change','{"audit":true,"fields":{"clears":{"kind":"text","many":true,"optional":true},"effective_from":{"kind":"date"},"entity_id":{"inverse":"changes","kind":"ref","on_delete":"cascade","to":"entity"},"final_pay_loan_floor_percent":{"kind":"int","max":100,"min":0,"optional":true},"overtime_full_award_percent":{"kind":"int","max":100,"min":1,"optional":true},"pay_methods":{"fields":{"benefit_exclusion":{"kind":"enum","optional":true,"values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"kind":"enum","optional":true,"values":["EVEN","FIRST_RUN"]},"health_billing":{"kind":"enum","optional":true,"values":["CURRENT","ARREARS"]},"night_differential_basis":{"kind":"enum","optional":true,"values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"kind":"enum","optional":true,"values":["STATUTORY","CONTRACT_WEEKLY"]},"paid_leave":{"kind":"text","many":true,"optional":true},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true},"statutory_parameters":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}},"record_label":"record.effective_from","unique":[{"fields":["entity_id","effective_from"],"name":"one_change"}]}'::jsonb);
+select bolt_history_register('entity_change','{"audit":true,"fields":{"clears":{"kind":"text","many":true,"optional":true},"effective_from":{"kind":"date"},"entity_id":{"inverse":"changes","kind":"ref","on_delete":"cascade","to":"entity"},"final_pay_loan_floor_percent":{"kind":"int","max":100,"min":0,"optional":true},"pay_methods":{"fields":{"benefit_exclusion":{"kind":"enum","optional":true,"values":["POOLED","EXCESS_TAXED"]},"contribution_split":{"kind":"enum","optional":true,"values":["EVEN","FIRST_RUN"]},"health_billing":{"kind":"enum","optional":true,"values":["CURRENT","ARREARS"]},"night_differential_basis":{"kind":"enum","optional":true,"values":["WORKED","CLOCK_SPAN","WHOLE_NIGHT"]},"overtime_hour_basis":{"kind":"enum","optional":true,"values":["STATUTORY","CONTRACT_WEEKLY"]},"paid_leave":{"kind":"text","many":true,"optional":true},"rest_day_hourly_multiplier":{"kind":"number","min":1,"optional":true}},"kind":"object","optional":true},"statutory_parameters":{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}},"record_label":"record.effective_from","unique":[{"fields":["entity_id","effective_from"],"name":"one_change"}]}'::jsonb);
 
 -- step create:history:schema:holiday (additive)
 select bolt_history_register('holiday','{"audit":true,"fields":{"date":{"kind":"date"},"employee_id":{"inverse":"holiday","kind":"ref","optional":true,"to":"employee_profile"},"entity_id":{"inverse":"holiday","kind":"ref","to":"entity"},"given_to":{"default":"EVERYONE","kind":"enum","values":["EVERYONE","ONLY_IF_OFF_ON_REPLACED_DATE"]},"kind":{"default":"PUBLIC_HOLIDAY","kind":"enum","values":["PUBLIC_HOLIDAY","SPECIAL_HOLIDAY","SUBSTITUTE","DOUBLE_HOLIDAY","DOUBLE_SPECIAL","MAKEUP_WORKDAY"]},"name":{"kind":"text"},"published_at":{"hidden":true,"kind":"instant","optional":true},"replaces":{"kind":"date","optional":true}},"record_label":"record.name + '' · '' + string(record.date)"}'::jsonb);
@@ -2479,6 +2506,12 @@ create unique index "sys_user__ux__08e69363" on "sys_user" (lower("email"));
 -- step create:index:sys_user.sys_user__ux__1c9f4db2 (additive)
 create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
+-- step create:trigger:sys_workspace.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "sys_workspace" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
+
+-- step create:index:sys_workspace.sys_workspace__gin__73732636 (additive)
+create index "sys_workspace__gin__73732636" on "sys_workspace" using gin (bolt_search);
+
 -- step create:trigger:employee_profile.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "employee_profile" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
@@ -2538,6 +2571,9 @@ create index "statutory_parameters__gin__73732636" on "statutory_parameters" usi
 
 -- step create:trigger:entity.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "entity" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:entity.entity__gin__47add8c5 (additive)
+create index "entity__gin__47add8c5" on "entity" using gin ("late_notice_policies");
 
 -- step create:index:entity.entity__gin__73732636 (additive)
 create index "entity__gin__73732636" on "entity" using gin (bolt_search);
@@ -2900,7 +2936,7 @@ create index "work_event__ix__26554388" on "work_event" ("entity_id");
 create index "work_event__ix__c9f435cb" on "work_event" ("employment_id");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['adhoc_catalog_entry','approval_request','claim_catalog_entry','contract_terms','dependant','employee_balance','employee_profile','employment','entity','entity_change','holiday','jurisdiction','jurisdiction_change','leave_catalog_entry','leave_catalog_entry_day','ledger_entry','loan_catalog_entry','loan_catalog_entry_repayment','obligation','pay_amendment','pay_group','payroll_run','payslip','roster_entry','shift_definition','shift_pattern','statutory_finding','statutory_parameters','statutory_source','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','work_event','workplace_case_catalog_entry']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['adhoc_catalog_entry','approval_request','claim_catalog_entry','contract_terms','dependant','employee_balance','employee_profile','employment','entity','entity_change','holiday','jurisdiction','jurisdiction_change','leave_catalog_entry','leave_catalog_entry_day','ledger_entry','loan_catalog_entry','loan_catalog_entry_repayment','obligation','pay_amendment','pay_group','payroll_run','payslip','roster_entry','shift_definition','shift_pattern','statutory_finding','statutory_parameters','statutory_source','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','sys_workspace','work_event','workplace_case_catalog_entry']::text[]));
 
 -- step create:engine:audit:employee_profile (additive)
 drop trigger if exists bolt_audit_mark on "employee_profile";
