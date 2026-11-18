@@ -14,8 +14,10 @@
 		Label,
 		RecordShell,
 		Sheet,
+		Show,
 		value_object,
 		type FieldEditor,
+		type FieldView,
 		type FormProps,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -80,6 +82,15 @@
 			field.on_change({ ...(value_object(field.value) ? field.value : {}), to: next ?? null })}
 	/>{/snippet}
 
+{#snippet lastDayShown(field: FieldView)}<Show
+		{ctx}
+		readonly
+		id={field.id}
+		name="last_day"
+		kind={{ kind: 'date', optional: true }}
+		value={dayOf(field.value, 'to')}
+	/>{/snippet}
+
 {#snippet actions()}{#if record !== null}<Button
 			variant="outline"
 			onclick={() => {
@@ -118,6 +129,7 @@
 						name="effective_range"
 						label={t('contract.last_working_day')}
 						editor={lastDay}
+						view={lastDayShown}
 					/>
 					{#each ['service_started_on', 'exit_ground', 'encash_leave', 'final_pay_due_on', 'reason', 'events'] as name (name)}<Field
 							{ctx}

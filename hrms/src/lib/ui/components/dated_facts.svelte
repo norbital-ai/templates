@@ -48,6 +48,7 @@
 		kindOf,
 		custom,
 		from,
+		until,
 		attributes = [],
 		entries = [],
 		onchange
@@ -67,6 +68,8 @@
 		custom?: Snippet<[{ fact: Fact; id: string; readonly: boolean; set: (value: Value) => void }]>;
 		/** The day a new change starts from; today when left out. */
 		from?: string;
+		/** The last day the facts hold (a stint's last day): past it, no change is in force. */
+		until?: string | null | undefined;
 		/** Names that say something of their own change only (the day it was signed): never carried to the next. */
 		attributes?: readonly string[];
 		entries?: readonly DatedEntry[];
@@ -102,6 +105,12 @@
 	);
 	/** The change that stands today: the latest dated today or before, else the first one ahead. */
 	const standing = $derived(days.find((on) => on <= clock.today) ?? days.at(-1) ?? null);
+	/** The change in force today: none while every one is dated ahead, or once the facts no longer hold. */
+	const current = $derived(
+		standing !== null && standing <= clock.today && (until == null || until >= clock.today)
+			? standing
+			: null
+	);
 	const shown = $derived(
 		picked === undefined ? standing : picked !== null && days.includes(picked) ? picked : null
 	);
@@ -188,7 +197,7 @@
 	const dot = (on: string) =>
 		[
 			'absolute top-2.5 -left-[5px] size-2.5 rounded-full border bg-background',
-			on === standing ? 'border-brand' : on > clock.today ? 'border-dashed' : 'border-border'
+			on === current ? 'border-brand' : on > clock.today ? 'border-dashed' : 'border-border'
 		].join(' ');
 	// one fact has one value on one day: two changes moved onto one day are refused, not guessed between
 	const twice = $derived(
@@ -319,8 +328,7 @@
 								<span class="text-meta min-w-0 flex-1 truncate font-normal"
 									>{entry.line.join(' · ')}</span
 								>
-								{#if entry.on === standing}<Badge variant="outline">{t('dated.current')}</Badge
-									>{/if}
+								{#if entry.on === current}<Badge variant="outline">{t('dated.current')}</Badge>{/if}
 							</span>
 						</Accordion.Trigger>
 						<Accordion.Content>

@@ -61,6 +61,7 @@
 		kindOf={family.kindOf(stint)}
 		custom={allowances}
 		from={family.nextMonth}
+		until={stint.effective_range.to}
 		attributes={family.attributes}
 		entries={entriesOf?.(stint) ?? []}
 		onchange={(next) => family.change(stint, next)}
