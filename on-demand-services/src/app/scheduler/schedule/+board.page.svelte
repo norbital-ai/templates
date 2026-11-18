@@ -98,13 +98,13 @@
 		<Cluster gap="xs">
 			{#if row.status !== 'scheduled'}
 				<StateBadge {ctx} state={row.status} label={word(`status.${row.status}`)} />
-			{:else if row.shift_check !== 'not_due'}
+			{:else if row.shift_check !== undefined && row.shift_check !== 'not_due'}
 				<StateBadge {ctx} state={row.shift_check} label={word(`shift_check.${row.shift_check}`)} />
 			{/if}
-			{#if row.attention !== 'none'}
+			{#if row.attention !== undefined && row.attention !== 'none'}
 				<Badge variant="warning">{word(`attention.${row.attention}`)}</Badge>
 			{/if}
-			{#if row.status === 'scheduled' && row.eta_minutes !== null}
+			{#if row.status === 'scheduled' && row.eta_minutes != null}
 				<Badge variant="outline">{t('component.eta', { minutes: row.eta_minutes })}</Badge>
 			{/if}
 		</Cluster>
