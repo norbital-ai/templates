@@ -321,7 +321,11 @@ export function mapSalesFacts(
 }
 
 const idsSql = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS keys(n))";
-/** All header entries are read before using its amount; the amount is not a per-line allocation. */
+/**
+ * All of a header's invoice-side entries are read before using its amount; the amount is not a per-line
+ * allocation. KIS stores each settlement link twice, invoice→receipt and receipt→invoice: only the invoice
+ * side is read, as SalesBridge did, whichever header the mirrored row sits under.
+ */
 const paymentProjection = ({ settlement }: Bill): NativeProjection => ({
 	sql: `/* kingdee-settlement-entries */
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
@@ -341,7 +345,7 @@ LEFT JOIN dbo.t_RP_NewCheckInfo checkhead ON checkhead.FInterID=ce.FInterID
 LEFT JOIN dbo.t_RP_Contact contact ON contact.FID=checkhead.FContactID
 LEFT JOIN dbo.t_RP_NewReceiveBill receipt ON ce.FType_SRC=${settlement.source} AND receipt.FBillID=ce.FBillID_SRC
 LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=receipt.FCurrencyID
-WHERE EXISTS (SELECT 1 FROM dbo.t_rp_CheckEntry anchor
+WHERE ce.FType=${settlement.type} AND EXISTS (SELECT 1 FROM dbo.t_rp_CheckEntry anchor
  WHERE anchor.FInterID=ce.FInterID AND anchor.FType=${settlement.type} AND anchor.FInvoiceID IN ${idsSql})`
 });
 type PaymentFact = Pick<

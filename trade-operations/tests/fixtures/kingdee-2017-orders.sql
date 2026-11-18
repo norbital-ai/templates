@@ -15,7 +15,7 @@ CREATE TABLE dbo.SEOrder (
   FCurrencyID int NOT NULL,
   FCustID int NOT NULL,
   FDate datetime NOT NULL,
-  FExchangeRate decimal(28,10) NOT NULL,
+  FExchangeRate float NOT NULL,
   FDeptID int NOT NULL,
   FEmpID int NOT NULL,
   FBillerID int NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE dbo.SEOrderEntry (
   FEntrySelfS0172 int NULL,
   FEntrySelfS0173 nvarchar(100) NOT NULL,
   FStockQty decimal(28,10) NOT NULL DEFAULT 0, FMrpClosed bit NOT NULL DEFAULT 0,
-  FMrpAutoClosed bit NOT NULL DEFAULT 0,
+  FMrpAutoClosed bit NOT NULL DEFAULT 1,
   FPlanMode int NOT NULL DEFAULT 0,
   FOREIGN KEY (FBrNO,FInterID) REFERENCES dbo.SEOrder(FBrNo,FInterID)
 );
@@ -120,7 +120,7 @@ CREATE TABLE dbo.t_RP_NewReceiveBill (FBillID int PRIMARY KEY, FNumber nvarchar(
 CREATE TABLE dbo.POOrder (
   FInterID int PRIMARY KEY, FUUID uniqueidentifier NULL, FBrNo nvarchar(20) NOT NULL DEFAULT '0',
   FBillNo nvarchar(200) NOT NULL, FTranType int NOT NULL DEFAULT 71, FDate datetime NOT NULL,
-  FSupplyID int NOT NULL, FCurrencyID int NOT NULL, FExchangeRate decimal(28,10) NOT NULL,
+  FSupplyID int NOT NULL, FCurrencyID int NOT NULL, FExchangeRate float NOT NULL,
   FDeptID int NULL, FEmpID int NULL, FBillerID int NULL, FSettleID int NULL, FSettleDate datetime NULL,
   FSysStatus int NULL, FStatus int NOT NULL DEFAULT 0, FCheckerID int NULL, FCheckDate datetime NULL,
   FCancellation bit NOT NULL DEFAULT 0, FClosed bit NOT NULL DEFAULT 0, FOperDate rowversion

@@ -1,7 +1,7 @@
 -- Disposable SQL Server 2017 account set for the Kingdee master and stock sync probes.
 CREATE DATABASE TradeOperationsProbe;
 GO
-ALTER DATABASE TradeOperationsProbe SET COMPATIBILITY_LEVEL = 140;
+ALTER DATABASE TradeOperationsProbe SET COMPATIBILITY_LEVEL = 100;
 GO
 USE TradeOperationsProbe;
 GO

@@ -17,6 +17,12 @@ The outbox retains pending source writes for retry. The verified source writer c
 SO or PO. Replicating the locally approved state as an audited SO still requires native Kingdee
 validation on a restored account set.
 
+The customer's account set ran SQL Server 2008 R2 at compatibility level 80 when SalesBridge measured it; it now
+runs SQL Server 2017. An account set upgraded that way stays at compatibility level 100 unless raised, so every
+statement here is valid at 100: no `TRY_CONVERT`/`TRY_CAST` (110) or `OPENJSON` (130). `FOR JSON`, `JSON_QUERY` and
+`APPLY` need only the 2017 engine. A test guards the source and the live SQL tests run at level 100. Confirm the
+level with `SELECT @@VERSION, compatibility_level FROM sys.databases WHERE name = DB_NAME()`.
+
 ```text
 Kingdee SQL Server 2017  <-- TDS over the configured network path -->  Trade Operations runtime
       SELECT current rows and rowversions  ----------------------->  ledger and sync state
@@ -174,7 +180,7 @@ complete lines of issued documents. A header missing after discovery fails that 
 An invoice may merge multiple deliveries of the same order line/lot; its local items aggregate
 quantity and net amount while financial facts retain exact upstream lineage.
 
-Financial reads discover distinct settlement IDs before loading the complete allocations, use verified invoice-to-receipt settlement links, and preserve missing facts as
+Financial reads discover distinct settlement IDs before loading the complete allocations, use verified invoice-to-receipt settlement links, read only the invoice side of each link (KIS stores every link twice, invoice→receipt and its mirror), and preserve missing facts as
 inactive. Ambiguous allocations, unsupported reversals and unverified currency interpretations
 fail visibly. A remaining balance of zero is never treated as proof of payment.
 Owned feeds obtain account identity and source time in one request and finish on the last data page.

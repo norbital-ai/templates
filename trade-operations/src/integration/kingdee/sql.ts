@@ -95,11 +95,15 @@ const execute = Effect.fnUntraced(function* (
 		}
 	})).rows;
 });
-/** Check inside each batch so a reconnect between lookup and mutation cannot target another account. */
+/**
+ * Check inside each batch so a reconnect between lookup and mutation cannot target another account. The
+ * identity compares as text: an account set upgraded from SQL Server 2008 R2 keeps compatibility level 100,
+ * where the TRY_ conversion functions do not exist.
+ */
 const requireAccount = (parameter: string, label: string) => `IF NOT EXISTS (
  SELECT 1 FROM sys.database_recovery_status WHERE database_id=DB_ID()
- AND database_guid=TRY_CONVERT(uniqueidentifier,LEFT(${parameter},36))
- AND recovery_fork_guid=TRY_CONVERT(uniqueidentifier,RIGHT(${parameter},36))
+ AND CONVERT(char(36),database_guid)=UPPER(LEFT(${parameter},36))
+ AND CONVERT(char(36),recovery_fork_guid)=UPPER(RIGHT(${parameter},36))
 ) BEGIN RAISERROR('Kingdee ${label} account identity does not match',16,1); RETURN; END;`;
 export const requireWriteAccount = requireAccount('@write_account', 'write');
 export const requireReadAccount = requireAccount('@read_account', 'read');

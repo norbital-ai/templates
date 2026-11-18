@@ -63,7 +63,7 @@ const probeDatabase = Effect.fnUntraced(function* (
 		admin
 			.request()
 			.query(
-				`ALTER DATABASE [${database}] SET COMPATIBILITY_LEVEL = 140; ALTER DATABASE [${database}] SET READ_COMMITTED_SNAPSHOT ON`
+				`ALTER DATABASE [${database}] SET COMPATIBILITY_LEVEL = 100; ALTER DATABASE [${database}] SET READ_COMMITTED_SNAPSHOT ON`
 			)
 	);
 	const source = yield* connect(database);
@@ -695,6 +695,8 @@ it.effect.skipIf(!password)(
 			INSERT dbo.t_RP_NewReceiveBill VALUES (40001,'RC-PROBE',1,1);
 			INSERT dbo.t_RP_NewCheckInfo VALUES (50001,1,3,10001,'20261104',3);
 			INSERT dbo.t_rp_CheckEntry VALUES (60001,50001,3,5,30001,1,40001);
+			-- KIS keeps every settlement link twice: the receipt-side mirror reads as no second payment
+			INSERT dbo.t_rp_CheckEntry VALUES (60002,50001,5,3,0,0,30001);
 		`)
 			);
 			const synchronize = () =>
@@ -1540,6 +1542,7 @@ it.effect.skipIf(!password)(
 				INSERT dbo.t_RP_NewReceiveBill VALUES (40101,'PAY-PROBE',0,1);
 				INSERT dbo.t_RP_NewCheckInfo VALUES (50101,0,4,10101,'20261101',10);
 				INSERT dbo.t_rp_CheckEntry VALUES (60101,50101,4,6,30101,1,40101);
+				INSERT dbo.t_rp_CheckEntry VALUES (60102,50101,6,4,0,0,30101);
 			`);
 			yield* t.pull('transactions');
 			yield* t.pull('source_payments');

@@ -1,4 +1,5 @@
 import { SourceRowInvalid } from '../src/integration/kingdee/polling.js';
+import { readdirSync, readFileSync } from 'node:fs';
 import { Effect } from 'effect';
 import { expect, it } from '@effect/vitest';
 import type { DatabaseRequest } from '@norbital-ai/bolt/engine';
@@ -205,6 +206,15 @@ it.effect('uses only the existing RPC with stable provenance and bound data on r
 		expect(sourceOrderSql).not.toMatch(/\bTHROW\b|\bMERGE\b|\bOPENJSON\b/);
 	})
 );
+
+it('uses no SQL a Kingdee account set at compatibility level 100 refuses', () => {
+	// an account set upgraded from SQL Server 2008 R2 to 2017 stays at level 100: TRY_* and OPENJSON need 110 and 130
+	const directory = new URL('../src/integration/kingdee/', import.meta.url);
+	for (const file of readdirSync(directory).filter((name) => name.endsWith('.ts')))
+		expect(readFileSync(new URL(file, directory), 'utf8'), file).not.toMatch(
+			/\bTRY_(CONVERT|CAST|PARSE)\b|\bOPENJSON\b/
+		);
+});
 
 it.effect('keeps unpinned and retargeted orders out of the SQL connection', () =>
 	Effect.gen(function* () {
