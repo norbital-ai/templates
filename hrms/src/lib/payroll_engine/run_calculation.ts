@@ -517,7 +517,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		intervalSpans(
 			Array.isArray(value) ? value.filter((row) => isJsonObject(row) && row.end != null) : []
 		);
-	const fullAward = Number(employer.overtime_full_award_percent ?? 100);
 	const shifts = new Map((data.shift_definition ?? []).map((row) => [row.id, row]));
 	const patterns = new Map((data.shift_pattern ?? []).map((row) => [row.id, row]));
 	const plan = { employer, shifts, patterns };
@@ -597,7 +596,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		// the clock proves the person came and awards the plan; it never adds time of its own
 		const clock = closedSpans(row.actual_worked_intervals);
 		const planned = closedSpans(row.planned_overtime_intervals);
-		const awarded = awardedMinutes(planned, clock, fullAward) / 60;
+		const awarded = awardedMinutes(planned, clock) / 60;
 		// overtime the worker takes as time off is owed by the hour, never also paid: the day prices none of it
 		const timeOff = row.overtime_as_time_off === true ? awarded : 0;
 		const overtime = awarded - timeOff;

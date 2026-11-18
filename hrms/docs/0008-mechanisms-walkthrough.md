@@ -70,7 +70,7 @@ What to expect:
 What the run will do with it:
 
 - **A supplied roster is the source of truth for that person's cycle.** A planned work day the roster leaves out, with no leave and no published holiday, is an absence. So is a planned work day with no clock. An absence comes off the basic at `PRORATED`; it has no line of its own.
-- **Overtime is paid only from the plan.** The clock verifies it and never creates it. A clock on a rest day with no planned overtime pays nothing. If the clock covers at least the employer's `overtime_full_award_percent` of the plan (100 by default), the whole plan is paid. Below that, the clocked time inside the plan is paid, rounded down to the half hour.
+- **Overtime is paid only from the plan.** The clock verifies it and never creates it. A clock on a rest day with no planned overtime pays nothing. If the clock covers the whole plan, the whole plan is paid. Otherwise the clocked time inside the plan is paid, rounded down to the quarter hour.
 - **Overtime taken as time off** pays nothing; the payslip posts the awarded hours to the law's hour-counted leave row.
 - **A holiday** applies by its date. Work on it pays the law's holiday row, not the rest-day row. A holiday that replaces one that fell on a rest day is given only to those off on the replaced date. Whether someone was off reads their roster for that date, or their agreed week where the roster has no row.
 - **The roster's day type sets the overtime band**, not the weekday: a weekday rostered as a rest day and worked pays the rest-day row, and a Saturday rostered as a work day pays its planned overtime at the workday row.

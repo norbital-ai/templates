@@ -11,6 +11,7 @@ import type { Json } from '../../src/lib/payroll_engine/foundation.ts';
 import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
 import { amendments, carriedFor, dropped, ownLines, pay, run } from '../amendment_kit.ts';
 import { lawAt, pack, refusal, storedQuery, workspace, packTerms } from '../kit.ts';
+import { FAMILIES } from '../../src/lib/payroll_engine/statutory_research.ts';
 
 const CODE = 'MY';
 const NOW = '2027-02-05T02:00:00.000Z';
@@ -38,7 +39,7 @@ const answer = (value: unknown) => ({
 	finish: 'stop' as const,
 	usage: { input: 0, output: 0 }
 });
-/** One research pass: an instrument found, then its one change to the row's employee rate. */
+/** One research pass: one agent per family, one of which finds an instrument; then its one change to the row's employee rate. */
 const found = (rate: unknown, from: string) => [
 	answer({
 		findings: [
@@ -53,6 +54,7 @@ const found = (rate: unknown, from: string) => [
 		],
 		new_sources: []
 	}),
+	...Array.from({ length: FAMILIES.length }, () => answer({ findings: [], new_sources: [] })),
 	answer({
 		changes: [
 			{ row_code: ROW, field_path: 'lookup.employee_rate', new_value: rate, effective_from: from }

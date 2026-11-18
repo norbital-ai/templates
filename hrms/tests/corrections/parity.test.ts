@@ -45,6 +45,7 @@ import {
 	wholeDays,
 	workspace,
 	endStint,
+	recordEvents,
 	withParameters
 } from '../kit.ts';
 
@@ -258,6 +259,65 @@ describe('a fact of the person corrected after its month was paid', () => {
 				});
 			return parity(seed, { wrong: nothing, correct: right, right });
 		}
+	);
+});
+
+// ---- a dated row or a life event keyed on the wrong day -------------------------------------------------------------
+
+/** The declared children from a first of a month, on a parameters row of its own. */
+const declaredFrom = (on: string) => (t: Kit) =>
+	wrote(t, (hr) =>
+		hr.act({
+			'statutory_parameters.create': [
+				{
+					employment_id: STINT,
+					effective_from: on,
+					parameters: reliefs({ children_under_18_or_studying: 2 })
+				}
+			]
+		})
+	);
+/** The parameters row dated `from` moved to `to`, on the row itself. */
+const parametersMoved = (from: string, to: string) => (t: Kit) =>
+	Effect.gen(function* () {
+		const { statutory_parameters } = yield* storedQuery(t, {
+			statutory_parameters: { where: { effective_from: { eq: from } }, limit: 1 }
+		});
+		const [target] = statutory_parameters.rows;
+		assert.ok(target !== undefined, `No parameters row on ${from}`);
+		yield* wrote(t, (hr) =>
+			hr.act({ 'statutory_parameters.update': [{ target, set: { effective_from: to } }] })
+		);
+	});
+/** A mother: a birth opens her maternity leave from its date. */
+const mother = (): Seed => {
+	const base = rostered(MONTHS);
+	return {
+		...base,
+		employee_profile: (base.employee_profile ?? []).map((row) => ({ ...row, gender: 'FEMALE' }))
+	};
+};
+/** The stint's life events are this birth, on this day. */
+const bornOn = (on: string) => (t: Kit) =>
+	recordEvents(t, [{ kind: 'CHILD_BIRTH', on }]).pipe(Effect.andThen(t.run_due()));
+
+describe('a dated row or a life event keyed on the wrong day, moved after its month was paid', () => {
+	it.live(
+		'a statutory parameter dated a month late: moved to its first day, the next payslip carries the difference, as B',
+		() =>
+			parity(married(true, { children_under_18_or_studying: 1 }), {
+				wrong: declaredFrom('2026-02-01'),
+				correct: parametersMoved('2026-02-01', '2026-01-01'),
+				right: declaredFrom('2026-01-01')
+			})
+	);
+	it.live('a birth recorded a month late: moved to its day, the leave it opens as B', () =>
+		parity(mother(), {
+			wrong: bornOn('2026-02-12'),
+			correct: bornOn('2026-01-12'),
+			right: bornOn('2026-01-12'),
+			carries: false
+		})
 	);
 });
 
@@ -657,19 +717,27 @@ const bornEarlier = (t: Kit) =>
 	});
 
 describe('every other record a run reads, corrected after its month was paid', () => {
-	it.live('a claim’s amount: the next payslip carries the difference, as B', () =>
-		parity(rostered(MONTHS), {
-			wrong: (t) => claimed(t, 80),
-			correct: (t, entry) =>
-				Effect.gen(function* () {
-					const target = yield* current(t, 'claim_catalog_entry', entry);
-					yield* wrote(t, (hr) =>
-						hr.act({ 'claim_catalog_entry.update': [{ target, set: { quantity: '60' } }] })
-					);
-				}),
-			right: (t) => claimed(t, 60)
-		})
-	);
+	for (const [was, is] of [
+		[80, 60],
+		[60, 80]
+	] as const)
+		it.live(
+			`a claim’s amount, ${was} to ${is}: the next payslip carries the difference, as B`,
+			() =>
+				parity(rostered(MONTHS), {
+					wrong: (t) => claimed(t, was),
+					correct: (t, entry) =>
+						Effect.gen(function* () {
+							const target = yield* current(t, 'claim_catalog_entry', entry);
+							yield* wrote(t, (hr) =>
+								hr.act({
+									'claim_catalog_entry.update': [{ target, set: { quantity: String(is) } }]
+								})
+							);
+						}),
+					right: (t) => claimed(t, is)
+				})
+		);
 	it.live('a claim that never was: deleted, the next payslip takes it back, as B', () =>
 		parity(rostered(MONTHS), {
 			wrong: (t) => claimed(t, 80),
@@ -721,19 +789,25 @@ describe('every other record a run reads, corrected after its month was paid', (
 			right: (t) => awarded(t, 'EXCELLENCE_AWARD', 500)
 		})
 	);
-	it.live('leave keyed as the wrong type: changed where it stands, pay and days as B', () =>
-		parity(rostered(MONTHS), {
-			wrong: (t) => keyed(t, 'ANNUAL_LEAVE', NPL_DAYS),
-			correct: (t, entry) =>
-				Effect.gen(function* () {
-					const target = yield* current(t, 'leave_catalog_entry', entry);
-					yield* wrote(t, (hr) =>
-						hr.act({ 'leave_catalog_entry.update': [{ target, set: { catalog_code: 'NPL' } }] })
-					);
-				}),
-			right: (t) => keyed(t, 'NPL', NPL_DAYS)
-		})
-	);
+	for (const [was, is] of [
+		['ANNUAL_LEAVE', 'NPL'],
+		['NPL', 'ANNUAL_LEAVE']
+	] as const)
+		it.live(
+			`leave keyed as ${was} that was ${is}: changed where it stands, pay and days as B`,
+			() =>
+				parity(rostered(MONTHS), {
+					wrong: (t) => keyed(t, was, NPL_DAYS),
+					correct: (t, entry) =>
+						Effect.gen(function* () {
+							const target = yield* current(t, 'leave_catalog_entry', entry);
+							yield* wrote(t, (hr) =>
+								hr.act({ 'leave_catalog_entry.update': [{ target, set: { catalog_code: is } }] })
+							);
+						}),
+					right: (t) => keyed(t, is, NPL_DAYS)
+				})
+		);
 	it.live('a roster day that was not worked: deleted, as B', () =>
 		parity(rostered(MONTHS), {
 			wrong: nothing,

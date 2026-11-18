@@ -226,7 +226,6 @@ export default model('entity_change', {
 			}
 		},
 		final_pay_loan_floor_percent: { kind: 'int', min: 0, max: 100, optional: true },
-		overtime_full_award_percent: { kind: 'int', min: 1, max: 100, optional: true },
 		/** What the law's formulas read of the company: the fields its jurisdiction's entity statutory parameters declares. */
 		statutory_parameters: {
 			kind: 'json',

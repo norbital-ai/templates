@@ -61,6 +61,12 @@ const answer = (value: unknown) => ({
 });
 const found = (...findings: readonly object[]) => answer({ findings, new_sources: [] });
 const quiet = found();
+/** One answer per research agent of a run, all at once: these, then nothing from the rest. */
+const AGENTS = FAMILIES.length + 1;
+const round = (...answers: readonly ReturnType<typeof answer>[]) => [
+	...answers,
+	...Array.from({ length: AGENTS - answers.length }, () => quiet)
+];
 const CITATION = 'Act A2001';
 const OFFICIAL = 'https://www.kwsp.gov.my/act-a2001.pdf';
 const finding = (over: object = {}) => ({
@@ -146,7 +152,7 @@ const first = <A>(rows: readonly A[]): A => {
 	if (row === undefined) throw new Error('no row');
 	return row;
 };
-const research = (t: Kit, input: { code: string; family?: string } = { code: 'MY' }) =>
+const research = (t: Kit, input: { code: string } = { code: 'MY' }) =>
 	t.as(t.admin).pipe(
 		Effect.andThen((admin) => admin.run('statutory_research', input, JobResult)),
 		Effect.andThen(t.run_due())
@@ -167,7 +173,7 @@ const confirm = (t: Kit, id: Id<'statutory_finding'>) => decide(t, id, 'CONFIRME
 
 describe('statutory research', () => {
 	it.live('detects a changed rate, files it unconfirmed and dated on the law', () =>
-		scenario([found(finding()), answer({ changes: [rate()] })], (t) =>
+		scenario([...round(found(finding())), answer({ changes: [rate()] })], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
 				const { findings, changes } = yield* ledger(t);
@@ -190,7 +196,7 @@ describe('statutory research', () => {
 	);
 
 	it.live('finds nothing where nothing changed, and records that it looked', () =>
-		scenario([quiet, quiet], (t) =>
+		scenario([...round(), ...round()], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
 				const first = yield* ledger(t);
@@ -212,7 +218,7 @@ describe('statutory research', () => {
 	);
 
 	it.live('never adds a value the law already holds on its date', () =>
-		scenario([found(finding()), answer({ changes: [rate({ new_value: HELD })] })], (t) =>
+		scenario([...round(found(finding())), answer({ changes: [rate({ new_value: HELD })] })], (t) =>
 			Effect.gen(function* () {
 				yield* research(t);
 				assert.equal((yield* ledger(t)).changes.length, 0);
@@ -225,13 +231,15 @@ describe('statutory research', () => {
 		() =>
 			scenario(
 				[
-					found(
-						finding({
-							instrument: 'Act A2003',
-							title: 'New savings scheme',
-							fit: 'ROW',
-							source_quote: 'A savings scheme starts on 1 March 2027.'
-						})
+					...round(
+						found(
+							finding({
+								instrument: 'Act A2003',
+								title: 'New savings scheme',
+								fit: 'ROW',
+								source_quote: 'A savings scheme starts on 1 March 2027.'
+							})
+						)
 					),
 					answer({
 						changes: [
@@ -281,12 +289,12 @@ describe('statutory research', () => {
 
 	it.live('keeps what no family can hold out of the ledger of changes', () =>
 		scenario(
-			[
+			round(
 				found(
 					finding({ title: 'Portable severance account', fit: 'STRUCTURAL', families: [] }),
 					finding({ instrument: 'Act A2004', title: 'Family name invented', families: ['visa'] })
 				)
-			],
+			),
 			(t) =>
 				Effect.gen(function* () {
 					yield* research(t);
@@ -303,9 +311,9 @@ describe('statutory research', () => {
 	it.live('files one finding across scopes, and merges a repeat into its sources', () =>
 		scenario(
 			[
-				found(finding(), finding({ instrument: 'ACT  A2001', title: 'Again' })),
+				...round(found(finding(), finding({ instrument: 'ACT  A2001', title: 'Again' }))),
 				answer({ changes: [rate()] }),
-				found(finding({ source_urls: [OFFICIAL, 'https://www.perkeso.gov.my/rates'] }))
+				...round(found(finding({ source_urls: [OFFICIAL, 'https://www.perkeso.gov.my/rates'] })))
 			],
 			(t) =>
 				Effect.gen(function* () {
@@ -322,28 +330,30 @@ describe('statutory research', () => {
 	);
 
 	it.live('never proposes again what a person rejected', () =>
-		scenario([found(finding()), answer({ changes: [rate()] }), found(finding())], (t) =>
-			Effect.gen(function* () {
-				yield* research(t);
-				const found = first((yield* ledger(t)).findings);
-				yield* (yield* t.as(t.admin)).act({
-					'statutory_finding.update': [{ target: found, set: { status: 'REJECTED' } }]
-				});
-				yield* research(t);
-				const { findings, changes } = yield* ledger(t);
-				assert.equal(findings.length, 1);
-				assert.equal(findings[0]?.status, 'REJECTED');
-				assert.equal(changes.length, 1);
-			})
+		scenario(
+			[...round(found(finding())), answer({ changes: [rate()] }), ...round(found(finding()))],
+			(t) =>
+				Effect.gen(function* () {
+					yield* research(t);
+					const found = first((yield* ledger(t)).findings);
+					yield* (yield* t.as(t.admin)).act({
+						'statutory_finding.update': [{ target: found, set: { status: 'REJECTED' } }]
+					});
+					yield* research(t);
+					const { findings, changes } = yield* ledger(t);
+					assert.equal(findings.length, 1);
+					assert.equal(findings[0]?.status, 'REJECTED');
+					assert.equal(changes.length, 1);
+				})
 		)
 	);
 
 	it.live('never re-files law already in force from a future date', () =>
 		scenario(
 			[
-				found(finding()),
+				...round(found(finding())),
 				answer({ changes: [rate()] }),
-				found(finding({ instrument: 'Act A2002' })),
+				...round(found(finding({ instrument: 'Act A2002' }))),
 				answer({ changes: [rate()] })
 			],
 			(t) =>
@@ -363,7 +373,7 @@ describe('statutory research', () => {
 		() =>
 			scenario(
 				[
-					found(finding()),
+					...round(found(finding())),
 					answer({
 						changes: [
 							rate({ new_value: 0.13, effective_from: '2027-07-01' }),
@@ -401,7 +411,7 @@ describe('statutory research', () => {
 		() =>
 			scenario(
 				[
-					found(finding({ source_urls: ['https://example.com/news'] })),
+					...round(found(finding({ source_urls: ['https://example.com/news'] }))),
 					answer({ changes: [rate({ effective_from: null })] })
 				],
 				(t) =>
@@ -428,17 +438,19 @@ describe('statutory research', () => {
 		() =>
 			scenario(
 				[
-					answer({
-						findings: [],
-						new_sources: [
-							{
-								url: 'https://www2.hasil.gov.my',
-								title: 'New legal portal',
-								replaces_url: 'https://www.hasil.gov.my'
-							}
-						]
-					}),
-					quiet
+					...round(
+						answer({
+							findings: [],
+							new_sources: [
+								{
+									url: 'https://www2.hasil.gov.my',
+									title: 'New legal portal',
+									replaces_url: 'https://www.hasil.gov.my'
+								}
+							]
+						})
+					),
+					...round()
 				],
 				(t) =>
 					Effect.gen(function* () {
@@ -462,7 +474,7 @@ describe('statutory research', () => {
 	it.live(
 		'a filed change is out of force until its finding is confirmed, and out again once it is rejected',
 		() =>
-			scenario([found(finding()), answer({ changes: [rate()] })], (t) =>
+			scenario([...round(found(finding())), answer({ changes: [rate()] })], (t) =>
 				Effect.gen(function* () {
 					yield* research(t);
 					const { id } = first((yield* ledger(t)).findings);
@@ -477,33 +489,37 @@ describe('statutory research', () => {
 			)
 	);
 
-	it.live('the Saturday cron watches and audits only jurisdictions in use', () =>
-		scenario(
-			Array.from({ length: FAMILIES.length + 1 }, () => quiet),
-			(t) =>
+	it.live(
+		'the Saturday cron runs one agent per family of each jurisdiction in use, all at once',
+		() =>
+			scenario(round(), (t) =>
 				Effect.gen(function* () {
 					t.clock.set('2026-11-07T03:00:00.000Z');
 					yield* t.run_due();
 					const asked = (t.fakes.ai?.requests ?? []).map((request) => JSON.stringify(request));
-					assert.equal(asked.length, FAMILIES.length + 1);
-					assert.ok(asked.every((prompt) => prompt.includes('# MY')));
-					assert.equal(
-						asked.filter((prompt) => prompt.includes('Audit these rows')).length,
-						FAMILIES.length
+					assert.equal(asked.length, AGENTS);
+					assert.ok(asked.every((prompt) => prompt.includes('# MY/')));
+					assert.ok(
+						FAMILIES.every((family) => asked.some((prompt) => prompt.includes(`# MY/${family}:`)))
 					);
 				})
-		)
+			)
 	);
 
-	it.live('a family audit puts every value and its citation before the model', () =>
-		scenario([quiet], (t) =>
-			Effect.gen(function* () {
-				yield* research(t, { code: 'MY', family: 'statutory_contribution_catalog' });
-				const prompt = JSON.stringify(t.fakes.ai?.requests[0]);
-				assert.ok(prompt.includes('Audit these rows'));
-				assert.ok(prompt.includes('new_entrant_senior_age'), 'the row values');
-				assert.ok(prompt.includes('Act 452'), 'the row citations');
-			})
-		)
+	it.live(
+		'each family agent puts every value of its family and its citation before the model',
+		() =>
+			scenario(round(), (t) =>
+				Effect.gen(function* () {
+					yield* research(t);
+					const prompt = (t.fakes.ai?.requests ?? [])
+						.map((request) => JSON.stringify(request))
+						.find((asked) => asked.includes('# MY/statutory_contribution_catalog:'));
+					assert.ok(prompt !== undefined);
+					assert.ok(prompt.includes('Audit these values'));
+					assert.ok(prompt.includes('new_entrant_senior_age'), 'the row values');
+					assert.ok(prompt.includes('Act 452'), 'the row citations');
+				})
+			)
 	);
 });

@@ -1,17 +1,13 @@
 import { automation } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
 import type { JsonObject } from '../lib/payroll_engine/contracts.js';
 import { LAW_ROWS, lawRead, lawsOf, standing } from '../lib/law.js';
-import { idsOf, objectValue, queryRows, valueText } from '../lib/payroll_engine/reads.js';
-import { isJsonObject, jsonObject, Refusal, type Json } from '../lib/payroll_engine/foundation.js';
+import { queryRows, valueText } from '../lib/payroll_engine/reads.js';
+import { jsonObject, type Json } from '../lib/payroll_engine/foundation.js';
 import {
 	FAMILIES,
 	FAMILY_NOTES,
-	officialSource,
-	planChanges,
 	referenceSources,
 	SETTINGS_FAMILY,
-	sortFindings,
 	WHOLE_ROW
 } from '../lib/payroll_engine/statutory_research.js';
 
@@ -20,147 +16,76 @@ const byCode = (rows: readonly JsonObject[]): readonly JsonObject[] =>
 		String(left.code ?? '').localeCompare(String(right.code ?? ''))
 	);
 
-const FINDINGS_ROLE =
-	"You watch one jurisdiction's payroll law for what changed. Report each legal instrument (an act, regulation, gazette notice or official rate announcement) that differs from the configuration given or is announced to change it, and classify how it fits. Never write a model: the automation records your answer as proposals for human review.";
-const AUDIT_ROLE =
-	"You audit one family of a jurisdiction's payroll configuration value by value. For each row, compare every rate, ceiling, amount and day count with the row's own `references` quotes and with official law in force, and report each instrument whose official value differs from the configuration. A value that contradicts its own quoted law is a finding even when no search confirms it. Never write a model: the automation records your answer as proposals for human review.";
+const FAMILY_ROLE =
+	"You research one family of one jurisdiction's payroll configuration. Report each legal instrument (an act, regulation, gazette notice or official rate announcement) that changed a value of the family or is announced to change it, and audit every rate, ceiling, amount, day count and deadline against the row's own `references` quotes and official law in force: a value that contradicts its own quoted law is a finding even when no search confirms it. Classify how each fits. Never write a model: the automation records your answer as proposals for human review.";
 const CHANGES_ROLE =
 	'You check one jurisdiction payroll configuration against one legal instrument. Report only the fields whose official value differs from the configuration given, each as one change. Never invent an effective date: leave `effective_from` empty unless the source states it. Never write a model: the automation records your answer as proposals for human review.';
+/** One research agent per family: the jurisdiction's settings, each catalogue, its registered rules and effects. */
+const SCOPES = [SETTINGS_FAMILY, ...FAMILIES] as const;
 const text = (value: Json | undefined): string | null =>
 	typeof value === 'string' && value !== '' ? value : null;
-/** The finding a change was filed under, read plain or with its status. */
-const findingOf = (row: JsonObject): string | null =>
-	isJsonObject(row.finding_id) ? String(row.finding_id.id) : text(row.finding_id);
 
+/**
+ * The research agents. Without a family it fans out: one run per family of each jurisdiction asked for (or in use), all
+ * at once, up to the automation's concurrency. A family run reads its law and asks one agent what changed and whether
+ * each value still stands; with a finding, one agent drafts that instrument's changes to the family. An agent writes
+ * nothing: it hands its answer to `statutory_filing`, which files one answer at a time, so agents never refuse each
+ * other's writes and each run stays inside its CPU budget.
+ */
 export default automation({
 	description:
-		'Every Saturday, one research agent per jurisdiction in use reads its official sources and records each legal instrument it finds as a proposed statutory finding, classified against the catalogue families; a second agent per affected family drafts the dated changes, which are not in force until a person confirms the finding.',
+		'Every Saturday, one research agent per family (the settings, each catalogue, the registered rules and effects) of each jurisdiction in use, all at once, reads official sources and audits its values; one agent per family a finding touches drafts its dated changes. Their answers are filed as proposed findings, not in force until a person confirms one.',
 	on: [{ cron: '0 3 * * 6' }],
 	input: {
 		code: { kind: 'text', optional: true },
 		family: { kind: 'text', optional: true },
 		finding: { kind: 'text', optional: true }
 	},
-	output: {
-		kind: 'object',
-		fields: {
-			sources: { kind: 'text', many: true },
-			researched: { kind: 'text', many: true },
-			proposed: { kind: 'text', many: true },
-			known: { kind: 'text', many: true }
-		}
-	},
 	policies: ['configuration_execution'],
-	concurrency: { max: 12 },
+	concurrency: { max: 16 },
 	run: function* (input, ctx) {
-		const none = { sources: [], researched: [], proposed: [], known: [] };
 		const code = text(input.code);
-		// One run per jurisdiction in use: a single run may not exceed the host's 3 s guest CPU budget.
-		if (code === null) {
-			const used = yield* queryRows(ctx.query, {
-				entity: { fields: ['settings_code'], limit: 10000 }
-			});
-			for (const settings_code of new Set(
-				(used.entity ?? []).map((row) => valueText(row, 'settings_code'))
-			))
-				yield* ctx.schedule('statutory_research', {
-					code: settings_code,
-					...(text(input.family) === null ? {} : { family: input.family })
-				});
-			// the watch finds what is new; only a value-by-value audit finds a value that was wrong or went stale unannounced
-			if (text(input.family) === null)
-				for (const settings_code of new Set(
-					(used.entity ?? []).map((row) => valueText(row, 'settings_code'))
-				))
-					for (const family of FAMILIES)
-						yield* ctx.schedule('statutory_research', { code: settings_code, family });
-			return none;
+		const family = text(input.family);
+		if (code === null || family === null) {
+			const codes =
+				code !== null
+					? [code]
+					: [
+							...new Set(
+								(yield* queryRows(ctx.query, {
+									entity: { fields: ['settings_code'], limit: 10000 }
+								})).entity.map((row) => valueText(row, 'settings_code'))
+							)
+						];
+			for (const each of codes)
+				for (const scope of SCOPES)
+					yield* ctx.schedule('statutory_research', { code: each, family: scope });
+			return;
 		}
-
 		const held = yield* queryRows(ctx.query, {
 			...lawRead([code]),
 			statutory_finding: { where: { jurisdiction_code: { eq: code } }, limit: 10000 },
 			statutory_source: { where: { jurisdiction_code: { eq: code } }, limit: 10000 }
 		});
 		const law = lawsOf(held)(code, ctx.today);
-		if (law === undefined) return none;
-		const changes = held.jurisdiction_change ?? [];
+		if (law === undefined) return;
 		/** The dates of the changes in force that have yet to start. */
-		const ahead = changes
+		const ahead = (held.jurisdiction_change ?? [])
 			.filter((row) => standing(row) && valueText(row, 'effective_from') > ctx.today)
 			.map((row) => valueText(row, 'effective_from'))
 			.toSorted();
 		const findings = held.statutory_finding ?? [];
-		const sources = held.statutory_source ?? [];
-		const live = sources.filter((row) => row.status === 'ACTIVE');
-		// an activated replacement takes over from the page it replaces
-		const moved = new Set(live.map((row) => row.replaces_url));
-		const active = live.filter((row) => !moved.has(row.url));
-
-		// an update names each record at the revision it is read at now
-		const at = Effect.fnUntraced(function* (
-			model: 'statutory_finding' | 'statutory_source' | 'jurisdiction_change',
-			ids: readonly string[]
-		) {
-			// one typed read per model whose rows the run updates
-			const rows =
-				model === 'statutory_finding'
-					? (yield* queryRows(ctx.query, {
-							statutory_finding: {
-								where: { id: { in: idsOf('statutory_finding', ids) } },
-								fields: ['revision'],
-								limit: 10000
-							}
-						})).statutory_finding
-					: model === 'statutory_source'
-						? (yield* queryRows(ctx.query, {
-								statutory_source: {
-									where: { id: { in: idsOf('statutory_source', ids) } },
-									fields: ['revision'],
-									limit: 10000
-								}
-							})).statutory_source
-						: (yield* queryRows(ctx.query, {
-								jurisdiction_change: {
-									where: { id: { in: idsOf('jurisdiction_change', ids) } },
-									fields: ['revision'],
-									limit: 10000
-								}
-							})).jurisdiction_change;
-			return new Map(
-				rows.map((row) => [
-					valueText(row, 'id'),
-					{ id: row.id ?? null, revision: row.revision ?? null }
-				])
-			);
-		});
-		const write = Effect.fnUntraced(function* (
-			callable: 'statutory_finding.create' | 'statutory_source.create',
-			rows: readonly JsonObject[]
-		) {
-			if (rows.length === 0) return [];
-			const acts: JsonObject = { [callable]: rows };
-			const answer = yield* ctx.act(acts);
-			if (answer.kind !== 'committed')
-				return yield* Effect.fail(
-					new Refusal({ message: `${callable}: the write was held for approval.` })
-				);
-			return answer.records;
-		});
-
 		const finding = text(input.finding);
+
 		if (finding !== null) {
-			const family = text(input.family);
 			const instrument = findings.find((row) => row.id === finding);
-			if (family === null || instrument === undefined)
-				return yield* Effect.fail(new Refusal({ message: `${finding}: no such finding.` }));
+			if (instrument === undefined) return;
 			const rows = byCode(LAW_ROWS.flatMap((name) => (name === family ? law.rows[name] : [])));
-			const label = `${code}/${family}`;
 			const answer = yield* ctx.ai.sys_2.infer({
 				model: 'strong',
 				tools: ['web_search'],
 				steps: 3,
-				label,
+				label: `${code}/${family}`,
 				system: CHANGES_ROLE,
 				prompt: [
 					`# ${code} · ${family}: ${valueText(instrument, 'title')}`,
@@ -202,142 +127,53 @@ export default automation({
 					}
 				}
 			});
-			const patchOf = (row: JsonObject) => ({
-				effective_from: valueText(row, 'effective_from'),
-				law: objectValue(row.law)
-			});
-			const mine = changes.filter((row) => findingOf(row) === finding);
-			const { planned, proposed, skipped, undated } = planChanges({
+			yield* ctx.schedule('statutory_filing', {
+				code,
 				family,
-				chain: changes.filter(standing).map((row) => ({
-					id: valueText(row, 'id'),
-					effective_from: valueText(row, 'effective_from'),
-					patch: objectValue(row.law)
-				})),
-				drafted: mine.map(patchOf),
-				known: changes
-					.filter((row) => findingOf(row) !== null && findingOf(row) !== finding)
-					.map(patchOf),
-				reported: answer.changes ?? []
+				finding,
+				answer: jsonObject({ changes: answer.changes ?? [] })
 			});
-			// one change per date under a finding: a later family's patch joins the row its date already has
-			const drafted = new Map(mine.map((row) => [valueText(row, 'effective_from'), row]));
-			const fresh = planned.filter((patch) => !drafted.has(patch.effective_from));
-			const grown = planned.flatMap((patch) => {
-				const row = drafted.get(patch.effective_from);
-				return row === undefined ? [] : [{ id: valueText(row, 'id'), law: patch.law }];
-			});
-			const targets = yield* at(
-				'jurisdiction_change',
-				grown.map((row) => row.id)
-			);
-			const acts: JsonObject = {
-				...(fresh.length === 0
-					? {}
-					: {
-							'jurisdiction_change.create': fresh.map((patch) => ({
-								...patch,
-								finding_id: finding,
-								jurisdiction_code: code
-							}))
-						}),
-				...(grown.length === 0
-					? {}
-					: {
-							'jurisdiction_change.update': grown.map((row) => ({
-								target: targets.get(row.id) ?? null,
-								set: { law: row.law }
-							}))
-						}),
-				// what the source does not date is left for a person: a change of law always has its date
-				...(undated.length === 0 || instrument.status === 'REJECTED'
-					? {}
-					: {
-							'statutory_finding.update': [
-								{
-									target: { id: instrument.id ?? null, revision: instrument.revision ?? null },
-									set: {
-										notes: [text(instrument.notes), `Undated, ${label}:`, ...undated]
-											.filter((line) => line !== null)
-											.join('\n')
-									}
-								}
-							]
-						})
-			};
-			if (Object.keys(acts).length > 0) {
-				const written = yield* ctx.act(acts);
-				if (written.kind !== 'committed')
-					return yield* Effect.fail(
-						new Refusal({ message: `${label}: the write was held for approval.` })
-					);
-			}
-			return {
-				...none,
-				researched: [label],
-				proposed: proposed.map((name) => `${code}/${name}`),
-				known: skipped
-			};
+			return;
 		}
 
-		const families = FAMILIES.filter(
-			(family) => text(input.family) === null || family === input.family
-		);
-		const audit = text(input.family) !== null;
-		const label = audit ? `${code}/${input.family}` : code;
-		const rowsOfSources = FAMILIES.flatMap((family) => law.rows[family]);
-		const bootstrapped = referenceSources(
-			rowsOfSources,
-			sources.map((row) => valueText(row, 'url'))
-		);
+		const sources = held.statutory_source ?? [];
+		const live = sources.filter((row) => row.status === 'ACTIVE');
+		// an activated replacement takes over from the page it replaces
+		const moved = new Set(live.map((row) => row.replaces_url));
 		const places = [
-			...active.map((row) => valueText(row, 'url')),
-			...bootstrapped.filter((row) => row.status === 'ACTIVE').map((row) => row.url)
+			...live.filter((row) => !moved.has(row.url)).map((row) => valueText(row, 'url')),
+			...referenceSources(
+				FAMILIES.flatMap((name) => law.rows[name]),
+				sources.map((row) => valueText(row, 'url'))
+			)
+				.filter((row) => row.status === 'ACTIVE')
+				.map((row) => row.url)
 		];
 		const answer = yield* ctx.ai.sys_2.infer({
 			model: 'strong',
 			tools: ['web_search'],
 			steps: 6,
-			label,
-			system: audit ? AUDIT_ROLE : FINDINGS_ROLE,
+			label: `${code}/${family}`,
+			system: FAMILY_ROLE,
 			prompt: [
-				`# ${label}: what changed in the law`,
-				`Check ${code} against official law as of ${ctx.today}. This configuration is the law in force on that day.`,
+				`# ${code}/${family}: what changed in the law`,
+				`Check ${code}'s ${family} against official law as of ${ctx.today}. This configuration is the law in force on that day.`,
 				`Each finding names one instrument by its official citation in \`instrument\` (for example \`PP 46/2015\`; the same law must keep the same citation), with \`source_urls\` and the exact sentence or table in \`source_quote\`.`,
 				'`fit` is `VALUE` when a value in an existing row changes, `ROW` when a new or removed row of an existing family carries it, and `STRUCTURAL` when no family below can hold it (a new kind of scheme or calculation, a new subtotal, rule or filing). `families` names every family it touches; a new scheme is classified by what it does, not by what it is called.',
 				'## Families',
 				'```json',
+				JSON.stringify(Object.fromEntries(SCOPES.map((name) => [name, FAMILY_NOTES[name]]))),
+				'```',
+				`## Audit these values of ${family}: every value, against its \`references\` and official law`,
+				'```json',
 				JSON.stringify(
-					Object.fromEntries([
-						[SETTINGS_FAMILY, { holds: FAMILY_NOTES[SETTINGS_FAMILY], rows: [] }],
-						...FAMILIES.map((family) => [
-							family,
-							{
-								holds: FAMILY_NOTES[family],
-								rows: law.rows[family].map((row) => ({
-									code: row.code,
-									name: row.name,
-									lookup: row.lookup
-								}))
-							}
-						])
-					])
+					family === SETTINGS_FAMILY
+						? law.settings
+						: byCode(LAW_ROWS.flatMap((name) => (name === family ? law.rows[name] : [])))
 				),
 				'```',
-				...(!audit
-					? []
-					: [
-							'## Audit these rows: every value, against its `references` and official law',
-							'```json',
-							JSON.stringify(families.flatMap((family) => byCode(law.rows[family]))),
-							'```'
-						]),
 				'## Subtotals',
 				JSON.stringify(law.rows.subtotal.map((row) => row.code)),
-				'## Jurisdiction configuration',
-				'```json',
-				JSON.stringify(law.settings),
-				'```',
 				'## Changes already filed take effect on',
 				JSON.stringify(ahead),
 				'## Official places to check',
@@ -379,101 +215,13 @@ export default automation({
 				}
 			}
 		});
-
-		const { fresh, merged, decided } = sortFindings(
-			answer.findings ?? [],
-			findings.map((row) => ({
-				id: valueText(row, 'id'),
-				instrument_key: valueText(row, 'instrument_key'),
-				status: valueText(row, 'status'),
-				source_urls: (Array.isArray(row.source_urls) ? row.source_urls : []).map(String)
-			}))
-		);
-		const recorded = new Set([
-			...sources.map((row) => row.url),
-			...bootstrapped.map((row) => row.url)
-		]);
-		const proposedSources = new Map(
-			(answer.new_sources ?? [])
-				.filter((row) => !recorded.has(row.url) && URL.canParse(row.url))
-				.map((row) => [row.url, row])
-		);
-		if (live.length > active.length) {
-			const retired: JsonObject = {
-				'statutory_source.update': live
-					.filter((row) => moved.has(row.url))
-					.map((row) => ({ target: row, set: { status: 'RETIRED' } }))
-			};
-			yield* ctx.act(retired);
-		}
-		const created = yield* write('statutory_finding.create', [
-			...fresh.map((row) =>
-				jsonObject({ ...row, jurisdiction_code: code, research_run_id: ctx.trigger.id })
-			)
-		]);
-		if (merged.length > 0) {
-			const targets = yield* at(
-				'statutory_finding',
-				merged.map(([target]) => target)
-			);
-			const urls: JsonObject = {
-				'statutory_finding.update': merged.map(([target, source_urls]) => ({
-					target: targets.get(target) ?? null,
-					set: { source_urls }
-				}))
-			};
-			yield* ctx.act(urls);
-		}
-		const opened = yield* write('statutory_source.create', [
-			...bootstrapped.map(({ title, url }) =>
-				jsonObject({
-					title,
-					url,
-					jurisdiction_code: code,
-					origin: 'REFERENCE',
-					research_run_id: ctx.trigger.id
-				})
-			),
-			...[...proposedSources.values()].map((row) =>
-				jsonObject({
-					...row,
-					jurisdiction_code: code,
-					origin: 'AGENT',
-					research_run_id: ctx.trigger.id
-				})
-			)
-		]);
-		// an official citation the law already carries needs no second review; every active source records this check
-		const checked = [
-			...active.map((row) => valueText(row, 'id')),
-			...bootstrapped.flatMap((row, index) =>
-				row.status === 'ACTIVE' ? [String(opened[index]?.id)] : []
-			)
-		];
-		if (checked.length > 0) {
-			const targets = yield* at('statutory_source', checked);
-			const stamped: JsonObject = {
-				'statutory_source.update': checked.map((target) => ({
-					target: targets.get(target) ?? null,
-					set: { status: 'ACTIVE', last_checked_on: ctx.today }
-				}))
-			};
-			yield* ctx.act(stamped);
-		}
-		const ids = created.filter((row) => row.model === 'statutory_finding');
-		for (const [index, row] of fresh.entries()) {
-			const id = ids[index]?.id;
-			if (id === undefined || row.fit === 'STRUCTURAL') continue;
-			for (const family of row.families ?? [])
-				yield* ctx.schedule('statutory_research', { code, family, finding: id });
-		}
-		return {
-			sources: [...places, ...(answer.findings ?? []).flatMap((row) => row.source_urls ?? [])]
-				.filter(officialSource)
-				.filter((url, index, all) => all.indexOf(url) === index),
-			researched: [label],
-			proposed: fresh.map((row) => row.instrument_key),
-			known: decided
-		};
+		yield* ctx.schedule('statutory_filing', {
+			code,
+			family,
+			answer: jsonObject({
+				findings: answer.findings ?? [],
+				new_sources: answer.new_sources ?? []
+			})
+		});
 	}
 });

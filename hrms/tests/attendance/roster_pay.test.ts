@@ -366,33 +366,96 @@ describe('a clock the plan does not back', () => {
 		})
 	);
 
-	it.live('pays planned overtime only as far as the clock covers it', () =>
-		Effect.gen(function* () {
-			const overtime = (until: string, seed = (days: readonly Day[]) => seedOf(days)) =>
-				paid(
-					seed(
-						month({
-							[DAY]: { date: DAY, shift: WORK, clock: ['08:00', until], plan: ['16:00', '18:00'] }
-						})
-					)
-				).pipe(Effect.map((slip) => line(slip, 'OVERTIME')));
-			const none = yield* overtime('16:00');
-			const half = yield* overtime('17:00');
-			const whole = yield* overtime('18:00');
-			assert.equal(none, 0);
-			assert.ok(half > 0 && half < whole, `${half} of ${whole}`);
-			// the company's own threshold awards the whole plan from half of it clocked
-			const lenient = yield* overtime('17:00', (days) => {
-				const seed = seedOf(days);
-				return {
+	it.live(
+		'pays planned overtime whole once the clock covers it, else to the last whole quarter hour',
+		() =>
+			Effect.gen(function* () {
+				const overtime = (until: string) =>
+					paid(
+						seedOf(
+							month({
+								[DAY]: { date: DAY, shift: WORK, clock: ['08:00', until], plan: ['16:00', '18:00'] }
+							})
+						)
+					).pipe(Effect.map((slip) => line(slip, 'OVERTIME')));
+				const whole = yield* overtime('18:00');
+				assert.ok(whole > 0);
+				assert.equal(yield* overtime('16:00'), 0);
+				// 119 of the plan's 120 minutes pay 105; 60 pay 60
+				assert.ok(Math.abs((yield* overtime('17:59')) - (whole * 105) / 120) < 0.02);
+				assert.ok(Math.abs((yield* overtime('17:00')) - whole / 2) < 0.02);
+			})
+	);
+});
+
+describe('a late clock-in', () => {
+	const notices = (t: Kit) =>
+		t.db
+			.read([
+				{
+					text: "SELECT title FROM sys_notification WHERE title LIKE '%minutes late' ORDER BY at",
+					params: []
+				}
+			])
+			.pipe(Effect.map(([got]) => (got?.rows ?? []).map((row) => String(row['title']))));
+	/** The fixture's company told to notify HR controllers this many minutes after a shift starts. */
+	const company = (minutes?: number): Seed => {
+		const seed = seedOf(month({ [DAY]: { date: DAY, shift: WORK } }));
+		return minutes === undefined
+			? seed
+			: {
 					...seed,
-					entity_change: (seed.entity_change ?? []).map((row) => ({
+					// someone holding the policy the notice names
+					sys_user: [
+						...(seed.sys_user ?? []),
+						{
+							id: uuid(77),
+							name: 'HR',
+							email: 'hr@example.test',
+							kind: 'staff',
+							team: 'hr_controller'
+						}
+					],
+					entity: (seed.entity ?? []).map((row) => ({
 						...row,
-						overtime_full_award_percent: 50
+						late_notice_minutes: minutes,
+						late_notice_policies: ['hr_controller']
 					}))
 				};
-			});
-			assert.equal(lenient, whole);
+	};
+	/** The day's clock as punched that day (or `later`), then what the company was told. */
+	const ON_THE_DAY = `${DAY}T04:00:00.000Z`;
+	const clocked = (minutes: number | undefined, ins: readonly string[], now: string = ON_THE_DAY) =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			for (const from of ins) {
+				const target = yield* rosterOn(t, DAY);
+				yield* (yield* t.as(t.admin)).act({
+					'roster_entry.update': [
+						{ target, set: { actual_worked_intervals: clockIn(DAY, [from, '16:00']) } }
+					]
+				});
+				yield* t.run_due();
+			}
+			return yield* notices(t);
+		}).pipe(Effect.provide(workspace({ seed: company(minutes), now })));
+
+	it.live(
+		'at the company’s minutes past the shift start notifies the policies it names, once',
+		() =>
+			Effect.gen(function* () {
+				const told = yield* clocked(10, ['08:12', '08:15']);
+				assert.equal(told.length, 1);
+				assert.match(String(told[0]), /clocked in 12 minutes late/);
+			})
+	);
+
+	it.live('before the minutes, with none set, or for a day long past, notifies no one', () =>
+		Effect.gen(function* () {
+			assert.deepEqual(yield* clocked(10, ['08:09']), []);
+			assert.deepEqual(yield* clocked(undefined, ['08:45']), []);
+			// a clock keyed ten days later, as a roster import would: a correction, not an alert
+			assert.deepEqual(yield* clocked(10, ['08:45'], NOW), []);
 		})
 	);
 });

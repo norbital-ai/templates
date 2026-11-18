@@ -1,11 +1,19 @@
 import { inForce, type Change, type Depth } from './dated.js';
 import { isJsonObject, type Json, type JsonObject } from './payroll_engine/foundation.js';
 
+/** Who a company may have notified of a late clock-in: the policies people hold. */
+export const LATE_NOTICE_POLICIES = [
+	'supervisor',
+	'manager',
+	'hr_controller',
+	'hr_manager',
+	'senior_management'
+] as const;
+
 /** What a company changes by date. Every other field of a company is plain: an edit to it was always so. */
 export const COMPANY_FIELDS = [
 	'pay_methods',
 	'final_pay_loan_floor_percent',
-	'overtime_full_award_percent',
 	'statutory_parameters'
 ] as const;
 
@@ -61,7 +69,6 @@ export const companyOn = (changes: readonly JsonObject[], day: string): JsonObje
 	return {
 		pay_methods: state.pay_methods ?? null,
 		final_pay_loan_floor_percent: state.final_pay_loan_floor_percent ?? 10,
-		overtime_full_award_percent: state.overtime_full_award_percent ?? 100,
 		statutory_parameters: state.statutory_parameters ?? {}
 	};
 };

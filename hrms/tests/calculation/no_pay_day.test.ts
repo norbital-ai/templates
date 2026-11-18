@@ -150,6 +150,59 @@ describe('a no-pay day', () => {
 			assert.ok(((yield* paid(t, '2026-07'))['NPL'] ?? 0) < 0);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-20T02:00:00.000Z' })));
 	});
+
+	// June has 30 days and July 31, and the rate is raised from July: one rate for both days could not equal this
+	it.live(
+		'after a late cutoff, each day is priced in the month it falls in: its rate and its wage, as runs of those months price it',
+		() => {
+			const cutoff = (day: number): Seed => {
+				const base = malaysia();
+				return {
+					...base,
+					pay_group: (base.pay_group ?? []).map((row) => ({
+						...row,
+						payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: day }
+					}))
+				};
+			};
+			const raised = (t: Kit) =>
+				Effect.flatMap(t.as(t.admin), (caller) =>
+					caller.act({
+						'contract_terms.create': [
+							{
+								employment_id: EMPLOYMENT,
+								effective_from: '2026-07-01',
+								rate: { amount: SALARY + 480, unit: 'MONTHLY' }
+							}
+						]
+					})
+				);
+			const now = '2026-07-20T02:00:00.000Z';
+			const DAYS = ['2026-06-29', '2026-07-10'];
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* raised(t);
+				yield* pay(t, '2026-06');
+				yield* entry(t, DAYS.flatMap(whole));
+				yield* run(t, '2026-07');
+				return (yield* paid(t, '2026-07'))['NPL'] ?? 0;
+			}).pipe(
+				Effect.provide(workspace({ seed: cutoff(21), now })),
+				Effect.flatMap((late) =>
+					Effect.gen(function* () {
+						const t = yield* TestWorkspace;
+						yield* raised(t);
+						yield* entry(t, DAYS.flatMap(whole));
+						yield* pay(t, '2026-06');
+						yield* run(t, '2026-07');
+						const [june, july] = [yield* paid(t, '2026-06'), yield* paid(t, '2026-07')];
+						assert.ok((june['NPL'] ?? 0) < 0 && (july['NPL'] ?? 0) < 0);
+						assert.equal(late, Number(((june['NPL'] ?? 0) + (july['NPL'] ?? 0)).toFixed(2)));
+					}).pipe(Effect.provide(workspace({ seed: cutoff(1), now })))
+				)
+			);
+		}
+	);
 });
 
 describe('a no-pay amount settled by hand', () => {

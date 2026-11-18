@@ -336,7 +336,6 @@ export default messages({
 	'roster.public_holiday_mark': 'PH',
 	'app.adhoc.title': '临时项目',
 	'models.entity_change.fields.final_pay_loan_floor_percent': '最后一期薪资贷款下限（%）',
-	'models.entity_change.fields.overtime_full_award_percent': '全额加班门槛（%）',
 	'models.entity_change.fields.pay_methods': '雇主薪酬方法',
 	'models.entity_change.fields.pay_methods.paid_leave': '公司带薪假',
 	'models.entity_change.help.pay_methods.paid_leave':
@@ -388,6 +387,8 @@ export default messages({
 	'models.entity.label': '法律实体',
 	'models.entity.singular': '法律实体',
 	'models.entity.fields.settings_code': '国家薪酬规则',
+	'models.entity.fields.late_notice_minutes': '迟到通知（分钟）',
+	'models.entity.fields.late_notice_policies': '迟到通知对象',
 	'models.employee_profile.label': '雇佣档案',
 	'models.employee_profile.singular': '雇佣档案',
 	'models.employee_profile.fields.number': '默认员工编号',

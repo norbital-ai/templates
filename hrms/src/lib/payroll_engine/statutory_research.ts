@@ -44,7 +44,9 @@ export const FAMILIES = [
 	'overtime_catalog',
 	'statutory_contribution_catalog',
 	'workplace_case_catalog',
-	'work_event_catalog'
+	'work_event_catalog',
+	'registered_rule',
+	'registered_effect'
 ] as const;
 
 /** The taxonomy a finding is classified against: what each family holds, as research reads it. */
@@ -60,7 +62,11 @@ export const FAMILY_NOTES: { readonly [family: string]: string } = {
 	statutory_contribution_catalog:
 		'Contribution and tax schemes an employee or employer pays, each with rates and ceilings in `lookup`.',
 	workplace_case_catalog: 'Workplace case types such as injury or disciplinary cases.',
-	work_event_catalog: 'Dated work conditions such as heat, disaster, epidemic or suspension.'
+	work_event_catalog: 'Dated work conditions such as heat, disaster, epidemic or suspension.',
+	registered_rule:
+		'Checks a record must pass, such as minimum wages, normal hours, minimum working ages and the wage period, each with its thresholds in `lookup`.',
+	registered_effect:
+		'Duties a record raises, such as contribution and tax remittance, filing and notice deadlines, each with its days and amounts in `lookup`.'
 };
 
 const known_family = (family: string): boolean => Object.hasOwn(FAMILY_NOTES, family);

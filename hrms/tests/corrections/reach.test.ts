@@ -39,10 +39,15 @@ import {
 } from '../kit.ts';
 
 type Seed = ReturnType<typeof rostered>;
-/** The schemes the fixture assesses in the month paid: no correction works them out again for an earlier period. */
-const PAID = lawAt('MY', '2026-02-01')
-	.rows.statutory_contribution_catalog.filter((row) => row.assessed === 'PAID')
-	.map((row) => String(row.code));
+/**
+ * The schemes the fixture assesses in the month paid, in any month a test covers (one starts in June): no correction
+ * works them out again for an earlier period.
+ */
+const PAID = ['2026-02-01', '2026-11-01'].flatMap((day) =>
+	lawAt('MY', day)
+		.rows.statutory_contribution_catalog.filter((row) => row.assessed === 'PAID')
+		.map((row) => String(row.code))
+);
 /** What was paid in all, but the schemes assessed when paid: those are charged on the paying month, so they round apart. */
 const earned = (lines: Readonly<Record<string, number>>) =>
 	Object.fromEntries(
@@ -93,34 +98,41 @@ describe('what a correction reaches', () => {
 		}).pipe(Effect.provide(workspace({ seed: from, now: at('2026-04') })));
 	});
 
-	it.live('a raise three months back: each month carries its own difference, on every line', () => {
-		const months = ['2026-02', '2026-03', '2026-04', '2026-05'];
-		const read = (t: Kit) => paidInAll(t, ...months).pipe(Effect.map(earned));
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			for (const month of months.slice(0, -1)) yield* pay(t, month);
-			yield* raisedFrom(t, '2026-02-01', 3300);
-			assert.deepEqual(
-				(yield* amendments(t)).map((row) => row.period).toSorted(),
-				months.slice(0, -1)
-			);
-			yield* run(t, '2026-05');
-			for (const month of months.slice(0, -1)) {
-				const carried = yield* carriedFor(t, '2026-05', month);
-				assert.equal(carried['BASIC/EMPLOYEE'], 500, month);
-				// a scheme assessed when paid charges the back pay in May instead
-				assert.deepEqual(carried, earned(carried), month);
+	for (const months of [
+		['2026-02', '2026-03', '2026-04', '2026-05'],
+		['2026-07', '2026-08', '2026-09', '2026-10', '2026-11']
+	])
+		it.live(
+			`a raise from ${months[0]} keyed in ${months.at(-1)}: each month carries its own difference, on every line`,
+			() => {
+				const keyedIn = String(months.at(-1));
+				const read = (t: Kit) => paidInAll(t, ...months).pipe(Effect.map(earned));
+				return Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					for (const month of months.slice(0, -1)) yield* pay(t, month);
+					yield* raisedFrom(t, `${months[0]}-01`, 3300);
+					assert.deepEqual(
+						(yield* amendments(t)).map((row) => row.period).toSorted(),
+						months.slice(0, -1)
+					);
+					yield* run(t, keyedIn);
+					for (const month of months.slice(0, -1)) {
+						const carried = yield* carriedFor(t, keyedIn, month);
+						assert.equal(carried['BASIC/EMPLOYEE'], 500, month);
+						// a scheme assessed when paid charges the back pay in the paying month instead
+						assert.deepEqual(carried, earned(carried), month);
+					}
+					return yield* read(t);
+				}).pipe(
+					Effect.provide(workspace({ seed: rostered(months), now: at(keyedIn) })),
+					Effect.flatMap((corrected) =>
+						neverWrong(rostered(months, undefined, 3300), months, read).pipe(
+							Effect.map((never) => assert.deepEqual(corrected, never))
+						)
+					)
+				);
 			}
-			return yield* read(t);
-		}).pipe(
-			Effect.provide(workspace({ seed: rostered(months), now: at('2026-05') })),
-			Effect.flatMap((corrected) =>
-				neverWrong(rostered(months, undefined, 3300), months, read).pipe(
-					Effect.map((never) => assert.deepEqual(corrected, never))
-				)
-			)
 		);
-	});
 
 	it.live(
 		'a correction that crosses a contribution band: charged this month by a scheme assessed when paid',

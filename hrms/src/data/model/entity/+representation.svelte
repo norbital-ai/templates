@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * A company: its plain fields and, beside them, what changes by date (pay methods, the two percentages and the
+	 * A company: its plain fields and, beside them, what changes by date (pay methods, the final-pay loan floor and the
 	 * statutory parameters its law declares), shown as in force on a day and edited in place. Saving writes what
 	 * differs from that day: on the change already dated that day, else on a new one. One Save for the view.
 	 */
@@ -134,7 +134,7 @@
 		}}
 	>
 		{#snippet children()}<Stack gap="md"
-				>{#each ['code', 'name', 'settings_code', 'representative_name', 'registered_address', 'time_zone', 'bank'] as name (name)}<Field
+				>{#each ['code', 'name', 'settings_code', 'representative_name', 'registered_address', 'time_zone', 'bank', 'late_notice_minutes', 'late_notice_policies'] as name (name)}<Field
 						{ctx}
 						{name}
 						{...choices[name] === undefined ? {} : { editor: choice }}

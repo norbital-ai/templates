@@ -754,6 +754,23 @@
 					"kind": "text",
 					"optional": true
 				},
+				"late_notice_minutes": {
+					"kind": "int",
+					"min": 1,
+					"optional": true
+				},
+				"late_notice_policies": {
+					"kind": "enum",
+					"many": true,
+					"optional": true,
+					"values": [
+						"supervisor",
+						"manager",
+						"hr_controller",
+						"hr_manager",
+						"senior_management"
+					]
+				},
 				"name": {
 					"kind": "text"
 				},
@@ -814,12 +831,6 @@
 					"kind": "int",
 					"max": 100,
 					"min": 0,
-					"optional": true
-				},
-				"overtime_full_award_percent": {
-					"kind": "int",
-					"max": 100,
-					"min": 1,
 					"optional": true
 				},
 				"pay_methods": {

@@ -433,7 +433,6 @@ export default messages({
 	'models.holiday.fields.published_at': 'Published',
 	'models.holiday.fields.employee_id': 'Only for',
 	'models.entity_change.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
-	'models.entity_change.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
 	'models.entity_change.fields.pay_methods': 'Employer pay methods',
 	'app.settings.changes': 'Changes',
 	'settings_form.conversions': 'Conversions',
@@ -696,8 +695,6 @@ export default messages({
 		'The responsible person the law names for filing and registration duties.',
 	'models.entity_change.help.final_pay_loan_floor_percent':
 		'The share of expected final pay that must remain after loan recovery.',
-	'models.entity_change.help.overtime_full_award_percent':
-		'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.',
 	'models.entity_change.help.pay_methods':
 		"The employer's own pay methods. Each applies only where it pays at least the law; otherwise the law stands.",
 	'models.entity_change.fields.pay_methods.overtime_hour_basis': 'Overtime hour rate',
@@ -726,6 +723,12 @@ export default messages({
 		"The entity data the jurisdiction's entity statutory parameters declares.",
 	'models.entity.help.time_zone':
 		"The zone this entity's payroll windows and rostered days are counted in.",
+	'models.entity.fields.late_notice_minutes': 'Late notice after (minutes)',
+	'models.entity.help.late_notice_minutes':
+		'A clock-in this many minutes or more after the start of a rostered shift notifies the people below, once per day. Leave it empty to send none.',
+	'models.entity.fields.late_notice_policies': 'Notify about late clock-ins',
+	'models.entity.help.late_notice_policies':
+		'Everyone holding one of these access policies gets the late notice.',
 	'models.roster_entry.help.consent':
 		'The signed per-day consent for night work and overtime while raising a child under 12 months. Pregnancy never takes consent.',
 	'errors.ledger_entry_names_its_movement':

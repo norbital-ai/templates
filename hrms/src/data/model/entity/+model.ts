@@ -1,5 +1,6 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { model } from '@norbital-ai/bolt';
+import { LATE_NOTICE_POLICIES } from '../../../lib/company.js';
 
 /** The company's fields a writer sets. */
 const columns = [
@@ -10,7 +11,9 @@ const columns = [
 	'registered_address',
 	'time_zone',
 	'bank',
-	'source_reference'
+	'source_reference',
+	'late_notice_minutes',
+	'late_notice_policies'
 ] as const;
 
 export default model('entity', {
@@ -25,6 +28,14 @@ export default model('entity', {
 		representative_name: { kind: 'text', optional: true },
 		registered_address: { kind: 'text', optional: true },
 		time_zone: { kind: 'text', optional: true },
+		/** A clock-in this many minutes after a rostered shift's start notifies `late_notice_policies`; empty sends none. */
+		late_notice_minutes: { kind: 'int', min: 1, optional: true },
+		late_notice_policies: {
+			kind: 'enum',
+			many: true,
+			optional: true,
+			values: LATE_NOTICE_POLICIES
+		},
 		bank: { kind: 'custom', of: 'bank', optional: true },
 		source_reference: { kind: 'text', optional: true }
 	},
