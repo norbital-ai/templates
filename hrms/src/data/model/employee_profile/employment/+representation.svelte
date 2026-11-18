@@ -1,19 +1,15 @@
 <script lang="ts">
 	/**
-	 * One stint of a person with one company: its number, its days, the service credited to it, its dated life events
-	 * and, once it has a last day, the exit answers. The last day is set, moved or cleared here (clearing it cancels the exit). The first day
-	 * moves in one write: the stint carries its first terms and statutory parameters along. A stint nothing names may be deleted.
+	 * One stint of a person with one company, as its own record: its number, its days, the service credited to it, its
+	 * dated life events and, once it has a last day, the exit answers. HR works on a stint from the person's Contract
+	 * tab, where these answers sit on its line of time and the stint is moved or deleted.
 	 */
-	import type { PlainDate } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
-		Button,
 		Editor,
 		Field,
 		Form,
-		Label,
 		RecordShell,
-		Sheet,
 		Show,
 		value_object,
 		type FieldEditor,
@@ -21,12 +17,8 @@
 		type FormProps,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { Effect } from 'effect';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import { PAID_QUESTION, paidPeriods } from '../../../../lib/ui/payroll/paid_period.svelte.js';
-	import DeleteButton from '../../../../lib/ui/person/delete_button.svelte';
-	import { saved } from '../../../../lib/ui/person/save.js';
 
 	let { view, ctx }: { view: RecordView<'employment'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -49,26 +41,6 @@
 			))
 			? PAID_QUESTION
 			: null;
-	let moving = $state(false);
-	let firstDay = $state<PlainDate | null>(null);
-	let saving = $state(false);
-	function move() {
-		const day = firstDay;
-		if (record === null || day === null || saving) return;
-		const from = record.effective_range.from;
-		// the stint carries the rows dated on its first day along
-		const target = { id: record.id, revision: record.revision };
-		const range = { from: day, to: record.effective_range.to ?? null };
-		saving = true;
-		fork(
-			saved(ctx, paid.covers(from, record.entity_id) || paid.covers(day, record.entity_id), () =>
-				ctx.act({ 'employment.update': [{ target, set: { effective_range: range } }] })
-			).pipe(
-				Effect.tap((done) => Effect.sync(() => done && (moving = false))),
-				Effect.ensuring(Effect.sync(() => (saving = false)))
-			)
-		);
-	}
 </script>
 
 {#snippet lastDay(field: FieldEditor)}<Editor
@@ -91,28 +63,10 @@
 		value={dayOf(field.value, 'to')}
 	/>{/snippet}
 
-{#snippet actions()}{#if record !== null}<Button
-			variant="outline"
-			onclick={() => {
-				firstDay = record.effective_range.from;
-				moving = true;
-			}}>{t('person.move_first_day')}</Button
-		><DeleteButton
-			{ctx}
-			label={t('person.delete_stint')}
-			title={t('person.delete_stint_title')}
-			body={t('person.delete_stint_body')}
-			act={() =>
-				ctx.act({
-					'employment.delete': [{ target: { id: record.id, revision: record.revision } }]
-				})}
-		/>{/if}{/snippet}
-
 <RecordShell
 	{ctx}
 	of="employment"
 	mode={view.mode}
-	footer_actions={actions}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record === null}
@@ -139,29 +93,3 @@
 		</Form>
 	{/if}
 </RecordShell>
-
-{#if record !== null}
-	<Sheet bind:open={moving} title={t('person.move_first_day')}>
-		<Stack gap="md">
-			<p class="text-sm text-muted-foreground">{t('person.move_first_day_help')}</p>
-			<Stack gap="xs">
-				<Label for="stint-first-day">{t('person.first_day')}</Label>
-				<Editor
-					{ctx}
-					id="stint-first-day"
-					name="first_day"
-					kind={{ kind: 'date' }}
-					value={firstDay}
-					disabled={saving}
-					on_change={(next) => (firstDay = next == null ? null : String(next))}
-				/>
-			</Stack>
-			<Cluster gap="sm" justify="end">
-				<Button variant="outline" disabled={saving} onclick={() => (moving = false)}
-					>{t('component.cancel')}</Button
-				>
-				<Button disabled={saving || firstDay === null} onclick={move}>{t('person.save')}</Button>
-			</Cluster>
-		</Stack>
-	</Sheet>
-{/if}

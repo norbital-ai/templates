@@ -81,7 +81,6 @@ export default messages({
 		'Effective versions of payroll rules and catalogues. Each legal entity manages its own holiday calendar.',
 	'app.settings.header_title': 'Settings',
 	'app.settings.general': 'General',
-	'app.settings.research': 'Research',
 	'app.settings.lookup': 'Lookup',
 	'app.settings.change_log': 'Change log',
 	'app.settings.holidays': 'Holidays',
@@ -338,6 +337,7 @@ export default messages({
 	'app.hr_employee.calendar_unavailable': 'Schedule unavailable',
 	'app.hr_employee.calendar_unavailable_hint':
 		'Your contract or employer record is still being prepared. Ask HR to confirm the active employment.',
+	'claim.left': '{amount} left',
 	'claim.request_title': 'Request claim',
 	'ui.table.searchIn': 'Search records',
 	'v2.search_records_hint': 'Searches record names and references',
@@ -471,12 +471,17 @@ export default messages({
 	'models.roster_entry.fields.overtime_as_time_off': 'Overtime as time off',
 	'models.roster_entry.help.overtime_as_time_off':
 		"The worker takes this day's planned overtime as time off: no overtime pay, and its hours are owed as time off.",
-	'app.month_close.title': 'Month close',
-	'app.month_close.description':
-		'What waits on you for this company: runs to pay, open tasks and proposed law changes.',
-	'app.month_close.runs': 'Runs to pay',
-	'app.month_close.duties': 'Open tasks',
-	'app.month_close.law': 'Law changes to confirm',
+	'app.dashboard.title': 'Dashboard',
+	'app.dashboard.description':
+		'What waits on you: requests to approve, and for this company the runs to pay, open tasks and proposed law changes.',
+	'app.dashboard.approvals': 'To approve',
+	'app.dashboard.approval_record': 'Request',
+	'app.dashboard.approval_kind': 'Kind',
+	'app.dashboard.approval_by': 'Requested by',
+	'app.dashboard.approval_at': 'Requested',
+	'app.dashboard.runs': 'Runs to pay',
+	'app.dashboard.duties': 'Open tasks',
+	'app.dashboard.law': 'Law changes to confirm',
 	'app.obligations.title': 'Obligations',
 	'app.obligations.description':
 		'Track due duties, assessed authority payments and employer benefit payments with their actual evidence.',

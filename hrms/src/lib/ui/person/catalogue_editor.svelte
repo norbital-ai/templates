@@ -2,6 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Combobox, use_form, type FieldEditor } from '@norbital-ai/ui';
 	import { isJsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import { accountsOf, latestLeft } from '../../ledger/core.js';
 	import { idOf } from '../../payroll_engine/reads.js';
 	import { pageLaws } from '../law.svelte.js';
 	let {
@@ -19,17 +20,27 @@
 	const companyId = $derived(form?.get('entity_id'));
 	const employmentId = $derived(form?.get('employment_id'));
 	const incurredOn = $derived(form?.get('incurred_on'));
-	const claims = $derived(
+	// a claim is offered against what the person's balance holds for it: their stint, then their one balance
+	const stint = $derived(
 		family !== 'claim_catalog' || typeof employmentId !== 'string'
 			? null
 			: ctx.query({
-					claim_catalog_entry: {
-						where: { employment_id: { eq: idOf('employment', employmentId) } },
-						fields: ['catalog_code', 'quantity', 'incurred_on'],
-						limit: 10000
+					employment: {
+						where: { id: { eq: idOf('employment', employmentId) } },
+						fields: ['employee_id'],
+						limit: 1
 					}
 				})
 	);
+	const who = $derived(stint?.current?.employment.rows[0]?.employee_id);
+	const balance = $derived(
+		who == null
+			? null
+			: ctx.query({
+					employee_balance: { where: { employee_id: { eq: who } }, fields: ['account'], limit: 1 }
+				})
+	);
+	const accounts = $derived(accountsOf(balance?.current?.employee_balance.rows[0]?.account ?? {}));
 	const company = $derived(
 		typeof companyId === 'string'
 			? ctx.query({
@@ -47,25 +58,19 @@
 	const day = $derived(
 		typeof incurredOn === 'string' ? incurredOn : String(ctx.clock('day').today)
 	);
-	const year = $derived(day.slice(0, 4));
-	const usedFor = (catalogCode: string) =>
-		(claims?.current?.claim_catalog_entry.rows ?? []).reduce(
-			(total, row) =>
-				row.catalog_code === catalogCode && String(row.incurred_on).startsWith(year)
-					? total + Number(row.quantity ?? 0)
-					: total,
-			0
-		);
-	const remainingFor = (row: JsonObject) => {
-		const limit = Number(isJsonObject(row.lookup) ? row.lookup.annual_limit : undefined);
-		return Number.isFinite(limit) && limit > 0 ? limit - usedFor(String(row.code)) : null;
-	};
-	// the rows of the company's law in force on the entry's date
+	/** What the person has left of a capped claim row, from their balance; `null` where the law sets no cap. */
+	const leftFor = (row: JsonObject) =>
+		isJsonObject(row.lookup) && row.lookup.annual_limit != null
+			? latestLeft(accounts, 'claim', String(row.code))
+			: null;
+	// the rows of the company's law in force on the entry's date; a capped claim with nothing left is not offered
 	const choices = $derived(
-		(laws.on(code, day)?.rows[family] ?? []).filter(
-			(row) => family !== 'claim_catalog' || remainingFor(row) !== 0
-		)
+		(laws.on(code, day)?.rows[family] ?? []).filter((row) => {
+			const left = family === 'claim_catalog' ? leftFor(row) : null;
+			return left === null || left > 0;
+		})
 	);
+	const amount = (value: number) => new Intl.NumberFormat(ctx.locale).format(value);
 </script>
 
 <Combobox
@@ -76,8 +81,8 @@
 		value: String(row.code),
 		label: typeof row.description === 'string' ? row.description : String(row.code),
 		description: String(row.code),
-		...(family === 'claim_catalog' && remainingFor(row) != null
-			? { suffix: `${remainingFor(row)} left` }
+		...(family === 'claim_catalog' && leftFor(row) !== null
+			? { suffix: ctx.t('claim.left', { amount: amount(leftFor(row) ?? 0) }) }
 			: {})
 	}))}
 	on_change={(value) => field.on_change(value)}

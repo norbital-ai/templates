@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { AppShell, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
+		Button,
 		Combobox,
 		Editor,
 		EmptyState,
@@ -10,7 +11,6 @@
 		notify_outcome,
 		RecordShell,
 		Section,
-		Table,
 		Tabs,
 		toast
 	} from '@norbital-ai/ui';
@@ -148,36 +148,17 @@
 			</Stack>
 		</Form>{/if}{/snippet}
 
-{#snippet changed()}<Scroll name={ctx.t('app.settings.changes')} size="fill" inset
-		><LawChanges {ctx} {chain} today={clock.today} /></Scroll
-	>{/snippet}
-
-{#snippet research()}{#if head}<Table
-			{ctx}
-			of="statutory_finding"
-			key="statutory_findings"
-			where={{ jurisdiction_code: { eq: head.code }, status: { in: ['PROPOSED', 'CONFIRMED'] } }}
-			toolbar={{
-				new: true,
-				title: ctx.t('app.settings.research'),
-				actions: [
-					{
-						run: () => researchNow(head.code),
-						icon: 'lucide:search',
-						name: ctx.t('scheduled.research'),
-						disabled: () => (researching ? ctx.t('component.loading') : null)
-					}
-				]
-			}}
-			columns={['title', 'fit', 'status', 'families', 'announced_on', 'source_urls']}
-		/>{/if}{/snippet}
-
-{#snippet changeLog()}<Tabs
-		tabs={[
-			{ name: 'changes', title: ctx.t('app.settings.changes'), body: changed },
-			{ name: 'research', title: ctx.t('app.settings.research'), body: research }
-		]}
-	/>{/snippet}
+<!-- the change log is the law's changes; research is the automation that files them, started from here -->
+{#snippet changeLog()}{#if head}<Stack size="fill" gap="sm">
+			<Cluster gap="xs" justify="end">
+				<Button variant="outline" disabled={researching} onclick={() => researchNow(head.code)}
+					>{ctx.t('scheduled.research')}</Button
+				>
+			</Cluster>
+			<Scroll name={ctx.t('app.settings.change_log')} size="fill" inset
+				><LawChanges {ctx} {chain} today={clock.today} /></Scroll
+			>
+		</Stack>{/if}{/snippet}
 
 {#snippet lookup()}{#if law && head}<Form
 			{ctx}

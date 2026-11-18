@@ -1,10 +1,11 @@
 <script lang="ts">
 	/**
 	 * One dated family of a person, stint by stint, newest first: each stint's changes over time and its facts as they
-	 * stand from the change picked. It sits inside the view's form, whose one Save stores what the family answers.
+	 * stand from the change picked. A stint is named by its company and employee number; its days are on its line of
+	 * time. It sits inside the view's form, whose one Save stores what the family answers.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { EmptyState, Section, format, type Value } from '@norbital-ai/ui';
+	import { EmptyState, Section, type Value } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import type { Snippet } from 'svelte';
 	import type { Fact } from '../../dated_facts.js';
@@ -19,7 +20,11 @@
 		read,
 		sections = true,
 		stintActions,
-		entriesOf
+		entriesOf,
+		firstLabel,
+		fixedFirst = false,
+		extra,
+		entryBody
 	}: {
 		ctx: PageContext;
 		family: DatedFamily;
@@ -30,10 +35,18 @@
 		stintActions?: Snippet<[StintRow]>;
 		/** What else is dated on a stint's line of time. */
 		entriesOf?: (stint: StintRow) => readonly DatedEntry[];
+		/** What a stint's oldest change is called. */
+		firstLabel?: string;
+		/** A stint's oldest change keeps the stint's first day. */
+		fixedFirst?: boolean;
+		/** Shown first in an opened change of a stint. */
+		extra?: Snippet<[StintRow, { on: string; first: boolean; viewing: boolean }]>;
+		/** What an entry that expands shows, opened; `viewing` while the facts are only read. */
+		entryBody?: Snippet<[StintRow, DatedEntry, boolean]>;
 	} = $props();
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	const heading = (stint: StintRow) =>
-		`${read.company(stint.entity_id)?.name ?? ''} · ${format({ kind: 'period', of: 'date' }, stint.effective_range, { locale: ctx.locale })}`;
+		`${read.company(stint.entity_id)?.name ?? ''} · ${stint.employee_number}`;
 </script>
 
 {#snippet facts(stint: StintRow)}
@@ -51,6 +64,15 @@
 			field={{ id, value: fact.value, disabled: readonly, on_change: set }}
 			law={family.lawOn(stint, fact.from)}
 		/>{/snippet}
+	{#snippet above(change: { on: string; first: boolean; viewing: boolean })}{@render extra?.(
+			stint,
+			change
+		)}{/snippet}
+	{#snippet opened(entry: DatedEntry, viewing: boolean)}{@render entryBody?.(
+			stint,
+			entry,
+			viewing
+		)}{/snippet}
 	<DatedFacts
 		{ctx}
 		id="{family.of}-{stint.id}"
@@ -64,6 +86,10 @@
 		until={stint.effective_range.to}
 		attributes={family.attributes}
 		entries={entriesOf?.(stint) ?? []}
+		{fixedFirst}
+		{...firstLabel === undefined ? {} : { firstLabel }}
+		{...extra === undefined ? {} : { extra: above }}
+		{...entryBody === undefined ? {} : { entryBody: opened }}
 		onchange={(next) => family.change(stint, next)}
 	/>
 {/snippet}

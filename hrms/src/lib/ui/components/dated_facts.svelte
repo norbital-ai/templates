@@ -1,9 +1,10 @@
 <script lang="ts">
 	/**
 	 * Dated facts as a timeline of their changes, newest first. Each change is a row of the line: its day and what it
-	 * changed; opened, it shows the facts as they stand from that day, each a plain field. The day belongs to the change,
-	 * not to each fact. A value typed under a day is stored on that day's row as typed; an emptied value takes the fact
-	 * away from that day. The enclosing view's one Save stores the list.
+	 * changed; opened, it shows the facts as they stand from that day, each a plain field, several to a row. The day
+	 * belongs to the change and is written once, on its row: only an edit shows it again, to move it. A value typed
+	 * under a day is stored on that day's row as typed; an emptied value takes the fact away from that day. The
+	 * enclosing view's one Save stores the list.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -23,7 +24,7 @@
 		type Value
 	} from '@norbital-ai/ui';
 	import { Effect } from 'effect';
-	import { Cluster, Columns, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Column, Columns, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { onDestroy, type Snippet } from 'svelte';
 	import type { Fact } from '../../dated_facts.js';
 	import { jsonObject, type Json } from '../../payroll_engine/foundation.js';
@@ -35,8 +36,8 @@
 		readonly on: string;
 		/** The row's parts, read as one line. */
 		readonly line: readonly string[];
-		/** Picking the row (it opens its own record). */
-		readonly onpick?: () => void;
+		/** The row opens in place, on what `entryBody` shows for it. */
+		readonly expands?: boolean;
 	};
 	let {
 		ctx,
@@ -51,6 +52,10 @@
 		until,
 		attributes = [],
 		entries = [],
+		firstLabel,
+		fixedFirst = false,
+		extra,
+		entryBody,
 		onchange
 	}: {
 		ctx: PageContext;
@@ -73,6 +78,14 @@
 		/** Names that say something of their own change only (the day it was signed): never carried to the next. */
 		attributes?: readonly string[];
 		entries?: readonly DatedEntry[];
+		/** What the oldest change is called (a stint's is the day the person joined). Default: first recorded. */
+		firstLabel?: string;
+		/** The oldest change's day is not moved here: it is its owner's first day. */
+		fixedFirst?: boolean;
+		/** Shown first in an opened change, above its facts. */
+		extra?: Snippet<[{ on: string; first: boolean; viewing: boolean }]>;
+		/** What an entry that `expands` shows, opened; `viewing` while the facts are only read. */
+		entryBody?: Snippet<[DatedEntry, boolean]>;
 		onchange: (facts: readonly Fact[]) => void;
 	} = $props();
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
@@ -90,7 +103,7 @@
 
 	/** A change being added: its day, before anything is typed under it. */
 	let drafted = $state<string | null>(null);
-	/** The change opened: until the viewer picks, the one that stands today; `null` once they close every one. */
+	/** The row opened (a change's day, or an entry's key): until the viewer picks, the change that stands today; `null` once they close every one. */
 	let picked = $state<string | null | undefined>(undefined);
 	/** The days something changed, newest first. */
 	const days = $derived(
@@ -112,8 +125,31 @@
 			: null
 	);
 	const shown = $derived(
-		picked === undefined ? standing : picked !== null && days.includes(picked) ? picked : null
+		picked === undefined
+			? // facts that no longer hold (an ended stint) open only when asked
+				until != null && until < clock.today
+				? null
+				: standing
+			: picked !== null && days.includes(picked)
+				? picked
+				: null
 	);
+	/** The accordion's open row: the change shown, else an entry the viewer opened. */
+	const opened = $derived(
+		shown ?? (picked != null && entries.some((entry) => entry.key === picked) ? picked : '')
+	);
+	/** A fact whose value needs the row to itself: a structure, a list, or one with its own editor. */
+	const wide = (name: string, value: Json, on: string) => {
+		const kind = kindOf({ name, value, from: on })?.kind;
+		if (kind === undefined || kind.many === true) return true;
+		// a JSON field holding one plain value (a number, a date) is a plain field
+		const held = kind.kind === 'json' ? kind.shape : kind;
+		return (
+			held === undefined ||
+			held.many === true ||
+			['object', 'record', 'union', 'json', 'custom', 'point'].includes(held.kind)
+		);
+	};
 	/** What a name was before a day: its latest earlier value. */
 	const before = (name: string, on: string) =>
 		attributes.includes(name)
@@ -187,7 +223,7 @@
 				key: `${id}-${on}`,
 				on,
 				change: true as const,
-				line: [index === days.length - 1 ? t('dated.first') : summary(on)].filter(
+				line: [index === days.length - 1 ? (firstLabel ?? t('dated.first')) : summary(on)].filter(
 					(part) => part !== ''
 				)
 			})),
@@ -314,12 +350,13 @@
 	{:else}
 		<Accordion.Root
 			type="single"
-			bind:value={() => shown ?? '', (next) => (picked = next === '' ? null : next)}
+			bind:value={() => opened, (next) => (picked = next === '' ? null : next)}
 			class="ml-1.5 border-l border-border"
 			aria-label={t('dated.changes')}
 		>
 			{#each timeline as entry (entry.key)}
 				{#if entry.change}
+					{@const first = entry.on === days.at(-1)}
 					<Accordion.Item value={entry.on} class="relative border-b-0 pl-5">
 						<span class={dot(entry.on)} aria-hidden="true"></span>
 						<Accordion.Trigger class="py-1.5">
@@ -334,44 +371,63 @@
 						<Accordion.Content>
 							{#if entry.on === shown}
 								<Stack gap="md" class="pt-1 pb-3">
-									<Cluster gap="md" align="end" justify="between">
-										<Cluster gap="md" align="end">
-											<FieldControl id="{id}-from" label={t('dated.from')} readonly={viewing}>
-												{#if viewing}
-													<Show
-														{ctx}
-														readonly
-														id="{id}-from"
-														name="from"
-														kind={{ kind: 'date' }}
-														value={entry.on}
-													/>
-												{:else}
-													<Editor
-														{ctx}
-														id="{id}-from"
-														name="from"
-														kind={{ kind: 'date' }}
-														value={entry.on}
-														on_change={(next) =>
-															move(next == null ? '' : String(next).slice(0, 10))}
-													/>
+									{#if !viewing}
+										<!-- the change's day is on its row: only an edit shows it again, to move it -->
+										<Cluster gap="md" align="end" justify="between">
+											<Cluster gap="md" align="end">
+												{#if !(fixedFirst && first)}
+													<FieldControl id="{id}-from" label={t('dated.from')}>
+														<Editor
+															{ctx}
+															id="{id}-from"
+															name="from"
+															kind={{ kind: 'date' }}
+															value={entry.on}
+															on_change={(next) =>
+																move(next == null ? '' : String(next).slice(0, 10))}
+														/>
+													</FieldControl>
 												{/if}
-											</FieldControl>
-											{#each lines.filter( (line) => attributes.includes(line.name) ) as line (line.name)}
-												{@render field(line, entry.on)}
-											{/each}
+												{#each lines.filter( (line) => attributes.includes(line.name) ) as line (line.name)}
+													{@render field(line, entry.on)}
+												{/each}
+											</Cluster>
+											{#if !(fixedFirst && first) && (days.length > 1 || drafted !== null)}
+												<Button variant="ghost" onclick={drop}>{t('dated.remove_change')}</Button>
+											{/if}
 										</Cluster>
-										{#if !viewing && (days.length > 1 || drafted !== null)}
-											<Button variant="ghost" onclick={drop}>{t('dated.remove_change')}</Button>
-										{/if}
-									</Cluster>
-									<Columns count={2}>
-										{#each lines.filter((line) => !attributes.includes(line.name)) as line (line.name)}
-											{@render field(line, entry.on)}
+									{/if}
+									{@render extra?.({ on: entry.on, first, viewing })}
+									<Columns count={3} collapse="compact">
+										{#each lines.filter((line) => viewing || !attributes.includes(line.name)) as line (line.name)}
+											{#if wide(line.name, line.value, entry.on)}
+												<Column span="all">{@render field(line, entry.on)}</Column>
+											{:else}
+												{@render field(line, entry.on)}
+											{/if}
 										{/each}
 									</Columns>
 								</Stack>
+							{/if}
+						</Accordion.Content>
+					</Accordion.Item>
+				{:else if entry.expands && entryBody !== undefined}
+					<Accordion.Item value={entry.key} class="relative border-b-0 pl-5">
+						<span
+							class="absolute top-3 -left-[3px] size-1.5 rounded-full bg-border"
+							aria-hidden="true"
+						></span>
+						<Accordion.Trigger class="py-1.5">
+							<span class="flex min-w-0 flex-1 items-center gap-2">
+								<span class="shrink-0 text-sm font-medium">{day(entry.on)}</span>
+								<span class="text-meta min-w-0 flex-1 truncate font-normal"
+									>{entry.line.join(' · ')}</span
+								>
+							</span>
+						</Accordion.Trigger>
+						<Accordion.Content>
+							{#if entry.key === opened}
+								<div class="pt-1 pb-3">{@render entryBody(entry, viewing)}</div>
 							{/if}
 						</Accordion.Content>
 					</Accordion.Item>
@@ -381,22 +437,11 @@
 							class="absolute top-3 -left-[3px] size-1.5 rounded-full bg-border"
 							aria-hidden="true"
 						></span>
-						{#if entry.onpick}
-							<button
-								type="button"
-								class="text-meta block w-full truncate text-left hover:underline"
-								onclick={entry.onpick}
-								><span class="font-medium text-foreground">{day(entry.on)}</span> · {entry.line.join(
-									' · '
-								)}</button
-							>
-						{:else}
-							<span class="text-meta block truncate"
-								><span class="font-medium text-foreground">{day(entry.on)}</span> · {entry.line.join(
-									' · '
-								)}</span
-							>
-						{/if}
+						<span class="text-meta block truncate"
+							><span class="font-medium text-foreground">{day(entry.on)}</span> · {entry.line.join(
+								' · '
+							)}</span
+						>
 					</div>
 				{/if}
 			{/each}
