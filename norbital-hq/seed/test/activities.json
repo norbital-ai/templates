@@ -1,0 +1,14 @@
+[
+	{
+		"id": "0b000000-0000-4000-8000-000000000031",
+		"kind": "meeting",
+		"subject": "First meeting",
+		"occurred_at": "2026-10-19T01:00:00.000Z"
+	},
+	{
+		"id": "0b000000-0000-4000-8000-000000000032",
+		"kind": "meeting",
+		"subject": "Next meeting",
+		"occurred_at": "2026-10-19T01:30:00.000Z"
+	}
+]

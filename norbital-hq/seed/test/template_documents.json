@@ -1,0 +1,43 @@
+[
+	{
+		"id": "0e000000-0000-4000-8000-000000000001",
+		"key": "terms",
+		"kind": "document",
+		"scope": "company",
+		"title": "Example terms",
+		"version": 1,
+		"required": ["company", "contact_name"],
+		"body": "# Example terms\n\nBetween **{{provider_company}}** and **{{company}}** (UEN: {{uen}}), dated {{date_long}}.\n\n| {{provider_name}} | {{contact_name}} |\n| :--- | :--- |\n| For {{provider_company}} | For {{company}} |"
+	},
+	{
+		"id": "0e000000-0000-4000-8000-000000000002",
+		"key": "scope",
+		"kind": "document",
+		"scope": "project",
+		"title": "Example scope",
+		"version": 1,
+		"required": ["project", "implementation_scope"],
+		"body": "# Scope — {{project}} for {{company}}\n\n{{overview}}\n\n{{implementation_scope}}\n\n{{milestones}}\n\n{{fees}}"
+	},
+	{
+		"id": "0e000000-0000-4000-8000-000000000003",
+		"key": "research",
+		"kind": "research",
+		"scope": "company",
+		"title": "Example research",
+		"version": 1,
+		"required": ["company"],
+		"body": "Research {{company}} ({{website}}) and {{contact_name}}, {{contact_title}}: what they do, and where an operations system would help them."
+	},
+	{
+		"id": "0e000000-0000-4000-8000-000000000004",
+		"key": "outreach",
+		"kind": "email",
+		"scope": "company",
+		"title": "Example outreach",
+		"version": 1,
+		"required": ["company", "contact_name"],
+		"subject": "Hello from {{provider_company}}",
+		"body": "Hi {{contact_name}},\n\n{{use_cases}}\n\n{{owner_name}}"
+	}
+]

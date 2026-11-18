@@ -1,0 +1,14 @@
+{
+	"snapshot": "7c6e81ac625dc776fe411e3a20beb1316bcdf9a3b2862ef88ff0d947b5740d76",
+	"files": {
+		"0001_initial.sql": "6ff6414349a164d89a590abde26da4ffaa3fb860676daad05720413e5d3e0c9b",
+		"0002_schema.sql": "678434c4411be4152f3e1b81f950c5278ff276dc2dc0f9831cbe92b47c082174",
+		"0003_schema.sql": "65e4e93d8216b4d61be18785c8ee70b116a9099c80b497a636aa7ec6b1bb7621"
+	},
+	"physical": {
+		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+		"0001_initial.sql": "be39ab275b278cdad138aaa9fd65482cf45fcf337fbd586fabda3af6bfcfb4d3",
+		"0002_schema.sql": "08806a1d39ffdf00c068e634f10604db23acda21ec2f2ce3b4ba093c0187fefc",
+		"0003_schema.sql": "58a380219485dbb16e135269186b63cfb2390faacfe23142874ddc91254cd2e1"
+	}
+}

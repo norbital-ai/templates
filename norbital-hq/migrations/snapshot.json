@@ -1,0 +1,4013 @@
+{
+	"currency": "SGD",
+	"tables": {
+		"activities": {
+			"audit": true,
+			"fields": {
+				"attachments": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"attendees": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"calendar_account": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "google_calendar"
+						}
+					}
+				},
+				"calendar_etag": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"calendar_id": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"calendar_manual": {
+					"default": false,
+					"kind": "bool"
+				},
+				"calendar_notify": {
+					"default": false,
+					"kind": "bool"
+				},
+				"calendar_revision": {
+					"default": 0,
+					"hidden": true,
+					"kind": "int"
+				},
+				"calendar_status": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"confirmed",
+						"tentative",
+						"cancelled"
+					]
+				},
+				"classification": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"pending",
+						"useful",
+						"ignored",
+						"review"
+					]
+				},
+				"classified_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"classified_by": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"hard_filter",
+						"model",
+						"manual",
+						"calendar"
+					]
+				},
+				"company": {
+					"inverse": "activities",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"contact_id": {
+					"inverse": "activities",
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
+				},
+				"detail": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"direction": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"inbound",
+						"outbound"
+					]
+				},
+				"external_id": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"handle": {
+					"kind": "text",
+					"optional": true
+				},
+				"happened_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"kind": {
+					"default": "note",
+					"kind": "enum",
+					"values": [
+						"note",
+						"recording",
+						"call",
+						"message",
+						"meeting",
+						"milestone"
+					]
+				},
+				"language": {
+					"kind": "text",
+					"optional": true
+				},
+				"location": {
+					"kind": "text",
+					"optional": true
+				},
+				"notes": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"notes_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"occurred_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"owner": {
+					"default": {
+						"var": "actor.id"
+					},
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"project_id": {
+					"inverse": "activities",
+					"kind": "ref",
+					"optional": true,
+					"to": "projects"
+				},
+				"reason": {
+					"kind": "text",
+					"optional": true
+				},
+				"recording": {
+					"accept": [
+						"audio/*",
+						"video/*"
+					],
+					"kind": "file",
+					"max": "20MiB",
+					"optional": true
+				},
+				"scheduled_end_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"scheduled_end_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"scheduled_start_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"scheduled_start_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"segments": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"end": {
+								"kind": "number"
+							},
+							"speaker": {
+								"kind": "text"
+							},
+							"start": {
+								"kind": "number"
+							},
+							"text": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"source_calendar": {
+					"inverse": "crm_activities",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "calendar_entries"
+				},
+				"source_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"source_message": {
+					"inverse": "crm_activities",
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_message"
+				},
+				"source_seq": {
+					"hidden": true,
+					"kind": "int",
+					"optional": true
+				},
+				"source_user": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"status": {
+					"initial": "open",
+					"kind": "state",
+					"states": {
+						"cancelled": {
+							"to": [
+								"open"
+							]
+						},
+						"done": {
+							"to": [
+								"open"
+							]
+						},
+						"open": {
+							"to": [
+								"done",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"subject": {
+					"kind": "text"
+				},
+				"thread_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"transcription": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"pending",
+						"done",
+						"failed",
+						"unavailable"
+					]
+				},
+				"transcription_error": {
+					"kind": "text",
+					"optional": true
+				},
+				"transport": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"occurred_at"
+					]
+				},
+				{
+					"on": [
+						"kind",
+						"status"
+					]
+				},
+				{
+					"on": [
+						"classification",
+						"source_seq"
+					]
+				},
+				{
+					"on": [
+						"source_user",
+						"occurred_at"
+					]
+				},
+				{
+					"on": [
+						"source_key",
+						"thread_key",
+						"occurred_at"
+					]
+				}
+			],
+			"record_label": "record.subject",
+			"search": {
+				"text": [
+					"subject",
+					"detail",
+					"handle",
+					"company",
+					"project_id"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"source_key",
+						"external_id"
+					],
+					"name": "one_activity_per_external_message",
+					"where": {
+						"external_id": {
+							"is_null": false
+						},
+						"source_calendar": {
+							"is_null": true
+						},
+						"source_key": {
+							"is_null": false
+						}
+					}
+				},
+				{
+					"fields": [
+						"source_message"
+					],
+					"name": "one_activity_per_native_message"
+				},
+				{
+					"fields": [
+						"source_calendar",
+						"external_id"
+					],
+					"name": "one_activity_per_calendar_event",
+					"where": {
+						"external_id": {
+							"is_null": false
+						},
+						"source_calendar": {
+							"is_null": false
+						}
+					}
+				}
+			]
+		},
+		"agreement_settings": {
+			"audit": true,
+			"fields": {
+				"provider_address": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_company": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_signatory_name": {
+					"kind": "text"
+				},
+				"provider_signatory_title": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_signature": {
+					"accept": [
+						"image/png",
+						"image/jpeg"
+					],
+					"kind": "file",
+					"max": "512KiB",
+					"optional": true
+				},
+				"provider_uen": {
+					"kind": "text",
+					"optional": true
+				},
+				"scope": {
+					"default": "workspace",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"workspace"
+					]
+				}
+			},
+			"record_label": "record.provider_company != null ? record.provider_company : record.provider_signatory_name",
+			"unique": [
+				{
+					"fields": [
+						"scope"
+					],
+					"name": "one_agreement_settings"
+				}
+			]
+		},
+		"approval_request": {
+			"fields": {
+				"action": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"approver_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"approver_users": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"closed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"closed_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"collection_name": {
+					"kind": "text"
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"record_id": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "enum",
+					"values": [
+						"ONGOING",
+						"CHANGES_REQUESTED",
+						"APPROVED",
+						"REJECTED",
+						"SUPERSEDED",
+						"WITHDRAWN"
+					]
+				},
+				"step": {
+					"kind": "int"
+				},
+				"step_names": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"steps": {
+					"kind": "int"
+				},
+				"superseder_teams": {
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				}
+			},
+			"key": "uuid",
+			"search": {
+				"text": [
+					"collection_name"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"collection_name",
+						"record_id"
+					],
+					"name": "one_ongoing_request",
+					"where": {
+						"status": {
+							"eq": "ONGOING"
+						}
+					}
+				}
+			]
+		},
+		"calendar_entries": {
+			"audit": true,
+			"fields": {
+				"account": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "google_calendar"
+						}
+					}
+				},
+				"calendar_id": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"description": {
+					"kind": "text",
+					"optional": true
+				},
+				"end_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"end_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"end_zone": {
+					"kind": "text",
+					"optional": true
+				},
+				"event_status": {
+					"kind": "enum",
+					"values": [
+						"confirmed",
+						"tentative",
+						"cancelled"
+					]
+				},
+				"external_id": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"location": {
+					"kind": "text",
+					"optional": true
+				},
+				"source_event": {
+					"hidden": true,
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"attendees": {
+								"fields": {
+									"displayName": {
+										"kind": "text",
+										"optional": true
+									},
+									"email": {
+										"kind": "text",
+										"optional": true
+									},
+									"optional": {
+										"kind": "bool",
+										"optional": true
+									},
+									"organizer": {
+										"kind": "bool",
+										"optional": true
+									},
+									"responseStatus": {
+										"kind": "text",
+										"optional": true
+									},
+									"self": {
+										"kind": "bool",
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"many": true,
+								"optional": true,
+								"rest": {
+									"kind": "json"
+								}
+							},
+							"description": {
+								"kind": "text",
+								"optional": true
+							},
+							"end": {
+								"fields": {
+									"date": {
+										"kind": "text",
+										"optional": true
+									},
+									"dateTime": {
+										"kind": "text",
+										"optional": true
+									},
+									"timeZone": {
+										"kind": "text",
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"optional": true,
+								"rest": {
+									"kind": "json"
+								}
+							},
+							"etag": {
+								"kind": "text",
+								"optional": true
+							},
+							"extendedProperties": {
+								"fields": {
+									"private": {
+										"kind": "record",
+										"of": {
+											"kind": "text"
+										},
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"optional": true,
+								"rest": {
+									"kind": "json"
+								}
+							},
+							"id": {
+								"kind": "text",
+								"optional": true
+							},
+							"location": {
+								"kind": "text",
+								"optional": true
+							},
+							"organizer": {
+								"fields": {
+									"displayName": {
+										"kind": "text",
+										"optional": true
+									},
+									"email": {
+										"kind": "text",
+										"optional": true
+									},
+									"optional": {
+										"kind": "bool",
+										"optional": true
+									},
+									"organizer": {
+										"kind": "bool",
+										"optional": true
+									},
+									"responseStatus": {
+										"kind": "text",
+										"optional": true
+									},
+									"self": {
+										"kind": "bool",
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"optional": true,
+								"rest": {
+									"kind": "json"
+								}
+							},
+							"start": {
+								"fields": {
+									"date": {
+										"kind": "text",
+										"optional": true
+									},
+									"dateTime": {
+										"kind": "text",
+										"optional": true
+									},
+									"timeZone": {
+										"kind": "text",
+										"optional": true
+									}
+								},
+								"kind": "object",
+								"optional": true,
+								"rest": {
+									"kind": "json"
+								}
+							},
+							"status": {
+								"kind": "text",
+								"optional": true
+							},
+							"summary": {
+								"kind": "text",
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"rest": {
+							"kind": "json"
+						}
+					}
+				},
+				"source_user": {
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"start_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"start_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"start_zone": {
+					"kind": "text",
+					"optional": true
+				},
+				"subject": {
+					"kind": "text"
+				},
+				"web_url": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"source_user",
+						"start_at"
+					]
+				},
+				{
+					"on": [
+						"source_user",
+						"start_on"
+					]
+				},
+				{
+					"on": [
+						"calendar_id",
+						"external_id"
+					]
+				}
+			],
+			"record_label": "record.subject",
+			"search": {
+				"text": [
+					"subject",
+					"description",
+					"location"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"account",
+						"calendar_id",
+						"external_id"
+					],
+					"import_key": true,
+					"name": "one_entry_per_event"
+				}
+			]
+		},
+		"cohort_members": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"hidden": true,
+					"kind": "bool"
+				},
+				"apollo_contact_id": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"cohort": {
+					"inverse": "members",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "cohorts"
+				},
+				"company": {
+					"inverse": "cohort_memberships",
+					"kind": "ref",
+					"to": "companies"
+				},
+				"contact": {
+					"inverse": "cohort_memberships",
+					"kind": "ref",
+					"to": "contacts"
+				},
+				"enrolled_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"meeting_booked": {
+					"default": false,
+					"kind": "bool"
+				},
+				"projects_sent": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"replied": {
+					"default": false,
+					"kind": "bool"
+				},
+				"step": {
+					"kind": "int",
+					"min": 0,
+					"optional": true
+				},
+				"stopped": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"bounced",
+						"unsubscribed"
+					]
+				}
+			},
+			"record_label": "record.cohort.name + ' · ' + record.contact.full_name",
+			"unique": [
+				{
+					"fields": [
+						"contact"
+					],
+					"name": "one_active_cohort_per_contact",
+					"where": {
+						"active": {
+							"eq": true
+						}
+					}
+				},
+				{
+					"fields": [
+						"company"
+					],
+					"name": "one_active_cohort_per_company",
+					"where": {
+						"active": {
+							"eq": true
+						}
+					}
+				}
+			]
+		},
+		"cohorts": {
+			"audit": true,
+			"fields": {
+				"apollo_sequence_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"done_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"launched_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"meeting_count": {
+					"kind": "count",
+					"of": "members",
+					"where": {
+						"meeting_booked": {
+							"eq": true
+						}
+					}
+				},
+				"member_count": {
+					"kind": "count",
+					"of": "members"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"replied_count": {
+					"kind": "count",
+					"of": "members",
+					"where": {
+						"replied": {
+							"eq": true
+						}
+					}
+				},
+				"sequence": {
+					"inverse": "cohorts",
+					"kind": "ref",
+					"to": "sequences"
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"done": {
+							"stamp": "done_at"
+						},
+						"draft": {
+							"to": [
+								"launched",
+								"done"
+							]
+						},
+						"launched": {
+							"stamp": "launched_at",
+							"to": [
+								"done"
+							]
+						}
+					}
+				},
+				"stopped_count": {
+					"kind": "count",
+					"of": "members",
+					"where": {
+						"stopped": {
+							"is_null": false
+						}
+					}
+				},
+				"synced_at": {
+					"kind": "instant",
+					"optional": true
+				}
+			},
+			"locks": {
+				"sent": {
+					"except": [
+						"name",
+						"status",
+						"synced_at"
+					],
+					"where": {
+						"status": {
+							"ne": "draft"
+						}
+					}
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name"
+				]
+			}
+		},
+		"communication_settings": {
+			"audit": true,
+			"fields": {
+				"classification_sop": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"hard_filter": {
+					"default": "customer_pics",
+					"kind": "enum",
+					"values": [
+						"customer_pics",
+						"all"
+					]
+				},
+				"owner": {
+					"kind": "ref",
+					"to": "sys_user"
+				}
+			},
+			"record_label": "record.owner.name",
+			"unique": [
+				{
+					"fields": [
+						"owner"
+					],
+					"name": "one_settings_per_owner"
+				}
+			]
+		},
+		"companies": {
+			"audit": true,
+			"computed": {
+				"company_key": {
+					"expr": {
+						"trim": {
+							"regex_replace": [
+								{
+									"trim": {
+										"regex_replace": [
+											{
+												"regex_replace": [
+													{
+														"lower": {
+															"field": "name"
+														}
+													},
+													"&",
+													" and "
+												]
+											},
+											"[^0-9a-zÀ-￿]+",
+											" "
+										]
+									}
+								},
+								"( (private|pte|pvt|public|limited|ltd|sdn|bhd|berhad|inc|incorporated|llc|llp|lp|plc|pty|corp|corporation|co|company|gmbh|ag|sa|bv|nv|tbk|pt|jsc))+$",
+								""
+							]
+						}
+					},
+					"kind": "text"
+				},
+				"uen_key": {
+					"expr": {
+						"upper": {
+							"regex_replace": [
+								{
+									"field": "uen"
+								},
+								"[^A-Za-z0-9]",
+								""
+							]
+						}
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"address": {
+					"kind": "text",
+					"optional": true
+				},
+				"description": {
+					"kind": "text",
+					"optional": true
+				},
+				"documents": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"domain": {
+					"kind": "text",
+					"optional": true
+				},
+				"follow_up_days": {
+					"default": 7,
+					"kind": "int",
+					"max": 90,
+					"min": 1
+				},
+				"industry": {
+					"kind": "text",
+					"optional": true
+				},
+				"job_count": {
+					"kind": "count",
+					"of": "projects"
+				},
+				"manual_fields": {
+					"hidden": true,
+					"kind": "enum",
+					"many": true,
+					"optional": true,
+					"values": [
+						"industry",
+						"description"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"nda_required": {
+					"kind": "bool",
+					"optional": true
+				},
+				"notes": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"owner": {
+					"default": {
+						"var": "actor.id"
+					},
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"preferences": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"preference": {
+								"kind": "text"
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
+							"topic": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"profile_error": {
+					"kind": "text",
+					"optional": true
+				},
+				"profiled_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"progress": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"in_progress",
+						"maintenance"
+					]
+				},
+				"region": {
+					"kind": "text",
+					"optional": true
+				},
+				"research": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"research_error": {
+					"kind": "text",
+					"optional": true
+				},
+				"researched_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"source": {
+					"default": "manual",
+					"kind": "enum",
+					"values": [
+						"manual",
+						"csv",
+						"apollo"
+					]
+				},
+				"stage": {
+					"initial": "lead",
+					"kind": "state",
+					"states": {
+						"client": {
+							"to": [
+								"qualified"
+							]
+						},
+						"lead": {
+							"to": [
+								"qualified",
+								"client",
+								"lost"
+							]
+						},
+						"lost": {
+							"to": [
+								"lead",
+								"client"
+							]
+						},
+						"qualified": {
+							"to": [
+								"lead",
+								"client",
+								"lost"
+							]
+						}
+					}
+				},
+				"uen": {
+					"kind": "text",
+					"optional": true
+				},
+				"use_cases": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"website": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"stage"
+					]
+				}
+			],
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"uen",
+					"domain"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"company_key"
+					],
+					"name": "one_company"
+				},
+				{
+					"fields": [
+						"domain"
+					],
+					"name": "one_company_per_domain"
+				},
+				{
+					"fields": [
+						"uen_key"
+					],
+					"name": "one_company_per_uen"
+				}
+			]
+		},
+		"contacts": {
+			"audit": true,
+			"computed": {
+				"discord_key": {
+					"expr": {
+						"lower": {
+							"regex_replace": [
+								{
+									"trim": {
+										"field": "discord"
+									}
+								},
+								"^(discord:)?@?",
+								"discord:"
+							]
+						}
+					},
+					"kind": "text"
+				},
+				"email_key": {
+					"expr": {
+						"lower": {
+							"field": "email"
+						}
+					},
+					"kind": "text"
+				},
+				"phone_key": {
+					"expr": {
+						"regex_replace": [
+							{
+								"field": "phone"
+							},
+							"\\D",
+							""
+						]
+					},
+					"kind": "text"
+				},
+				"slack_key": {
+					"expr": {
+						"lower": {
+							"regex_replace": [
+								{
+									"trim": {
+										"field": "slack"
+									}
+								},
+								"^(slack:)?@?",
+								"slack:"
+							]
+						}
+					},
+					"kind": "text"
+				},
+				"telegram_key": {
+					"expr": {
+						"lower": {
+							"regex_replace": [
+								{
+									"trim": {
+										"field": "telegram"
+									}
+								},
+								"^@?",
+								"@"
+							]
+						}
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"angle": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"company_id": {
+					"inverse": "contacts",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"company_signatory": {
+					"default": false,
+					"kind": "bool"
+				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
+				"email": {
+					"kind": "text",
+					"optional": true
+				},
+				"full_name": {
+					"kind": "text"
+				},
+				"is_primary": {
+					"kind": "bool",
+					"optional": true
+				},
+				"job_title": {
+					"kind": "text",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"seniority": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"owner",
+						"manager",
+						"staff"
+					]
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
+				},
+				"telegram": {
+					"kind": "text",
+					"optional": true
+				},
+				"voice_consent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"voice_embedding": {
+					"dim": 512,
+					"kind": "vector",
+					"metric": "cosine",
+					"optional": true
+				},
+				"voice_enrolled_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"voice_last_match_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"voice_samples": {
+					"default": 0,
+					"kind": "int",
+					"min": 0
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"email_key"
+					]
+				},
+				{
+					"on": [
+						"phone_key"
+					]
+				},
+				{
+					"on": [
+						"telegram_key"
+					]
+				},
+				{
+					"on": [
+						"slack_key"
+					]
+				},
+				{
+					"on": [
+						"discord_key"
+					]
+				}
+			],
+			"record_label": "record.full_name",
+			"search": {
+				"text": [
+					"full_name",
+					"email",
+					"phone",
+					"company_id"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"email_key"
+					],
+					"name": "one_contact_per_email"
+				}
+			]
+		},
+		"issues": {
+			"audit": true,
+			"fields": {
+				"company": {
+					"inverse": "issues",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"description": {
+					"kind": "text",
+					"optional": true
+				},
+				"owner_id": {
+					"inverse": "owned_issues",
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
+				},
+				"project_id": {
+					"inverse": "issues",
+					"kind": "ref",
+					"optional": true,
+					"to": "projects"
+				},
+				"raised_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"resolved_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"severity": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"low",
+						"medium",
+						"high",
+						"critical"
+					]
+				},
+				"status": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"open",
+						"in_progress",
+						"blocked",
+						"resolved",
+						"closed"
+					]
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
+		"meeting_recordings": {
+			"audit": true,
+			"fields": {
+				"audio": {
+					"accept": [
+						"audio/*",
+						"video/*"
+					],
+					"kind": "file",
+					"max": "20MiB"
+				},
+				"language": {
+					"kind": "text",
+					"optional": true
+				},
+				"meeting": {
+					"inverse": "recordings",
+					"kind": "ref",
+					"owned": true,
+					"to": "activities"
+				},
+				"segments": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"end": {
+								"kind": "number"
+							},
+							"speaker": {
+								"kind": "text"
+							},
+							"start": {
+								"kind": "number"
+							},
+							"text": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				},
+				"transcription": {
+					"default": "pending",
+					"kind": "enum",
+					"values": [
+						"pending",
+						"done",
+						"failed",
+						"unavailable"
+					]
+				},
+				"transcription_error": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"meeting"
+					]
+				}
+			],
+			"record_label": "record.title != null ? record.title : record.audio != null ? record.audio.name : \"Recording\""
+		},
+		"meeting_speakers": {
+			"audit": true,
+			"fields": {
+				"contact": {
+					"inverse": "meeting_voices",
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
+				},
+				"label": {
+					"kind": "text"
+				},
+				"meeting": {
+					"inverse": "speakers",
+					"kind": "ref",
+					"owned": true,
+					"to": "activities"
+				},
+				"name": {
+					"kind": "text",
+					"optional": true
+				},
+				"recording": {
+					"inverse": "speakers",
+					"kind": "ref",
+					"optional": true,
+					"owned": true,
+					"to": "meeting_recordings"
+				},
+				"voice_enrolled_at": {
+					"kind": "instant",
+					"optional": true
+				}
+			},
+			"record_label": "record.contact.full_name != null ? record.contact.full_name : record.name != null ? record.name : record.label",
+			"search": {
+				"text": [
+					"label",
+					"name",
+					"contact"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"recording",
+						"label"
+					],
+					"name": "one_speaker_label_per_recording",
+					"where": {
+						"recording": {
+							"is_null": false
+						}
+					}
+				},
+				{
+					"fields": [
+						"meeting",
+						"label"
+					],
+					"name": "one_speaker_label_per_meeting",
+					"where": {
+						"recording": {
+							"is_null": true
+						}
+					}
+				}
+			]
+		},
+		"notes": {
+			"audit": true,
+			"fields": {
+				"body": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
+		"offering_settings": {
+			"audit": true,
+			"fields": {
+				"offering_summary": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"research_focus": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"scope": {
+					"default": "workspace",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"workspace"
+					]
+				},
+				"seller_name": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.seller_name != null ? record.seller_name : \"Seller profile\"",
+			"unique": [
+				{
+					"fields": [
+						"scope"
+					],
+					"name": "one_offering_settings"
+				}
+			]
+		},
+		"outreach_settings": {
+			"audit": true,
+			"fields": {
+				"apollo_field_id": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"apollo_projects_variable": {
+					"default": "{{potential_projects}}",
+					"kind": "text"
+				},
+				"projects_prompt": {
+					"format": "markdown",
+					"kind": "text"
+				},
+				"prompt_version": {
+					"default": 1,
+					"kind": "int",
+					"min": 1
+				},
+				"scope": {
+					"default": "workspace",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"workspace"
+					]
+				},
+				"sender_name": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "'Outreach settings'",
+			"unique": [
+				{
+					"fields": [
+						"scope"
+					],
+					"name": "one_outreach_settings"
+				}
+			]
+		},
+		"potential_projects": {
+			"audit": true,
+			"fields": {
+				"company": {
+					"inverse": "potential_projects",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "companies"
+				},
+				"prompt_version": {
+					"kind": "int",
+					"min": 1,
+					"optional": true
+				},
+				"rank": {
+					"default": 1,
+					"kind": "int",
+					"min": 1
+				},
+				"status": {
+					"default": "proposed",
+					"kind": "enum",
+					"values": [
+						"proposed",
+						"kept",
+						"discarded"
+					]
+				},
+				"summary": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"company",
+						"rank"
+					]
+				}
+			],
+			"record_label": "record.summary"
+		},
+		"products": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"category": {
+					"kind": "text",
+					"optional": true
+				},
+				"fit_criteria": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"summary": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"category",
+						"name"
+					]
+				}
+			],
+			"record_label": "record.category != null ? record.category + \" · \" + record.name : record.name",
+			"search": {
+				"text": [
+					"name",
+					"category",
+					"summary",
+					"fit_criteria"
+				]
+			}
+		},
+		"project_documents": {
+			"audit": true,
+			"fields": {
+				"attachment": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"max": "20MiB",
+					"optional": true
+				},
+				"company": {
+					"inverse": "project_documents",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"kind": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"brief",
+						"supporting"
+					]
+				},
+				"markdown_body": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"project_id": {
+					"inverse": "documents",
+					"kind": "ref",
+					"optional": true,
+					"to": "projects"
+				},
+				"received_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title"
+		},
+		"projects": {
+			"audit": true,
+			"fields": {
+				"capture_rules": {
+					"format": "markdown",
+					"kind": "text",
+					"max": 8000,
+					"optional": true
+				},
+				"company_id": {
+					"inverse": "projects",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"data_migration": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"data": {
+								"kind": "text"
+							},
+							"format": {
+								"kind": "text"
+							},
+							"included": {
+								"kind": "text",
+								"many": true
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"decisions": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"decided_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"decision": {
+								"kind": "text"
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"definitions": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"meaning": {
+								"kind": "text"
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
+							"term": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"fees": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"fee": {
+								"kind": "text"
+							},
+							"includes": {
+								"kind": "text"
+							},
+							"item": {
+								"kind": "text"
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"generation_error": {
+					"kind": "text",
+					"optional": true
+				},
+				"implementation_scope": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"dependencies": {
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
+							"feature": {
+								"kind": "text"
+							},
+							"included": {
+								"kind": "text",
+								"many": true
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"lead_contact_id": {
+					"inverse": "led_projects",
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
+				},
+				"manual_fields": {
+					"hidden": true,
+					"kind": "enum",
+					"many": true,
+					"optional": true,
+					"values": [
+						"overview"
+					]
+				},
+				"milestones": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"client_review": {
+								"kind": "text",
+								"optional": true
+							},
+							"due_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"milestone": {
+								"kind": "text"
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
+							"timeline": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"name": {
+					"kind": "text"
+				},
+				"overview": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"signatory": {
+					"inverse": "signs_projects",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contacts"
+				},
+				"status": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"discovery",
+						"in_delivery",
+						"uat",
+						"complete",
+						"on_hold"
+					]
+				},
+				"summary": {
+					"kind": "text",
+					"optional": true
+				},
+				"target_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"uat_tests": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"expected_result": {
+								"kind": "text"
+							},
+							"name": {
+								"kind": "text"
+							},
+							"objective": {
+								"kind": "text"
+							},
+							"origin": {
+								"hidden": true,
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"generated",
+									"manual"
+								]
+							},
+							"ref": {
+								"kind": "text"
+							},
+							"sources": {
+								"hidden": true,
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"company_id"
+				]
+			}
+		},
+		"requestor": {
+			"fields": {
+				"approval_request_id": {
+					"kind": "ref",
+					"to": "approval_request"
+				},
+				"user_id": {
+					"kind": "text"
+				}
+			},
+			"key": "text",
+			"record_label": "record.user_id"
+		},
+		"sequences": {
+			"audit": true,
+			"fields": {
+				"name": {
+					"kind": "text"
+				},
+				"steps": {
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"body": {
+								"kind": "text"
+							},
+							"channel": {
+								"kind": "enum",
+								"values": [
+									"email",
+									"call"
+								]
+							},
+							"day_offset": {
+								"kind": "int",
+								"min": 0
+							},
+							"subject": {
+								"kind": "text",
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				}
+			},
+			"record_label": "record.name"
+		},
+		"signed_documents": {
+			"audit": true,
+			"fields": {
+				"company": {
+					"inverse": "signed_documents",
+					"kind": "ref",
+					"to": "companies"
+				},
+				"project": {
+					"inverse": "signed_documents",
+					"kind": "ref",
+					"optional": true,
+					"to": "projects"
+				},
+				"signed_by": {
+					"inverse": "signed_documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contacts"
+				},
+				"signed_copy": {
+					"accept": [
+						"application/pdf",
+						"image/*"
+					],
+					"kind": "file",
+					"max": "20MiB"
+				},
+				"signed_on": {
+					"default": {
+						"var": "today"
+					},
+					"kind": "date"
+				},
+				"template_version": {
+					"kind": "ref",
+					"to": "template_documents"
+				},
+				"terms": {
+					"hidden": true,
+					"kind": "json",
+					"shape": {
+						"kind": "record",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"record_label": "record.title + ' · ' + string(record.signed_on)"
+		},
+		"sys_api_key": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"hash": {
+					"kind": "text"
+				},
+				"last_used_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"prefix": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"prefix"
+					],
+					"name": "prefix"
+				}
+			]
+		},
+		"sys_challenge": {
+			"fields": {
+				"address_mac": {
+					"kind": "text"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"code_mac": {
+					"kind": "text"
+				},
+				"expires_at": {
+					"kind": "instant"
+				}
+			},
+			"key": [
+				"address_mac"
+			],
+			"record_label": "record.address_mac"
+		},
+		"sys_config": {
+			"fields": {
+				"key": {
+					"kind": "text"
+				},
+				"value": {
+					"kind": "text"
+				}
+			},
+			"key": [
+				"key"
+			],
+			"record_label": "record.key"
+		},
+		"sys_conversation": {
+			"fields": {
+				"archived_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"inputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"integration": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"kind": {
+					"kind": "text",
+					"optional": true
+				},
+				"lease_until": {
+					"kind": "instant",
+					"optional": true
+				},
+				"model": {
+					"default": "default",
+					"kind": "text"
+				},
+				"outputs": {
+					"default": [],
+					"kind": "json"
+				},
+				"owner": {
+					"kind": "text",
+					"optional": true
+				},
+				"parent": {
+					"kind": "text",
+					"optional": true
+				},
+				"participants": {
+					"kind": "json",
+					"optional": true
+				},
+				"plan": {
+					"kind": "json",
+					"optional": true
+				},
+				"read": {
+					"default": {},
+					"kind": "json"
+				},
+				"restart_at": {
+					"kind": "text",
+					"optional": true
+				},
+				"restart_from": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"run": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"default": "idle",
+					"kind": "text"
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"record_label": "record.title"
+		},
+		"sys_envoy": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"audience": {
+					"default": "private",
+					"kind": "enum",
+					"values": [
+						"private",
+						"public"
+					]
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"delegation": {
+					"default": "disabled",
+					"kind": "enum",
+					"values": [
+						"enabled",
+						"disabled"
+					]
+				},
+				"dm": {
+					"default": "union",
+					"kind": "enum",
+					"values": [
+						"union",
+						"envoy"
+					]
+				},
+				"group_messages": {
+					"default": "mention_or_reply",
+					"kind": "enum",
+					"values": [
+						"disabled",
+						"mention_or_reply",
+						"all"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"policies": {
+					"default": [],
+					"kind": "text",
+					"many": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"task": {
+					"default": "",
+					"format": "markdown",
+					"kind": "text"
+				},
+				"triage": {
+					"default": false,
+					"kind": "bool"
+				},
+				"triage_scope": {
+					"default": "all",
+					"hidden": true,
+					"kind": "enum",
+					"values": [
+						"dm",
+						"group",
+						"all"
+					]
+				}
+			},
+			"key": "uuid",
+			"record_label": "record.name"
+		},
+		"sys_file": {
+			"fields": {
+				"created_at": {
+					"kind": "instant"
+				},
+				"created_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"field": {
+					"kind": "text"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"mime": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"sha256": {
+					"kind": "text"
+				},
+				"size": {
+					"kind": "int"
+				},
+				"updated_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"updated_by": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"key": "text",
+			"record_label": "record.name"
+		},
+		"sys_inbox": {
+			"fields": {
+				"body": {
+					"kind": "json",
+					"optional": true
+				},
+				"consumed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery": {
+					"kind": "text"
+				},
+				"headers": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"received_at": {
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"received_at"
+					],
+					"where": {
+						"consumed_at": {
+							"is_null": true
+						}
+					}
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.delivery",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"delivery"
+					],
+					"name": "one_inbound_delivery"
+				}
+			]
+		},
+		"sys_integration": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"configuration": {
+					"default": {},
+					"kind": "json"
+				},
+				"envoy": {
+					"kind": "text",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"import_start": {
+					"kind": "json",
+					"optional": true
+				},
+				"integration": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"owner": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"status": {
+					"kind": "json",
+					"optional": true
+				},
+				"updated_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				}
+			},
+			"key": "text",
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"owner",
+						"integration"
+					],
+					"name": "one_per_member",
+					"where": {
+						"owner": {
+							"is_null": false
+						}
+					}
+				}
+			]
+		},
+		"sys_invitation": {
+			"check": {
+				"addressed": {
+					"or": [
+						{
+							"email": {
+								"is_null": false
+							}
+						},
+						{
+							"phone": {
+								"is_null": false
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"accepted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "text",
+					"optional": true
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"external": {
+					"default": false,
+					"kind": "bool"
+				},
+				"invited_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"revoked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					]
+				},
+				{
+					"on": [
+						"phone"
+					]
+				}
+			],
+			"key": "text",
+			"record_label": "record.email"
+		},
+		"sys_message": {
+			"fields": {
+				"about": {
+					"kind": "json",
+					"optional": true
+				},
+				"addressed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"as": {
+					"kind": "json",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"author": {
+					"kind": "text",
+					"optional": true
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"content": {
+					"kind": "json",
+					"optional": true
+				},
+				"conversation": {
+					"kind": "text",
+					"optional": true
+				},
+				"copied_from": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"deleted_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivered_turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"delivery": {
+					"default": [],
+					"kind": "json"
+				},
+				"direction": {
+					"kind": "text",
+					"optional": true
+				},
+				"edited_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"email": {
+					"kind": "json",
+					"optional": true
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "text",
+					"optional": true
+				},
+				"integration": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"optional": true,
+					"to": "sys_integration"
+				},
+				"invocation": {
+					"kind": "text",
+					"optional": true
+				},
+				"message": {
+					"kind": "json",
+					"optional": true
+				},
+				"meta": {
+					"kind": "json",
+					"optional": true
+				},
+				"mode": {
+					"kind": "text",
+					"optional": true
+				},
+				"next_attempt_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"origin": {
+					"kind": "text",
+					"optional": true
+				},
+				"presume_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"preview": {
+					"kind": "text",
+					"optional": true
+				},
+				"provider_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"refused": {
+					"kind": "text",
+					"optional": true
+				},
+				"reply_to": {
+					"kind": "text",
+					"optional": true
+				},
+				"role": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender": {
+					"kind": "text",
+					"optional": true
+				},
+				"sender_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"sent_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"source_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"state": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"kind": "text",
+					"optional": true
+				},
+				"supersedes": {
+					"kind": "text",
+					"optional": true
+				},
+				"text": {
+					"kind": "text",
+					"optional": true
+				},
+				"thread": {
+					"kind": "text",
+					"optional": true
+				},
+				"turn": {
+					"kind": "text",
+					"optional": true
+				},
+				"version": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"conversation",
+						"seq"
+					]
+				},
+				{
+					"on": [
+						"integration",
+						"provider_id"
+					]
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"conversation"
+					],
+					"where": {
+						"state": {
+							"eq": "pending"
+						}
+					}
+				},
+				{
+					"on": [
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				}
+			],
+			"key": "text",
+			"record_label": "record.preview"
+		},
+		"sys_notification": {
+			"fields": {
+				"at": {
+					"kind": "instant"
+				},
+				"attachments": {
+					"default": [],
+					"kind": "json"
+				},
+				"body": {
+					"kind": "text",
+					"optional": true
+				},
+				"link": {
+					"kind": "json",
+					"optional": true
+				},
+				"member": {
+					"kind": "text",
+					"optional": true
+				},
+				"once": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"recipient": {
+					"kind": "json"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"member",
+						"at"
+					],
+					"where": {
+						"member": {
+							"is_null": false
+						}
+					}
+				}
+			],
+			"key": "text",
+			"record_label": "record.title",
+			"unique": [
+				{
+					"fields": [
+						"once"
+					],
+					"name": "once"
+				}
+			]
+		},
+		"sys_outbox": {
+			"fields": {
+				"acked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"at": {
+					"kind": "instant"
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"changed": {
+					"default": [],
+					"kind": "json",
+					"shape": {
+						"kind": "text",
+						"many": true
+					}
+				},
+				"claimed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"delivery_op": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"epoch": {
+					"kind": "text",
+					"optional": true
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"image": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"key": {
+					"kind": "text"
+				},
+				"model": {
+					"kind": "text"
+				},
+				"next_attempt_at": {
+					"kind": "instant"
+				},
+				"op": {
+					"kind": "enum",
+					"values": [
+						"create",
+						"update",
+						"delete"
+					]
+				},
+				"preserve_local": {
+					"default": false,
+					"kind": "bool"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"record_revision": {
+					"kind": "int"
+				},
+				"result": {
+					"kind": "json",
+					"optional": true
+				},
+				"seq": {
+					"kind": "int"
+				},
+				"status": {
+					"default": "queued",
+					"kind": "enum",
+					"values": [
+						"queued",
+						"sending",
+						"acked",
+						"failed",
+						"dead",
+						"skipped"
+					]
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"writer": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "sys_user"
+				}
+			},
+			"identity": "seq",
+			"indexes": [
+				{
+					"on": [
+						"next_attempt_at"
+					],
+					"where": {
+						"status": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"record",
+						"seq"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"queued",
+								"sending"
+							]
+						}
+					}
+				},
+				{
+					"on": [
+						"sync"
+					],
+					"where": {
+						"status": {
+							"eq": "dead"
+						}
+					}
+				},
+				{
+					"on": [
+						"sync",
+						"instance",
+						"record",
+						"record_revision"
+					]
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.key",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "coalesce",
+					"where": {
+						"attempts": {
+							"eq": 0
+						},
+						"status": {
+							"eq": "queued"
+						}
+					}
+				}
+			]
+		},
+		"sys_run": {
+			"fields": {
+				"actor": {
+					"kind": "text",
+					"optional": true
+				},
+				"attempts": {
+					"default": 0,
+					"kind": "int"
+				},
+				"automation": {
+					"kind": "text"
+				},
+				"cause": {
+					"kind": "text"
+				},
+				"depth": {
+					"kind": "int"
+				},
+				"due_at": {
+					"kind": "instant"
+				},
+				"error": {
+					"kind": "json",
+					"optional": true
+				},
+				"finished_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"input": {
+					"kind": "json"
+				},
+				"key": {
+					"kind": "text",
+					"optional": true
+				},
+				"leases": {
+					"default": 0,
+					"kind": "int"
+				},
+				"output": {
+					"kind": "json",
+					"optional": true
+				},
+				"progress": {
+					"kind": "json",
+					"optional": true
+				},
+				"results": {
+					"default": [],
+					"kind": "json"
+				},
+				"run_key": {
+					"kind": "text",
+					"optional": true
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"starter": {
+					"kind": "json",
+					"optional": true
+				},
+				"state": {
+					"default": "queued",
+					"kind": "text"
+				},
+				"trigger": {
+					"kind": "json",
+					"optional": true
+				},
+				"wait": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "queued"
+						}
+					}
+				},
+				{
+					"on": [
+						"due_at"
+					],
+					"where": {
+						"state": {
+							"eq": "waiting"
+						}
+					}
+				},
+				{
+					"on": [
+						"automation",
+						"state"
+					]
+				}
+			],
+			"key": "text",
+			"record_label": "record.automation",
+			"unique": [
+				{
+					"fields": [
+						"key"
+					],
+					"name": "key"
+				}
+			]
+		},
+		"sys_session": {
+			"fields": {
+				"agent": {
+					"kind": "text",
+					"optional": true
+				},
+				"created_at": {
+					"kind": "instant"
+				},
+				"expires_at": {
+					"kind": "instant"
+				},
+				"impersonated_by": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"refreshed_at": {
+					"kind": "instant"
+				},
+				"token_hash": {
+					"kind": "text"
+				},
+				"user": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_user"
+				},
+				"via": {
+					"kind": "enum",
+					"values": [
+						"code",
+						"invitation",
+						"signup",
+						"host",
+						"anonymous"
+					]
+				}
+			},
+			"key": "text",
+			"record_label": "record.via",
+			"unique": [
+				{
+					"fields": [
+						"token_hash"
+					],
+					"name": "token_hash"
+				}
+			]
+		},
+		"sys_sync": {
+			"fields": {
+				"cursor": {
+					"kind": "json",
+					"optional": true
+				},
+				"cycle": {
+					"default": 0,
+					"kind": "int"
+				},
+				"digest": {
+					"kind": "text"
+				},
+				"health": {
+					"kind": "json",
+					"optional": true
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"last_change_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_hint_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"last_read_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"phase": {
+					"default": "read",
+					"kind": "enum",
+					"values": [
+						"read",
+						"reconcile"
+					]
+				},
+				"started_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"sync": {
+					"kind": "text"
+				},
+				"version": {
+					"default": 0,
+					"kind": "int"
+				}
+			},
+			"key": "uuid",
+			"record_label": "record.sync",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"partition"
+					],
+					"name": "one_partition"
+				}
+			]
+		},
+		"sys_sync_row": {
+			"fields": {
+				"acked_revision": {
+					"kind": "int",
+					"optional": true
+				},
+				"cycle": {
+					"kind": "int"
+				},
+				"instance": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"partition": {
+					"default": "",
+					"kind": "text"
+				},
+				"record": {
+					"kind": "text"
+				},
+				"remote_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"remote_version": {
+					"kind": "text",
+					"optional": true
+				},
+				"sync": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"sync",
+						"instance",
+						"partition",
+						"cycle"
+					]
+				}
+			],
+			"key": "uuid",
+			"record_label": "record.remote_id",
+			"unique": [
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"remote_id"
+					],
+					"name": "one_remote_id",
+					"where": {
+						"remote_id": {
+							"is_null": false
+						}
+					}
+				},
+				{
+					"fields": [
+						"sync",
+						"instance",
+						"record"
+					],
+					"name": "one_record"
+				}
+			]
+		},
+		"sys_user": {
+			"check": {
+				"admin_staff": {
+					"or": [
+						{
+							"admin": {
+								"eq": false
+							}
+						},
+						{
+							"kind": {
+								"eq": "staff"
+							}
+						}
+					]
+				}
+			},
+			"computed": {
+				"party_id": {
+					"expr": {
+						"json_text": [
+							{
+								"field": "party"
+							},
+							"id"
+						]
+					},
+					"kind": "text"
+				},
+				"phone_key": {
+					"expr": {
+						"regex_replace": [
+							{
+								"field": "phone"
+							},
+							"\\D",
+							""
+						]
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"admin": {
+					"default": false,
+					"kind": "bool"
+				},
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"discord": {
+					"kind": "text",
+					"optional": true
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"kind": {
+					"default": "staff",
+					"kind": "enum",
+					"values": [
+						"staff",
+						"external",
+						"anonymous"
+					]
+				},
+				"last_seen": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"party": {
+					"kind": "json",
+					"optional": true
+				},
+				"phone": {
+					"kind": "text",
+					"optional": true
+				},
+				"preferences": {
+					"default": {},
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"appearance": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"light",
+									"dark",
+									"system"
+								]
+							},
+							"locale": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"en",
+									"zh"
+								]
+							},
+							"sounds": {
+								"kind": "bool",
+								"optional": true
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"signup": {
+					"default": false,
+					"kind": "bool"
+				},
+				"slack": {
+					"kind": "text",
+					"optional": true
+				},
+				"team": {
+					"format": "team",
+					"kind": "text",
+					"optional": true
+				},
+				"telegram": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						{
+							"lower": "email"
+						}
+					],
+					"unique": true
+				},
+				{
+					"on": [
+						"phone_key"
+					],
+					"unique": true
+				}
+			],
+			"key": "text",
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"email"
+				]
+			}
+		},
+		"sys_workspace": {
+			"check": {
+				"singleton": {
+					"id": {
+						"eq": "00000000-0000-0000-0000-000000000001"
+					}
+				}
+			},
+			"fields": {
+				"name": {
+					"kind": "text",
+					"max": 120,
+					"optional": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				}
+			},
+			"key": "text",
+			"record_label": "record.name"
+		},
+		"tasks": {
+			"audit": true,
+			"fields": {
+				"attachments": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"company": {
+					"inverse": "tasks",
+					"kind": "ref",
+					"optional": true,
+					"to": "companies"
+				},
+				"contact_id": {
+					"inverse": "tasks",
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
+				},
+				"detail": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"due_on": {
+					"kind": "date"
+				},
+				"kind": {
+					"default": "task",
+					"kind": "enum",
+					"values": [
+						"task",
+						"follow_up"
+					]
+				},
+				"meeting": {
+					"inverse": "action_items",
+					"kind": "ref",
+					"optional": true,
+					"to": "activities"
+				},
+				"owner": {
+					"default": {
+						"var": "actor.id"
+					},
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"project_id": {
+					"inverse": "tasks",
+					"kind": "ref",
+					"optional": true,
+					"to": "projects"
+				},
+				"reminded_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"reminder": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"before",
+						"due",
+						"overdue",
+						"escalated"
+					]
+				},
+				"status": {
+					"initial": "open",
+					"kind": "state",
+					"states": {
+						"cancelled": {
+							"to": [
+								"open"
+							]
+						},
+						"done": {
+							"to": [
+								"open"
+							]
+						},
+						"open": {
+							"to": [
+								"done",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"subject": {
+					"kind": "text"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"status",
+						"due_on"
+					]
+				}
+			],
+			"record_label": "record.subject",
+			"search": {
+				"text": [
+					"subject",
+					"detail"
+				]
+			}
+		},
+		"template_documents": {
+			"audit": true,
+			"fields": {
+				"body": {
+					"format": "markdown",
+					"kind": "text"
+				},
+				"commitment": {
+					"default": false,
+					"kind": "bool"
+				},
+				"drafting_instructions": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"key": {
+					"kind": "text"
+				},
+				"kind": {
+					"default": "document",
+					"kind": "enum",
+					"values": [
+						"document",
+						"email",
+						"research"
+					]
+				},
+				"required": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"scope": {
+					"default": "company",
+					"kind": "enum",
+					"values": [
+						"company",
+						"project"
+					]
+				},
+				"subject": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text"
+				},
+				"version": {
+					"default": 1,
+					"kind": "int",
+					"min": 1
+				}
+			},
+			"record_label": "record.title + ' v' + string(record.version)",
+			"search": {
+				"text": [
+					"title",
+					"key"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"key",
+						"version"
+					],
+					"name": "one_version_per_key"
+				}
+			]
+		}
+	},
+	"tz": "Asia/Singapore"
+}

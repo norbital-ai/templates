@@ -1,0 +1,8 @@
+{
+	"extends": "./.norbital/tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ES2025", "DOM", "DOM.Iterable"],
+		"types": ["vite/client", "node", "svelte"]
+	},
+	"exclude": ["node_modules", ".norbital/dist"]
+}
