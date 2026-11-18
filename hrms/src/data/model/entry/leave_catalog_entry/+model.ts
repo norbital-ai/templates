@@ -120,7 +120,7 @@ export default model('leave_catalog_entry', {
 				yield* Effect.all([
 					assertCashable(known, entries),
 					assertWorked(known, entries),
-					assertLeft(known, entries, String(ctx.today))
+					assertLeft(known, entries, ctx.today)
 				]).pipe(refusing(ctx));
 			}
 			return {
@@ -151,8 +151,9 @@ export default model('leave_catalog_entry', {
 					limit: 10000
 				}
 			});
-			const slotsByEntry = Map.groupBy(held.leave_catalog_entry_day.rows, (row) =>
-				String(row.leave_entry_id)
+			const slotsByEntry = Map.groupBy(
+				held.leave_catalog_entry_day.rows,
+				(row) => row.leave_entry_id
 			);
 			const actionsOf = (change: { readonly set: Record<string, unknown> }) =>
 				jsonObject(change.set.leave_catalog_entry_day ?? {});
@@ -167,10 +168,10 @@ export default model('leave_catalog_entry', {
 							)
 						: []
 				);
-				const existing = slotsByEntry.get(String(change.before.id)) ?? [];
+				const existing = slotsByEntry.get(change.before.id) ?? [];
 				const days = [
 					...existing
-						.filter((row) => !deleted.has(String(row.id)))
+						.filter((row) => !deleted.has(row.id))
 						.map((row) => ({
 							date: row.incurred_on,
 							part: row.part,
@@ -182,10 +183,7 @@ export default model('leave_catalog_entry', {
 					...change.after,
 					days,
 					// rules read the resulting slots, not the change's child actions
-					leave_catalog_entry_day: [
-						...existing.filter((row) => !deleted.has(String(row.id))),
-						...created
-					]
+					leave_catalog_entry_day: [...existing.filter((row) => !deleted.has(row.id)), ...created]
 				});
 			});
 			const empty = proposed.findIndex((row) => !Array.isArray(row.days) || row.days.length === 0);
@@ -205,7 +203,7 @@ export default model('leave_catalog_entry', {
 							...changes.flatMap((change) =>
 								touched(
 									change.before.employment_id,
-									slotsByEntry.get(String(change.before.id)) ?? [],
+									slotsByEntry.get(change.before.id) ?? [],
 									change.before.encashment
 								)
 							),
@@ -238,7 +236,7 @@ export default model('leave_catalog_entry', {
 				yield* assertLeft(
 					known,
 					proposed,
-					String(ctx.today),
+					ctx.today,
 					changes.map((change) => jsonObject(change.before))
 				).pipe(refusing(ctx));
 			}
@@ -261,11 +259,9 @@ export default model('leave_catalog_entry', {
 	delete: {
 		transform: function* (changes, ctx) {
 			const entries = changes.map((change) => jsonObject(change.before));
-			const employmentOf = new Map(
-				changes.map(({ before }) => [String(before.id), before.employment_id])
-			);
+			const employmentOf = new Map(changes.map(({ before }) => [before.id, before.employment_id]));
 			const cashOut = new Set(
-				changes.filter(({ before }) => before.encashment).map(({ before }) => String(before.id))
+				changes.filter(({ before }) => before.encashment).map(({ before }) => before.id)
 			);
 			// the slots and their amendment rows cross with the check's reads; their refusal still comes after the check's
 			const [known, amended] = yield* Effect.all(
@@ -291,9 +287,9 @@ export default model('leave_catalog_entry', {
 										ctx.query,
 										held.leave_catalog_entry_day.rows.flatMap((day) =>
 											touched(
-												employmentOf.get(String(day.leave_entry_id)),
+												employmentOf.get(day.leave_entry_id),
 												[day],
-												cashOut.has(String(day.leave_entry_id))
+												cashOut.has(day.leave_entry_id)
 											)
 										)
 									)

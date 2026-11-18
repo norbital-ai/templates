@@ -414,11 +414,11 @@ export default automation({
 		if (merged.length > 0) {
 			const targets = yield* at(
 				'statutory_finding',
-				merged.map(([target]) => String(target))
+				merged.map(([target]) => target)
 			);
 			const urls: JsonObject = {
 				'statutory_finding.update': merged.map(([target, source_urls]) => ({
-					target: targets.get(String(target)) ?? null,
+					target: targets.get(target) ?? null,
 					set: { source_urls }
 				}))
 			};
@@ -465,7 +465,7 @@ export default automation({
 			const id = ids[index]?.id;
 			if (id === undefined || row.fit === 'STRUCTURAL') continue;
 			for (const family of row.families ?? [])
-				yield* ctx.schedule('statutory_research', { code, family, finding: String(id) });
+				yield* ctx.schedule('statutory_research', { code, family, finding: id });
 		}
 		return {
 			sources: [...places, ...(answer.findings ?? []).flatMap((row) => row.source_urls ?? [])]

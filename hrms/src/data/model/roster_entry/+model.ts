@@ -17,8 +17,8 @@ const touched = (
 	}[]
 ) =>
 	rows.map((row) => ({
-		employment: String(row.employment_id),
-		from: String(row.work_date),
+		employment: row.employment_id,
+		from: row.work_date,
 		run: row.payroll_run_id ?? null
 	}));
 

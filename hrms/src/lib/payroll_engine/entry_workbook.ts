@@ -359,10 +359,7 @@ export function parseLeaveSheet(
 	const held = new Map<string, string>();
 	for (const entry of known.existing)
 		for (const slot of entry.days)
-			held.set(
-				`${entry.employment_id}:${String(slot.date).slice(0, 10)}:${slot.part}`,
-				entry.catalog_code
-			);
+			held.set(`${entry.employment_id}:${slot.date.slice(0, 10)}:${slot.part}`, entry.catalog_code);
 	const seen = new Map<string, number>();
 	const rows: LeaveDraft[] = [];
 	let ignoredDescription = false;
@@ -406,7 +403,7 @@ export function parseLeaveSheet(
 		}
 		const keyed = slots.map((slot) => ({
 			slot,
-			key: `${String(employee.id)}:${slot.date}:${slot.part}`
+			key: `${employee.id}:${slot.date}:${slot.part}`
 		}));
 		const keys = keyed.map(({ key }) => key);
 		const duplicateRow = keyed.find(({ key }) => seen.has(key));
@@ -450,9 +447,9 @@ const parsePayments = (
 	const held = new Set(
 		known.existing.map((entry) =>
 			same([
-				String(entry.employment_id),
+				entry.employment_id,
 				entry.catalog_code,
-				String(entry.incurred_on).slice(0, 10),
+				entry.incurred_on.slice(0, 10),
 				String(entry.quantity),
 				entry.description ?? ''
 			])
@@ -497,7 +494,7 @@ const parsePayments = (
 		);
 		if (catalog == null) continue;
 		const key = same([
-			String(employee.id),
+			employee.id,
 			catalog,
 			day,
 			String(quantity),
@@ -547,7 +544,7 @@ export function parseLoanSheet(
 	const held = new Set(
 		known.existing.map((entry) =>
 			same([
-				String(entry.employment_id),
+				entry.employment_id,
 				entry.catalog_code,
 				String(entry.quantity),
 				entry.from,
@@ -595,7 +592,7 @@ export function parseLoanSheet(
 			problems
 		);
 		if (catalog == null) continue;
-		const key = same([String(employee.id), catalog, String(quantity), from, to]);
+		const key = same([employee.id, catalog, String(quantity), from, to]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
 		if (held.has(key)) problems.push(`Row ${row.at}: ${number} already has this loan.`);
@@ -627,10 +624,10 @@ export function parseRepaymentSheet(
 	const held = new Set(
 		known.existing.map((entry) =>
 			same([
-				String(entry.employment_id),
-				String(entry.loan_id),
+				entry.employment_id,
+				entry.loan_id,
 				String(entry.amount),
-				entry.paid_on == null ? '' : String(entry.paid_on).slice(0, 10)
+				entry.paid_on == null ? '' : entry.paid_on.slice(0, 10)
 			])
 		)
 	);
@@ -682,7 +679,7 @@ export function parseRepaymentSheet(
 				);
 		}
 		if (loan == null) continue;
-		const key = same([String(employee.id), String(loan.id), String(amount), paidOn]);
+		const key = same([employee.id, loan.id, String(amount), paidOn]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
 		if (held.has(key))
@@ -731,12 +728,7 @@ export function parseCaseSheet(
 	const seen = new Map<string, number>();
 	const held = new Set(
 		known.existing.map((entry) =>
-			same([
-				String(entry.entity_id),
-				String(entry.employment_id),
-				entry.kind,
-				String(entry.opened_on).slice(0, 10)
-			])
+			same([entry.entity_id, entry.employment_id, entry.kind, entry.opened_on.slice(0, 10)])
 		)
 	);
 	const rows: CaseDraft[] = [];
@@ -806,7 +798,7 @@ export function parseCaseSheet(
 		}
 		const inputs = inputsOf(cellText(row.cells.inputs), row.at, problems);
 		if (inputs == null) continue;
-		const key = same([String(entityId), String(employee.id), code, opened]);
+		const key = same([entityId, employee.id, code, opened]);
 		const earlier = seen.get(key);
 		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
 		if (held.has(key))

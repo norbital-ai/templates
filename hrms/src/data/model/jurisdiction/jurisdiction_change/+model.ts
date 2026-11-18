@@ -40,7 +40,7 @@ export default model('jurisdiction_change', {
 								limit: 10000
 							}
 						})).statutory_finding.rows;
-			const status = new Map(filed.map((row) => [String(row.id), row.status]));
+			const status = new Map(filed.map((row) => [row.id, row.status]));
 			return {
 				sets: changes.map(({ set }) => set),
 				on_approved: yield* lawWrite(
@@ -55,9 +55,7 @@ export default model('jurisdiction_change', {
 								effective_from: row.effective_from,
 								law: row.law,
 								finding_id:
-									row.finding_id == null
-										? null
-										: { status: status.get(String(row.finding_id)) ?? null }
+									row.finding_id == null ? null : { status: status.get(row.finding_id) ?? null }
 							})
 						)
 					]
@@ -67,7 +65,7 @@ export default model('jurisdiction_change', {
 		effect: function* (changes, ctx) {
 			yield* syncLedgerOn(
 				ctx,
-				changes.map(({ after }) => String(after.effective_from))
+				changes.map(({ after }) => after.effective_from)
 			);
 		}
 	},
@@ -93,10 +91,7 @@ export default model('jurisdiction_change', {
 		effect: function* (changes, ctx) {
 			yield* syncLedgerOn(
 				ctx,
-				changes.flatMap(({ before, after }) => [
-					String(before.effective_from),
-					String(after.effective_from)
-				])
+				changes.flatMap(({ before, after }) => [before.effective_from, after.effective_from])
 			);
 		}
 	},
@@ -114,7 +109,7 @@ export default model('jurisdiction_change', {
 		effect: function* (changes, ctx) {
 			yield* syncLedgerOn(
 				ctx,
-				changes.map(({ before }) => String(before.effective_from))
+				changes.map(({ before }) => before.effective_from)
 			);
 		}
 	}

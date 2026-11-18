@@ -20,7 +20,7 @@ export type LawChange = NonNullable<
 /** A row as the fold reads it. */
 export const changeOf = (row: LawChange): Change => ({
 	id: row.id,
-	effective_from: String(row.effective_from),
+	effective_from: row.effective_from,
 	patch: isJsonObject(row.law) ? row.law : {}
 });
 
@@ -70,7 +70,7 @@ export const lawWrites = (
 			create: []
 		};
 	}
-	const same = chain.find((row) => String(row.effective_from) === from && row.finding_id == null);
+	const same = chain.find((row) => row.effective_from === from && row.finding_id == null);
 	return same === undefined
 		? {
 				update: [],

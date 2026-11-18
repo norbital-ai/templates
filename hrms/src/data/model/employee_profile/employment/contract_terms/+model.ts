@@ -116,7 +116,7 @@ export default model('contract_terms', {
 			const { filled, carried } = yield* datedWrite(ctx, 'create', 'contract_terms', changes);
 			return {
 				sets: changes.map(({ set, after }) => {
-					const group = filled.get(String(after.id));
+					const group = filled.get(after.id);
 					return group === undefined ? set : { ...set, pay_group_id: idOf('pay_group', group) };
 				}),
 				on_approved: carried

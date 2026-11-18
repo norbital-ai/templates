@@ -18,7 +18,7 @@ const touched = (
 	rows.flatMap(({ employment_id, paid_on, payroll_run_id }) =>
 		paid_on == null
 			? []
-			: [{ employment: String(employment_id), from: String(paid_on), run: payroll_run_id ?? null }]
+			: [{ employment: employment_id, from: paid_on, run: payroll_run_id ?? null }]
 	);
 
 type Repayment = {

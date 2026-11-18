@@ -724,8 +724,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	};
 	const employmentsOf = new Map<string, Set<string>>();
 	for (const [employment, person] of employeeOf) {
-		const held = employmentsOf.get(String(person));
-		if (held === undefined) employmentsOf.set(String(person), new Set([employment]));
+		const held = employmentsOf.get(person);
+		if (held === undefined) employmentsOf.set(person, new Set([employment]));
 		else held.add(employment);
 	}
 
@@ -871,10 +871,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		// keyed: correcting the contract or the leave amends the period, and the next run carries the difference.
 		const lastDay = typeof range.to === 'string' ? range.to : '';
 		const settles =
-			pays === undefined &&
-			exit === true &&
-			lastDay >= String(coverage.from) &&
-			lastDay <= String(coverage.to);
+			pays === undefined && exit === true && lastDay >= coverage.from && lastDay <= coverage.to;
 		const paysOut =
 			contract.encash_leave !== false && contract.exit_ground !== 'MISCONDUCT_DISMISSAL';
 		const hoursADay = Number(objectValue(contract.terms).normal_hours_per_day ?? 0);

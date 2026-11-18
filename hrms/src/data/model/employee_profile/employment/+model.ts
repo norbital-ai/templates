@@ -348,9 +348,7 @@ const standing = Effect.fnUntraced(function* (
 			...(around.employment ?? []).map(ranged).filter((row) => !written.has(String(row.id))),
 			...held
 		],
-		lawCodeOf: new Map(
-			(around.entity ?? []).map((row) => [String(row.id), String(row.settings_code)])
-		),
+		lawCodeOf: new Map((around.entity ?? []).map((row) => [String(row.id), row.settings_code])),
 		groups: around.pay_group ?? [],
 		patterns: around.shift_pattern ?? []
 	};
@@ -429,7 +427,7 @@ const datedCheck = Effect.fnUntraced(function* (
 			if (after === undefined || stint === undefined || after.pay_group_id != null) continue;
 			const [only, ...others] = got.groups.filter((group) => group.entity_id === stint.entity_id);
 			if (only !== undefined && others.length === 0 && after.effective_from === daysOf(stint).from)
-				filled.set(String(after.id), String(only.id));
+				filled.set(String(after.id), only.id);
 		}
 	const own = new Set(changes.map(({ before, after }) => String((after ?? before)?.id)));
 	const rest = (rows: readonly JsonObject[]) => rows.filter((row) => !own.has(String(row.id)));
@@ -623,7 +621,7 @@ export const afterDated = Effect.fnUntraced(function* (
 	);
 	const own = new Set(rows.map((row) => String(row.id)));
 	// the ledger first: a registered effect that fails must not leave it unsynced
-	const today = String(ctx.today);
+	const today = ctx.today;
 	const due = new Set(
 		rows.flatMap((row) => (String(row.effective_from) <= today ? [String(row.employment_id)] : []))
 	);
@@ -820,7 +818,7 @@ const raiseExits = Effect.fnUntraced(function* (ctx: EffectCtx, changes: readonl
 		},
 		entity: { fields: ['id', 'settings_code'], limit: 10000 }
 	});
-	const lawCodeOf = new Map(entities.map((row) => [String(row.id), String(row.settings_code)]));
+	const lawCodeOf = new Map(entities.map((row) => [row.id, row.settings_code]));
 	const written = new Set(rows.map((row) => String(row.id)));
 	const now = stored.map(ranged);
 	const then = [
@@ -992,29 +990,27 @@ export default model('employment', {
 				(row) =>
 					laws(
 						existing.entity.rows.find((entity) => entity.id === row.entity_id)?.settings_code,
-						String(row.effective_range.from)
+						row.effective_range.from
 					) === undefined
 			);
 			if (lawless >= 0)
 				return yield* ctx.refuse('errors.employment_no_law', { row: lawless, field: 'entity_id' });
 			const numbers = new Map<string, string>([
-				...existing.employee_profile.rows.map((row) => [String(row.id), row.number] as const),
-				...existing.employment.rows.map(
-					(row) => [String(row.employee_id), row.employee_number] as const
-				)
+				...existing.employee_profile.rows.map((row) => [row.id, row.number] as const),
+				...existing.employment.rows.map((row) => [row.employee_id, row.employee_number] as const)
 			]);
 			return {
 				sets: rows.map((row) =>
 					row.employee_number != null && row.employee_number !== ''
 						? row
-						: { ...row, employee_number: numbers.get(String(row.employee_id)) ?? '' }
+						: { ...row, employee_number: numbers.get(row.employee_id) ?? '' }
 				),
 				// a stint over paid periods amends them: the next run works each out again
 				on_approved: yield* amendmentsFor(
 					ctx.query,
 					rows.flatMap((row) =>
 						reached(undefined, jsonObject(row), () => false).map((reach) => ({
-							employee: String(row.employee_id),
+							employee: row.employee_id,
 							...reach
 						}))
 					)

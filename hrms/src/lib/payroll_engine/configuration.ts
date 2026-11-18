@@ -242,7 +242,7 @@ export const lawWrite = Effect.fn('payroll.lawWrite')(function* (
 		].toSorted();
 		const entities = (got.entity ?? [])
 			.filter((row) => row.settings_code === code)
-			.map((row) => String(row.id));
+			.map((row) => row.id);
 		// the codes each entry family loses, from the first day it loses one
 		const lost = new Map<LawFamily, { readonly codes: Set<string>; readonly from: string }>();
 		for (const day of days) {
@@ -362,7 +362,7 @@ export const lawWrite = Effect.fn('payroll.lawWrite')(function* (
 
 /** An entitlement may have changed: the ledger syncs now for a change in force today, else on the change's day. */
 export const syncLedgerOn = Effect.fnUntraced(function* (ctx: EffectCtx, days: readonly string[]) {
-	const today = String(ctx.today);
+	const today = ctx.today;
 	for (const day of new Set(days.map((day) => (day > today ? day : today))))
 		yield* ctx.schedule(
 			'ledger',

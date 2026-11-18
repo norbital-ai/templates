@@ -18,7 +18,7 @@ export function listedKindNames(
 	const names = $derived(
 		new Map(
 			laws.codes.flatMap((code) => {
-				const lookup = laws.on(code, String(clock.today))?.settings.lookup;
+				const lookup = laws.on(code, clock.today)?.settings.lookup;
 				return kindsOf(isJsonObject(lookup) ? lookup[rule] : undefined).map(
 					(kind) => [kind.code, kind.name] as const
 				);

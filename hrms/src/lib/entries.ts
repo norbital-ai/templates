@@ -21,8 +21,8 @@ export const sealOnly = (changes: readonly { readonly set: object }[]) =>
 /** The days an entry prices: a paid period holding one is worked out again by the next run. */
 const touched = (rows: readonly Entry[]): Touched[] =>
 	rows.map((row) => ({
-		employment: String(row.employment_id),
-		from: String(row.incurred_on),
+		employment: row.employment_id,
+		from: row.incurred_on,
 		run: row.payroll_run_id ?? null
 	}));
 

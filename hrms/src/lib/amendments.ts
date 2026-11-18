@@ -236,13 +236,11 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		}
 	});
 	const employeeOf = new Map(
-		(known.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
+		(known.employment ?? []).map((row) => [String(row.id), row.employee_id])
 	);
 	const slips = known.payslip ?? [];
 	const paid = new Set(
-		slips.map(
-			(slip) => `${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`
-		)
+		slips.map((slip) => `${slip.employee_id}/${String(objectValue(slip.payroll_run_id).id)}`)
 	);
 	const groupsOf = Map.groupBy(
 		[
@@ -264,8 +262,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		(known.payroll_run ?? [])
 			.filter(
 				(run) =>
-					rows.some((row) => row.group === String(run.pay_group_id)) &&
-					!paid.has(`${employee}/${String(run.id)}`)
+					rows.some((row) => row.group === run.pay_group_id) && !paid.has(`${employee}/${run.id}`)
 			)
 			.map((run) => ({
 				employee_id: employee,
@@ -291,9 +288,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		}),
 		windowsOf(
 			[...slips, ...missed],
-			new Map(
-				(known.pay_group ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
-			)
+			new Map((known.pay_group ?? []).map((row) => [row.id, objectValue(row.payment_schedule)]))
 		),
 		known.pay_amendment ?? []
 	);
@@ -313,8 +308,8 @@ export const followers = Effect.fn('payroll.followers')(function* (
 		}
 	});
 	return terms.map((row): Touched => ({
-		employment: String(row.employment_id),
-		from: String(row.effective_from),
+		employment: row.employment_id,
+		from: row.effective_from,
 		to: null
 	}));
 });
@@ -367,15 +362,13 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 	return yield* carried(
 		spans.flatMap((span) =>
 			(span.employee === undefined
-				? [...new Set((people.get(span.entity) ?? []).map((slip) => String(slip.employee_id)))]
+				? [...new Set((people.get(span.entity) ?? []).map((slip) => slip.employee_id))]
 				: [span.employee]
 			).map((employee) => ({ employee, entity: span.entity, from: span.from, to: span.to }))
 		),
 		windowsOf(
 			slips,
-			new Map(
-				(known.pay_group ?? []).map((row) => [String(row.id), objectValue(row.payment_schedule)])
-			)
+			new Map((known.pay_group ?? []).map((row) => [row.id, objectValue(row.payment_schedule)]))
 		),
 		known.pay_amendment ?? []
 	);

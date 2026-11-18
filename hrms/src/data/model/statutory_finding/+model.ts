@@ -158,7 +158,7 @@ export default model('statutory_finding', {
 			});
 			yield* syncLedgerOn(
 				ctx,
-				rows.map((row) => String(row.effective_from))
+				rows.map((row) => row.effective_from)
 			);
 		}
 	}

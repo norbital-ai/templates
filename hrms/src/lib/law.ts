@@ -194,7 +194,7 @@ export const lawReadOf = Effect.fn('payroll.lawReadOf')(function* (
 			limit: 50
 		}
 	});
-	return lawRead(entity.map((row) => String(row.settings_code)));
+	return lawRead(entity.map((row) => row.settings_code));
 });
 
 const refId = (value: unknown): string | undefined =>

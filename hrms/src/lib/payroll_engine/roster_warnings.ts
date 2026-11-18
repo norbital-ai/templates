@@ -268,7 +268,7 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 	const laws = yield* lawsAt(
 		read,
 		got.employment.flatMap((contract) =>
-			isJsonObject(contract.entity_id) ? [String(contract.entity_id.settings_code)] : []
+			isJsonObject(contract.entity_id) ? [contract.entity_id.settings_code] : []
 		)
 	);
 	// the caps of the law in force on each sheet's first day: its roster rule's
@@ -336,9 +336,9 @@ export const rosterFindings = Effect.fn('payroll.rosterFindings')(function* (
 		const caps = capsOf.get(employment);
 		if (caps === undefined) continue;
 		// a supplied day replaces the stored one: an employment has one entry a day
-		const days = new Map(
+		const days = new Map<string | null, JsonObject>(
 			[...got.roster_entry, ...before]
-				.filter((row) => String(row.employment_id) === employment)
+				.filter((row) => row.employment_id === employment)
 				.map((row) => [day(row.work_date), row] as const)
 		);
 		const entries = indexes.flatMap((index) => {

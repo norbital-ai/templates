@@ -121,7 +121,7 @@ const companyWrite = Effect.fnUntraced(function* (
 					post.get(id),
 					COMPANY_DEPTH
 				);
-				return span === undefined ? [] : [{ entity: String(entity.id), ...span }];
+				return span === undefined ? [] : [{ entity: entity.id, ...span }];
 			})
 		);
 		carried.push(...(amended.pay_amendment?.create ?? []));
@@ -150,7 +150,7 @@ const afterWrite = Effect.fnUntraced(function* (
 	const ids = new Set(rows.map((row) => String(row.id)));
 	const now = got.entity_change ?? [];
 	const was = [
-		...now.filter((row) => !ids.has(String(row.id))),
+		...now.filter((row) => !ids.has(row.id)),
 		...changes.flatMap(({ before }) => (before === undefined ? [] : [before]))
 	];
 	const entry = (held: readonly JsonObject[], row: JsonObject | undefined) => {

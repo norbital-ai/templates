@@ -510,7 +510,7 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		const where = whereOf(layer);
 		return found[model]
 			.filter((row) => matches(row, where))
-			.map((row) =>
+			.map((row: JsonObject) =>
 				through.length === 0
 					? row
 					: {

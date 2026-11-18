@@ -622,10 +622,10 @@ const placesOf = Effect.fnUntraced(function* (
 	});
 	// the law code of each company: the rows' own, and those of the stints and runs they reach
 	const codes = new Map<string, Json>([
-		...found.entity.map((row) => [String(row.id), row.settings_code ?? null] as const),
+		...found.entity.map((row) => [row.id, row.settings_code ?? null] as const),
 		...[...found.employment, ...found.payroll_run].flatMap((row) =>
 			isJsonObject(row.entity_id)
-				? [[String(row.entity_id.id), row.entity_id.settings_code ?? null] as const]
+				? [[row.entity_id.id, row.entity_id.settings_code ?? null] as const]
 				: []
 		)
 	]);

@@ -31,7 +31,7 @@ export const numberOf = (value: unknown): number | null =>
 				? Number(value)
 				: null;
 // a model's decimal field reads as its exact text; the engine computes on numbers
-const DECIMAL_FIELDS = new Set([
+const DECIMAL_FACTS = [
 	'amount',
 	'quantity',
 	'recovered',
@@ -43,7 +43,48 @@ const DECIMAL_FIELDS = new Set([
 	'ordinary_wages',
 	'employee_statutory',
 	'tax_withheld'
-]);
+] as const;
+const DECIMAL_FIELDS = new Set<string>(DECIMAL_FACTS);
+// only a column typed as text is a decimal's exact text; a JSON value under the same name stays what it is
+type Fact<V> = [V] extends [string | null | undefined]
+	? V extends string
+		? number
+		: V
+	: Calculated<V>;
+/** A read row as the calculation holds it (`jsonValues`): the model's own row, its decimal facts as numbers. */
+export type Calculated<T> = T extends string | number | boolean | null | undefined
+	? T
+	: T extends readonly (infer Item)[]
+		? readonly Calculated<Item>[]
+		: T extends object
+			? {
+					readonly [K in keyof T]: K extends (typeof DECIMAL_FACTS)[number]
+						? Fact<T[K]>
+						: Calculated<T[K]>;
+				}
+			: T;
+/** Whether `row`'s own decimal facts are numbers: all that sets the calculation's copy of a row apart from the row. */
+const factsAreNumbers = (row: unknown): boolean =>
+	!isDynObject(row) ||
+	Object.entries(row).every(
+		([k, v]) => !DECIMAL_FIELDS.has(k) || typeof v !== 'string' || !DECIMAL_TEXT.test(v)
+	);
+/** A read's roots as the calculation holds them: each root's rows typed as its read layer, decimal facts as numbers. */
+export type CalculatedRoots<Answer> = {
+	readonly [C in keyof Answer]: Answer[C] extends { readonly rows: infer Rows }
+		? Calculated<Rows>
+		: never;
+};
+/**
+ * `copies` are the calculation's copies of `pages`' rows, root by root, checked: their decimal facts are numbers, and
+ * nothing else in a copy differs from its row.
+ */
+export const calculated = <Answer>(
+	copies: unknown,
+	_pages: Answer
+): copies is CalculatedRoots<Answer> =>
+	isDynObject(copies) &&
+	Object.values(copies).every((rows) => Array.isArray(rows) && rows.every(factsAreNumbers));
 const DECIMAL_TEXT = /^-?\d+(\.\d+)?$/;
 export const jsonValues = (value: unknown): unknown =>
 	BigDecimal.isBigDecimal(value)

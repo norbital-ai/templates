@@ -16,15 +16,15 @@ type Dated = {
 /** The days an event covers: catalogue rules price them, so a paid period holding one is worked out again. */
 const amended = Effect.fnUntraced(function* (read: Reader, rows: readonly Dated[]) {
 	const span = (row: Dated) => ({
-		from: String(row.from),
-		to: row.to == null ? null : String(row.to)
+		from: row.from,
+		to: row.to == null ? null : row.to
 	});
 	const own = rows.filter((row) => row.employment_id != null);
 	const wide = rows.filter((row) => row.employment_id == null);
 	return amendmentsIn(
 		yield* amendmentsOf(
 			read,
-			wide.map((row) => ({ entity: String(row.entity_id), ...span(row) }))
+			wide.map((row) => ({ entity: row.entity_id, ...span(row) }))
 		),
 		yield* amendmentsFor(
 			read,

@@ -40,8 +40,8 @@ export const paidPeriods = (ctx: Pick<PageContext, 'query'>) => {
 			(runs.current?.payroll_run.rows ?? []).some(
 				(run) =>
 					(entity == null || keyOf(run.entity_id) === keyOf(entity)) &&
-					String(run.salary_coverage.from) <= day &&
-					(run.salary_coverage.to === null || String(run.salary_coverage.to) >= day)
+					run.salary_coverage.from <= day &&
+					(run.salary_coverage.to === null || run.salary_coverage.to >= day)
 			)
 		);
 	};

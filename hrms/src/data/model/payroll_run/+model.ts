@@ -152,24 +152,20 @@ export default model('payroll_run', {
 				}
 			});
 			const attached = new Set(
-				[...known.adhoc_catalog_entry.rows, ...known.claim_catalog_entry.rows].map(({ id }) =>
-					String(id)
-				)
+				[...known.adhoc_catalog_entry.rows, ...known.claim_catalog_entry.rows].map(({ id }) => id)
 			);
 			// an amended period HR named that is no longer open was carried by another run
-			const open = new Set(known.pay_amendment.rows.map(({ id }) => String(id)));
+			const open = new Set(known.pay_amendment.rows.map(({ id }) => id));
 			const runs = [];
 			for (const [index, row] of input.entries()) {
 				// the run's pay group: the one named, else the company's only one
-				const groups = known.pay_group.rows.filter(
-					(entry) => String(entry.entity_id) === String(row.entity_id)
-				);
+				const groups = known.pay_group.rows.filter((entry) => entry.entity_id === row.entity_id);
 				const group =
 					row.pay_group_id == null
 						? groups.length === 1
 							? groups[0]
 							: undefined
-						: groups.find((entry) => String(entry.id) === String(row.pay_group_id));
+						: groups.find((entry) => entry.id === String(row.pay_group_id));
 				if (group === undefined)
 					return row.pay_group_id == null
 						? yield* ctx.refuse('errors.payroll_run_choose_group', {
@@ -189,15 +185,13 @@ export default model('payroll_run', {
 						values: { period: row.period, group: group.name }
 					});
 				const offCycle = row.kind === 'OFF_CYCLE';
-				if (!offCycle && !cycleStarted(cycle, String(ctx.today)))
+				if (!offCycle && !cycleStarted(cycle, ctx.today))
 					return yield* ctx.refuse('errors.payroll_run_cycle_not_started', {
 						row: index,
 						field: 'period',
 						values: { period: row.period, from: cycle.from }
 					});
-				const prior = known.payroll_run.rows.filter(
-					(entry) => String(entry.pay_group_id) === String(group.id)
-				);
+				const prior = known.payroll_run.rows.filter((entry) => entry.pay_group_id === group.id);
 				// year-to-date only moves forward: a skipped cycle cannot run behind a later one
 				const later = prior.find((entry) => entry.kind === 'ON_CYCLE' && entry.period > row.period);
 				if (!offCycle && later !== undefined)
@@ -211,7 +205,7 @@ export default model('payroll_run', {
 					(entry) =>
 						entry.kind === 'ON_CYCLE' &&
 						entry.period !== row.period &&
-						String(entry.salary_coverage.from) <= cycle.to &&
+						entry.salary_coverage.from <= cycle.to &&
 						cycle.from <= String(entry.salary_coverage.to)
 				);
 				if (!offCycle && paid !== undefined)
@@ -220,16 +214,16 @@ export default model('payroll_run', {
 						field: 'period',
 						values: {
 							period: paid.period,
-							from: String(paid.salary_coverage.from),
+							from: paid.salary_coverage.from,
 							to: String(paid.salary_coverage.to),
 							group: group.name
 						}
 					});
 				const pay_date = offCycle ? ctx.today : payDateOf(schedule, row.period);
 				// the rows HR named for an off-cycle run, linked under their layer's name
-				const pays = new Set([...row.adhoc, ...row.claim].map((entry) => String(entry.id)));
+				const pays = new Set([...row.adhoc, ...row.claim].map((entry) => entry.id));
 				// the open amendment rows HR named for an off-cycle run: it carries their people's earlier periods
-				const carries = new Set(row.amendments.map((entry) => String(entry.id)));
+				const carries = new Set(row.amendments.map((entry) => entry.id));
 				if (offCycle && pays.size === 0 && carries.size === 0)
 					return yield* ctx.refuse('errors.payroll_run_choose_pays', { row: index });
 				// a row another run sealed is not paid twice
@@ -246,8 +240,7 @@ export default model('payroll_run', {
 						pay_date
 					},
 					code: String(
-						known.entity.rows.find((entry) => String(entry.id) === String(row.entity_id))
-							?.settings_code
+						known.entity.rows.find((entry) => entry.id === row.entity_id)?.settings_code
 					),
 					frame: offCycle
 						? { attendance: cycle, pays, carries }
@@ -269,7 +262,7 @@ export default model('payroll_run', {
 						});
 					const result = yield* amendedRun(
 						ctx.query,
-						{ id: String(id), row: jsonObject(row), frame, data },
+						{ id: id, row: jsonObject(row), frame, data },
 						{
 							runs: known.payroll_run.rows.map((entry) => jsonObject(entry)),
 							groups: known.pay_group.rows.map((entry) => jsonObject(entry)),
@@ -284,7 +277,7 @@ export default model('payroll_run', {
 					);
 					// a stint ends the employment only at an exit, with its last stretch: one that runs on, or ends later, is
 					// paid by a later run. Someone no later run pays owes what could not be taken: HR recovers it.
-					const coveredTo = String(row.salary_coverage.to);
+					const coveredTo = row.salary_coverage.to;
 					const leaving = result.deferred.filter(
 						(employee) =>
 							![
@@ -313,7 +306,7 @@ export default model('payroll_run', {
 						if (result.deferred.some((employee) => !leaving.includes(employee)))
 							return yield* ctx.refuse('errors.payroll_run_carry_takes_back');
 						// nothing negative posts to a balance, so a deduction that outruns the run waits for the next on-cycle run
-						if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
+						if (result.payslips.some((slip) => slip.net_pay < 0))
 							return yield* ctx.refuse('errors.payroll_run_below_zero');
 					}
 					working.push({ id, row, frame, data, result, leaving });
@@ -467,7 +460,7 @@ export default model('payroll_run', {
 							ctx.query,
 							made.map(({ id, row, payslips }) => ({
 								id,
-								pay_date: String(row.pay_date),
+								pay_date: row.pay_date,
 								payslips: payslips.map(jsonObject)
 							})),
 							laws
@@ -498,8 +491,8 @@ export default model('payroll_run', {
 						({ employee_id, entity_id, effective_range: range }) =>
 							paid.has(employee_id) &&
 							entity_id !== row.entity_id &&
-							String(range.from) <= String(to) &&
-							(range.to == null || String(range.to) >= String(from))
+							range.from <= to &&
+							(range.to == null || range.to >= from)
 					);
 					if (both) return yield* ctx.refuse('errors.payroll_run_moved_company');
 				}
@@ -522,7 +515,7 @@ export default model('payroll_run', {
 					const slip = result.payslips.find((entry) => entry.employee_id === employee);
 					const owed = slip?.breakdown.lines.find((line) => line.code === RECOVERY)?.amount;
 					if (slip === undefined || owed === undefined) continue;
-					const occurrence_key = `recovery:${String(slip.employment_id)}:${row.period}${frame.pays === undefined ? '' : `:${String(id)}`}`;
+					const occurrence_key = `recovery:${slip.employment_id}:${row.period}${frame.pays === undefined ? '' : `:${id}`}`;
 					if (known.obligation.rows.some((task) => task.occurrence_key === occurrence_key))
 						continue;
 					owing.push({
@@ -543,8 +536,8 @@ export default model('payroll_run', {
 								!leaving.includes(employee) &&
 								!known.pay_amendment.rows.some(
 									(held) =>
-										String(held.employee_id) === employee &&
-										String(held.pay_group_id) === String(row.pay_group_id) &&
+										held.employee_id === employee &&
+										held.pay_group_id === row.pay_group_id &&
 										held.period === row.period
 								)
 						)

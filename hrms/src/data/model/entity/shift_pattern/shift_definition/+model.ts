@@ -75,8 +75,8 @@ export default model('shift_definition', {
 				sets: changes.map(({ set }) => set),
 				on_approved: yield* amendmentsFor(ctx.query, [
 					...used.roster_entry.rows.map((row) => ({
-						employment: String(row.employment_id),
-						from: String(row.work_date),
+						employment: row.employment_id,
+						from: row.work_date,
 						run: row.payroll_run_id
 					})),
 					...(yield* followers(ctx.query, holding))

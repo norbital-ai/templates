@@ -67,7 +67,7 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 	const law = lawsOf({
 		jurisdiction: held.jurisdiction.rows.map(jsonObject),
 		jurisdiction_change: held.jurisdiction_change.rows.map(jsonObject)
-	})(code, String(today));
+	})(code, today);
 	if (law === undefined)
 		return yield* Effect.fail(
 			new WorkbookImportError({ message: `No ${code} law is in force today.`, detail: [] })
@@ -114,8 +114,8 @@ const readKnown = Effect.fnUntraced(function* (ctx: Ctx, grids: WorkbookGrids) {
 			employee_id: row.employee_id,
 			entity_id: row.entity_id,
 			employee_number: row.employee_number,
-			from: String(row.effective_range.from),
-			to: row.effective_range.to == null ? null : String(row.effective_range.to),
+			from: row.effective_range.from,
+			to: row.effective_range.to == null ? null : row.effective_range.to,
 			terms: (row.terms ?? []).map(jsonObject),
 			parameters: (row.parameters ?? []).map(jsonObject)
 		})),

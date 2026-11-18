@@ -219,7 +219,7 @@ export const cycleShiftId = (pattern: PatternRow | undefined, date: string): str
 	}
 	if (days == null) return null;
 	const id = days[WEEKDAYS[DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay] ?? 'SUNDAY'];
-	return id == null || id === '' ? null : String(id);
+	return id == null || id === '' ? null : id;
 };
 
 /** The stored findings; a finding without a message keeps its code. */
@@ -246,9 +246,9 @@ export function buildDays(input: {
 	readonly today: string;
 }): Map<string, Day> {
 	const entries = new Map(
-		input.entries.map((row) => [dayKey(row.employment_id, String(row.work_date).slice(0, 10)), row])
+		input.entries.map((row) => [dayKey(row.employment_id, row.work_date.slice(0, 10)), row])
 	);
-	const holidays = new Map(input.holidays.map((row) => [String(row.date).slice(0, 10), row.name]));
+	const holidays = new Map(input.holidays.map((row) => [row.date.slice(0, 10), row.name]));
 	const leave = new Map<string, { codes: Set<string>; parts: Set<string> }>();
 	for (const row of input.leave) {
 		for (const slot of row.days) {
@@ -261,8 +261,8 @@ export function buildDays(input: {
 			leave.set(key, before);
 		}
 	}
-	const shifts = new Map(input.shifts.map((row) => [String(row.id), row]));
-	const patterns = new Map(input.patterns.map((row) => [String(row.id), row]));
+	const shifts = new Map(input.shifts.map((row) => [row.id, row]));
+	const patterns = new Map(input.patterns.map((row) => [row.id, row]));
 	const days = new Map<string, Day>();
 	for (const person of input.people) {
 		const contracts = person.contracts ?? [person];
@@ -273,7 +273,7 @@ export function buildDays(input: {
 			const contract = contracts.find(({ from, to }) => from <= date && (to == null || date <= to));
 			const pattern = contract?.patternId == null ? undefined : patterns.get(contract.patternId);
 			const entry = contract == null ? undefined : entries.get(dayKey(contract.id, date));
-			const shiftId = entry?.shift_definition_id == null ? null : String(entry.shift_definition_id);
+			const shiftId = entry?.shift_definition_id == null ? null : entry.shift_definition_id;
 			const employed = contract !== undefined;
 			// a pattern projects only inside the contract that names it
 			const projectedId = shiftId == null ? cycleShiftId(pattern, date) : null;

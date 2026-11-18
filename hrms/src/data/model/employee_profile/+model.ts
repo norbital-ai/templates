@@ -182,7 +182,7 @@ export default model('employee_profile', {
 				on_approved: yield* amendmentsFor(
 					ctx.query,
 					counted.map(({ before }) => ({
-						employee: String(before.id),
+						employee: before.id,
 						from: '1900-01-01',
 						to: null
 					}))

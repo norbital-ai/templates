@@ -51,7 +51,7 @@ export function personRead(
 	/** Newest first. */
 	const stints = $derived(
 		(read?.current?.employment.rows ?? []).toSorted((left, right) =>
-			String(right.effective_range.from).localeCompare(String(left.effective_range.from))
+			right.effective_range.from.localeCompare(left.effective_range.from)
 		)
 	);
 	return {
@@ -75,7 +75,7 @@ export function personRead(
 				[
 					...(read?.current?.pay_group.rows ?? []),
 					...(read?.current?.shift_pattern.rows ?? [])
-				].flatMap((row) => (row.name == null ? [] : [[String(row.id), row.name] as const]))
+				].flatMap((row) => (row.name == null ? [] : [[row.id, row.name] as const]))
 			);
 		}
 	};
@@ -85,5 +85,5 @@ export type StintRow = PersonRead['stints'][number];
 
 /** Whether a stint covers a day. */
 export const covers = (stint: StintRow, day: string) =>
-	String(stint.effective_range.from) <= day &&
-	(stint.effective_range.to == null || day <= String(stint.effective_range.to));
+	stint.effective_range.from <= day &&
+	(stint.effective_range.to == null || day <= stint.effective_range.to);

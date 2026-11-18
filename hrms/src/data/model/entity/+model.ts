@@ -117,7 +117,7 @@ export default model('entity', {
 				'entity',
 				changes.map(({ before, after }) => ({
 					before,
-					after: { ...after, effective_range: { from: String(ctx.today), to: null } }
+					after: { ...after, effective_range: { from: ctx.today, to: null } }
 				}))
 			);
 		}

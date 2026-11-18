@@ -413,8 +413,8 @@ export const manualAdjustments = Effect.fn('ledger.manualAdjustments')(function*
 		);
 		const source = `manual:${String(row.id)}`;
 		keys.push({ period, source });
-		moves.set(String(held.id), [
-			...(moves.get(String(held.id)) ?? []),
+		moves.set(held.id, [
+			...(moves.get(held.id) ?? []),
 			{ ...movementOf({ ...row, period }), source }
 		]);
 	}
@@ -856,9 +856,7 @@ const known = Effect.fn('ledger.known')(function* (
 		...stintsRead(people),
 		...lawRead([
 			...new Set(
-				stints.flatMap((row) =>
-					isJsonObject(row.entity_id) ? [String(row.entity_id.settings_code)] : []
-				)
+				stints.flatMap((row) => (isJsonObject(row.entity_id) ? [row.entity_id.settings_code] : []))
 			)
 		]),
 		employee_balance: {
@@ -942,7 +940,7 @@ const known = Effect.fn('ledger.known')(function* (
 	});
 	// the stored leave a check judges against: the open entries and those on the batch's days, each once
 	const stored = [
-		...new Map([...open, ...own.leave_catalog_entry].map((row) => [String(row.id), row])).values()
+		...new Map([...open, ...own.leave_catalog_entry].map((row) => [row.id, row])).values()
 	];
 	return knownOf(own, stored, own.leave_catalog_entry_day, lawsOf(own));
 });
@@ -1203,11 +1201,10 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 	} = found;
 	const payDate = new Map(runs.map((run) => [run.id, run.pay_date]));
 	const stint = new Set(stints.map((row) => String(row.id)));
-	const balance = new Map(balances.map((row) => [String(row.employee_id), String(row.id)]));
+	const balance = new Map(balances.map((row) => [String(row.employee_id), row.id]));
 	// a payslip answers to the law of its company on its run's pay date
 	const lawIn =
-		laws ??
-		lawsOf(yield* queryRows(read, lawRead(entities.map((row) => String(row.settings_code)))));
+		laws ?? lawsOf(yield* queryRows(read, lawRead(entities.map((row) => row.settings_code))));
 	const lineage = new Map(entities.map((row) => [String(row.id), row.settings_code]));
 	const lawFor = (slip: JsonObject) =>
 		lawIn(lineage.get(String(slip.entity_id)), String(payDate.get(String(slip.payroll_run_id))));
@@ -1469,11 +1466,10 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	const held = chainOf(stored);
 	const lineage = new Map([
 		...held.lineage,
-		...companies.map((row) => [String(row.id), String(row.settings_code)] as const)
+		...companies.map((row) => [row.id, row.settings_code] as const)
 	]);
 	const lawIn =
-		laws ??
-		lawsOf(yield* queryRows(read, lawRead(companies.map((row) => String(row.settings_code)))));
+		laws ?? lawsOf(yield* queryRows(read, lawRead(companies.map((row) => row.settings_code))));
 	const manual = manualOf(manualRows);
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row]));
 	for (const { employment, on } of facts) {
@@ -1571,7 +1567,7 @@ const syncPeople = Effect.fnUntraced(function* (
 	employees: readonly Id<'employee_profile'>[],
 	companies: Map<string, CompanyRead>
 ) {
-	const day = String(ctx.today);
+	const day = ctx.today;
 	// their stints, balances and the rows HR keyed by hand
 	const own = yield* queryRows(ctx.query, {
 		...stintsRead(employees),
@@ -1588,7 +1584,7 @@ const syncPeople = Effect.fnUntraced(function* (
 	});
 	// a balance row opens with the person's first stint; a pass opens any that is still missing, so nobody is left where
 	// every entry is refused for want of one. Its id is minted here: an empty balance needs no read back
-	const has = new Set(own.employee_balance.map((row) => String(row.employee_id)));
+	const has = new Set(own.employee_balance.map((row) => row.employee_id));
 	const opened = employees
 		.filter((id) => !has.has(id))
 		.map((employee_id) => ({ id: new_id('employee_balance'), employee_id, account: {} }));
@@ -1604,9 +1600,7 @@ const syncPeople = Effect.fnUntraced(function* (
 	const key = ids.join(',');
 	const theirs =
 		companies.get(key) ??
-		(yield* companyRead(ctx.query, ids, [
-			...new Set(named.map((row) => String(row.settings_code)))
-		]));
+		(yield* companyRead(ctx.query, ids, [...new Set(named.map((row) => row.settings_code))]));
 	companies.set(key, theirs);
 	const read = {
 		...own,
@@ -1615,9 +1609,7 @@ const syncPeople = Effect.fnUntraced(function* (
 	};
 	const manual = manualOf(read.ledger_entry ?? []);
 	// a stint's law is its entity's jurisdiction as it stands on the day
-	const lineage = new Map(
-		(read.entity ?? []).map((row) => [String(row.id), String(row.settings_code)])
-	);
+	const lineage = new Map((read.entity ?? []).map((row) => [String(row.id), row.settings_code]));
 	const laws = lawsOf(read);
 	const lawIn = (entity: unknown, on: string) => laws(lineage.get(String(entity)), on);
 	const entitled = (account: string, rows: readonly JsonObject[]) =>
@@ -1636,11 +1628,11 @@ const syncPeople = Effect.fnUntraced(function* (
 		(parts) => String(parts.stint.employee_id)
 	);
 	const workEvents = (read.work_event ?? []).map((row) => ({
-		code: String(row.catalog_code),
-		entity_id: String(row.entity_id),
-		employment_id: row.employment_id == null ? null : String(row.employment_id),
-		from: String(row.from),
-		to: row.to == null ? null : String(row.to),
+		code: row.catalog_code,
+		entity_id: row.entity_id,
+		employment_id: row.employment_id == null ? null : row.employment_id,
+		from: row.from,
+		to: row.to == null ? null : row.to,
 		location: row.location ?? null
 	}));
 	const eventsFor = (contract: JsonObject) =>
@@ -1653,12 +1645,12 @@ const syncPeople = Effect.fnUntraced(function* (
 		stints.map((parts) => parts.stint),
 		(row) => String(row.employee_id)
 	);
-	const changesOf = Map.groupBy(read.entity_change ?? [], (row) => String(row.entity_id));
+	const changesOf = Map.groupBy(read.entity_change ?? [], (row) => row.entity_id);
 	const employerAt = (entity: unknown, on: string) => {
 		const company = (read.entity ?? []).find((row) => row.id === entity);
 		return company === undefined
 			? undefined
-			: employerOn(company, changesOf.get(String(company.id)) ?? [], on);
+			: employerOn(company, changesOf.get(company.id) ?? [], on);
 	};
 	const plans: Plan[] = [];
 	let boundary: string | undefined;
@@ -1717,7 +1709,7 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 	const { employee_balance: rows = [] } = yield* queryRows(ctx.query, {
 		employee_balance: { fields: ['account', 'revision'], limit: 1000 }
 	});
-	const today = String(ctx.today);
+	const today = ctx.today;
 	const due = rows.flatMap((balance) => {
 		const movements = expired(accountsOf(balance.account), today, YEARS_HELD);
 		return movements.length === 0 ? [] : [{ balance, movements }];
@@ -1729,10 +1721,10 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 				// `REMOVE` only drops the emptied key from the balance: the ledger keeps the movement that emptied it
 				movements
 					.filter((row) => row.operation !== 'REMOVE')
-					.map((row) => jsonObject({ ...row, balance_id: String(balance.id) }))
+					.map((row) => jsonObject({ ...row, balance_id: balance.id }))
 			),
 			'employee_balance.update': batch.map(({ balance, movements }) => ({
-				target: { id: String(balance.id), revision: Number(balance.revision) },
+				target: { id: balance.id, revision: balance.revision },
 				set: jsonObject({ account: apply(accountsOf(balance.account), movements) })
 			}))
 		};
@@ -1824,7 +1816,7 @@ export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
 			{
 				entity_id: first.id,
 				title: `${title}: ${label}. ${reason}`,
-				occurrence_key: `ledger-failure:${String(ctx.today)}:${label}`
+				occurrence_key: `ledger-failure:${ctx.today}:${label}`
 			}
 		]
 	});

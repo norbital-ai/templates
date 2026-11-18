@@ -83,7 +83,7 @@ export function skipHeldHolidays(
 	proposed: readonly HolidayDraft[],
 	held: readonly { readonly entity_id: string; readonly date: string }[]
 ): { readonly insert: readonly HolidayDraft[]; readonly skipped: number } {
-	const existing = new Set(held.map((row) => `${row.entity_id}|${String(row.date).slice(0, 10)}`));
+	const existing = new Set(held.map((row) => `${row.entity_id}|${row.date.slice(0, 10)}`));
 	const insert: HolidayDraft[] = [];
 	let skipped = 0;
 	const seen = new Set<string>();

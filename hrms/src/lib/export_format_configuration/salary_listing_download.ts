@@ -83,7 +83,7 @@ export const listingRead = Effect.fn('payroll.listingRead')(function* (
 		}));
 		stints.push(...stintPage.rows);
 	}
-	const closes = new Map(runs.map((run) => [run.id, String(run.salary_coverage.to ?? '')]));
+	const closes = new Map(runs.map((run) => [run.id, run.salary_coverage.to ?? '']));
 	// a run is paid in the currency of its company's jurisdiction
 	const currency = new Map(laws.map((row) => [row.code, row.currency]));
 	return {

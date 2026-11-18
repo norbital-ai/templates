@@ -114,7 +114,7 @@ export const runRosterImport = (
 				}));
 				const stored: RosterStored[] = entries.map((entry) => ({
 					employment_id: entry.employment_id,
-					work_date: String(entry.work_date),
+					work_date: entry.work_date,
 					shift_definition_id: entry.shift_definition_id,
 					planned_overtime_intervals: entry.planned_overtime_intervals ?? null,
 					overtime_as_time_off: entry.overtime_as_time_off,

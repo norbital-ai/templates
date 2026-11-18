@@ -470,10 +470,7 @@ export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown):
 		throw new WorkbookRowsError(`The entity's time zone "${known.zone}" is not known.`);
 	const last = DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(`${month}-01`), 'month'));
 	const stored = new Map(
-		known.entries.map((entry) => [
-			`${entry.employment_id}:${String(entry.work_date).slice(0, 10)}`,
-			entry
-		])
+		known.entries.map((entry) => [`${entry.employment_id}:${entry.work_date.slice(0, 10)}`, entry])
 	);
 	const problems: Problem[] = [];
 	const warnings: string[] = [];

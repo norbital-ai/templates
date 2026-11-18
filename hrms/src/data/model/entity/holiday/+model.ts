@@ -16,10 +16,10 @@ const spans = (
 			? []
 			: [
 					{
-						entity: String(row.entity_id),
-						from: String(row.date),
-						to: String(row.date),
-						...(row.employee_id == null ? {} : { employee: String(row.employee_id) })
+						entity: row.entity_id,
+						from: row.date,
+						to: row.date,
+						...(row.employee_id == null ? {} : { employee: row.employee_id })
 					}
 				]
 	);

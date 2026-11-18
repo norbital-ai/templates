@@ -299,7 +299,7 @@ const slotsOf = (entry: JsonObject): readonly Slot[] =>
 		isJsonObject(day) &&
 		typeof day.date === 'string' &&
 		Option.exists(DateTime.make(day.date), (d) => DateTime.formatIsoDate(d) === day.date)
-			? [{ date: String(day.date), part: String(day.part) }]
+			? [{ date: day.date, part: String(day.part) }]
 			: []
 	);
 /** A row whose `paid_share` is set: a slot of it may pay less than a normal day. */
@@ -354,8 +354,8 @@ const plannedDays = (
 	if (input.projected_days !== undefined) return input.projected_days;
 	const off = offDaysOf(input);
 	return daysIn(coverage.from, coverage.to).map((date) => ({
-		date: String(date),
-		work: isWorkingDay(String(date), off)
+		date: date,
+		work: isWorkingDay(date, off)
 	}));
 };
 
@@ -525,7 +525,7 @@ export const payBasis = (input: PayrollInput, coverage: { from: string; to: stri
 	const monthWorking = monthDays.filter((date) => isWorkingDay(date, off)).length;
 	const calendar_days = daysIn(coverage.from, coverage.to).length;
 	const working_days = daysIn(coverage.from, coverage.to).filter((date) =>
-		isWorkingDay(String(date), off)
+		isWorkingDay(date, off)
 	).length;
 	const monthly =
 		unit === 'DAILY'
@@ -582,7 +582,7 @@ function salaryOf(input: PayrollInput, coverage: { from: string; to: string }) {
 	const { amount: rate, unit, hoursPerDay } = rateOf(input);
 	const off = offDaysOf(input);
 	const workingDays = daysIn(coverage.from, coverage.to).filter((date) =>
-		isWorkingDay(String(date), off)
+		isWorkingDay(date, off)
 	).length;
 	if (workingDays <= 0) throw new Refusal({ message: 'Working days must be positive.' });
 	const hoursPerMonth = workingDays * hoursPerDay;
@@ -934,7 +934,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			const byRate = Map.groupBy(
 				work.days,
 				(day) =>
-					`${String(day.hour_rate)}/${String(day.day_rate)}/${String(wagesByDay.get(String(day.date)))}`
+					`${String(day.hour_rate)}/${String(day.day_rate)}/${String(wagesByDay.get(day.date))}`
 			);
 			const value =
 				model !== 'overtime_catalog' || byRate.size === 0

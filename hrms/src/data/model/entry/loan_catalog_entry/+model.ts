@@ -30,8 +30,8 @@ const instalmentAmendments = Effect.fnUntraced(function* (
 				? []
 				: [
 						{
-							employment: String(row.employment_id),
-							from: String(row.paid_on),
+							employment: row.employment_id,
+							from: row.paid_on,
 							run: row.payroll_run_id ?? null
 						}
 					]

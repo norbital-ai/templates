@@ -89,22 +89,19 @@ export const reconcile = Effect.fn('dependants.reconcile')(function* (
 		}
 	});
 	const exits = exitsIn(stints, entities);
-	const cancelled = new Set(stints.map((row) => String(row.id)).filter((id) => !exits.has(id)));
+	const cancelled = new Set(stints.map((row) => row.id).filter((id) => !exits.has(id)));
 
 	// A cancelled exit's loan still holding the final settlement no run took goes back to monthly instalments.
 	const remove: string[] = [];
 	const instalments: JsonObject[] = [];
-	const repayments = Map.groupBy(found.loan_catalog_entry_repayment ?? [], (row) =>
-		String(row.loan_id)
-	);
+	const repayments = Map.groupBy(found.loan_catalog_entry_repayment ?? [], (row) => row.loan_id);
 	for (const loan of found.loan_catalog_entry ?? []) {
-		if (!cancelled.has(String(loan.employment_id))) continue;
-		const rows = repayments.get(String(loan.id)) ?? [];
+		if (!cancelled.has(loan.employment_id)) continue;
+		const rows = repayments.get(loan.id) ?? [];
 		if (
 			!rows.some(
 				(row) =>
-					row.payroll_run_id == null &&
-					String(row.payment_reference ?? '').startsWith(FINAL_SETTLEMENT)
+					row.payroll_run_id == null && (row.payment_reference ?? '').startsWith(FINAL_SETTLEMENT)
 			)
 		)
 			continue;
@@ -112,14 +109,14 @@ export const reconcile = Effect.fn('dependants.reconcile')(function* (
 		const plan = yield* Effect.try({
 			try: () =>
 				buildLoanSchedule({
-					principal: Number(loan.quantity),
+					principal: loan.quantity,
 					from: String(period.from),
 					to: String(period.to),
 					repayments: rows.map((row) => ({
-						id: String(row.id),
-						amount: Number(row.amount),
+						id: row.id,
+						amount: row.amount,
 						paid_on: String(row.paid_on),
-						payroll_run_id: row.payroll_run_id == null ? null : String(row.payroll_run_id)
+						payroll_run_id: row.payroll_run_id == null ? null : row.payroll_run_id
 					}))
 				}),
 			catch: (error) => new Refusal({ message: getErrorMessage(error) })
@@ -127,27 +124,27 @@ export const reconcile = Effect.fn('dependants.reconcile')(function* (
 		remove.push(...plan.remove);
 		instalments.push(
 			...plan.create.map((item) => ({
-				entity_id: String(loan.entity_id),
-				employment_id: String(loan.employment_id),
-				loan_id: String(loan.id),
+				entity_id: loan.entity_id,
+				employment_id: loan.employment_id,
+				loan_id: loan.id,
 				amount: item.amount,
 				paid_on: item.paid_on
 			}))
 		);
 	}
 	const revisions = new Map(
-		(found.loan_catalog_entry_repayment ?? []).map((row) => [String(row.id), Number(row.revision)])
+		(found.loan_catalog_entry_repayment ?? []).map((row) => [String(row.id), row.revision])
 	);
 
 	// The tasks: what this routine waived, it reopens when the fact stands again.
 	const CANCELLED = 'The exit was cancelled.';
 	const MOVED = 'The exit date moved; this task answered the earlier date.';
 	const moves = (found.obligation ?? []).flatMap((task): JsonObject[] => {
-		const key = String(task.occurrence_key);
+		const key = task.occurrence_key;
 		if (!isExitDuty(key)) return [];
 		const to = exits.get(String(task.employment_id));
 		const due = to !== undefined && key.endsWith(`:${to}`);
-		const target = { id: String(task.id), revision: Number(task.revision) };
+		const target = { id: task.id, revision: task.revision };
 		if (task.state === 'OPEN' && !due)
 			return [
 				{
