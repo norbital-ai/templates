@@ -289,7 +289,7 @@ test.live('a configuration edit and a published template reach every draft shari
 			'document_templates',
 			yield* as.act({
 				'document_templates.create': [
-					{ locale: 'en', version: '2', title: 'Revised agreement', body: '{agreement}' }
+					{ kind: 'sales_contract', locale: 'en', title: 'Revised agreement', body: '{agreement}' }
 				]
 			})
 		);

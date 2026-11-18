@@ -116,8 +116,8 @@ Saving a SQL credential checks the master and stock projections and their SQL re
 before activating SQL sync. Unpaired or paused
 instances leave queued sales work waiting.
 Administrators are notified when a ledger needs attention. Trade configuration keeps each rule beside
-what it governs: Documents marks which template new sales and purchase orders start with; Prices and
-commission holds the minimum-price enforcement on the price book and the freight treatment beside the
+what it governs: Documents holds each printed document's layout per language (quotation, sales contract, purchase
+contract); Prices and commission holds the minimum-price enforcement on the price book and the freight treatment beside the
 commission rules. Source documents are read-only.
 
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.

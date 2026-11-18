@@ -37,12 +37,7 @@ export default policy({
 		commercial_settings: {
 			outputs: { default: { history: true } },
 			update: {
-				fields: [
-					'default_document_layout',
-					'default_purchase_document_layout',
-					'freight_treatment',
-					'require_floor'
-				]
+				fields: ['freight_treatment', 'require_floor']
 			}
 		},
 		pricing_floors: {

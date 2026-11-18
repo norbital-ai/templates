@@ -36,6 +36,7 @@
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import OrderDocumentDialog from './order-document-dialog.svelte';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
+	import { contractKind, currentTemplate } from '../../../lib/order-document.js';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
@@ -66,6 +67,23 @@
 			: view.record.direction === 'purchasing'
 	);
 	const draft = $derived(view.mode === 'create' || view.record.status === 'draft');
+	// the contract layout the order's print details belong to: the sealed one, else its case's current version
+	const layouts = ctx.query({
+		document_templates: {
+			where: { status: { eq: 'published' } },
+			fields: ['kind', 'locale', 'status', 'version'],
+			limit: 1000
+		}
+	});
+	const contractLayout = (form: FormState) =>
+		(view.mode !== 'create' && view.record.status === 'confirmed'
+			? form.id<'document_templates'>('document_template')
+			: null) ??
+		currentTemplate(
+			layouts.current?.document_templates.rows ?? [],
+			contractKind(form.get('direction') === 'purchasing' ? 'purchasing' : 'sales'),
+			form.get('document_locale') === 'zh' ? 'zh' : 'en'
+		)?.id;
 	const ledgerRead = $derived(
 		id && commercial
 			? ctx.query({
@@ -268,7 +286,7 @@
 {#snippet printDetails(form: FormState, field: FieldEditor)}
 	<PrintDetails
 		{ctx}
-		layout={form.id<'document_templates'>('document_template')}
+		layout={contractLayout(form)}
 		scope="order"
 		value={field.value}
 		on_change={field.on_change}
@@ -280,7 +298,7 @@
 {#snippet printDetailsView(form: FormState)}
 	<PrintDetails
 		{ctx}
-		layout={form.id<'document_templates'>('document_template')}
+		layout={contractLayout(form)}
 		scope="order"
 		value={form.get('print_values')}
 	/>
@@ -519,7 +537,7 @@
 {/snippet}
 <RecordForm
 	{ctx}
-	editable_presets={['document_template']}
+	editable_presets={['document_locale']}
 	trailing={orderState}
 	readonly={archived}
 	readonly_reason={ctx.t('component.order_archived')}
@@ -534,6 +552,7 @@
 			'archived',
 			'total',
 			'ordered_on',
+			'document_locale',
 			'document_template',
 			'currency',
 			'valid_from',
@@ -605,7 +624,7 @@
 				'delivery_address',
 				'delivery_date',
 				'logistics_handler',
-				'document_template',
+				'document_locale',
 				'supporting_documents',
 				'print_values'
 			],

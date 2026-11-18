@@ -24,7 +24,7 @@
 		</p>{/if}{/snippet}
 <RecordForm
 	{ctx}
-	subtitle={['locale', 'version']}
+	subtitle={['kind', 'locale', 'version']}
 	editors={{ body: longText }}
 	{view}
 	readonly={published}
@@ -32,8 +32,8 @@
 		{
 			name: 'template',
 			fields: [
+				'kind',
 				'locale',
-				'version',
 				'title',
 				'layout',
 				'body',

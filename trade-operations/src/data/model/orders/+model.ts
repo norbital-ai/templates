@@ -1,6 +1,6 @@
 import { lineDeletes } from '../../../lib/order-review.js';
 import { logisticsDocument, logisticsLine, logisticsOrder } from '../../../lib/logistics.js';
-import { agreementTemplate, sealDocument } from '../../../lib/order-document.js';
+import { contractKind, currentTemplate, sealDocument } from '../../../lib/order-document.js';
 import { confirmationBasis } from '../../../lib/confirmation.js';
 import { sealedCommission } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
@@ -51,7 +51,7 @@ const terms = [
 	'owner',
 	'warehouse',
 	'ordered_on',
-	'document_template',
+	'document_locale',
 	'print_values',
 	'currency',
 	'tax_inclusive',
@@ -111,6 +111,9 @@ export default model('orders', {
 		party: { kind: 'ref', to: 'parties', inverse: 'orders' },
 		owner: { kind: 'ref', to: 'sys_user', default: { var: 'actor.id' } },
 		warehouse: { kind: 'ref', to: 'warehouses', optional: true },
+		// the language the order's documents print in; its case (quotation, contract) follows from the order
+		document_locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' },
+		// the contract layout version its confirmation sealed
 		document_template: {
 			kind: 'ref',
 			to: 'document_templates',
@@ -297,40 +300,12 @@ export default model('orders', {
 			)
 				return yield* ctx.refuse('errors.save_before_confirm');
 			const rows = changes.map(({ after }) => after);
-			const {
-				parties,
-				warehouses,
-				commercial_settings: settings,
-				document_templates: layouts
-			} = yield* ctx.query({
+			const { parties, warehouses } = yield* ctx.query({
 				parties: { where: { id: { in: rows.map((r) => r.party) } } },
-				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } },
-				commercial_settings: {
-					where: { code: { eq: 'default' } },
-					fields: ['default_document_layout', 'default_purchase_document_layout'],
-					limit: 1
-				},
-				document_templates: { where: { status: { eq: 'published' } } }
+				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } }
 			});
-			const config = settings.rows[0];
-			const defaultLayout = (direction: Row<'orders'>['direction']) => {
-				const preferred =
-					direction === 'purchasing'
-						? config?.default_purchase_document_layout
-						: config?.default_document_layout;
-				return [preferred, config?.default_document_layout].find(
-					(id) => id != null && layouts.rows.some((layout) => layout.id === id)
-				);
-			};
 			const out = [];
 			for (const { after: row, set } of changes) {
-				if (
-					row.document_template &&
-					!layouts.rows.some((layout) => layout.id === row.document_template)
-				)
-					return yield* ctx.refuse('errors.document_layout_unpublished', {
-						field: 'document_template'
-					});
 				if (row.print_values && !validPrintValues(row.print_values))
 					return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 				if (row.valid_from && row.valid_until && row.valid_until < row.valid_from)
@@ -343,7 +318,6 @@ export default model('orders', {
 				);
 				out.push({
 					...set,
-					document_template: row.document_template ?? defaultLayout(row.direction) ?? null,
 					...(row.print_values ? { print_values: orderedPrintValues(row.print_values) } : {}),
 					source_order_key: row.source_order_key ?? crypto.randomUUID(),
 					ledger: party.source,
@@ -446,13 +420,6 @@ export default model('orders', {
 					(ctx.actor.kind !== 'system' || old.status === 'confirmed')
 				)
 					return yield* ctx.refuse('errors.evidence_sealed');
-				if (
-					input.document_template &&
-					!templates.rows.some((layout) => layout.id === input.document_template)
-				)
-					return yield* ctx.refuse('errors.document_layout_unpublished', {
-						field: 'document_template'
-					});
 				if (input.print_values && !validPrintValues(input.print_values))
 					return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 				if (input.direction !== undefined && input.direction !== old.direction)
@@ -483,7 +450,7 @@ export default model('orders', {
 							'tax_inclusive',
 							'direction',
 							'ordered_on',
-							...(old.status === 'confirmed' ? (['owner'] as const) : [])
+							...(old.status === 'confirmed' ? (['owner', 'document_locale'] as const) : [])
 						] as const
 					).some(
 						(k) =>
@@ -513,11 +480,16 @@ export default model('orders', {
 				// draft -> confirmed
 				if (terms.some((k) => input[k] !== undefined && input[k] !== old[k]))
 					return yield* ctx.refuse('errors.save_before_confirm');
-				const template = agreementTemplate(templates.rows, old.document_template);
+				// the confirmation seals its case's current contract layout in the order's language
+				const template = currentTemplate(
+					templates.rows,
+					contractKind(old.direction),
+					old.document_locale
+				);
 				if (!config) return yield* ctx.refuse('errors.configuration_missing');
 				if (!template)
 					return yield* ctx.refuse('errors.document_layout_unpublished', {
-						field: 'document_template'
+						field: 'document_locale'
 					});
 				if (!own.length) return yield* ctx.refuse('errors.lines_required');
 				if (old.warehouse && !warehouse?.active)
@@ -557,6 +529,7 @@ export default model('orders', {
 					party_name: admitted.name,
 					freight_treatment: config.freight_treatment,
 					write_target: writeTarget,
+					document_template: template.id,
 					commission: sealedCommission(rules.rows, old.currency, old.ordered_on)
 				});
 			}

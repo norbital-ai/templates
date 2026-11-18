@@ -154,9 +154,9 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				yield* admin.act({
 					'document_templates.create': [
 						{
+							kind: 'purchase_contract',
 							title: 'Approved print layout',
 							locale: 'en',
-							version: '1',
 							body: '{agreement}\nDelivery by arrangement.',
 							print_layout: upload.output,
 							print_fields: [
@@ -183,7 +183,6 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					{
 						target: yield* t.at('orders', order),
 						set: {
-							document_template: layout,
 							print_values: [{ key: 'buyer_reference', value: 'BUY <42>\nNorth entrance' }]
 						}
 					}
@@ -269,7 +268,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		})
 	);
 	test.effect(
-		'preview and PDF render the order in its own layout; a later default and logistics cannot change or export it',
+		'a confirmed order keeps the contract it sealed; a newer version reaches only orders not yet confirmed; logistics cannot export it',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -280,62 +279,43 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					]
 				});
 				const { order } = yield* draft(t);
-				const draftPreview = yield* documentOf(admin, { order });
+				expect((yield* documentOf(admin, { order })).title).toBe('Quotation');
+				yield* confirm(t, order);
+				const preview = yield* documentOf(admin, { order });
+				expect(preview.title).toBe('Sales contract');
 				const newer = committed(
 					'document_templates',
 					yield* admin.act({
 						'document_templates.create': [
 							{
-								locale: 'zh',
-								version: '3',
-								title: 'New document heading',
+								kind: 'sales_contract',
+								locale: 'en',
+								title: 'New contract heading',
 								body: '{agreement}\nNew contract wording'
 							}
 						]
 					})
 				);
-				expect(
-					yield* Effect.flip(
-						admin.act({
-							'commercial_settings.update': [
-								{
-									target: yield* t.at('commercial_settings', SETTINGS),
-									set: { default_document_layout: newer }
-								}
-							]
-						})
-					)
-				).toMatchObject({ _tag: 'ActRefused' });
+				const next = yield* draft(t);
+				// an unpublished revision changes nothing
+				yield* confirm(t, next.order);
+				expect((yield* documentOf(admin, { order: next.order })).title).toBe('Sales contract');
 				yield* admin.act({
 					'document_templates.update': [
 						{ target: yield* t.at('document_templates', newer), set: { status: 'published' } }
 					]
 				});
-				yield* admin.act({
-					'commercial_settings.update': [
-						{
-							target: yield* t.at('commercial_settings', SETTINGS),
-							set: { default_document_layout: newer }
-						}
-					]
-				});
-				expect(yield* documentOf(admin, { order })).toEqual(draftPreview);
-				const next = yield* draft(t);
-				expect((yield* documentOf(admin, { order: next.order })).title).toBe(
-					'New document heading'
-				);
-				yield* confirm(t, order);
-				const preview = yield* documentOf(admin, { order });
-				expect(preview.title).toBe(draftPreview.title);
-				const confirmed = firstRow((yield* admin.query(documentRead(order))).orders.rows);
-				yield* admin.act({
-					'commercial_settings.update': [
-						{
-							target: yield* t.at('commercial_settings', SETTINGS),
-							set: { default_document_layout: confirmed.document_template }
-						}
-					]
-				});
+				expect(
+					(yield* admin.query({
+						document_templates: { where: { id: { eq: newer } }, fields: ['version'], limit: 1 }
+					})).document_templates.rows[0]?.version
+				).toBe('2');
+				expect(yield* documentOf(admin, { order })).toEqual(preview);
+				const later = yield* draft(t);
+				yield* confirm(t, later.order);
+				const revised = yield* documentOf(admin, { order: later.order });
+				expect(revised.title).toBe('New contract heading');
+				expect(revised.html).toContain('New contract wording');
 				expect(preview.html).toContain('21.80');
 				// Logistics reads no order terms through the default document query.
 				expect(
@@ -345,20 +325,6 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(yield* renderPreview(t, preview)).toBe(preview.html);
 				expect(converted).toEqual([preview.html]);
 			})
-	);
-	test.effect('an order with no layout chosen previews in the default layout', () =>
-		Effect.gen(function* () {
-			const t = yield* Trade;
-			const admin = yield* t.as(t.admin);
-			const { order } = yield* draft(t);
-			const chosen = yield* documentOf(admin, { order });
-			yield* admin.act({
-				'orders.update': [
-					{ target: yield* t.at('orders', order), set: { document_template: null } }
-				]
-			});
-			expect((yield* documentOf(admin, { order })).title).toBe(chosen.title);
-		})
 	);
 	test.effect('the published contract stamp is included only on confirmed sales contracts', () =>
 		Effect.gen(function* () {
@@ -380,8 +346,8 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				yield* admin.act({
 					'document_templates.create': [
 						{
+							kind: 'sales_contract',
 							locale: 'en',
-							version: '4',
 							title: 'Stamped sales agreement',
 							body: '{agreement}',
 							contract_stamp: upload.output
@@ -395,23 +361,10 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				]
 			});
 			const { order } = yield* draft(t);
-			yield* admin.act({
-				'orders.update': [
-					{
-						target: yield* t.at('orders', order),
-						set: { document_template: fixtureId('document_templates', layout) }
-					}
-				]
-			});
 			expect((yield* documentOf(admin, { order })).stamp).toBeNull();
 			yield* confirm(t, order);
 			expect((yield* documentOf(admin, { order })).stamp?.id).toBe(upload.output.id);
 			const purchase = yield* draft(t, 'purchasing');
-			yield* admin.act({
-				'orders.update': [
-					{ target: yield* t.at('orders', purchase.order), set: { document_template: layout } }
-				]
-			});
 			yield* confirm(t, purchase.order);
 			expect((yield* documentOf(admin, { order: purchase.order })).stamp).toBeNull();
 			converted.length = 0;
@@ -420,50 +373,35 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			expect(converted[0]).toContain('data:image/png;base64,');
 		})
 	);
-	test.effect('each published document variant renders its own title and clauses', () =>
+	test.effect('an order prints its case in its language, with no layout to choose', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;
 			const admin = yield* t.as(t.admin);
-			const variants = [
-				[
-					'00000000-0000-4000-8000-000000000504',
-					'Quotation',
-					'This quotation is valid for the period'
-				],
-				['00000000-0000-4000-8000-000000000505', 'Sales contract', 'The seller supplies the goods'],
-				['00000000-0000-4000-8000-000000000506', '报价单', '本报价在以上有效期内有效'],
-				['00000000-0000-4000-8000-000000000507', '销售合同', '卖方按上述数量']
-			] as const;
-			for (const [layout, title, clause] of variants) {
-				const { order } = yield* draft(t);
-				yield* admin.act({
-					'orders.update': [
-						{
-							target: yield* t.at('orders', order),
-							set: { document_template: fixtureId('document_templates', layout) }
-						}
-					]
+			const print = (direction: 'sales' | 'purchasing', locale: 'en' | 'zh', confirmed: boolean) =>
+				Effect.gen(function* () {
+					const { order } = yield* draft(t, direction);
+					yield* admin.act({
+						'orders.update': [
+							{ target: yield* t.at('orders', order), set: { document_locale: locale } }
+						]
+					});
+					if (confirmed) yield* confirm(t, order);
+					return yield* documentOf(admin, { order });
 				});
-				const document = yield* documentOf(admin, { order });
+			// the English contracts are revised by the tests beside this one; their seeded versions print in those tests
+			const cases = [
+				['sales', 'en', false, 'Quotation', 'This quotation is valid for the period'],
+				['sales', 'zh', false, '报价单', '本报价在以上有效期内有效'],
+				['sales', 'zh', true, '销售合同', '卖方按上述数量'],
+				['purchasing', 'zh', false, '采购合同', '供应商：'],
+				['purchasing', 'zh', true, '采购合同', '供应商：']
+			] as const;
+			for (const [direction, locale, confirmed, title, clause] of cases) {
+				const document = yield* print(direction, locale, confirmed);
 				expect(document.title).toBe(title);
 				expect(document.html).toContain(clause);
+				if (direction === 'purchasing') expect(document.stamp).toBeNull();
 			}
-		})
-	);
-	test.effect('a purchase commitment defaults to the seeded supplier contract layout', () =>
-		Effect.gen(function* () {
-			const t = yield* Trade;
-			const admin = yield* t.as(t.admin);
-			const { order } = yield* draft(t, 'purchasing');
-			const layout = (yield* admin.query({
-				orders: { where: { id: { eq: order } }, fields: ['document_template'], limit: 1 }
-			})).orders.rows[0]?.document_template;
-			expect(layout).toBe('00000000-0000-4000-8000-000000000503');
-			const document = yield* documentOf(admin, { order });
-			expect(document.title).toBe('Purchase contract');
-			expect(document.html).toContain('Supplier:');
-			expect(document.html).toContain('Buyer:');
-			expect(document.stamp).toBeNull();
 		})
 	);
 	test.effect(
@@ -483,15 +421,15 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					bytes: png
 				});
 				if (file.kind !== 'committed') throw new Error('Letterhead upload required');
-				const publish = (version: string, title: string, body: string) =>
+				const publish = (title: string, body: string) =>
 					Effect.gen(function* () {
 						const id = committed(
 							'document_templates',
 							yield* admin.act({
 								'document_templates.create': [
 									{
+										kind: 'purchase_contract',
 										locale: 'en',
-										version,
 										title,
 										body,
 										layout: 'table_v1',
@@ -507,8 +445,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 						});
 						return id;
 					});
-				const layout = yield* publish(
-					'1',
+				yield* publish(
 					'Purchase commitment',
 					'Reference {reference}\n{agreement}\nRetained terms.'
 				);
@@ -517,14 +454,6 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					params: ['A-110 <grade>', PRODUCT]
 				});
 				const { order } = yield* draft(t, 'purchasing', undefined, '2026-10-09');
-				yield* admin.act({
-					'orders.update': [
-						{
-							target: yield* t.at('orders', order),
-							set: { document_template: fixtureId('document_templates', layout) }
-						}
-					]
-				});
 				const draftPdf = yield* documentOf(admin, { order });
 				expect(draftPdf.filename).toMatch(/-purchase-commitment\.pdf$/);
 				expect(draftPdf.html).toContain('A-110 &lt;grade&gt;');
@@ -536,11 +465,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(original.html).toContain('Retained terms.');
 				expect(original.letterhead?.id).toBe(file.output.id);
 				expect(original.stamp).toBeNull();
-				const nextLayout = yield* publish(
-					'2',
-					'New purchase layout',
-					'{agreement}\nChanged terms.'
-				);
+				yield* publish('New purchase layout', '{agreement}\nChanged terms.');
 				yield* t.db.write({
 					text: 'UPDATE products SET spec = $1 WHERE id = $2',
 					params: ['A-120', PRODUCT]
@@ -552,12 +477,9 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted[0]).toContain('Company letterhead');
 				expect(converted[0]).toContain('Retained terms.');
 				expect(converted[0]).not.toContain('A-120');
-				yield* admin.act({
-					'orders.update': [
-						{ target: yield* t.at('orders', order), set: { document_template: nextLayout } }
-					]
-				});
-				expect((yield* documentOf(admin, { order })).html).toContain('Changed terms.');
+				// the newer version is what a purchase order not yet confirmed prints
+				const next = yield* draft(t, 'purchasing');
+				expect((yield* documentOf(admin, { order: next.order })).html).toContain('Changed terms.');
 			})
 	);
 });

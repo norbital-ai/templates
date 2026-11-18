@@ -48,8 +48,27 @@ function documentPage(
 type DocumentTemplate = Row<'document_templates'>;
 type DocumentSnapshot = Terms;
 
-export function agreementTemplate(rows: readonly DocumentTemplate[], selected: string | null) {
-	return rows.find((row) => row.id === selected && row.status === 'published');
+type DocumentKind = DocumentTemplate['kind'];
+/** What a confirmation seals: a sales contract, or a purchase contract. */
+export const contractKind = (direction: Row<'orders'>['direction']): DocumentKind =>
+	direction === 'purchasing' ? 'purchase_contract' : 'sales_contract';
+/** What an order prints as: a sales order is a quotation until it is confirmed. */
+export const documentKind = (order: Pick<Row<'orders'>, 'direction' | 'status'>): DocumentKind =>
+	order.direction === 'sales' && order.status !== 'confirmed'
+		? 'quotation'
+		: contractKind(order.direction);
+/** Newest version first; an upgraded workspace's equal versions order by id. */
+export const newestFirst = (
+	a: Pick<DocumentTemplate, 'id' | 'version'>,
+	b: Pick<DocumentTemplate, 'id' | 'version'>
+) => Number(b.version) - Number(a.version) || b.id.localeCompare(a.id);
+/** A case's current layout in one language: its newest published version. */
+export function currentTemplate<
+	T extends Pick<DocumentTemplate, 'id' | 'kind' | 'locale' | 'status' | 'version'>
+>(rows: readonly T[], kind: DocumentKind, locale: DocumentTemplate['locale']) {
+	return rows
+		.filter((row) => row.status === 'published' && row.kind === kind && row.locale === locale)
+		.sort(newestFirst)[0];
 }
 export function sealDocument(template: DocumentTemplate) {
 	return {
@@ -204,6 +223,7 @@ export const documentRead = (order: Id<'orders'>) =>
 				'currency',
 				'ordered_on',
 				'document_template',
+				'document_locale',
 				'print_values',
 				'tax_inclusive',
 				'valid_from',
@@ -227,13 +247,7 @@ export const documentRead = (order: Id<'orders'>) =>
 			party: { fields: ['name', 'external_code'] },
 			lines: {}
 		},
-		document_templates: { where: { status: { eq: 'published' } } },
-		// an order with no layout chosen (one Kingdee created) prints in the workspace default
-		commercial_settings: {
-			where: { code: { eq: 'default' } },
-			fields: ['default_document_layout', 'default_purchase_document_layout'],
-			limit: 1
-		}
+		document_templates: { where: { status: { eq: 'published' } } }
 	}) as const;
 /** The order's current terms in its published layout; a confirmed sales order carries the contract stamp. */
 export const orderDocument = Effect.fnUntraced(function* (
@@ -243,17 +257,12 @@ export const orderDocument = Effect.fnUntraced(function* (
 	if (!order) return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	const reference = order.number;
 	const purchase = order.direction === 'purchasing';
-	const settings = answer.commercial_settings.rows[0];
-	const template = (
-		order.document_template
-			? [order.document_template]
-			: [
-					purchase ? settings?.default_purchase_document_layout : null,
-					settings?.default_document_layout
-				]
-	)
-		.map((id) => (id ? agreementTemplate(answer.document_templates.rows, id) : undefined))
-		.find(Boolean);
+	// a confirmed order prints the version its confirmation sealed; any other, its case's current layout
+	const template =
+		(order.status === 'confirmed'
+			? answer.document_templates.rows.find((row) => row.id === order.document_template)
+			: undefined) ??
+		currentTemplate(answer.document_templates.rows, documentKind(order), order.document_locale);
 	if (!template)
 		return yield* new DocumentUnavailable({ message: 'errors.document_layout_unpublished' });
 	if (!order.party || !order.lines.length)

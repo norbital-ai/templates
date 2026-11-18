@@ -14,9 +14,9 @@ import {
 	fifoStockFields,
 	type PurchaseLotCosts
 } from './lot-cost.js';
-import { agreementTemplate, sealDocument } from './order-document.js';
+import { contractKind, currentTemplate, sealDocument } from './order-document.js';
 /**
- * The published templates and the default settings a draft is quoted and confirmed against. It names no order, so every
+ * The published templates and the settings a draft is quoted and confirmed against. It names no order, so every
  * open draft's page shares one live read of it; the order update re-reads both when it confirms.
  */
 export const configurationRead = {
@@ -82,8 +82,14 @@ function draftOf(
 ) {
 	const doc = answer.orders.rows[0];
 	const config = configuration.commercial_settings.rows[0];
+	// a confirmation seals its case's current contract layout in the order's language
 	const template =
-		doc && agreementTemplate(configuration.document_templates.rows, doc.document_template);
+		doc &&
+		currentTemplate(
+			configuration.document_templates.rows,
+			contractKind(doc.direction),
+			doc.document_locale
+		);
 	if (!doc || !doc.party || !config) return Result.fail('errors.configuration_missing' as const);
 	if (!template) return Result.fail('errors.document_layout_unpublished' as const);
 	if (revision != null && revision !== doc.revision)

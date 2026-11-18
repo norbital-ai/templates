@@ -166,26 +166,6 @@
 					"kind": "int",
 					"min": 1
 				},
-				"default_document_layout": {
-					"kind": "ref",
-					"optional": true,
-					"to": "document_templates",
-					"where": {
-						"status": {
-							"eq": "published"
-						}
-					}
-				},
-				"default_purchase_document_layout": {
-					"kind": "ref",
-					"optional": true,
-					"to": "document_templates",
-					"where": {
-						"status": {
-							"eq": "published"
-						}
-					}
-				},
 				"freight_treatment": {
 					"default": "deduct",
 					"kind": "enum",
@@ -509,6 +489,14 @@
 					"kind": "file",
 					"max": "512KiB",
 					"optional": true
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"quotation",
+						"sales_contract",
+						"purchase_contract"
+					]
 				},
 				"layout": {
 					"kind": "enum",
@@ -859,6 +847,14 @@
 					"values": [
 						"sales",
 						"purchasing"
+					]
+				},
+				"document_locale": {
+					"default": "en",
+					"kind": "enum",
+					"values": [
+						"en",
+						"zh"
 					]
 				},
 				"document_template": {

@@ -17,9 +17,10 @@ scope explicit so a total can be reconciled with its underlying records.
 
 ## Documents
 
-Document layouts are catalogue records. Their structure, branding, legal wording and signing details
-are supplied by the adopting organization. Previews and downloads render the selected saved draft or
-sealed revision. A returned signed copy is evidence; workflow state does not rewrite the generated
+Each printed document (quotation, sales contract, purchase contract) has one layout per language. Its
+structure, branding, legal wording and signing details are supplied by the adopting organization.
+Previews and downloads render a draft order in its document's current layout and a confirmed order in the
+contract version it sealed. A returned signed copy is evidence; workflow state does not rewrite the generated
 commercial terms or apply somebody's signature automatically.
 
 ## ERP integration

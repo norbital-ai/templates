@@ -51,7 +51,6 @@ const confirmationWorkspace = () =>
 				{
 					id: '00000000-0000-4000-8000-000000000401',
 					code: 'default',
-					default_document_layout: '00000000-0000-4000-8000-000000000502',
 					require_floor: false,
 					credit_fresh_minutes: 60,
 					stock_fresh_minutes: 30
@@ -60,6 +59,7 @@ const confirmationWorkspace = () =>
 			document_templates: [
 				{
 					id: '00000000-0000-4000-8000-000000000502',
+					kind: 'sales_contract',
 					locale: 'en',
 					version: '1',
 					title: 'Synthetic agreement',

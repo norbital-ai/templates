@@ -33,7 +33,7 @@ Your tools already carry each person's access:
 - `commission_rules` and `commission_statements` — CEL expressions and the one monthly commission
   approval workflow. A confirmed order keeps the commission rule in force when it was confirmed.
 - `commercial_settings` and `document_templates` — freight treatment, freshness windows, and the
-  versioned quotation/contract layouts.
+  versioned layout of each document case (quotation, sales contract, purchase contract) per language.
 
 ## How the workspace behaves
 

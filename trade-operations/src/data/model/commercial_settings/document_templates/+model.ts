@@ -5,8 +5,11 @@ import { printFieldKind, validPrintFields } from '../../../../lib/print-details.
 const valid = (body: string) => Result.isSuccess(Result.try(() => validateDocumentTemplate(body)));
 export default model('document_templates', {
 	record_label: 'record.title',
-	description: 'Versioned commercial document layouts.',
+	description:
+		'The layout of each document case (quotation, sales contract, purchase contract) per language, in numbered versions.',
 	fields: {
+		// the case an order prints it for; an order picks the case's newest published version in its language
+		kind: { kind: 'enum', values: ['quotation', 'sales_contract', 'purchase_contract'] },
 		locale: { kind: 'enum', values: ['en', 'zh'] },
 		version: { kind: 'text' },
 		title: { kind: 'text' },
@@ -27,6 +30,7 @@ export default model('document_templates', {
 	indexes: { search: { text: ['title'] } },
 	create: {
 		fields: [
+			'kind',
 			'locale',
 			'version',
 			'title',
@@ -37,12 +41,33 @@ export default model('document_templates', {
 			'letterhead',
 			'contract_stamp'
 		],
+		// a new layout is the case's next version in its language
+		filled: { fields: ['version'] },
 		transform: function* (changes, ctx) {
 			if (changes.some(({ after }) => after.body !== undefined && !valid(after.body)))
 				return yield* ctx.refuse('errors.document_template_invalid');
 			if (changes.some(({ after }) => !validPrintFields(after.print_fields ?? [])))
 				return yield* ctx.refuse('errors.print_fields_invalid', { field: 'print_fields' });
-			return changes.map(({ set }) => set);
+			const { document_templates: existing } = yield* ctx.query({
+				document_templates: {
+					where: { kind: { in: changes.map(({ after }) => after.kind) } },
+					fields: ['kind', 'locale', 'version']
+				}
+			});
+			const taken = existing.rows.map((row) => ({ ...row }));
+			return changes.map(({ set, after }) => {
+				if (after.version) return set;
+				const version = String(
+					Math.max(
+						0,
+						...taken
+							.filter((row) => row.kind === after.kind && row.locale === after.locale)
+							.map((row) => Number(row.version) || 0)
+					) + 1
+				);
+				taken.push({ ...after, version });
+				return { ...set, version };
+			});
 		}
 	},
 	update: {

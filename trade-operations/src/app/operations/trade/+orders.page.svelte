@@ -13,26 +13,11 @@
 		(actor?.admin ||
 			actor?.teams.includes('commercial_managers') ||
 			actor?.teams.includes(direction === 'sales' ? 'sales' : 'procurement'));
-	async function newOrder(direction: 'sales' | 'purchasing') {
-		const settings = await ctx
-			.query({
-				commercial_settings: {
-					where: { code: { eq: 'default' } },
-					fields: ['default_document_layout', 'default_purchase_document_layout'],
-					limit: 1
-				}
-			})
-			.then(
-				(answer) => answer.commercial_settings.rows[0],
-				() => undefined
-			);
-		const layout =
-			direction === 'purchasing'
-				? (settings?.default_purchase_document_layout ?? settings?.default_document_layout)
-				: settings?.default_document_layout;
+	function newOrder(direction: 'sales' | 'purchasing') {
 		openCreate('orders', {
 			direction,
-			...(layout ? { document_template: layout } : {}),
+			// documents print in the workspace's language until the order picks another
+			document_locale: ctx.locale.startsWith('zh') ? 'zh' : 'en',
 			...(direction === 'purchasing' ? { payment_terms: '' } : {})
 		});
 	}

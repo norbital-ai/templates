@@ -129,13 +129,16 @@ per-order acknowledgment table. The commission board and statement retain their 
 
 ## 5. Documents and files
 
-`document_templates` are versioned, publishable layouts. A layout carries:
+`document_templates` hold one numbered series of layouts per document case (quotation, sales contract, purchase
+contract) and language. A layout carries:
 
-- title, locale, version and status;
+- case, locale, version, title and status;
 - the Markdown/HTML body and optional print CSS/HTML;
 - optional letterhead and company-stamp artwork.
 
-An order selects a published layout. Preview and download render the order's current terms as one PDF through
+An order chooses only its document language: a sales order prints its quotation until confirmed and its sales
+contract after, a purchase order its purchase contract, each in the newest published version, and confirmation
+seals the contract version it used. Preview and download render the order's current terms as one PDF through
 `ctx.preview_pdf`. Supporting documents are attached to the order; `order_files` keeps documents received after
 confirmation. The company stamp is applied only when the layout is used on a confirmed sales order.
 

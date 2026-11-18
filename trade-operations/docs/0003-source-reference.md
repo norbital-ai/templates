@@ -7,13 +7,13 @@ This is a local source inventory, not a declaration that a deployed tenant runs 
 
 ## Applications and pages
 
-| Source application                                              | Title               | Pages                                                             | Purpose                                                                                                                                    |
-| --------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                                 | Sales, balances and commissions.                                                                                                           |
-| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                 | Customers, suppliers and their agreements.                                                                                                 |
-| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                    | Commercial work within each order.                                                                                                         |
-| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                  | Products, lots and stock.                                                                                                                  |
-| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Prices and commission) | Document templates with the new-order marks; the dated price book with minimum-price enforcement; commission rules with freight treatment. |
+| Source application                                              | Title               | Pages                                                             | Purpose                                                                                                                                 |
+| --------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                                 | Sales, balances and commissions.                                                                                                        |
+| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                 | Customers, suppliers and their agreements.                                                                                              |
+| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                    | Commercial work within each order.                                                                                                      |
+| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                  | Products, lots and stock.                                                                                                               |
+| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Prices and commission) | Each document case's layout per language; the dated price book with minimum-price enforcement; commission rules with freight treatment. |
 
 ## Models and exposed operations
 
@@ -22,15 +22,15 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | Model                                                                                    | Fields | Read outputs        | Writes                 | Syncs                 |
 | ---------------------------------------------------------------------------------------- | ------ | ------------------- | ---------------------- | --------------------- |
 | [activities](../src/data/model/orders/activities/+model.ts)                              | 5      | default             | create, update         | none                  |
-| [commercial_settings](../src/data/model/commercial_settings/+model.ts)                   | 5      | default, logistics  | update                 | none                  |
+| [commercial_settings](../src/data/model/commercial_settings/+model.ts)                   | 3      | default, logistics  | update                 | none                  |
 | [commission_rules](../src/data/model/commercial_settings/commission_rules/+model.ts)     | 10     | default             | create, update         | sheet                 |
 | [commission_statements](../src/data/model/commission_statements/+model.ts)               | 8      | default             | create                 | none                  |
 | [contacts](../src/data/model/parties/contacts/+model.ts)                                 | 4      | default             | create, update         | none                  |
 | [credit_snapshots](../src/data/model/parties/credit_snapshots/+model.ts)                 | 6      | default             | none                   | kingdee               |
-| [document_templates](../src/data/model/commercial_settings/document_templates/+model.ts) | 11     | default             | create, update         | none                  |
+| [document_templates](../src/data/model/commercial_settings/document_templates/+model.ts) | 12     | default             | create, update         | none                  |
 | [order_files](../src/data/model/orders/order_files/+model.ts)                            | 2      | default             | create                 | none                  |
 | [order_lines](../src/data/model/orders/order_lines/+model.ts)                            | 19     | default, logistics  | create, update, delete | kingdee               |
-| [orders](../src/data/model/orders/+model.ts)                                             | 38     | default, logistics  | create, update         | lines, sheet, kingdee |
+| [orders](../src/data/model/orders/+model.ts)                                             | 39     | default, logistics  | create, update         | lines, sheet, kingdee |
 | [parties](../src/data/model/parties/+model.ts)                                           | 9      | default             | none                   | kingdee, sheet        |
 | [pricing_floors](../src/data/model/products/pricing_floors/+model.ts)                    | 8      | default             | create, update         | price_book            |
 | [products](../src/data/model/products/+model.ts)                                         | 15     | default, logistics  | update                 | kingdee               |

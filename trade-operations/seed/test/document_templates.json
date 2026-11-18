@@ -1,15 +1,7 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000502",
-		"locale": "en",
-		"version": "1",
-		"title": "Commercial agreement",
-		"body": "{agreement}",
-		"status": "published",
-		"published_at": "2026-01-01T00:00:00Z"
-	},
-	{
 		"id": "00000000-0000-4000-8000-000000000503",
+		"kind": "purchase_contract",
 		"locale": "en",
 		"version": "1",
 		"title": "Purchase contract",
@@ -19,6 +11,7 @@
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000504",
+		"kind": "quotation",
 		"locale": "en",
 		"version": "1",
 		"title": "Quotation",
@@ -29,6 +22,7 @@
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000505",
+		"kind": "sales_contract",
 		"locale": "en",
 		"version": "1",
 		"title": "Sales contract",
@@ -39,6 +33,7 @@
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000506",
+		"kind": "quotation",
 		"locale": "zh",
 		"version": "1",
 		"title": "报价单",
@@ -49,6 +44,7 @@
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000507",
+		"kind": "sales_contract",
 		"locale": "zh",
 		"version": "1",
 		"title": "销售合同",
@@ -56,5 +52,15 @@
 		"status": "published",
 		"published_at": "2026-01-01T00:00:00Z",
 		"layout": "table_v1"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000508",
+		"kind": "purchase_contract",
+		"locale": "zh",
+		"version": "1",
+		"title": "采购合同",
+		"body": "{agreement}\n1. 买方按上述数量、价格和条款采购货物。\n2. 供应商确认货物符合上述规格、包装和装运条款。\n3. 货物到达上述交付地点即完成交付；风险按交付条款转移。\n4. 付款按上述付款条款和币种执行。任何变更须经双方签署的书面修订记录。\n\n供应商：______________________________    日期：______________\n\n买方：________________________________    日期：______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z"
 	}
 ]
