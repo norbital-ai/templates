@@ -14,13 +14,13 @@ carries background replication of mapped table rows, including incoming fulfillm
 accounting evidence. A work action completes against the local database, and an outbound write
 is a separate job. Staff can keep changing and approving orders while the link is unavailable.
 The outbox retains pending source writes for retry. The verified source writer creates a saved
-SO. Replicating the locally approved state as an audited SO still requires native Kingdee
+SO or PO. Replicating the locally approved state as an audited SO still requires native Kingdee
 validation on a restored account set.
 
 ```text
 Kingdee SQL Server 2017  <-- TDS over the configured network path -->  Trade Operations runtime
       SELECT current rows and rowversions  ----------------------->  ledger and sync state
-      initial SO and guarded amendments    <-----------------------  confirmed order outbox
+      initial SO/PO and guarded changes    <-----------------------  confirmed order outbox
 ```
 
 Colony currently uses Bolt’s public-destination TCP guard for database integrations. It rejects a
@@ -56,8 +56,9 @@ Bolt seals credentials on the host. Use a read login with `db_datareader` or exp
 on the mapped tables, and a separate writer with only the object and column grants its enabled
 operations need. Choose account names for the adopting organization. Never `db_datawriter`
 or `db_owner`; the read login's inability to write is a load-bearing control, not a convenience.
-Initial creation inserts the SO and lines and updates the allocator. Amendments also need DELETE on
-SO lines to remove an unfulfilled, unlinked entry and SELECT and INSERT on the change log.
+Initial creation inserts the SO or PO and its lines and updates the allocator. SO amendments also need
+DELETE on SO lines to remove an unfulfilled, unlinked entry and SELECT and INSERT on the change log; a PO
+line change needs DELETE and INSERT on PO lines.
 Use a separate restricted login for fixture and deployment testing.
 
 The local Docker SQL Server 2017 probe creates a fresh `db_datareader` login and proves it can
@@ -96,7 +97,8 @@ Purchase orders are orders. Set **Verified SQL account for purchase documents** 
 set and test the connection: the `kingdee` syncs on `orders`, `order_lines`, `transactions` and
 `source_payments` then treat a PO (`POOrder`, 71) as they treat an SO, in the same rowversion windows, with
 receipts (`ICStockBill` 1) as its deliveries, purchase invoices (`ICPurchase`) as its invoices and AP
-payments (`t_RP_Contact` FRP 0 type 4) as its receipts. Until then a confirmed PO stays local. For lot
+payments (`t_RP_Contact` FRP 0 type 4) as its receipts. Until then a confirmed PO stays local; like a sales
+order, it is written only while **Verified SQL account for order writes** is also set. For lot
 analysis, two more syncs read receipt lines
 (with lot, warehouse and the order each received) and purchase invoice lines (with the receipt each bills
 and the invoice's payable and its last `t_RP_NewCheckInfo` settlement) into `source_purchase_lines`, each
@@ -110,8 +112,8 @@ Exclusion identifiers belong to the selected account set; start with an empty li
 only the entries that its finance team has verified. Finance and Commercial Managers can read
 the account snapshot. Sales and Procurement keep their existing order scope.
 
-Newly confirmed sales orders retain the configured account and branch (`write_target`).
-A sale first confirmed without a write account stays local. Staff can change and approve its terms
+Newly confirmed orders retain the configured account and branch (`write_target`).
+An order first confirmed without a write account stays local. Staff can change and approve its terms
 with sync off. Adding an account later does not export the order. A write
 authorized for a different account or branch cannot run against the new destination. Clear the field to stop outbound writes. Review old or unpinned queued
 orders individually before enabling writes. Both the lookup and the final SQL transaction check
@@ -197,13 +199,16 @@ owned order's documents once more, as the feed's first read did, so deliveries a
 on the shipment fact. An invoice fact carries the same amount prorated to its billed quantity, so
 Invoice date shows the cost in the invoice's month without counting the delivery twice. A source
 null stays unknown. Sales Analysis and its CSV present delivery cost in that currency. Margin
-requires compatible currency, billed net and any freight that the order's freight treatment deducts. Finance
+is in the cost's currency: a sale in another currency converts its booked net at the exchange rate on
+its Kingdee order, and stays unknown without one. It also needs billed net and any freight that the
+order's freight treatment deducts. Finance
 and Commercial Managers read booked cost through Bolt's full output. The scoped Sales and
 Procurement output excludes the booked amount and denomination. The delivery document, receipts
 and quote floor use their existing fields.
 
 Account-wide Aging uses `t_RP_Contact.FRemainAmount` in the verified base currency. It keeps the
-AR contact ID, customer and business date, and restores past balances by adding signed
+AR contact ID, customer and business date, and for an invoice its settlement method (`t_Settle`)
+and first delivery date, which the entries view shows. It restores past balances by adding signed
 `t_RP_NewCheckInfo` movements dated after the selected cutoff. Cutoffs start on 31 December 2024. Open and recently settled invoice and receipt positions include opening invoices, credit
 notes and unapplied cash. For the due date, the reader chooses the earliest open plan date,
 then the last plan date, then the AR contact date.
@@ -240,10 +245,9 @@ attribution changes. Each transfer is bounded to 10,000 groups and 1 MB of sourc
 snapshot stores product and warehouse quantities without customer, order or price details. A failed
 poll keeps the previous snapshot.
 
-Product totals include open orders without a known warehouse. The warehouse view shows assigned
-quantities and holds back availability for products with unattributed commitments. Both views show
-the stock and order observation times and leave availability unknown after 30 minutes, when a feed
-is missing or the units disagree. The physical lot list remains separate. The two feeds publish on
+Each lot shows its product's figures for its warehouse. A product with an open order that names no
+warehouse leaves Available blank, as do a feed older than **Max age of stock data** (Data freshness
+on the Kingdee connection, default 30 minutes), a missing feed and disagreeing units. The two feeds publish on
 their own schedules. They provide an inventory estimate for planning and can differ while Kingdee
 posts a shipment and the next reads catch up. Brand aggregation still needs a verified product binding.
 
@@ -372,9 +376,8 @@ and preserves the cursor and existing evidence. The next poll resumes after that
 issued; it does not attempt an invalid document upsert or reconcile rows as absent while waiting.
 
 The reader observes subsequent Kingdee approval; the template does not call a fictional approval
-procedure. Red-document reversals and a verified credit hold/limit mapping remain unavailable and fail
-explicitly. They must not fall back to normalized
-simulation tables or fabricate empty successful results.
+procedure. Unsupported source documents and credit settings fail explicitly. They must not fall back
+to normalized simulation tables or fabricate empty successful results.
 
 ## Local validation boundary
 

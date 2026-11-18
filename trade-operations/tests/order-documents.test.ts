@@ -212,13 +212,54 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			expect(printed[0]).toContain('BUY &lt;42&gt;\nNorth entrance');
 			const saved = firstRow((yield* admin.query(documentRead(order))).orders.rows);
 			if (!saved.party) throw new Error('Expected the saved print fixture');
-			const sealed = snapshot(saved, saved.party, saved.lines, '1');
+			const sealed = snapshot(
+				saved,
+				saved.party,
+				saved.lines.flatMap(({ product, ...line }) =>
+					product ? [{ ...line, product: product.id }] : []
+				),
+				'1'
+			);
 			const lineBasis = firstRow(sealed.lines);
 			const kg = { ...lineBasis, quantity: '81000.000', unit_price: '1.6532', unit: 'kg' };
 			expect(printAmounts({ ...sealed, lines: [kg] })).toMatchObject({
 				fields: { quantity_grouped: '81,000' },
 				lines: [{ quantity_grouped: '81,000', unit_price_grouped: '1.6532', unit_export: 'KGS' }]
 			});
+			// a quotation shows a kilogram line in tonnes, priced per tonne to two places
+			expect(printAmounts({ ...sealed, lines: [kg] }, 'zh')).toMatchObject({
+				fields: { currency_symbol: '$' },
+				lines: [
+					{
+						line_number: '1',
+						quantity_display: '81',
+						unit_display: '吨',
+						unit_price_display: '1,653.20',
+						tax_rate_display: '9'
+					}
+				]
+			});
+			expect(
+				printAmounts({ ...sealed, lines: [{ ...kg, quantity: '1234.500', unit: 'pcs' }] }, 'en')
+					.lines[0]
+			).toMatchObject({
+				quantity_display: '1,234.500',
+				unit_display: 'pcs',
+				unit_price_display: '1.65'
+			});
+			// the seller prints by name, also for teams that read orders but not people
+			yield* t.db.write({
+				text: 'UPDATE sys_user SET name = $1 WHERE id = $2',
+				params: ['Sample Seller', saved.owner]
+			});
+			for (const policy of ['procurement', 'manager'] as const) {
+				const reader = yield* t.as(t.member([policy]));
+				expect((yield* documentOf(reader, { order })).print?.fields).toMatchObject({
+					owner: 'Sample Seller',
+					logistics_handler: ''
+				});
+			}
+			expect(print.lines[0]).toMatchObject({ line_number: '1', brand: '', producing_area: '' });
 			expect(
 				printAmounts({ ...sealed, lines: [kg, { ...kg, quantity: '1.250', unit: '吨' }] })
 			).toMatchObject({
@@ -326,52 +367,54 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted).toEqual([preview.html]);
 			})
 	);
-	test.effect('the published contract stamp is included only on confirmed sales contracts', () =>
-		Effect.gen(function* () {
-			const t = yield* Trade;
-			const admin = yield* t.as(t.admin);
-			const png = Result.getOrThrow(
-				Base64.decode(
-					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
-				)
-			);
-			const upload = yield* admin.upload('document_templates.contract_stamp', {
-				name: 'sample-mark.png',
-				mime: 'image/png',
-				bytes: png
-			});
-			if (upload.kind !== 'committed') throw new Error('Stamp upload required');
-			const layout = committed(
-				'document_templates',
+	test.effect(
+		'the seller stamps its quotations and sales contracts, never a purchase contract',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* Trade;
+				const admin = yield* t.as(t.admin);
+				const png = Result.getOrThrow(
+					Base64.decode(
+						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
+					)
+				);
+				const upload = yield* admin.upload('document_templates.contract_stamp', {
+					name: 'sample-mark.png',
+					mime: 'image/png',
+					bytes: png
+				});
+				if (upload.kind !== 'committed') throw new Error('Stamp upload required');
+				const layout = committed(
+					'document_templates',
+					yield* admin.act({
+						'document_templates.create': [
+							{
+								kind: 'sales_contract',
+								locale: 'en',
+								title: 'Stamped sales agreement',
+								body: '{agreement}',
+								contract_stamp: upload.output
+							}
+						]
+					})
+				);
 				yield* admin.act({
-					'document_templates.create': [
-						{
-							kind: 'sales_contract',
-							locale: 'en',
-							title: 'Stamped sales agreement',
-							body: '{agreement}',
-							contract_stamp: upload.output
-						}
+					'document_templates.update': [
+						{ target: yield* t.at('document_templates', layout), set: { status: 'published' } }
 					]
-				})
-			);
-			yield* admin.act({
-				'document_templates.update': [
-					{ target: yield* t.at('document_templates', layout), set: { status: 'published' } }
-				]
-			});
-			const { order } = yield* draft(t);
-			expect((yield* documentOf(admin, { order })).stamp).toBeNull();
-			yield* confirm(t, order);
-			expect((yield* documentOf(admin, { order })).stamp?.id).toBe(upload.output.id);
-			const purchase = yield* draft(t, 'purchasing');
-			yield* confirm(t, purchase.order);
-			expect((yield* documentOf(admin, { order: purchase.order })).stamp).toBeNull();
-			converted.length = 0;
-			yield* renderPreview(t, yield* documentOf(admin, { order }));
-			expect(converted).toHaveLength(1);
-			expect(converted[0]).toContain('data:image/png;base64,');
-		})
+				});
+				const { order } = yield* draft(t);
+				expect((yield* documentOf(admin, { order })).stamp).toBeNull();
+				yield* confirm(t, order);
+				expect((yield* documentOf(admin, { order })).stamp?.id).toBe(upload.output.id);
+				const purchase = yield* draft(t, 'purchasing');
+				yield* confirm(t, purchase.order);
+				expect((yield* documentOf(admin, { order: purchase.order })).stamp).toBeNull();
+				converted.length = 0;
+				yield* renderPreview(t, yield* documentOf(admin, { order }));
+				expect(converted).toHaveLength(1);
+				expect(converted[0]).toContain('data:image/png;base64,');
+			})
 	);
 	test.effect('an order prints its case in its language, with no layout to choose', () =>
 		Effect.gen(function* () {
@@ -402,6 +445,38 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(document.html).toContain(clause);
 				if (direction === 'purchasing') expect(document.stamp).toBeNull();
 			}
+			// after the seeded cases print: a stamped quotation layout stamps the next draft
+			const stamp = yield* admin.upload('document_templates.contract_stamp', {
+				name: 'sample-mark.png',
+				mime: 'image/png',
+				bytes: Result.getOrThrow(
+					Base64.decode(
+						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
+					)
+				)
+			});
+			if (stamp.kind !== 'committed') throw new Error('Stamp upload required');
+			const quotation = committed(
+				'document_templates',
+				yield* admin.act({
+					'document_templates.create': [
+						{
+							kind: 'quotation',
+							locale: 'en',
+							title: 'Stamped quotation',
+							body: '{agreement}',
+							contract_stamp: stamp.output
+						}
+					]
+				})
+			);
+			yield* admin.act({
+				'document_templates.update': [
+					{ target: yield* t.at('document_templates', quotation), set: { status: 'published' } }
+				]
+			});
+			const quoted = yield* draft(t);
+			expect((yield* documentOf(admin, { order: quoted.order })).stamp?.id).toBe(stamp.output.id);
 		})
 	);
 	test.effect(

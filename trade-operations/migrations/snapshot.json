@@ -537,6 +537,10 @@
 							"kind": "bool",
 							"optional": true
 						},
+						"options": {
+							"kind": "text",
+							"optional": true
+						},
 						"scope": {
 							"kind": "enum",
 							"values": [

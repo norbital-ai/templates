@@ -12,13 +12,13 @@ host's `sqlserver` driver. It is not a REST integration and not an event stream:
 SQL read or a verified SQL write.
 
 One **ledger** is one `sys_integration` row with `integration = 'kingdee'`, a display name, an `active` flag, a
-safe `configuration`, and a sealed connection string in `bolt_credential`. The named `kingdee` connection in
-`src/+workspace.ts` is the first ledger; more can be added at run time. A source row always carries its ledger
-(`source`), and an order belongs to its party's ledger (`ledger`).
+safe `configuration`, and a sealed connection string in `bolt_credential`. The workspace declares no connection
+slot; an administrator adds each ledger at run time. A source row always carries its ledger (`source`), and an
+order belongs to its party's ledger (`ledger`).
 
 The source system owns:
 
-- which sales order, delivery, invoice, receipt, credit position or stock lot exists;
+- which sales or purchase order, delivery, receipt, invoice, payment, credit position or stock lot exists;
 - the source document number, identity, status, audit/void state and modification marker;
 - credit enforcement and the statutory accounting result.
 
@@ -35,11 +35,12 @@ READ (poll)                                      WRITE (outbox)
 Kingdee tables -> verified page -> local table    local approval -> sys_outbox -> verified SQL -> Kingdee
      ^                                                        |
      |                                                        v
-     +---------------- the SO read back onto the order ---------+
+     +------------- the SO or PO read back onto the order ------+
 ```
 
-Reads are the normal path. Writes are narrow: a confirmed sales order creates its SO, and a later change to its
-lines amends it. Supplier commitments are local and are never written to Kingdee by this starter.
+Reads are the normal path. Writes are narrow: a confirmed order creates its SO or PO, and a later change to its
+lines amends the SO or, while it is unaudited, replaces the PO's lines. Purchase orders take part once the
+ledger's **Verified SQL account for purchase documents** is set (`directionsOf`); until then a PO stays local.
 
 ## 3. How a read works
 
@@ -61,17 +62,18 @@ Feeds with a native SQL Server rowversion use `[bookmark, upper)` windows: only 
 completed window are read. The bookmark is the native marker, not a local timestamp. A joined field (for
 example a product's unit or brand) changes its own marker, so a joined edit is not missed.
 
-KIS stamps document headers, never their lines. The order feeds follow `SEOrder.FOperDate`; the delivery,
-invoice and receipt feeds follow `ICStockBill.FOperDate`, `ICSale.FOperDate` and the invoice's open item `t_RP_Contact.FModifyTime`
-from the header that moved to the SO its lines name, and read only those SOs' documents. An entry edited without
+KIS stamps document headers, never their lines. The order feeds follow `SEOrder.FOperDate` and `POOrder.FOperDate`;
+the delivery, invoice and receipt feeds follow `ICStockBill.FOperDate`, `ICSale.FOperDate` or `ICPurchase.FOperDate`
+and the invoice's open item `t_RP_Contact.FModifyTime` from the header that moved to the SO or PO its lines name,
+and read only those orders' documents. An entry edited without
 its header being saved again would not be seen; KIS saves a bill whole.
 
 A row that cannot be applied yet (an SO whose customer is not synchronized, a document whose SO is not audited)
 does not hold the bookmark. Its SO is kept by identity in the cursor, at most 500, and read again when what it
 waits on changes here. `ICInventory` carries no marker: stock is the one feed that lists its table.
 
-An SO created in Kingdee arrives through the same order window: the read that first sees it creates a draft, the
-next confirms it under the commission rule and freight treatment in force, and its lines follow.
+An SO or PO created in Kingdee arrives through the same order window: the read that first sees it creates a
+draft, the next confirms it under the commission rule and freight treatment in force, and its lines follow.
 
 ## 4. Why a network blip is safe
 
@@ -102,8 +104,8 @@ local row remains as last read, and no write recreates a missing SO.
 - The local mirror is **not** an audit log of every source change; the source system remains that log.
 - A failed feed stays visible through `sys_integration.status` and `source_health`; it is not retried forever
   in the background without surfacing.
-- Credit requires the explicit native KIS policy below; other native credit policies, purchase payments and some
-  legacy AR cases refuse rather than fabricate a result.
+- Credit requires the explicit native KIS policy below; other native credit policies and some legacy AR cases
+  refuse rather than fabricate a result.
 - A source write is only as safe as its verification block. The SQL writer checks the source version, document
   family, line identities, quantities and audit/void state before it commits.
 
@@ -121,15 +123,15 @@ read through an order, party, product, stock or report surface. The table name i
 | `credit_snapshots`         | `ICCreditOption` / `ICCreditField` / `ICCreditObject`, `t_RP_Contact`, `ICSale`, `t_RP_NewReceiveBill`, `ICStockBill` / entries                                                  | 1 min, opt-in `creditPolicy` + `creditAccount`                      | Partner limit, used, available, hold and observation time |
 | `source_lot_costs`         | `ICStockBill`, `ICStockBillEntry`, `t_ICItem`, `t_Item`                                                                                                                          | opt-in `stockLotCostAccount`                                        | Quote FIFO estimate, stock cost evidence                  |
 | `source_stock_commitments` | `SEOrder`, `SEOrderEntry`, `t_ICItem`, `t_Item`                                                                                                                                  | 5 min, opt-in `stockAvailabilityAccount`                            | Warehouse → Stock: awaiting and available columns         |
-| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`, `t_Organization`                                                                                                  | 1 h, opt-in `receivablesAccount`                                    | Analysis → AR aging                                       |
+| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`/`ICSaleEntry`, `ICStockBill`, `t_Settle`, `t_Organization`                                                         | 1 h, opt-in `receivablesAccount`                                    | Analysis → AR aging                                       |
 | `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                                             | scheduled, two syncs (`kingdee`, `invoice_only`)                    | Sales analysis, partner agreement fulfilment, reports     |
 | `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`, `ICPurchase`                                                                            | 5 min; AR receipts and AP payments; invoice must exist first        | Order payments, AR aging                                  |
 | `source_purchase_lines`    | receipts `ICStockBill`/`ICStockBillEntry` type 1; `ICPurchase`/`ICPurchaseEntry`; payable `t_RP_Contact` FRP 0 type 4, `t_RP_NewCheckInfo`; `t_Supplier`, `t_Item`, `t_Currency` | 5 min, two syncs (`receipts`, `invoices`), opt-in `purchaseAccount` | Sales analysis purchase chain                             |
 | `transactions`             | deliveries and receipts `ICStockBill`/`ICStockBillEntry`, invoices `ICSale`/`ICSaleEntry` and `ICPurchase`/`ICPurchaseEntry`, parent `SEOrder` or `POOrder`                      | 5 min; parent SO or PO must be issued                               | Order Transactions, AR aging, reports                     |
 | `orders`                   | `SEOrder`/`POOrder` and entries, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Supplier`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency`   | 1 min read + outbox write                                           | Orders list, order record (SO or PO header)               |
 
-`order_lines` is the SO's lines: its `kingdee` sync reads `SEOrderEntry` every minute, and a line change writes
-the order's SO.
+`order_lines` is the SO's or PO's lines: its `kingdee` sync reads `SEOrderEntry` and `POOrderEntry` every minute,
+and a line change writes the order's SO or PO.
 
 Local-only tables (never written by Kingdee): `order_files`, `activities`, `contacts`, `commercial_settings`,
 `document_templates`, `pricing_floors`, `commission_rules`, `commission_statements`.
@@ -169,8 +171,9 @@ or after an explicit operator request. A refresh of the browser never resets a c
   five minutes and dedupes per instance revision. A paused or unpaired ledger simply waits.
 - **Bounded windows.** `maxWindowMinutes` (default 15) surfaces a window that is taking too long; a slow source
   becomes visible instead of silently falling behind.
-- **Opt-in heavy feeds.** Stock availability, lot cost, receivables and invoice-only analysis need their own
-  verified SQL account. A tenant that does not use them runs no query for them.
+- **Opt-in feeds.** Purchase documents, stock availability, lot cost, booked delivery cost, receivables and
+  invoice-only analysis need their own verified SQL account. A tenant that does not use them runs no query for
+  them.
 
 ## 7. Failure states an operator will see
 
@@ -183,7 +186,7 @@ or after an explicit operator request. A refresh of the browser never resets a c
 | SO removed outright from SQL  | Not a Kingdee delete (those are soft); the order stays as last read  | No write recreates the SO; the refused write names it                                                                            |
 | Stale cursor/account          | The verified account or source identity changed                      | Review the snapshot before resetting; do not guess                                                                               |
 
-`source_health` notifies configuration holders once per instance revision. The record's status is the source of
+`source_health` notifies workspace administrators once per instance revision. The record's status is the source of
 truth; a notification is a prompt, not a second state.
 
 ## 8. Adding a feed

@@ -6,10 +6,10 @@ configured integration, without replacing the ERP's accounting and fulfillment l
 
 ## Commercial records
 
-A draft quotation and confirmed sales agreement keep one order identity. Sealed revisions preserve
-the terms that were approved; later corrections use the supported revision workflow. Supplier
-commitments use the same agreement model and editor. Supporting customer POs and signed returns
-remain attached to their recorded version.
+A draft quotation and confirmed sales agreement keep one order identity. The order holds its terms;
+a change to a confirmed sales order waits for a Commercial Manager, and record history keeps every
+earlier value. Supplier purchase orders use the same agreement model and editor. Supporting customer
+POs and signed returns remain attached to the order.
 
 Price rules, effective dates and quantity tiers supply pricing guidance. Commission rules and
 statements use the retained commercial facts. Reports must keep date basis, currency and permission
@@ -20,13 +20,14 @@ scope explicit so a total can be reconciled with its underlying records.
 Each printed document (quotation, sales contract, purchase contract) has one layout per language. Its
 structure, branding, legal wording and signing details are supplied by the adopting organization.
 Previews and downloads render a draft order in its document's current layout and a confirmed order in the
-contract version it sealed. A returned signed copy is evidence; workflow state does not rewrite the generated
-commercial terms or apply somebody's signature automatically.
+contract version it sealed. An order chooses only its document language. A sales order's quotation and
+contract may carry the seller's stamp; a purchase contract never does. A returned signed copy is evidence;
+workflow state does not rewrite the generated commercial terms or apply somebody's signature automatically.
 
 ## ERP integration
 
-Read mirrors carry source customer, stock, delivery, invoice and receivable facts. The supported
-outbound SO flow uses an outbox and idempotent read-back. Native ERP approval remains distinct from
+Read mirrors carry source customer, stock, delivery, invoice, payment and receivable facts; members
+read them only. The supported outbound SO and PO flow uses an outbox and idempotent read-back. Native ERP approval remains distinct from
 local commercial approval. Mappings, permissions and account-set behavior are validated before use;
 no organization's account names, database credentials or legal identity are template assumptions.
 

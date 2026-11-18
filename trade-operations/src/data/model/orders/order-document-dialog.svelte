@@ -27,7 +27,8 @@
 	let file = $state<{ title: string; url: string; name: string } | null>(null);
 	let error = $state<string | null>(null);
 	let stampAvailable = $state(false);
-	let includeStamp = $state(false);
+	// sales documents are stamped unless a clean copy is asked for
+	let includeStamp = $state(true);
 	const loadPdf = attach(() => {
 		const request = documentRead(order);
 		const stamp = includeStamp;

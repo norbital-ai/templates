@@ -14,21 +14,25 @@ source inventory and the deeper Kingdee, capability, print and probe references.
 ## Apps and roles
 
 Operations contains Trade (one filterable Orders table), Partners (one customer/supplier table),
-Warehouse (SKUs, inventory and warehouses), and Analysis (reports). Trade Configuration contains
-Settings, Pricing Floors, Commission Rules and Document Templates.
+Warehouse (SKUs, inventory and warehouses), and Analysis (reports). Trade configuration contains
+Documents (each printed document's layout per language) and Prices and commission (monthly price book,
+historical prices and commission rules).
 
 An order has General, Activities and Transactions. General holds its customer/supplier, owner,
-contract SKU, quota quantities, prices, credit/payment terms and validity, with the Kingdee SO state.
+contract SKU, quota quantities, prices, credit/payment terms and validity, with the Kingdee SO or PO state.
 Activities contains follow-ups. Native History combines the revision scrubber with order, item, activity and source-record changes; it is the order's audit trail. Transactions shows delivery orders and invoices against the agreed quota. Each transaction
-owns its documents. Partners has General, POC and Orders.
+owns its documents. Partners has General, Contacts and Orders.
 
 Editable child tables use an explicit create form in a modal opened by a right-aligned
 `+ Model` toolbar button. Source-owned tables have no create button or editable form.
-The base pack supplies generic commercial settings and EN/ZH document layouts. To customise an
-output, publish a named layout in Document Templates and select it on the order. Preview and
-Export PDF render the saved order in that layout as one generated file. The commercial table includes the saved item specification, quantity, price,
+The base pack supplies generic commercial settings and EN/ZH layouts for each printed document:
+quotation, sales contract and purchase contract. An order chooses only its document language; to
+customise an output, revise that document's layout in Trade configuration → Documents and publish it.
+Confirmation seals the contract version the order used. Preview and Export PDF render the saved order
+as one generated file. The commercial table includes the saved item specification, quantity, price,
 discount, tax and totals. Company letterhead and contract-stamp artwork are optional tenant PNGs.
-The stamp is applied when the layout is used on a confirmed sales order.
+A sales order's quotation and contract carry the stamp when **Include company stamp** is ticked in the
+preview; a purchase contract never does. A document field may offer fixed choices (`options`, one per line).
 
 A published layout can also carry an optional **Print layout HTML** upload. It controls print
 CSS, typography and artwork placement. Use this when recreating an approved document or
@@ -57,8 +61,8 @@ Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sa
 Sales reads its own customer agreements and financial facts; procurement reads its own supplier
 agreements. Logistics sees operational quantities with commercial fields masked. Finance and
 managers use the reports; configuration access does not grant commercial records. Source records
-are written only by their Kingdee sync; administrators can change only a table's local fields
-(product commission settings).
+are written only by their Kingdee sync; configurators and commercial managers can change only a
+product's local commission settings.
 English and Chinese catalogs own captions, business statuses and error messages. Native Bolt
 history, permissions, approvals, Actions, kinds and runs are reused.
 
@@ -79,29 +83,31 @@ history, permissions, approvals, Actions, kinds and runs are reused.
   force when it was confirmed; its lines keep their floors and conversion facts.
 - `commission_statements`: the single retained monthly commission approval workflow. No extra
   per-order commission acknowledgment model or duplicate table.
-- `stock_snapshots`: source stock and reservation quantities. Projection subtracts our commitments
-  only until a matching issued sales-order confirmation is included in the stock source position.
-  Missing/stale source facts and unreconciled movements remain unavailable.
+- `stock_snapshots`: read-only source lots with lot number, on-hand quantity and unit cost. The Stock
+  tab shows beside each lot what open Kingdee sales orders await (`source_stock_commitments`) and what
+  is available, per product and warehouse; a missing or stale feed, a unit mismatch or an open order
+  without a warehouse leaves Available blank.
 
-There is one delivery/invoice ledger. Closure counts delivery items once. A remaining source commitment cannot be
-released locally while its external order is still active; a matching synced void confirmation is
-required. Issued transactions or active payments prevent cancellation.
+There is one delivery/invoice ledger. Closure counts delivery items once. Archive is reversible and local:
+it never voids the Kingdee order or releases its commitment; only Kingdee's void or close ends it. A
+confirmed order cannot be deleted.
 
 ## Automations and integrations
 
-| Automation      | Trigger                                   | What it does                                                            |
-| --------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| `source_health` | every 5 minutes, over `kingdee` instances | Notifies configuration holders when a ledger connection needs attention |
+| Automation      | Trigger                                   | What it does                                                               |
+| --------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| `source_health` | every 5 minutes, over `kingdee` instances | Notifies workspace administrators when a ledger connection needs attention |
 
 Order documents need no automation. The shared preview generates a PDF with `ctx.preview_pdf` and uses
-its file for both preview and download. The `orders` file export renders the same saved order.
+its file for both preview and download. The `orders` file sync imports and exports the order
+workbook (XLSX or CSV), not documents.
 The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
 
 The custom [Kingdee integration](docs/0004-kingdee-implementation.md) lives in
 `src/integration/kingdee/`. It owns SQL Server rowversion polling and complete listings, source identity,
 ordered positions and header/item submission. Each source model declares a `kingdee` sync with a
-`read`; `orders` and `order_lines` mirror the SO header and lines, and write the SO and its line amendments.
-Supplier commitments are local records.
+`read`; `orders` and `order_lines` mirror the SO or PO header and lines, and write the order and its line
+changes. Purchase orders take part once the ledger's purchase documents are verified.
 Bolt supplies the generic SQL Server request driver, sync scheduling, the outbox and its retries,
 ledger-scoped identity and atomic cursor/model writes.
 Each Kingdee ledger is one `sys_integration` instance with its sealed credential and safe
@@ -114,7 +120,7 @@ Workspace administrators open Settings → Integrations → Connections → King
 pairing, testing, sync options and data freshness. The Connections list shows the ledger state.
 Saving a SQL credential checks the master and stock projections and their SQL read permissions
 before activating SQL sync. Unpaired or paused
-instances leave queued sales work waiting.
+instances leave queued order writes waiting.
 Administrators are notified when a ledger needs attention. Trade configuration keeps each rule beside
 what it governs: Documents holds each printed document's layout per language (quotation, sales contract, purchase
 contract); Prices and commission holds the minimum-price enforcement on the price book and the freight treatment beside the
@@ -136,8 +142,10 @@ require verification against the target account's Kingdee version before product
 
 ## Seed
 
-- **test** — `seed/test/*.json`: synthetic commercial settings, document templates, parties, products and
-  warehouses for `bolt test`. They never enter a release; no credentials or live financial facts ship with the
+- **public** — `seed/public/*.json`: the default commercial settings and the six document layouts, shipped
+  in the release's base pack.
+- **test** — `seed/test/*.json`: synthetic commercial settings, document templates, a ledger, parties, products
+  and warehouses for `bolt test`. They never enter a release; no credentials or live financial facts ship with the
   starter.
 - **private** — `seed/+seeder.ts` names the seed bank tree `trade-operations`, which
   `bolt seed --bank=<checkout>` loads into one demo.
@@ -147,7 +155,7 @@ require verification against the target account's Kingdee version before product
 ```bash
 bun install
 bunx bolt check   # types, Svelte warnings, layout and declarations
-bun run test    # bolt build, then bolt test (including tests/e2e)
+bun run test    # bolt test
 ```
 
 `.norbital/` is generated and never committed.

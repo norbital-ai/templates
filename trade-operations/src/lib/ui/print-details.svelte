@@ -1,9 +1,14 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { Input, Textarea } from '@norbital-ai/ui';
+	import { Combobox, Input, Textarea } from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
-	import { PrintValues, printValueLimit, orderedPrintValues } from '../print-details.js';
+	import {
+		PrintValues,
+		printChoices,
+		printValueLimit,
+		orderedPrintValues
+	} from '../print-details.js';
 
 	let {
 		layout,
@@ -60,7 +65,15 @@
 					<label for={fieldId} class="block text-xs font-medium text-muted-foreground"
 						>{field.label}</label
 					>
-					{#if field.multiline}
+					{#if printChoices(field).length}
+						<Combobox
+							id={fieldId}
+							options={printChoices(field).map((choice) => ({ value: choice, label: choice }))}
+							value={text}
+							{disabled}
+							on_change={(value) => change(field.key, value ?? '')}
+						/>
+					{:else if field.multiline}
 						<Textarea
 							id={fieldId}
 							value={text}

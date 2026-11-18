@@ -24,17 +24,17 @@ boundary and its reliability rules.
 ```
 
 The workspace owns the commercial workflow. Kingdee owns source evidence and credit enforcement. The two meet
-at the read mirrors and the two-way sales-order sync.
+at the read mirrors and the two-way order sync (SO and PO).
 
 ## 2. Application surfaces
 
-| App                    | Page(s)                          | Owns                                                                                                                                                            |
-| ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operations → Orders    | Sales orders; Purchase orders    | Draft, approve, confirm, change, archive and read one agreement                                                                                                 |
-| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                             |
-| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse groups                                                                                           |
-| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                            |
-| Trade configuration    | Documents, Prices and commission | Templates marked for new sales and purchase orders; dated price book with minimum-price enforcement, price history, CEL commission rules with freight treatment |
+| App                    | Page(s)                          | Owns                                                                                                                                                  |
+| ---------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operations → Orders    | Sales orders; Purchase orders    | Draft, approve, confirm, change, archive and read one agreement                                                                                       |
+| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                   |
+| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse groups                                                                                 |
+| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                  |
+| Trade configuration    | Documents, Prices and commission | Each document case's layout per language; dated price book with minimum-price enforcement, price history, CEL commission rules with freight treatment |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -49,11 +49,12 @@ creation (`sales` or `purchasing`). `order_lines` are owned contract lines.
 The order and its lines hold the terms: header terms on `orders`, contract SKU, quantity, price, tax, floor
 and commission conversion on `order_lines`. There are no contract versions; native record history is the
 audit trail of every change. A confirmed order also keeps the commission rule in force when it was confirmed
-(`commission`), its freight treatment, and, for a sales order written to Kingdee, the account set and branch
-(`write_target`) and the SO as last read (`kingdee`).
+(`commission`), its freight treatment, and, for an order written to Kingdee, the account set and branch
+(`write_target`) and the SO or PO as last read (`kingdee`).
 
-A confirmed order is the shadow of its Kingdee SO or PO. The `orders` and `order_lines` `kingdee` syncs keep
-the two equal: confirmation creates it, a later line change amends an
+A confirmed order is the shadow of its Kingdee SO or PO (a PO once the ledger's purchase documents are
+verified). The `orders` and `order_lines` `kingdee` syncs keep the two equal: confirmation creates it, a later
+line change amends an
 audited SO or replaces an unaudited PO's lines, and a Kingdee change updates the order and its lines. Kingdee
 keeps the header (party, currency, date, settlement); only lines change after confirmation.
 
@@ -69,7 +70,7 @@ draft --(sales: approval; purchasing: confirm)--> confirmed --(change: approval 
 - A confirmed order never returns to draft. A sales rep's change to it or its lines waits for a Commercial
   Manager; a Kingdee change applies directly.
 - Archive is reversible and keeps the agreement, history, source evidence and sync. It never voids the source.
-- `source_health` tells configuration holders when a ledger needs attention.
+- `source_health` tells workspace administrators when a ledger needs attention.
 
 ### Parties, products and warehouses
 
@@ -81,7 +82,8 @@ draft --(sales: approval; purchasing: confirm)--> confirmed --(change: approval 
 - `products` holds the SKU, code, base unit, tax rate, optional price and commission settings.
 - `warehouses` holds warehouse rows and their `group_code`; a price floor is keyed by the group, not a single
   warehouse.
-- `stock_snapshots` is the remaining-lot mirror. `source_stock_commitments` holds open source sales quantities;
+- `stock_snapshots` is the remaining-lot mirror. `source_stock_commitments` holds open source sales quantities,
+  which the Stock tab shows beside each lot as Awaiting shipment and Available for its product and warehouse;
   `source_lot_costs` holds audited purchase cost for a lot. They are read-only.
 
 ## 4. Pricing and commission
@@ -134,13 +136,15 @@ contract) and language. A layout carries:
 
 - case, locale, version, title and status;
 - the Markdown/HTML body and optional print CSS/HTML;
+- document fields the order fills in, each free text or a fixed list of choices (`options`, one per line);
 - optional letterhead and company-stamp artwork.
 
 An order chooses only its document language: a sales order prints its quotation until confirmed and its sales
 contract after, a purchase order its purchase contract, each in the newest published version, and confirmation
 seals the contract version it used. Preview and download render the order's current terms as one PDF through
 `ctx.preview_pdf`. Supporting documents are attached to the order; `order_files` keeps documents received after
-confirmation. The company stamp is applied only when the layout is used on a confirmed sales order.
+confirmation. A sales order's quotation and contract carry the seller's stamp when **Include company stamp** is
+ticked in the preview; a purchase contract never does.
 
 ## 6. Access control
 
@@ -162,9 +166,9 @@ order's terms are protected by the sales policy's commercial review, not by a UI
 
 ## 7. Automations and effects
 
-| Name            | Trigger              | Policy          | What it does                                                    |
-| --------------- | -------------------- | --------------- | --------------------------------------------------------------- |
-| `source_health` | cron every 5 minutes | `configuration` | Notifies configurators when a ledger connection needs attention |
+| Name            | Trigger              | Policy          | What it does                                                               |
+| --------------- | -------------------- | --------------- | -------------------------------------------------------------------------- |
+| `source_health` | cron every 5 minutes | `source_health` | Notifies workspace administrators when a ledger connection needs attention |
 
 Models declare no post-commit effects. Ordinary writes, approvals and syncs own their own follow-up.
 
@@ -175,7 +179,8 @@ Models declare no post-commit effects. Ordinary writes, approvals and syncs own 
   using them as query inputs.
 - Native history records who changed which fields; approvals, files, runs, notifications and audit are Bolt's,
   not a second local mechanism.
-- Money is stored as a decimal value plus its currency. A read never adds or converts across currencies.
+- Money is stored as a decimal value plus its currency. A read never adds across currencies; sales margin
+  converts a foreign-currency sale only at the exchange rate Kingdee recorded on its order.
 - Source mirrors are ordinary tables. "Hidden" means they have no standalone app page, not that they are absent
   from the database. [The integration document](0002-integration.md#5-local-tables-the-sync-writes) lists them.
 
@@ -191,6 +196,7 @@ orders/                       activities, order_files, order_lines, source_payme
 parties/                      contacts, credit_snapshots
 products/                     pricing_floors, stock_snapshots
 source_lot_costs/
+source_purchase_lines/
 source_receivables/
 source_stock_commitments/
 warehouses/
@@ -203,7 +209,7 @@ map is [`src/agent/AGENTS.md`](../src/agent/AGENTS.md); the workspace brief is
 ## 10. Invariants
 
 1. An order holds its own terms; a confirmed order never returns to draft, and its history is the audit trail.
-2. Source confirmations, transactions, payments, receivables, stock and cost facts are read-only.
+2. Kingdee transactions, payments, receivables, credit, stock and cost facts are read-only.
 3. There is one delivery/invoice ledger and one payment ledger; no parallel manual ledger.
 4. A remaining source commitment cannot be released locally while its external order is active.
 5. Missing source facts stay missing; never fill a price, cost, credit limit or exchange rate.

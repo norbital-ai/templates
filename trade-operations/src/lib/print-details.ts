@@ -14,7 +14,9 @@ export const printFieldKind = {
 		label: { kind: 'text' },
 		scope: { kind: 'enum', values: ['order', 'line'] },
 		multiline: { kind: 'bool', optional: true },
-		default_value: { kind: 'text', optional: true }
+		default_value: { kind: 'text', optional: true },
+		// one choice per line: the order picks one instead of typing
+		options: { kind: 'text', optional: true }
 	},
 	optional: true,
 	many: true
@@ -29,7 +31,14 @@ type PrintField = {
 	label: string;
 	scope: 'order' | 'line';
 	default_value?: string | null | undefined;
+	options?: string | null | undefined;
 };
+/** A field's fixed choices, or none for free text. */
+export const printChoices = (field: Pick<PrintField, 'options'>) =>
+	(field.options ?? '')
+		.split('\n')
+		.map((choice) => choice.trim())
+		.filter(Boolean);
 const validKey = /^[a-z][a-z0-9_]{0,39}$/;
 export const printValueLimit = 2000;
 
@@ -47,7 +56,16 @@ export function validPrintFields(fields: readonly PrintField[]) {
 		return (
 			validPrintValues(
 				scoped.map(({ key, default_value }) => ({ key, value: default_value ?? '' }))
-			) && scoped.every(({ label }) => label.trim().length > 0 && label.length <= 80)
+			) &&
+			scoped.every(
+				(field) =>
+					field.label.trim().length > 0 &&
+					field.label.length <= 80 &&
+					// a field with choices defaults to one of them
+					(!printChoices(field).length ||
+						!field.default_value ||
+						printChoices(field).includes(field.default_value))
+			)
 		);
 	});
 }

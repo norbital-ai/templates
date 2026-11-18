@@ -245,7 +245,8 @@ export default model('orders', {
 			fields: 'all',
 			party: { fields: 'all' },
 			ledger: { fields: ['active', 'status'] },
-			lines: { fields: 'all' },
+			// documents print each product's brand and origin
+			lines: { fields: 'all', product: { fields: ['brand', 'brand_en', 'producing_area'] } },
 			transactions: { fields: 'all' }
 		},
 		logistics: {

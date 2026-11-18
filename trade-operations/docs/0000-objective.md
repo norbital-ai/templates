@@ -23,7 +23,7 @@ with its Kingdee PO, as a sales order does with its SO.
 | Team                | What they own                                                               |
 | ------------------- | --------------------------------------------------------------------------- |
 | Sales               | Customer quotations, agreements, activities, own financial facts            |
-| Procurement         | Supplier commitments and their revisions                                    |
+| Procurement         | Supplier purchase orders and their changes                                  |
 | Commercial Managers | Confirmation approvals; both sales and purchasing directions                |
 | Finance             | Payments, invoices, credit evidence, commission statements and reports      |
 | Logistics           | Operational quantities and delivery evidence, with commercial values masked |
@@ -31,34 +31,35 @@ with its Kingdee PO, as a sales order does with its SO.
 
 ## What the product must do
 
-1. **One agreement per deal.** A quote, a confirmed sales contract and a supplier commitment are versions of
-   one order record. A version retains the header terms, lines, layout, wording and commission basis it was
-   approved with.
-2. **Seal what was agreed.** Confirmation freezes the terms. A change is a new revision, not an edit of a
-   confirmed version. Earlier versions remain readable.
-3. **Use the ERP as evidence, not as the workflow.** Kingdee supplies observed sales orders, deliveries,
-   invoices, payments, stock and AR facts. Staff work in Trade Operations; the source system remains the
-   authority for what it issued and for credit enforcement.
+1. **One agreement per deal.** A quote, a confirmed sales contract and a supplier purchase order are states of
+   one order record. The order holds its terms; native history keeps every earlier value.
+2. **Seal what was agreed.** Confirmation seals the contract layout version and the commission basis. A
+   confirmed order never returns to draft; a sales rep's later change waits for a Commercial Manager.
+3. **Use the ERP as evidence, not as the workflow.** Kingdee supplies observed sales and purchase orders,
+   deliveries, receipts, invoices, payments, stock and AR facts, read-only here. Staff work in Trade
+   Operations; the source system remains the authority for what it issued and for credit enforcement.
 4. **Price with a dated floor book.** Pricing floors are per product, warehouse group, currency, quantity band
    and effective day. A sales confirmation rechecks the floor and can refuse a line with no compatible floor.
 5. **Calculate commission from sealed facts.** A commission rule is a versioned CEL expression. Confirmation
    seals the rule, its parameters, the floor basis and conversion facts the calculation used.
-6. **Generate the document from the retained version.** A published layout plus the selected order version
-   produces the quotation or contract. Preview and download use the same generated file.
+6. **Generate the document from the order.** The order's terms in its document case's layout (quotation,
+   sales contract or purchase contract) and language produce the PDF; a confirmed order uses the contract
+   version it sealed. Preview and download use the same generated file.
 7. **Never invent source facts.** A missing cost, credit limit, stock quantity, delivery or payment remains
    missing. It is not zero, and it is not replaced by a local guess.
-8. **Keep money and currency together.** Values are never added, compared or converted across currencies.
+8. **Keep money and currency together.** Values are never added or compared across currencies. The one
+   conversion is a foreign-currency sale's margin, at the exchange rate Kingdee recorded on its order.
 
 ## Scope
 
 In scope:
 
 - customer and supplier masters, contacts and credit evidence;
-- quotations, sales agreements, supplier commitments and revisions;
+- quotations, sales agreements and supplier purchase orders;
 - native approval, sealing, archive and history;
 - price floors, commission rules and commission statements;
-- document templates, retained layouts, previews and PDFs;
-- Kingdee SQL Server read mirrors and the verified sales-order write path;
+- document layouts per case and language, previews and PDFs;
+- Kingdee SQL Server read mirrors and the verified sales- and purchase-order write path;
 - stock, AR aging, sales analysis and order/commission reports;
 - English and Chinese workspace copy.
 
@@ -73,7 +74,8 @@ Out of scope for the starter:
 ## Design principles
 
 - **One owner per fact.** A value is read from its owner; it is not copied into a second model or JSON bag.
-- **Sealed means sealed.** Confirmed terms never return to draft. Corrections are revisions or new evidence.
+- **Sealed means sealed.** A confirmed order never returns to draft. A later change is a recorded edit of the
+  order; Kingdee evidence is never edited.
 - **Source mirrors are read-only.** Only the sync writes them; policies grant members read access.
 - **Native Bolt controls first.** Use approvals, history, files, runs, policies, kinds and grants before
   adding a parallel mechanism.
@@ -82,9 +84,9 @@ Out of scope for the starter:
 
 ## Success
 
-A salesperson can quote, revise and seal an agreement; a procurement user can record a supplier commitment; a
-manager can approve; finance can see the invoice, payment and commission evidence; logistics can see what to
-ship without seeing commercial values; and an auditor can name the exact version, layout, floor and rule behind
+A salesperson can quote, revise and seal an agreement; a procurement user can confirm a supplier purchase order;
+a manager can approve; finance can see the invoice, payment and commission evidence; logistics can see what to
+ship without seeing commercial values; and an auditor can name the exact layout version, floor and rule behind
 every sealed figure. The ERP can pause, reconnect or replay without creating duplicate local records or losing
 the place it reached.
 

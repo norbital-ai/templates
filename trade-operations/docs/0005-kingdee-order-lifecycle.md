@@ -6,7 +6,7 @@ fulfillment and accounting evidence. Local confirmation and ERP acceptance are s
 ## Identities and permissions
 
 Use a read connection for source mirrors and a separately authorized write connection for outbound
-sales orders. Configure database permissions for the selected account set; service-account names and
+sales and purchase orders. Configure database permissions for the selected account set; service-account names and
 operator identities belong in deployment configuration, not in template defaults.
 
 The workspace member authorizes the local action. The connector performs the permitted database
@@ -15,13 +15,14 @@ Keep those identities in the integration mapping and retain the resulting source
 
 ## Create and amend
 
-A quotation and confirmed sale share one order ID. Confirmation seals the selected agreement revision
-and queues an idempotent source write. The supported sales-order writer creates a saved, unapproved
-SO and retains its source identity. A successful write does not imply native Kingdee audit.
+A quotation and confirmed sale share one order ID. Confirmation seals the contract layout version and
+commission basis and queues an idempotent source write. The supported writer creates a saved, unapproved
+SO or PO and retains its source identity. A successful write does not imply native Kingdee audit.
 
-Retries read back the stored header and lines before acknowledging the write. Supported amendments
-retain the live source identity and preserve the earlier commercial revision. Conflicts stay visible
-for review rather than silently replacing either side's values.
+Retries read back the stored header and lines before acknowledging the write. An SO amendment keeps the
+live source identity and archives the source version it replaces; a PO's lines are replaced only while
+it is unaudited and open. Conflicts stay visible for review rather than silently replacing either side's
+values.
 
 Validate header and line mappings against the connected account set. Document IDs, entry identifiers
 and line ordinals have different meanings; ambiguous or missing identities must be refused before a
@@ -33,8 +34,8 @@ The read mirrors expose source approval, delivery, invoice, payment and stock fa
 the sync and remain read-only to members. Source changes update the mirror; local commercial changes
 remain subject to the workspace's approval and sealing rules.
 
-Archiving a local order preserves its history and evidence. It does not silently delete a Kingdee SO.
-A customer-issued PO, signed return or other supporting file is retained with the agreement version.
+Archiving a local order preserves its history and evidence. It does not silently delete a Kingdee SO or PO.
+A customer-issued PO, signed return or other supporting file is retained on the order.
 Source approval and any required business review remain explicit steps.
 
 ## Verify a connection

@@ -139,15 +139,28 @@ export class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>
 ) {}
 type PrintFields = Readonly<Record<string, string>>;
 
+type PrintContext = {
+	owner: string;
+	logistics_handler: string;
+	party_address: string;
+	party_phone: string;
+	products: ReadonlyMap<string, { brand: string; brand_en: string; producing_area: string }>;
+};
 function printValues(
 	template: DocumentTemplate,
 	seal: DocumentSnapshot,
 	reference: string,
 	date: string,
-	agreement: string
+	agreement: string,
+	context: PrintContext
 ) {
 	if (!template.print_layout) return null;
-	const amounts = printAmounts(seal);
+	const amounts = printAmounts(seal, template.locale);
+	// a contract's other terms: the first line beside its label, later lines lettered a.), b.), …
+	const [otherFirst = '', ...otherMore] = seal.other_terms
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean);
 	return {
 		file: template.print_layout,
 		fields: {
@@ -162,6 +175,27 @@ function printValues(
 			valid_until: seal.valid_until ?? '',
 			payment_terms: seal.payment_terms,
 			delivery_terms: seal.delivery_terms,
+			shipping_terms: seal.shipping_terms,
+			place_of_loading: seal.place_of_loading,
+			place_of_delivery: seal.place_of_delivery,
+			packaging: seal.packaging,
+			shipping_mark: seal.shipping_mark,
+			time_of_shipment: seal.time_of_shipment,
+			other_terms: seal.other_terms,
+			other_terms_first: otherFirst,
+			other_terms_more: otherMore
+				.map((line, index) => `${String.fromCharCode(97 + index)}.) ${line}`)
+				.join('\n'),
+			payment_method: seal.payment_method,
+			buyer_contact: seal.buyer_contact,
+			buyer_mobile: seal.buyer_mobile,
+			delivery_address: seal.delivery_address,
+			delivery_date: seal.delivery_date,
+			party_code: seal.party_code,
+			party_address: context.party_address,
+			party_phone: context.party_phone,
+			owner: context.owner,
+			logistics_handler: context.logistics_handler,
 			...printDetailFields(template.print_fields, 'order', seal.print_values),
 			terms: templateBody(template, seal, reference, '').trim(),
 			agreement,
@@ -171,6 +205,7 @@ function printValues(
 		},
 		lines: amounts.lines.map(({ line, ...amount }) => ({
 			...amount,
+			...(context.products.get(line.product) ?? { brand: '', brand_en: '', producing_area: '' }),
 			...printDetailFields(template.print_fields, 'line', line.print_values),
 			product: line.product_name,
 			product_code: line.product_code,
@@ -241,15 +276,19 @@ export const documentRead = (order: Id<'orders'>) =>
 				'buyer_contact',
 				'buyer_mobile',
 				'delivery_address',
-				'delivery_date'
+				'delivery_date',
+				'owner',
+				'logistics_handler'
 			],
 			limit: 1,
-			party: { fields: ['name', 'external_code'] },
-			lines: {}
+			party: { fields: ['name', 'external_code', 'address', 'phone'] },
+			lines: { product: { fields: ['brand', 'brand_en', 'producing_area'] } }
 		},
-		document_templates: { where: { status: { eq: 'published' } } }
+		document_templates: { where: { status: { eq: 'published' } } },
+		// the seller's people by name: every member reads the directory
+		sys_user: { output: 'directory', fields: ['name'] }
 	}) as const;
-/** The order's current terms in its published layout; a confirmed sales order carries the contract stamp. */
+/** The order's current terms in its published layout; a sales order may carry the seller's stamp. */
 export const orderDocument = Effect.fnUntraced(function* (
 	answer: ReadAnswer<ReturnType<typeof documentRead>>
 ) {
@@ -267,7 +306,13 @@ export const orderDocument = Effect.fnUntraced(function* (
 		return yield* new DocumentUnavailable({ message: 'errors.document_layout_unpublished' });
 	if (!order.party || !order.lines.length)
 		return yield* new DocumentUnavailable({ message: 'Draft document is incomplete' });
-	const terms = snapshot(order, order.party, order.lines, template.version);
+	const lines = order.lines.flatMap(({ product, ...line }) =>
+		product ? [{ ...line, product: product.id }] : []
+	);
+	if (lines.length !== order.lines.length)
+		return yield* new DocumentUnavailable({ message: 'Draft document is incomplete' });
+	const terms = snapshot(order, order.party, lines, template.version);
+	const names = new Map(answer.sys_user.rows.map((user) => [user.id, user.name]));
 	const title = template.title;
 	const text = agreementText(template, terms, reference, order.ordered_on);
 	const confirmed = order.status === 'confirmed';
@@ -280,9 +325,31 @@ export const orderDocument = Effect.fnUntraced(function* (
 		filename: `${reference}-${confirmed ? 'contract' : template.print_layout ? 'draft' : purchase ? 'purchase-commitment' : 'quotation'}.pdf`,
 		reference,
 		template_version: template.version,
-		stamp: confirmed && !purchase ? (template.contract_stamp ?? null) : null,
+		// the seller's stamp goes on its quotations and sales contracts, never on a purchase contract
+		stamp: purchase ? null : (template.contract_stamp ?? null),
 		letterhead: template.letterhead ?? null,
-		print: printValues({ ...template, title }, terms, reference, order.ordered_on, text)
+		print: printValues({ ...template, title }, terms, reference, order.ordered_on, text, {
+			owner: names.get(order.owner) ?? '',
+			logistics_handler: (order.logistics_handler && names.get(order.logistics_handler)) ?? '',
+			party_address: order.party.address ?? '',
+			party_phone: order.party.phone ?? '',
+			products: new Map(
+				order.lines.flatMap(({ product }) =>
+					product
+						? [
+								[
+									product.id,
+									{
+										brand: product.brand ?? '',
+										brand_en: product.brand_en ?? '',
+										producing_area: product.producing_area ?? ''
+									}
+								] as const
+							]
+						: []
+				)
+			)
+		})
 	};
 });
 

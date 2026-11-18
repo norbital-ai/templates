@@ -34,7 +34,12 @@ export function cnyInWords(total: string) {
 	return yuan + jiaoText + fenText;
 }
 
-export function printAmounts(seal: Terms) {
+/** A decimal string with its integer part grouped and its fraction kept as written. */
+const grouped = (value: string) =>
+	value.replace(/^(-?\d+)/, (whole) => whole.replace(/\B(?=(\d{3})+$)/g, ','));
+const plain = (value: BigDecimal.BigDecimal) => BigDecimal.format(BigDecimal.normalize(value));
+
+export function printAmounts(seal: Terms, locale: 'en' | 'zh' = 'en') {
 	const money = new Intl.NumberFormat('en', {
 		minimumFractionDigits:
 			new Intl.NumberFormat('en', {
@@ -43,8 +48,11 @@ export function printAmounts(seal: Terms) {
 			}).resolvedOptions().maximumFractionDigits ?? 2,
 		maximumFractionDigits: 100
 	});
-	const lines = seal.lines.map((line) => {
+	const lines = seal.lines.map((line, index) => {
 		const unit = line.unit.trim().toLowerCase();
+		// a quotation prints a kilogram line in tonnes: its quantity in tonnes and its price per tonne
+		const kilogram = kilograms.has(unit);
+		const shown = BigDecimal.fromStringUnsafe(line.unit_price);
 		const perTonne = kilograms.has(unit) ? 1000 : tonnes.has(unit) ? 1 : null;
 		const exportUnit =
 			kilograms.has(unit) && unit !== 'kgs' ? 'KGS' : unit === '吨' ? 'MT' : line.unit;
@@ -76,6 +84,12 @@ export function printAmounts(seal: Terms) {
 				);
 		return {
 			line,
+			index,
+			kilogram,
+			shownPrice: BigDecimal.round(
+				kilogram ? BigDecimal.multiply(shown, BigDecimal.fromBigInt(1000n)) : shown,
+				{ scale: 2, mode: 'half-from-zero' }
+			),
 			quantity,
 			exportUnit,
 			gross,
@@ -85,6 +99,14 @@ export function printAmounts(seal: Terms) {
 	});
 	return {
 		fields: {
+			currency_symbol:
+				new Intl.NumberFormat('en', {
+					style: 'currency',
+					currency: seal.currency,
+					currencyDisplay: 'narrowSymbol'
+				})
+					.formatToParts(0)
+					.find((part) => part.type === 'currency')?.value ?? seal.currency,
 			quantity_grouped:
 				lines.length && new Set(lines.map(({ exportUnit }) => exportUnit)).size === 1
 					? new Intl.NumberFormat('en', { maximumFractionDigits: 100 }).format(
@@ -120,37 +142,57 @@ export function printAmounts(seal: Terms) {
 			net_grouped: money.format(numeric(seal.net)),
 			tax_grouped: money.format(numeric(seal.tax))
 		},
-		lines: lines.map(({ line, quantity, exportUnit, gross, grossPerTonne }) => ({
-			line,
-			quantity_grouped: new Intl.NumberFormat('en', { maximumFractionDigits: 100 }).format(
-				numeric(line.quantity)
-			),
-			unit_export: exportUnit,
-			unit_price_grouped: new Intl.NumberFormat('en', {
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 100
-			}).format(numeric(line.unit_price)),
-			quantity_tonnes: quantity
-				? new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: 3,
-						maximumFractionDigits: 3
-					}).format(numeric(BigDecimal.format(quantity)))
-				: '',
-			gross_unit_price: new Intl.NumberFormat('en', {
-				useGrouping: false,
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2
-			}).format(numeric(BigDecimal.format(BigDecimal.round(gross, { scale: 2 })))),
-			gross_unit_price_per_tonne: grossPerTonne
-				? new Intl.NumberFormat('en', {
-						minimumFractionDigits: 2,
-						maximumFractionDigits: 2
-					}).format(numeric(BigDecimal.format(BigDecimal.round(grossPerTonne, { scale: 2 }))))
-				: '',
-			total_grouped: money.format(numeric(line.total)),
-			net_grouped: money.format(numeric(line.net)),
-			tax_grouped: money.format(numeric(line.tax))
-		}))
+		lines: lines.map(
+			({ line, index, kilogram, shownPrice, quantity, exportUnit, gross, grossPerTonne }) => ({
+				line,
+				line_number: String(index + 1),
+				quantity_display: grouped(
+					kilogram
+						? plain(
+								BigDecimal.divideUnsafe(
+									BigDecimal.fromStringUnsafe(line.quantity),
+									BigDecimal.fromBigInt(1000n)
+								)
+							)
+						: line.quantity
+				),
+				unit_display:
+					kilogram || line.unit.trim() === '吨' ? (locale === 'zh' ? '吨' : 'MT') : line.unit,
+				unit_price_display: new Intl.NumberFormat('en', {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				}).format(numeric(BigDecimal.format(shownPrice))),
+				tax_rate_display: plain(BigDecimal.fromStringUnsafe(line.tax_rate)),
+				quantity_grouped: new Intl.NumberFormat('en', { maximumFractionDigits: 100 }).format(
+					numeric(line.quantity)
+				),
+				unit_export: exportUnit,
+				unit_price_grouped: new Intl.NumberFormat('en', {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 100
+				}).format(numeric(line.unit_price)),
+				quantity_tonnes: quantity
+					? new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: 3,
+							maximumFractionDigits: 3
+						}).format(numeric(BigDecimal.format(quantity)))
+					: '',
+				gross_unit_price: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				}).format(numeric(BigDecimal.format(BigDecimal.round(gross, { scale: 2 })))),
+				gross_unit_price_per_tonne: grossPerTonne
+					? new Intl.NumberFormat('en', {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2
+						}).format(numeric(BigDecimal.format(BigDecimal.round(grossPerTonne, { scale: 2 }))))
+					: '',
+				total_grouped: money.format(numeric(line.total)),
+				net_grouped: money.format(numeric(line.net)),
+				tax_grouped: money.format(numeric(line.tax))
+			})
+		)
 	};
 }
