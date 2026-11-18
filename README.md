@@ -6,7 +6,7 @@ filesystem-first Bolt project that can be installed, checked, built and tested w
 | Template                                        | Directory             | Template handle             | Purpose                                                                                                        |
 | ----------------------------------------------- | --------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [**blank**](./blank/)                           | `blank/`              | `norbital_blank`            | Minimal starter with no authored business application                                                          |
-| [**CRM**](./norbital-hq/)                       | `norbital-hq/`        | `norbital_hq`               | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar |
+| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`               | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar |
 | [**construction**](./construction/)             | `construction/`       | `norbital_construction`     | Project-centered construction ops with BIM and workforce compliance                                            |
 | [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations` | Site operations: dispatch, linked-contractor WhatsApp, photo integrity                                         |
 | [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`               | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances  |
@@ -23,7 +23,8 @@ renaming a template handle changes its catalogue identity. They are allowed to d
 Every template in this repository is public, and the website lists it automatically: the template
 gallery at [norbital.ai/templates](https://norbital.ai/templates) is generated from the templates
 found in this repository, using each template's own `norbital.template.json`, `README.md`, and
-`assets/thumbnail.svg` (marketing card / `og:image` — declare that file once; no manifest field).
+`docs/screenshots/application.webp` (its one image: the README's first figure, the website card,
+`og:image` and the in-product template picker; no manifest field).
 There is no rewritten marketing copy and no list to update — **publishing a template here is what
 puts it on the website**.
 
@@ -103,8 +104,8 @@ not a catalogue:
 }
 ```
 
-Drop `assets/thumbnail.svg` once for website cards and `og:image` — no manifest field needed
-unless the path differs. `bolt build` regenerates `counts` from source roles before packing the release. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
+Capture `docs/screenshots/application.webp` once (`pnpm --dir norbital/apps/website screenshots`): the README,
+the website card, `og:image` and the template picker all show that one image. `bolt build` regenerates `counts` from source roles before packing the release. `visibility` is `public` or `unlisted`; `unlisted` hides a template from the
 in-product picker, and it is independent of which repository the template lives in.
 
 ## Release and tenant lifecycle
@@ -151,5 +152,5 @@ The source inventories list every authored model, application/page, automation p
 | field-operations   | [Reference](field-operations/docs/source-reference.md) · [Overview](field-operations/docs/screenshots/workspace-overview.webp) · [Application](field-operations/docs/screenshots/application.webp)       |
 | hrms               | [Documentation hub](hrms/docs/README.md)                                                                                                                                                                 | No captures yet | No captures yet |
 | on-demand-services | [Reference](on-demand-services/docs/source-reference.md) · [Overview](on-demand-services/docs/screenshots/workspace-overview.webp) · [Application](on-demand-services/docs/screenshots/application.webp) |
-| norbital-hq        | [Reference](norbital-hq/docs/source-reference.md) · [Overview](norbital-hq/docs/screenshots/workspace-overview.webp) · [Application](norbital-hq/docs/screenshots/application.webp)                      |
+| crm                | [Reference](crm/docs/source-reference.md) · [Overview](crm/docs/screenshots/workspace-overview.webp) · [Application](crm/docs/screenshots/application.webp)                                              |
 | trade-operations   | [Reference](trade-operations/docs/source-reference.md) · [Overview](trade-operations/docs/screenshots/workspace-overview.webp) · [Application](trade-operations/docs/screenshots/application.webp)       |

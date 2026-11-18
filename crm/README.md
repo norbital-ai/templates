@@ -50,7 +50,7 @@ provider/OAuth setup is missing, rather than an unpaired Google account.
 
 ### Local review
 
-From the realm root, run `bun run env -- serve --template=norbital-hq --persistent` and open
+From the realm root, run `bun run env -- serve --template=crm --persistent` and open
 `http://localhost:4180`. The environment CLI retains the workspace database, files and encryption
 key together. Credentials are sealed in that database; an environment file alone does not preserve
 a pairing. Provider setup is separate from this source walkthrough and screenshot verification.

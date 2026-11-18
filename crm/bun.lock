@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@template/norbital-hq",
+      "name": "@template/crm",
       "dependencies": {
         "@norbital-ai/bolt": "0.0.18",
         "@norbital-ai/ui": "0.0.18",
