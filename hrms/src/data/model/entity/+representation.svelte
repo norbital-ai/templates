@@ -6,6 +6,7 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
+		Combobox,
 		Field,
 		Form,
 		label,
@@ -15,6 +16,8 @@
 		Sheet,
 		Table,
 		Tabs,
+		type ComboboxOption,
+		type FieldEditor,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
@@ -33,6 +36,23 @@
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	const clock = ctx.clock('day');
 	const laws = pageLaws(ctx, () => (record === null ? [] : [record.settings_code]));
+	const jurisdictions = ctx.query({
+		jurisdiction: { fields: ['code', 'name'], order_by: { name: 'asc' }, limit: 1000 }
+	});
+	const zones = Intl.supportedValuesOf('timeZone').map((value) => ({
+		value,
+		label: value,
+		keywords: value.replace(/[_/]/g, ' ')
+	}));
+	/** The fields picked from a list: the workspace's laws by name, the zones the platform knows. */
+	const choices = $derived<Record<string, readonly ComboboxOption[]>>({
+		settings_code: (jurisdictions.current?.jurisdiction.rows ?? []).map((row) => ({
+			value: row.code,
+			label: row.name,
+			description: row.code
+		})),
+		time_zone: zones
+	});
 	const changes = $derived(
 		record == null
 			? null
@@ -82,6 +102,20 @@
 	};
 </script>
 
+{#snippet choice(field: FieldEditor)}
+	{@const value = typeof field.value === 'string' ? field.value : null}
+	<Combobox
+		id={field.id}
+		{value}
+		options={choices[field.name] ?? []}
+		{...value === null ? {} : { display: value }}
+		clearable={field.kind.optional === true}
+		disabled={field.disabled}
+		invalid={field.error !== undefined}
+		on_change={(next) => field.on_change(next)}
+	/>
+{/snippet}
+
 {#snippet general()}
 	<Form
 		{ctx}
@@ -103,6 +137,7 @@
 				>{#each ['code', 'name', 'settings_code', 'representative_name', 'registered_address', 'time_zone', 'bank'] as name (name)}<Field
 						{ctx}
 						{name}
+						{...choices[name] === undefined ? {} : { editor: choice }}
 					/>{/each}
 				{#if record}
 					<Section name="entity_dated" title={t('dated.title')} collapsible={false}>

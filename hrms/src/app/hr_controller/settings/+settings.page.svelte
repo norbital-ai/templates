@@ -207,7 +207,7 @@
 				'code',
 				'target_collection',
 				'events',
-				{ field: 'reads', as: 'json' },
+				'reads',
 				{ field: 'condition', as: 'code' },
 				{ field: 'validate', as: 'code' }
 			]}
