@@ -3617,7 +3617,7 @@
 				"FORCE_MAJEURE": {
 					"references": [
 						{
-							"title": "no work, no pay — DOLE Handbook 2024 ch.2 §I,; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day",
+							"title": "no work, no pay — DOLE Handbook 2024 ch.2 §I; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day",
 							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 						}
 					],
@@ -3880,7 +3880,7 @@
 					"lookup": {},
 					"references": [
 						{
-							"title": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111,; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Rule I s.3: the permit is secured \"prior to the actual start\" of employment; Rule V s.1(f): a permanent, probationary or temporary resident visa holder is exempt, on a certificate of exemption (s.2). Recorded default: the contract's `residency_status` decides: CITIZEN and PERMANENT_RESIDENT raise nothing, the alien statuses raise the duty; a temporary resident visa holder closes it with the certificate.",
+							"title": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Rule I s.3: the permit is secured \"prior to the actual start\" of employment; Rule V s.1(f): a permanent, probationary or temporary resident visa holder is exempt, on a certificate of exemption (s.2). Recorded default: the contract's `residency_status` decides: CITIZEN and PERMANENT_RESIDENT raise nothing, the alien statuses raise the duty; a temporary resident visa holder closes it with the certificate.",
 							"url": "https://naro.law.upd.edu.ph/issuances/7205"
 						}
 					],
