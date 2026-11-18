@@ -34,11 +34,11 @@ the deployed network path or the deployed TLS handshake.
 
 ## What moves between the systems
 
-| Direction           | Supported behavior                                                                                                                                 |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Kingdee → workspace | Read-only projections synchronize mapped masters, order state, fulfillment evidence, stock, receivables and sales facts.                           |
-| Workspace → Kingdee | A confirmed sales agreement queues an idempotent SO write. The supported writer creates a saved, unapproved order and retains its source identity. |
-| Ownership           | Local approval and ERP approval remain separate. Read mirrors stay read-only; local archive does not silently delete an ERP order.                 |
+| Direction           | Supported behavior                                                                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kingdee → workspace | Read-only projections synchronize mapped masters, order state, fulfillment evidence, stock, receivables and sales facts.                                   |
+| Workspace → Kingdee | A confirmed sales or purchase agreement queues an idempotent SO or PO write. The writer creates a saved, unapproved order and retains its source identity. |
+| Ownership           | Local approval and ERP approval remain separate. Read mirrors stay read-only; local archive does not silently delete an ERP order.                         |
 
 ## Credentials and repeat deployment
 
@@ -91,6 +91,17 @@ For invoice-only Sales Analysis, enter the same form of identity in **Verified S
 invoice-only sales analysis** on one ledger per account set. Enable sync and run **Test
 connection**. This enables an account-wide read because `ICSale` has no branch column. Use it only on a ledger whose Finance and Commercial Manager roles may see the account's
 invoice-only activity. A blank value stops that feed and retains the cached report facts.
+
+Purchase orders are orders. Set **Verified SQL account for purchase documents** on one ledger per account
+set and test the connection: the `kingdee` syncs on `orders`, `order_lines`, `transactions` and
+`source_payments` then treat a PO (`POOrder`, 71) as they treat an SO, in the same rowversion windows, with
+receipts (`ICStockBill` 1) as its deliveries, purchase invoices (`ICPurchase`) as its invoices and AP
+payments (`t_RP_Contact` FRP 0 type 4) as its receipts. Until then a confirmed PO stays local. For lot
+analysis, two more syncs read receipt lines
+(with lot, warehouse and the order each received) and purchase invoice lines (with the receipt each bills
+and the invoice's payable and its last `t_RP_NewCheckInfo` settlement) into `source_purchase_lines`, each
+by its header rowversion; a payment moves the payable's own rowversion, so its invoice is read again. Amounts keep their currency's
+minor units and quantities three decimals. A blank value stops the feeds and keeps what was read.
 
 For account-wide Aging, set **Verified SQL account for receivables aging** and test the enabled
 connection. Use one ledger per account set and set its verified base currency. Apply **Verified
@@ -181,7 +192,8 @@ linked portion of mixed-source invoices against the connected account set.
 For Delivery date, opt in to `deliveryCostAccount` with the verified database and recovery-fork
 identity and the account-set base currency. The connection test validates the projection with
 an empty ID set. The linked sales-analysis feed reads `ICStockBillEntry.FAmount` on the same
-bounded page as each issued delivery line. It stores the precise amount and its currency once
+bounded page as each issued delivery line. Switching the account on, or to another account, reads every
+owned order's documents once more, as the feed's first read did, so deliveries already read gain their cost. It stores the precise amount and its currency once
 on the shipment fact. An invoice fact carries the same amount prorated to its billed quantity, so
 Invoice date shows the cost in the invoice's month without counting the delivery twice. A source
 null stays unknown. Sales Analysis and its CSV present delivery cost in that currency. Margin
@@ -209,12 +221,13 @@ transaction and payment rows remain the evidence on their orders. Other ledgers 
 users use the linked calculation. For an account snapshot, the report can show the original
 open-invoice buckets or estimate allocation using unapplied cash and credits. The estimate
 allocates to the oldest due invoice first, puts invoices with no due date last and breaks ties
-by numeric Kingdee contact ID. The separate no-due-date bucket remains visible. Both views show
-the actual signed net receivable, and the estimate leaves invoice and payment facts intact.
+by numeric Kingdee contact ID. An invoice with no due date ages as not due. Both views show the
+actual signed net receivable (owed, or in credit), and the estimate leaves invoice and payment facts intact.
 
 ### Stock availability
 
-Stock → Availability uses the local lot balances and a read-only open-order snapshot. It sums
+The Stock tab's awaiting and available columns use the local lot balances and a read-only open-order
+snapshot, per product and warehouse, shown on each lot. It sums
 Kingdee base-unit quantity less shipped quantity for live, non-cancelled, open sales lines. Saved
 orders count before Kingdee audit. The report subtracts each source commitment once. Local orders
 waiting for delivery to Kingdee become part of availability after the source sees them.
@@ -313,7 +326,13 @@ whole or not at all. A failed or unreachable Kingdee leaves the writes queued (t
 show `pending`) and retries them; a lost receipt is retried against the FUUID and the amendment's
 own version check, never a second SO or a second version.
 
-A confirmed sales order creates an **unapproved** SEOrder and its SEOrderEntry rows.
+A purchase order follows the same path with Kingdee's PO rule: a PO's lines change only while it is
+unaudited and open, so a line change after audit is refused (unaudit the PO in Kingdee first) and a line
+change before audit replaces the PO's entries, provided they are still the entries last read. A PO keeps
+one live row; it has no amendment versions.
+
+A confirmed sales order creates an **unapproved** SEOrder and its SEOrderEntry rows; a purchase order an
+unapproved POOrder and its POOrderEntry rows.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
 FInterID through ICMaxNum, and writes the complete header/line set. Existing FUUID provenance
 makes retry identity independent of the nonunique bill number. A retry verifies the written
@@ -353,8 +372,8 @@ and preserves the cursor and existing evidence. The next poll resumes after that
 issued; it does not attempt an invalid document upsert or reconcile rows as absent while waiting.
 
 The reader observes subsequent Kingdee approval; the template does not call a fictional approval
-procedure. Purchase-order creation, red-document reversals and a verified credit
-hold/limit mapping remain unavailable and fail explicitly. They must not fall back to normalized
+procedure. Red-document reversals and a verified credit hold/limit mapping remain unavailable and fail
+explicitly. They must not fall back to normalized
 simulation tables or fabricate empty successful results.
 
 ## Local validation boundary

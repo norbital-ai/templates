@@ -17,7 +17,7 @@ type OrderLine = {
 };
 export type OrderPayload = {
 	readonly order_id: string;
-	/** The order's `source_order_key`: with its id, the SO's FUUID. */
+	/** The order's `source_order_key`: with its id, the Kingdee order's FUUID. */
 	readonly key: string;
 	readonly reference: string;
 	readonly direction: 'sales' | 'purchasing';
@@ -29,7 +29,7 @@ export type OrderPayload = {
 	readonly payment_terms: string;
 	readonly write_target?: { readonly account: string; readonly branch: string };
 	readonly lines: readonly OrderLine[];
-	/** The SO as Kingdee holds it, when this write amends its lines. */
+	/** The Kingdee order as it was read, when this write changes its lines. */
 	readonly previous?: {
 		readonly source_id: string;
 		readonly source_uuid: string;
@@ -54,7 +54,8 @@ export type SourceOrderBindings = {
 	readonly billerId: string;
 	readonly employeeId: string;
 	readonly departmentId: string;
-	readonly customerId: string;
+	/** The customer of an SO, the supplier of a PO. */
+	readonly partyId: string;
 	readonly settlementId: string;
 	readonly currencyId: string;
 	readonly baseCurrency: string;
@@ -69,7 +70,7 @@ export type SourceOrderBatch = {
 	readonly items: readonly Readonly<Record<string, string>>[];
 };
 /** These source identifiers and SQL types are authored constants, never connection configuration. */
-export const headerTypes = {
+const salesHeaderTypes = {
 	FBrNo: 'nvarchar(20)',
 	FBillNo: 'nvarchar(200)',
 	FTranType: 'int',
@@ -103,7 +104,7 @@ export const headerTypes = {
 	FHeadSelfS0192: 'nvarchar(100)',
 	FSettleDate: 'datetime'
 } as const;
-export const itemTypes = {
+const salesItemTypes = {
 	FEntryID: 'int',
 	FItemID: 'int',
 	FUnitID: 'int',
@@ -131,6 +132,39 @@ export const itemTypes = {
 	FInForeCast: 'int',
 	FEntrySelfS0172: 'nvarchar(100)',
 	FEntrySelfS0173: 'nvarchar(100)'
+} as const;
+/** The PO's own columns: no sales channel, delivery or packaging fields. */
+const purchaseHeaderTypes = {
+	FBrNo: 'nvarchar(20)',
+	FBillNo: 'nvarchar(200)',
+	FTranType: 'int',
+	FCurrencyID: 'int',
+	FSupplyID: 'int',
+	FDate: 'datetime',
+	FExchangeRate: 'decimal(28,10)',
+	FDeptID: 'int',
+	FEmpID: 'int',
+	FBillerID: 'int',
+	FSettleID: 'int',
+	FSettleDate: 'datetime'
+} as const;
+const purchaseItemTypes = {
+	FEntryID: 'int',
+	FItemID: 'int',
+	FUnitID: 'int',
+	FQty: 'decimal(28,10)',
+	FPrice: 'decimal(28,10)',
+	FAuxTaxPrice: 'decimal(28,10)',
+	FTaxRate: 'decimal(28,10)',
+	FAmount: 'decimal(28,10)',
+	FTaxAmount: 'decimal(28,10)',
+	FAllAmount: 'decimal(28,10)',
+	FDate: 'datetime'
+} as const;
+/** Each direction's header and entry columns. */
+export const batchTypes = {
+	sales: { header: salesHeaderTypes, items: salesItemTypes },
+	purchasing: { header: purchaseHeaderTypes, items: purchaseItemTypes }
 } as const;
 const invalid = (column: string, reason: string): never => {
 	throw new SourceRowInvalid({ column, reason });
@@ -233,31 +267,29 @@ const escape = (value: string) =>
 				return '&apos;';
 		}
 	});
-/** Actual KIS sales-order projection; source approval remains a separate Kingdee operation. */
+/** Actual KIS SO or PO projection; source approval remains a separate Kingdee operation. */
 export function sourceOrderBatch(
 	payload: OrderPayload,
 	bindings: SourceOrderBindings
 ): SourceOrderBatch {
-	if (payload.direction !== 'sales')
-		return invalid('direction', 'The purchase-order write mapping has not been verified');
 	if (
 		payload.lines.length === 0 ||
 		payload.lines.length > 200 ||
 		payload.lines.length !== bindings.items.length
 	)
-		return invalid('lines', 'A complete sales order requires between 1 and 200 mapped items');
+		return invalid('lines', 'A complete order requires between 1 and 200 mapped items');
 	PlainDate(payload.ordered_on);
 	if (bindings.packagingId !== '') sourceInteger(bindings.packagingId, 'packagingId');
 	const rate = BigDecimal.fromStringUnsafe(bindings.rate);
 	if (!BigDecimal.isPositive(rate))
 		return invalid('currency', 'A positive source exchange rate is required');
 	const date = `${payload.ordered_on}T00:00:00`;
-	const values = {
+	const sales = {
 		FBrNo: bindings.branchNo,
 		FBillNo: payload.reference,
 		FTranType: '81',
 		FCurrencyID: sourceInteger(bindings.currencyId, 'FCurrencyID'),
-		FCustID: sourceInteger(bindings.customerId, 'FCustID'),
+		FCustID: sourceInteger(bindings.partyId, 'party'),
 		FDate: date,
 		FExchangeRate: new Intl.NumberFormat('en', {
 			useGrouping: false,
@@ -290,6 +322,23 @@ export function sourceOrderBatch(
 		FHeadSelfS0192: '-',
 		FSettleDate: `${settlementDate(payload.ordered_on, bindings.creditDays, bindings.fromMonthEnd)}T00:00:00`
 	};
+	const values =
+		payload.direction === 'sales'
+			? sales
+			: {
+					FBrNo: sales.FBrNo,
+					FBillNo: sales.FBillNo,
+					FTranType: '71',
+					FCurrencyID: sales.FCurrencyID,
+					FSupplyID: sales.FCustID,
+					FDate: sales.FDate,
+					FExchangeRate: sales.FExchangeRate,
+					FDeptID: sales.FDeptID,
+					FEmpID: sales.FEmpID,
+					FBillerID: sales.FBillerID,
+					FSettleID: sales.FSettleID,
+					FSettleDate: sales.FSettleDate
+				};
 	const entries = sourceEntryIds(payload);
 	const rows = payload.lines.map((line, index) => {
 		const item = bindings.items[index];
@@ -344,7 +393,7 @@ export function sourceOrderBatch(
 					currency: bindings.baseCurrency
 				}).resolvedOptions().maximumFractionDigits ?? 2
 		});
-		return {
+		const entry = {
 			FEntryID: entries[index]?.entry_id ?? invalid('FEntryID', 'Source entry mapping is missing'),
 			FItemID: sourceInteger(item.itemId, 'FItemID'),
 			FUnitID: sourceInteger(item.unitId, 'FUnitID'),
@@ -433,6 +482,21 @@ export function sourceOrderBatch(
 			FEntrySelfS0172: bindings.packagingId,
 			FEntrySelfS0173: ''
 		};
+		return payload.direction === 'sales'
+			? entry
+			: {
+					FEntryID: entry.FEntryID,
+					FItemID: entry.FItemID,
+					FUnitID: entry.FUnitID,
+					FQty: entry.FQty,
+					FPrice: entry.FPrice,
+					FAuxTaxPrice: entry.FAuxTaxPrice,
+					FTaxRate: entry.FCESS,
+					FAmount: entry.FAmount,
+					FTaxAmount: entry.FTaxAmt,
+					FAllAmount: entry.FAllAmount,
+					FDate: date
+				};
 	});
 	return { header: values, items: rows };
 }

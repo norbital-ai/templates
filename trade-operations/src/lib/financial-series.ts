@@ -6,6 +6,7 @@ export function marginSeries(
 		source_owner?: string | null;
 		owner_name: string;
 		currency: string;
+		cost_currency?: string | null;
 		net?: string | null;
 		margin?: string | null;
 	}[]
@@ -20,9 +21,11 @@ export function marginSeries(
 		}
 	>();
 	for (const row of rows) {
-		const key = `${row.owner ?? row.source_owner ?? ''}/${row.currency}`;
+		// a margin is in its cost's currency
+		const currency = row.cost_currency ?? row.currency;
+		const key = `${row.owner ?? row.source_owner ?? ''}/${currency}`;
 		const group = groups.get(key) ?? {
-			currency: row.currency,
+			currency,
 			salesperson: row.owner_name,
 			margin: BigDecimal.fromBigInt(0n),
 			unknown: false

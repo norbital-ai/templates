@@ -18,6 +18,7 @@ import type {
 } from '@norbital-ai/bolt';
 import { hash, numeric } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
+import { earliestReceivablesCutoff } from './receivables.js';
 /** The order fields the commission and report helpers read. */
 export const reportFields = [
 	'number',
@@ -194,34 +195,6 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 		}
 	});
 }
-function commissionRows(orders: readonly ReportOrder[]) {
-	return orders.flatMap((order) =>
-		commissionLines(order).map(({ order_line, quantity, spread, amount, ...line }) => ({
-			...line,
-			quantity,
-			spread:
-				spread &&
-				new Intl.NumberFormat('en', {
-					useGrouping: false,
-					minimumFractionDigits: 8,
-					maximumFractionDigits: 8
-				}).format(numeric(BigDecimal.format(spread))),
-			amount:
-				amount &&
-				new Intl.NumberFormat('en', {
-					useGrouping: false,
-					minimumFractionDigits: amount.scale,
-					maximumFractionDigits: amount.scale
-				}).format(numeric(BigDecimal.format(amount))),
-			owner_name: '',
-			order: order.id,
-			number: order.number,
-			owner: order.owner,
-			ordered_on: order.ordered_on,
-			currency: order.currency
-		}))
-	);
-}
 export const commissionCalculation = Effect.fnUntraced(function* (
 	order: ReportOrder,
 	actual?: readonly CommissionFact[]
@@ -275,25 +248,6 @@ export const commissionCalculation = Effect.fnUntraced(function* (
 		snapshot
 	};
 });
-/** The commission report's read: confirmed sales orders with their lines, and salesperson names. */
-export const commissionRead = {
-	orders: {
-		where: { direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
-		fields: reportFields,
-		...reportLayers
-	},
-	sys_user: { output: 'directory', fields: ['name'] }
-} as const;
-/** Commission per line of the read orders (one order when `order` is named). */
-export function commissionReport(
-	answer: ReadAnswer<typeof commissionRead>,
-	input: { order?: Id<'orders'> | null } = {}
-) {
-	const names = new Map(answer.sys_user.rows.map((u) => [u.id, u.name]));
-	return commissionRows(answer.orders.rows.filter((o) => !input.order || o.id === input.order)).map(
-		(row) => ({ ...row, owner_name: names.get(row.owner) ?? '' })
-	);
-}
 /**
  * The sales read: active source sales lines, each with its confirmed sales order (party name and lines), product and
  * salesperson names.
@@ -304,9 +258,17 @@ export const salesRead = {
 		fields: [...commercialSalesFields, 'booked_cost', 'booked_cost_currency'],
 		order: {
 			where: { direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
-			fields: ['number', 'party', 'owner', 'currency', 'freight_treatment'],
+			fields: [
+				'number',
+				'party',
+				'owner',
+				'currency',
+				'freight_treatment',
+				'ordered_on',
+				'kingdee'
+			],
 			party: { fields: ['name'] },
-			lines: { fields: ['product', 'product_name', 'floor_net'] }
+			lines: { fields: ['product', 'product_code', 'product_name', 'floor_net'] }
 		}
 	},
 	products: { fields: ['name'] },
@@ -468,139 +430,6 @@ function bookedNet(
 		? null
 		: BigDecimal.subtract(BigDecimal.fromStringUnsafe(net), BigDecimal.fromStringUnsafe(freight));
 }
-/** Monthly sales and returns by currency and salesperson (an inverted range reads nothing). */
-export function salesAnalysis(answer: SalesAnswer, range: SalesRange = {}) {
-	const byUser = new Map(answer.sys_user.rows.map((u) => [u.id, u.name]));
-	const groups = new Map<
-		string,
-		{
-			currency: Row<'orders'>['currency'];
-			owner: Row<'orders'>['owner'] | null;
-			owner_name: string;
-			period: Row<'source_sales_lines'>['business_on'];
-			freight_treatment: Row<'orders'>['freight_treatment'] | null;
-			orderIds: Set<string>;
-			source_lines: number;
-			unresolved_lines: number;
-			net: BigDecimal.BigDecimal | null;
-			source_net: BigDecimal.BigDecimal | null;
-			tax: BigDecimal.BigDecimal | null;
-			total: BigDecimal.BigDecimal | null;
-			freight: BigDecimal.BigDecimal | null;
-		}
-	>();
-	for (const source of salesFacts(answer, range)) {
-		const order = source.order ?? undefined;
-		const dimensions = standalone(source);
-		if (!order && !dimensions) continue;
-		const denomination = order?.currency ?? source.currency;
-		const treatment = order?.freight_treatment ?? null;
-		const period = source.business_on.slice(0, 7) + '-01';
-		const key = JSON.stringify([
-			denomination,
-			order?.owner ?? sourceOwner(source),
-			period,
-			treatment
-		]);
-		const group = groups.get(key) ?? {
-			currency: denomination,
-			owner: order?.owner ?? null,
-			owner_name: (order ? byUser.get(order.owner) : dimensions?.employee) ?? '',
-			period,
-			freight_treatment: treatment,
-			orderIds: new Set<string>(),
-			source_lines: 0,
-			unresolved_lines: 0,
-			net: BigDecimal.fromBigInt(0n),
-			source_net: BigDecimal.fromBigInt(0n),
-			tax: BigDecimal.fromBigInt(0n),
-			total: BigDecimal.fromBigInt(0n),
-			freight: BigDecimal.fromBigInt(0n)
-		};
-		const net = source.net_amount,
-			tax = source.tax_amount,
-			freight = source.freight;
-		const booked = treatment ? bookedNet(net, freight, treatment) : null;
-		if (order) group.orderIds.add(order.id);
-		group.source_lines++;
-		if (net === null || tax === null || freight === null) group.unresolved_lines++;
-		group.net = group.net === null || booked === null ? null : BigDecimal.sum(group.net, booked);
-		group.source_net =
-			group.source_net === null || net === null
-				? null
-				: BigDecimal.sum(group.source_net, BigDecimal.fromStringUnsafe(net));
-		group.tax =
-			group.tax === null || tax === null
-				? null
-				: BigDecimal.sum(group.tax, BigDecimal.fromStringUnsafe(tax));
-		group.freight =
-			group.freight === null || freight === null
-				? null
-				: BigDecimal.sum(group.freight, BigDecimal.fromStringUnsafe(freight));
-		group.total =
-			group.total === null || net === null || tax === null
-				? null
-				: BigDecimal.sum(
-						BigDecimal.sum(group.total, BigDecimal.fromStringUnsafe(net)),
-						BigDecimal.fromStringUnsafe(tax)
-					);
-		groups.set(key, group);
-	}
-	return [...groups.values()]
-		.map(({ orderIds, ...row }) => {
-			const scale =
-				new Intl.NumberFormat('en', {
-					style: 'currency',
-					currency: row.currency
-				}).resolvedOptions().maximumFractionDigits ?? 2;
-			return {
-				...row,
-				orders: orderIds.size,
-				net:
-					row.net &&
-					new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(BigDecimal.round(row.net, { scale })))),
-				source_net:
-					row.source_net &&
-					new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(BigDecimal.round(row.source_net, { scale })))),
-				tax:
-					row.tax &&
-					new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(BigDecimal.round(row.tax, { scale })))),
-				total:
-					row.total &&
-					new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(BigDecimal.round(row.total, { scale })))),
-				freight:
-					row.freight &&
-					new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(BigDecimal.round(row.freight, { scale }))))
-			};
-		})
-		.sort(
-			(a, b) =>
-				b.period.localeCompare(a.period) ||
-				a.currency.localeCompare(b.currency) ||
-				(a.owner ?? a.owner_name).localeCompare(b.owner ?? b.owner_name) ||
-				(a.freight_treatment ?? '').localeCompare(b.freight_treatment ?? '')
-		);
-}
 /** Sales and returns per source line for the selected dates, priced against its order line. */
 export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 	const byUser = new Map(answer.sys_user.rows.map((row) => [row.id, row.name]));
@@ -643,9 +472,26 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 						currency: costCurrency
 					}).resolvedOptions().maximumFractionDigits ?? 2)
 				: null;
+			// the margin is in the cost's currency: a foreign sale meets its base-currency cost at its Kingdee rate
+			const rate = order?.kingdee?.exchange_rate;
+			const costedNet =
+				booked === null || costCurrency === null
+					? null
+					: costCurrency === denomination
+						? booked
+						: rate
+							? BigDecimal.multiply(booked, BigDecimal.fromStringUnsafe(rate))
+							: null;
+			const margin =
+				cost !== null && costedNet !== null && costDigits !== null
+					? BigDecimal.round(BigDecimal.subtract(costedNet, cost), { scale: costDigits })
+					: null;
 			return [
 				{
 					order: order?.id ?? null,
+					order_line: source.order_line ?? null,
+					ordered_on: order?.ordered_on ?? null,
+					product_code: line?.product_code ?? null,
 					product: answer.products?.rows.find((p) => p.id === line?.product)?.id ?? null,
 					party: order?.party?.id ?? null,
 					owner: order?.owner ?? null,
@@ -682,6 +528,7 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 					unit: source.unit,
 					quantity: source.quantity,
 					lot_number: source.lot_number,
+					lot_unit_cost: source.unit_cost,
 					cost:
 						costDigits === null || cost === null
 							? null
@@ -694,16 +541,22 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 								),
 					cost_currency: costCurrency,
 					margin:
-						cost !== null && costCurrency === denomination && booked !== null
-							? new Intl.NumberFormat('en', {
-									useGrouping: false,
-									minimumFractionDigits: digits,
-									maximumFractionDigits: digits
-								}).format(
-									numeric(
-										BigDecimal.format(
-											BigDecimal.round(BigDecimal.subtract(booked, cost), { scale: digits })
-										)
+						margin &&
+						new Intl.NumberFormat('en', {
+							useGrouping: false,
+							minimumFractionDigits: costDigits ?? digits,
+							maximumFractionDigits: costDigits ?? digits
+						}).format(numeric(BigDecimal.format(margin))),
+					// the margin over the booked net (net after a deducted freight), in percent
+					margin_rate:
+						margin && costedNet && !BigDecimal.isZero(costedNet)
+							? BigDecimal.format(
+									BigDecimal.round(
+										BigDecimal.divideUnsafe(
+											BigDecimal.multiply(margin, BigDecimal.fromBigInt(100n)),
+											costedNet
+										),
+										{ scale: 1 }
 									)
 								)
 							: null,
@@ -749,6 +602,211 @@ export function salesDetail(answer: SalesAnswer, range: SalesRange = {}) {
 				a.external_code.localeCompare(b.external_code)
 		);
 }
+/** The issued invoices of `orders` and the active payments against them: what each sales line was billed and collected. */
+export const salesCollectionRead = (orders: readonly Id<'orders'>[]) =>
+	({
+		transactions: {
+			where: { order: { in: orders }, kind: { eq: 'invoice' }, status: { eq: 'issued' } },
+			fields: ['order', 'reference', 'issued_on', 'due_on', 'total', 'items'],
+			limit: 10_000
+		},
+		source_payments: {
+			where: { order: { in: orders }, active: { eq: true } },
+			fields: ['invoice', 'amount', 'settled_on'],
+			limit: 10_000
+		}
+	}) as const;
+type CollectionAnswer = ReadAnswer<ReturnType<typeof salesCollectionRead>>;
+export type Collection = 'uninvoiced' | 'unpaid' | 'partial' | 'paid';
+/**
+ * Each sales line with its invoices (an invoice line's own; a delivery's, by its order line and lot), their latest
+ * dates and how far they are collected. A line with no order has no invoice to follow.
+ */
+export function salesCollection<R extends ReturnType<typeof salesDetail>[number]>(
+	rows: readonly R[],
+	answer: CollectionAnswer
+) {
+	const settled = new Map<string, { amount: BigDecimal.BigDecimal; on: PlainDate }>();
+	for (const payment of answer.source_payments.rows) {
+		if (!payment.invoice) continue;
+		const prior = settled.get(payment.invoice);
+		settled.set(payment.invoice, {
+			amount: BigDecimal.sum(
+				prior?.amount ?? BigDecimal.fromBigInt(0n),
+				BigDecimal.fromStringUnsafe(payment.amount)
+			),
+			on: prior && prior.on > payment.settled_on ? prior.on : payment.settled_on
+		});
+	}
+	const byOrder = Map.groupBy(answer.transactions.rows, (invoice) => invoice.order);
+	const latest = (dates: readonly (PlainDate | null)[]) =>
+		dates.reduce<PlainDate | null>((max, on) => (on && (!max || on > max) ? on : max), null);
+	return rows.map((row) => {
+		const invoices = (row.order ? (byOrder.get(row.order) ?? []) : []).filter((invoice) =>
+			row.kind === 'invoice' || row.kind === 'invoice_only'
+				? invoice.reference === row.reference.slice(0, row.reference.lastIndexOf('/'))
+				: invoice.items?.some(
+						(item) =>
+							item.order_line_id === row.order_line &&
+							(!row.lot_number || !item.lot_number || item.lot_number === row.lot_number)
+					)
+		);
+		const billed = BigDecimal.sumAll(
+			invoices.flatMap((invoice) =>
+				invoice.total ? [BigDecimal.fromStringUnsafe(invoice.total)] : []
+			)
+		);
+		const collected = BigDecimal.sumAll(
+			invoices.flatMap((invoice) => {
+				const paid = settled.get(invoice.id);
+				return paid ? [paid.amount] : [];
+			})
+		);
+		const collection: Collection | null = !row.order
+			? null
+			: invoices.length === 0
+				? 'uninvoiced'
+				: !BigDecimal.isPositive(collected)
+					? 'unpaid'
+					: BigDecimal.isLessThan(collected, billed)
+						? 'partial'
+						: 'paid';
+		return {
+			...row,
+			invoice_numbers: invoices.map((invoice) => invoice.reference).join(', '),
+			invoiced_on: latest(invoices.map((invoice) => invoice.issued_on)),
+			due_on: latest(invoices.map((invoice) => invoice.due_on)),
+			collection,
+			collected_on:
+				collection === 'paid'
+					? latest(invoices.map((invoice) => settled.get(invoice.id)?.on ?? null))
+					: null
+		};
+	});
+}
+/** The purchase side of `lots`: their audited receipts and the purchase invoices billing them. */
+export const purchaseChainRead = (lots: readonly string[]) =>
+	({
+		source_purchase_lines: {
+			where: {
+				lot_number: { in: lots },
+				kind: { in: ['receipt', 'invoice'] },
+				active: { eq: true }
+			},
+			fields: [
+				'kind',
+				'external_code',
+				'upstream',
+				'reference',
+				'business_on',
+				'supplier_name',
+				'product_code',
+				'lot_number',
+				'quantity',
+				'net_amount',
+				'order_reference',
+				'billed_amount',
+				'open_amount',
+				'paid_on'
+			],
+			limit: 10_000
+		}
+	}) as const;
+type PurchaseLine = ReadAnswer<
+	ReturnType<typeof purchaseChainRead>
+>['source_purchase_lines']['rows'][number];
+export type SupplierPayment = 'uninvoiced' | 'unpaid' | 'partial' | 'paid';
+/**
+ * Each sold line with where its lot came from: the purchase orders and suppliers that received it, its purchase
+ * price (receipt cost over quantity), its first receipt, the purchase invoices billing those receipts and how far
+ * the supplier is paid. A line with no lot, or a lot no audited receipt names, has no chain.
+ */
+export function purchaseChain<
+	R extends { readonly product_code: string | null; readonly lot_number: string | null }
+>(rows: readonly R[], lines: readonly PurchaseLine[]) {
+	const byLot = Map.groupBy(lines, (line) => `${line.product_code}:${line.lot_number}`);
+	const distinct = (values: readonly (string | null)[]) =>
+		[...new Set(values.flatMap((value) => (value ? [value] : [])))].join(', ');
+	const extreme = (
+		dates: readonly (PlainDate | null)[],
+		before: (a: PlainDate, b: PlainDate) => boolean
+	) =>
+		dates.reduce<PlainDate | null>(
+			(found, on) => (on && (!found || before(on, found)) ? on : found),
+			null
+		);
+	const sum = (values: readonly string[]) =>
+		BigDecimal.sumAll(values.map((value) => BigDecimal.fromStringUnsafe(value)));
+	return rows.map((row) => {
+		const lot =
+			row.product_code && row.lot_number
+				? (byLot.get(`${row.product_code}:${row.lot_number}`) ?? [])
+				: [];
+		const receipts = lot.filter((line) => line.kind === 'receipt');
+		const received = new Set(receipts.map((line) => line.external_code));
+		// a payable belongs to its invoice: one per invoice number
+		const invoices = [
+			...new Map(
+				lot
+					.filter(
+						(line) =>
+							line.kind === 'invoice' && line.upstream !== null && received.has(line.upstream)
+					)
+					.map((line) => [line.reference, line])
+			).values()
+		];
+		const quantity = sum(receipts.map((line) => line.quantity));
+		const costs = receipts.flatMap((line) => (line.net_amount === null ? [] : [line.net_amount]));
+		const open = invoices.map((line) => line.open_amount ?? line.billed_amount);
+		const payment: SupplierPayment | null = !receipts.length
+			? null
+			: !invoices.length
+				? 'uninvoiced'
+				: open.every(
+							(value) => value !== null && BigDecimal.isZero(BigDecimal.fromStringUnsafe(value))
+					  )
+					? 'paid'
+					: invoices.every(
+								(line) =>
+									line.open_amount !== null &&
+									line.billed_amount !== null &&
+									BigDecimal.equals(
+										BigDecimal.fromStringUnsafe(line.open_amount),
+										BigDecimal.fromStringUnsafe(line.billed_amount)
+									)
+						  )
+						? 'unpaid'
+						: 'partial';
+		return {
+			...row,
+			order_reference: distinct(receipts.map((line) => line.order_reference)),
+			supplier: distinct(receipts.map((line) => line.supplier_name)),
+			purchase_price:
+				costs.length === receipts.length && receipts.length && !BigDecimal.isZero(quantity)
+					? BigDecimal.format(
+							BigDecimal.round(BigDecimal.divideUnsafe(sum(costs), quantity), { scale: 4 })
+						)
+					: null,
+			first_received_on: extreme(
+				receipts.map((line) => line.business_on),
+				(a, b) => a < b
+			),
+			purchase_invoices: distinct(invoices.map((line) => line.reference)),
+			purchase_invoiced_on: extreme(
+				invoices.map((line) => line.business_on),
+				(a, b) => a > b
+			),
+			supplier_payment: payment,
+			supplier_paid_on:
+				payment === 'paid'
+					? extreme(
+							invoices.map((line) => line.paid_on),
+							(a, b) => a > b
+						)
+					: null
+		};
+	});
+}
 /** The aging read on `as_of`: issued invoices with their order, and the active payments settled by then. */
 const salesReceivable = { order: { is: { direction: { eq: 'sales' } } } } as const;
 export const agingRead = (
@@ -790,8 +848,9 @@ export const receivablesRead = {
 } as const;
 type ReceivablesSnapshot = ReadAnswer<typeof receivablesRead>['source_receivables']['rows'][number];
 
+/** Each ledger's receivables snapshot without its entries: which ledgers it covers, and when it was taken. */
 export const receivablesHeadRead = {
-	source_receivables: { fields: ['source', 'observed_at'] }
+	source_receivables: { fields: ['source', 'observed_at'], source: { fields: ['name'] } }
 } as const;
 export const readReceivablesReport = <E>(reader: ReportReader<E>) =>
 	Effect.gen(function* () {
@@ -808,15 +867,17 @@ export const readReceivablesReport = <E>(reader: ReportReader<E>) =>
 		);
 	});
 
+/** Every aging page, read beside the ledgers' receivables `snapshots`, as the aging entries on `cutoff`. */
 export const readAgingReport = <E>(
 	reader: ReportReader<E>,
 	request: ReturnType<typeof agingRead>,
 	first: AgingAnswer,
 	cutoff: PlainDate,
-	snapshots: readonly ReceivablesSnapshot[]
+	snapshots: Effect.Effect<readonly ReceivablesSnapshot[], E>
 ) =>
 	Effect.all(
 		{
+			snapshots,
 			transactions: reportPages(first.transactions, (after) =>
 				Effect.map(
 					reader.query({ transactions: { ...request.transactions, after } }),
@@ -830,7 +891,7 @@ export const readAgingReport = <E>(
 				)
 			)
 		},
-		{ concurrency: 2 }
+		{ concurrency: 3 }
 	).pipe(
 		Effect.map((rows) =>
 			agingDetails(
@@ -839,11 +900,37 @@ export const readAgingReport = <E>(
 					source_payments: { ...first.source_payments, rows: rows.source_payments, next: null }
 				},
 				cutoff,
-				snapshots
+				rows.snapshots
 			)
 		)
 	);
 
+/**
+ * The aging entries on `as_of` and the receivables snapshot heads they used (`receivables`: the reader holds them).
+ * `rows` is null for a cutoff before the snapshots' account history starts.
+ */
+export const readAgingAt = <E>(reader: ReportReader<E>, as_of: PlainDate, receivables: boolean) =>
+	Effect.gen(function* () {
+		const heads = receivables
+			? (yield* reader.query(receivablesHeadRead)).source_receivables.rows
+			: [];
+		if (heads.length > 0 && as_of < earliestReceivablesCutoff) return { heads, rows: null };
+		const request = agingRead(
+			as_of,
+			heads.flatMap((head) => head.source?.id ?? [])
+		);
+		const [first, snapshots] = yield* Effect.all(
+			[
+				reader.query(request),
+				heads.length > 0 ? readReceivablesReport(reader) : Effect.succeed([])
+			],
+			{ concurrency: 2 }
+		);
+		return {
+			heads,
+			rows: yield* readAgingReport(reader, request, first, as_of, Effect.succeed(snapshots))
+		};
+	});
 const AGING = [
 	[0, 'not_due'],
 	[30, '1_30'],
@@ -851,17 +938,11 @@ const AGING = [
 	[90, '61_90'],
 	[Infinity, 'over_90']
 ] as const;
-export const agingBuckets = [
-	'not_due',
-	'1_30',
-	'31_60',
-	'61_90',
-	'over_90',
-	'no_due_date'
-] as const;
+export const agingBuckets = ['not_due', '1_30', '31_60', '61_90', 'over_90'] as const;
 const zero = '0';
+/** An invoice with no due date cannot be overdue: it is not due. */
 function agingBucket(due: PlainDate | null, cutoff: PlainDate): AgingBucket {
-	if (due === null) return 'no_due_date';
+	if (due === null) return 'not_due';
 	const days = Duration.toDays(
 		DateTime.distance(DateTime.makeUnsafe(due), DateTime.makeUnsafe(cutoff))
 	);
@@ -927,6 +1008,8 @@ export function arAging(answer: AgingAnswer, as_of: PlainDate) {
 			{
 				...agingAccount(order, invoice.source),
 				contact_id: null,
+				settlement: null,
+				delivered_on: null,
 				invoice: invoice.id,
 				reference: invoice.reference,
 				currency: invoice.currency,
@@ -971,6 +1054,8 @@ export function receivablesDetails(snapshots: readonly ReceivablesSnapshot[], as
 				{
 					order: null,
 					contact_id: entry.contact_id,
+					settlement: receipt ? null : (entry.settlement ?? null),
+					delivered_on: receipt ? null : (entry.delivered_on ?? null),
 					order_number: '',
 					party: entry.customer_id,
 					party_name: entry.customer,
@@ -1029,6 +1114,8 @@ export function agingDetails(
 						{
 							...agingAccount(payment.order, payment.source),
 							contact_id: null,
+							settlement: null,
+							delivered_on: null,
 							invoice: null,
 							reference: payment.reference,
 							currency: payment.currency,
@@ -1046,7 +1133,7 @@ export function agingDetails(
 		)
 	];
 }
-type AgingDetail = {
+export type AgingDetail = {
 	order: Id<'orders'> | null;
 	order_number: string;
 	party: string;
@@ -1060,6 +1147,9 @@ type AgingDetail = {
 	issued_on: PlainDate | null;
 	due_on: PlainDate | null;
 	settled_on: PlainDate | null;
+	/** An account-wide entry's own settlement method and first delivery; a linked invoice has neither here. */
+	settlement: string | null;
+	delivered_on: PlainDate | null;
 	as_of: PlainDate;
 	balance: string;
 	overpaid: string;
@@ -1174,8 +1264,7 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 			'1_30': zero,
 			'31_60': zero,
 			'61_90': zero,
-			over_90: zero,
-			no_due_date: zero
+			over_90: zero
 		};
 		for (const field of ['balance', 'overpaid', 'credit', 'unapplied'] as const) {
 			const total = BigDecimal.sum(
@@ -1233,6 +1322,107 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 				a.currency.localeCompare(b.currency) ||
 				a.ledger_name.localeCompare(b.ledger_name)
 		);
+}
+/** Whole days `due` lies before `on`; zero when it is not past due or has no due date. */
+export const daysOverdue = (due: PlainDate | null, on: PlainDate) =>
+	due === null || due >= on
+		? 0
+		: Duration.toDays(DateTime.distance(DateTime.makeUnsafe(due), DateTime.makeUnsafe(on)));
+/** Every customer's Kingdee credit position, with the party it names. */
+export const creditRead = {
+	credit_snapshots: {
+		fields: ['source', 'currency', 'credit_limit', 'credit_used', 'credit_hold', 'as_of'],
+		party: { fields: ['name', 'external_code'] },
+		limit: 10_000
+	}
+} as const;
+type CreditSnapshot = ReadAnswer<typeof creditRead>['credit_snapshots']['rows'][number];
+/**
+ * The customers needing credit attention `on` a day — held in Kingdee, over their limit, or with overdue invoices —
+ * and those invoices. An aging entry names its customer by its order's party or by the ledger's own customer id (a
+ * receivables snapshot's), which a party carries as its code; credit and overdue meet only in one currency.
+ */
+export function creditExceptions(
+	snapshots: readonly CreditSnapshot[],
+	aging: readonly AgingDetail[],
+	on: PlainDate
+) {
+	const invoices = aging.flatMap((row) => {
+		const days = row.bucket === 'unapplied' ? 0 : daysOverdue(row.due_on, on);
+		return days > 0 && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(row.balance))
+			? [{ ...row, customer: `${row.ledger}:${row.party}:${row.currency}`, days_overdue: days }]
+			: [];
+	});
+	const byCustomer = Map.groupBy(invoices, (row) => row.customer);
+	const credit = snapshots.map((snapshot) => {
+		const keys = [snapshot.party?.id, snapshot.party?.external_code].flatMap((id) =>
+			id ? [`${snapshot.source}:${id}:${snapshot.currency}`] : []
+		);
+		const over =
+			snapshot.credit_limit !== null && snapshot.credit_used !== null
+				? BigDecimal.subtract(
+						BigDecimal.fromStringUnsafe(snapshot.credit_used),
+						BigDecimal.fromStringUnsafe(snapshot.credit_limit)
+					)
+				: null;
+		return {
+			keys,
+			party_name: snapshot.party?.name ?? '',
+			currency: snapshot.currency,
+			held: snapshot.credit_hold,
+			credit_limit: snapshot.credit_limit,
+			credit_used: snapshot.credit_used,
+			over_limit: over && BigDecimal.isPositive(over) ? BigDecimal.format(over) : null
+		};
+	});
+	const named = new Set(credit.flatMap((row) => row.keys));
+	// overdue customers no credit snapshot names, or in another currency than their credit
+	const uncovered = [...byCustomer].flatMap(([key, [first]]) =>
+		named.has(key) || !first
+			? []
+			: [
+					{
+						keys: [key],
+						party_name: first.party_name,
+						currency: first.currency,
+						held: false,
+						credit_limit: null,
+						credit_used: null,
+						over_limit: null
+					}
+				]
+	);
+	const customers = [...credit, ...uncovered]
+		.map((row) => {
+			const owed = row.keys.flatMap((key) => byCustomer.get(key) ?? []);
+			return {
+				...row,
+				overdue: owed.length
+					? BigDecimal.format(
+							BigDecimal.sumAll(owed.map((invoice) => BigDecimal.fromStringUnsafe(invoice.balance)))
+						)
+					: null,
+				oldest_overdue: owed.length
+					? Math.max(...owed.map((invoice) => invoice.days_overdue))
+					: null
+			};
+		})
+		.flatMap((row) => {
+			const reasons = [
+				...(row.held ? (['held'] as const) : []),
+				...(row.over_limit !== null ? (['over_limit'] as const) : []),
+				...(row.overdue !== null ? (['overdue'] as const) : [])
+			];
+			return reasons.length ? [{ ...row, reasons }] : [];
+		})
+		.toSorted(
+			(a, b) =>
+				Number(b.held) - Number(a.held) ||
+				(b.oldest_overdue ?? 0) - (a.oldest_overdue ?? 0) ||
+				a.party_name.localeCompare(b.party_name)
+		);
+	const flagged = new Set(customers.flatMap((row) => row.keys));
+	return { customers, invoices: invoices.filter((row) => flagged.has(row.customer)) };
 }
 /** The payment ledger's read: payments and refunds (of one order, settled by `as_of`), with order, party and invoice. */
 export function ledgerRead(input: { order?: Id<'orders'> | null; as_of?: PlainDate | null } = {}) {

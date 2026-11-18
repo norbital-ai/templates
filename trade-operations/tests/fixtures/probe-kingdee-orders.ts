@@ -13,6 +13,7 @@ import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { type OrderPayload } from '../../src/integration/kingdee/order-batch.js';
 import { readSourceOrderFamilies } from '../../src/integration/kingdee/order-source.js';
+import { bills } from '../../src/integration/kingdee/bills.js';
 import { submitOrder, sourceOrderUuid } from '../../src/integration/kingdee/submission.js';
 
 const password = process.env.MSSQL_SA_PASSWORD;
@@ -140,7 +141,9 @@ const nativeId = Schema.decodeUnknownSync(
 	)
 )(orderId);
 const readFamilies = () =>
-	Effect.runPromise(readSourceOrderFamilies([{ order: nativeId, uuid: correlation }], database()));
+	Effect.runPromise(
+		readSourceOrderFamilies(bills.sales, [{ order: nativeId, uuid: correlation }], database())
+	);
 const family = () =>
 	inspect
 		.request()

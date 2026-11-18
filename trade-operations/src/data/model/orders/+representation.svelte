@@ -67,7 +67,7 @@
 	);
 	const draft = $derived(view.mode === 'create' || view.record.status === 'draft');
 	const ledgerRead = $derived(
-		id && commercial && !purchase
+		id && commercial
 			? ctx.query({
 					orders: {
 						where: { id: { eq: id } },
@@ -155,16 +155,17 @@
 			save.pending
 		)
 	);
-	// the Kingdee SO as last read, or why there is none yet
+	// the Kingdee SO or PO as last read, or why there is none yet
 	const kingdee = $derived.by(() => {
-		if (view.mode === 'create' || purchase || draft) return null;
+		if (view.mode === 'create' || draft) return null;
 		const so = view.record.kingdee;
-		const failed = view.record.$sync?.kingdee?.status === 'failed';
+		const sync = view.record.$sync?.kingdee;
+		const failed = sync?.status === 'failed';
 		if (failed)
 			return {
 				label: ctx.t('component.confirmation_error'),
 				variant: 'destructive' as const,
-				detail: view.record.$sync?.kingdee?.message ?? ''
+				detail: sync?.message ?? ''
 			};
 		if (!so)
 			return sourceState && sourceState !== 'connected'
@@ -341,7 +342,7 @@
 		{@const blocked = archived
 			? ctx.t('component.order_archived')
 			: form.dirty
-				? ctx.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')
+				? ctx.t('component.seal_explanation')
 				: check && Result.isFailure(check)
 					? ctx.t(check.failure)
 					: !check
@@ -352,8 +353,7 @@
 		<Button
 			disabled={save.pending || form.pending || Boolean(blocked)}
 			aria-describedby={blocked ? 'seal-blocked' : undefined}
-			onclick={confirmOrder}
-			>{ctx.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
+			onclick={confirmOrder}>{ctx.t('component.confirm_seal')}</Button
 		>
 		{#if blocked}<span id="seal-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
 	{/if}
@@ -497,9 +497,6 @@
 	</Cluster>{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
 		{@render confirmationNotices(form)}
-		{#if purchase && draft}
-			<p class="text-sm text-muted-foreground">{ctx.t('component.commitment_help')}</p>
-		{/if}
 		<Bound size="viewport">{@render lines()}</Bound>
 	</Stack>{/snippet}
 {#snippet orderState()}
@@ -564,7 +561,6 @@
 					'activities',
 					'order_lines',
 					'transactions',
-					...(purchase ? ['ext_purchase_orders'] : []),
 					...(commercial ? ['source_payments', 'source_sales_lines', 'order_files'] : [])
 				].map((of) => ({ of, where: { order: { eq: id } } }))
 			: []
@@ -585,7 +581,7 @@
 		{
 			name: 'contract',
 			icon: 'lucide:file-signature',
-			title: ctx.t(purchase ? 'component.purchase_commitment' : 'section.seal'),
+			title: ctx.t('section.seal'),
 			actions: contractActions,
 			body: contractBody,
 			fields: [

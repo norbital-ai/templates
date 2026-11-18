@@ -33,9 +33,7 @@ export default sync('stock_snapshots', 'kingdee', {
 					currency: r.currency('currency', null),
 					unit: r.text('unit', null),
 					on_hand: r.decimalText('on_hand'),
-					erp_committed: r.decimalText('erp_committed', null),
 					as_of: r.instant('as_of'),
-					orders_as_of: r.instant('orders_as_of', null),
 					product: product.id,
 					warehouse: warehouse.id
 				};

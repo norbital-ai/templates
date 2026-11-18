@@ -684,7 +684,7 @@ it.live('a customer changed on the Kingdee SO moves the order to that customer',
 		yield* t.pull('orders');
 		fixture.tables.SEOrder = (fixture.tables.SEOrder ?? []).map((row) => ({
 			...row,
-			customer_id: '102'
+			party_id: '102'
 		}));
 		yield* t.pull('orders');
 		const { orders, parties } = yield* as.query({

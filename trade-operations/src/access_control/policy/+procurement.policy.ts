@@ -8,8 +8,8 @@ export default policy({
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},
-		ext_purchase_orders: {
-			outputs: { default: { where: own, history: true } }
+		source_purchase_lines: {
+			outputs: { default: {} }
 		},
 		document_templates: {
 			outputs: { default: { where: { status: { eq: 'published' } } } }
@@ -57,7 +57,7 @@ export default policy({
 						: ctx.allow();
 				}
 			},
-			// Purchase commitments are tracked directly by procurement.
+			// procurement confirms its own purchase orders
 			update: {
 				verdict: function* (changes, ctx) {
 					return yield* reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope', false);

@@ -200,7 +200,11 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							version < string(args.to, 'window end')
 								? (tables.SEOrder ?? [])
 										.filter((row) => String(row.__key) > string(args.after, 'window continuation'))
-										.map((row): SqlRow => ({ __key: String(row.__key), fid: String(row.fid) }))
+										.map((row): SqlRow => ({
+											direction: 'sales',
+											__key: String(row.__key),
+											fid: String(row.fid)
+										}))
 										.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
 										.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
 								: []
@@ -218,7 +222,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 									version >= from &&
 									version < to &&
 									String(row.__key) > after
-									? [{ ...row, rowversion: version }]
+									? [{ ...row, direction: 'sales', rowversion: version }]
 									: [];
 							})
 							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
@@ -338,8 +342,8 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 							checker: '0',
 							checked_on: null,
 							closed: 0,
-							customer_id: header.FCustID ?? '101',
-							customer_name: 'Kingdee customer',
+							party_id: header.FCustID ?? '101',
+							party_name: 'Kingdee customer',
 							ordered_on: (header.FDate ?? '2026-10-10').slice(0, 10),
 							exchange_rate: header.FExchangeRate ?? '1',
 							settlement: 'PROBE-NET30',
@@ -373,9 +377,9 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					return {
 						rows: [
 							{
-								kind: 'customer',
+								kind: 'party',
 								local: '',
-								id: string(args.customer, 'customer'),
+								id: string(args.party, 'party'),
 								unit_id: '',
 								unit_name: '',
 								rate: ''

@@ -55,6 +55,8 @@ SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),c.FID),20) AS __key,
  CASE WHEN c.FType=3 THEN COALESCE(s.FBillNo,c.FNumber) ELSE c.FNumber END AS reference,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN COALESCE(s.FDate,c.FDate) ELSE c.FDate END,23) AS business_on,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN COALESCE(p.open_due,p.last_due,c.FRPDate) END,23) AS due_on,
+ CASE WHEN c.FType=3 THEN st.FName END AS settlement,
+ CONVERT(varchar(10),CASE WHEN c.FType=3 THEN d.delivered_on END,23) AS delivered_on,
  CONVERT(varchar(100),c.FRemainAmount) AS remaining,
  (SELECT CONVERT(varchar(10),k.FCheckDate,23) AS [on],
    CONVERT(varchar(100),SUM(k.FCheckAmount)) AS amount
@@ -64,6 +66,13 @@ SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),c.FID),20) AS __key,
 FROM dbo.t_RP_Contact c
 LEFT JOIN dbo.ICSale s ON c.FType=3 AND s.FInterID=c.FInvoiceID
 LEFT JOIN dbo.t_Organization o ON o.FItemID=c.FCustomer
+LEFT JOIN dbo.t_Settle st ON st.FItemID=s.FSettleID
+-- the invoice's first delivery: a grouped table, which SalesBridge measured far faster than OUTER APPLY on KIS
+LEFT JOIN (
+ SELECT e.FInterID, MIN(k.FDate) AS delivered_on FROM dbo.ICSaleEntry e
+ JOIN dbo.ICStockBill k ON k.FInterID=e.FSourceInterID AND k.FTranType=21
+ WHERE e.FSourceTranType=21 GROUP BY e.FInterID
+) d ON d.FInterID=s.FInterID
 LEFT JOIN (
  SELECT FInterID, MIN(CASE WHEN FRemainAmount<>0 OR FRemainAmountFor<>0 THEN FDate END) AS open_due,
   MAX(FDate) AS last_due
@@ -136,6 +145,10 @@ function mapEntry(row: SqlRow) {
 		kind,
 		business_on,
 		due_on: sourceDate(row, 'due_on'),
+		// KIS names "no settlement method" `*`
+		settlement:
+			[clean(nullableText(row, 'settlement') ?? '')].find((name) => name && name !== '*') ?? null,
+		delivered_on: sourceDate(row, 'delivered_on'),
 		remaining,
 		settlements: Schema.decodeUnknownSync(settlementsSchema)(r.text('settlements', '[]')).map(
 			(check) => {

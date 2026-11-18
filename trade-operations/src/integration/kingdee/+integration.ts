@@ -4,6 +4,7 @@ import {
 	kingdeeConfiguration,
 	kingdeeDeliveryCostAccount,
 	kingdeeInvoiceAnalysisAccount,
+	kingdeePurchaseAccount,
 	kingdeeReceivablesAccount,
 	kingdeeStockAvailabilityAccount,
 	kingdeeStockLotCostAccount,
@@ -12,6 +13,7 @@ import {
 import { kingdeeCreditAccount, kingdeeCreditPolicy } from './configuration.js';
 import { testCreditSource } from './credit-source.js';
 import { invoiceAnalysisProjection } from './invoice-analysis.js';
+import { testPurchases } from './purchases.js';
 import { testReceivables } from './receivables.js';
 import { bindings } from './source-bindings.js';
 import { testStockCommitments } from './stock-commitments.js';
@@ -63,6 +65,14 @@ export default integration('kingdee', {
 						'The invoice analysis account does not match the Kingdee database and recovery fork'
 				});
 			yield* sourcePage(ctx, invoiceAnalysisProjection, { limit: 0, account });
+		}
+		if (ctx.configuration.purchaseAccount?.trim()) {
+			const account = kingdeePurchaseAccount(ctx.configuration);
+			if (account === null)
+				return yield* new SourceUnavailable({
+					reason: 'Purchase documents require a verified account identity'
+				});
+			yield* testPurchases(ctx, account);
 		}
 		if (ctx.configuration.receivablesAccount?.trim()) {
 			const account = kingdeeReceivablesAccount(ctx.configuration);

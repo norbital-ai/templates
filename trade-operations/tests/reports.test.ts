@@ -8,9 +8,12 @@ import {
 	agingDetails,
 	agingRead,
 	agingSummary,
+	creditExceptions,
+	creditRead,
 	estimateAging,
 	readAgingReport
 } from '../src/lib/reports.js';
+import { businessRows } from './business-source.js';
 test.live(
 	'AR separates applied payments, unapplied deposits, overdue buckets and overpayments',
 	() =>
@@ -28,7 +31,7 @@ test.live(
 			const first = yield* as.query(paged);
 			expect(first.source_payments.next).not.toBeNull();
 			const full = yield* as.query(agingRead(cutoff));
-			expect(yield* readAgingReport(as, paged, first, cutoff, [])).toEqual(
+			expect(yield* readAgingReport(as, paged, first, cutoff, Effect.succeed([]))).toEqual(
 				agingDetails(full, cutoff)
 			);
 
@@ -69,6 +72,8 @@ test('the account estimate uses oldest due date and native contact ties without 
 		issued_on: '2026-10-01',
 		due_on: '2026-11-01',
 		settled_on: null,
+		settlement: null,
+		delivered_on: null,
 		as_of: day,
 		bucket: '1_30',
 		balance: '10',
@@ -82,7 +87,7 @@ test('the account estimate uses oldest due date and native contact ties without 
 	const credit = (id: string, amount: number, party = '123') =>
 		row(id, { party, balance: '0', credit: String(amount) });
 	const raw = [
-		row('1', { due_on: null, bucket: 'no_due_date' }),
+		row('1', { due_on: null, bucket: 'not_due' }),
 		row('10', { balance: '100' }),
 		row('2', { balance: '40' }),
 		cash('11', 55),
@@ -133,7 +138,7 @@ test('the account estimate uses oldest due date and native contact ties without 
 		net: decimalText('75'),
 		estimated_balance: decimalText('75'),
 		'1_30': decimalText('65'),
-		no_due_date: decimalText('10')
+		not_due: decimalText('10')
 	});
 	expect(firstRow(agingSummary(raw.slice(0, 5)))).toMatchObject({
 		net: decimalText('75'),
@@ -181,7 +186,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 			[61, '61_90'],
 			[90, '61_90'],
 			[91, 'over_90'],
-			[null, 'no_due_date']
+			[null, 'not_due']
 		] as const;
 		for (const [days] of boundaries)
 			yield* sourceTransaction(t, own, parent, 'invoice', '4', {
@@ -225,7 +230,7 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 				unapplied: decimalText('20'),
 				net: decimalText('64'),
 				'31_60': decimalText('77'),
-				no_due_date: decimalText('1')
+				not_due: decimalText('2')
 			}
 		]);
 		const later = yield* read(addDays(cutoff, 1));
@@ -236,4 +241,51 @@ test.live('customer aging preserves cutoff, due boundaries and settlement scope'
 			agingSummary([...details, { ...otherCurrency, currency: 'CNY' }]).map((row) => row.currency)
 		).toEqual(['CNY', 'SGD']);
 	})
+);
+
+test.live(
+	'credit exceptions name the customers over limit or overdue, with the invoices behind them',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const own = yield* draft(t);
+			yield* confirm(t, own.order);
+			const parent = yield* sourceOrder(t, own.order);
+			yield* sourceTransaction(t, own, parent, 'invoice', '4', {
+				reference: 'LATE-1',
+				due_on: '2026-09-01'
+			});
+			yield* sourceTransaction(t, own, parent, 'invoice', '4', {
+				reference: 'CURRENT-1',
+				due_on: '2026-10-31'
+			});
+			yield* businessRows(t, 'credit_snapshots', [
+				{
+					external_code: 'CR-1',
+					party_code: 'C-101',
+					currency: 'SGD',
+					credit_limit: '100',
+					credit_used: '150',
+					credit_hold: false,
+					as_of: '2026-10-10T00:00:00Z'
+				}
+			]);
+			const as = yield* t.as(t.admin);
+			const on = '2026-10-10';
+			const { customers, invoices } = creditExceptions(
+				(yield* as.query(creditRead)).credit_snapshots.rows,
+				agingDetails(yield* as.query(agingRead(on)), on),
+				on
+			);
+			expect(customers).toMatchObject([
+				{
+					currency: 'SGD',
+					over_limit: decimalText('50'),
+					overdue: decimalText('21.8'),
+					oldest_overdue: 39,
+					reasons: ['over_limit', 'overdue']
+				}
+			]);
+			expect(invoices.map((row) => [row.reference, row.days_overdue])).toEqual([['LATE-1', 39]]);
+		})
 );

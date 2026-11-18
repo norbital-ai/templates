@@ -30,7 +30,6 @@ type Evidence = Pick<
 	CreatedRow<'transactions'>,
 	| 'source'
 	| 'order'
-	| 'ext_purchase_order'
 	| 'kind'
 	| 'status'
 	| 'currency'
@@ -40,42 +39,21 @@ type Evidence = Pick<
 	| 'total'
 	| 'source_updated_at'
 >;
-/**
- * A delivery or invoice is evidence of its order (a sales order's issued Kingdee SO, a purchase order's issued
- * confirmation) and never moves once written.
- */
+/** A delivery or invoice is evidence of its order's issued Kingdee SO or PO and never moves once written. */
 const settle = Effect.fnUntraced(function* (
 	rows: readonly { readonly value: Evidence; readonly old: StoredRow<'transactions'> | null }[],
 	ctx: WriteCtx<'transactions'>
 ) {
 	const orderIds = [...new Set(rows.flatMap(({ value }) => value.order ?? []))];
-	const {
-		orders: owners,
-		order_lines: lines,
-		ext_purchase_orders: purchases
-	} = yield* ctx.query({
+	const { orders: owners, order_lines: lines } = yield* ctx.query({
 		orders: { where: { id: { in: orderIds } } },
-		order_lines: { where: { order: { in: orderIds } }, fields: ['order', 'unit', 'unit_price'] },
-		ext_purchase_orders: {
-			where: {
-				id: { in: [...new Set(rows.flatMap(({ value }) => value.ext_purchase_order ?? []))] }
-			}
-		}
+		order_lines: { where: { order: { in: orderIds } }, fields: ['order', 'unit', 'unit_price'] }
 	});
 	for (const [i, { value, old }] of rows.entries()) {
-		if (old?.ext_purchase_order && value.ext_purchase_order !== old.ext_purchase_order)
-			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const order = owners.rows.find((row) => row.id === value.order);
 		if (!order) return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (order.ledger !== value.source) yield* ctx.refuse('errors.ledger_mismatch', { row: i });
-		const parent =
-			order.direction === 'sales'
-				? value.ext_purchase_order
-					? undefined
-					: order.kingdee
-				: purchases.rows.find(
-						(row) => row.id === value.ext_purchase_order && row.order === value.order
-					);
+		const parent = order.kingdee;
 		if (
 			!parent ||
 			(parent.status !== 'issued' &&
@@ -93,8 +71,6 @@ const settle = Effect.fnUntraced(function* (
 			priorQuantity != null &&
 			reversal !== BigDecimal.isNegative(BigDecimal.fromStringUnsafe(priorQuantity))
 		)
-			yield* ctx.refuse('errors.evidence_sealed', { row: i });
-		if (reversal && order.direction !== 'sales')
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		if (
 			value.kind === 'invoice' &&
@@ -169,12 +145,6 @@ export default model('transactions', {
 		total: { kind: 'money', currency: 'currency', optional: true },
 		source_updated_at: { kind: 'instant', optional: true },
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
-		ext_purchase_order: {
-			kind: 'ref',
-			to: 'ext_purchase_orders',
-			inverse: 'transactions',
-			optional: true
-		},
 		order: { kind: 'ref', to: 'orders', inverse: 'transactions' }
 	},
 	outputs: {
@@ -199,7 +169,6 @@ export default model('transactions', {
 			'total',
 			'source_updated_at',
 			'source',
-			'ext_purchase_order',
 			'order'
 		],
 		transform: function* (changes, ctx) {
@@ -224,7 +193,6 @@ export default model('transactions', {
 			'total',
 			'source_updated_at',
 			'source',
-			'ext_purchase_order',
 			'order'
 		],
 		transform: function* (changes, ctx) {

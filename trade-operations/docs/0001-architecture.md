@@ -28,13 +28,13 @@ at the read mirrors and the two-way sales-order sync.
 
 ## 2. Application surfaces
 
-| App                    | Page(s)                                   | Owns                                                                                                   |
-| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Operations → Orders    | Sales orders; Purchase orders             | Draft, approve, confirm, change, archive and read one agreement                                        |
-| Operations → Partners  | Customers and suppliers                   | Parties, contacts, credit evidence, orders and agreement fulfilment                                    |
-| Operations → Warehouse | Products; Stock; Warehouses; Availability | Product master, lots, stock, warehouse groups and sellable quantities                                  |
-| Operations → Analysis  | Reports                                   | Sales, AR aging, commission board and statements, credit                                               |
-| Trade configuration    | Documents, Pricing                        | Templates with document and pricing defaults; dated price book, price history and CEL commission rules |
+| App                    | Page(s)                          | Owns                                                                                                                                                            |
+| ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operations → Orders    | Sales orders; Purchase orders    | Draft, approve, confirm, change, archive and read one agreement                                                                                                 |
+| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                             |
+| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse groups                                                                                           |
+| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                            |
+| Trade configuration    | Documents, Prices and commission | Templates marked for new sales and purchase orders; dated price book with minimum-price enforcement, price history, CEL commission rules with freight treatment |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -52,20 +52,20 @@ audit trail of every change. A confirmed order also keeps the commission rule in
 (`commission`), its freight treatment, and, for a sales order written to Kingdee, the account set and branch
 (`write_target`) and the SO as last read (`kingdee`).
 
-A confirmed sales order is the shadow of its Kingdee SO. The `orders` and `order_lines` `kingdee` syncs keep
-the two equal: confirmation creates the SO, a later line change amends it, and a Kingdee change updates the
-order and its lines. Kingdee keeps the SO header (customer, currency, date, settlement); only lines change
-after confirmation.
+A confirmed order is the shadow of its Kingdee SO or PO. The `orders` and `order_lines` `kingdee` syncs keep
+the two equal: confirmation creates it, a later line change amends an
+audited SO or replaces an unaudited PO's lines, and a Kingdee change updates the order and its lines. Kingdee
+keeps the header (party, currency, date, settlement); only lines change after confirmation.
 
 ### Lifecycle
 
 ```text
-draft --(sales: approval; purchasing: record)--> confirmed --(change: approval for sales)--> confirmed
+draft --(sales: approval; purchasing: confirm)--> confirmed --(change: approval for sales)--> confirmed
   ^                                                   |
   +---------------------------------------------------+ archive (reversible)
 ```
 
-- Sales confirmation needs a Commercial Manager approval. Procurement records a local commitment directly.
+- Sales confirmation needs a Commercial Manager approval. Procurement confirms its purchase orders directly.
 - A confirmed order never returns to draft. A sales rep's change to it or its lines waits for a Commercial
   Manager; a Kingdee change applies directly.
 - Archive is reversible and keeps the agreement, history, source evidence and sync. It never voids the source.
@@ -183,8 +183,8 @@ The model folder mirrors the owner. A child sits under its parent; only the leaf
 ```text
 commercial_settings/          commission_rules, document_templates
 commission_statements/
-orders/                       activities, order_files, order_lines, ext_purchase_orders,
-                              source_payments, source_sales_lines, transactions
+orders/                       activities, order_files, order_lines, source_payments,
+                              source_sales_lines, transactions
 parties/                      contacts, credit_snapshots
 products/                     pricing_floors, stock_snapshots
 source_lot_costs/

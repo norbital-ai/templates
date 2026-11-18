@@ -346,6 +346,20 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted).toEqual([preview.html]);
 			})
 	);
+	test.effect('an order with no layout chosen previews in the default layout', () =>
+		Effect.gen(function* () {
+			const t = yield* Trade;
+			const admin = yield* t.as(t.admin);
+			const { order } = yield* draft(t);
+			const chosen = yield* documentOf(admin, { order });
+			yield* admin.act({
+				'orders.update': [
+					{ target: yield* t.at('orders', order), set: { document_template: null } }
+				]
+			});
+			expect((yield* documentOf(admin, { order })).title).toBe(chosen.title);
+		})
+	);
 	test.effect('the published contract stamp is included only on confirmed sales contracts', () =>
 		Effect.gen(function* () {
 			const t = yield* Trade;

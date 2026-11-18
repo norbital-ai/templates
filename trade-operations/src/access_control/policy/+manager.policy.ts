@@ -10,8 +10,8 @@ export default policy({
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},
-		ext_purchase_orders: {
-			outputs: { default: { history: true } }
+		source_purchase_lines: {
+			outputs: { default: {} }
 		},
 		document_templates: {
 			outputs: { default: { where: { status: { eq: 'published' } } } }
@@ -28,7 +28,8 @@ export default policy({
 		},
 		products: {
 			outputs: { default: {} },
-			update: {}
+			// the rest mirrors Kingdee
+			update: { fields: ['commission_factor', 'commission_basis_unit'] }
 		},
 		warehouses: {
 			outputs: { default: {} }

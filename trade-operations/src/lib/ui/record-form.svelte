@@ -69,9 +69,7 @@
 		open_record,
 		RecordShell,
 		use_enum_text,
-		use_record_controller,
-		Tooltip,
-		Icon
+		use_record_controller
 	} from '@norbital-ai/ui';
 	import { watch } from 'runed';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
@@ -237,25 +235,6 @@
 		{#if after_form}{@render after_form()}{/if}
 	</Stack>
 {/snippet}
-{#snippet headerActions()}
-	{#if actions}{@render actions()}{/if}
-	{#if locked && record}
-		<Tooltip text={lockReason}>
-			{#snippet trigger({ props })}
-				<span
-					{...props}
-					role="img"
-					tabindex="0"
-					aria-label={lockReason}
-					class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
-					data-record-lock
-				>
-					<Icon name="lucide:lock-keyhole" class="size-4" />
-				</span>
-			{/snippet}
-		</Tooltip>
-	{/if}
-{/snippet}
 <RecordShell
 	{ctx}
 	of={view.model}
@@ -267,7 +246,8 @@
 				...(tabs ? { tabs } : {})
 			}
 		: { values }}
-	actions={headerActions}
+	{...actions ? { actions } : {}}
+	{...locked && record ? { lock: lockReason } : {}}
 	{...trailing ? { trailing } : {}}
 	{...history === undefined ? {} : { history }}
 >

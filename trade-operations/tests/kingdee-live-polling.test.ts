@@ -7,7 +7,7 @@ import { validate_database_request, type DatabaseRequest } from '@norbital-ai/bo
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
 import { committed, confirm, SETTINGS, workspace } from './kit.js';
-import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
+import { decimalText, firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 import { quotationFifoCosts } from '../src/lib/confirmation.js';
 import { confirmationReadOf } from './reads.js';
 import { estimateFifoCost, inventoryCostRead, purchaseLotCostRead } from '../src/lib/lot-cost.js';
@@ -24,7 +24,6 @@ import {
 	estimateAging,
 	receivablesRead,
 	readSalesReport,
-	salesAnalysis,
 	salesDetail,
 	salesReadDuring
 } from '../src/lib/reports.js';
@@ -328,10 +327,13 @@ it.effect.skipIf(!password)(
 			expect(guidance).toHaveLength(1);
 			expect(guidance[0]?.below).toBe(true);
 			expect(
-				guidance[0]?.estimate?.lots.map((lot) => [lot.lot_number, lot.quantity.toString()])
+				guidance[0]?.estimate?.lots.map((lot) => [
+					lot.lot_number,
+					BigDecimal.format(BigDecimal.normalize(lot.quantity))
+				])
 			).toEqual([
-				['LOT-01', '5.000'],
-				['LOT-02', '3.000']
+				['LOT-01', '5'],
+				['LOT-02', '3']
 			]);
 			yield* sql('UPDATE dbo.ICStockBill SET FROB=-1 WHERE FInterID=2');
 			yield* pullCosts();
@@ -508,20 +510,19 @@ it.effect.skipIf(!password)(
 			yield* sql('DELETE dbo.t_ICItem WHERE FItemID=211; DELETE dbo.t_Item WHERE FItemID=211');
 			yield* t.pull('products');
 			expect(yield* products()).toEqual(complete);
-			// Expire the fixture's last full listing without waiting for the normal interval.
+			// Kingdee's deletes are soft: a row that leaves is never looked for by listing the table again, however
+			// long ago the feed's first listing ran.
 			yield* t.db.write({
 				text: `UPDATE sys_sync SET cursor=jsonb_set(cursor,'{fullAt}','"2000-01-01T00:00:00Z"')
 					WHERE sync='products.sync.kingdee' AND instance='kingdee'`,
 				params: []
 			});
-			pagesUntilFailure = 2;
-			expect(Exit.isFailure(yield* Effect.exit(t.pull('products')))).toBe(true);
-			expect(yield* products()).toEqual(complete);
-			pagesUntilFailure = undefined;
+			const beforeAgedPoll = requests;
+			sourcePages = [];
 			yield* t.pull('products');
-			expect(yield* products()).toEqual(
-				complete.map((row) => (row.external_code === '211' ? { ...row, active: false } : row))
-			);
+			expect(requests - beforeAgedPoll).toBe(1);
+			expect(sourcePages).toEqual([]);
+			expect(yield* products()).toEqual(complete);
 		}),
 	120_000
 );
@@ -684,8 +685,9 @@ it.effect.skipIf(!password)(
 			VALUES (20001,'DO-PROBE','20261026',21,'20261026',0,1);
 			INSERT dbo.ICStockBillEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FOrderInterID,FItemID,FUnitID,FQty,FBatchNo,FAmount)
 			VALUES (20001,1,81,@fid,1,@fid,210,710,4,'LOT-01',5.1234567891);
-			INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID,FSettleDate)
-			VALUES (30001,'INV-PROBE','20261102',80,'20261103',0,1,1,'20261202');
+			UPDATE dbo.t_Settle SET FName=N'月结30天' WHERE FItemID=11;
+			INSERT dbo.ICSale (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB,FCurrencyID,FSettleDate,FSettleID)
+			VALUES (30001,'INV-PROBE','20261102',80,'20261103',0,1,1,'20261202',11);
 			INSERT dbo.ICSaleEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FAmount,FAllAmount)
 			VALUES (30001,1,21,20001,1,210,710,4,8,9.04);
 			INSERT dbo.t_RP_Contact (FID,FRP,FType,FInvoiceID,FCustomer,FNumber,FDate,FRPDate,FRemainAmount)
@@ -727,9 +729,14 @@ it.effect.skipIf(!password)(
 						fields: ['reference', 'invoice', 'amount', 'settled_on']
 					}
 				});
+			// The link to Kingdee is metered: the first read pays for each feed's moved SO family and documents; after it a
+			// quiet poll is each feed's checkpoint and change window, two trips.
 			const beforeFirstInbound = requests;
 			yield* synchronize();
-			expect(requests - beforeFirstInbound).toBeLessThanOrEqual(33);
+			expect(requests - beforeFirstInbound).toBeLessThanOrEqual(38);
+			const beforeQuietInbound = requests;
+			yield* synchronize();
+			expect(requests - beforeQuietInbound).toBe(10);
 			expect(deliveryCostReads).toBe(0);
 			expect(
 				(yield* evidence()).source_sales_lines.rows.every((row) => row.booked_cost === null)
@@ -1009,11 +1016,6 @@ it.effect.skipIf(!password)(
 					currency: 'CNY'
 				});
 				expect(sameDecimal(fact.source_net, amount)).toBe(true);
-				const summary = salesAnalysis(answer, { basis: 'invoice' }).find(
-					(row) => row.owner === null
-				);
-				expect(summary).toMatchObject({ orders: 0, source_lines: 1 });
-				expect(sameDecimal(summary?.source_net, amount)).toBe(true);
 				expect(
 					salesDetail(yield* finance.query(salesReadDuring({ ...span, basis: 'delivery' })), {
 						basis: 'delivery'
@@ -1034,6 +1036,7 @@ it.effect.skipIf(!password)(
 				active: false,
 				id: captured.find((row) => row.reference === 'INV-INDEPENDENT/1')?.id
 			});
+			// an un-audit moves its header and arrives; a row deleted outright is never looked for by listing again
 			yield* sql('DELETE dbo.ICSaleEntry WHERE FInterID=30003');
 			yield* t.db.write({
 				text: `UPDATE sys_sync SET cursor=jsonb_set(cursor,'{fullAt}','"2000-01-01T00:00:00Z"')
@@ -1044,7 +1047,7 @@ it.effect.skipIf(!password)(
 			expect(
 				(yield* independent()).find((row) => row.reference === 'RED-INDEPENDENT/1')
 			).toMatchObject({
-				active: false,
+				active: true,
 				id: captured.find((row) => row.reference === 'RED-INDEPENDENT/1')?.id
 			});
 			expect((yield* as.query({ orders: { fields: ['number'] } })).orders.rows).toHaveLength(1);
@@ -1090,6 +1093,11 @@ it.effect.skipIf(!password)(
 			expect(snapshots).toHaveLength(1);
 			expect(snapshots[0]?.source?.id).toBe(instance);
 			expect(snapshots[0]?.entries).toHaveLength(5);
+			// an invoice carries its own settlement method and the date of the delivery it billed
+			expect(snapshots[0]?.entries.find((entry) => entry.reference === 'INV-PROBE')).toMatchObject({
+				settlement: '月结30天',
+				delivered_on: '2026-10-26'
+			});
 			const sellerSnapshot = yield* Effect.exit(
 				(yield* t.as(t.member(['sales']))).query(receivablesRead)
 			);
@@ -1216,4 +1224,365 @@ it.effect.skipIf(!password)(
 					yield* Effect.exit(Effect.promise(() => reader.request().query(statement)))
 				).toMatchObject({ _tag: 'Failure' });
 		})
+);
+
+it.effect.skipIf(!password)(
+	'reads SQL Server purchase receipts and invoices with their payables by header rowversion',
+	() =>
+		Effect.gen(function* () {
+			const { source, sql } = yield* probeDatabase('TradePollingProbe');
+			yield* sql(`
+			CREATE TABLE dbo.t_Currency (FCurrencyID int PRIMARY KEY, FNumber nvarchar(10) NOT NULL);
+			CREATE TABLE dbo.POOrder (FInterID int PRIMARY KEY, FBillNo nvarchar(200), FTranType int, FDate datetime,
+				FSupplyID int, FCurrencyID int, FCheckDate datetime NULL, FCancellation bit, FOperDate rowversion);
+			CREATE TABLE dbo.POOrderEntry (FDetailID int IDENTITY PRIMARY KEY, FInterID int, FEntryID int, FItemID int,
+				FUnitID int, FQty decimal(28,10), FAmount decimal(28,10), FTaxAmount decimal(28,10), FStockQty decimal(28,10));
+			CREATE TABLE dbo.ICStockBill (FInterID int PRIMARY KEY, FBillNo nvarchar(200), FTranType int, FDate datetime,
+				FCheckDate datetime NULL, FCancellation bit, FSupplyID int, FOperDate rowversion);
+			CREATE TABLE dbo.ICStockBillEntry (FInterID int, FEntryID int, FSourceTranType int, FSourceInterID int,
+				FSourceEntryID int, FItemID int, FUnitID int, FQty decimal(28,10), FBatchNo nvarchar(40),
+				FAmount decimal(28,10), FDCStockID int);
+			CREATE TABLE dbo.ICPurchase (FInterID int PRIMARY KEY, FBillNo nvarchar(200), FTranType int, FDate datetime,
+				FSupplyID int, FCurrencyID int, FCheckDate datetime NULL, FCancellation bit, FOperDate rowversion);
+			CREATE TABLE dbo.ICPurchaseEntry (FDetailID int IDENTITY PRIMARY KEY, FInterID int, FEntryID int,
+				FSourceTranType int, FSourceInterID int, FSourceEntryID int, FItemID int, FUnitID int,
+				FQty decimal(28,10), FAmount decimal(28,10), FTaxAmount decimal(28,10));
+			CREATE TABLE dbo.t_RP_Contact (FID int PRIMARY KEY, FRP int, FType int, FInvoiceID int,
+				FAmount decimal(28,10), FRemainAmount decimal(28,10), FRPDate datetime, FModifyTime rowversion);
+			CREATE TABLE dbo.t_RP_NewCheckInfo (FInterID int PRIMARY KEY, FRP int, FType int, FContactID int,
+				FCheckDate datetime, FCheckAmount decimal(28,10));
+			INSERT dbo.t_Currency VALUES (1,'CNY');
+			INSERT dbo.POOrder (FInterID,FBillNo,FTranType,FDate,FSupplyID,FCurrencyID,FCheckDate,FCancellation)
+				VALUES (1,'POORD-1',71,'20260901',120,1,'20260901',0),(2,'POORD-2',71,'20260902',120,1,NULL,0);
+			INSERT dbo.POOrderEntry (FInterID,FEntryID,FItemID,FUnitID,FQty,FAmount,FTaxAmount,FStockQty)
+				VALUES (1,1,210,710,10,20,2.6,10),(2,1,210,710,5,11,1.43,0);
+			INSERT dbo.ICStockBill (FInterID,FBillNo,FTranType,FDate,FCheckDate,FCancellation,FSupplyID)
+				VALUES (11,'WIN-11',1,'20260902','20260902',0,120),(12,'XOUT-12',21,'20260903','20260903',0,110);
+			INSERT dbo.ICStockBillEntry VALUES (11,1,71,1,1,210,710,10,'LOT-01',20.1234,311),
+				(12,1,81,7,1,210,710,4,'LOT-01',8,311);
+			INSERT dbo.ICPurchase (FInterID,FBillNo,FTranType,FDate,FSupplyID,FCurrencyID,FCheckDate,FCancellation)
+				VALUES (21,'PINV-21',75,'20260905',120,1,'20260905',0);
+			INSERT dbo.ICPurchaseEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FAmount,FTaxAmount)
+				VALUES (21,1,1,11,1,210,710,10,20,2.6);
+			INSERT dbo.t_RP_Contact (FID,FRP,FType,FInvoiceID,FAmount,FRemainAmount,FRPDate)
+				VALUES (31,0,4,21,22.6,12.6,'20261005'),(32,1,3,21,999,999,'20261005');
+			INSERT dbo.t_RP_NewCheckInfo VALUES (41,0,4,31,'20260920',10),(43,1,3,32,'20260921',1);
+			CREATE USER trade_purchase_reader WITHOUT LOGIN;
+			GRANT SELECT ON SCHEMA::dbo TO trade_purchase_reader;
+		`);
+			const { account } = firstRow(
+				(yield* sql(
+					"SELECT LOWER(CONCAT(database_guid,'/',recovery_fork_guid)) AS account FROM sys.database_recovery_status WHERE database_id=DB_ID()"
+				)).recordset
+			);
+			const t = yield* workspace({
+				source: (operation) =>
+					Effect.tryPromise({
+						try: async () => {
+							const compiled = compile_sql_server(
+								await Effect.runPromise(validate_database_request(operation))
+							);
+							const tx = source.transaction();
+							await tx.begin();
+							try {
+								await tx.request().query("EXECUTE AS USER='trade_purchase_reader'");
+								const request = bind(tx.request(), compiled.parameters);
+								const result =
+									compiled.statement === undefined
+										? await request.execute(compiled.procedure)
+										: await request.query(compiled.statement);
+								await tx.request().query('REVERT');
+								await tx.commit();
+								return { rows: result.recordset ?? [] };
+							} catch (error) {
+								await tx
+									.request()
+									.query('REVERT')
+									.catch(() => {});
+								await tx.rollback().catch(() => {});
+								throw error;
+							}
+						},
+						catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
+					})
+			});
+			const admin = yield* t.as(t.admin);
+			const instance = fixtureId('sys_integration', 'kingdee');
+			committed(
+				'sys_integration',
+				yield* admin.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: { configuration: { baseCurrency: 'CNY', purchaseAccount: account } }
+						}
+					]
+				})
+			);
+			const pull = (feed: 'receipts' | 'invoices') =>
+				t.syncs.read(`source_purchase_lines.sync.${feed}`, { instance: 'kingdee' });
+			const lines = () =>
+				admin
+					.query({ source_purchase_lines: { order_by: { external_code: 'asc' } } })
+					.pipe(Effect.map((answer) => answer.source_purchase_lines.rows));
+			yield* pull('receipts');
+			yield* pull('invoices');
+			expect(yield* lines()).toMatchObject([
+				{
+					external_code: 'invoice:21:1',
+					reference: 'PINV-21',
+					supplier_name: '供应商测试',
+					product_code: '210',
+					lot_number: 'LOT-01',
+					upstream: 'receipt:11:1',
+					billed_amount: decimalText('22.6'),
+					open_amount: decimalText('12.6'),
+					due_on: '2026-10-05',
+					paid_on: '2026-09-20',
+					active: true
+				},
+				{
+					external_code: 'receipt:11:1',
+					reference: 'WIN-11',
+					lot_number: 'LOT-01',
+					warehouse_code: '311',
+					net_amount: decimalText('20.12'),
+					order_reference: 'POORD-1',
+					upstream: 'order:1:1',
+					currency: 'CNY'
+				}
+			]);
+			// a payment moves only the payable: its invoice is read again
+			yield* sql(`
+				UPDATE dbo.t_RP_Contact SET FRemainAmount=0 WHERE FID=31;
+				INSERT dbo.t_RP_NewCheckInfo VALUES (42,0,4,31,'20261001',12.6);
+			`);
+			yield* pull('invoices');
+			const after = yield* lines();
+			expect(after.find((row) => row.external_code === 'invoice:21:1')).toMatchObject({
+				open_amount: decimalText('0'),
+				paid_on: '2026-10-01'
+			});
+			expect(after).toHaveLength(2);
+		}),
+	120_000
+);
+
+it.effect.skipIf(!password)(
+	'writes, changes and reads back a SQL Server 2017 PO, attaches its receipts, invoices and payments, and imports a Kingdee PO',
+	() =>
+		Effect.gen(function* () {
+			const { source, sql } = yield* probeDatabase('TradeLineageProbe');
+			const orders = readFileSync(ordersFixture, 'utf8').split(/^GO\s*$/m)[1];
+			if (!orders?.includes('CREATE TABLE dbo.POOrder')) throw new Error('Expected order fixture');
+			yield* sql(orders);
+			const t = yield* workspace({
+				now: '2026-11-06T00:00:00.000Z',
+				source: (operation) =>
+					Effect.tryPromise({
+						try: async () => {
+							const compiled = compile_sql_server(
+								await Effect.runPromise(validate_database_request(operation))
+							);
+							const tx = source.transaction();
+							await tx.begin(
+								compiled.transaction === 'serializable'
+									? mssql.ISOLATION_LEVEL.SERIALIZABLE
+									: mssql.ISOLATION_LEVEL.READ_COMMITTED
+							);
+							try {
+								await tx.request().query("EXECUTE AS USER='trade_order_probe'");
+								const request = bind(tx.request(), compiled.parameters);
+								const result =
+									compiled.statement === undefined
+										? await request.execute(compiled.procedure)
+										: await request.query(compiled.statement);
+								await tx.request().query('REVERT');
+								await tx.commit();
+								return { rows: result.recordset ?? [] };
+							} catch (error) {
+								await tx
+									.request()
+									.query('REVERT')
+									.catch(() => {});
+								await tx.rollback().catch(() => {});
+								throw error;
+							}
+						},
+						catch: (cause) => new FacilityFailure({ kind: 'upstream', message: String(cause) })
+					})
+			});
+			const as = yield* t.as(t.admin);
+			const instance = fixtureId('sys_integration', 'kingdee');
+			yield* t.pull('parties');
+			yield* t.pull('products');
+			const masters = yield* as.query({
+				parties: { where: { source: { eq: instance }, external_code: { eq: '120' } } },
+				products: { where: { source: { eq: instance }, external_code: { eq: '210' } } }
+			});
+			const order = committed(
+				'orders',
+				yield* as.act({
+					'orders.create': [
+						{
+							title: 'SQL 2017 PO probe',
+							direction: 'purchasing',
+							party: firstRow(masters.parties.rows).id,
+							currency: 'CNY',
+							ordered_on: '2026-10-26',
+							payment_terms: 'NET30'
+						}
+					]
+				})
+			);
+			const line = committed(
+				'order_lines',
+				yield* as.act({
+					'order_lines.create': [
+						{
+							order,
+							product: firstRow(masters.products.rows).id,
+							quantity: '10',
+							unit_price: '2',
+							tax_rate: '13'
+						}
+					]
+				})
+			);
+			const read = () =>
+				as
+					.query({ orders: { where: { id: { eq: order } }, lines: {} } })
+					.pipe(Effect.map((answer) => firstRow(answer.orders.rows)));
+			const { owner } = yield* read();
+			const { account } = firstRow(
+				(yield* sql(
+					"SELECT LOWER(CONCAT(database_guid,'/',recovery_fork_guid)) AS account FROM sys.database_recovery_status WHERE database_id=DB_ID()"
+				)).recordset
+			);
+			committed(
+				'sys_integration',
+				yield* as.act({
+					'sys_integration.update': [
+						{
+							target: { id: instance },
+							set: {
+								configuration: {
+									baseCurrency: 'CNY',
+									branchNo: '0',
+									writeAccount: account,
+									purchaseAccount: account,
+									billerId: '41',
+									salespersonBindings: JSON.stringify({
+										[owner]: { employeeId: '21', departmentId: '31' }
+									}),
+									currencyBindings: '{"CNY":{"id":"1","base":true}}',
+									settlementRules: '{"NET30":{"creditDays":30,"fromMonthEnd":false}}'
+								}
+							}
+						}
+					]
+				})
+			);
+			const po = () =>
+				sql(
+					`SELECT head.FInterID AS fid,head.FTranType AS type,head.FSupplyID AS supplier,head.FCheckerID AS checker,
+					CONVERT(varchar(36),head.FUUID) AS uuid,line.FEntryID AS entry,CONVERT(varchar(40),line.FQty) AS quantity
+					FROM dbo.POOrder head JOIN dbo.POOrderEntry line ON line.FInterID=head.FInterID WHERE head.FBillNo<>'PO-KINGDEE'`
+				).pipe(Effect.map((answer) => answer.recordset));
+			// confirming sends an unaudited PO to its supplier, with the order's own FUUID
+			yield* confirm(t, order);
+			yield* t.deliver();
+			const [written] = yield* po();
+			expect(written).toMatchObject({ type: 71, supplier: 120, checker: null, entry: 1 });
+			expect(sameDecimal(written?.quantity, '10')).toBe(true);
+			yield* t.pull('orders');
+			yield* t.pull('order_lines');
+			expect((yield* read()).kingdee).toMatchObject({ fid: String(written?.fid), status: 'draft' });
+			expect(firstRow((yield* read()).lines).source_entry_id).toBe('1');
+			// an unaudited PO takes a line change in place
+			const change = (quantity: string) =>
+				Effect.gen(function* () {
+					committed(
+						'order_lines',
+						yield* as.act({
+							'order_lines.update': [
+								{ target: yield* t.at('order_lines', line), set: { quantity } }
+							]
+						})
+					);
+					return yield* t.deliver();
+				});
+			yield* change('12');
+			const changed = yield* po();
+			expect(changed).toHaveLength(1);
+			expect(changed[0]?.fid).toBe(written?.fid);
+			expect(sameDecimal(changed[0]?.quantity, '12')).toBe(true);
+			// once audited, Kingdee keeps its lines: the change is refused and the PO is untouched
+			yield* sql(
+				`UPDATE dbo.POOrder SET FCheckerID=42,FCheckDate='20261027',FStatus=1 WHERE FInterID=${written?.fid}`
+			);
+			yield* t.pull('orders');
+			expect((yield* read()).kingdee?.status).toBe('issued');
+			yield* change('15');
+			expect(sameDecimal((yield* po())[0]?.quantity, '12')).toBe(true);
+			// its receipt, purchase invoice and AP payment attach to the order
+			yield* sql(`
+				INSERT dbo.ICStockBill (FInterID,FBillNo,FDate,FTranType,FCheckDate,FCancellation,FROB)
+				VALUES (20101,'WIN-PROBE','20261028',1,'20261028',0,1);
+				INSERT dbo.ICStockBillEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FBatchNo,FAmount)
+				VALUES (20101,1,71,${written?.fid},1,210,710,12,'LOT-PO',24);
+				INSERT dbo.ICPurchase (FInterID,FBillNo,FTranType,FDate,FSupplyID,FCurrencyID,FExchangeRate,FCheckDate,FCancellation,FROB,FStatus)
+				VALUES (30101,'PINV-PROBE',75,'20261030',120,1,1,'20261030',0,1,1);
+				INSERT dbo.ICPurchaseEntry (FInterID,FEntryID,FSourceTranType,FSourceInterID,FSourceEntryID,FItemID,FUnitID,FQty,FPrice,FAmount,FTaxAmount,FAllAmount)
+				VALUES (30101,1,1,20101,1,210,710,12,2,24,3.12,27.12);
+				INSERT dbo.t_RP_Contact (FID,FRP,FType,FInvoiceID,FCustomer,FNumber,FDate,FRPDate,FRemainAmount)
+				VALUES (10101,0,4,30101,120,'PINV-PROBE','20261030','20261129',17.12);
+				INSERT dbo.t_RP_NewReceiveBill VALUES (40101,'PAY-PROBE',0,1);
+				INSERT dbo.t_RP_NewCheckInfo VALUES (50101,0,4,10101,'20261101',10);
+				INSERT dbo.t_rp_CheckEntry VALUES (60101,50101,4,6,30101,1,40101);
+			`);
+			yield* t.pull('transactions');
+			yield* t.pull('source_payments');
+			const evidence = yield* as.query({
+				transactions: {
+					where: { order: { eq: order } },
+					fields: ['erp_id', 'kind', 'reference', 'due_on', 'total'],
+					order_by: { erp_id: 'asc' }
+				},
+				source_payments: { where: { order: { eq: order } } }
+			});
+			expect(evidence.transactions.rows).toMatchObject([
+				{
+					erp_id: 'purchase_invoice:30101',
+					kind: 'invoice',
+					reference: 'PINV-PROBE',
+					due_on: '2026-11-29'
+				},
+				{ erp_id: 'receipt:20101', kind: 'delivery', reference: 'WIN-PROBE' }
+			]);
+			expect(sameDecimal(evidence.transactions.rows[0]?.total, '27.12')).toBe(true);
+			expect(evidence.source_payments.rows).toMatchObject([
+				{ external_code: 'payment:50101', kind: 'payment', reference: 'PAY-PROBE/50101' }
+			]);
+			expect(sameDecimal(evidence.source_payments.rows[0]?.amount, '10')).toBe(true);
+			// a PO created in Kingdee arrives as a draft, and the read after confirms it with its lines
+			yield* sql(`
+				INSERT dbo.POOrder (FInterID,FUUID,FBrNo,FBillNo,FTranType,FDate,FSupplyID,FCurrencyID,FExchangeRate,FEmpID,FSettleID)
+				VALUES (16100,NEWID(),'0','PO-KINGDEE',71,'20261101',120,1,1,21,11);
+				INSERT dbo.POOrderEntry (FInterID,FBrNO,FEntryID,FItemID,FUnitID,FQty,FPrice,FAuxTaxPrice,FTaxRate,FAmount,FTaxAmount,FAllAmount)
+				VALUES (16100,'0',1,210,710,3,2,2.26,13,6,0.78,6.78);
+			`);
+			yield* t.pull('orders');
+			yield* t.pull('orders');
+			yield* t.pull('order_lines');
+			const imported = yield* as.query({
+				orders: { where: { title: { eq: 'PO-KINGDEE' } }, lines: {} }
+			});
+			expect(imported.orders.rows).toMatchObject([
+				{ direction: 'purchasing', status: 'confirmed', party: firstRow(masters.parties.rows).id }
+			]);
+			expect(firstRow(imported.orders.rows).lines).toHaveLength(1);
+			expect(sameDecimal(firstRow(firstRow(imported.orders.rows).lines).quantity, '3')).toBe(true);
+		}),
+	180_000
 );

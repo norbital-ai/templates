@@ -39,11 +39,12 @@ Contract SKU, quota, prices, credit terms and validity belong to the order in Ge
 shows every earlier value. To keep a customer PO or signed return received later, add it under
 Filed documents on the confirmed order.
 
-Orders has Sales orders and Purchase orders views for the teams that use them. Supplier commitments can
-also start from the supplier record. Record a purchase commitment when the terms are worth retaining,
-change it if quantities or prices change, and archive it if the purchase falls through. The purchase
-action needs no Kingdee submission or commercial manager approval. A sales rep's confirmation, and any
-later change to a confirmed sales order, use native Bolt commercial approval. Credit limits and
+Orders has Sales orders and Purchase orders views for the teams that use them. A purchase order can
+also start from the supplier record. Procurement confirms it without commercial manager approval; once
+the ledger's purchase documents are verified, confirming writes it to Kingdee as an unaudited PO, a line
+change replaces the PO's lines until it is audited, and its receipts, purchase invoices and payments
+attach to it. A sales rep's confirmation, and any later change to a confirmed sales order, use native
+Bolt commercial approval. Credit limits and
 balances are read-only source facts, with credit enforcement owned by the source system.
 
 Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
@@ -64,12 +65,11 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 ## Data model
 
 - `orders` / `order_lines`: our sales or purchase agreement and its contract SKU rows, holding the
-  terms. A confirmed sales order is a two-way shadow of its Kingdee SO: confirmation creates the SO,
-  a later line change amends it, and a Kingdee change updates the order. Kingdee keeps the SO header.
-- `ext_purchase_orders`: read-only supplier confirmations linked to a purchase order.
-- `transactions`: read-only deliveries and invoices linked to their order.
+  terms. A confirmed order is a two-way shadow of its Kingdee SO or PO: confirmation creates it, a later
+  line change amends it, and a Kingdee change updates the order. Kingdee keeps the header.
+- `transactions`: read-only deliveries (receipts, for a purchase) and invoices linked to their order.
   Issued invoices retain their actual issue date, due date and total; AR does not invent these values.
-- `source_payments`: one read-only receipt/refund ledger, optionally applied to an invoice transaction.
+- `source_payments`: one read-only receipt/payment/refund ledger, optionally applied to an invoice transaction.
   Deposits remain separate, refunds reduce payments, withdrawn receipts remain inspectable and replay
   converges by source identity. There is no parallel manual payment ledger.
 - `source_sales_lines`: canonical financial reporting facts distinguishing shipments, returns and
@@ -115,9 +115,10 @@ pairing, testing, sync options and data freshness. The Connections list shows th
 Saving a SQL credential checks the master and stock projections and their SQL read permissions
 before activating SQL sync. Unpaired or paused
 instances leave queued sales work waiting.
-Administrators are notified when a ledger needs attention. Trade configuration groups document and
-pricing defaults with their respective tools. An issued `ext_*` confirmation confirms business
-receipt. Source documents are read-only.
+Administrators are notified when a ledger needs attention. Trade configuration keeps each rule beside
+what it governs: Documents marks which template new sales and purchase orders start with; Prices and
+commission holds the minimum-price enforcement on the price book and the freight treatment beside the
+commission rules. Source documents are read-only.
 
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
 Focused local probes use synthetic physical tables with CDC disabled. Trade Operations connects directly

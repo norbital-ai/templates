@@ -8,7 +8,7 @@
 		id,
 		ctx
 	}: {
-		of: 'orders' | 'transactions' | 'ext_purchase_orders';
+		of: 'orders' | 'transactions';
 		id: string;
 		ctx: PageContext;
 	} = $props();

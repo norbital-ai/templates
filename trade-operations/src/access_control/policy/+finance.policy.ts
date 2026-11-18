@@ -9,8 +9,8 @@ export default policy({
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},
-		ext_purchase_orders: {
-			outputs: { default: { history: true } }
+		source_purchase_lines: {
+			outputs: { default: {} }
 		},
 		document_templates: {
 			outputs: { default: { where: { status: { eq: 'published' } } } }

@@ -32,9 +32,9 @@ const settle = Effect.fnUntraced(function* (
 			!value.source_updated_at ||
 			value.amount == null ||
 			BigDecimal.isZero(BigDecimal.fromStringUnsafe(value.amount)) ||
-			(value.kind === 'receipt'
-				? BigDecimal.isNegative(BigDecimal.fromStringUnsafe(value.amount))
-				: BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value.amount)))
+			(value.kind === 'refund'
+				? BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value.amount))
+				: BigDecimal.isNegative(BigDecimal.fromStringUnsafe(value.amount)))
 		)
 			return yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const order = orders.rows.find((row) => row.id === value.order);
@@ -74,7 +74,7 @@ export default model('source_payments', {
 	record_label: 'record.reference',
 	fields: {
 		external_code: { kind: 'text' },
-		kind: { kind: 'enum', values: ['receipt', 'refund'] },
+		kind: { kind: 'enum', values: ['receipt', 'payment', 'refund'] },
 		reference: { kind: 'text' },
 		settled_on: { kind: 'date' },
 		source_updated_at: { kind: 'instant' },

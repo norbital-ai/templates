@@ -9,6 +9,9 @@ export default policy({
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},
+		source_purchase_lines: {
+			outputs: { default: {} }
+		},
 		document_templates: {
 			outputs: { default: { history: true } },
 			create: {},
@@ -19,7 +22,8 @@ export default policy({
 		},
 		products: {
 			outputs: { default: {} },
-			update: {}
+			// the rest mirrors Kingdee
+			update: { fields: ['commission_factor', 'commission_basis_unit'] }
 		},
 		warehouses: {
 			outputs: { default: {} }

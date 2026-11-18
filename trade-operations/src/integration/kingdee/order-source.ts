@@ -3,6 +3,7 @@ import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
 import { hash, sha256Hex, numeric } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
+import { bills, directionsOf, type Bill, type Direction } from './bills.js';
 import {
 	columns,
 	currency,
@@ -31,6 +32,7 @@ type SalesLine = {
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
 type OwnedSales = {
+	readonly direction: Direction;
 	readonly fid: string;
 	readonly order: Id<'orders'>;
 	readonly currency: string;
@@ -202,18 +204,18 @@ export const selectByIds = Effect.fnUntraced(function* (
 	return [...rows.values()];
 });
 
-const salesLineProjection: NativeProjection = {
+const orderLineProjection = (bill: Bill): NativeProjection => ({
 	sql: `
 SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
  ${textId('line.FDetailID')} AS detail_id,${textId('line.FEntryID')} AS entry_id,
  ${textId('line.FItemID')} AS item_id,unit.FName AS unit,
- CONVERT(varchar(100),line.FQty) AS quantity,CONVERT(varchar(100),line.FAuxPrice) AS unit_price,
- CONVERT(varchar(100),line.FTaxPrice) AS unit_price_inclusive,
- CONVERT(varchar(100),line.FCESS) AS tax_rate,CONVERT(varchar(100),line.FAmount) AS net_amount,
- CONVERT(varchar(100),line.FTaxAmt) AS tax_amount,CONVERT(varchar(100),line.FAllAmount) AS gross_amount
-FROM dbo.SEOrderEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
+ CONVERT(varchar(100),line.FQty) AS quantity,CONVERT(varchar(100),line.${bill.price.exclusive}) AS unit_price,
+ CONVERT(varchar(100),line.${bill.price.inclusive}) AS unit_price_inclusive,
+ CONVERT(varchar(100),line.${bill.price.rate}) AS tax_rate,CONVERT(varchar(100),line.FAmount) AS net_amount,
+ CONVERT(varchar(100),line.${bill.price.tax}) AS tax_amount,CONVERT(varchar(100),line.FAllAmount) AS gross_amount
+FROM dbo.${bill.order}Entry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
 WHERE line.FBrNO=@branch AND line.FInterID IN ${ids}`
-};
+});
 const deliveryLineProjection = (cost: boolean): NativeProjection => ({
 	sql: `
 SELECT ${padded('line.FInterID')}+':'+${padded('line.FEntryID')} AS __key,
@@ -227,7 +229,7 @@ WHERE line.FInterID IN ${ids}`
 });
 export const testDeliveryCosts = (ctx: DatabaseContext, account: string) =>
 	readNativeRows(ctx, deliveryLineProjection(true), { account });
-const invoiceLineProjection: NativeProjection = {
+const invoiceLineProjection = (bill: Bill): NativeProjection => ({
 	sql: `
 SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
  ${textId('line.FDetailID')} AS detail_id,${textId('line.FEntryID')} AS entry_id,
@@ -235,13 +237,13 @@ SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
  ${textId('line.FSourceEntryID')} AS source_entry,${textId('line.FItemID')} AS item_id,unit.FName AS unit,
  CONVERT(varchar(100),line.FQty) AS quantity,CONVERT(varchar(100),line.FAmount) AS net_amount,
  CONVERT(varchar(100),line.FAllAmount) AS gross_amount
-FROM dbo.ICSaleEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
+FROM dbo.${bill.invoice}Entry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
 WHERE line.FInterID IN ${ids}`
-};
-const documentIds = (kind: 'delivery' | 'invoice') => `
+});
+const documentIds = (bill: Bill, kind: 'delivery' | 'invoice') => `
 SELECT DISTINCT line.FInterID AS fid
-FROM dbo.${kind === 'delivery' ? 'ICStockBillEntry' : 'ICSaleEntry'} line
-WHERE line.FSourceTranType=${kind === 'delivery' ? 81 : 21} AND line.FSourceInterId IN ${ids}
+FROM dbo.${kind === 'delivery' ? 'ICStockBillEntry' : `${bill.invoice}Entry`} line
+WHERE line.FSourceTranType=${kind === 'delivery' ? bill.type : bill.movement} AND line.FSourceInterId IN ${ids}
 ${
 	kind === 'delivery'
 		? `UNION
@@ -249,43 +251,44 @@ SELECT red.FInterID AS fid
 FROM dbo.ICStockBillEntry red
 JOIN dbo.ICStockBillEntry original ON original.FInterID=red.FSourceInterId
  AND original.FEntryID=red.FSourceEntryID
-WHERE red.FSourceTranType=21 AND original.FSourceTranType=81 AND original.FSourceInterId IN ${ids}`
+WHERE red.FSourceTranType=${bill.movement} AND original.FSourceTranType=${bill.type} AND original.FSourceInterId IN ${ids}`
 		: ''
 }`;
-const documentHeaderProjection = (kind: 'delivery' | 'invoice'): NativeProjection => ({
+const documentHeaderProjection = (bill: Bill, kind: 'delivery' | 'invoice'): NativeProjection => ({
 	sql: `/* kingdee-document-headers */
 SELECT ${padded('candidate.fid')} AS __key,${textId('candidate.fid')} AS fid,
  ${textId('head.FInterID')} AS header_id,head.FBillNo AS reference,
  ${textId('head.FTranType')} AS type,CONVERT(varchar(10),head.FDate,23) AS date,
  CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,head.FCancellation AS cancelled,head.FROB AS rob
- ${kind === 'invoice' ? ',cur.FNumber AS currency,CONVERT(varchar(10),head.FSettleDate,23) AS due_on' : ''}
-FROM (${documentIds(kind)}) candidate
- LEFT JOIN dbo.${kind === 'delivery' ? 'ICStockBill' : 'ICSale'} head ON head.FInterID=candidate.fid
+ ${kind === 'invoice' ? `,cur.FNumber AS currency,${bill.dueOn} AS due_on` : ''}
+FROM (${documentIds(bill, kind)}) candidate
+ LEFT JOIN dbo.${kind === 'delivery' ? 'ICStockBill' : bill.invoice} head ON head.FInterID=candidate.fid
  ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}`
 });
 
 /** Families are discovered from an owned UUID first; a bill number alone never establishes ownership. */
-export const salesFamilyProjection: NativeProjection = {
-	sql: `/* kingdee-sales-orders */
-SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
+const familyColumns = (bill: Bill) => `${textId('head.FInterID')} AS fid,head.FBrNo AS branch,
  CONVERT(varchar(36),head.FUUID) AS uuid,head.FBillNo AS reference,cur.FNumber AS currency,
- head.FVersionNo AS version,head.FCancellation AS cancelled,head.FChangeMark AS archive,
+ ${bill.versioned ? 'head.FVersionNo' : "'000'"} AS version,head.FCancellation AS cancelled,
+ ${bill.versioned ? 'head.FChangeMark' : '0'} AS archive,
  CASE WHEN head.FClosed<>0 OR head.FStatus=3 THEN 1 ELSE 0 END AS closed,
  ${textId('head.FCheckerID')} AS checker,CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,
- ${textId('head.FEmpID')} AS employee_id,${textId('head.FCustID')} AS customer_id,customer.FName AS customer_name,
+ ${textId('head.FEmpID')} AS employee_id,${textId(`head.${bill.party}`)} AS party_id,party.FName AS party_name,
  CONVERT(varchar(10),head.FDate,23) AS ordered_on,settlement.FNumber AS settlement,
  CONVERT(varchar(100),CAST(head.FExchangeRate AS decimal(28,10))) AS exchange_rate,
- CONVERT(varchar(33),head.FChangeDate,126) AS changed_at,${textId('head.FChangeUser')} AS changed_by,
  CONVERT(varchar(18),CONVERT(binary(8),head.FOperDate),1) AS rowversion
-FROM dbo.SEOrder head
+FROM dbo.${bill.order} head
  LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID
- LEFT JOIN dbo.t_Organization customer ON customer.FItemID=head.FCustID
- LEFT JOIN dbo.t_Settle settlement ON settlement.FItemID=head.FSettleID
+ LEFT JOIN dbo.${bill.parties} party ON party.FItemID=head.${bill.party}
+ LEFT JOIN dbo.t_Settle settlement ON settlement.FItemID=head.FSettleID`;
+export const familyProjection = (bill: Bill): NativeProjection => ({
+	sql: `/* kingdee-${bill.name}-orders */
+SELECT ${padded('head.FInterID')} AS __key,${familyColumns(bill)}
 WHERE head.FBrNo=@branch AND EXISTS (
- SELECT 1 FROM dbo.SEOrder anchor WHERE anchor.FBrNo=head.FBrNo AND anchor.FBillNo=head.FBillNo
+ SELECT 1 FROM dbo.${bill.order} anchor WHERE anchor.FBrNo=head.FBrNo AND anchor.FBillNo=head.FBillNo
  AND anchor.FUUID IN ${ids})`
-};
-/** One owned SO family: its live header, every archived version, and their lines. */
+});
+/** One owned order family: its live header, every archived version, and their lines. */
 export type SourceFamily = {
 	readonly order: Id<'orders'>;
 	readonly reference: string;
@@ -294,6 +297,7 @@ export type SourceFamily = {
 	readonly lines: readonly SqlRow[];
 };
 export const readSourceOrderFamilies = Effect.fnUntraced(function* (
+	bill: Bill,
 	owned: readonly { readonly order: Id<'orders'>; readonly uuid: string }[],
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } }
 ) {
@@ -310,19 +314,19 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 	}
 	const headers = yield* selectByIds(
 		ctx,
-		salesFamilyProjection,
+		familyProjection(bill),
 		[...anchors.keys()],
 		ctx.configuration.branchNo
 	);
 	const lines = yield* selectByIds(
 		ctx,
-		salesLineProjection,
+		orderLineProjection(bill),
 		headers.map((row) => exactId(row, 'fid')),
 		ctx.configuration.branchNo
 	);
 	const verified = yield* selectByIds(
 		ctx,
-		salesFamilyProjection,
+		familyProjection(bill),
 		[...anchors.keys()],
 		ctx.configuration.branchNo
 	);
@@ -344,8 +348,7 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 	if (!coherent)
 		return yield* new SourceRowInvalid({
 			column: 'FOperDate',
-			reason:
-				'The Kingdee SO family changed while its complete lines were being read; retry the observation'
+			reason: `The Kingdee ${bill.label} family changed while its complete lines were being read; retry the observation`
 		});
 	return yield* checked(() => {
 		const references = new Map<string, Id<'orders'>>();
@@ -366,16 +369,19 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 			const family = headers.filter((header) => text(header, 'reference') === reference);
 			const live = family.filter((header) => !flag(header, 'archive'));
 			if (live.length !== 1)
-				invalid('FChangeMark', 'An owned Kingdee family must identify exactly one live SO');
+				invalid(
+					'FChangeMark',
+					`An owned Kingdee family must identify exactly one live ${bill.label}`
+				);
 			const versions = new Set<string>();
 			for (const header of family) {
 				const version = text(header, 'version');
 				if (!/^\d{3}$/.test(version) || versions.has(version))
-					invalid('FVersionNo', 'Kingdee SO versions are missing or ambiguous');
+					invalid('FVersionNo', `Kingdee ${bill.label} versions are missing or ambiguous`);
 				versions.add(version);
 			}
 			const current = live[0];
-			if (!current) return invalid('FChangeMark', 'The owned live SO is missing');
+			if (!current) return invalid('FChangeMark', `The owned live ${bill.label} is missing`);
 			return {
 				order,
 				reference,
@@ -397,10 +403,10 @@ const sourceStatus = (header: SqlRow): 'draft' | 'issued' | 'void' =>
 const uniqueEntries = (lines: readonly SqlRow[]) => {
 	const entries = lines.map((line) => exactId(line, 'entry_id'));
 	if (new Set(entries).size !== entries.length)
-		invalid('FEntryID', 'Kingdee SO entry identities are ambiguous');
+		invalid('FEntryID', 'Kingdee order entry identities are ambiguous');
 	return lines;
 };
-/** What Kingdee holds for one owned SO: its live header and lines. */
+/** What Kingdee holds for one owned order: its live header and lines. */
 export const kingdeeOrder = (family: Omit<SourceFamily, 'order'>) => {
 	const header = family.live;
 	const fid = exactId(header, 'fid');
@@ -413,7 +419,7 @@ export const kingdeeOrder = (family: Omit<SourceFamily, 'order'>) => {
 		closed: header['closed'] != null && flag(header, 'closed'),
 		exchange_rate: columns(header).decimalText('exchange_rate'),
 		currency: isoCurrency(header),
-		customer: exactId(header, 'customer_id'),
+		party: exactId(header, 'party_id'),
 		employee: header['employee_id'] == null ? null : exactId(header, 'employee_id'),
 		payment_terms: text(header, 'settlement'),
 		ordered_on: text(header, 'ordered_on'),
@@ -439,7 +445,7 @@ export const kingdeeOrder = (family: Omit<SourceFamily, 'order'>) => {
 };
 export type KingdeeOrder = ReturnType<typeof kingdeeOrder>;
 /**
- * Pairs each SO entry with its order line: by the line's `source_entry_id`, else (a line the writer sent but no read
+ * Pairs each Kingdee entry with its order line: by the line's `source_entry_id`, else (a line the writer sent but no read
  * has bound yet) the unbound entries in ascending order against the unbound lines in id order, as the writer
  * allocated them.
  */
@@ -464,14 +470,19 @@ export function pairLines<
 	}
 	return pairs;
 }
-/** The confirmed sales orders this ledger receives, with the FUUID each one's SO carries. */
-export const ownedSalesOrders = Effect.fnUntraced(function* (
+/** The confirmed orders of one direction this ledger receives, with the FUUID each one's Kingdee order carries. */
+export const ownedOrders = Effect.fnUntraced(function* (
+	direction: Direction,
 	instance: Id<'sys_integration'>,
 	ctx: Pick<OrderSourceContext, 'query'>
 ) {
 	const { orders } = yield* ctx.query({
 		orders: {
-			where: { ledger: { eq: instance }, direction: { eq: 'sales' }, status: { eq: 'confirmed' } },
+			where: {
+				ledger: { eq: instance },
+				direction: { eq: direction },
+				status: { eq: 'confirmed' }
+			},
 			party: { fields: ['external_code'] },
 			lines: {}
 		}
@@ -488,8 +499,9 @@ export const ownedSalesOrders = Effect.fnUntraced(function* (
 	);
 	return { owned, anchors };
 });
-/** Each owned order's live SO, its entries paired with the order's lines. */
+/** Each owned order's live Kingdee order, its entries paired with the order's lines. */
 export const readOwnedSales = Effect.fnUntraced(function* (
+	bill: Bill,
 	owned: readonly {
 		readonly order: Id<'orders'>;
 		readonly uuid: string;
@@ -501,7 +513,7 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 	}[],
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } }
 ) {
-	const families = yield* readSourceOrderFamilies(owned, ctx);
+	const families = yield* readSourceOrderFamilies(bill, owned, ctx);
 	return yield* checked(() =>
 		families.flatMap((family): OwnedSales[] => {
 			const order = owned.find((row) => row.order === family.order);
@@ -510,6 +522,7 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 			const pairs = pairLines(order.lines, source.lines);
 			return [
 				{
+					direction: bill.direction,
 					fid: source.fid,
 					order: order.order,
 					currency: order.currency,
@@ -540,6 +553,7 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 	);
 });
 export const readSalesDocuments = Effect.fnUntraced(function* (
+	bill: Bill,
 	orders: readonly OwnedSales[],
 	ctx: DatabaseContext,
 	kind: 'delivery' | 'invoice',
@@ -553,13 +567,16 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	review?: DocumentReview
 ) {
 	const lineProjection =
-		kind === 'delivery' ? deliveryLineProjection(costAccount !== undefined) : invoiceLineProjection;
-	const sourceType = kind === 'delivery' ? 81 : 21;
+		kind === 'delivery'
+			? deliveryLineProjection(costAccount !== undefined)
+			: invoiceLineProjection(bill);
+	const sourceType = kind === 'delivery' ? bill.type : bill.movement;
+	const movement = String(bill.movement);
 	const sources =
 		kind === 'delivery'
 			? orders.map((order) => order.fid)
 			: deliveries.map((delivery) => delivery.fid);
-	const headers = yield* selectByIds(ctx, documentHeaderProjection(kind), sources);
+	const headers = yield* selectByIds(ctx, documentHeaderProjection(bill, kind), sources);
 	const pendingIds = yield* checked(() => {
 		if (
 			headers.some(
@@ -621,9 +638,9 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				for (const entry of rows) {
 					const sourceType = String(entry['source_type']);
 					const sourceFid = String(entry['source_fid']);
-					if (kind === 'delivery' && sourceType === '81')
+					if (kind === 'delivery' && sourceType === String(bill.type))
 						for (const order of byOrderFid.get(sourceFid) ?? []) affected.add(order.order);
-					if (sourceType === '21') {
+					if (sourceType === movement) {
 						const parent = kind === 'delivery' ? resolved.get(sourceFid) : byFid.get(sourceFid);
 						if (parent) affected.add(parent.owner.order);
 						if (kind === 'delivery')
@@ -638,7 +655,13 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					return invalid('FROB', 'Owned documents must be blue or red');
 				const red = rob === '-1';
 				const type = exactId(header, 'type');
-				if (kind === 'delivery' ? type !== '21' : type !== '80' && !(red && type === '86'))
+				if (
+					kind === 'delivery'
+						? type !== movement
+						: !(red ? bill.invoiceTypes.red : bill.invoiceTypes.blue).some(
+								(known) => known === type
+							)
+				)
 					return invalid(
 						'FTranType',
 						'This source document type has no verified transaction mapping'
@@ -647,7 +670,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				let owner: OwnedSales | undefined;
 				const lines = rows.map((entry): SalesLine => {
 					const type = exactId(entry, 'source_type');
-					const linkedReturn = kind === 'delivery' && red && type === '21';
+					const linkedReturn = kind === 'delivery' && red && type === movement;
 					if (type !== String(sourceType) && !linkedReturn)
 						return invalid(
 							'FSourceTranType',
@@ -718,7 +741,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 							BigDecimal.isNegative(r.decimal('gross_amount')))
 					)
 						return invalid(
-							'ICSaleEntry',
+							`${bill.invoice}Entry`,
 							'A blue invoice line has a negative amount requiring an explicit reversal mapping'
 						);
 					const costAmount = r.decimal('cost_amount', null);
@@ -773,7 +796,8 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 });
 
 /** Read only records whose existing FUUID belongs to one local order; never adopt ERP history by bill number. */
-export const readSalesGraph = Effect.fnUntraced(function* (
+export const readOrderGraph = Effect.fnUntraced(function* (
+	directions: readonly Direction[],
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext,
@@ -781,71 +805,105 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 	/** What else an order held for review could be waiting on, beyond an order moving. */
 	local = ''
 ) {
-	const { owned, anchors } = yield* ownedSalesOrders(instance, ctx);
+	const sides = yield* Effect.forEach(directions, (direction) =>
+		ownedOrders(direction, instance, ctx).pipe(
+			Effect.map((side) => ({ bill: bills[direction], ...side }))
+		)
+	);
+	const anchors = sides.flatMap((side) => side.anchors);
 	const uuid = (order: Id<'orders'>) => anchors.find((anchor) => anchor.order === order)?.uuid;
 	// an order's documents are read when one of them moves in Kingdee, or when the order itself moved here: its SO
-	// was just read, audited or bound. Nothing lists every order's documents.
-	const latest = owned.reduce(
-		(max, order) => (order.updated_at > max ? order.updated_at : max),
-		''
+	// or PO was just read, audited or bound. Nothing lists every order's documents.
+	const latest = sides
+		.flatMap((side) => side.owned)
+		.reduce((max, order) => (order.updated_at > max ? order.updated_at : max), '');
+	const window = yield* orderWindow(
+		ctx,
+		cursor,
+		200,
+		`${latest}|${local}`,
+		documentWindow(directions)
 	);
-	const window = yield* orderWindow(ctx, cursor, 200, `${latest}|${local}`, documentWindow);
 	const before = window.before?.split('|')[0] ?? '';
 	// commits can land out of their timestamps' order: orders stamped a little before the last read are read again
 	const since =
 		latest === before || !before
 			? before
 			: new Date(Date.parse(before) - Duration.toMillis(Duration.minutes(10))).toISOString();
-	const moved = new Set(yield* checked(() => window.headers.map((row) => exactId(row, 'fid'))));
-	const touched = owned.filter(
-		(order) =>
-			(order.kingdee && moved.has(order.kingdee.fid)) ||
-			(window.first &&
-				((latest !== before && order.updated_at > since) ||
-					window.retry.includes(uuid(order.id) ?? '')))
-	);
-	const orders = yield* readOwnedSales(
-		touched.flatMap((order) => {
-			const anchor = uuid(order.id);
-			return anchor
-				? [{ order: order.id, uuid: anchor, currency: order.currency, lines: order.lines }]
-				: [];
-		}),
-		ctx
+	const moved = new Set(
+		yield* checked(() =>
+			window.headers.map((row) => `${text(row, 'direction')}:${exactId(row, 'fid')}`)
+		)
 	);
 	const { transactions: retained } = yield* ctx.query({
 		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
 	});
-	const pins = retained.rows.flatMap((row) => {
-		const match = /^(delivery|invoice):(\d+)(?::|$)/.exec(row.erp_id);
-		return match?.[1] && match[2] ? [{ kind: match[1], fid: match[2], order: row.order }] : [];
-	});
 	const review: DocumentReview = { held: new Set(), issues: [] };
-	const delivery = yield* readSalesDocuments(
-		orders,
-		ctx,
-		'delivery',
-		[],
-		pins,
-		costAccount,
-		review
-	);
-	const invoice = yield* readSalesDocuments(
-		orders,
-		ctx,
-		'invoice',
-		delivery.documents,
-		pins,
-		undefined,
-		review
-	);
+	const deliveries: SalesDocument[] = [];
+	const invoices: SalesDocument[] = [];
+	const affected = new Set<Id<'orders'>>();
+	for (const { bill, owned } of sides) {
+		const touched = owned.filter(
+			(order) =>
+				(order.kingdee && moved.has(`${bill.direction}:${order.kingdee.fid}`)) ||
+				(window.first &&
+					((latest !== before && order.updated_at > since) ||
+						window.retry.includes(uuid(order.id) ?? '')))
+		);
+		for (const order of touched) affected.add(order.id);
+		const orders = yield* readOwnedSales(
+			bill,
+			touched.flatMap((order) => {
+				const anchor = uuid(order.id);
+				return anchor
+					? [{ order: order.id, uuid: anchor, currency: order.currency, lines: order.lines }]
+					: [];
+			}),
+			ctx
+		);
+		const pattern = new RegExp(`^(${bill.ids.delivery}|${bill.ids.invoice}):(\\d+)(?::|$)`);
+		const pins = retained.rows.flatMap((row) => {
+			const match = pattern.exec(row.erp_id);
+			return match?.[1] && match[2]
+				? [
+						{
+							kind: match[1] === bill.ids.delivery ? 'delivery' : 'invoice',
+							fid: match[2],
+							order: row.order
+						}
+					]
+				: [];
+		});
+		const delivery = yield* readSalesDocuments(
+			bill,
+			orders,
+			ctx,
+			'delivery',
+			[],
+			pins,
+			costAccount,
+			review
+		);
+		const invoice = yield* readSalesDocuments(
+			bill,
+			orders,
+			ctx,
+			'invoice',
+			delivery.documents,
+			pins,
+			undefined,
+			review
+		);
+		deliveries.push(...delivery.documents);
+		invoices.push(...invoice.documents);
+	}
 	return {
 		...review,
-		deliveries: delivery.documents.filter((doc) => !review.held.has(doc.owner.order)),
-		invoices: invoice.documents.filter((doc) => !review.held.has(doc.owner.order)),
+		deliveries: deliveries.filter((doc) => !review.held.has(doc.owner.order)),
+		invoices: invoices.filter((doc) => !review.held.has(doc.owner.order)),
 		observedAt: window.observedAt,
 		/** The orders this read covered: only their rows can be found missing. */
-		affected: new Set(touched.map((order) => order.id)),
+		affected,
 		/** The page these rows make: an order held for review is read again when an order next moves. */
 		page: Effect.fnUntraced(function* <R>(rows: readonly (R & { readonly $id: string })[]) {
 			const closed = yield* window.close([...review.held].flatMap((order) => uuid(order) ?? []));
@@ -892,33 +950,46 @@ const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, sour
 const WAITING = 500;
 const within = (column: string) =>
 	`${column}>=CONVERT(binary(8),@from,1) AND ${column}<CONVERT(binary(8),@to,1)`;
-/** The SO headers of the branch that moved in the window. */
-const headerWindow = `${salesFamilyProjection.sql.slice(0, salesFamilyProjection.sql.indexOf('WHERE head.FBrNo='))}WHERE head.FBrNo=@branch AND ${within('head.FOperDate')} /* kingdee-order-window */`;
+/** The order headers of the branch that moved in the window, each keyed and named by its direction. */
+export const headerWindow = (directions: readonly Direction[]) =>
+	`${directions
+		.map(
+			(direction) =>
+				`SELECT '${direction}' AS direction,'${direction[0]}'+${padded('head.FInterID')} AS __key,${familyColumns(bills[direction])}
+WHERE head.FBrNo=@branch AND ${within('head.FOperDate')}`
+		)
+		.join('\nUNION ALL\n')} /* kingdee-order-window */`;
 /**
- * The SOs a delivery, return, invoice or settlement that moved in the window belongs to. KIS stamps document
- * headers, never their lines, so each is followed from its header to the SO its lines name; a receipt allocated to
- * an invoice moves that invoice's open item in `t_RP_Contact`.
+ * The orders a goods movement, return, invoice or settlement that moved in the window belongs to. KIS stamps document
+ * headers, never their lines, so each is followed from its header to the order its lines name; a settlement allocated
+ * to an invoice moves that invoice's open item in `t_RP_Contact`.
  */
-const documentWindow = `/* kingdee-document-window */
-SELECT ${padded('moved.fid')} AS __key,${textId('moved.fid')} AS fid FROM (
- SELECT line.FSourceInterId AS fid FROM dbo.ICStockBill head JOIN dbo.ICStockBillEntry line ON line.FInterID=head.FInterID
- WHERE head.FTranType=21 AND line.FSourceTranType=81 AND ${within('head.FOperDate')}
- UNION SELECT original.FSourceInterId FROM dbo.ICStockBill head
- JOIN dbo.ICStockBillEntry red ON red.FInterID=head.FInterID AND red.FSourceTranType=21
+const documentWindow = (directions: readonly Direction[]) => `/* kingdee-document-window */
+SELECT moved.direction,LEFT(moved.direction,1)+${padded('moved.fid')} AS __key,${textId('moved.fid')} AS fid FROM (
+${directions
+	.map((direction) => {
+		const { type, movement, invoice, settlement } = bills[direction];
+		return ` SELECT '${direction}' AS direction,line.FSourceInterId AS fid FROM dbo.ICStockBill head JOIN dbo.ICStockBillEntry line ON line.FInterID=head.FInterID
+ WHERE head.FTranType=${movement} AND line.FSourceTranType=${type} AND ${within('head.FOperDate')}
+ UNION SELECT '${direction}',original.FSourceInterId FROM dbo.ICStockBill head
+ JOIN dbo.ICStockBillEntry red ON red.FInterID=head.FInterID AND red.FSourceTranType=${movement}
  JOIN dbo.ICStockBillEntry original ON original.FInterID=red.FSourceInterId AND original.FEntryID=red.FSourceEntryID
- WHERE head.FTranType=21 AND original.FSourceTranType=81 AND ${within('head.FOperDate')}
- UNION SELECT delivery.FSourceInterId FROM dbo.ICSale head
- JOIN dbo.ICSaleEntry line ON line.FInterID=head.FInterID AND line.FSourceTranType=21
+ WHERE head.FTranType=${movement} AND original.FSourceTranType=${type} AND ${within('head.FOperDate')}
+ UNION SELECT '${direction}',delivery.FSourceInterId FROM dbo.${invoice} head
+ JOIN dbo.${invoice}Entry line ON line.FInterID=head.FInterID AND line.FSourceTranType=${movement}
  JOIN dbo.ICStockBillEntry delivery ON delivery.FInterID=line.FSourceInterId
- WHERE delivery.FSourceTranType=81 AND ${within('head.FOperDate')}
- UNION SELECT delivery.FSourceInterId FROM dbo.t_RP_Contact contact
- JOIN dbo.ICSaleEntry line ON line.FInterID=contact.FInvoiceID AND line.FSourceTranType=21
+ WHERE delivery.FSourceTranType=${type} AND ${within('head.FOperDate')}
+ UNION SELECT '${direction}',delivery.FSourceInterId FROM dbo.t_RP_Contact contact
+ JOIN dbo.${invoice}Entry line ON line.FInterID=contact.FInvoiceID AND line.FSourceTranType=${movement}
  JOIN dbo.ICStockBillEntry delivery ON delivery.FInterID=line.FSourceInterId
- WHERE contact.FRP=1 AND contact.FType=3 AND delivery.FSourceTranType=81 AND ${within('contact.FModifyTime')}
-) moved WHERE moved.fid IS NOT NULL GROUP BY moved.fid`;
+ WHERE contact.FRP=${settlement.rp} AND contact.FType=${settlement.type} AND delivery.FSourceTranType=${type} AND ${within('contact.FModifyTime')}`;
+	})
+	.join('\n UNION\n')}
+) moved WHERE moved.fid IS NOT NULL GROUP BY moved.direction,moved.fid`;
+
 const invalidCursor = (reason: string) => new SourceRowInvalid({ column: '$cursor', reason });
 /**
- * The SO headers of the branch whose native rowversion moved since the bookmark, a page at a time: `[bookmark, upper)`
+ * The order headers of the branch whose native rowversion moved since the bookmark, a page at a time: `[bookmark, upper)`
  * with `upper` the server's oldest active rowversion, captured before any row. Nothing is listed in full: a header
  * that did not move is not read, and Kingdee's deletes are soft, so they move a header too. An SO whose read waits on
  * something local (a customer not synchronized yet) is kept by UUID and read again when `token`, the caller's summary
@@ -929,7 +1000,7 @@ export const orderWindow = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	size: number,
 	token: string,
-	moved: string = headerWindow
+	moved: string
 ) {
 	const [current] = yield* nativeSql(
 		ctx,
@@ -1006,7 +1077,7 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 		})
 	};
 });
-/** A document's transaction id: `<kind>:<FInterID>`, or the id an earlier read gave it. */
+/** A document's transaction id: `<prefix>:<FInterID>`, or the id an earlier read gave it. */
 export const erpId = (existing: readonly string[], kind: string, fid: string) =>
 	existing.find((id) => id === `${kind}:${fid}` || id.startsWith(`${kind}:${fid}:`)) ??
 	`${kind}:${fid}`;
@@ -1015,28 +1086,36 @@ export const readTransactions = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const graph = yield* readSalesGraph(instance, cursor, ctx);
+	const directions = directionsOf(ctx.configuration);
+	const graph = yield* readOrderGraph(directions, instance, cursor, ctx);
 	const { transactions: existing, orders } = yield* ctx.query({
 		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] },
-		orders: { where: { ledger: { eq: instance }, direction: { eq: 'sales' } }, fields: ['kingdee'] }
+		orders: {
+			where: { ledger: { eq: instance }, direction: { in: [...directions] } },
+			fields: ['kingdee']
+		}
 	});
 	const known = existing.rows.map((row) => row.erp_id);
 	const documents = [
 		...graph.deliveries.map((document) => ({ kind: 'delivery' as const, document })),
 		...graph.invoices.map((document) => ({ kind: 'invoice' as const, document }))
 	];
-	// a document needs its order's SO read as issued; a void SO only voids documents already recorded
+	// a document needs its order's Kingdee order read as issued; a void one only voids documents already recorded
 	for (const { kind, document } of documents) {
+		const bill = bills[document.owner.direction];
 		const status = orders.rows.find((order) => order.id === document.owner.order)?.kingdee?.status;
 		if (
 			!status ||
 			status === 'draft' ||
 			(status === 'void' &&
 				(document.status !== 'void' ||
-					!existing.rows.some((row) => row.erp_id === erpId(known, kind, document.fid))))
+					!existing.rows.some((row) => row.erp_id === erpId(known, bill.ids[kind], document.fid))))
 		) {
 			graph.held.add(document.owner.order);
-			graph.issues.push({ document: `${kind} ${document.fid}`, column: 'SO counterpart' });
+			graph.issues.push({
+				document: `${kind} ${document.fid}`,
+				column: `${bill.label} counterpart`
+			});
 		}
 	}
 	const rows = yield* checked(() =>
@@ -1079,13 +1158,12 @@ export const readTransactions = Effect.fnUntraced(function* (
 							: line.netAmount
 					});
 				}
-				const erp_id = erpId(known, kind, document.fid);
+				const erp_id = erpId(known, bills[document.owner.direction].ids[kind], document.fid);
 				return {
 					$id: erp_id,
 					erp_id,
 					kind,
 					order: document.owner.order,
-					ext_purchase_order: null,
 					reference: document.reference,
 					currency: currency(document.currency),
 					status: document.status,

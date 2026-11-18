@@ -14,7 +14,6 @@ commission_statements/
 source_receivables/
 orders/
   activities/
-  ext_purchase_orders/
   order_lines/
   source_payments/
   source_sales_lines/

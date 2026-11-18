@@ -101,11 +101,12 @@
 	title={ctx.t('component.orders')}
 	variant="full"
 >
-	{#if purchaseOnly}{@render purchases()}
-	{:else if showPurchase}
+	{#if showPurchase}
 		<Tabs
 			tabs={[
-				{ name: 'sales', title: ctx.t('component.sales_orders'), body: sales },
+				...(purchaseOnly
+					? []
+					: [{ name: 'sales', title: ctx.t('component.sales_orders'), body: sales }]),
 				{ name: 'purchasing', title: ctx.t('component.purchase_orders'), body: purchases }
 			]}
 		/>

@@ -15,5 +15,6 @@
 		{ctx}
 		of="parties"
 		columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']}
+		toolbar={{ new: false }}
 	/>
 </AppShell>

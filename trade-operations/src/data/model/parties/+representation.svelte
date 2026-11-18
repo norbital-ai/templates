@@ -64,6 +64,8 @@
 	{ctx}
 	after_form={credit}
 	{view}
+	readonly
+	readonly_reason={ctx.t('component.kingdee_readonly')}
 	sections={[
 		{
 			name: 'partner',

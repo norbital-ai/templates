@@ -3,9 +3,9 @@ import {
 	importedLineId,
 	pushOrder,
 	readKingdeeOrderLines
-} from '../../../../integration/kingdee/sales-orders.js';
+} from '../../../../integration/kingdee/orders.js';
 
-// The Kingdee SO's lines: the read mirrors each entry, a write sends the whole order.
+// The Kingdee SO's or PO's lines: the read mirrors each entry, a write sends the whole order.
 export default sync('order_lines', 'kingdee', {
 	with: 'kingdee',
 	policies: ['kingdee_sync'],

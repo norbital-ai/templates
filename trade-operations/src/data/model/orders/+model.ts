@@ -419,11 +419,9 @@ export default model('orders', {
 					(yield* ctx.query({ order_lines: { where: { id: { in: removed } } } })).order_lines.rows,
 					ctx
 				);
-			// the Kingdee ledgers a draft -> confirmed sales order writes to, read once for the batch
+			// the Kingdee ledgers a draft -> confirmed order writes to, read once for the batch
 			const confirming = changes.flatMap(({ before, after }) =>
-				before.direction === 'sales' && before.status !== 'confirmed' && after.status !== 'draft'
-					? [before.ledger]
-					: []
+				before.status !== 'confirmed' && after.status !== 'draft' ? [before.ledger] : []
 			);
 			const ledgers = confirming.length
 				? (yield* ctx.query({
@@ -524,7 +522,7 @@ export default model('orders', {
 				if (!own.length) return yield* ctx.refuse('errors.lines_required');
 				if (old.warehouse && !warehouse?.active)
 					return yield* ctx.refuse('errors.warehouse_inactive');
-				if (old.direction === 'sales' && !old.payment_terms.trim())
+				if (!old.payment_terms.trim())
 					return yield* ctx.refuse('errors.payment_terms', { field: 'payment_terms' });
 				if (own.some((l) => !products.rows.find((p) => p.id === l.product)?.active))
 					return yield* ctx.refuse('errors.product_inactive');
@@ -550,10 +548,9 @@ export default model('orders', {
 					basis.some((l) => quoteBelowFloor(l, old.tax_inclusive))
 				)
 					return yield* ctx.refuse('errors.floor_below');
-				const writeTarget =
-					old.direction === 'sales'
-						? kingdeeWriteTarget(ledgers.find((l) => l.id === old.ledger)?.configuration)
-						: null;
+				const writeTarget = kingdeeWriteTarget(
+					ledgers.find((l) => l.id === old.ledger)?.configuration
+				);
 				transformed.push({
 					...input,
 					source_order_key: old.source_order_key ?? crypto.randomUUID(),

@@ -183,8 +183,6 @@ test('stock sums each product, warehouse and lot grain and leaves unverified acc
 		on_hand: '9007199254740993.123',
 		unit_cost: null,
 		currency: null,
-		erp_committed: null,
-		orders_as_of: null,
 		as_of: observedAt
 	});
 });

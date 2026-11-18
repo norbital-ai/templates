@@ -111,25 +111,52 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 						.sort((a, b) => a.id.localeCompare(b.id));
 					return commissionCalculation(order, actual).pipe(
 						Effect.map((current) => ({
-							order: order.id,
-							number: order.number,
-							calculation_hash: current.calculation_hash,
-							amount:
-								current.amount === null
-									? null
-									: new Intl.NumberFormat('en', {
-											useGrouping: false,
-											minimumFractionDigits: current.amount.scale,
-											maximumFractionDigits: current.amount.scale
-										}).format(numeric(BigDecimal.format(current.amount))),
-							unresolved_lines: current.unresolved_lines,
-							awaiting_approval: false
+							summary: {
+								order: order.id,
+								number: order.number,
+								calculation_hash: current.calculation_hash,
+								amount:
+									current.amount === null
+										? null
+										: new Intl.NumberFormat('en', {
+												useGrouping: false,
+												minimumFractionDigits: current.amount.scale,
+												maximumFractionDigits: current.amount.scale
+											}).format(numeric(BigDecimal.format(current.amount))),
+								unresolved_lines: current.unresolved_lines,
+								awaiting_approval: false
+							},
+							// the board's detail, outside the signed snapshot: each line, its basis quantity and why it is pending
+							lines: current.snapshot.lines.map((line) => {
+								const factor = order.lines.find((row) => row.id === line.order_line);
+								return {
+									...line,
+									order: order.id,
+									number: order.number,
+									basis_quantity:
+										factor?.commission_factor &&
+										factor.commission_basis_unit === line.basis_unit &&
+										BigDecimal.isPositive(BigDecimal.fromStringUnsafe(factor.commission_factor))
+											? BigDecimal.format(
+													BigDecimal.round(
+														BigDecimal.multiply(
+															BigDecimal.fromStringUnsafe(line.quantity),
+															BigDecimal.fromStringUnsafe(factor.commission_factor)
+														),
+														{ scale: 3 }
+													)
+												)
+											: null
+								};
+							})
 						}))
 					);
 				},
 				{ concurrency: 'unbounded' }
 			).pipe(
-				Effect.flatMap((snapshot) => {
+				Effect.flatMap((orders) => {
+					const snapshot = orders.map((row) => row.summary);
+					const lines = orders.flatMap((row) => row.lines);
 					const unresolved_lines = snapshot.reduce((n, row) => n + row.unresolved_lines, 0);
 					const awaiting_approval = snapshot.filter((row) => row.awaiting_approval).length;
 					const digits =
@@ -180,6 +207,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 								amount,
 								calculation_hash,
 								snapshot,
+								lines,
 								unresolved_lines,
 								awaiting_approval,
 								latest_amount: latest?.amount ?? null,

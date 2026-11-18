@@ -1,6 +1,6 @@
 // The reads the pages make, as a test caller makes them: each former declared query is the page's read request
 // (`src/lib`) answered under the caller's authority, then the same pure helper the page and the file sync call.
-import { Effect, Result, Schema } from 'effect';
+import { BigDecimal, Effect, Result, Schema } from 'effect';
 import type { Id, PlainDate } from '@norbital-ai/bolt';
 import type { Typed } from './test-runtime.js';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';
@@ -15,15 +15,16 @@ import {
 import { inventoryCost, inventoryCostRead } from '../src/lib/lot-cost.js';
 import { boardRead, commissionBoard, monthOf } from '../src/lib/monthly-commission.js';
 import { documentRead, orderDocument } from '../src/lib/order-document.js';
+import { numeric } from '../src/lib/commercial.js';
 import {
 	agingRead,
 	arAging,
-	commissionRead,
-	commissionReport,
+	commissionCalculation,
 	commercialSalesRead,
 	ledgerRead,
 	paymentLedger,
-	salesAnalysis,
+	reportFields,
+	reportLayers,
 	salesDetail
 } from '../src/lib/reports.js';
 type Reader = Pick<Typed, 'query'>;
@@ -55,19 +56,36 @@ export const confirmationOf = Effect.fnUntraced(function* (
 export const documentOf = Effect.fnUntraced(function* (as: Reader, input: { order: Id<'orders'> }) {
 	return yield* orderDocument(yield* as.query(documentRead(input.order)));
 });
+/** Each confirmed sales order's commission on its agreed lines, as its confirmation seals it. */
 export const commissionOf = Effect.fnUntraced(function* (
 	as: Reader,
 	input: { order?: Id<'orders'> | null } = {}
 ) {
-	return commissionReport(yield* as.query(commissionRead), input);
-});
-export const salesAnalysisOf = Effect.fnUntraced(function* (
-	as: Reader,
-	range: { from?: PlainDate | null; to?: PlainDate | null } = {}
-) {
-	if (range.from && range.to && range.from > range.to)
-		return yield* new Refusal({ message: 'errors.report_range' });
-	return salesAnalysis(yield* as.query(commercialSalesRead), range);
+	const { orders } = yield* as.query({
+		orders: {
+			where: {
+				direction: { eq: 'sales' },
+				status: { eq: 'confirmed' },
+				...(input.order ? { id: { eq: input.order } } : {})
+			},
+			fields: reportFields,
+			...reportLayers
+		}
+	});
+	return yield* Effect.forEach(orders.rows, (order) =>
+		commissionCalculation(order).pipe(
+			Effect.map(({ amount }) => ({
+				order: order.id,
+				amount:
+					amount &&
+					new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: amount.scale,
+						maximumFractionDigits: amount.scale
+					}).format(numeric(BigDecimal.format(amount)))
+			}))
+		)
+	);
 });
 export const salesDetailOf = Effect.fnUntraced(function* (
 	as: Reader,

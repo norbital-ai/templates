@@ -51,9 +51,7 @@ const fields = {
 		'currency',
 		'unit',
 		'on_hand',
-		'erp_committed',
-		'as_of',
-		'orders_as_of'
+		'as_of'
 	],
 	credit_snapshots: [
 		'external_code',

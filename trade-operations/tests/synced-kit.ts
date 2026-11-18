@@ -31,7 +31,6 @@ const remote = {
 	stock_snapshots: 'external_code',
 	credit_snapshots: 'external_code',
 	source_sales_lines: 'external_code',
-	ext_purchase_orders: 'external_id',
 	transactions: 'erp_id',
 	source_payments: 'external_code'
 } as const;
@@ -67,58 +66,23 @@ export const sync = Effect.fnUntraced(function* <C extends keyof typeof remote>(
 		)
 	} as const;
 });
-/** No sync writes supplier confirmations (`ext_purchase_orders` retains existing evidence): one stored as it stands. */
-const retainedPurchaseOrder = Effect.fnUntraced(function* (
-	t: T,
-	input: Record<
-		'order' | 'external_id' | 'reference' | 'currency' | 'status' | 'source_updated_at',
-		string
-	>
-) {
-	const id = fixtureId('ext_purchase_orders', randomUUID());
-	yield* t.db.write({
-		text: `INSERT INTO ext_purchase_orders (id, "order", external_id, reference, currency, status, source_updated_at, source)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, 'kingdee')`,
-		params: [
-			id,
-			input.order,
-			input.external_id,
-			input.reference,
-			input.currency,
-			input.status,
-			input.source_updated_at
-		]
-	});
-	return id;
-});
-/**
- * The order's issued counterpart: a sales order's Kingdee SO (written on the order as the `kingdee` sync reads it), a
- * purchase order's retained supplier confirmation.
- */
+/** The order's issued counterpart: its Kingdee SO or PO, written on the order as its sync reads it. */
 export const sourceOrder = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 	const confirmed = (yield* (yield* t.as(t.admin)).query({
 		orders: { where: { id: { eq: order } }, limit: 1 }
 	})).orders.rows[0];
 	if (confirmed?.status !== 'confirmed') throw new Error('A confirmed order is required');
-	const input = {
-		order,
-		external_id: randomUUID(),
-		reference: 'CONFIRMED',
-		currency: confirmed.currency,
-		status: 'issued',
-		source_updated_at: '2026-10-10T00:00:00Z'
-	};
-	if (confirmed.direction === 'purchasing')
-		return {
-			id: yield* retainedPurchaseOrder(t, input),
-			model: 'ext_purchase_orders' as const,
-			input
-		};
-	yield* setSalesOrder(t, confirmed.source_order_key ?? '', 'issued');
-	return { id: null, model: 'orders' as const, input };
+	const input = { order, currency: confirmed.currency };
+	yield* setKingdeeOrder(t, confirmed.source_order_key ?? '', 'issued');
+	return { input };
 });
-/** The Kingdee SO state the `kingdee` read writes on a sales order. */
-export const setSalesOrder = (t: T, key: string, status: 'draft' | 'issued' | 'void') =>
+/** The Kingdee SO or PO state its order sync's read writes on the order. */
+export const setKingdeeOrder = (
+	t: T,
+	key: string,
+	status: 'draft' | 'issued' | 'void',
+	exchange_rate = '1'
+) =>
 	t.syncs.write('orders.sync.kingdee', [
 		{
 			source_order_key: key,
@@ -128,7 +92,7 @@ export const setSalesOrder = (t: T, key: string, status: 'draft' | 'issued' | 'v
 				version: '000',
 				status,
 				closed: false,
-				exchange_rate: '1'
+				exchange_rate
 			}
 		}
 	]);
@@ -146,7 +110,6 @@ export const sourceTransaction = Effect.fnUntraced(function* (
 	const input = {
 		erp_id: randomUUID(),
 		order: own.order,
-		...(parent.model === 'ext_purchase_orders' ? { ext_purchase_order: parent.id } : {}),
 		kind,
 		reference: kind === 'invoice' ? 'INV-1' : 'DO-1',
 		currency: parent.input.currency,

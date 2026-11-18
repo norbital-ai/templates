@@ -60,8 +60,10 @@ export default policy({
 			create: {},
 			update: {}
 		},
-		ext_purchase_orders: {
-			outputs: { default: {} }
+		source_purchase_lines: {
+			outputs: { default: {} },
+			create: {},
+			update: {}
 		},
 		transactions: {
 			outputs: { default: {} },

@@ -4,8 +4,18 @@ import { businessRows } from './business-source.js';
 import { expect, it } from '@effect/vitest';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { committed, confirm, draft, SETTINGS, workspace, type T } from './kit.js';
-import { salesAnalysisOf, salesDetailOf } from './reads.js';
-import { readSalesReport, salesDetail, salesRead, salesReadDuring } from '../src/lib/reports.js';
+import { salesDetailOf } from './reads.js';
+import {
+	purchaseChain,
+	purchaseChainRead,
+	readSalesReport,
+	salesCollection,
+	salesCollectionRead,
+	salesDetail,
+	salesRead,
+	salesReadDuring
+} from '../src/lib/reports.js';
+import { setKingdeeOrder, sourceOrder, sourcePayment, sourceTransaction } from './synced-kit.js';
 const stamp = '2026-10-10T00:00:00Z';
 const fact = Effect.fnUntraced(function* (
 	t: T,
@@ -97,6 +107,14 @@ it.live(
 				cost_currency: 'USD',
 				margin: null
 			});
+			// a foreign sale meets its cost at its Kingdee rate: 17 SGD booked at 0.75 is 12.75 USD
+			const foreignKey = (yield* as.query({
+				orders: { where: { id: { eq: foreign.order } }, fields: ['source_order_key'], limit: 1 }
+			})).orders.rows[0]?.source_order_key;
+			yield* setKingdeeOrder(t, foreignKey ?? '', 'issued', '0.75');
+			expect(
+				salesDetail(yield* as.query(salesRead)).find((row) => row.external_code === 'FOREIGN-1')
+			).toMatchObject({ cost_currency: 'USD', margin: decimalText('9.29'), margin_rate: '72.9' });
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(
@@ -130,39 +148,28 @@ it.live(
 					})
 				])
 			);
+			// each line's net after the freight treatment its order captured when confirmed
+			const salesperson = yield* t.as(sales);
+			const shown = () =>
+				salesDetailOf(salesperson, {}).pipe(
+					Effect.map((rows) =>
+						rows.map(({ external_code, freight_treatment, net }) => ({
+							external_code,
+							freight_treatment,
+							net
+						}))
+					)
+				);
 			const before = [
-				{
-					period: '2026-10-01',
-					owner: fixtureId('sys_user', sales.id),
-					orders: 1,
-					source_lines: 1,
-					unresolved_lines: 1,
-					net: null,
-					tax: decimalText('1.80'),
-					total: decimalText('21.80'),
-					freight: null
-				},
-				{
-					period: '2026-09-01',
-					owner: fixtureId('sys_user', sales.id),
-					freight_treatment: 'deduct',
-					orders: 1,
-					source_lines: 2,
-					unresolved_lines: 0,
-					net: decimalText('13.60'),
-					tax: decimalText('1.44'),
-					total: decimalText('17.44'),
-					freight: decimalText('2.40')
-				}
+				{ external_code: 'MISSING-1', freight_treatment: 'deduct', net: null },
+				{ external_code: 'RETURN-1', freight_treatment: 'deduct', net: decimalText('-3.40') },
+				{ external_code: 'SHIP-1', freight_treatment: 'deduct', net: decimalText('17.00') }
 			];
-			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject(before);
+			expect(yield* shown()).toEqual(before);
 			expect(
-				yield* salesAnalysisOf(yield* t.as(sales), {
-					from: '2026-12-01',
-					to: '2026-12-31'
-				})
+				yield* salesDetailOf(yield* t.as(sales), { from: '2026-12-01', to: '2026-12-31' })
 			).toEqual([]);
-			// the order captured its freight treatment when confirmed: a later setting does not rewrite it
+			// a later setting does not rewrite the treatment an order captured
 			committed(
 				'commercial_settings',
 				yield* as.act({
@@ -174,12 +181,9 @@ it.live(
 					]
 				})
 			);
-			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject(before);
+			expect(yield* shown()).toEqual(before);
 			yield* pull(t, [{ ...returned, active: false, source_updated_at: '2026-10-10T00:00:01Z' }]);
-			expect(yield* salesAnalysisOf(yield* t.as(sales), {})).toMatchObject([
-				{ period: '2026-10-01', net: null },
-				{ freight_treatment: 'deduct', source_lines: 1, net: decimalText('17.00') }
-			]);
+			expect(yield* shown()).toEqual([before[0], before[2]]);
 		})
 );
 it.live(
@@ -221,3 +225,146 @@ it.live(
 class TestIoFailed extends Schema.TaggedError<TestIoFailed>()('TestIoFailed', {
 	message: Schema.String
 }) {}
+
+it.live('sales analysis follows each line to its invoice and how far it is collected', () =>
+	Effect.gen(function* () {
+		const t = yield* workspace();
+		const billed = yield* draft(t);
+		const unbilled = yield* draft(t);
+		yield* confirm(t, billed.order);
+		yield* confirm(t, unbilled.order);
+		const shipped = yield* fact(t, billed, 'DO-7/1');
+		yield* pull(t, [
+			shipped,
+			{ ...shipped, external_code: 'INV-7/1', reference: 'INV-7/1', kind: 'invoice' },
+			yield* fact(t, unbilled, 'DO-8/1')
+		]);
+		const parent = yield* sourceOrder(t, billed.order);
+		const invoice = yield* sourceTransaction(t, billed, parent, 'invoice', '10', {
+			reference: 'INV-7',
+			due_on: '2026-10-15'
+		});
+		yield* sourcePayment(t, parent, invoice.id, '10');
+		const finance = yield* t.as(t.member(['finance']));
+		const chain = (basis: 'delivery' | 'invoice') =>
+			Effect.gen(function* () {
+				const detail = salesDetail(
+					yield* finance.query(salesReadDuring({ from: null, to: null, basis })),
+					{ basis }
+				);
+				const orders = [...new Set(detail.flatMap((row) => row.order ?? []))];
+				return salesCollection(detail, yield* finance.query(salesCollectionRead(orders)));
+			});
+		const delivered = yield* chain('delivery');
+		expect(delivered.find((row) => row.reference === 'DO-7/1')).toMatchObject({
+			invoice_numbers: 'INV-7',
+			due_on: '2026-10-15',
+			collection: 'partial',
+			collected_on: null
+		});
+		expect(delivered.find((row) => row.reference === 'DO-8/1')).toMatchObject({
+			invoice_numbers: '',
+			collection: 'uninvoiced'
+		});
+		yield* sourcePayment(t, parent, invoice.id, '11.80');
+		expect((yield* chain('invoice')).find((row) => row.reference === 'INV-7/1')).toMatchObject({
+			invoice_numbers: 'INV-7',
+			collection: 'paid',
+			collected_on: '2026-10-09'
+		});
+	})
+);
+
+it.live(
+	'sales analysis follows a sold lot back to its receipts, purchase invoices and supplier payment',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const sold = yield* draft(t);
+			yield* confirm(t, sold.order);
+			yield* pull(t, [{ ...(yield* fact(t, sold, 'DO-9/1')), lot_number: 'L-9' }]);
+			const purchase = (rows: Record<string, Json>[]) =>
+				t.syncs.write(
+					'source_purchase_lines.sync.receipts',
+					rows.map((row) => ({ source: 'kingdee', source_updated_at: stamp, active: true, ...row }))
+				);
+			const line = {
+				product_code: 'RESIN-A',
+				lot_number: 'L-9',
+				unit: 'kg',
+				currency: 'SGD',
+				supplier_name: 'Supplier S'
+			};
+			yield* purchase([
+				{
+					...line,
+					external_code: 'receipt:11:1',
+					kind: 'receipt',
+					reference: 'WIN-11',
+					business_on: '2026-09-01',
+					quantity: '10',
+					net_amount: '15',
+					order_reference: 'POORD-1',
+					upstream: 'order:1:1'
+				},
+				{
+					...line,
+					external_code: 'receipt:12:1',
+					kind: 'receipt',
+					reference: 'WIN-12',
+					business_on: '2026-09-05',
+					quantity: '10',
+					net_amount: '25',
+					order_reference: 'POORD-1',
+					upstream: 'order:1:1'
+				}
+			]);
+			const invoice = (open: string) =>
+				purchase([
+					{
+						...line,
+						external_code: 'invoice:21:1',
+						kind: 'invoice',
+						reference: 'PINV-21',
+						business_on: '2026-09-10',
+						quantity: '10',
+						net_amount: '15',
+						upstream: 'receipt:11:1',
+						billed_amount: '16.95',
+						open_amount: open,
+						paid_on: '2026-09-20'
+					}
+				]);
+			const finance = yield* t.as(t.member(['finance']));
+			const chain = Effect.gen(function* () {
+				const detail = salesDetail(
+					yield* finance.query(salesReadDuring({ from: null, to: null, basis: 'delivery' })),
+					{ basis: 'delivery' }
+				);
+				const lots = [...new Set(detail.flatMap((row) => row.lot_number ?? []))];
+				const purchased = (yield* finance.query(purchaseChainRead(lots))).source_purchase_lines
+					.rows;
+				return purchaseChain(detail, purchased).find((row) => row.reference === 'DO-9/1');
+			});
+			expect(yield* chain).toMatchObject({
+				order_reference: 'POORD-1',
+				supplier: 'Supplier S',
+				purchase_price: '2',
+				first_received_on: '2026-09-01',
+				purchase_invoices: '',
+				supplier_payment: 'uninvoiced'
+			});
+			yield* invoice('6.95');
+			expect(yield* chain).toMatchObject({
+				purchase_invoices: 'PINV-21',
+				purchase_invoiced_on: '2026-09-10',
+				supplier_payment: 'partial',
+				supplier_paid_on: null
+			});
+			yield* invoice('0');
+			expect(yield* chain).toMatchObject({
+				supplier_payment: 'paid',
+				supplier_paid_on: '2026-09-20'
+			});
+		})
+);

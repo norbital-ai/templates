@@ -161,3 +161,46 @@ export function xlsxWorkbook(
 		{ name: 'xl/worksheets/sheet1.xml', text: sheetXml(columns, rows) }
 	]);
 }
+
+/** A report's columns as its table declares them: a money or decimal kind writes a number at its scale. */
+type ReportColumn = {
+	readonly field: string;
+	readonly label?: string;
+	readonly kind?: { readonly kind?: string; readonly scale?: number };
+};
+/** Downloads `rows` under `columns` as `<name>-<day>.xlsx`. */
+export function downloadXlsx(
+	name: string,
+	day: string,
+	columns: readonly (string | ReportColumn)[],
+	rows: readonly { readonly [field: string]: unknown }[]
+) {
+	const bytes = xlsxWorkbook(
+		name,
+		columns.map((column) => {
+			const { field, label, kind }: ReportColumn =
+				typeof column === 'string' ? { field: column } : column;
+			return {
+				field,
+				label: label ?? field,
+				numeric: kind?.kind === 'money' || kind?.kind === 'decimal' || kind?.kind === 'int',
+				...(kind?.kind === 'money'
+					? { scale: 2 }
+					: kind?.scale === undefined
+						? {}
+						: { scale: kind.scale })
+			};
+		}),
+		rows
+	);
+	const url = URL.createObjectURL(
+		new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+	);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = `${name}-${day}.xlsx`;
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

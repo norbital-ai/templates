@@ -4,7 +4,16 @@
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal, Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Combobox, CustomView, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
+	import {
+		Checkbox,
+		Combobox,
+		CustomView,
+		Label,
+		Table,
+		Tabs,
+		TimeInput,
+		use_act
+	} from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -17,6 +26,20 @@
 		type PriceRow
 	} from '../../lib/price-book.js';
 
+	// the two order rules this page's prices and commission apply under
+	const settings = ctx.query({
+		commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 }
+	});
+	const rules = $derived(settings.current?.commercial_settings.rows[0]);
+	const setRule = (
+		set: { readonly require_floor: boolean } | { readonly freight_treatment: 'deduct' | 'include' }
+	) =>
+		rules &&
+		save.run(
+			ctx.act({
+				'commercial_settings.update': [{ target: { id: rules.id, revision: rules.revision }, set }]
+			})
+		);
 	const clock = ctx.clock('day');
 	const today = clock.today;
 	const currentMonth = today.slice(0, 7);
@@ -207,6 +230,15 @@
 
 {#snippet bookScope()}
 	{@render scope()}
+	{#if rules}
+		<Label class="flex items-center gap-2 text-sm whitespace-nowrap"
+			><Checkbox
+				checked={rules.require_floor}
+				disabled={save.pending}
+				on_checked_change={(checked: boolean) => setRule({ require_floor: checked })}
+			/>{ctx.t('models.commercial_settings.fields.require_floor')}</Label
+		>
+	{/if}
 	<label class="sr-only" for="price-book-month">{ctx.t('component.price_book_month')}</label>
 	<div class="w-36">
 		<TimeInput
@@ -391,17 +423,38 @@
 	{/if}
 {/snippet}
 
+{#snippet freight()}
+	{#if rules}
+		<div class="w-56">
+			<Combobox
+				options={(['deduct', 'include'] as const).map((value) => ({
+					value,
+					label: ctx.t(`models.commercial_settings.fields.freight_treatment.${value}`)
+				}))}
+				value={rules.freight_treatment}
+				on_change={(value) => {
+					if (value) setRule({ freight_treatment: value });
+				}}
+				aria-label={ctx.t('models.commercial_settings.fields.freight_treatment')}
+			/>
+		</div>
+	{/if}
+{/snippet}
 {#snippet commissionRules()}
 	<Table
 		{ctx}
 		of="commission_rules"
 		columns={['effective_on', 'currency', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']}
-		toolbar={{ title: false, description: ctx.t('component.commission_rules_hint') }}
+		toolbar={{
+			title: false,
+			description: ctx.t('component.commission_rules_hint'),
+			controls: freight
+		}}
 	/>
 {/snippet}
 
 <AppShell
-	description={ctx.t('app.trade_configuration.description')}
+	description={ctx.t('settings.pricing.description')}
 	icon="lucide:chart-no-axes-combined"
 	title={ctx.t('section.pricing')}
 	variant="full"

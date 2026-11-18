@@ -15,8 +15,8 @@ customer need
    -> commission and analysis
 ```
 
-A supplier purchase order uses the same agreement model with `direction = purchasing`. A supplier commitment
-is recorded and revised locally; it is not a customer sale and does not need Kingdee acceptance.
+A supplier purchase order uses the same agreement model with `direction = purchasing` and syncs both ways
+with its Kingdee PO, as a sales order does with its SO.
 
 ## Who it serves
 

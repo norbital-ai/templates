@@ -19,12 +19,11 @@ Your tools already carry each person's access:
 ## What the models mean
 
 - `orders` and `order_lines` — our sales or purchase agreement and its contract SKU rows; the terms
-  live on them. Direction is fixed at creation. A confirmed sales order is the shadow of its Kingdee
-  SO: it syncs both ways, and its record history is the audit trail of every change.
-- `ext_purchase_orders` — read-only supplier confirmations linked to a purchase order.
-- `transactions` — read-only deliveries and invoices against an external order. An issued invoice
+  live on them. Direction is fixed at creation. A confirmed order is the shadow of its Kingdee SO or
+  PO: it syncs both ways, and its record history is the audit trail of every change.
+- `transactions` — read-only deliveries (receipts, for a purchase) and invoices against an order. An issued invoice
   keeps its actual issue date, due date and total.
-- `source_payments` — one read-only receipt/refund ledger, optionally applied to an invoice.
+- `source_payments` — one read-only receipt/payment/refund ledger, optionally applied to an invoice.
   Deposits remain separate; refunds reduce payments; withdrawn receipts remain inspectable.
 - `source_sales_lines` — canonical source financial facts for shipments, returns and invoice-only
   revenue. Do not treat it as a second order line table.

@@ -19,17 +19,8 @@ export default model('stock_snapshots', {
 			kind: 'decimal',
 			scale: 3
 		},
-		erp_committed: {
-			kind: 'decimal',
-			scale: 3,
-			optional: true
-		},
 		as_of: {
 			kind: 'instant'
-		},
-		orders_as_of: {
-			kind: 'instant',
-			optional: true
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		product: { kind: 'ref', to: 'products' },
@@ -43,9 +34,7 @@ export default model('stock_snapshots', {
 				'external_code',
 				'unit',
 				'on_hand',
-				'erp_committed',
 				'as_of',
-				'orders_as_of',
 				'source',
 				'product',
 				'warehouse'
@@ -65,9 +54,7 @@ export default model('stock_snapshots', {
 			'external_code',
 			'unit',
 			'on_hand',
-			'erp_committed',
 			'as_of',
-			'orders_as_of',
 			'source',
 			'product',
 			'warehouse'
@@ -81,9 +68,7 @@ export default model('stock_snapshots', {
 			'external_code',
 			'unit',
 			'on_hand',
-			'erp_committed',
 			'as_of',
-			'orders_as_of',
 			'source',
 			'product',
 			'warehouse'

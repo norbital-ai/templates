@@ -10,7 +10,17 @@ export const stockAvailabilityRead = {
 	products: { fields: ['source', 'external_code', 'source_number', 'name', 'unit'], limit: 10000 },
 	warehouses: { fields: ['name', 'group_code'], limit: 10000 },
 	stock_snapshots: {
-		fields: ['source', 'product', 'warehouse', 'unit', 'on_hand', 'as_of'],
+		fields: [
+			'source',
+			'product',
+			'warehouse',
+			'lot_number',
+			'unit',
+			'on_hand',
+			'currency',
+			'unit_cost',
+			'as_of'
+		],
 		limit: 10000
 	},
 	source_stock_commitments: {
@@ -22,10 +32,15 @@ export const logisticsStockAvailabilityRead = {
 	...stockAvailabilityRead,
 	commercial_settings: { ...stockAvailabilityRead.commercial_settings, output: 'logistics' },
 	products: { ...stockAvailabilityRead.products, output: 'logistics' },
-	stock_snapshots: { ...stockAvailabilityRead.stock_snapshots, output: 'logistics' }
+	// logistics sees quantities, never cost
+	stock_snapshots: {
+		output: 'logistics',
+		fields: ['source', 'product', 'warehouse', 'lot_number', 'unit', 'on_hand', 'as_of'],
+		limit: 10000
+	}
 } as const;
 
-type Answer = ReadAnswer<typeof stockAvailabilityRead>;
+type Answer = ReadAnswer<typeof logisticsStockAvailabilityRead>;
 type Product = Answer['products']['rows'][number];
 type Lot = Answer['stock_snapshots']['rows'][number];
 type Snapshot = Answer['source_stock_commitments']['rows'][number];

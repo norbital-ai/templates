@@ -152,7 +152,7 @@ it.effect(
 					}
 					return {
 						rows: [
-							{ kind: 'customer', local: '', id: '101', unit_id: '', unit_name: '', rate: '' },
+							{ kind: 'party', local: '', id: '101', unit_id: '', unit_name: '', rate: '' },
 							{ kind: 'settlement', local: '', id: '1', unit_id: '', unit_name: '', rate: '' },
 							{ kind: 'employee', local: '', id: '701', unit_id: '', unit_name: '', rate: '' },
 							{ kind: 'department', local: '', id: '601', unit_id: '', unit_name: '', rate: '' },

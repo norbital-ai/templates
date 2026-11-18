@@ -1,5 +1,5 @@
 import { importedOrderKey } from '../src/integration/kingdee/order-identity.js';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { randomUUID } from 'node:crypto';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
@@ -127,6 +127,27 @@ it.live('imports a native multi-line SO once, then both directions retain its or
 			)
 		).toBe(true);
 		expect((yield* s.t.deliver()).delivered).toBe(0);
+	})
+);
+
+it.live('a Kingdee-created SO missing its settlement waits instead of failing the read', () =>
+	Effect.gen(function* () {
+		const s = yield* sourceSale();
+		s.fixture.tables.SEOrder = (s.fixture.tables.SEOrder ?? []).map((row) =>
+			row.fid === s.fid ? { ...row, settlement: null } : row
+		);
+		yield* s.t.deliver();
+		yield* s.t.pull('orders');
+		expect((yield* s.read()).orders.rows).toHaveLength(0);
+		const [sync] = yield* s.t.db.rows(Schema.Struct({ health: Schema.String }), {
+			text: "SELECT health::text AS health FROM sys_sync WHERE sync='orders.sync.kingdee'",
+			params: []
+		});
+		expect(sync?.health).toContain(`${s.uuid}: Kingdee settlement is incomplete`);
+		// the SO this ledger wrote reads on regardless
+		yield* s.pull;
+		expect((yield* s.read()).orders.rows).toHaveLength(0);
+		expect((yield* s.as.query({ orders: {} })).orders.rows).toHaveLength(1);
 	})
 );
 

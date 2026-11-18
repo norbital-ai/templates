@@ -1,7 +1,10 @@
 import { BigDecimal } from 'effect';
 import { requireWriteAccount } from './sql.js';
-import { headerTypes, itemTypes, type OrderPayload, type SourceOrderBatch } from './order-batch.js';
+import { batchTypes, type OrderPayload, type SourceOrderBatch } from './order-batch.js';
 import { numeric } from '../../lib/commercial.js';
+
+// only an SO is amended into a new version
+const { header: headerTypes, items: itemTypes } = batchTypes.sales;
 
 const escape = (value: string) =>
 	value.replace(/[&<>"']/g, (character) => {

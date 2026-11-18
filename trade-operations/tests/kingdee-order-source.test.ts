@@ -1,3 +1,4 @@
+import { bills } from '../src/integration/kingdee/bills.js';
 import { expect, it as test } from '@effect/vitest';
 import { Effect, Schema } from 'effect';
 import { DatabaseRequest, type Json } from '@norbital-ai/bolt/engine';
@@ -36,7 +37,7 @@ const header = Effect.fnUntraced(function* (changes: SqlRow = {}) {
 		closed: 0,
 		checker: '12',
 		checked_on: '2026-10-01',
-		customer_id: '110',
+		party_id: '110',
 		ordered_on: '2026-10-01',
 		settlement: 'NET30',
 		exchange_rate: '1.0000000000',
@@ -130,7 +131,7 @@ test.effect('owned ERP order uses the order FUUID and captured integer IDs for c
 	Effect.gen(function* () {
 		const ownHeader = yield* header();
 		const ctx = fixture({ SEOrder: [ownHeader], SEOrderEntry: [line] });
-		const result = yield* readOwnedSales(yield* owned(), ctx);
+		const result = yield* readOwnedSales(bills.sales, yield* owned(), ctx);
 		expect(result[0]).toMatchObject({ fid: '34135', order, currency: 'CNY', status: 'issued' });
 		expect(result[0]?.lines[0]?.localLine.id).toBe('line-owned');
 		const [headCall, lineCall] = ctx.calls;
@@ -159,13 +160,17 @@ test.effect(
 				SEOrder: [yield* header({ checker: null, checked_on: null })],
 				SEOrderEntry: [line]
 			});
-			expect((yield* readOwnedSales(yield* owned(), unapproved))[0]?.status).toBe('draft');
+			expect((yield* readOwnedSales(bills.sales, yield* owned(), unapproved))[0]?.status).toBe(
+				'draft'
+			);
 			for (const checker of ['-1', '1.5', 'not-an-id']) {
 				const invalid = fixture({
 					SEOrder: [yield* header({ checker, checked_on: null })],
 					SEOrderEntry: [line]
 				});
-				expect(yield* Effect.flip(readOwnedSales(yield* owned(), invalid))).toMatchObject({
+				expect(
+					yield* Effect.flip(readOwnedSales(bills.sales, yield* owned(), invalid))
+				).toMatchObject({
 					_tag: 'SourceRowInvalid',
 					column: 'checker'
 				});
@@ -174,7 +179,9 @@ test.effect(
 				SEOrder: [yield* header({ checker: null, checked_on: '2026-10-01' })],
 				SEOrderEntry: [line]
 			});
-			expect(yield* Effect.flip(readOwnedSales(yield* owned(), inconsistent))).toMatchObject({
+			expect(
+				yield* Effect.flip(readOwnedSales(bills.sales, yield* owned(), inconsistent))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'checker'
 			});
@@ -186,7 +193,7 @@ test.effect('an archive flag alone cannot prove either a live source order or a 
 			SEOrder: [yield* header({ cancelled: true, archive: 1 })],
 			SEOrderEntry: [line]
 		});
-		expect(yield* Effect.flip(readOwnedSales(yield* owned(), ctx))).toMatchObject({
+		expect(yield* Effect.flip(readOwnedSales(bills.sales, yield* owned(), ctx))).toMatchObject({
 			_tag: 'SourceRowInvalid',
 			column: 'FChangeMark'
 		});
@@ -200,7 +207,9 @@ test.effect(
 				SEOrder: [yield* header({ uuid: '00000000-0000-4000-8000-000000000000' })],
 				SEOrderEntry: [line]
 			});
-			expect(yield* Effect.flip(readOwnedSales(yield* owned(), foreign))).toMatchObject({
+			expect(
+				yield* Effect.flip(readOwnedSales(bills.sales, yield* owned(), foreign))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FUUID'
 			});
@@ -208,7 +217,9 @@ test.effect(
 				SEOrder: [yield* header()],
 				SEOrderEntry: [{ ...line, unit_price: 2 }]
 			});
-			expect(yield* Effect.flip(readOwnedSales(yield* owned(), imprecise))).toMatchObject({
+			expect(
+				yield* Effect.flip(readOwnedSales(bills.sales, yield* owned(), imprecise))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'unit_price'
 			});
@@ -217,7 +228,9 @@ test.effect(
 				SEOrderEntry: [line, { ...line, __key: key(51002), detail_id: '51002' }]
 			});
 			const twoLines = yield* owned([ownedLine, { ...ownedLine, id: 'line-second' }]);
-			expect(yield* Effect.flip(readOwnedSales(twoLines, duplicatePosition))).toMatchObject({
+			expect(
+				yield* Effect.flip(readOwnedSales(bills.sales, twoLines, duplicatePosition))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FEntryID'
 			});
@@ -243,6 +256,7 @@ test.effect(
 	() =>
 		Effect.gen(function* () {
 			const sales = yield* readOwnedSales(
+				bills.sales,
 				yield* owned(),
 				fixture({ SEOrder: [yield* header()], SEOrderEntry: [line] })
 			);
@@ -269,10 +283,17 @@ test.effect(
 				lot: 'LOT-1'
 			};
 			const ctx = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [deliveryHeader] });
-			const { documents: deliveries } = yield* readSalesDocuments(sales, ctx, 'delivery');
+			const { documents: deliveries } = yield* readSalesDocuments(
+				bills.sales,
+				sales,
+				ctx,
+				'delivery'
+			);
 			expect(ctx.calls).toHaveLength(2);
 			const missing = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [] });
-			expect(yield* Effect.flip(readSalesDocuments(sales, missing, 'delivery'))).toMatchObject({
+			expect(
+				yield* Effect.flip(readSalesDocuments(bills.sales, sales, missing, 'delivery'))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FInterID'
 			});
@@ -281,7 +302,7 @@ test.effect(
 				ICStockBillEntry: [deliveryLine],
 				ICStockBill: [{ ...deliveryHeader, checked_on: null }]
 			});
-			expect(yield* readSalesDocuments(sales, unaudited, 'delivery')).toEqual({
+			expect(yield* readSalesDocuments(bills.sales, sales, unaudited, 'delivery')).toEqual({
 				documents: [],
 				pendingIds: ['64599']
 			});
@@ -295,7 +316,9 @@ test.effect(
 				ICStockBillEntry: [{ ...deliveryLine, source_entry: '2' }],
 				ICStockBill: [deliveryHeader]
 			});
-			expect(yield* Effect.flip(readSalesDocuments(sales, ambiguous, 'delivery'))).toMatchObject({
+			expect(
+				yield* Effect.flip(readSalesDocuments(bills.sales, sales, ambiguous, 'delivery'))
+			).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FSourceInterId'
 			});
@@ -303,7 +326,12 @@ test.effect(
 				ICStockBillEntry: [deliveryLine],
 				ICStockBill: [{ ...deliveryHeader, rob: -1 }]
 			});
-			const { documents: redDocuments } = yield* readSalesDocuments(sales, red, 'delivery');
+			const { documents: redDocuments } = yield* readSalesDocuments(
+				bills.sales,
+				sales,
+				red,
+				'delivery'
+			);
 			expect(sameDecimal(redDocuments[0]?.lines[0]?.quantity, '-100')).toBe(true);
 			const returnFid = '64600';
 			const returned = fixture({
@@ -329,7 +357,12 @@ test.effect(
 					}
 				]
 			});
-			const { documents: withReturn } = yield* readSalesDocuments(sales, returned, 'delivery');
+			const { documents: withReturn } = yield* readSalesDocuments(
+				bills.sales,
+				sales,
+				returned,
+				'delivery'
+			);
 			const returnDoc = withReturn.find((doc) => doc.fid === returnFid);
 			expect(returnDoc?.owner.order).toBe(deliveries[0]?.owner.order);
 			expect(sameDecimal(returnDoc?.lines[0]?.quantity, '-25')).toBe(true);
@@ -363,6 +396,7 @@ test.effect(
 			};
 			const invoiced = fixture({ ICSaleEntry: [invoiceLine], ICSale: [invoiceHeader] });
 			const { documents: invoices } = yield* readSalesDocuments(
+				bills.sales,
 				sales,
 				invoiced,
 				'invoice',
@@ -387,7 +421,9 @@ test.effect(
 				ICSale: [{ ...invoiceHeader, currency: 'USD' }]
 			});
 			expect(
-				yield* Effect.flip(readSalesDocuments(sales, foreignCurrency, 'invoice', deliveries))
+				yield* Effect.flip(
+					readSalesDocuments(bills.sales, sales, foreignCurrency, 'invoice', deliveries)
+				)
 			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FCurrencyID' });
 		})
 );

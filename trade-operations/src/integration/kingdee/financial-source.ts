@@ -1,8 +1,9 @@
-import { BigDecimal, Effect } from 'effect';
+import { bills, directionsOf, type Bill } from './bills.js';
+import { BigDecimal, Effect, Predicate } from 'effect';
 import type { CurrencyCode, StoredRow, Id, Json } from '@norbital-ai/bolt';
 import {
 	erpId,
-	readSalesGraph,
+	readOrderGraph,
 	reviewedPage,
 	selectByIds,
 	type NativeProjection,
@@ -321,7 +322,7 @@ export function mapSalesFacts(
 
 const idsSql = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS keys(n))";
 /** All header entries are read before using its amount; the amount is not a per-line allocation. */
-const paymentProjection: NativeProjection = {
+const paymentProjection = ({ settlement }: Bill): NativeProjection => ({
 	sql: `/* kingdee-settlement-entries */
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
  CONVERT(varchar(30),ce.FDetailID) AS detail_id,CONVERT(varchar(30),ce.FInterID) AS check_id,
@@ -338,11 +339,11 @@ SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
 FROM dbo.t_rp_CheckEntry ce
 LEFT JOIN dbo.t_RP_NewCheckInfo checkhead ON checkhead.FInterID=ce.FInterID
 LEFT JOIN dbo.t_RP_Contact contact ON contact.FID=checkhead.FContactID
-LEFT JOIN dbo.t_RP_NewReceiveBill receipt ON ce.FType_SRC=5 AND receipt.FBillID=ce.FBillID_SRC
+LEFT JOIN dbo.t_RP_NewReceiveBill receipt ON ce.FType_SRC=${settlement.source} AND receipt.FBillID=ce.FBillID_SRC
 LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=receipt.FCurrencyID
 WHERE EXISTS (SELECT 1 FROM dbo.t_rp_CheckEntry anchor
- WHERE anchor.FInterID=ce.FInterID AND anchor.FType=3 AND anchor.FInvoiceID IN ${idsSql})`
-};
+ WHERE anchor.FInterID=ce.FInterID AND anchor.FType=${settlement.type} AND anchor.FInvoiceID IN ${idsSql})`
+});
 type PaymentFact = Pick<
 	StoredRow<'source_payments'>,
 	| 'external_code'
@@ -361,8 +362,10 @@ export function mapPayments(
 	rows: readonly SqlRow[],
 	invoices: readonly FinancialDocument[],
 	observedAt: string,
-	baseCurrency: string
+	baseCurrency: string,
+	bill: Bill
 ): readonly PaymentFact[] {
+	const { rp, type, source } = bill.settlement;
 	const observed = Instant(observedAt);
 	const base = currency(baseCurrency);
 	const grouped = new Map<string, SqlRow[]>();
@@ -415,8 +418,8 @@ export function mapPayments(
 			if (seen.has(detail)) return invalid('FDetailID', 'Duplicate settlement detail');
 			seen.add(detail);
 			if (
-				id(row, 'type') !== '3' ||
-				id(row, 'source_type') !== '5' ||
+				id(row, 'type') !== String(type) ||
+				id(row, 'source_type') !== String(source) ||
 				id(row, 'invoice_id') !== invoiceId ||
 				id(row, 'receipt_id') !== receiptId
 			)
@@ -426,12 +429,12 @@ export function mapPayments(
 				);
 			if (
 				id(row, 'header_id') !== checkId ||
-				id(row, 'header_direction') !== '1' ||
-				id(row, 'header_type') !== '3' ||
-				id(row, 'contact_direction') !== '1' ||
-				id(row, 'contact_type') !== '3' ||
+				id(row, 'header_direction') !== String(rp) ||
+				id(row, 'header_type') !== String(type) ||
+				id(row, 'contact_direction') !== String(rp) ||
+				id(row, 'contact_type') !== String(type) ||
 				id(row, 'contact_invoice') !== invoiceId ||
-				id(row, 'receipt_direction') !== '1'
+				id(row, 'receipt_direction') !== String(rp)
 			)
 				return invalid('FContactID', 'Settlement, AR invoice and receipt identities do not agree');
 			if (!invoice.lines.some((line) => line.entryId === id(row, 'invoice_entry')))
@@ -450,13 +453,13 @@ export function mapPayments(
 			);
 		// The native AR settlement is the evidence; an unverified receipt status is not an approval or absence rule.
 		if (BigDecimal.isZero(amount)) continue;
-		const external = `receipt:${checkId}`;
+		const external = `${bill.ids.settlement}:${checkId}`;
 		result.push({
 			$id: external,
 			external_code: external,
 			order: invoice.owner.order,
 			invoiceFid: invoice.fid,
-			kind: 'receipt',
+			kind: bill.ids.settlement,
 			reference: `${reference}/${checkId}`,
 			settled_on: settledOn,
 			source_updated_at: observed,
@@ -472,26 +475,12 @@ export function mapPayments(
 	return result;
 }
 
+/** The receipts against this ledger's sales invoices, or the payments against its purchase invoices. */
 export const readPaymentSource = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const { orders: purchases } = yield* ctx.query({
-		orders: {
-			where: {
-				ledger: { eq: instance },
-				direction: { eq: 'purchasing' },
-				status: { eq: 'confirmed' }
-			},
-			fields: ['status'],
-			limit: 1
-		}
-	});
-	if (purchases.rows.length)
-		return yield* new SourceUnavailable({
-			reason: 'Purchase payments have no verified original-order and invoice allocation binding'
-		});
 	const { transactions: invoices } = yield* ctx.query({
 		transactions: {
 			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
@@ -499,48 +488,55 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 		}
 	});
 	// a settlement waits for its invoice to arrive here
-	const graph = yield* readSalesGraph(
+	const graph = yield* readOrderGraph(
+		directionsOf(ctx.configuration),
 		instance,
 		cursor,
 		ctx,
 		undefined,
 		String(invoices.rows.length)
 	);
-	const complete = yield* selectByIds(
-		ctx,
-		paymentProjection,
-		graph.invoices.map((invoice) => invoice.fid)
-	);
-	const facts = yield* checked(() => {
-		const invoices = new Map(graph.invoices.map((invoice) => [invoice.fid, invoice]));
-		return [...Map.groupBy(complete, (row) => id(row, 'check_id'))].flatMap(
-			([checkId, entries]) => {
-				try {
-					return mapPayments(
-						entries,
-						graph.invoices,
-						graph.observedAt,
-						ctx.configuration.baseCurrency
-					);
-				} catch (cause) {
-					if (!(cause instanceof SourceRowInvalid)) throw cause;
-					const owners = entries.flatMap(
-						(row) => invoices.get(String(row['invoice_id']))?.owner.order ?? []
-					);
-					if (!owners.length) throw cause;
-					for (const owner of owners) graph.held.add(owner);
-					graph.issues.push({ document: `settlement ${checkId}`, column: cause.column });
-					return [];
-				}
-			}
+	const facts: { readonly bill: Bill; readonly fact: PaymentFact }[] = [];
+	for (const bill of Object.values(bills)) {
+		const owned = graph.invoices.filter((invoice) => invoice.owner.direction === bill.direction);
+		const complete = yield* selectByIds(
+			ctx,
+			paymentProjection(bill),
+			owned.map((invoice) => invoice.fid)
 		);
-	});
+		const mapped = yield* checked(() => {
+			const byFid = new Map(owned.map((invoice) => [invoice.fid, invoice]));
+			return [...Map.groupBy(complete, (row) => id(row, 'check_id'))].flatMap(
+				([checkId, entries]) => {
+					try {
+						return mapPayments(
+							entries,
+							owned,
+							graph.observedAt,
+							ctx.configuration.baseCurrency,
+							bill
+						);
+					} catch (cause) {
+						if (!(cause instanceof SourceRowInvalid)) throw cause;
+						const owners = entries.flatMap(
+							(row) => byFid.get(String(row['invoice_id']))?.owner.order ?? []
+						);
+						if (!owners.length) throw cause;
+						for (const owner of owners) graph.held.add(owner);
+						graph.issues.push({ document: `settlement ${checkId}`, column: cause.column });
+						return [];
+					}
+				}
+			);
+		});
+		facts.push(...mapped.map((fact) => ({ bill, fact })));
+	}
 	const current = yield* checked(() =>
 		facts
-			.flatMap(({ invoiceFid, ...fact }) => {
+			.flatMap(({ bill, fact: { invoiceFid, ...fact } }) => {
 				const erp = erpId(
 					invoices.rows.map((row) => row.erp_id),
-					'invoice',
+					bill.ids.invoice,
 					invoiceFid
 				);
 				const invoice = invoices.rows.find((candidate) => candidate.erp_id === erp);
@@ -592,7 +588,19 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	const costCurrency = costAccount
 		? yield* checked(() => currency(ctx.configuration.baseCurrency))
 		: undefined;
-	const graph = yield* readSalesGraph(instance, cursor, ctx, costAccount ?? undefined);
+	// The cursor's token remembers the cost account it read with. Switching booked cost on, or to another account,
+	// reads every owned order's documents once more, as the feed's first read did, so retained deliveries gain it.
+	const costing = costAccount ? `cost:${costAccount}` : '';
+	const token =
+		Predicate.hasProperty(cursor, 'token') && typeof cursor.token === 'string' ? cursor.token : '';
+	const graph = yield* readOrderGraph(
+		['sales'],
+		instance,
+		costing && token.slice(token.indexOf('|') + 1) !== costing ? null : cursor,
+		ctx,
+		costAccount ?? undefined,
+		costing
+	);
 	const facts = yield* checked(() =>
 		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt, costCurrency)
 	);

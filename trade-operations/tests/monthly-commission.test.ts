@@ -56,6 +56,14 @@ it.live(
 				order_count: 1,
 				state: 'unacknowledged'
 			});
+			// each shipment's line: 500 kg is half a tonne of basis, resolved by the rule
+			expect(current.lines).toMatchObject(
+				['SHIP', 'SHIP'].map(() => ({
+					order: own.order,
+					basis_quantity: decimalText('0.5'),
+					reason: 'resolved'
+				}))
+			);
 			expect(
 				yield* boardOf(yield* t.as(sales), { period: '2026-10-01', commercial: true })
 			).toMatchObject([{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }]);

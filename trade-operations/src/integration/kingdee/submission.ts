@@ -4,8 +4,7 @@ import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
 import { sha256Hex, numeric } from '../../lib/commercial.js';
 import {
-	headerTypes,
-	itemTypes,
+	batchTypes,
 	sourceInteger,
 	sourceOrderBatch,
 	sourceOrderDocument,
@@ -22,6 +21,7 @@ import {
 } from './amendment.js';
 import { kingdeeWriteTarget } from './configuration.js';
 import { requireWriteAccount } from './sql.js';
+import { bills, type Direction } from './bills.js';
 export type { OrderPayload } from './order-batch.js';
 
 const failure = (cause: unknown) =>
@@ -89,13 +89,13 @@ export const sourceOrderUuid = (orderId: string, key: string) => {
 	);
 };
 
-const lookupSql = `${requireWriteAccount}
+const lookupSql = (direction: Direction) => `${requireWriteAccount}
 DECLARE @lines xml=CONVERT(xml,@items);
-SELECT 'customer' AS kind,'' AS local,CONVERT(varchar(32),FItemID) AS id,'' AS unit_id,'' AS unit_name,'' AS rate FROM dbo.t_Organization WHERE FItemID=CAST(@customer AS int) AND FDeleted=0
+SELECT 'party' AS kind,'' AS local,CONVERT(varchar(32),FItemID) AS id,'' AS unit_id,'' AS unit_name,'' AS rate FROM dbo.${bills[direction].parties} WHERE FItemID=CAST(@party AS int) AND FDeleted=0
 UNION ALL SELECT 'settlement','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Settle WHERE FNumber=@settlement AND FDeleted=0 AND FItemID<>0
 UNION ALL SELECT 'employee','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Emp WHERE FItemID=CAST(@employee AS int) AND FDeleted=0
 UNION ALL SELECT 'department','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Department WHERE FItemID=CAST(@department AS int) AND FDeleted=0
-UNION ALL SELECT 'currency','',CONVERT(varchar(32),FCurrencyID),'','',CONVERT(varchar(100),CAST(COALESCE((SELECT FExchangeRate FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier)),FExchangeRate) AS decimal(28,10))) FROM dbo.t_Currency WHERE FCurrencyID=CAST(@currency AS int) AND FDeleted=0
+UNION ALL SELECT 'currency','',CONVERT(varchar(32),FCurrencyID),'','',CONVERT(varchar(100),CAST(COALESCE((SELECT FExchangeRate FROM dbo.${bills[direction].order} WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier)),FExchangeRate) AS decimal(28,10))) FROM dbo.t_Currency WHERE FCurrencyID=CAST(@currency AS int) AND FDeleted=0
 UNION ALL SELECT 'item',line.value('(@id)[1]','nvarchar(100)'),CONVERT(varchar(32),item.FItemID),CONVERT(varchar(32),detail.FUnitID),unit.FName,''
 FROM @lines.nodes('/items/item') AS requested(line)
 JOIN dbo.t_Item item ON item.FItemID=line.value('(@item)[1]','int') AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0
@@ -123,7 +123,7 @@ const xmlValues = (types: Readonly<Record<string, string>>) =>
 const fail = (message: string) => `BEGIN RAISERROR('${message}',16,1); RETURN; END;`;
 const sameText = (left: string, right: string) =>
 	`CONVERT(nvarchar(max),${left}) COLLATE Latin1_General_BIN2=CONVERT(nvarchar(max),${right}) COLLATE Latin1_General_BIN2 AND DATALENGTH(CONVERT(nvarchar(max),${left}))=DATALENGTH(CONVERT(nvarchar(max),${right}))`;
-const immutableHeader = [
+const immutableSalesHeader = [
 	'FBrNo',
 	'FBillNo',
 	'FTranType',
@@ -139,7 +139,7 @@ const immutableHeader = [
 	'FSaleStyle',
 	'FSettleDate'
 ];
-const immutableItems = [
+const immutableSalesItems = [
 	'FEntryID',
 	'FItemID',
 	'FUnitID',
@@ -160,51 +160,76 @@ const immutableItems = [
 	'FDate',
 	'FAdviceConsignDate'
 ];
-/** Only static template-authored SQL reaches this existing RPC; business values are bound XML/scalars. */
-export const sourceOrderSql = `SET XACT_ABORT ON;
+/**
+ * Only static template-authored SQL reaches this existing RPC; business values are bound XML/scalars. It creates the
+ * SO or PO once by its FUUID; a PO's lines are replaced while Kingdee still lets them change (unaudited and open),
+ * against the entries last read.
+ */
+const orderSql = (direction: Direction) => {
+	const bill = bills[direction];
+	const types = batchTypes[direction];
+	const sales = direction === 'sales';
+	const immutableHeader = sales ? immutableSalesHeader : Object.keys(types.header);
+	const immutableItems = sales ? immutableSalesItems : Object.keys(types.items);
+	const lineCount = `(SELECT COUNT(*) FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines)`;
+	const lineDiffers = `EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.order}Entry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${immutableItems.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ')}${sales ? ` AND ((expected.FEntrySelfS0172='' AND (actual.FEntrySelfS0172 IS NULL OR CONVERT(nvarchar(100),actual.FEntrySelfS0172) IN ('','0'))) OR (expected.FEntrySelfS0172<>'' AND ${sameText('actual.FEntrySelfS0172', 'expected.FEntrySelfS0172')}))` : ''}))`;
+	return `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 ${requireWriteAccount}
 DECLARE @payload xml=CONVERT(xml,@document),@remote int,@lock_result int;
-DECLARE @header TABLE (${declaration(headerTypes)});
-DECLARE @lines TABLE (${declaration(itemTypes)});
-INSERT INTO @header SELECT ${xmlValues(headerTypes)} FROM @payload.nodes('/order/header') AS source(item);
-INSERT INTO @lines SELECT ${xmlValues(itemTypes)} FROM @payload.nodes('/order/items/item') AS source(item);
+DECLARE @header TABLE (${declaration(types.header)});
+DECLARE @lines TABLE (${declaration(types.items)});
+INSERT INTO @header SELECT ${xmlValues(types.header)} FROM @payload.nodes('/order/header') AS source(item);
+INSERT INTO @lines SELECT ${xmlValues(types.items)} FROM @payload.nodes('/order/items/item') AS source(item);
 IF (SELECT COUNT(*) FROM @header)<>1 OR (SELECT COUNT(*) FROM @lines) NOT BETWEEN 1 AND 200 ${fail('Incomplete source order')}
 IF EXISTS(SELECT FEntryID FROM @lines GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Duplicate source order line')}
 IF EXISTS(SELECT 1 FROM @header WHERE FBrNo<>@branch) ${fail('Source branch mismatch')}
 EXEC @lock_result=sys.sp_getapplock @Resource=@resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
 IF @lock_result NOT IN (0,1) ${moved}
-IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))>1 ${fail('Ambiguous source correlation')}
-SELECT @remote=FInterID FROM dbo.SEOrder WITH (UPDLOCK,HOLDLOCK) WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier);
+IF (SELECT COUNT(*) FROM dbo.${bill.order} WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))>1 ${fail('Ambiguous source correlation')}
+SELECT @remote=FInterID FROM dbo.${bill.order} WITH (UPDLOCK,HOLDLOCK) WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier);
 IF @remote IS NULL BEGIN
- IF EXISTS(SELECT 1 FROM dbo.SEOrder actual WITH (UPDLOCK,HOLDLOCK) JOIN @header expected ON actual.FBillNo=expected.FBillNo WHERE actual.FBrNo=@branch) ${fail('Source document number is already in use')}
- IF EXISTS(SELECT 1 FROM @header expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Organization WHERE FItemID=expected.FCustID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Settle WHERE FItemID=expected.FSettleID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Emp WHERE FItemID=expected.FEmpID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Department WHERE FItemID=expected.FDeptID AND FDeleted=0)) ${fail('Source order master data is unavailable')}
+ IF EXISTS(SELECT 1 FROM dbo.${bill.order} actual WITH (UPDLOCK,HOLDLOCK) JOIN @header expected ON actual.FBillNo=expected.FBillNo WHERE actual.FBrNo=@branch) ${fail('Source document number is already in use')}
+ IF EXISTS(SELECT 1 FROM @header expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.parties} WHERE FItemID=expected.${bill.party} AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Settle WHERE FItemID=expected.FSettleID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Emp WHERE FItemID=expected.FEmpID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Department WHERE FItemID=expected.FDeptID AND FDeleted=0)) ${fail('Source order master data is unavailable')}
  IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Item item JOIN dbo.t_ICItem detail ON detail.FItemID=item.FItemID WHERE item.FItemID=expected.FItemID AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0 AND detail.FDeleted=0 AND detail.FUnitID=expected.FUnitID)) ${fail('Source item or base unit changed')}
- IF EXISTS(SELECT 1 FROM @lines expected WHERE expected.FEntrySelfS0172<>'' AND NOT EXISTS(SELECT 1 FROM dbo.t_Item WHERE FItemID=CAST(expected.FEntrySelfS0172 AS int) AND FItemClassID=3001 AND FDeleted=0 AND FUnUsed=0)) ${fail('Source packaging is unavailable')}
- UPDATE dbo.ICMaxNum WITH (UPDLOCK,ROWLOCK) SET FMaxNum=FMaxNum+1 WHERE FTableName='SEOrder';
+${sales ? ` IF EXISTS(SELECT 1 FROM @lines expected WHERE expected.FEntrySelfS0172<>'' AND NOT EXISTS(SELECT 1 FROM dbo.t_Item WHERE FItemID=CAST(expected.FEntrySelfS0172 AS int) AND FItemClassID=3001 AND FDeleted=0 AND FUnUsed=0)) ${fail('Source packaging is unavailable')}\n` : ''} UPDATE dbo.ICMaxNum WITH (UPDLOCK,ROWLOCK) SET FMaxNum=FMaxNum+1 WHERE FTableName='${bill.order}';
  IF @@ROWCOUNT<>1 ${fail('Source allocator must identify exactly one row')}
- SELECT @remote=FMaxNum FROM dbo.ICMaxNum WHERE FTableName='SEOrder';
- IF @remote IS NULL OR @remote<=0 OR EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote) ${fail('Source allocation is invalid')}
- INSERT INTO dbo.SEOrder (FInterID,FUUID,${columns(headerTypes)}) SELECT @remote,CAST(@correlation AS uniqueidentifier),${columns(headerTypes)} FROM @header;
- INSERT INTO dbo.SEOrderEntry (FInterID,FBrNO,${columns(itemTypes)}) SELECT @remote,@branch,${columns(itemTypes)} FROM @lines;
+ SELECT @remote=FMaxNum FROM dbo.ICMaxNum WHERE FTableName='${bill.order}';
+ IF @remote IS NULL OR @remote<=0 OR EXISTS(SELECT 1 FROM dbo.${bill.order} WHERE FBrNo=@branch AND FInterID=@remote) ${fail('Source allocation is invalid')}
+ INSERT INTO dbo.${bill.order} (FInterID,FUUID,${columns(types.header)}) SELECT @remote,CAST(@correlation AS uniqueidentifier),${columns(types.header)} FROM @header;
+ INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
 END;
-IF (SELECT COUNT(*) FROM dbo.SEOrder WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Source correlation was not preserved')}
-IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (ISNULL(FVersionNo,'')<>'000' OR ISNULL(FChangeMark,0)<>0)) ${fail('Source order is no longer the original unamended version')}
-IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Source order header differs from the submission')}
-IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) ${fail('Source order line count differs from the submission')}
-IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${immutableItems.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ')} AND ((expected.FEntrySelfS0172='' AND (actual.FEntrySelfS0172 IS NULL OR CONVERT(nvarchar(100),actual.FEntrySelfS0172) IN ('','0'))) OR (expected.FEntrySelfS0172<>'' AND ${sameText('actual.FEntrySelfS0172', 'expected.FEntrySelfS0172')})))) ${fail('Source order lines differ from the submission')}
+IF (SELECT COUNT(*) FROM dbo.${bill.order} WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Source correlation was not preserved')}
+${
+	sales
+		? `IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (ISNULL(FVersionNo,'')<>'000' OR ISNULL(FChangeMark,0)<>0)) ${fail('Source order is no longer the original unamended version')}`
+		: `IF ${lineCount} OR ${lineDiffers} BEGIN
+ IF EXISTS(SELECT 1 FROM dbo.POOrder WHERE FBrNo=@branch AND FInterID=@remote AND (FCheckerID IS NOT NULL OR FCancellation<>0 OR FClosed<>0 OR FStatus<>0)) ${fail('Kingdee changes PO lines only while the PO is unaudited and open')}
+ DECLARE @basis xml=CONVERT(xml,@previous_document);
+ DECLARE @read TABLE (FEntryID int NOT NULL,FItemID int NOT NULL,FQty decimal(28,10) NOT NULL,FAmount decimal(28,10) NOT NULL);
+ INSERT INTO @read SELECT item.value('(@FEntryID)[1]','int'),item.value('(@FItemID)[1]','int'),item.value('(@FQty)[1]','decimal(28,10)'),item.value('(@FAmount)[1]','decimal(28,10)') FROM @basis.nodes('/order/items/item') AS source(item);
+ IF (SELECT COUNT(*) FROM dbo.POOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @read) OR EXISTS(SELECT 1 FROM @read expected WHERE NOT EXISTS(SELECT 1 FROM dbo.POOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.FEntryID AND actual.FItemID=expected.FItemID AND actual.FQty=expected.FQty AND actual.FAmount=expected.FAmount)) ${moved}
+ DELETE FROM dbo.POOrderEntry WHERE FBrNO=@branch AND FInterID=@remote;
+ INSERT INTO dbo.POOrderEntry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
+END;`
+}
+IF NOT EXISTS(SELECT 1 FROM dbo.${bill.order} actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Source order header differs from the submission')}
+IF ${lineCount} ${fail('Source order line count differs from the submission')}
+IF ${lineDiffers} ${fail('Source order lines differ from the submission')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;
+};
+export const sourceOrderSql = orderSql('sales');
+export const purchaseOrderSql = orderSql('purchasing');
+/** The PO entries last read, which a line replacement must still find. */
+const purchaseBasis = (previous: NonNullable<OrderPayload['previous']>) =>
+	`<order><items>${previous.lines.map((line) => `<item FEntryID="${escape(line.entry)}" FItemID="${escape(line.item)}" FQty="${escape(line.quantity)}" FAmount="${escape(line.net)}"/>`).join('')}</items></order>`;
 
-/** Creates the SO as an unaudited draft, or amends its lines; polling observes source approval. */
+/** Creates the SO or PO as an unaudited draft, or changes its lines; polling observes source approval. */
 export const submitOrder = Effect.fnUntraced(function* (
 	payload: OrderPayload,
 	ctx: DatabaseContext & { readonly configuration: unknown }
 ) {
-	if (payload.direction !== 'sales')
-		return yield* new SourceRowInvalid({
-			column: 'direction',
-			reason: 'Purchase-order write semantics have not been verified'
-		});
+	const sales = payload.direction === 'sales';
 	yield* Effect.try({ try: () => sourceEntryIds(payload), catch: failure });
 	const target = kingdeeWriteTarget(ctx.configuration);
 	if (target === null)
@@ -261,11 +286,11 @@ export const submitOrder = Effect.fnUntraced(function* (
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
 		arguments: {
-			stmt: lookupSql,
+			stmt: lookupSql(payload.direction),
 			params:
-				'@items nvarchar(max),@customer nvarchar(200),@settlement nvarchar(200),@employee nvarchar(32),@department nvarchar(32),@currency nvarchar(32),@branch nvarchar(20),@correlation nvarchar(36),@write_account nvarchar(73)',
+				'@items nvarchar(max),@party nvarchar(200),@settlement nvarchar(200),@employee nvarchar(32),@department nvarchar(32),@currency nvarchar(32),@branch nvarchar(20),@correlation nvarchar(36),@write_account nvarchar(73)',
 			items: `<items>${payload.lines.map((line) => `<item id="${escape(line.id)}" item="${escape(line.product_code)}"/>`).join('')}</items>`,
-			customer: payload.party_code,
+			party: payload.party_code,
 			settlement: payload.payment_terms,
 			employee: selected.person.employeeId,
 			department: selected.person.departmentId,
@@ -307,7 +332,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				billerId: sourceInteger(config.billerId, 'billerId'),
 				employeeId: selected.person.employeeId,
 				departmentId: selected.person.departmentId,
-				customerId: one('customer').id,
+				partyId: one('party').id,
 				settlementId: one('settlement').id,
 				currencyId: sourceCurrency.id,
 				baseCurrency: config.baseCurrency,
@@ -340,7 +365,9 @@ export const submitOrder = Effect.fnUntraced(function* (
 			reason: 'Source order exceeds its payload bound'
 		});
 	const previousDocument = payload.previous
-		? previousOrderDocument(payload.previous, bindings.baseCurrency)
+		? sales
+			? previousOrderDocument(payload.previous, bindings.baseCurrency)
+			: purchaseBasis(payload.previous)
 		: null;
 	if (previousDocument !== null && previousDocument.length > 262144)
 		return yield* new SourceRowInvalid({
@@ -358,32 +385,36 @@ export const submitOrder = Effect.fnUntraced(function* (
 			op: 'call',
 			procedure: { schema: 'sys', name: 'sp_executesql' },
 			arguments: {
-				stmt: payload.previous ? sourceAmendmentSql : sourceOrderSql,
+				stmt: !sales ? purchaseOrderSql : payload.previous ? sourceAmendmentSql : sourceOrderSql,
 				params:
 					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73)' +
-					(payload.previous
-						? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200),@preserve_source_header bit'
-						: ''),
+					(!sales
+						? ',@previous_document nvarchar(max)'
+						: payload.previous
+							? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200),@preserve_source_header bit'
+							: ''),
 				document,
 				branch: config.branchNo,
 				correlation,
 				resource: `norbital:trade:order:${correlation}`,
 				fingerprint,
 				write_account: target.account,
-				...(payload.previous && previousDocument !== null
-					? {
-							previous_document: previousDocument,
-							preserve_source_header: importedOrderIdentity(payload.key) !== null,
-							source_id: payload.previous.source_id,
-							source_version: payload.previous.source_version,
-							source_exchange_rate: payload.previous.source_exchange_rate,
-							biller: config.billerId,
-							change_cause: amendmentCause(
-								payload.reference,
-								yield* sha256Hex(JSON.stringify(payload.lines))
-							)
-						}
-					: {})
+				...(!sales
+					? { previous_document: previousDocument ?? '<order><items/></order>' }
+					: payload.previous && previousDocument !== null
+						? {
+								previous_document: previousDocument,
+								preserve_source_header: importedOrderIdentity(payload.key) !== null,
+								source_id: payload.previous.source_id,
+								source_version: payload.previous.source_version,
+								source_exchange_rate: payload.previous.source_exchange_rate,
+								biller: config.billerId,
+								change_cause: amendmentCause(
+									payload.reference,
+									yield* sha256Hex(JSON.stringify(payload.lines))
+								)
+							}
+						: {})
 			},
 			transaction: 'serializable',
 			max_rows: 1

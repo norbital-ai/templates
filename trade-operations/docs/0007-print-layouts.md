@@ -1,14 +1,15 @@
 # Print layouts
 
-Create a draft in **Trade Configuration → Document templates**. Give it a name, language and
+Create a draft in **Trade configuration → Documents**. Give it a name, language and
 version. Upload a UTF-8 HTML document in **Print layout HTML**, then set the status to
 **Published** and save. Select it in the order's **Document layout** field. Preview the draft,
 then confirm the order. A confirmed order renders its current terms in its selected layout.
 Change a layout by publishing another version and selecting it on the order.
 
-Set the default in **Trade configuration → Documents → Defaults**. New orders
-start with that published record. Previews use the order's selected layout, including its
-language. Changing the default affects new orders. Fresh workspaces start with one commercial
+In **Trade configuration → Documents**, a template's row menu marks it for new sales orders or new
+purchase orders (a purchase order falls back to the sales template). New orders start with that published
+record. Previews use the order's selected layout, including its
+language; an order with none selected (one Kingdee created) previews in the default. Changing the default affects new orders. Fresh workspaces start with one commercial
 layout.
 
 Use inline print CSS and embed fonts and fixed decorative images as data URIs. Use

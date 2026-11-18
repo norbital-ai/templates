@@ -10,6 +10,7 @@ import {
 	type SourceOrderBindings
 } from '../src/integration/kingdee/order-batch.js';
 import {
+	purchaseOrderSql,
 	sourceOrderSql,
 	sourceOrderUuid,
 	submitOrder
@@ -48,7 +49,7 @@ const bindings: SourceOrderBindings = {
 	billerId: '1',
 	employeeId: '701',
 	departmentId: '601',
-	customerId: '101',
+	partyId: '101',
 	settlementId: '1',
 	currencyId: '133',
 	baseCurrency: 'CNY',
@@ -71,7 +72,7 @@ const configuration = {
 	settlementRules: JSON.stringify({ NET30: { creditDays: 30, fromMonthEnd: false } })
 };
 const lookupRows = [
-	{ kind: 'customer', local: '', id: '101', unit_id: '', unit_name: '', rate: '' },
+	{ kind: 'party', local: '', id: '101', unit_id: '', unit_name: '', rate: '' },
 	{ kind: 'settlement', local: '', id: '1', unit_id: '', unit_name: '', rate: '' },
 	{ kind: 'employee', local: '', id: '701', unit_id: '', unit_name: '', rate: '' },
 	{ kind: 'department', local: '', id: '601', unit_id: '', unit_name: '', rate: '' },
@@ -87,7 +88,8 @@ const context = () => {
 			calls.push(operation);
 			if (operation.op !== 'call' || operation.procedure.name !== 'sp_executesql')
 				throw new Error('Existing SQL RPC required');
-			if (operation.arguments.stmt !== sourceOrderSql) return { rows: lookupRows };
+			const { stmt } = operation.arguments;
+			if (stmt !== sourceOrderSql && stmt !== purchaseOrderSql) return { rows: lookupRows };
 			const hash = operation.arguments.fingerprint;
 			if (typeof hash !== 'string') throw new Error('Fingerprint required');
 			return { rows: [{ remote: '9002', hash }] };
@@ -227,25 +229,49 @@ it.effect('keeps unpinned and retargeted orders out of the SQL connection', () =
 	})
 );
 
-it.effect(
-	'refuses unverified purchase writes, unread entries and unmapped source IDs before network access',
-	() =>
-		Effect.gen(function* () {
-			const ctx = context();
-			expect(
-				yield* Effect.flip(submitOrder({ ...payload, direction: 'purchasing' }, ctx))
-			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'direction' });
-			expect(
-				yield* Effect.flip(
-					submitOrder(
-						{ ...payload, lines: payload.lines.map((line) => ({ ...line, source_entry_id: '1' })) },
-						ctx
-					)
+it.effect('refuses unread entries and unmapped source IDs before network access', () =>
+	Effect.gen(function* () {
+		const ctx = context();
+		expect(
+			yield* Effect.flip(
+				submitOrder(
+					{ ...payload, lines: payload.lines.map((line) => ({ ...line, source_entry_id: '1' })) },
+					ctx
 				)
-			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FEntryID' });
-			expect(
-				yield* Effect.flip(submitOrder({ ...payload, party_code: 'customer-name' }, ctx))
-			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'party_code' });
-			expect(ctx.calls).toHaveLength(0);
-		})
+			)
+		).toMatchObject({ _tag: 'SourceRowInvalid', column: 'FEntryID' });
+		expect(
+			yield* Effect.flip(submitOrder({ ...payload, party_code: 'customer-name' }, ctx))
+		).toMatchObject({ _tag: 'SourceRowInvalid', column: 'party_code' });
+		expect(ctx.calls).toHaveLength(0);
+	})
+);
+
+it.effect('a PO is written on its own columns through the PO statement, against its supplier', () =>
+	Effect.gen(function* () {
+		const purchase = { ...payload, direction: 'purchasing' as const };
+		const batch = sourceOrderBatch(purchase, bindings);
+		expect(batch.header).toMatchObject({ FTranType: '71', FSupplyID: '101', FSettleID: '1' });
+		expect(batch.header).not.toHaveProperty('FCustID');
+		expect(batch.header).not.toHaveProperty('FAreaPS');
+		const [item] = batch.items;
+		expect(item).toMatchObject({
+			FTaxRate: '13',
+			FAmount: '55.75',
+			FTaxAmount: '7.25',
+			FAllAmount: '63.00'
+		});
+		expect(item?.FPrice).toBe(sourceOrderBatch(payload, bindings).items[0]?.FPrice);
+		expect(item).not.toHaveProperty('FCESS');
+		const ctx = context();
+		expect(yield* submitOrder(purchase, ctx)).toBe('9002');
+		const [lookup, write] = ctx.calls;
+		expect(lookup?.op === 'call' && String(lookup.arguments.stmt)).toContain('dbo.t_Supplier');
+		expect(write?.op === 'call' && write.arguments.stmt).toBe(purchaseOrderSql);
+		expect(purchaseOrderSql).toContain("FTableName='POOrder'");
+		// a PO's lines are replaced only while it is unaudited and still holds the entries last read
+		expect(purchaseOrderSql).toContain('FCheckerID IS NOT NULL');
+		expect(purchaseOrderSql).toContain('DELETE FROM dbo.POOrderEntry');
+		expect(sourceOrderSql).not.toContain('POOrder');
+	})
 );

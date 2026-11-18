@@ -227,7 +227,13 @@ export const documentRead = (order: Id<'orders'>) =>
 			party: { fields: ['name', 'external_code'] },
 			lines: {}
 		},
-		document_templates: { where: { status: { eq: 'published' } } }
+		document_templates: { where: { status: { eq: 'published' } } },
+		// an order with no layout chosen (one Kingdee created) prints in the workspace default
+		commercial_settings: {
+			where: { code: { eq: 'default' } },
+			fields: ['default_document_layout', 'default_purchase_document_layout'],
+			limit: 1
+		}
 	}) as const;
 /** The order's current terms in its published layout; a confirmed sales order carries the contract stamp. */
 export const orderDocument = Effect.fnUntraced(function* (
@@ -237,7 +243,17 @@ export const orderDocument = Effect.fnUntraced(function* (
 	if (!order) return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	const reference = order.number;
 	const purchase = order.direction === 'purchasing';
-	const template = agreementTemplate(answer.document_templates.rows, order.document_template);
+	const settings = answer.commercial_settings.rows[0];
+	const template = (
+		order.document_template
+			? [order.document_template]
+			: [
+					purchase ? settings?.default_purchase_document_layout : null,
+					settings?.default_document_layout
+				]
+	)
+		.map((id) => (id ? agreementTemplate(answer.document_templates.rows, id) : undefined))
+		.find(Boolean);
 	if (!template)
 		return yield* new DocumentUnavailable({ message: 'errors.document_layout_unpublished' });
 	if (!order.party || !order.lines.length)

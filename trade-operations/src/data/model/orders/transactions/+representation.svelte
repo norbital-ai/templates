@@ -26,21 +26,12 @@
 	{#if shown.mode !== 'create'}
 		<Stack gap="md">
 			<Grid as="dl" gap="md">
-				{#each ['order', 'ext_purchase_order'] as const as relation}
-					{@const value = shown.record[relation]}
-					{#if value}<div>
-							<dt class="text-xs font-medium text-muted-foreground">
-								{ctx.t(`models.transactions.fields.${relation}`)}
-							</dt>
-							<dd>
-								<RecordLink
-									{ctx}
-									of={relation === 'order' ? 'orders' : 'ext_purchase_orders'}
-									id={String(value)}
-								/>
-							</dd>
-						</div>{/if}
-				{/each}
+				{#if shown.record.order}<div>
+						<dt class="text-xs font-medium text-muted-foreground">
+							{ctx.t('models.transactions.fields.order')}
+						</dt>
+						<dd><RecordLink {ctx} of="orders" id={String(shown.record.order)} /></dd>
+					</div>{/if}
 				{#each fields as field (field.name)}<div>
 						<dt class="text-xs font-medium text-muted-foreground">
 							{ctx.t(`models.transactions.fields.${field.name}`)}

@@ -1,7 +1,7 @@
 -- Synthetic order-side extension of kingdee-2017.sql. Apply only to the disposable account set.
 USE TradeOperationsProbe;
 GO
-CREATE TABLE dbo.t_Settle (FItemID int PRIMARY KEY, FNumber nvarchar(40) NOT NULL, FDeleted bit NOT NULL DEFAULT 0);
+CREATE TABLE dbo.t_Settle (FItemID int PRIMARY KEY, FNumber nvarchar(40) NOT NULL, FName nvarchar(100) NULL, FDeleted bit NOT NULL DEFAULT 0);
 CREATE TABLE dbo.t_Emp (FItemID int PRIMARY KEY, FName nvarchar(100), FDeleted bit NOT NULL DEFAULT 0);
 CREATE TABLE dbo.t_Department (FItemID int PRIMARY KEY, FDeleted bit NOT NULL DEFAULT 0);
 CREATE TABLE dbo.t_Currency (FCurrencyID int PRIMARY KEY, FNumber nvarchar(10) NOT NULL, FExchangeRate decimal(28,10) NOT NULL, FDeleted bit NOT NULL DEFAULT 0);
@@ -84,7 +84,7 @@ CREATE TABLE dbo.SEOrderEntry (
 CREATE TABLE dbo.SEOutStockEntry (FSourceTranType int, FSourceInterID int, FItemID int, FQty decimal(28,10));
 CREATE TABLE dbo.ICStockBill (
   FInterID int PRIMARY KEY, FBillNo nvarchar(200), FDate datetime, FTranType int,
-  FCheckDate datetime, FCancellation bit, FROB int
+  FCheckDate datetime, FCancellation bit, FROB int, FOperDate rowversion
 );
 CREATE TABLE dbo.ICStockBillEntry (
   FInterID int, FEntryID int, FSourceTranType int, FSourceInterID int, FSourceEntryID int,
@@ -94,7 +94,7 @@ CREATE TABLE dbo.ICStockBillEntry (
 CREATE TABLE dbo.ICSale (
   FInterID int PRIMARY KEY, FBillNo nvarchar(200), FDate datetime, FTranType int,
   FCheckDate datetime, FCancellation bit, FROB int, FCurrencyID int, FSettleDate datetime,
-  FCustID int, FEmpID int, FOperDate rowversion
+  FCustID int, FEmpID int, FSettleID int NULL, FOperDate rowversion
 );
 CREATE TABLE dbo.ICSaleEntry (
   FInterID int, FDetailID int IDENTITY PRIMARY KEY, FEntryID int, FSourceTranType int,
@@ -117,6 +117,31 @@ CREATE TABLE dbo.t_RP_Plan_Ar (
   FInterID int, FRP int, FDate datetime, FRemainAmount decimal(28,10), FRemainAmountFor decimal(28,10)
 );
 CREATE TABLE dbo.t_RP_NewReceiveBill (FBillID int PRIMARY KEY, FNumber nvarchar(100), FRP int, FCurrencyID int);
+CREATE TABLE dbo.POOrder (
+  FInterID int PRIMARY KEY, FUUID uniqueidentifier NULL, FBrNo nvarchar(20) NOT NULL DEFAULT '0',
+  FBillNo nvarchar(200) NOT NULL, FTranType int NOT NULL DEFAULT 71, FDate datetime NOT NULL,
+  FSupplyID int NOT NULL, FCurrencyID int NOT NULL, FExchangeRate decimal(28,10) NOT NULL,
+  FDeptID int NULL, FEmpID int NULL, FBillerID int NULL, FSettleID int NULL, FSettleDate datetime NULL,
+  FSysStatus int NULL, FStatus int NOT NULL DEFAULT 0, FCheckerID int NULL, FCheckDate datetime NULL,
+  FCancellation bit NOT NULL DEFAULT 0, FClosed bit NOT NULL DEFAULT 0, FOperDate rowversion
+);
+CREATE TABLE dbo.POOrderEntry (
+  FDetailID int IDENTITY PRIMARY KEY, FInterID int NOT NULL, FBrNO nvarchar(20) NOT NULL DEFAULT '0',
+  FEntryID int NOT NULL, FItemID int NOT NULL, FUnitID int NOT NULL, FQty decimal(28,10) NOT NULL,
+  FPrice decimal(28,10) NOT NULL, FAuxTaxPrice decimal(28,10) NULL, FTaxRate decimal(28,10) NOT NULL,
+  FAmount decimal(28,10) NOT NULL, FTaxAmount decimal(28,10) NOT NULL, FAllAmount decimal(28,10) NOT NULL,
+  FStockQty decimal(28,10) NOT NULL DEFAULT 0, FMrpClosed bit NOT NULL DEFAULT 0, FDate datetime NULL
+);
+CREATE TABLE dbo.ICPurchase (
+  FInterID int PRIMARY KEY, FBillNo nvarchar(200), FTranType int, FDate datetime, FSupplyID int,
+  FCurrencyID int, FExchangeRate decimal(28,10), FCheckDate datetime NULL, FCancellation bit, FROB int,
+  FStatus int, FOperDate rowversion
+);
+CREATE TABLE dbo.ICPurchaseEntry (
+  FDetailID int IDENTITY PRIMARY KEY, FInterID int, FEntryID int, FSourceTranType int, FSourceInterID int,
+  FSourceEntryID int, FItemID int, FUnitID int, FQty decimal(28,10), FPrice decimal(28,10),
+  FAmount decimal(28,10), FTaxAmount decimal(28,10), FAllAmount decimal(28,10)
+);
 CREATE TABLE dbo.ICOrderAlter (
   FID int IDENTITY PRIMARY KEY, FInterID int, FBillType int, FTableName varchar(50),
   FVersionNo nvarchar(3), FChangeDate datetime, FChangeUser nvarchar(30), FChangeType nvarchar(10),
@@ -129,7 +154,7 @@ INSERT dbo.t_Emp (FItemID,FName) VALUES (21,N'Fixture salesperson');
 INSERT dbo.t_Department (FItemID) VALUES (31);
 INSERT dbo.t_Currency (FCurrencyID,FNumber,FExchangeRate) VALUES (1,'CNY',1);
 INSERT dbo.t_User VALUES (41,'Probe biller'), (42,'Probe checker');
-INSERT dbo.ICMaxNum VALUES ('SEOrder',9000);
+INSERT dbo.ICMaxNum VALUES ('SEOrder',9000), ('POOrder',16000);
 
 CREATE USER trade_order_probe WITHOUT LOGIN;
 GRANT SELECT ON SCHEMA::dbo TO trade_order_probe;
@@ -138,4 +163,6 @@ GRANT UPDATE (FVersionNo,FChangeDate,FChangeUser) ON dbo.SEOrder TO trade_order_
 GRANT INSERT, UPDATE, DELETE ON dbo.SEOrderEntry TO trade_order_probe;
 GRANT UPDATE (FMaxNum) ON dbo.ICMaxNum TO trade_order_probe;
 GRANT INSERT ON dbo.ICOrderAlter TO trade_order_probe;
+GRANT INSERT ON dbo.POOrder TO trade_order_probe;
+GRANT INSERT, UPDATE, DELETE ON dbo.POOrderEntry TO trade_order_probe;
 GO

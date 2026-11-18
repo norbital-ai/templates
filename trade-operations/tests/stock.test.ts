@@ -22,9 +22,7 @@ layer(shared(), { excludeTestServices: true })('stock on a workspace', (it) => {
 						unit: 'kg',
 						on_hand: '10',
 						unit_cost: '1.5',
-						erp_committed: '0',
-						as_of: '2026-10-12T00:00:00Z',
-						orders_as_of: '2026-10-12T00:00:00Z'
+						as_of: '2026-10-12T00:00:00Z'
 					}
 				]);
 				const as = yield* t.as(t.member(['configuration']));

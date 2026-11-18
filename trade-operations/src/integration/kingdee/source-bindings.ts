@@ -258,9 +258,7 @@ export function normalizeSourceRow(
 			unit: text('unit', true),
 			unit_cost: null,
 			currency: null,
-			erp_committed: null,
-			as_of: observed,
-			orders_as_of: null
+			as_of: observed
 		};
 	let baseCurrency: string;
 	try {

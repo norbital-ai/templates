@@ -21,6 +21,10 @@ export const kingdeeConfiguration = {
 		kind: 'text',
 		optional: true
 	},
+	purchaseAccount: {
+		kind: 'text',
+		optional: true
+	},
 	receivablesAccount: {
 		kind: 'text',
 		optional: true
@@ -56,6 +60,7 @@ function accountPin(
 	field:
 		| 'writeAccount'
 		| 'invoiceAnalysisAccount'
+		| 'purchaseAccount'
 		| 'receivablesAccount'
 		| 'stockAvailabilityAccount'
 		| 'stockLotCostAccount'
@@ -72,6 +77,8 @@ export const kingdeeWriteAccount = (configuration: unknown) =>
 	accountPin(configuration, 'writeAccount');
 export const kingdeeInvoiceAnalysisAccount = (configuration: unknown) =>
 	accountPin(configuration, 'invoiceAnalysisAccount');
+export const kingdeePurchaseAccount = (configuration: unknown) =>
+	accountPin(configuration, 'purchaseAccount');
 export const kingdeeReceivablesAccount = (configuration: unknown) =>
 	accountPin(configuration, 'receivablesAccount');
 export const kingdeeStockAvailabilityAccount = (configuration: unknown) =>

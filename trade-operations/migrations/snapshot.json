@@ -608,58 +608,6 @@
 				]
 			}
 		},
-		"ext_purchase_orders": {
-			"audit": true,
-			"fields": {
-				"currency": {
-					"kind": "currency"
-				},
-				"external_id": {
-					"hidden": true,
-					"kind": "text"
-				},
-				"order": {
-					"inverse": "ext_purchase_orders",
-					"kind": "ref",
-					"to": "orders"
-				},
-				"reference": {
-					"kind": "text"
-				},
-				"source": {
-					"kind": "ref",
-					"to": "sys_integration",
-					"where": {
-						"integration": {
-							"eq": "kingdee"
-						}
-					}
-				},
-				"source_updated_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"status": {
-					"kind": "enum",
-					"values": [
-						"draft",
-						"issued",
-						"void"
-					]
-				}
-			},
-			"record_label": "record.reference",
-			"unique": [
-				{
-					"fields": [
-						"source",
-						"external_id"
-					],
-					"import_key": true,
-					"name": "natural_key"
-				}
-			]
-		},
 		"order_files": {
 			"audit": true,
 			"fields": {
@@ -1553,6 +1501,7 @@
 					"kind": "enum",
 					"values": [
 						"receipt",
+						"payment",
 						"refund"
 					]
 				},
@@ -1599,6 +1548,132 @@
 				}
 			]
 		},
+		"source_purchase_lines": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"billed_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"business_on": {
+					"kind": "date"
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"due_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"receipt",
+						"invoice"
+					]
+				},
+				"lot_number": {
+					"kind": "text",
+					"optional": true
+				},
+				"net_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"open_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"order_reference": {
+					"kind": "text",
+					"optional": true
+				},
+				"paid_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"product_code": {
+					"kind": "text"
+				},
+				"product_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"quantity": {
+					"kind": "decimal",
+					"scale": 3
+				},
+				"reference": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				},
+				"supplier_code": {
+					"kind": "text",
+					"optional": true
+				},
+				"supplier_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"tax_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"unit": {
+					"kind": "text"
+				},
+				"upstream": {
+					"kind": "text",
+					"optional": true
+				},
+				"warehouse_code": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.reference",
+			"search": {
+				"text": [
+					"reference",
+					"supplier_name",
+					"product_name",
+					"lot_number",
+					"order_reference"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"source",
+						"external_code"
+					],
+					"import_key": true,
+					"name": "natural_key"
+				}
+			]
+		},
 		"source_receivables": {
 			"audit": true,
 			"fields": {
@@ -1624,6 +1699,10 @@
 								"customer_id": {
 									"kind": "text"
 								},
+								"delivered_on": {
+									"kind": "date",
+									"optional": true
+								},
 								"due_on": {
 									"kind": "date",
 									"optional": true
@@ -1640,6 +1719,10 @@
 								},
 								"remaining": {
 									"kind": "text"
+								},
+								"settlement": {
+									"kind": "text",
+									"optional": true
 								},
 								"settlements": {
 									"fields": {
@@ -1872,11 +1955,6 @@
 					"kind": "currency",
 					"optional": true
 				},
-				"erp_committed": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 3
-				},
 				"external_code": {
 					"kind": "text"
 				},
@@ -1887,10 +1965,6 @@
 				"on_hand": {
 					"kind": "decimal",
 					"scale": 3
-				},
-				"orders_as_of": {
-					"kind": "instant",
-					"optional": true
 				},
 				"product": {
 					"kind": "ref",
@@ -3449,12 +3523,6 @@
 				"erp_id": {
 					"hidden": true,
 					"kind": "text"
-				},
-				"ext_purchase_order": {
-					"inverse": "transactions",
-					"kind": "ref",
-					"optional": true,
-					"to": "ext_purchase_orders"
 				},
 				"issued_on": {
 					"kind": "date",

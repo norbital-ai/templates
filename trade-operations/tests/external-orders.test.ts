@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { randomUUID } from 'node:crypto';
 import { expect, it } from '@effect/vitest';
 import { workspace, draft, confirm } from './kit.js';
-import { setSalesOrder, sourceOrder, writtenId, sync as write } from './synced-kit.js';
+import { setKingdeeOrder, sourceOrder, writtenId, sync as write } from './synced-kit.js';
 const NOW = '2026-10-10T00:00:00Z';
 it.live(
 	'source transactions bind to their own order and its issued Kingdee SO, and cannot be relinked',
@@ -50,7 +50,7 @@ it.live(
 			const key = (yield* (yield* t.as(t.admin)).query({
 				orders: { where: { id: { eq: own.order } }, limit: 1 }
 			})).orders.rows[0]?.source_order_key;
-			yield* setSalesOrder(t, key ?? '', 'void');
+			yield* setKingdeeOrder(t, key ?? '', 'void');
 			writtenId('transactions', yield* write(t, 'transactions', [{ ...row, status: 'void' }]));
 			expect(yield* write(t, 'transactions', [row])).not.toMatchObject({
 				kind: 'committed'

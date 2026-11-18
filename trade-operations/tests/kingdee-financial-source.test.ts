@@ -1,3 +1,4 @@
+import { bills } from '../src/integration/kingdee/bills.js';
 import { expect, it as test } from '@effect/vitest';
 import { BigDecimal, Effect } from 'effect';
 import { fixtureId, sameDecimal } from './test-runtime.js';
@@ -80,7 +81,8 @@ test('one settlement header spanning invoice lines contributes its amount once w
 		[payment(), payment({ detail_id: '2', invoice_entry: '2' })],
 		[source],
 		observed,
-		'CNY'
+		'CNY',
+		bills.sales
 	);
 	expect(facts).toHaveLength(1);
 	expect(sameDecimal(facts[0]?.amount, '9007199254740993.12')).toBe(true);
@@ -106,7 +108,7 @@ test('settlement receipts cannot borrow a header amount across invoices, receipt
 	];
 	for (const conflicting of conflicts)
 		expect(() =>
-			mapPayments([payment(), payment(conflicting)], [invoice()], observed, 'CNY')
+			mapPayments([payment(), payment(conflicting)], [invoice()], observed, 'CNY', bills.sales)
 		).toThrow(SourceRowInvalid);
 });
 
@@ -123,35 +125,43 @@ test('unknown source lineage, missing joins and changing header data fail before
 		{ receipt_reference: '' }
 	];
 	for (const bad of invalidRows)
-		expect(() => mapPayments([payment(bad)], [invoice()], observed, 'CNY')).toThrow(
+		expect(() => mapPayments([payment(bad)], [invoice()], observed, 'CNY', bills.sales)).toThrow(
 			SourceRowInvalid
 		);
 	expect(() =>
-		mapPayments([payment(), payment({ detail_id: '2', amount: '1' })], [invoice()], observed, 'CNY')
+		mapPayments(
+			[payment(), payment({ detail_id: '2', amount: '1' })],
+			[invoice()],
+			observed,
+			'CNY',
+			bills.sales
+		)
 	).toThrow(SourceRowInvalid);
-	expect(() => mapPayments([payment(), payment()], [invoice()], observed, 'CNY')).toThrow(
-		SourceRowInvalid
-	);
+	expect(() =>
+		mapPayments([payment(), payment()], [invoice()], observed, 'CNY', bills.sales)
+	).toThrow(SourceRowInvalid);
 });
 
 test('zero balance is not used as cash evidence and negative settlements are not invented refunds', () => {
-	expect(mapPayments([], [invoice()], observed, 'CNY')).toEqual([]);
-	expect(mapPayments([payment({ amount: '0' })], [invoice()], observed, 'CNY')).toEqual([]);
+	expect(mapPayments([], [invoice()], observed, 'CNY', bills.sales)).toEqual([]);
 	expect(
-		mapPayments([payment({ receipt_status: '0' })], [invoice()], observed, 'CNY')
+		mapPayments([payment({ amount: '0' })], [invoice()], observed, 'CNY', bills.sales)
+	).toEqual([]);
+	expect(
+		mapPayments([payment({ receipt_status: '0' })], [invoice()], observed, 'CNY', bills.sales)
 	).toHaveLength(1);
 	expect(() =>
-		mapPayments([payment()], [invoice('10', { status: 'void' })], observed, 'CNY')
+		mapPayments([payment()], [invoice('10', { status: 'void' })], observed, 'CNY', bills.sales)
 	).toThrow(SourceRowInvalid);
-	expect(() => mapPayments([payment({ amount: '-10' })], [invoice()], observed, 'CNY')).toThrow(
-		SourceRowInvalid
-	);
+	expect(() =>
+		mapPayments([payment({ amount: '-10' })], [invoice()], observed, 'CNY', bills.sales)
+	).toThrow(SourceRowInvalid);
 });
 
 test('base-currency settlement amounts are never relabelled as foreign-currency allocations', () => {
 	const foreign = invoice('10', { currency: 'USD', owner: { ...owner, currency: 'USD' } });
 	expect(() =>
-		mapPayments([payment({ receipt_currency: 'USD' })], [foreign], observed, 'CNY')
+		mapPayments([payment({ receipt_currency: 'USD' })], [foreign], observed, 'CNY', bills.sales)
 	).toThrow(SourceRowInvalid);
 });
 
