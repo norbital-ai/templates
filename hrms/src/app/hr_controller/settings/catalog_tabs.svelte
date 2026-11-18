@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Tabs } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
 	import type { Law } from '../../../lib/law.js';
 	import type { LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
 	import LawTable from '../../../lib/ui/settings/law_table.svelte';
@@ -76,20 +75,18 @@
 </script>
 
 {#snippet catalog()}
-	<Stack size="fill" gap="sm">
-		<p class="max-w-4xl text-sm text-muted-foreground">{ctx.t(`law_family_about.${selected}`)}</p>
-		{#key selected}
-			<LawTable
-				{ctx}
-				name={selected}
-				title={ctx.t(`law_family.${selected}`)}
-				rows={law.rows[selected]}
-				columns={columns[selected]}
-				on_open={(row) => on_open({ family: selected, code: row })}
-				on_new={() => on_open({ family: selected, code: null })}
-			/>
-		{/key}
-	</Stack>
+	{#key selected}
+		<LawTable
+			{ctx}
+			name={selected}
+			title={ctx.t(`law_family.${selected}`)}
+			description={ctx.t(`law_family_about.${selected}`)}
+			rows={law.rows[selected]}
+			columns={columns[selected]}
+			on_open={(row) => on_open({ family: selected, code: row })}
+			on_new={() => on_open({ family: selected, code: null })}
+		/>
+	{/key}
 {/snippet}
 
 <Tabs

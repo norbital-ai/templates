@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import type { Kind } from '@norbital-ai/ui';
+	import { label, type Kind } from '@norbital-ai/ui';
 	import { PARAMETER_FIELDS, TERM_FIELDS } from '../../person.js';
 
 	/** A family's dated fields as one value's kind, as the viewer's catalog declares them. */
@@ -8,14 +8,20 @@
 		ctx: PageContext,
 		of: 'contract_terms' | 'statutory_parameters'
 	): Kind => {
-		const declared = ctx.ui.kinds.catalog?.[of]?.fields ?? {};
+		const exposure = ctx.ui.kinds.catalog?.[of];
 		return {
 			kind: 'object',
 			fields: Object.fromEntries(
 				(of === 'contract_terms' ? ['signed_on', ...TERM_FIELDS] : PARAMETER_FIELDS).flatMap(
-					(name) => {
-						const kind = declared[name];
-						return kind === undefined ? [] : [[name, kind]];
+					(name): [string, Kind][] => {
+						const kind = exposure?.fields[name];
+						// a reference (the pay group, the shift pattern) is its relation: the catalogue lists it apart
+						const to = exposure?.relations?.[name]?.targets[0];
+						return kind !== undefined
+							? [[name, kind]]
+							: to === undefined
+								? []
+								: [[name, { kind: 'ref', to, optional: true, label: label(ctx, of, name) }]];
 					}
 				)
 			)

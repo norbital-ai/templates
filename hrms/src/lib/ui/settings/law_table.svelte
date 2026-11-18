@@ -1,13 +1,14 @@
 <script lang="ts">
 	/** One family's rows of a law, as the law holds them on the chosen day. A row opens its own editor. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { highlighted_line, Table } from '@norbital-ai/ui';
+	import { Button, highlighted_line, Table, use_record_controller } from '@norbital-ai/ui';
 	import type { JsonObject } from '../../payroll_engine/foundation.js';
 
 	let {
 		ctx,
 		name,
 		title,
+		description,
 		rows,
 		columns,
 		on_open,
@@ -17,6 +18,8 @@
 		/** The table's key in the URL. */
 		name: string;
 		title: string;
+		/** What the family holds, behind the title's info icon. */
+		description?: string;
 		rows: readonly JsonObject[];
 		/** A field by name, or shown as the first line of its expression (`code`) or as compact JSON (`json`). */
 		columns: readonly (string | { readonly field: string; readonly as: 'code' | 'json' })[];
@@ -24,6 +27,9 @@
 		on_new: () => void;
 	} = $props();
 
+	// a row of the law is added while the law is being edited
+	const record = use_record_controller();
+	const editing = $derived(record?.current != null && record.current.mode !== 'view');
 	const listed = $derived(
 		rows.map((row): JsonObject & { readonly id: string } => ({ ...row, id: String(row.code) }))
 	);
@@ -50,11 +56,19 @@
 	>
 {/snippet}
 
+{#snippet add()}<Button disabled={!editing} onclick={on_new}>{ctx.t('law_row.new')}</Button
+	>{/snippet}
+
 <Table
 	{ctx}
 	of={listed}
 	key={name}
-	toolbar={{ new: on_new, title }}
+	toolbar={{
+		new: false,
+		trailing: add,
+		title,
+		...(description === undefined ? {} : { description })
+	}}
 	columns={columns.map((column) =>
 		typeof column === 'string'
 			? column

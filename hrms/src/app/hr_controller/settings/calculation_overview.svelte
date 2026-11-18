@@ -1,6 +1,16 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Accordion, Button, EmptyState, Icon, Popover, enum_text, label } from '@norbital-ai/ui';
+	import {
+		Accordion,
+		Button,
+		DescriptionHint,
+		EmptyState,
+		Icon,
+		Popover,
+		enum_text,
+		label,
+		use_record_controller
+	} from '@norbital-ai/ui';
 	import { Cluster } from '@norbital-ai/ui/layout';
 	import type { Law } from '../../../lib/law.js';
 	import type { JsonObject } from '../../../lib/payroll_engine/foundation.js';
@@ -11,6 +21,9 @@
 		law,
 		on_open
 	}: { ctx: PageContext; law: Law; on_open: (target: LawRowTarget) => void } = $props();
+	// a row of the law is added while the law is being edited
+	const record = use_record_controller();
+	const editing = $derived(record?.current != null && record.current.mode !== 'view');
 	/** The checkpoints the viewer opened; until they choose, the first. */
 	let chosen = $state<string[] | null>(null);
 
@@ -165,13 +178,14 @@
 {:else}
 	<div class="grid gap-2">
 		<Cluster gap="sm" justify="between" align="center">
-			<p class="text-xs text-muted-foreground">
-				One linear chain, top to bottom. Every checkpoint can read all earlier values. Each
-				catalogue row shows whether it adds (+) or deducts (−), what it calculates, and when it
-				applies.
-			</p>
-			<Button variant="outline" onclick={() => on_open({ family: 'subtotal', code: null })}
-				>{ctx.t('law_row.new')}</Button
+			<Cluster gap="xs" align="center">
+				<span class="text-sm font-medium">{ctx.t('app.settings.overview')}</span>
+				<DescriptionHint text={ctx.t('overview.about')} />
+			</Cluster>
+			<Button
+				variant="outline"
+				disabled={!editing}
+				onclick={() => on_open({ family: 'subtotal', code: null })}>{ctx.t('law_row.new')}</Button
 			>
 		</Cluster>
 		<Accordion.Root

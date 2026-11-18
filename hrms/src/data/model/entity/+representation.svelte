@@ -140,20 +140,22 @@
 						{...choices[name] === undefined ? {} : { editor: choice }}
 					/>{/each}
 				{#if record}
-					<Section name="entity_dated" title={t('dated.title')} collapsible={false}>
-						<Stack gap="sm">
-							<p class="text-meta">{t('dated.hint')}</p>
-							<DatedFacts
-								{ctx}
-								id="entity-facts"
-								of="entity_change"
-								{facts}
-								base={factsOf(rows, shape)}
-								{names}
-								{kindOf}
-								onchange={(next) => (draft = next)}
-							/>
-						</Stack>
+					<Section
+						name="entity_dated"
+						title={t('dated.title')}
+						hint={t('dated.hint')}
+						collapsible={false}
+					>
+						<DatedFacts
+							{ctx}
+							id="entity-facts"
+							of="entity_change"
+							{facts}
+							base={factsOf(rows, shape)}
+							{names}
+							{kindOf}
+							onchange={(next) => (draft = next)}
+						/>
 					</Section>
 				{/if}</Stack
 			>{/snippet}

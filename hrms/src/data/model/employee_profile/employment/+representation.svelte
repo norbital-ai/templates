@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * One stint of a person with one company: its number, its days, the service credited to it and, once it has a last
-	 * day, the exit answers. The last day is set, moved or cleared here (clearing it cancels the exit). The first day
+	 * One stint of a person with one company: its number, its days, the service credited to it, its dated life events
+	 * and, once it has a last day, the exit answers. The last day is set, moved or cleared here (clearing it cancels the exit). The first day
 	 * moves in one write: the stint carries its first terms and statutory parameters along. A stint nothing names may be deleted.
 	 */
 	import type { PlainDate } from '@norbital-ai/bolt';
@@ -32,11 +32,19 @@
 	const paid = paidPeriods(ctx);
 	const dayOf = (range: unknown, end: 'from' | 'to') =>
 		value_object(range) && range[end] != null ? String(range[end]).slice(0, 10) : null;
-	/** A last day set, moved or cleared in a paid period amends it: HR is asked first. */
+	const eventDays = (row: { readonly [field: string]: unknown }) =>
+		(Array.isArray(row['events']) ? row['events'] : []).flatMap((event) =>
+			value_object(event) && typeof event.on === 'string' ? [event.on] : []
+		);
+	/** A last day set, moved or cleared in a paid period, or a life event changed in one, amends it: HR is asked first. */
 	const confirm: NonNullable<FormProps['confirm']> = ({ values, before }) =>
 		[values, before].some((row) =>
 			paid.covers(dayOf(row['effective_range'], 'to'), row['entity_id'])
-		)
+		) ||
+		(JSON.stringify(values['events'] ?? []) !== JSON.stringify(before['events'] ?? []) &&
+			[values, before].some((row) =>
+				eventDays(row).some((day) => paid.covers(day, row['entity_id']))
+			))
 			? PAID_QUESTION
 			: null;
 	let moving = $state(false);
@@ -111,7 +119,7 @@
 						label={t('contract.last_working_day')}
 						editor={lastDay}
 					/>
-					{#each ['service_started_on', 'exit_ground', 'encash_leave', 'final_pay_due_on', 'reason'] as name (name)}<Field
+					{#each ['service_started_on', 'exit_ground', 'encash_leave', 'final_pay_due_on', 'reason', 'events'] as name (name)}<Field
 							{ctx}
 							{name}
 						/>{/each}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * A person: one screen with a vertical rail. Profile holds the plain fields, edited in place; each dated family
-	 * (Contract, Statutory, Family, Events) is its own tab, shown as a timeline, newest first.
+	 * A person: one screen with a vertical rail. Profile holds the plain fields, the statutory parameters and the
+	 * family, saved by its one Save; Contract is the person's employment over time; Documents are filed on their own tab.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Effect } from 'effect';
@@ -28,10 +28,10 @@
 	import BalanceLedger from '../../../lib/ui/person/balance_ledger.svelte';
 	import BalanceOverview from '../../../lib/ui/person/balance_overview.svelte';
 	import DatedFamily from '../../../lib/ui/person/dated_family.svelte';
+	import { datedFamily } from '../../../lib/ui/person/dated_family.svelte.js';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import { personRead } from '../../../lib/ui/person/person_read.svelte.js';
 	import ProfileContract from '../../../lib/ui/person/profile_contract.svelte';
-	import ProfileEvents from '../../../lib/ui/person/profile_events.svelte';
 	import ProfileFamily from '../../../lib/ui/person/profile_family.svelte';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 
@@ -63,6 +63,7 @@
 		);
 	}
 	const read = personRead(ctx, () => record?.id ?? null);
+	const parameters = datedFamily(ctx, 'statutory_parameters', read);
 	const balance = $derived(
 		record == null
 			? null
@@ -75,6 +76,20 @@
 				})
 	);
 	const held = $derived(balance?.current?.employee_balance.rows[0]);
+	/** The fields the Profile tab's own form edits: the documents are filed on their own tab. */
+	const PLAIN = [
+		'name',
+		'email',
+		'phone',
+		'location',
+		'address',
+		'date_of_birth',
+		'identity_number',
+		'gender',
+		'birth_city',
+		'bank',
+		'cumulative_service'
+	] as const;
 	const stintIds = $derived(read.stints.map((stint) => stint.id));
 	const entityIds = $derived([...new Set(read.stints.map((stint) => stint.entity_id))]);
 </script>
@@ -87,20 +102,28 @@
 		{...record === null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
+		fields={PLAIN}
+		acts={parameters.acts}
+		confirm={parameters.confirm}
 		on_outcome={(outcome) => {
-			if (outcome.kind !== 'committed' || record) return;
+			if (outcome.kind !== 'committed') return;
+			parameters.reset();
+			if (record) return;
 			const created = outcome.records.find((row) => row.model === 'employee_profile');
 			if (created) open_record('employee_profile', created.id);
 		}}
 		>{#snippet children()}
 			<Stack gap="md">
 				<Section name="person_contact" title={t('person.section_contact')} first>
-					<Columns count={2}>
-						{#each ['name', 'email', 'phone', 'location', 'address'] as name (name)}<Field
-								{ctx}
-								{name}
-							/>{/each}
-					</Columns>
+					<Stack gap="md">
+						{#if record}{@render face()}{/if}
+						<Columns count={2}>
+							{#each ['name', 'email', 'phone', 'location', 'address'] as name (name)}<Field
+									{ctx}
+									{name}
+								/>{/each}
+						</Columns>
+					</Stack>
 				</Section>
 				<Section name="person_particulars" title={t('person.section_particulars')}>
 					<Columns count={2}>
@@ -110,10 +133,18 @@
 							/>{/each}
 					</Columns>
 				</Section>
-				<Section name="person_documents" title={t('person.section_documents')}>
-					<Field {ctx} name="documents" />
-				</Section>
-				{#if record}{@render face()}{/if}
+				{#if record}
+					<Section
+						name="person_statutory"
+						title={t('models.statutory_parameters.label')}
+						hint={t('dated.hint')}
+					>
+						<DatedFamily {ctx} family={parameters} {read} sections={false} />
+					</Section>
+					<Section name="person_family" title={t('person.tab_family')}>
+						<ProfileFamily {ctx} person={record.id} />
+					</Section>
+				{/if}
 			</Stack>
 		{/snippet}</Form
 	>
@@ -123,14 +154,14 @@
 			person={record.id}
 			{read}
 		/>{/if}{/snippet}
-{#snippet statutoryTab()}{#if record}<DatedFamily
+{#snippet documentsTab()}{#if record}<Form
 			{ctx}
-			of="statutory_parameters"
-			person={record.id}
-			{read}
+			of="employee_profile"
+			mode="update"
+			id={record.id}
+			{record}
+			fields={['documents']}
 		/>{/if}{/snippet}
-{#snippet familyTab()}{#if record}<ProfileFamily {ctx} person={record.id} {read} />{/if}{/snippet}
-{#snippet eventsTab()}<ProfileEvents {ctx} {read} />{/snippet}
 {#snippet loansTab()}{#if record}{#if stintIds.length === 0}<EmptyState
 				title={t('models.loan_catalog_entry.label')}
 			/>{:else}<Table
@@ -227,17 +258,10 @@
 					body: contractTab
 				},
 				{
-					name: 'statutory',
-					title: t('models.statutory_parameters.label'),
-					icon: 'lucide:landmark',
-					body: statutoryTab
-				},
-				{ name: 'family', title: t('person.tab_family'), icon: 'lucide:users', body: familyTab },
-				{
-					name: 'events',
-					title: t('person.tab_events'),
-					icon: 'lucide:calendar-heart',
-					body: eventsTab
+					name: 'documents',
+					title: t('person.section_documents'),
+					icon: 'lucide:folder-open',
+					body: documentsTab
 				},
 				{
 					name: 'loans',
