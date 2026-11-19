@@ -249,6 +249,7 @@
 				{ctx}
 				of="jurisdiction"
 				id={head.id}
+				header={false}
 				footer_actions={inForce}
 				><Tabs
 					tabs={[
