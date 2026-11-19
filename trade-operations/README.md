@@ -56,7 +56,7 @@ waits for a Commercial Manager, and the order cannot sync while it waits. Deleti
 waits for one. Credit limits and
 balances are read-only source facts, with credit enforcement owned by the source system.
 
-Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
+Stock rows represent remaining lots with their lot number; a lot's audited purchase cost comes from the lot-cost feed when its account is set. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
 
 Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sales** (`sales` →
 `sales`), **Procurement** (`procurement` → `procurement`), **Commercial Managers**
@@ -94,7 +94,7 @@ history, permissions, approvals, Actions, kinds and runs are reused.
   its order date; its lines keep their floors and conversion facts.
 - `commission_statements`: the single retained monthly commission approval workflow. No extra
   per-order commission acknowledgment model or duplicate table.
-- `stock_snapshots`: read-only source lots with lot number, on-hand quantity and unit cost. The Stock
+- `stock_snapshots`: read-only source lots with lot number and on-hand quantity; audited purchase cost comes from the lot-cost feed. The Stock
   tab shows beside each lot what open Kingdee sales orders await (`source_stock_commitments`) and what
   is available, per product and warehouse; a missing or stale feed, a unit mismatch or an open order
   without a warehouse leaves Available blank.

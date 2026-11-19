@@ -34,8 +34,9 @@ with its Kingdee PO, as a sales order does with its SO.
 1. **One agreement per deal.** A quote, a confirmed sales contract and a supplier purchase order are states of
    one order record. The order holds its terms; native history keeps every earlier value.
 2. **Sync once, then stay in step.** Syncing an order to Kingdee happens once and stamps the commission rule in
-   force on its order date. A synced order never returns to draft; every later saved change to it or its lines
-   follows to its Kingdee order. Approval is for exceptions: a sales line below its floor.
+   force on its order date. A synced order never returns to draft; every later saved line change follows to its
+   Kingdee order, Kingdee keeps the header, and the other terms stay local to the documents. Approval is for
+   exceptions: a sales line below its floor.
 3. **Use the ERP as evidence, not as the workflow.** Kingdee supplies observed sales and purchase orders,
    deliveries, receipts, invoices, payments, stock and AR facts, read-only here. Staff work in Trade
    Operations; the source system remains the authority for what it issued and for credit enforcement.

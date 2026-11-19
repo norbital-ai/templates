@@ -353,8 +353,8 @@ currency, date, owner, settlement; `errors.kingdee_header`); Kingdee's header ch
 read, and a line write that meets a header the read has not brought in yet waits for it.
 
 A write reads the live SO first. With no SO, it creates one; with an SO whose lines differ, it
-amends them against the lines just read. The SO must be audited and open before its lines change;
-until then the write waits and retries. Several local changes before the write runs are sent as one
+changes them against the lines just read: an unaudited SO's lines are replaced in place, as KIS's own
+修改 does, and an audited, open SO is amended. Several local changes before the write runs are sent as one
 amendment of the latest terms, and each line's write sends the whole order, so an amendment lands
 whole or not at all. A failed or unreachable Kingdee leaves the writes queued (the order and lines
 show `pending`) and retries them; a lost receipt is retried against the FUUID and the amendment's

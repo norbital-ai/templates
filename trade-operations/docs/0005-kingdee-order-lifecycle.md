@@ -16,8 +16,8 @@ Keep those identities in the integration mapping and retain the resulting source
 ## Create and amend
 
 A quotation and the sale synced to Kingdee share one order ID. Syncing happens once: it stamps the commission
-rule in force on the order date and queues an idempotent source write, and every later saved change to the
-order or its lines queues another. The supported writer creates a saved, unapproved SO or PO and retains its
+rule in force on the order date and queues an idempotent source write, and every later saved change queues
+another; the writer sends only when the lines differ from the SO or PO it reads. The supported writer creates a saved, unapproved SO or PO and retains its
 source identity. A successful write does not imply native Kingdee audit.
 
 Retries read back the stored header and lines before acknowledging the write. While the SO or PO is

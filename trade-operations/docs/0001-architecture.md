@@ -55,11 +55,13 @@ account set and branch (`write_target`); the order also keeps the SO or PO as la
 record of the basis, not a lock.
 
 A synced order is the shadow of its Kingdee SO or PO (a PO once the ledger's purchase documents are verified).
-The `orders` and `order_lines` `kingdee` syncs keep the two equal: syncing creates it, every later saved change to
-the order or its lines follows (an unaudited SO's or PO's lines are replaced in place, an audited SO is amended,
-an audited PO refuses), and a Kingdee change updates the order and its lines. Kingdee keeps the header fields
+The `orders` and `order_lines` `kingdee` syncs keep the two equal: syncing creates it, every later saved line change
+follows (an unaudited SO's or PO's lines are replaced in place, an audited SO is amended, an audited PO refuses),
+and a Kingdee change updates the order and its lines. The writer compares lines only: the shipment window's last
+day reaches each line's delivery date when lines are written, and an amendment keeps existing lines' dates. Kingdee keeps the header fields
 party, currency, order date, salesperson (`owner`) and payment terms: a local change to them is refused
-(`errors.kingdee_header`) and made in Kingdee. Every other term and the lines stay editable.
+(`errors.kingdee_header`) and made in Kingdee. Every other term and the lines stay editable; terms other than
+the lines print on the documents and are not sent to Kingdee.
 
 ### Lifecycle
 
