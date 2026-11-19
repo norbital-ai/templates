@@ -764,3 +764,111 @@ it.live('an idle read asks Kingdee only for its rowversion ceiling and an empty 
 		expect(sameDecimal(quantity((yield* s.read()).order_lines.rows), '12')).toBe(true);
 	})
 );
+
+it.live(
+	'a line added locally whose amendment reply was lost is not duplicated by a read in between',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* syncedSale();
+			const added = committed(
+				'order_lines',
+				yield* s.as.act({
+					'order_lines.create': [
+						{
+							order: s.sale.order,
+							product: s.sale.product,
+							quantity: '4',
+							unit_price: '2',
+							discount_pct: '0',
+							tax_rate: '13'
+						}
+					]
+				})
+			);
+			// Kingdee commits the new entry, but its reply never arrives
+			s.fixture.state.loseNextReceipt = true;
+			yield* s.t.deliver();
+			expect(s.entries()).toHaveLength(2);
+			// the minute read runs before the write is retried
+			yield* s.pull;
+			s.t.clock.advance('2min');
+			yield* s.t.deliver();
+			yield* s.pull;
+			expect(s.entries()).toHaveLength(2);
+			const { order_lines } = yield* s.read();
+			expect(order_lines.rows).toHaveLength(2);
+			expect(order_lines.rows.find((row) => row.id === added)?.source_entry_id).toBe('2');
+			expect(order_lines.rows.map((row) => row.$sync?.kingdee?.status)).toEqual(['ok', 'ok']);
+		})
+);
+
+it.live('an unaudited SO takes a local line change in place, with no version or change log', () =>
+	Effect.gen(function* () {
+		const fixture = kingdeeFixture();
+		const t = yield* workspace({ source: fixture.request });
+		const as = yield* t.as(t.admin);
+		const sale = yield* kingdeeSale(t, fixture);
+		yield* t.deliver();
+		yield* t.pull('orders');
+		yield* t.pull('order_lines');
+		yield* setQuantity(t, sale.line, '15');
+		yield* t.deliver();
+		const so = (fixture.tables.SEOrder ?? []).filter((row) => !row.archive);
+		expect(so).toHaveLength(1);
+		expect(so[0]).toMatchObject({ version: '000', checker: '0' });
+		expect(fixture.tables.SEOrder).toHaveLength(1);
+		expect(fixture.tables.ICOrderAlter).toHaveLength(0);
+		const entries = (fixture.tables.SEOrderEntry ?? []).filter((row) => row.fid === so[0]?.fid);
+		expect(entries.map((row) => [row.entry_id, Number(row.quantity)])).toEqual([['1', 15]]);
+		const line = (yield* as.query({ order_lines: { where: { id: { eq: sale.line } } } }))
+			.order_lines.rows[0];
+		expect(line?.$sync?.kingdee?.status).toBe('ok');
+	})
+);
+
+it.live('a moved header with no FUUID neither fails the read nor arrives as an order', () =>
+	Effect.gen(function* () {
+		const s = yield* syncedSale();
+		const own = s.fixture.tables.SEOrder?.find((row) => row.fid === s.fid);
+		if (!own) throw new Error('Owned SO required');
+		s.fixture.tables.SEOrder?.push({
+			...own,
+			__key: '77000'.padStart(20, '0'),
+			fid: '77000',
+			uuid: null,
+			reference: 'KIS-NO-UUID'
+		});
+		yield* s.pull;
+		const { orders } = yield* s.as.query({ orders: { where: { title: { eq: 'KIS-NO-UUID' } } } });
+		expect(orders.rows).toHaveLength(0);
+		kingdeeQuantity(s, '12');
+		yield* s.pull;
+		expect(sameDecimal(quantity((yield* s.read()).order_lines.rows), '12')).toBe(true);
+	})
+);
+
+it.live(
+	'a live row Kingdee made behind an archived original is not imported as another order',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* syncedSale();
+			const own = s.fixture.tables.SEOrder?.find((row) => row.fid === s.fid);
+			if (!own) throw new Error('Owned SO required');
+			yield* s.pull;
+			// Kingdee archived our original and made a later row, with its own FUUID, the live order
+			s.fixture.tables.SEOrder = [
+				{ ...own, archive: 1, cancelled: true },
+				{
+					...own,
+					__key: '78000'.padStart(20, '0'),
+					fid: '78000',
+					uuid: crypto.randomUUID(),
+					version: '001'
+				}
+			];
+			yield* s.pull;
+			yield* s.pull;
+			const { orders } = yield* s.as.query({ orders: {} });
+			expect(orders.rows.filter((row) => row.title === own.reference)).toHaveLength(0);
+		})
+);

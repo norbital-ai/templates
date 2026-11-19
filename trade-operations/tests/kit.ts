@@ -40,6 +40,11 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 		now: '2026-10-10T00:00:00Z',
 		...options
 	});
+	// the host marks a ledger connected once its SQL test passes; a seed carries no status, so the kit does
+	yield* t.db.write({
+		text: `UPDATE sys_integration SET status = '{"state":"connected","databaseVerified":true}'::jsonb WHERE integration = 'kingdee'`,
+		params: []
+	});
 	if (source !== undefined)
 		t.fakes.links.answer = (_instance, op) =>
 			Schema.decodeUnknownEffect(DatabaseRequest)(op).pipe(

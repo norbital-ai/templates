@@ -279,9 +279,10 @@ it.effect('a PO is written on its own columns through the PO statement, against 
 		expect(lookup?.op === 'call' && String(lookup.arguments.stmt)).toContain('dbo.t_Supplier');
 		expect(write?.op === 'call' && write.arguments.stmt).toBe(purchaseOrderSql);
 		expect(purchaseOrderSql).toContain("FTableName='POOrder'");
-		// a PO's lines are replaced only while it is unaudited and still holds the entries last read
-		expect(purchaseOrderSql).toContain('FCheckerID IS NOT NULL');
+		// an order's lines are replaced only while it is unaudited and still holds the entries last read
+		expect(purchaseOrderSql).toContain('ISNULL(FCheckerID,0)<>0');
 		expect(purchaseOrderSql).toContain('DELETE FROM dbo.POOrderEntry');
+		expect(sourceOrderSql).toContain('DELETE FROM dbo.SEOrderEntry');
 		expect(sourceOrderSql).not.toContain('POOrder');
 	})
 );

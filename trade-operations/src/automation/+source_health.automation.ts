@@ -11,19 +11,18 @@ const reasons: Readonly<Record<string, string>> = {
 	windowLag: 'An accounting source window is taking longer than the configured limit.'
 };
 /**
- * Notifies administrators once per instance revision when an accounting ledger needs attention.
+ * Notifies administrators once per instance revision when an accounting ledger's status turns to attention.
  */
 export default automation({
 	description: 'Notifies administrators when an accounting ledger connection needs attention.',
-	// ponytail: a system model hosts no effect, so this sweeps every kingdee instance each 5 minutes and `once` per
-	// revision dedupes; a notice lags a status change by up to 5 minutes, and any other edit of an instance still in
-	// attention notifies again. A sweep with nothing to say writes nothing, so it rests a day while the database sleeps.
-	on: [{ cron: '*/5 * * * *', rest: '1d' }],
+	// a status or health change commits a `sys_integration` update; nothing sweeps, and `once` per revision dedupes
+	on: [{ model: 'sys_integration', verbs: ['update'] }],
 	policies: ['source_health'],
 	run: function* (_input, ctx) {
+		if (ctx.trigger.kind !== 'system' || ctx.trigger.cause !== 'event') return;
 		const { sys_integration, sys_user } = yield* ctx.query({
 			sys_integration: {
-				where: { integration: { eq: 'kingdee' } },
+				where: { id: { in: [...ctx.trigger.records] }, integration: { eq: 'kingdee' } },
 				fields: ['name', 'status', 'revision']
 			},
 			sys_user: { where: { admin: { eq: true }, active: { eq: true } }, fields: ['id'] }

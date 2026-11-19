@@ -5,7 +5,7 @@ import { fixtureId } from './test-runtime.js';
 import { Effect } from 'effect';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { sourceOrderSql } from '../src/integration/kingdee/submission.js';
+import { purchaseOrderSql, sourceOrderSql } from '../src/integration/kingdee/submission.js';
 import { sourceAmendmentSql } from '../src/integration/kingdee/amendment.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
 import { sourceFixture } from './source-fixture.js';
@@ -103,6 +103,8 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 	const tables: Record<string, SqlRow[]> = {
 		SEOrder: [],
 		SEOrderEntry: [],
+		POOrder: [],
+		POOrderEntry: [],
 		ICOrderAlter: [],
 		ICStockBill: [],
 		ICStockBillEntry: [],
@@ -123,14 +125,15 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 	let clock = 0;
 	const hex = (version: number) => `0x${version.toString(16).padStart(16, '0')}`;
 	const stamp = () => {
-		for (const row of tables.SEOrder ?? []) {
-			const fid = String(row.fid);
-			const image = JSON.stringify([
-				{ ...row, rowversion: null },
-				(tables.SEOrderEntry ?? []).filter((entry) => entry.fid === row.fid)
-			]);
-			if (stamps.get(fid)?.image !== image) stamps.set(fid, { image, version: ++clock });
-		}
+		for (const order of ['SEOrder', 'POOrder'])
+			for (const row of tables[order] ?? []) {
+				const fid = `${order}:${String(row.fid)}`;
+				const image = JSON.stringify([
+					{ ...row, rowversion: null },
+					(tables[`${order}Entry`] ?? []).filter((entry) => entry.fid === row.fid)
+				]);
+				if (stamps.get(fid)?.image !== image) stamps.set(fid, { image, version: ++clock });
+			}
 		// a document that moves is followed to its SO; here any document change names every SO
 		const image = JSON.stringify(
 			['ICStockBill', 'ICStockBillEntry', 'ICSale', 'ICSaleEntry', 't_rp_CheckEntry'].map(
@@ -141,6 +144,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		return clock + 1;
 	};
 	let documents = { image: '', version: 0 };
+	let reinserted = 0;
 	const receipt = (remote: string, hash: string) => {
 		if (state.loseNextReceipt) {
 			state.loseNextReceipt = false;
@@ -149,10 +153,11 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		}
 		return { rows: [{ remote, hash }] };
 	};
-	const configuration = (owner: string) => ({
+	const configuration = (owner: string, purchases = false) => ({
 		baseCurrency: 'CNY',
 		branchNo: '0',
 		writeAccount: `${identity}/${identity}`,
+		...(purchases ? { purchaseAccount: `${identity}/${identity}` } : {}),
 		billerId: '1',
 		maxWindowMinutes: 15,
 		salespersonBindings: JSON.stringify({ [owner]: { employeeId: '701', departmentId: '601' } }),
@@ -214,20 +219,113 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					const from = string(args.from, 'window start'),
 						to = string(args.to, 'window end'),
 						after = string(args.after, 'window continuation');
+					// each direction's headers, keyed as the window keys them: `s` or `p` and the padded FInterID
+					const sides = [
+						['SEOrder', 'sales'],
+						...(statement.includes("'purchasing' AS direction") ? [['POOrder', 'purchasing']] : [])
+					] as const;
 					return {
-						rows: (tables.SEOrder ?? [])
-							.flatMap((row): SqlRow[] => {
-								const version = hex(stamps.get(String(row.fid))?.version ?? 0);
-								return row.branch === args.branch &&
-									version >= from &&
-									version < to &&
-									String(row.__key) > after
-									? [{ ...row, direction: 'sales', rowversion: version }]
-									: [];
-							})
+						rows: sides
+							.flatMap(([order, direction]) =>
+								(tables[order] ?? []).flatMap((row): SqlRow[] => {
+									const version = hex(stamps.get(`${order}:${String(row.fid)}`)?.version ?? 0);
+									const key = `${direction[0]}${String(row.__key)}`;
+									return row.branch === args.branch &&
+										version >= from &&
+										version < to &&
+										key > after
+										? [{ ...row, __key: key, direction, rowversion: version }]
+										: [];
+								})
+							)
 							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
 							.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
 					};
+				}
+				if (statement === purchaseOrderSql) {
+					const correlation = string(args.correlation, 'FUUID');
+					const hash = string(args.fingerprint, 'fingerprint');
+					const document = string(args.document, 'source document');
+					const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
+					const lines = [...document.matchAll(/<item\s+([^>]*)\/>/g)].map((match) =>
+						attributes(match[1] ?? '')
+					);
+					const entry = (remote: string, line: Record<string, string>, index: number) => {
+						const detail = String(Number(remote) * 1000 + Number(line.FEntryID ?? index + 1));
+						return {
+							__key: padded(detail),
+							fid: remote,
+							detail_id: detail,
+							entry_id: line.FEntryID ?? '',
+							item_id: line.FItemID ?? '',
+							unit: 'kg',
+							quantity: line.FQty ?? '',
+							unit_price: line.FPrice ?? '',
+							unit_price_inclusive: line.FAuxTaxPrice ?? '',
+							tax_rate: line.FTaxRate ?? '0',
+							net_amount: line.FAmount ?? '0',
+							tax_amount: line.FTaxAmount ?? '0',
+							gross_amount: line.FAllAmount ?? '0'
+						};
+					};
+					const existing = submissions.get(correlation);
+					if (!existing) {
+						const remote = String(16002 + submissions.size);
+						submissions.set(correlation, { remote, hash, header, lines });
+						tables.POOrder?.push({
+							__key: padded(remote),
+							fid: remote,
+							branch: header.FBrNo ?? '0',
+							uuid: correlation,
+							reference: header.FBillNo ?? '',
+							currency: 'CNY',
+							version: '000',
+							cancelled: false,
+							archive: 0,
+							checker: '0',
+							checked_on: null,
+							closed: 0,
+							employee_id: header.FEmpID ?? null,
+							party_id: header.FSupplyID ?? '201',
+							party_name: 'Kingdee supplier',
+							ordered_on: (header.FDate ?? '2026-10-10').slice(0, 10),
+							exchange_rate: header.FExchangeRate ?? '1',
+							settlement: 'PROBE-NET30',
+							rowversion: '0x0000000000000001'
+						});
+						tables.POOrderEntry?.push(...lines.map((line, index) => entry(remote, line, index)));
+						return receipt(remote, hash);
+					}
+					if (existing.hash === hash) return receipt(existing.remote, hash);
+					const head = tables.POOrder?.find((row) => row.fid === existing.remote);
+					if (!head) throw new Error('Owned source order is unavailable');
+					const current = (tables.POOrderEntry ?? []).filter((row) => row.fid === existing.remote);
+					// the entries last read must still be there: another Kingdee writer changed the PO in between
+					const basis = [
+						...string(args.previous_document, 'previous PO lines').matchAll(/<item\s+([^>]*)\/>/g)
+					].map((match) => attributes(match[1] ?? ''));
+					if (
+						basis.length !== current.length ||
+						basis.some(
+							(line) =>
+								!current.some(
+									(row) =>
+										row.entry_id === line.FEntryID &&
+										row.item_id === line.FItemID &&
+										Number(row.quantity) === Number(line.FQty) &&
+										Number(row.net_amount) === Number(line.FAmount)
+								)
+						)
+					)
+						return { rows: [{ remote: 'moved', hash }] };
+					if (head.checker !== '0' || head.cancelled || head.closed)
+						throw new Error('Kingdee changes PO lines only while the PO is unaudited and open');
+					tables.POOrderEntry = [
+						...(tables.POOrderEntry ?? []).filter((row) => row.fid !== existing.remote),
+						...lines.map((line, index) => entry(existing.remote, line, index))
+					];
+					submissions.set(correlation, { ...existing, hash, header, lines });
+					return receipt(existing.remote, hash);
 				}
 				if (statement === sourceAmendmentSql) {
 					const race = state.beforeAmendment;
@@ -289,7 +387,9 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					);
 					for (const [index, line] of lines.entries()) {
 						const old = currentLines.find((old) => old.entry_id === line.FEntryID);
-						const detail = old?.detail_id ?? String(Number(existing.remote) * 1000 + index + 100);
+						const detail =
+							old?.detail_id ??
+							String(Number(existing.remote) * 1000 + 100 + Number(line.FEntryID ?? index));
 						tables.SEOrderEntry.push({
 							__key: padded(String(detail)),
 							fid: existing.remote,
@@ -318,8 +418,60 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					const correlation = string(args.correlation, 'FUUID');
 					const hash = string(args.fingerprint, 'fingerprint');
 					let existing = submissions.get(correlation);
-					if (existing && existing.hash !== hash)
-						throw new Error('Source order differs from its submission');
+					if (existing && existing.hash !== hash) {
+						// an unaudited SO takes its new lines in place, against the entries last read, as KIS's 修改 does
+						const remote = existing.remote;
+						const head = tables.SEOrder?.find((row) => row.fid === remote && !row.archive);
+						if (!head) throw new Error('Owned source order is unavailable');
+						const current = (tables.SEOrderEntry ?? []).filter((row) => row.fid === remote);
+						const basis = [
+							...string(args.previous_document, 'previous SO lines').matchAll(/<item\s+([^>]*)\/>/g)
+						].map((match) => attributes(match[1] ?? ''));
+						if (
+							basis.length !== current.length ||
+							basis.some(
+								(line) =>
+									!current.some(
+										(row) =>
+											row.entry_id === line.FEntryID &&
+											row.item_id === line.FItemID &&
+											Number(row.quantity) === Number(line.FQty) &&
+											Number(row.net_amount) === Number(line.FAmount)
+									)
+							)
+						)
+							return { rows: [{ remote: 'moved', hash }] };
+						if (head.checker !== '0' || head.cancelled || head.closed)
+							throw new Error(
+								'Kingdee changes order lines in place only while the order is unaudited and open'
+							);
+						const document = string(args.document, 'source document');
+						const lines = [...document.matchAll(/<item\s+([^>]*)\/>/g)].map((match) =>
+							attributes(match[1] ?? '')
+						);
+						tables.SEOrderEntry = (tables.SEOrderEntry ?? []).filter((row) => row.fid !== remote);
+						for (const line of lines) {
+							// KIS reinserts the lines with new FDetailIDs
+							const detail = String(70000000 + ++reinserted);
+							tables.SEOrderEntry.push({
+								__key: padded(detail),
+								fid: remote,
+								detail_id: detail,
+								entry_id: line.FEntryID ?? '',
+								item_id: line.FItemID ?? '',
+								unit: 'kg',
+								quantity: line.FQty ?? '',
+								unit_price: line.Fauxprice ?? '',
+								unit_price_inclusive: line.FTaxPrice ?? '',
+								tax_rate: line.FCESS ?? '0',
+								net_amount: line.FAmount ?? '0',
+								tax_amount: line.FTaxAmt ?? '0',
+								gross_amount: line.FAllAmount ?? '0'
+							});
+						}
+						submissions.set(correlation, { ...existing, hash, lines });
+						return receipt(remote, hash);
+					}
 					if (!existing) {
 						const document = string(args.document, 'source document');
 						const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
@@ -453,12 +605,16 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						rows: tables[table]
 							.filter((row) => {
 								if (typeof row.__key !== 'string' || row.__key <= after) return false;
-								if (table === 'SEOrder') {
+								if (table === 'SEOrder' || table === 'POOrder') {
 									if (statement.includes('head.FChangeMark=0'))
 										return row.branch === args.branch && !row.archive;
-									if (statement.includes('kingdee-sales-orders')) {
+									if (
+										statement.includes(
+											`kingdee-${table === 'SEOrder' ? 'sales' : 'purchase'}-orders`
+										)
+									) {
 										const refs = new Set(
-											(tables.SEOrder ?? [])
+											(tables[table] ?? [])
 												.filter(
 													(anchor) => ids.has(String(anchor.uuid)) && anchor.branch === args.branch
 												)
@@ -540,6 +696,68 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 	});
 	// the draft's own writes reach no ledger
 	yield* t.deliver();
+	return { order, line, party: party.id, product: product.id };
+});
+/** A confirmed PO to the source-bound supplier `201`, on a ledger whose purchase documents are verified. */
+export const kingdeePurchase = Effect.fnUntraced(function* (
+	t: T,
+	fixture: ReturnType<typeof kingdeeFixture>,
+	instance: Id<'sys_integration'> = fixtureId('sys_integration', 'kingdee')
+) {
+	const as = yield* t.as(t.admin);
+	yield* t.pull('parties');
+	const masters = yield* as.query({
+		parties: { where: { source: { eq: instance }, external_code: { eq: '201' } }, limit: 1 },
+		products: { where: { source: { eq: instance }, external_code: { eq: '301' } }, limit: 1 }
+	});
+	const party = masters.parties.rows[0];
+	const product = masters.products.rows[0];
+	if (!party || !product)
+		throw new Error('The catalogue supplier 201 and product 301 are required');
+	const order = committed(
+		'orders',
+		yield* as.act({
+			'orders.create': [
+				{
+					title: 'Kingdee integration purchase',
+					direction: 'purchasing',
+					party: party.id,
+					currency: 'CNY',
+					payment_terms: 'PROBE-NET30',
+					ordered_on: '2026-10-10',
+					tax_inclusive: false
+				}
+			]
+		})
+	);
+	const line = committed(
+		'order_lines',
+		yield* as.act({
+			'order_lines.create': [
+				{
+					order,
+					product: product.id,
+					quantity: '10',
+					unit_price: '2',
+					discount_pct: '0',
+					tax_rate: '13'
+				}
+			]
+		})
+	);
+	const header = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+		.rows[0];
+	if (!header) throw new Error('The draft was not committed');
+	yield* as.act({
+		'sys_integration.update': [
+			{
+				target: { id: instance },
+				set: { configuration: fixture.configuration(header.owner, true) }
+			}
+		]
+	});
+	yield* t.deliver();
+	yield* confirm(t, order);
 	return { order, line, party: party.id, product: product.id };
 });
 export const kingdeeSale = Effect.fnUntraced(function* (

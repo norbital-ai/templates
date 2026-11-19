@@ -7,8 +7,7 @@ export const fifoStockFields = [
 	'warehouse',
 	'lot_number',
 	'unit',
-	'on_hand',
-	'as_of'
+	'on_hand'
 ] as const;
 
 export const purchaseLotCostRead = (source: Id<'sys_integration'>) =>
@@ -30,7 +29,6 @@ type StockLot = {
 	readonly lot_number: string | null;
 	readonly unit: string | null;
 	readonly on_hand: string;
-	readonly as_of: string;
 };
 const unitKey = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase();
 
@@ -47,16 +45,19 @@ export function estimateFifoCost(
 		unit: string;
 		currency: string;
 		as_of: string;
+		/** What the ledger last confirmed of its stock and purchase lots (`confirmedAt`), not a row's time. */
+		confirmed: { readonly stock: string | null; readonly lots: string | null };
 	}
 ) {
 	const quantity = BigDecimal.fromStringUnsafe(input.quantity);
 	const now = Date.parse(input.as_of);
-	const fresh = (value: string) =>
-		Math.abs(now - Date.parse(value)) < Duration.toMillis(Duration.minutes(30));
+	const fresh = (value: string | null) =>
+		value !== null && Math.abs(now - Date.parse(value)) < Duration.toMillis(Duration.minutes(30));
 	if (
 		!BigDecimal.isPositive(quantity) ||
 		purchase.currency !== input.currency ||
-		!fresh(purchase.observed_at)
+		!fresh(input.confirmed.lots) ||
+		!fresh(input.confirmed.stock)
 	)
 		return null;
 	const productLots = lots.filter(
@@ -71,7 +72,6 @@ export function estimateFifoCost(
 		selected.some(
 			(lot) =>
 				!lot.lot_number ||
-				!fresh(lot.as_of) ||
 				unitKey(lot.unit) !== unitKey(input.unit) ||
 				BigDecimal.isNegative(BigDecimal.fromStringUnsafe(lot.on_hand))
 		)
@@ -100,7 +100,7 @@ export function estimateFifoCost(
 				row.lot_number === name && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(row.on_hand))
 		);
 		if (
-			recorded.some((row) => !fresh(row.as_of) || unitKey(row.unit) !== unitKey(input.unit)) ||
+			recorded.some((row) => unitKey(row.unit) !== unitKey(input.unit)) ||
 			BigDecimal.isGreaterThan(
 				BigDecimal.sumAll(recorded.map((row) => BigDecimal.fromStringUnsafe(row.on_hand))),
 				BigDecimal.fromStringUnsafe(receipt.received_qty)
@@ -192,7 +192,12 @@ export function averageLotCost(
 /** The remaining lots of one product a floor is compared with. */
 export const inventoryCostRead = (product: Id<'products'>, group = '') =>
 	({
-		products: { where: { id: { eq: product } }, fields: ['source', 'external_code'], limit: 1 },
+		products: {
+			where: { id: { eq: product } },
+			fields: ['source', 'external_code'],
+			source: { fields: ['active', 'status'] },
+			limit: 1
+		},
 		warehouses: { where: { group_code: { eq: group } }, fields: ['source'] },
 		stock_snapshots: {
 			where: { product: { eq: product } },

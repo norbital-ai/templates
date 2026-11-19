@@ -1,5 +1,6 @@
 import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
+import type { FacilityFailure, ReadFailed } from '@norbital-ai/bolt/errors';
 import { hash, sha256Hex, numeric } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
@@ -132,7 +133,13 @@ const nativeSql = Effect.fnUntraced(function* (
 export const readNativeRows = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	source: NativeProjection,
-	values: { readonly ids?: string; readonly branch?: string; readonly account?: string } = {}
+	values: {
+		readonly ids?: string;
+		readonly branch?: string;
+		readonly account?: string;
+		readonly from?: string;
+		readonly to?: string;
+	} = {}
 ) {
 	const rows: SqlRow[] = [];
 	let after = '';
@@ -801,10 +808,14 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext,
+	/** Nothing was written here since this feed's last read: a quiet window then answers `null`, asking the workspace nothing. */
+	unchanged: boolean,
 	costAccount?: string,
-	/** What else an order held for review could be waiting on, beyond an order moving. */
-	local = ''
+	/** What else an order held for review could be waiting on, beyond an order moving; read only if the window is not quiet. */
+	local: Effect.Effect<string, SourceRowInvalid | FacilityFailure | ReadFailed> = Effect.succeed('')
 ) {
+	const window = yield* orderWindow(ctx, cursor, 200, documentWindow(directions));
+	if (unchanged && window.quiet) return null;
 	const sides = yield* Effect.forEach(directions, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
@@ -817,13 +828,7 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 	const latest = sides
 		.flatMap((side) => side.owned)
 		.reduce((max, order) => (order.updated_at > max ? order.updated_at : max), '');
-	const window = yield* orderWindow(
-		ctx,
-		cursor,
-		200,
-		`${latest}|${local}`,
-		documentWindow(directions)
-	);
+	const { retry, close } = window.with(`${latest}|${yield* local}`);
 	const before = window.before?.split('|')[0] ?? '';
 	// commits can land out of their timestamps' order: orders stamped a little before the last read are read again
 	const since =
@@ -847,8 +852,7 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 			(order) =>
 				(order.kingdee && moved.has(`${bill.direction}:${order.kingdee.fid}`)) ||
 				(window.first &&
-					((latest !== before && order.updated_at > since) ||
-						window.retry.includes(uuid(order.id) ?? '')))
+					((latest !== before && order.updated_at > since) || retry.includes(uuid(order.id) ?? '')))
 		);
 		for (const order of touched) affected.add(order.id);
 		const orders = yield* readOwnedSales(
@@ -906,7 +910,7 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 		affected,
 		/** The page these rows make: an order held for review is read again when an order next moves. */
 		page: Effect.fnUntraced(function* <R>(rows: readonly (R & { readonly $id: string })[]) {
-			const closed = yield* window.close([...review.held].flatMap((order) => uuid(order) ?? []));
+			const closed = yield* close([...review.held].flatMap((order) => uuid(order) ?? []));
 			return reviewedPage<R>({ rows, cursor: closed.cursor, more: window.more }, review);
 		})
 	};
@@ -992,14 +996,14 @@ const invalidCursor = (reason: string) => new SourceRowInvalid({ column: '$curso
  * The order headers of the branch whose native rowversion moved since the bookmark, a page at a time: `[bookmark, upper)`
  * with `upper` the server's oldest active rowversion, captured before any row. Nothing is listed in full: a header
  * that did not move is not read, and Kingdee's deletes are soft, so they move a header too. An SO whose read waits on
- * something local (a customer not synchronized yet) is kept by UUID and read again when `token`, the caller's summary
- * of what it could be waiting on, changes.
+ * something local (a customer not synchronized yet) is kept by UUID and read again when the token, the caller's summary
+ * of what it could be waiting on, changes. The window is read before the caller looks at the workspace, so a read that
+ * finds it `quiet` while nothing changed here answers its cursor without querying the workspace.
  */
 export const orderWindow = Effect.fnUntraced(function* (
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
 	cursor: Json | null,
 	size: number,
-	token: string,
 	moved: string
 ) {
 	const [current] = yield* nativeSql(
@@ -1036,7 +1040,6 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	const more = page.length > size;
 	const first = after === '';
 	const kept = previous?.waiting ?? [];
-	const retry = first && previous?.token !== token ? kept : [];
 	return {
 		account: `${observed.database}/${observed.fork}`.toLowerCase(),
 		observedAt: observed.at,
@@ -1045,49 +1048,60 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 		headers,
 		first,
 		more,
-		retry,
-		/** The cursor this page leaves, with the SOs still waiting; unchanged when nothing moved. */
-		close: Effect.fnUntraced(function* (waiting: readonly string[]) {
-			const next = [...new Set([...kept.filter((uuid) => !retry.includes(uuid)), ...waiting])];
-			const base = {
-				protocol: 'kingdee-owned-v1' as const,
-				source: scope,
-				...(next.length ? { waiting: next.slice(0, WAITING) } : {}),
-				token
-			};
-			const last = headers.at(-1);
+		/**
+		 * Nothing moved since the bookmark and nothing waits: with nothing changed here either, the read has nothing to do.
+		 * An order still waiting keeps its feed looking (its health says why), so the attention is never dropped unread.
+		 */
+		quiet: first && headers.length === 0 && !more && kept.length === 0,
+		/** The waiting orders `token` sends again, and the cursor this page leaves with the orders still waiting. */
+		with: (token: string) => {
+			const retry = first && previous?.token !== token ? kept : [];
 			return {
-				backlog: next.length > WAITING,
-				cursor: more
-					? {
-							...base,
-							after: yield* checked(() => text(last ?? {}, '__key')),
-							finish: false,
-							bookmark: from,
-							upper: to
-						}
-					: {
-							...base,
-							after: '',
-							finish: true,
-							// an empty window keeps its bookmark: the cursor does not move, so nothing is committed
-							bookmark: first && headers.length === 0 ? from : to
-						}
+				retry,
+				close: Effect.fnUntraced(function* (waiting: readonly string[]) {
+					const next = [...new Set([...kept.filter((uuid) => !retry.includes(uuid)), ...waiting])];
+					const base = {
+						protocol: 'kingdee-owned-v1' as const,
+						source: scope,
+						...(next.length ? { waiting: next.slice(0, WAITING) } : {}),
+						token
+					};
+					const last = headers.at(-1);
+					return {
+						backlog: next.length > WAITING,
+						cursor: more
+							? {
+									...base,
+									after: yield* checked(() => text(last ?? {}, '__key')),
+									finish: false,
+									bookmark: from,
+									upper: to
+								}
+							: {
+									...base,
+									after: '',
+									finish: true,
+									// an empty window keeps its bookmark: the cursor does not move, so nothing is committed
+									bookmark: first && headers.length === 0 ? from : to
+								}
+					};
+				})
 			};
-		})
+		}
 	};
 });
-/** A document's transaction id: `<prefix>:<FInterID>`, or the id an earlier read gave it. */
 export const erpId = (existing: readonly string[], kind: string, fid: string) =>
 	existing.find((id) => id === `${kind}:${fid}` || id.startsWith(`${kind}:${fid}:`)) ??
 	`${kind}:${fid}`;
 export const readTransactions = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
-	ctx: OrderSourceContext
+	ctx: OrderSourceContext,
+	unchanged: boolean
 ) {
 	const directions = directionsOf(ctx.configuration);
-	const graph = yield* readOrderGraph(directions, instance, cursor, ctx);
+	const graph = yield* readOrderGraph(directions, instance, cursor, ctx, unchanged);
+	if (graph === null) return { rows: [], cursor, more: false };
 	const { transactions: existing, orders } = yield* ctx.query({
 		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] },
 		orders: {

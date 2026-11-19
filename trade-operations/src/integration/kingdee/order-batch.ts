@@ -31,6 +31,8 @@ export type OrderPayload = {
 	readonly lines: readonly OrderLine[];
 	/** The Kingdee order as it was read, when this write changes its lines. */
 	readonly previous?: {
+		/** An audited SO is amended into a new version; an unaudited order's lines are replaced. */
+		readonly audited: boolean;
 		readonly source_id: string;
 		readonly source_uuid: string;
 		readonly source_version: string;
@@ -102,7 +104,8 @@ const salesHeaderTypes = {
 	FTplOrderID: 'nvarchar(100)',
 	FHeadSelfS0191: 'nvarchar(100)',
 	FHeadSelfS0192: 'nvarchar(100)',
-	FSettleDate: 'datetime'
+	FSettleDate: 'datetime',
+	FVersionNo: 'nvarchar(3)'
 } as const;
 const salesItemTypes = {
 	FEntryID: 'int',
@@ -320,7 +323,9 @@ export function sourceOrderBatch(
 		FTplOrderID: '',
 		FHeadSelfS0191: '',
 		FHeadSelfS0192: '-',
-		FSettleDate: `${settlementDate(payload.ordered_on, bindings.creditDays, bindings.fromMonthEnd)}T00:00:00`
+		FSettleDate: `${settlementDate(payload.ordered_on, bindings.creditDays, bindings.fromMonthEnd)}T00:00:00`,
+		// the original version, as Kingdee's own create sends it: the column's default on the account set is unmeasured
+		FVersionNo: '000'
 	};
 	const values =
 		payload.direction === 'sales'

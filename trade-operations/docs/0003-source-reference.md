@@ -50,9 +50,9 @@ Import is available on a model with an `import_key` constraint; it matches by th
 
 All named runs use the reserved system identity and the listed policies. A manual-start grant controls who may start a run; cron/webhook/schedules use their declared trigger path. Model effects run as their writer and are separate from these named automations.
 
-| Automation                                                      | Trigger                  | Policies      | Purpose                                                                                 |
-| --------------------------------------------------------------- | ------------------------ | ------------- | --------------------------------------------------------------------------------------- |
-| [source_health](../src/automation/+source_health.automation.ts) | [{"cron":"*/5 * * * *"}] | source_health | Notifies workspace administrators when an accounting ledger connection needs attention. |
+| Automation                                                      | Trigger                                          | Policies      | Purpose                                                                                 |
+| --------------------------------------------------------------- | ------------------------------------------------ | ------------- | --------------------------------------------------------------------------------------- |
+| [source_health](../src/automation/+source_health.automation.ts) | [{"model":"sys_integration","verbs":["update"]}] | source_health | Notifies workspace administrators when an accounting ledger connection needs attention. |
 
 ## Integrations and source roles
 

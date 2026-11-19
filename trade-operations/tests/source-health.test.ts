@@ -1,41 +1,25 @@
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { fixtureId } from './test-runtime.js';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { workspace } from './kit.js';
 
-it.live('a ledger in attention notifies the workspace administrator only', () =>
+it.live('a ledger turning to attention notifies the workspace administrator only, once', () =>
 	Effect.gen(function* () {
-		const t = yield* workspace();
+		const t = yield* workspace({
+			source: () => Effect.fail(new FacilityFailure({ kind: 'invalid', message: 'Login failed.' }))
+		});
 		const admin = t.admin.actor;
 		if (admin.kind !== 'member') throw new Error('A workspace administrator is required');
-		const instance = fixtureId('sys_integration', 'kingdee');
-		yield* t.db.write({
-			text: `UPDATE sys_integration
-				SET status = '{"health":{"state":"attention","code":"windowLag"}}'::jsonb,
-					revision = revision + 1
-				WHERE id = $1`,
-			params: [instance]
-		});
 		t.member([], { teams: ['configurators'], email: 'configuration@test.example' });
-		t.clock.set('2026-10-10T00:05:00.000Z');
-		yield* t.run_due();
-		const notices = yield* t.db.rows(
-			Schema.Struct({
-				member: Schema.String,
-				title: Schema.String,
-				body: Schema.NullOr(Schema.String)
-			}),
-			{
-				text: 'SELECT member, title, body FROM sys_notification ORDER BY at',
-				params: []
-			}
-		);
-		expect(notices).toMatchObject([
-			{
-				member: admin.id,
-				title: 'kingdee needs attention',
-				body: 'An accounting source window is taking longer than the configured limit.'
-			}
-		]);
+		const notices = t.db.rows(Schema.Struct({ member: Schema.String, title: Schema.String }), {
+			text: 'SELECT member, title FROM sys_notification ORDER BY at',
+			params: []
+		});
+		// the read's failure moves the connection's health; that update, not a sweep, queues the notice
+		for (const _ of [1, 2]) {
+			yield* Effect.ignore(t.pull('products'));
+			yield* t.run_due();
+		}
+		expect(yield* notices).toEqual([{ member: admin.id, title: 'kingdee needs attention' }]);
 	})
 );

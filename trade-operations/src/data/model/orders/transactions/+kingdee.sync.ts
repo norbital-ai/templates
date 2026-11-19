@@ -6,7 +6,7 @@ export default sync('transactions', 'kingdee', {
 	with: 'kingdee',
 	policies: ['kingdee_sync'],
 	every: '5min',
-	read: function* ({ cursor, instance }, ctx) {
-		return fromSource(yield* readTransactions(instance, cursor, ctx), instance);
+	read: function* ({ cursor, instance, local_unchanged }, ctx) {
+		return fromSource(yield* readTransactions(instance, cursor, ctx, local_unchanged), instance);
 	}
 });

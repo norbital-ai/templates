@@ -160,10 +160,21 @@ const immutableSalesItems = [
 	'FDate',
 	'FAdviceConsignDate'
 ];
+/** The header terms an order mirrors; Kingdee's own (biller, department, salesperson, due date) are not checked. */
+const ownedHeader = [
+	'FBrNo',
+	'FBillNo',
+	'FTranType',
+	'FCurrencyID',
+	'FCustID',
+	'FSupplyID',
+	'FExchangeRate',
+	'FSettleID'
+];
 /**
  * Only static template-authored SQL reaches this existing RPC; business values are bound XML/scalars. It creates the
- * SO or PO once by its FUUID; a PO's lines are replaced while Kingdee still lets them change (unaudited and open),
- * against the entries last read.
+ * SO or PO once by its FUUID, or replaces its lines while it is unaudited and open, as KIS's own 修改 does, against the
+ * entries last read.
  */
 const orderSql = (direction: Direction) => {
 	const bill = bills[direction];
@@ -176,7 +187,7 @@ const orderSql = (direction: Direction) => {
 	return `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 ${requireWriteAccount}
-DECLARE @payload xml=CONVERT(xml,@document),@remote int,@lock_result int;
+DECLARE @payload xml=CONVERT(xml,@document),@remote int,@lock_result int,@created bit=0;
 DECLARE @header TABLE (${declaration(types.header)});
 DECLARE @lines TABLE (${declaration(types.items)});
 INSERT INTO @header SELECT ${xmlValues(types.header)} FROM @payload.nodes('/order/header') AS source(item);
@@ -198,30 +209,39 @@ ${sales ? ` IF EXISTS(SELECT 1 FROM @lines expected WHERE expected.FEntrySelfS01
  IF @remote IS NULL OR @remote<=0 OR EXISTS(SELECT 1 FROM dbo.${bill.order} WHERE FBrNo=@branch AND FInterID=@remote) ${fail('Source allocation is invalid')}
  INSERT INTO dbo.${bill.order} (FInterID,FUUID,${columns(types.header)}) SELECT @remote,CAST(@correlation AS uniqueidentifier),${columns(types.header)} FROM @header;
  INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
+ SET @created=1;
 END;
 IF (SELECT COUNT(*) FROM dbo.${bill.order} WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Source correlation was not preserved')}
-${
-	sales
-		? `IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (ISNULL(FVersionNo,'')<>'000' OR ISNULL(FChangeMark,0)<>0)) ${fail('Source order is no longer the original unamended version')}`
-		: `IF ${lineCount} OR ${lineDiffers} BEGIN
- IF EXISTS(SELECT 1 FROM dbo.POOrder WHERE FBrNo=@branch AND FInterID=@remote AND (FCheckerID IS NOT NULL OR FCancellation<>0 OR FClosed<>0 OR FStatus<>0)) ${fail('Kingdee changes PO lines only while the PO is unaudited and open')}
+IF ${lineCount} OR ${lineDiffers} BEGIN
+ IF EXISTS(SELECT 1 FROM dbo.${bill.order} WHERE FBrNo=@branch AND FInterID=@remote AND (ISNULL(FCheckerID,0)<>0 OR FCancellation<>0 OR FClosed<>0 OR FStatus<>0${sales ? ' OR ISNULL(FChangeMark,0)<>0' : ''})) ${fail('Kingdee changes order lines in place only while the order is unaudited and open')}
  DECLARE @basis xml=CONVERT(xml,@previous_document);
  DECLARE @read TABLE (FEntryID int NOT NULL,FItemID int NOT NULL,FQty decimal(28,10) NOT NULL,FAmount decimal(28,10) NOT NULL);
  INSERT INTO @read SELECT item.value('(@FEntryID)[1]','int'),item.value('(@FItemID)[1]','int'),item.value('(@FQty)[1]','decimal(28,10)'),item.value('(@FAmount)[1]','decimal(28,10)') FROM @basis.nodes('/order/items/item') AS source(item);
- IF (SELECT COUNT(*) FROM dbo.POOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @read) OR EXISTS(SELECT 1 FROM @read expected WHERE NOT EXISTS(SELECT 1 FROM dbo.POOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.FEntryID AND actual.FItemID=expected.FItemID AND actual.FQty=expected.FQty AND actual.FAmount=expected.FAmount)) ${moved}
- DELETE FROM dbo.POOrderEntry WHERE FBrNO=@branch AND FInterID=@remote;
- INSERT INTO dbo.POOrderEntry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
-END;`
-}
-IF NOT EXISTS(SELECT 1 FROM dbo.${bill.order} actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader.map((name) => (name === 'FBrNo' || name === 'FBillNo' ? sameText(`actual.${q(name)}`, `expected.${q(name)}`) : `actual.${q(name)}=expected.${q(name)}`)).join(' AND ')}) ${fail('Source order header differs from the submission')}
+ IF (SELECT COUNT(*) FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @read) OR EXISTS(SELECT 1 FROM @read expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.order}Entry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.FEntryID AND actual.FItemID=expected.FItemID AND actual.FQty=expected.FQty AND actual.FAmount=expected.FAmount)) ${moved}
+ DELETE FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote;
+ INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
+END;
+IF NOT EXISTS(SELECT 1 FROM dbo.${bill.order} actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader
+		.map((name) => {
+			const same =
+				name === 'FBrNo' || name === 'FBillNo'
+					? sameText(`actual.${q(name)}`, `expected.${q(name)}`)
+					: `actual.${q(name)}=expected.${q(name)}`;
+			// an order written earlier keeps the header Kingdee gave it; only the terms it mirrors must still agree
+			if (ownedHeader.includes(name)) return same;
+			if (name === 'FDate')
+				return `((${same}) OR (@created=0 AND CONVERT(date,actual.FDate)=CONVERT(date,expected.FDate)))`;
+			return `(@created=0 OR (${same}))`;
+		})
+		.join(' AND ')}) ${fail('Source order header differs from the submission')}
 IF ${lineCount} ${fail('Source order line count differs from the submission')}
 IF ${lineDiffers} ${fail('Source order lines differ from the submission')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;
 };
 export const sourceOrderSql = orderSql('sales');
 export const purchaseOrderSql = orderSql('purchasing');
-/** The PO entries last read, which a line replacement must still find. */
-const purchaseBasis = (previous: NonNullable<OrderPayload['previous']>) =>
+/** The entries last read, which a line replacement must still find. */
+const lineBasis = (previous: NonNullable<OrderPayload['previous']>) =>
 	`<order><items>${previous.lines.map((line) => `<item FEntryID="${escape(line.entry)}" FItemID="${escape(line.item)}" FQty="${escape(line.quantity)}" FAmount="${escape(line.net)}"/>`).join('')}</items></order>`;
 
 /** Creates the SO or PO as an unaudited draft, or changes its lines; polling observes source approval. */
@@ -364,10 +384,12 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: 'lines',
 			reason: 'Source order exceeds its payload bound'
 		});
+	// an audited SO is amended into a new version; anything else changes its lines in place
+	const amend = sales && payload.previous?.audited === true;
 	const previousDocument = payload.previous
-		? sales
+		? amend
 			? previousOrderDocument(payload.previous, bindings.baseCurrency)
-			: purchaseBasis(payload.previous)
+			: lineBasis(payload.previous)
 		: null;
 	if (previousDocument !== null && previousDocument.length > 262144)
 		return yield* new SourceRowInvalid({
@@ -385,36 +407,33 @@ export const submitOrder = Effect.fnUntraced(function* (
 			op: 'call',
 			procedure: { schema: 'sys', name: 'sp_executesql' },
 			arguments: {
-				stmt: !sales ? purchaseOrderSql : payload.previous ? sourceAmendmentSql : sourceOrderSql,
+				stmt: amend ? sourceAmendmentSql : sales ? sourceOrderSql : purchaseOrderSql,
 				params:
-					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73)' +
-					(!sales
-						? ',@previous_document nvarchar(max)'
-						: payload.previous
-							? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200),@preserve_source_header bit'
-							: ''),
+					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73),@previous_document nvarchar(max)' +
+					(amend
+						? ',@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200),@tax_inclusive bit'
+						: ''),
 				document,
 				branch: config.branchNo,
 				correlation,
 				resource: `norbital:trade:order:${correlation}`,
 				fingerprint,
 				write_account: target.account,
-				...(!sales
-					? { previous_document: previousDocument ?? '<order><items/></order>' }
-					: payload.previous && previousDocument !== null
-						? {
-								previous_document: previousDocument,
-								preserve_source_header: importedOrderIdentity(payload.key) !== null,
-								source_id: payload.previous.source_id,
-								source_version: payload.previous.source_version,
-								source_exchange_rate: payload.previous.source_exchange_rate,
-								biller: config.billerId,
-								change_cause: amendmentCause(
-									payload.reference,
-									yield* sha256Hex(JSON.stringify(payload.lines))
-								)
-							}
-						: {})
+				previous_document: previousDocument ?? '<order><items/></order>',
+				...(amend && payload.previous
+					? {
+							// KIS logs one 含税单价 row when the price the order was given on changes
+							tax_inclusive: payload.tax_inclusive,
+							source_id: payload.previous.source_id,
+							source_version: payload.previous.source_version,
+							source_exchange_rate: payload.previous.source_exchange_rate,
+							biller: config.billerId,
+							change_cause: amendmentCause(
+								payload.reference,
+								yield* sha256Hex(JSON.stringify(payload.lines))
+							)
+						}
+					: {})
 			},
 			transaction: 'serializable',
 			max_rows: 1
@@ -424,7 +443,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 	if (receipt?.remote === 'moved')
 		return yield* new FacilityFailure({
 			kind: 'upstream',
-			message: 'Kingdee changed the SO while it was being written; it is read again and retried.'
+			message: 'Kingdee changed the order while it was being written; it is read again and retried.'
 		});
 	if (result.rows.length !== 1 || receipt === undefined || receipt.hash !== fingerprint)
 		return yield* new SourceRowInvalid({

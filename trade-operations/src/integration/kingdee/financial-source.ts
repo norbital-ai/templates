@@ -483,23 +483,30 @@ export function mapPayments(
 export const readPaymentSource = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
-	ctx: OrderSourceContext
+	ctx: OrderSourceContext,
+	unchanged: boolean
 ) {
-	const { transactions: invoices } = yield* ctx.query({
-		transactions: {
-			where: { source: { eq: instance }, kind: { eq: 'invoice' } },
-			fields: ['erp_id', 'order']
-		}
-	});
+	// read once, and only if Kingdee moved or something changed here
+	const known = yield* Effect.cached(
+		ctx.query({
+			transactions: {
+				where: { source: { eq: instance }, kind: { eq: 'invoice' } },
+				fields: ['erp_id', 'order']
+			}
+		})
+	);
 	// a settlement waits for its invoice to arrive here
 	const graph = yield* readOrderGraph(
 		directionsOf(ctx.configuration),
 		instance,
 		cursor,
 		ctx,
+		unchanged,
 		undefined,
-		String(invoices.rows.length)
+		known.pipe(Effect.map(({ transactions }) => String(transactions.rows.length)))
 	);
+	if (graph === null) return { rows: [], cursor, more: false };
+	const { transactions: invoices } = yield* known;
 	const facts: { readonly bill: Bill; readonly fact: PaymentFact }[] = [];
 	for (const bill of Object.values(bills)) {
 		const owned = graph.invoices.filter((invoice) => invoice.owner.direction === bill.direction);
@@ -582,7 +589,8 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 export const readSalesFactSource = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
-	ctx: OrderSourceContext
+	ctx: OrderSourceContext,
+	unchanged: boolean
 ) {
 	const costAccount = kingdeeDeliveryCostAccount(ctx.configuration);
 	if (ctx.configuration.deliveryCostAccount?.trim() && costAccount === null)
@@ -602,9 +610,11 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 		instance,
 		costing && token.slice(token.indexOf('|') + 1) !== costing ? null : cursor,
 		ctx,
+		unchanged,
 		costAccount ?? undefined,
-		costing
+		Effect.succeed(costing)
 	);
+	if (graph === null) return { rows: [], cursor, more: false };
 	const facts = yield* checked(() =>
 		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt, costCurrency)
 	);

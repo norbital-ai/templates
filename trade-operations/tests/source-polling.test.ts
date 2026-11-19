@@ -38,6 +38,8 @@ function kind(request: DatabaseRequest) {
 	const stmt = argumentsOf(request).stmt;
 	if (typeof stmt !== 'string') throw new Error('SQL text is required');
 	if (stmt.includes('sys.objects') && stmt.includes('MIN_ACTIVE_ROWVERSION()')) return 'checkpoint';
+	if (stmt.includes('MIN_ACTIVE_ROWVERSION()')) return 'ceiling';
+	if (stmt.includes('HASHBYTES')) return 'fingerprint';
 	return 'page';
 }
 function fixture({
@@ -45,22 +47,48 @@ function fixture({
 	maximum = 10,
 	now = '2026-10-26T00:00:00.000Z',
 	fork = 'fork-a',
-	marker = 189
+	marker = 189,
+	listing = 'A'
 }: {
 	rows?: Record<string, Json>[];
 	maximum?: number;
 	now?: string;
 	fork?: string;
 	marker?: number | null;
+	/** What a feed without markers hashes its whole listing to; change it to move the table. */
+	listing?: string;
 } = {}) {
 	const calls: DatabaseRequest[] = [];
+	const state = { listing };
 	return {
 		calls,
+		state,
 		configuration: defaults,
 		request: Effect.fnUntraced(function* (value: unknown) {
 			const request = Schema.decodeUnknownSync(DatabaseRequest)(value);
 			calls.push(request);
 			const operation = kind(request);
+			if (operation === 'fingerprint')
+				return {
+					rows: [
+						{
+							database_guid: 'db-a',
+							recovery_fork_guid: fork,
+							fingerprint: state.listing.repeat(64)
+						}
+					]
+				};
+			if (operation === 'ceiling')
+				return {
+					rows: [
+						{
+							database_guid: 'db-a',
+							recovery_fork_guid: fork,
+							maximum: rv(maximum),
+							observed_at: now
+						}
+					]
+				};
 			if (operation === 'checkpoint') {
 				const versioned = Object.values(argumentsOf(request)).includes('source_version');
 				return {
@@ -143,7 +171,7 @@ test.effect(
 				}))
 			});
 			const page = yield* readSource(source, start.cursor, context, row);
-			expect(context.calls.map(kind)).toEqual(['checkpoint', 'page']);
+			expect(context.calls.map(kind)).toEqual(['ceiling', 'page']);
 			expect(argumentsOf(context.calls.at(-1))).toMatchObject({ from: rv(10), to: rv(2000) });
 			expect(page.cursor).toMatchObject({ bookmark: rv(10), continuation: { upper: rv(2000) } });
 			const next = fixture({ maximum: 3000, rows: [{ __key: 'P-0999', __rowversion: rv(1010) }] });
@@ -176,21 +204,63 @@ test.effect('an unchanged native ceiling needs no data page and retains its curs
 		});
 		const ctx = fixture();
 		const page = yield* readSource(source, start.cursor, ctx, row);
-		expect(ctx.calls.map(kind)).toEqual(['checkpoint']);
+		// within the hour of its verified marker schema, the poll asks only for the account and ceiling
+		expect(ctx.calls.map(kind)).toEqual(['ceiling']);
 		expect(page).toMatchObject({ rows: [], more: false, cursor: start.cursor });
 	})
 );
-test.effect('feeds without reliable markers use a complete listing on every poll', () =>
-	Effect.gen(function* () {
-		const ctx = fixture();
-		const begin = yield* readSource(snapshotSource, null, ctx, row);
-		const end = yield* readSource(snapshotSource, begin.cursor, ctx, row);
-		const again = yield* readSource(snapshotSource, end.cursor, ctx, row);
-		expect(again.snapshot).toBe('begin');
-		expect(
-			ctx.calls.filter((x) => kind(x) === 'page').every((x) => argumentsOf(x).from === undefined)
-		).toBe(true);
-	})
+test.effect(
+	'the marker schema is verified again after an hour when rows move, and a changed account is caught at once',
+	() =>
+		Effect.gen(function* () {
+			const start = yield* baseline();
+			// an hour later with nothing moved: the ceiling alone, and the cursor is not rewritten
+			const quiet = fixture({ now: '2026-10-26T01:00:00.000Z' });
+			const idle = yield* readSource(source, start.cursor, quiet, row);
+			expect(quiet.calls.map(kind)).toEqual(['ceiling']);
+			expect(idle.cursor).toEqual(start.cursor);
+			// with rows to read the schema is verified again, in the cursor the page commits anyway
+			const later = fixture({ now: '2026-10-26T01:00:00.000Z', maximum: 20 });
+			const page = yield* readSource(source, start.cursor, later, row);
+			expect(later.calls.map(kind)).toEqual(['ceiling', 'checkpoint', 'page']);
+			expect(page.cursor).toMatchObject({
+				checkedAt: '2026-10-26T01:00:00.000Z',
+				bookmark: rv(20)
+			});
+			const moved = fixture({ fork: 'fork-b' });
+			const refused = yield* Effect.flip(readSource(source, start.cursor, moved, row));
+			expect(moved.calls.map(kind)).toEqual(['ceiling', 'checkpoint']);
+			expect(refused._tag).toBe('CheckpointInvalid');
+		})
+);
+test.effect(
+	'a feed without markers lists its table whole, and again only once its fingerprint moves',
+	() =>
+		Effect.gen(function* () {
+			const ctx = fixture({ rows: [{ __key: 'P-1' }] });
+			const begin = yield* readSource(snapshotSource, null, ctx, row);
+			expect(begin.snapshot).toBe('begin');
+			const end = yield* readSource(snapshotSource, begin.cursor, ctx, row);
+			const pages = () => ctx.calls.filter((x) => kind(x) === 'page').length;
+			const listed = pages();
+			// unchanged: one request for the fingerprint, no rows and the same cursor, so nothing is committed
+			ctx.calls.length = 0;
+			expect(yield* readSource(snapshotSource, end.cursor, ctx, row)).toEqual({
+				rows: [],
+				cursor: end.cursor,
+				more: false
+			});
+			expect(ctx.calls.map(kind)).toEqual(['fingerprint']);
+			ctx.state.listing = 'B';
+			const again = yield* readSource(snapshotSource, end.cursor, ctx, row);
+			expect(again.snapshot).toBe('begin');
+			expect(again.rows).toHaveLength(1);
+			expect(pages()).toBe(1);
+			expect(listed).toBeGreaterThan(0);
+			expect(
+				ctx.calls.filter((x) => kind(x) === 'page').every((x) => argumentsOf(x).from === undefined)
+			).toBe(true);
+		})
 );
 test.effect(
 	'a changed source or regressed version fails without resetting or acknowledging its bookmark',

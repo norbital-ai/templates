@@ -9,6 +9,7 @@
 		inventoryCostRead,
 		purchaseLotCostRead
 	} from '../lot-cost.js';
+	import { confirmedAt, feeds } from '../../integration/kingdee/connection-status.js';
 
 	let {
 		form,
@@ -51,19 +52,22 @@
 		product === null ? null : ctx.query(inventoryCostRead(product, warehouseGroup))
 	);
 	const item = $derived(lots?.current?.products.rows[0]);
+	const ledger = $derived(item?.source ?? null);
 	const costs = $derived(
-		item &&
+		ledger &&
+			item &&
 			ctx.catalog?.source_lot_costs &&
 			basis &&
 			BigDecimal.isPositive(BigDecimal.fromStringUnsafe(basis.quantity)) &&
 			warehouseGroup
-			? ctx.query(purchaseLotCostRead(item.source))
+			? ctx.query(purchaseLotCostRead(ledger.id))
 			: null
 	);
 	const purchase = $derived(costs?.current?.source_lot_costs.rows[0]);
 	const fifo = $derived(
 		basis &&
 			item &&
+			ledger &&
 			purchase &&
 			lots?.current &&
 			!lots.current.stock_snapshots.next &&
@@ -71,14 +75,18 @@
 			? estimateFifoCost(lots.current.stock_snapshots.rows, purchase, {
 					product: basis.product,
 					productCode: item.external_code,
-					source: item.source,
+					source: ledger.id,
 					warehouses: lots.current.warehouses.rows
-						.filter((row) => row.source === item.source)
+						.filter((row) => row.source === ledger.id)
 						.map((row) => row.id),
 					quantity: basis.quantity,
 					unit: basis.unit,
 					currency: basis.currency,
-					as_of: clock.now
+					as_of: clock.now,
+					confirmed: {
+						stock: confirmedAt(ledger, feeds.stock, clock.now),
+						lots: confirmedAt(ledger, feeds.lotCosts, clock.now)
+					}
 				})
 			: null
 	);

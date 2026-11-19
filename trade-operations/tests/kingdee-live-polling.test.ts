@@ -16,6 +16,7 @@ import {
 	stockAvailability,
 	stockAvailabilityRead
 } from '../src/lib/stock-availability.js';
+import { feeds } from '../src/integration/kingdee/connection-status.js';
 import {
 	agingDetails,
 	agingRead,
@@ -93,7 +94,7 @@ it.effect.skipIf(!password)(
 			INSERT dbo.SEOrder VALUES ('0',1,0,0,0,0),('1',1,0,2,0,0),('0',2,0,3,0,0),('0',3,0,1,0,1),('0',4,1,1,0,0),('0',5,0,1,1,0);
 			INSERT dbo.SEOrderEntry VALUES ('0',1,210,8,2,0),('0',1,210,5,0,1),('1',1,210,1,0,0),('0',2,210,4,0,0),('0',3,210,4,0,0),('0',4,210,4,0,0),('0',5,210,4,0,0);
 			DELETE dbo.ICInventory;
-			INSERT dbo.ICInventory VALUES (210,311,'LOT-01',5), (210,311,'LOT-02',5.5);
+			INSERT dbo.ICInventory VALUES (210,311,'LOT-01',5), (210,311,'LOT-02',5.5), (210,311,'LOT-00',0);
 			CREATE TABLE dbo.ICStockBill (FInterID int PRIMARY KEY, FTranType int, FCancellation bit, FCheckDate datetime, FDate datetime, FROB int);
 			CREATE TABLE dbo.ICStockBillEntry (FInterID int, FItemID int, FBatchNo nvarchar(40), FQty decimal(28,10), FAmount decimal(28,10));
 			INSERT dbo.ICStockBill VALUES (1,1,0,'20260901','20260901',1),(2,1,0,'20261001','20261001',1),(3,1,1,'20261002','20261002',1),(4,21,0,'20260902','20260902',1);
@@ -178,6 +179,11 @@ it.effect.skipIf(!password)(
 			yield* t.pull('products');
 			yield* t.pull('warehouses');
 			yield* t.pull('stock_snapshots');
+			// an unchanged listing is one fingerprint request: nothing is listed or written again
+			const lots = () => sales.query({ stock_snapshots: { fields: ['lot_number', 'as_of'] } });
+			const listed = yield* lots();
+			yield* t.pull('stock_snapshots');
+			expect(yield* lots()).toEqual(listed);
 			const pull = () => t.pull('source_stock_commitments');
 			yield* pull();
 			expect(payloads).toEqual([]);
@@ -197,6 +203,39 @@ it.effect.skipIf(!password)(
 			const totals = firstRow(stockAvailability(observed, Date.now(), false));
 			expect(sameDecimal(totals.on_hand, '10.500')).toBe(true);
 			expect(sameDecimal(totals.available, '3.500')).toBe(true);
+			// a spent lot is not listed; a product the listing leaves out has none and is short by what is awaited
+			expect(observed.stock_snapshots.rows.map((lot) => lot.lot_number).sort()).toEqual([
+				'LOT-01',
+				'LOT-02'
+			]);
+			const unlisted = firstRow(
+				stockAvailability(
+					{
+						...observed,
+						stock_snapshots: {
+							...observed.stock_snapshots,
+							rows: observed.stock_snapshots.rows.map((lot) => ({
+								...lot,
+								product: fixtureId('products', '00000000-0000-4000-8000-000000000999')
+							}))
+						}
+					},
+					Date.now(),
+					false
+				)
+			);
+			expect(sameDecimal(unlisted.on_hand, '0')).toBe(true);
+			expect(sameDecimal(unlisted.available, '-7.000')).toBe(true);
+			// a ledger with no listing at all stays unknown
+			expect(
+				firstRow(
+					stockAvailability(
+						{ ...observed, stock_snapshots: { ...observed.stock_snapshots, rows: [] } },
+						Date.now(),
+						false
+					)
+				).available
+			).toBeNull();
 			expect(
 				stockAvailability(observed, Date.now(), true).every((row) => row.available === null)
 			).toBe(true);
@@ -207,7 +246,31 @@ it.effect.skipIf(!password)(
 					'3.500'
 				)
 			).toBe(true);
-			const stale = firstRow(stockAvailability(observed, Date.now() + 31 * 60_000, false));
+			// a quiet read writes nothing: figures go stale only once their feed has failed past the limit
+			const failing = <A extends { products: { rows: readonly { source: object | null }[] } }>(
+				answer: A,
+				minutes: number
+			): A => ({
+				...answer,
+				products: {
+					...answer.products,
+					rows: answer.products.rows.map((row) => ({
+						...row,
+						source: row.source && {
+							...row.source,
+							status: {
+								state: 'connected',
+								databaseVerified: true,
+								failing: { [feeds.stock]: new Date(Date.now() - minutes * 60_000).toISOString() }
+							}
+						}
+					}))
+				}
+			});
+			expect(
+				firstRow(stockAvailability(failing(observed, 29), Date.now(), false)).available
+			).not.toBeNull();
+			const stale = firstRow(stockAvailability(failing(observed, 31), Date.now(), false));
 			expect(stale.available).toBeNull();
 			expect(sameDecimal(stale.on_hand, '10.500')).toBe(true);
 			committed(
@@ -224,7 +287,7 @@ it.effect.skipIf(!password)(
 			const configured = yield* logistics.query(logisticsStockAvailabilityRead);
 			expect(
 				sameDecimal(
-					firstRow(stockAvailability(configured, Date.now() + 31 * 60_000, false)).available,
+					firstRow(stockAvailability(failing(configured, 31), Date.now(), false)).available,
 					'3.500'
 				)
 			).toBe(true);
@@ -236,6 +299,8 @@ it.effect.skipIf(!password)(
 			);
 			expect(unchanged.id).toBe(snapshot.id);
 			expect(unchanged.entries).toEqual(snapshot.entries);
+			// an unchanged payload writes nothing, not even the time it was seen
+			expect(unchanged.observed_at).toBe(snapshot.observed_at);
 			yield* sql(
 				"UPDATE dbo.SEOrderEntry SET FStockQty=4 WHERE FBrNO='0' AND FInterID=1 AND FMrpClosed=0"
 			);
@@ -281,7 +346,8 @@ it.effect.skipIf(!password)(
 			const product = firstRow(masters.products.rows).id;
 			const onHand = yield* configuration.query(inventoryCostRead(product, 'WH'));
 			const warehouse = firstRow(onHand.warehouses.rows).id;
-			const estimate = (quantity: string, currency = 'CNY', as_of = new Date().toISOString()) =>
+			const now = () => new Date().toISOString();
+			const estimate = (quantity: string, currency = 'CNY', lots = now()) =>
 				estimateFifoCost(onHand.stock_snapshots.rows, costs, {
 					product,
 					productCode: '210',
@@ -290,13 +356,16 @@ it.effect.skipIf(!password)(
 					quantity,
 					unit: 'kg',
 					currency,
-					as_of
+					as_of: now(),
+					confirmed: { stock: now(), lots }
 				});
 			expect(sameDecimal(estimate('5')?.unit_cost, '2')).toBe(true);
 			expect(sameDecimal(estimate('8')?.unit_cost, '2.375')).toBe(true);
 			expect(estimate('11')).toBeNull();
 			expect(estimate('8', 'USD')).toBeNull();
-			expect(estimate('8', 'CNY', new Date(Date.now() + 31 * 60_000).toISOString())).toBeNull();
+			// lot costs whose feed has failed for 31 minutes are too old to price from
+			expect(estimate('8', 'CNY', new Date(Date.now() - 31 * 60_000).toISOString())).toBeNull();
+			const ledger = { active: true, status: { state: 'connected', databaseVerified: true } };
 			const order = committed(
 				'orders',
 				yield* admin.act({
@@ -323,7 +392,7 @@ it.effect.skipIf(!password)(
 				}))
 			});
 			const savedQuote = yield* confirmationReadOf(admin, order);
-			const guidance = quotationFifoCosts(savedQuote, costs, new Date().toISOString());
+			const guidance = quotationFifoCosts(savedQuote, costs, now(), ledger);
 			expect(guidance).toHaveLength(1);
 			expect(guidance[0]?.below).toBe(true);
 			expect(
@@ -339,7 +408,7 @@ it.effect.skipIf(!password)(
 			yield* pullCosts();
 			expect((yield* sourceCosts()).entries.map((entry) => entry.lot_number)).toEqual(['LOT-01']);
 			expect(
-				quotationFifoCosts(savedQuote, yield* sourceCosts(), new Date().toISOString())[0]?.estimate
+				quotationFifoCosts(savedQuote, yield* sourceCosts(), now(), ledger)[0]?.estimate
 			).toBeNull();
 			yield* sql(
 				"INSERT dbo.t_Item (FItemID,FNumber,FName,FItemClassID,FDetail) VALUES (711,'box','box',7,1); UPDATE dbo.t_ICItem SET FUnitID=711 WHERE FItemID=210"
@@ -537,6 +606,7 @@ it.effect.skipIf(!password)(
 			yield* sql(orders);
 			let moveReceivablesDuringRead = false;
 			let requests = 0;
+			const arStatements: string[] = [];
 			let deliveryCostReads = 0;
 			const t = yield* workspace({
 				now: '2026-11-06T00:00:00.000Z',
@@ -548,6 +618,8 @@ it.effect.skipIf(!password)(
 							);
 							requests++;
 							if (String(compiled.parameters.stmt).includes('AS cost_amount')) deliveryCostReads++;
+							const ar = /\/\* (kingdee-ar-[^*]+?) \*\//.exec(String(compiled.parameters.stmt));
+							if (ar?.[1]) arStatements.push(ar[1]);
 							const tx = source.transaction();
 							await tx.begin(
 								compiled.transaction === 'serializable'
@@ -678,6 +750,19 @@ it.effect.skipIf(!password)(
 				);
 			const original = yield* live();
 			expect(original).toMatchObject({ version: '000', checker: null });
+			// before audit a line change lands in place, as KIS's own 修改 does: no version, archive or change log
+			for (const quantity of ['11', '10']) {
+				yield* as.act({
+					'order_lines.update': [{ target: yield* t.at('order_lines', line), set: { quantity } }]
+				});
+				yield* t.deliver();
+				expect(yield* live()).toMatchObject({ fid: original.fid, version: '000', checker: null });
+				const [entry] = (yield* sql(
+					`SELECT FEntryID AS entry,CONVERT(varchar(40),FQty) AS quantity,(SELECT COUNT(*) FROM dbo.ICOrderAlter) AS changes,(SELECT COUNT(*) FROM dbo.SEOrder) AS orders FROM dbo.SEOrderEntry WHERE FInterID=${original.fid}`
+				)).recordset;
+				expect(entry).toMatchObject({ entry: 1, changes: 0, orders: 1 });
+				expect(sameDecimal(entry?.quantity, quantity)).toBe(true);
+			}
 			yield* Effect.promise(() =>
 				source.request().input('fid', mssql.Int, original.fid).query(`
 			UPDATE dbo.SEOrder SET FCheckerID=42,FCheckDate='20261026',FStatus=1 WHERE FInterID=@fid;
@@ -794,6 +879,21 @@ it.effect.skipIf(!password)(
 			yield* synchronize();
 			yield* synchronize();
 			expect(yield* live()).toMatchObject({ fid: original.fid, version: '001' });
+			// one change-log row per changed field, as KIS's own 订单变更 writes it: plain values, the date alone
+			expect(
+				(yield* sql(
+					`SELECT FChangeType AS kind,FoldNo AS old_no,FChangeField AS field,FBChangeValue AS before_value,FEChangeValue AS after_value,CONVERT(varchar(8),FChangeDate,108) AS at FROM dbo.ICOrderAlter WHERE FInterID=${original.fid} AND FVersionNo='001'`
+				)).recordset
+			).toEqual([
+				{
+					kind: '修改',
+					old_no: '1',
+					field: '数量',
+					before_value: '10',
+					after_value: '12',
+					at: '00:00:00'
+				}
+			]);
 			expect((yield* read()).kingdee).toMatchObject({ fid: String(original.fid), version: '001' });
 			const after = yield* evidence();
 			expect(after.transactions.rows).toEqual(before.transactions.rows);
@@ -1149,26 +1249,66 @@ it.effect.skipIf(!password)(
 				expect(scoped.transactions.rows).toHaveLength(0);
 				expect(scoped.source_payments.rows).toHaveLength(0);
 			}
-			yield* pullReceivables();
+			// an unchanged hour asks the checkpoint and an empty window, and writes nothing
+			const pullReceivablesCounted = () =>
+				Effect.gen(function* () {
+					arStatements.length = 0;
+					yield* pullReceivables();
+					return [...arStatements];
+				});
+			expect(yield* pullReceivablesCounted()).toEqual([
+				'kingdee-ar-checkpoint',
+				'kingdee-ar-moved'
+			]);
 			expect((yield* finance.query(receivablesRead)).source_receivables.rows).toEqual(snapshots);
+			const entryOf = (contact: string) =>
+				finance
+					.query(receivablesRead)
+					.pipe(
+						Effect.map((answer) =>
+							firstRow(answer.source_receivables.rows).entries.find(
+								(entry) => entry.contact_id === contact
+							)
+						)
+					);
+			// a moved open item is read by id and merged; a change during that read arrives with the next window
 			yield* sql('UPDATE dbo.t_RP_Contact SET FRemainAmount=69 WHERE FID=10002');
 			moveReceivablesDuringRead = true;
-			expect(Exit.isFailure(yield* Effect.exit(pullReceivables()))).toBe(true);
+			expect(yield* pullReceivablesCounted()).toEqual([
+				'kingdee-ar-checkpoint',
+				'kingdee-ar-moved',
+				'kingdee-ar-entries by id'
+			]);
 			expect(moveReceivablesDuringRead).toBe(false);
-			expect((yield* finance.query(receivablesRead)).source_receivables.rows).toEqual(snapshots);
-			yield* pullReceivables();
 			const revisedAr = firstRow((yield* finance.query(receivablesRead)).source_receivables.rows);
 			expect(revisedAr.id).toBe(snapshots[0]?.id);
-			const revisedBalance = revisedAr.entries.find(
-				(entry) => entry.contact_id === '10002'
-			)?.remaining;
-			expect(sameDecimal(revisedBalance, '67')).toBe(true);
-			yield* sql("UPDATE dbo.t_RP_NewCheckInfo SET FCheckDate='20261105' WHERE FInterID=50002");
+			expect(sameDecimal((yield* entryOf('10002'))?.remaining, '69')).toBe(true);
 			yield* pullReceivables();
+			expect(sameDecimal((yield* entryOf('10002'))?.remaining, '67')).toBe(true);
+			// what moves no rowversion (a settlement's date, a due plan, an item deleted) is caught by its bucket alone
+			yield* sql("UPDATE dbo.t_RP_NewCheckInfo SET FCheckDate='20261105' WHERE FInterID=50002");
+			expect(yield* pullReceivablesCounted()).toEqual([
+				'kingdee-ar-checkpoint',
+				'kingdee-ar-moved',
+				'kingdee-ar-entries by bucket'
+			]);
+			expect((yield* entryOf('10002'))?.settlements).toEqual([
+				{ on: '2026-11-05', amount: '30.0000000000' }
+			]);
+			yield* sql(
+				"UPDATE dbo.t_RP_Plan_Ar SET FDate='20261110' WHERE FInterID=30002 AND FRemainAmount<>0"
+			);
+			expect(yield* pullReceivablesCounted()).toEqual([
+				'kingdee-ar-checkpoint',
+				'kingdee-ar-moved',
+				'kingdee-ar-entries by bucket'
+			]);
+			expect((yield* entryOf('10002'))?.due_on).toBe('2026-11-10');
+			yield* sql('DELETE dbo.t_RP_Contact WHERE FID=10005');
+			yield* pullReceivables();
+			expect(yield* entryOf('10005')).toBeUndefined();
 			const correctedAr = firstRow((yield* finance.query(receivablesRead)).source_receivables.rows);
-			expect(
-				correctedAr.entries.find((entry) => entry.contact_id === '10002')?.settlements
-			).toEqual([{ on: '2026-11-05', amount: '30.0000000000' }]);
+			expect(correctedAr.entries).toHaveLength(4);
 
 			yield* sql(`
 				INSERT dbo.t_RP_Contact (FID,FRP,FType,FInvoiceID,FCustomer,FNumber,FDate,FRemainAmount)
@@ -1586,6 +1726,21 @@ it.effect.skipIf(!password)(
 			]);
 			expect(firstRow(imported.orders.rows).lines).toHaveLength(1);
 			expect(sameDecimal(firstRow(firstRow(imported.orders.rows).lines).quantity, '3')).toBe(true);
+			// its lines change here while it is unaudited, though its biller, department and due date are Kingdee's own
+			yield* as.act({
+				'order_lines.update': [
+					{
+						target: yield* t.at('order_lines', firstRow(firstRow(imported.orders.rows).lines).id),
+						set: { quantity: '4' }
+					}
+				]
+			});
+			yield* t.deliver();
+			const native = (yield* sql(
+				'SELECT FEntryID AS entry,CONVERT(varchar(40),FQty) AS quantity FROM dbo.POOrderEntry WHERE FInterID=16100'
+			)).recordset;
+			expect(native).toHaveLength(1);
+			expect(sameDecimal(native[0]?.quantity, '4')).toBe(true);
 		}),
 	180_000
 );

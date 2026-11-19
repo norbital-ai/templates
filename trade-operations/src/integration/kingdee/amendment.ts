@@ -36,6 +36,14 @@ const fail = (message: string) => `BEGIN RAISERROR('${message}',16,1); RETURN; E
 export const moved = `BEGIN SELECT 'moved' AS remote,@fingerprint AS hash; RETURN; END;`;
 const sameText = (left: string, right: string) =>
 	`CONVERT(nvarchar(max),${left}) COLLATE Latin1_General_BIN2=CONVERT(nvarchar(max),${right}) COLLATE Latin1_General_BIN2 AND DATALENGTH(CONVERT(nvarchar(max),${left}))=DATALENGTH(CONVERT(nvarchar(max),${right}))`;
+/** A decimal as KIS logs it in ICOrderAlter: no trailing zeros (`10.0000000000` → `10`), at compatibility level 100. */
+const plain = (value: string) =>
+	`REPLACE(RTRIM(REPLACE(REPLACE(RTRIM(REPLACE(CONVERT(varchar(40),${value}),'0',' ')),' ','0'),'.',' ')),' ','.')`;
+// KIS leaves the custom FEntrySelf* columns unset on a line its 订单变更 adds
+const added = Object.keys(itemTypes)
+	.filter((name) => !name.startsWith('FEntrySelf'))
+	.map(q)
+	.join(',');
 export const amendmentCause = (reference: string, fingerprint: string) =>
 	`Colony order ${reference} [${fingerprint.slice(0, 16)}]`;
 const logText = (value: string, column: string) =>
@@ -48,12 +56,7 @@ const header = [
 	'FCustID',
 	'FDate',
 	'FExchangeRate',
-	'FDeptID',
-	'FEmpID',
-	'FSettleID',
-	'FAreaPS',
-	'FSaleStyle',
-	'FSettleDate'
+	'FSettleID'
 ];
 const amounts = [
 	'FQty',
@@ -77,10 +80,6 @@ const targetMatches = targetFields
 	.join(' AND ');
 const noticeQty = (alias: string) =>
 	`ISNULL((SELECT SUM(n.FQty) FROM dbo.SEOutStockEntry n WHERE n.FSourceTranType=81 AND n.FSourceInterId=${alias}.FInterID AND n.FItemID=${alias}.FItemID),0)`;
-const deliveredQty = (alias: string) =>
-	`ISNULL((SELECT SUM(d.FQty) FROM dbo.ICStockBillEntry d JOIN dbo.ICStockBill h ON h.FInterID=d.FInterID WHERE h.FTranType=21 AND h.FCheckDate IS NOT NULL AND h.FCancellation=0 AND h.FROB=1 AND ((d.FSourceTranType=81 AND d.FSourceInterId=${alias}.FInterID AND d.FSourceEntryID=${alias}.FEntryID) OR (d.FOrderInterID=${alias}.FInterID AND d.FItemID=${alias}.FItemID))),0)`;
-const billedQty = (alias: string) =>
-	`ISNULL((SELECT SUM(i.FQty) FROM dbo.ICSaleEntry i JOIN dbo.ICSale h ON h.FInterID=i.FInterID WHERE h.FCheckDate IS NOT NULL AND h.FCancellation=0 AND h.FROB=1 AND i.FSourceTranType=81 AND i.FSourceInterId=${alias}.FInterID AND i.FSourceEntryID=${alias}.FEntryID),0)`;
 const linked = (alias: string) =>
 	`EXISTS(SELECT 1 FROM dbo.ICStockBillEntry d JOIN dbo.ICStockBill h ON h.FInterID=d.FInterID WHERE h.FTranType=21 AND ((d.FSourceTranType=81 AND d.FSourceInterId=${alias}.FInterID AND d.FSourceEntryID=${alias}.FEntryID) OR (d.FOrderInterID=${alias}.FInterID AND d.FItemID=${alias}.FItemID))) OR EXISTS(SELECT 1 FROM dbo.SEOutStockEntry n WHERE n.FSourceTranType=81 AND n.FSourceInterId=${alias}.FInterID AND n.FItemID=${alias}.FItemID) OR EXISTS(SELECT 1 FROM dbo.ICSaleEntry i WHERE i.FSourceTranType=81 AND i.FSourceInterId=${alias}.FInterID AND i.FSourceEntryID=${alias}.FEntryID)`;
 
@@ -136,7 +135,7 @@ export function previousOrderDocument(
 export const sourceAmendmentSql = `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 ${requireWriteAccount}
-DECLARE @payload xml=CONVERT(xml,@document),@prior xml=CONVERT(xml,@previous_document),@remote int=CAST(@source_id AS int),@archive int,@lock_result int,@actual_version nvarchar(30),@new_version nvarchar(3),@user nvarchar(255),@sql nvarchar(max),@cols nvarchar(max),@values nvarchar(max);
+DECLARE @payload xml=CONVERT(xml,@document),@prior xml=CONVERT(xml,@previous_document),@remote int=CAST(@source_id AS int),@today datetime=CONVERT(datetime,CONVERT(date,GETDATE())),@archive int,@lock_result int,@actual_version nvarchar(30),@new_version nvarchar(3),@user nvarchar(255),@sql nvarchar(max),@cols nvarchar(max),@values nvarchar(max);
 DECLARE @header TABLE (${declaration(headerTypes)});
 DECLARE @lines TABLE (${declaration(itemTypes)});
 DECLARE @previous TABLE (entry_id int NOT NULL PRIMARY KEY,item_id int NOT NULL,unit_name nvarchar(200) NOT NULL,quantity decimal(28,10) NOT NULL,exclusive decimal(28,10) NOT NULL,inclusive decimal(28,10) NOT NULL,tax_rate decimal(28,10) NOT NULL,net decimal(28,10) NOT NULL,tax decimal(28,10) NOT NULL,total decimal(28,10) NOT NULL,standard_total decimal(28,10) NOT NULL);
@@ -145,6 +144,9 @@ INSERT INTO @lines SELECT ${xmlValues(itemTypes)} FROM @payload.nodes('/order/it
 INSERT INTO @previous SELECT item.value('(@entry)[1]','int'),item.value('(@item)[1]','int'),item.value('(@unit)[1]','nvarchar(200)'),item.value('(@quantity)[1]','decimal(28,10)'),item.value('(@exclusive)[1]','decimal(28,10)'),item.value('(@inclusive)[1]','decimal(28,10)'),item.value('(@tax_rate)[1]','decimal(28,10)'),item.value('(@net)[1]','decimal(28,10)'),item.value('(@tax)[1]','decimal(28,10)'),item.value('(@total)[1]','decimal(28,10)'),item.value('(@standard_total)[1]','decimal(28,10)') FROM @prior.nodes('/previous/line') AS source(item);
 IF (SELECT COUNT(*) FROM @header)<>1 OR (SELECT COUNT(*) FROM @lines) NOT BETWEEN 1 AND 200 OR (SELECT COUNT(*) FROM @previous) NOT BETWEEN 1 AND 200 ${fail('Incomplete source amendment')}
 IF EXISTS(SELECT FEntryID FROM @lines GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Duplicate amendment entry identity')}
+DECLARE @cause_capacity int=(SELECT CASE WHEN c.max_length=-1 THEN 4000 WHEN t.name IN ('nvarchar','nchar') THEN c.max_length/2 ELSE c.max_length END FROM sys.columns c JOIN sys.types t ON t.user_type_id=c.user_type_id WHERE c.object_id=OBJECT_ID('dbo.ICOrderAlter') AND c.name='FChangeCauses');
+IF @cause_capacity IS NULL OR @cause_capacity<19 ${fail('The source change log cannot preserve amendment provenance')}
+IF LEN(@change_cause)>@cause_capacity SET @change_cause=LEFT(@change_cause,@cause_capacity-19)+RIGHT(@change_cause,19);
 IF @source_version NOT LIKE '[0-9][0-9][0-9]' OR @source_version='999' ${fail('Source version is not amendable')}
 SET @new_version=RIGHT('000'+CONVERT(varchar(3),CAST(@source_version AS int)+1),3);
 EXEC @lock_result=sys.sp_getapplock @Resource=@resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
@@ -159,12 +161,8 @@ IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE
 			name === 'FBrNo' || name === 'FBillNo'
 				? sameText(`actual.${q(name)}`, `expected.${q(name)}`)
 				: `actual.${q(name)}=expected.${q(name)}`;
-		// Native-origin headers retain fields our model does not own; amendments only change entries and version metadata.
-		if (['FDeptID', 'FEmpID', 'FAreaPS', 'FSaleStyle', 'FSettleDate'].includes(name))
-			return `(@preserve_source_header=1 OR (${same}))`;
-		if (name === 'FDate')
-			return `((${same}) OR (@preserve_source_header=1 AND CONVERT(date,actual.FDate)=CONVERT(date,expected.FDate)))`;
-		return same;
+		// Kingdee keeps the header: an amendment changes entries and version metadata, against the terms the order mirrors
+		return name === 'FDate' ? `CONVERT(date,actual.FDate)=CONVERT(date,expected.FDate)` : same;
 	})
 	.join(' AND ')}) ${fail('Amendments cannot change the approved source header terms')}
 IF EXISTS(SELECT FEntryID FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Source entry identities are ambiguous')}
@@ -184,7 +182,7 @@ IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Ite
 IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)=(SELECT COUNT(*) FROM @lines) AND NOT EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${targetMatches})) BEGIN
  SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash; RETURN;
 END;
-IF EXISTS(SELECT 1 FROM dbo.SEOrderEntry old JOIN @lines target ON target.FEntryID=old.FEntryID WHERE old.FBrNO=@branch AND old.FInterID=@remote AND target.FQty<>old.FQty AND (target.FQty<ISNULL(old.FStockQty,0) OR target.FQty<${noticeQty('old')} OR target.FQty<${deliveredQty('old')} OR target.FQty<${billedQty('old')})) ${fail('Amended quantity is below shipped, notified or invoiced quantity')}
+IF EXISTS(SELECT 1 FROM dbo.SEOrderEntry old JOIN @lines target ON target.FEntryID=old.FEntryID WHERE old.FBrNO=@branch AND old.FInterID=@remote AND target.FQty<>old.FQty AND (target.FQty<ISNULL(old.FStockQty,0) OR target.FQty<${noticeQty('old')})) ${fail('Amended quantity is below shipped or notified quantity')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrderEntry old WHERE old.FBrNO=@branch AND old.FInterID=@remote AND NOT EXISTS(SELECT 1 FROM @lines target WHERE target.FEntryID=old.FEntryID) AND (ISNULL(old.FStockQty,0)<>0 OR ${linked('old')})) ${fail('A linked or shipped source line cannot be removed')}
 IF COLUMNPROPERTY(OBJECT_ID('dbo.SEOrderEntry'),'FDetailID','IsIdentity')<>1 ${fail('The source line allocator has not been verified')}
 SELECT @user=FName FROM dbo.t_User WHERE FUserID=CAST(@biller AS int);
@@ -200,23 +198,22 @@ SELECT @cols=STUFF((SELECT ','+QUOTENAME(name) FROM sys.columns WHERE object_id=
 SET @sql=N'INSERT dbo.SEOrderEntry('+@cols+') SELECT '+@values+' FROM dbo.SEOrderEntry WHERE FBrNO=@br AND FInterID=@id; IF @@ROWCOUNT<>@count RAISERROR(''Source line archive failed'',16,1);';
 DECLARE @prior_count int=(SELECT COUNT(*) FROM @previous);
 EXEC sys.sp_executesql @sql,N'@id int,@arc int,@br nvarchar(20),@count int',@id=@remote,@arc=@archive,@br=@branch,@count=@prior_count;
-DECLARE @changes TABLE (entry_id int NOT NULL,item_id int NOT NULL,kind nvarchar(10) NOT NULL,field nvarchar(30) NOT NULL,before_value nvarchar(100) NOT NULL,after_value nvarchar(100) NOT NULL);
-INSERT @changes SELECT target.FEntryID,target.FItemID,N'修改',N'数量',CONVERT(nvarchar(100),old.quantity),CONVERT(nvarchar(100),target.FQty) FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FQty<>old.quantity;
-INSERT @changes SELECT target.FEntryID,target.FItemID,N'修改',N'含税单价',CONVERT(nvarchar(100),old.inclusive),CONVERT(nvarchar(100),target.FAuxTaxPrice) FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FAuxTaxPrice<>old.inclusive;
-INSERT @changes SELECT target.FEntryID,target.FItemID,N'修改',N'未税单价',CONVERT(nvarchar(100),old.exclusive),CONVERT(nvarchar(100),target.FAuxPrice) FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FAuxPrice<>old.exclusive;
-INSERT @changes SELECT target.FEntryID,target.FItemID,N'修改',N'税率',CONVERT(nvarchar(100),old.tax_rate),CONVERT(nvarchar(100),target.FCESS) FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FCESS<>old.tax_rate;
-INSERT @changes SELECT target.FEntryID,target.FItemID,N'新增',N'明细','',CONVERT(nvarchar(100),target.FQty) FROM @lines target WHERE NOT EXISTS(SELECT 1 FROM @previous old WHERE old.entry_id=target.FEntryID);
-INSERT @changes SELECT old.entry_id,old.item_id,N'删除',N'明细',CONVERT(nvarchar(100),old.quantity),'' FROM @previous old WHERE NOT EXISTS(SELECT 1 FROM @lines target WHERE target.FEntryID=old.entry_id);
+DECLARE @changes TABLE (old_no nvarchar(10) NOT NULL,item_id int NOT NULL,kind nvarchar(10) NOT NULL,field nvarchar(30) NOT NULL,before_value nvarchar(100) NOT NULL,after_value nvarchar(100) NOT NULL);
+INSERT @changes SELECT CONVERT(nvarchar(10),target.FEntryID),target.FItemID,N'修改',N'数量',${plain('old.quantity')},${plain('target.FQty')} FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FQty<>old.quantity;
+INSERT @changes SELECT CONVERT(nvarchar(10),target.FEntryID),target.FItemID,N'修改',N'含税单价',${plain('old.inclusive')},${plain('target.FAuxTaxPrice')} FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE (@tax_inclusive=1 AND target.FAuxTaxPrice<>old.inclusive) OR (@tax_inclusive=0 AND target.FAuxPrice<>old.exclusive);
+INSERT @changes SELECT CONVERT(nvarchar(10),target.FEntryID),target.FItemID,N'修改',N'税率(%)',CONVERT(nvarchar(100),CAST(old.tax_rate AS decimal(28,2))),CONVERT(nvarchar(100),CAST(target.FCESS AS decimal(28,2))) FROM @lines target JOIN @previous old ON old.entry_id=target.FEntryID WHERE target.FCESS<>old.tax_rate;
+INSERT @changes SELECT N'99999',target.FItemID,N'新增',N'数量',N'0',${plain('target.FQty')} FROM @lines target WHERE NOT EXISTS(SELECT 1 FROM @previous old WHERE old.entry_id=target.FEntryID);
+INSERT @changes SELECT CONVERT(nvarchar(10),old.entry_id),old.item_id,N'删除',N'数量',${plain('old.quantity')},N'0' FROM @previous old WHERE NOT EXISTS(SELECT 1 FROM @lines target WHERE target.FEntryID=old.entry_id);
 IF NOT EXISTS(SELECT 1 FROM @changes) ${fail('Source financial values differ without a supported commercial change')}
 UPDATE actual SET ${amounts.map((name) => `${q(name)}=target.${q(name)}`).join(',')},FAuxStockAwaitQty=CASE WHEN target.FQty<>actual.FQty THEN target.FQty-ISNULL(actual.FStockQty,0) ELSE actual.FAuxStockAwaitQty END FROM dbo.SEOrderEntry actual JOIN @lines target ON target.FEntryID=actual.FEntryID WHERE actual.FBrNO=@branch AND actual.FInterID=@remote;
 DELETE actual FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND NOT EXISTS(SELECT 1 FROM @lines target WHERE target.FEntryID=actual.FEntryID);
-INSERT dbo.SEOrderEntry (FInterID,FBrNO,${columns(itemTypes)},FMrpAutoClosed,FPlanMode) SELECT @remote,@branch,${columns(itemTypes)},1,14036 FROM @lines target WHERE NOT EXISTS(SELECT 1 FROM @previous old WHERE old.entry_id=target.FEntryID);
-UPDATE dbo.SEOrder SET FVersionNo=@new_version,FChangeDate=GETDATE(),FChangeUser=CAST(@biller AS int) WHERE FBrNo=@branch AND FInterID=@remote AND FVersionNo=@source_version;
+INSERT dbo.SEOrderEntry (FInterID,FBrNO,${added},FMrpAutoClosed,FPlanMode) SELECT @remote,@branch,${added},1,14036 FROM @lines target WHERE NOT EXISTS(SELECT 1 FROM @previous old WHERE old.entry_id=target.FEntryID);
+UPDATE dbo.SEOrder SET FVersionNo=@new_version,FChangeDate=@today,FChangeUser=CAST(@biller AS int) WHERE FBrNo=@branch AND FInterID=@remote AND FVersionNo=@source_version;
 IF @@ROWCOUNT<>1 ${fail('Source version update failed')}
 DECLARE @log_limits TABLE (name sysname NOT NULL PRIMARY KEY,capacity int NOT NULL);
 INSERT @log_limits SELECT c.name,CASE WHEN c.max_length=-1 THEN 2147483647 ELSE c.max_length/2 END FROM sys.columns c JOIN sys.types t ON t.user_type_id=c.user_type_id WHERE c.object_id=OBJECT_ID('dbo.ICOrderAlter') AND t.name IN ('nvarchar','nchar','varchar','char');
 INSERT dbo.ICOrderAlter (FInterID,FBillType,FTableName,FVersionNo,FChangeDate,FChangeUser,FChangeType,FoldNo,FNumbers,FitemName,Fmodel,FChangeField,FBChangeValue,FEChangeValue,FChangeCauses,FPage)
-SELECT @remote,81,'SEOrderEntry',@new_version,GETDATE(),${logText('@user', 'FChangeUser')},${logText('changes.kind', 'FChangeType')},${logText('changes.entry_id', 'FoldNo')},${logText('item.FNumber', 'FNumbers')},${logText('item.FName', 'FitemName')},${logText("ISNULL(detail.FModel,'')", 'Fmodel')},${logText('changes.field', 'FChangeField')},${logText('changes.before_value', 'FBChangeValue')},${logText('changes.after_value', 'FEChangeValue')},@change_cause,0 FROM @changes changes JOIN dbo.t_Item item ON item.FItemID=changes.item_id LEFT JOIN dbo.t_ICItem detail ON detail.FItemID=changes.item_id;
+SELECT @remote,81,'SEOrderEntry',@new_version,@today,${logText('@user', 'FChangeUser')},${logText('changes.kind', 'FChangeType')},${logText('changes.old_no', 'FoldNo')},${logText('item.FNumber', 'FNumbers')},${logText('item.FName', 'FitemName')},${logText("ISNULL(detail.FModel,'')", 'Fmodel')},${logText('changes.field', 'FChangeField')},${logText('changes.before_value', 'FBChangeValue')},${logText('changes.after_value', 'FEChangeValue')},@change_cause,0 FROM @changes changes JOIN dbo.t_Item item ON item.FItemID=changes.item_id LEFT JOIN dbo.t_ICItem detail ON detail.FItemID=changes.item_id;
 IF @@ROWCOUNT<>(SELECT COUNT(*) FROM @changes) ${fail('Source change log is incomplete')}
 IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines) OR EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${targetMatches})) ${fail('Source amendment did not preserve the full target order')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;

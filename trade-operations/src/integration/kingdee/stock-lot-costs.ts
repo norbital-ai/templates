@@ -52,7 +52,9 @@ export const testStockLotCosts = (ctx: DatabaseContext, account: string) =>
 export const readStockLotCosts = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: SyncCtx<'kingdee'>
+	ctx: SyncCtx<'kingdee'>,
+	/** Nothing was written here since the last read: the ledger check stands. */
+	unchanged: boolean
 ) {
 	if (!ctx.configuration.stockLotCostAccount?.trim()) return { rows: [], cursor, more: false };
 	const account = kingdeeStockLotCostAccount(ctx.configuration);
@@ -68,17 +70,19 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 			'$cursor',
 			'The verified purchase lot account or currency changed. Review its snapshot before resetting.'
 		);
-	const { sys_integration: ledgers } = yield* ctx.query({
-		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
-	});
-	if (
-		ledgers.rows.some(
-			(row) => row.id !== instance && kingdeeStockLotCostAccount(row.configuration) === account
-		)
-	)
-		return yield* new SourceUnavailable({
-			reason: 'Enable purchase lot costs on one ledger per account set'
+	if (!unchanged || !prior) {
+		const { sys_integration: ledgers } = yield* ctx.query({
+			sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
 		});
+		if (
+			ledgers.rows.some(
+				(row) => row.id !== instance && kingdeeStockLotCostAccount(row.configuration) === account
+			)
+		)
+			return yield* new SourceUnavailable({
+				reason: 'Enable purchase lot costs on one ledger per account set'
+			});
+	}
 	const current = yield* readChangedSnapshot(ctx, lotCosts, account, prior?.fingerprint ?? '');
 	const checkpoint = {
 		protocol: 'kingdee-purchase-lots-v1' as const,
@@ -88,7 +92,8 @@ export const readStockLotCosts = Effect.fnUntraced(function* (
 	};
 	const header = { $id: 'purchase-lots', observed_at: current.observed_at };
 	const payload = current.entries;
-	if (payload === null) return { rows: [header], cursor: checkpoint, more: false };
+	// an unchanged payload: the committed header stands (freshness is the feed's health)
+	if (payload === null) return { rows: [], cursor: checkpoint, more: false };
 	const entries = yield* checked(() => {
 		const rows = Schema.decodeUnknownSync(payloadSchema)(payload);
 		if (rows.length > 10000)

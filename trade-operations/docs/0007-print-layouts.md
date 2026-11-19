@@ -68,8 +68,8 @@ the header, such as `reference`, are also available inside the line block.
 
 Quotations can print a kilogram line in tonnes: `quantity_display` (the quantity in tonnes,
 without trailing zeros), `unit_display` (吨, or MT in English) and `unit_price_display` (the
-price per tonne to two places); other units print as saved. `tax_rate_display` drops trailing
-zeros. Put `currency_symbol` before an amount for ¥ or $. `other_terms_first` is the first line
+price per tonne to two places); other units print as saved. `tax_rate_display` has two
+decimals (13.00), as Salesbridge printed it. Put `currency_symbol` before an amount for ¥ or $. `other_terms_first` is the first line
 of the other terms; `other_terms_more` holds the later lines lettered a.), b.), ….
 
 Export layouts can print `quantity_grouped`, `unit_export` and `unit_price_grouped` inside

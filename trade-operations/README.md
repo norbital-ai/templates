@@ -94,9 +94,9 @@ confirmed order cannot be deleted.
 
 ## Automations and integrations
 
-| Automation      | Trigger                                   | What it does                                                               |
-| --------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
-| `source_health` | every 5 minutes, over `kingdee` instances | Notifies workspace administrators when a ledger connection needs attention |
+| Automation      | Trigger                                         | What it does                                                               |
+| --------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| `source_health` | a `kingdee` connection's status or health moves | Notifies workspace administrators when a ledger connection needs attention |
 
 Order documents need no automation. The shared preview generates a PDF with `ctx.preview_pdf` and uses
 its file for both preview and download. The `orders` file sync imports and exports the order
@@ -139,6 +139,80 @@ The selected catalogue terms determine exposure. Kingdee's amount/term controls 
 allocated payments and DO matching. Unknown formula items, unsupported currencies/control modes,
 missing mappings or failed reads preserve last-good evidence. Native audit/receipt predicates still
 require verification against the target account's Kingdee version before production use.
+
+## Two-way Kingdee sync
+
+Kingdee KIS is the system of record for documents, stock and accounting; Trade Operations holds the
+agreement and its approval. They meet over SQL Server: every read is a bounded `SELECT` polled on a
+schedule, and every write is a guarded SQL batch sent from Bolt's outbox. Nothing is pushed by Kingdee,
+and Trade Operations adds no objects, triggers or CDC to the account set.
+
+### The four paths
+
+| Path                           | What moves                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SO: Trade Operations → Kingdee | Confirming a sales order creates an unaudited SO whose `FUUID` is derived from the order. A later line change replaces the SO's lines while it is unaudited, as KIS's own 修改 does; once it is audited the change is a 订单变更: an archive copy of the old version, `FVersionNo` + 1 and one `ICOrderAlter` row per changed field. |
+| SO: Kingdee → Trade Operations | The SO header (customer, salesperson, settlement, order date, currency, rate, audit, void, close, version) and its lines (item, unit, quantity, prices, tax, amounts) update the order every minute. An open SO created in Kingdee arrives as a draft and the next read confirms it; void or completed history is not imported.      |
+| PO: Trade Operations → Kingdee | Confirming a purchase order creates an unaudited PO; a line change replaces its lines while it is unaudited. An audited PO refuses the change and the line returns to the PO's terms.                                                                                                                                                |
+| PO: Kingdee → Trade Operations | As for an SO, from `POOrder`.                                                                                                                                                                                                                                                                                                        |
+
+Purchase orders take part once the ledger's **Verified SQL account for purchase documents** is set; writes of
+either direction need **Verified SQL account for order writes**. Deliveries (receipts for a PO), invoices and
+payments read from Kingdee attach to their order.
+
+**Who owns what.** Kingdee owns the header: a confirmed order refuses local edits to its party, payment terms,
+date or currency, and a change in Kingdee moves the order. Lines are shared: a local change (approved, for a
+sales order) is written to Kingdee, and a Kingdee change is read back. When both sides change one line, the
+local change still waiting to be written wins: it is applied on top of what Kingdee holds.
+
+### Why both sides converge
+
+| What happens                                                                    | Result                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kingdee or the link is down                                                     | Writes wait in the outbox (the order shows _pending_) and retry every minute; reads resume from their cursor. Nothing is lost or duplicated.                                                                      |
+| The write committed but its reply was lost                                      | The retry first reads the order back by its `FUUID`, finds it as written and sends nothing. A read that runs in between pairs the new entry with its pending line, as the writer does, so no second line appears. |
+| Kingdee changed the order between our read and our write                        | The SQL batch re-checks what it read under a lock, writes nothing and answers _moved_; the writer reads again and retries.                                                                                        |
+| Kingdee refuses (audited PO, void or closed order, quantity below what shipped) | The write is not retried; the line shows _failed_ with the reason and the next read returns it to Kingdee's terms.                                                                                                |
+| A read is cut off mid-page                                                      | A page and its cursor commit together or not at all; the next read repeats the window.                                                                                                                            |
+| Kingdee deletes an unaudited order outright                                     | A delete moves no rowversion, so the order keeps its last read state; a later local change is refused, never recreated.                                                                                           |
+
+### What is read, and how often
+
+| Feed                                         | Cadence      | How                                                                  |
+| -------------------------------------------- | ------------ | -------------------------------------------------------------------- |
+| Parties, products, warehouses                | 1 min        | Master rowversions (`FModifyTime`), joined rows included             |
+| Orders and their lines                       | 1 min        | `SEOrder` / `POOrder.FOperDate` window                               |
+| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions, followed to the order their lines name  |
+| Sales and purchase analysis lines, lot costs | 5–15 min     | Header rowversions; opt-in accounts                                  |
+| Stock (`ICInventory`)                        | 15 min       | Complete listing of lots with stock: the table has no rowversion     |
+| Open SO commitments, credit                  | 5 min, 1 min | One fingerprinted snapshot; the payload is sent only when it changed |
+| AR aging                                     | 1 h          | Open items that moved, by rowversion; bucket sums catch the rest     |
+
+A window reads `[bookmark, MIN_ACTIVE_ROWVERSION())`, so a row committed late is never skipped, and no feed
+lists its table again after it begins: the link is metered. KIS stamps document headers, not lines, and saves
+a bill whole, so a line edit moves its header. A row that cannot be applied yet (an order whose customer has
+not arrived) does not hold the bookmark: it is kept by identity and read again when what it waits on
+changes. The host keeps the SQL connection open between requests, and a master feed checks its tables'
+marker columns hourly: an idle minute of one sales ledger measured 8 requests and 18.5 KB on SQL Server 2017.
+Kingdee is the only thing polled. Pages follow the workspace over one live stream of changes, and health
+notices follow status writes. A feed whose Kingdee window is empty, and whose workspace wrote nothing since its
+last read, asks the workspace database nothing, commits nothing and records no run, so the database sleeps
+through an idle ledger. Stock, credit, open commitments and lot costs compare a fingerprint in SQL and write only
+when it moves; their freshness limits count from when a feed began failing (the ledger's
+`status.failing`), not from a stamp on each row.
+
+### Tests
+
+- `tests/kingdee-order-sync.test.ts`, `tests/kingdee-import.test.ts`: the two SO paths, outages, lost replies,
+  races and refusals against a scripted SQL link.
+- `tests/kingdee-purchase-sync.test.ts`: the two PO paths, the same failures.
+- `tests/kingdee-live-polling.test.ts`: the same SQL on SQL Server 2017 at compatibility level 100, in scratch
+  databases (`TRADE_SQL2017_PROBE_PASSWORD`, port 11434).
+- `tests/kingdee-simulator.test.ts`: the whole flow against the Kingdee simulator (`TRADE_SIMULATOR_ACCESS`).
+
+Before the customer's account set is connected, the measurements in
+[the implementation runbook](docs/0004-kingdee-implementation.md#before-connecting-a-customer-account-set)
+must be taken.
 
 ## Seed
 

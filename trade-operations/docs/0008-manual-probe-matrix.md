@@ -152,8 +152,8 @@ The burst consisted of 520 deliveries, 520 invoices and 520 receipts on one synt
 Catch-up used 59 SQL requests and 1.36 MB of TLS data. The 20 Mbps recovery and core reruns
 observed 11 random packet drops. The burst timings begin when the relay is reopened and exclude
 the deliberately missed intervals. The sync tests use pooled fixture connections. The separate
-fresh-session sample opens, queries and closes ten connections per profile; the current standalone
-host opens a connection per database request, so the pooled timings are not a production SLA.
+fresh-session sample opens, queries and closes ten connections per profile. The host keeps one pooled
+connection per connection string while it is used, so a request opens a session only after 150 idle seconds.
 
 | ID  | Disruption                                                                                                                                                              | Verified outcome on 20 and 50 Mbps                                                                                                                                                                                                                                                                                                                                             |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

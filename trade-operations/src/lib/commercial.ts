@@ -215,11 +215,10 @@ export function creditWarning(
 	order: Pick<Row<'orders'>, 'currency' | 'direction'>,
 	gross: BigDecimal.BigDecimal,
 	credit:
-		| Pick<
-				Row<'credit_snapshots'>,
-				'currency' | 'credit_hold' | 'credit_limit' | 'credit_used' | 'as_of'
-		  >
+		| Pick<Row<'credit_snapshots'>, 'currency' | 'credit_hold' | 'credit_limit' | 'credit_used'>
 		| undefined,
+	/** What the ledger last confirmed of its credit (`confirmedAt`): a quiet read leaves a row's own time behind. */
+	confirmed: string | null,
 	now: string,
 	freshMinutes: number
 ) {
@@ -229,8 +228,8 @@ export function creditWarning(
 		credit.currency !== order.currency ||
 		credit.credit_limit === null ||
 		credit.credit_used === null ||
-		Date.parse(credit.as_of) > Date.parse(now) ||
-		Date.parse(now) - Date.parse(credit.as_of) > Duration.toMillis(Duration.minutes(freshMinutes));
+		confirmed === null ||
+		Date.parse(now) - Date.parse(confirmed) > Duration.toMillis(Duration.minutes(freshMinutes));
 	const adverse =
 		credit !== undefined &&
 		(credit.credit_hold ||

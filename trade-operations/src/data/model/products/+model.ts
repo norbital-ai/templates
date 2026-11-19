@@ -57,7 +57,11 @@ export default model('products', {
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
-	outputs: { default: { fields: 'all' }, logistics: { fields: logisticsProduct } },
+	// the ledger's connection and failing feeds date what Kingdee last confirmed of this product's stock and costs
+	outputs: {
+		default: { fields: 'all', source: { fields: ['active', 'status'] } },
+		logistics: { fields: logisticsProduct, source: { fields: ['active', 'status'] } }
+	},
 	constraints: {
 		natural_key: { unique: ['source', 'external_code'], import_key: true },
 		unit_price_nonnegative: {

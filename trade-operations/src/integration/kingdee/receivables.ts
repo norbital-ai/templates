@@ -1,5 +1,5 @@
 import { BigDecimal, Effect, Schema } from 'effect';
-import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
+import type { InstanceId, SyncCtx, Json, Row } from '@norbital-ai/bolt';
 import { sha256Hex, numeric } from '../../lib/commercial.js';
 import { kingdeeReceivablesAccount } from './configuration.js';
 import {
@@ -7,6 +7,7 @@ import {
 	exactId,
 	nullableText,
 	readNativeRows,
+	selectByIds,
 	sourceDate,
 	text,
 	type NativeProjection
@@ -25,39 +26,76 @@ import {
 // The history starts the day after the earliest report cutoff.
 const from = '20250101';
 const excluded = `c.FID NOT IN (SELECT n.value('.', 'int') FROM @ids.nodes('/ids/id') AS exclusions(n))`;
+const requested = `(SELECT n.value('.', 'int') FROM @ids.nodes('/ids/id') AS requested(n))`;
 const arCheck = `k.FRP=1 AND k.FCheckDate>=CONVERT(datetime,'${from}',112)`;
+/** An open item the report keeps: open, or settled since the history starts. */
+const kept = `(c.FRemainAmount<>0 OR EXISTS (SELECT 1 FROM dbo.t_RP_NewCheckInfo k WHERE k.FContactID=c.FID AND ${arCheck}))`;
+const plans = `(
+ SELECT FInterID, MIN(CASE WHEN FRemainAmount<>0 OR FRemainAmountFor<>0 THEN FDate END) AS open_due,
+  MAX(FDate) AS last_due
+ FROM dbo.t_RP_Plan_Ar WHERE FRP=1 GROUP BY FInterID
+)`;
+const dueOn = `CASE WHEN c.FType=3 THEN COALESCE(p.open_due,p.last_due,c.FRPDate) END`;
+const within = (column: string) =>
+	`${column}>=CONVERT(binary(8),@from,1) AND ${column}<CONVERT(binary(8),@to,1)`;
+/** Open items fall in 64 buckets by id: a bucket whose sums disagree with what was published is read again. */
+const BUCKETS = 64;
+/**
+ * The account's position in one request: its ceiling, the guards, and per bucket the count, id and due-date sums and
+ * remaining balance of the kept open items and the count, date sum and amount of their dated settlements. Nothing
+ * here needs a rowversion, so a due plan edited or an open item deleted shows as a bucket that no longer agrees.
+ */
 const checkpoint: NativeProjection = {
 	sql: `/* kingdee-ar-checkpoint */
 SELECT 'ar' AS __key,
- CONVERT(varchar(18),CONVERT(binary(8),MAX(c.FModifyTime)),1) AS marker,
- COUNT_BIG(*) AS documents,
- CONVERT(varchar(100),COALESCE(SUM(c.FRemainAmount),0)) AS remaining,
+ CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS upper,
  (SELECT COUNT_BIG(*) FROM dbo.t_RP_Contact c
   WHERE c.FRP=1 AND c.FRemainAmount<>0 AND (c.FType NOT IN (3,5) OR c.FType IS NULL) AND ${excluded}) AS unclassified,
  (SELECT COUNT_BIG(*) FROM dbo.t_RP_NewCheckInfo WHERE FRP=1 AND FCheckDate IS NULL) AS undated,
- CONVERT(varchar(64),HASHBYTES('SHA2_256',(
-  SELECT k.FInterID,k.FContactID,CONVERT(varchar(10),k.FCheckDate,23) AS checked_on,k.FCheckAmount
-  FROM dbo.t_RP_NewCheckInfo k WHERE ${arCheck} ORDER BY k.FInterID FOR JSON PATH
- )),2) AS settlements,
- CONVERT(varchar(64),HASHBYTES('SHA2_256',(
-  SELECT p.FInterID,MIN(CASE WHEN p.FRemainAmount<>0 OR p.FRemainAmountFor<>0 THEN p.FDate END) AS open_due,
-   MAX(p.FDate) AS last_due
-  FROM dbo.t_RP_Plan_Ar p WHERE p.FRP=1 GROUP BY p.FInterID ORDER BY p.FInterID FOR JSON PATH
- )),2) AS due_dates,
+ (SELECT b.bucket,COUNT_BIG(*) AS n,SUM(CAST(b.FID AS bigint)) AS ids,
+   SUM(CAST(b.FID AS bigint)*COALESCE(DATEDIFF(day,'20000101',b.due_on),0)) AS due,
+   CONVERT(varchar(100),SUM(b.FRemainAmount)) AS remaining
+  FROM (SELECT c.FID,c.FID%${BUCKETS} AS bucket,c.FRemainAmount,${dueOn} AS due_on FROM dbo.t_RP_Contact c
+   LEFT JOIN dbo.ICSale s ON c.FType=3 AND s.FInterID=c.FInvoiceID LEFT JOIN ${plans} p ON p.FInterID=s.FInterID
+   WHERE c.FRP=1 AND c.FType IN (3,5) AND ${excluded} AND ${kept}) b
+  GROUP BY b.bucket ORDER BY b.bucket FOR JSON PATH) AS contacts,
+ (SELECT g.bucket,COUNT_BIG(*) AS n,SUM(CAST(g.FContactID AS bigint)*DATEDIFF(day,'20000101',g.[on])) AS days,
+   CONVERT(varchar(100),SUM(g.amount)) AS amount
+  FROM (SELECT k.FContactID,k.FContactID%${BUCKETS} AS bucket,CONVERT(date,k.FCheckDate) AS [on],SUM(k.FCheckAmount) AS amount
+   FROM dbo.t_RP_NewCheckInfo k JOIN dbo.t_RP_Contact c ON c.FID=k.FContactID
+   WHERE ${arCheck} AND c.FRP=1 AND c.FType IN (3,5) AND ${excluded} AND ${kept}
+   GROUP BY k.FContactID,CONVERT(date,k.FCheckDate) HAVING SUM(k.FCheckAmount)<>0) g
+  GROUP BY g.bucket ORDER BY g.bucket FOR JSON PATH) AS settlements,
  (SELECT system_type_id FROM sys.columns WHERE object_id=OBJECT_ID('dbo.t_RP_Contact') AND name='FModifyTime') AS marker_type,
- CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at
-FROM dbo.t_RP_Contact c WHERE c.FRP=1`
+ CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at`
 };
-const entries: NativeProjection = {
-	sql: `/* kingdee-ar-entries */
+/** The open items one of whose own rows moved in `[from, to)`: the item, its invoice, its customer or a delivery it bills. */
+const moved: NativeProjection = {
+	sql: `/* kingdee-ar-moved */
+SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),moved.FID),20) AS __key,moved.FID AS contact_id FROM (
+ SELECT c.FID FROM dbo.t_RP_Contact c WHERE c.FRP=1 AND c.FType IN (3,5) AND ${within('c.FModifyTime')}
+ UNION SELECT c.FID FROM dbo.t_RP_Contact c JOIN dbo.ICSale s ON s.FInterID=c.FInvoiceID
+  WHERE c.FRP=1 AND c.FType=3 AND ${within('s.FOperDate')}
+ UNION SELECT c.FID FROM dbo.t_RP_Contact c JOIN dbo.t_Organization o ON o.FItemID=c.FCustomer
+  WHERE c.FRP=1 AND c.FType IN (3,5) AND ${within('o.FModifyTime')}
+ UNION SELECT c.FID FROM dbo.ICStockBill k
+  JOIN dbo.ICSaleEntry e ON e.FSourceInterID=k.FInterID AND e.FSourceTranType=21
+  JOIN dbo.t_RP_Contact c ON c.FInvoiceID=e.FInterID AND c.FRP=1 AND c.FType=3
+  WHERE k.FTranType=21 AND ${within('k.FOperDate')}
+) moved`
+};
+/** Open items as the report keeps them, selected by `where`; `kept` says whether each still belongs in it. */
+const entriesOf = (name: string, where: string): NativeProjection => ({
+	sql: `/* kingdee-ar-entries ${name} */
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),c.FID),20) AS __key,
  c.FID AS contact_id,c.FType AS contact_type,c.FCustomer AS customer_id,o.FName AS customer,
  CASE WHEN c.FType=3 THEN COALESCE(s.FBillNo,c.FNumber) ELSE c.FNumber END AS reference,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN COALESCE(s.FDate,c.FDate) ELSE c.FDate END,23) AS business_on,
- CONVERT(varchar(10),CASE WHEN c.FType=3 THEN COALESCE(p.open_due,p.last_due,c.FRPDate) END,23) AS due_on,
+ CONVERT(varchar(10),${dueOn},23) AS due_on,
  CASE WHEN c.FType=3 THEN st.FName END AS settlement,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN d.delivered_on END,23) AS delivered_on,
  CONVERT(varchar(100),c.FRemainAmount) AS remaining,
+ CONVERT(bit,CASE WHEN ${kept} THEN 1 ELSE 0 END) AS kept,
  (SELECT CONVERT(varchar(10),k.FCheckDate,23) AS [on],
    CONVERT(varchar(100),SUM(k.FCheckAmount)) AS amount
   FROM dbo.t_RP_NewCheckInfo k WHERE k.FContactID=c.FID AND ${arCheck}
@@ -73,16 +111,15 @@ LEFT JOIN (
  JOIN dbo.ICStockBill k ON k.FInterID=e.FSourceInterID AND k.FTranType=21
  WHERE e.FSourceTranType=21 GROUP BY e.FInterID
 ) d ON d.FInterID=s.FInterID
-LEFT JOIN (
- SELECT FInterID, MIN(CASE WHEN FRemainAmount<>0 OR FRemainAmountFor<>0 THEN FDate END) AS open_due,
-  MAX(FDate) AS last_due
- FROM dbo.t_RP_Plan_Ar WHERE FRP=1 GROUP BY FInterID
-) p ON p.FInterID=s.FInterID
-WHERE c.FRP=1 AND c.FType IN (3,5) AND ${excluded}
- AND (c.FRemainAmount<>0 OR EXISTS (
-  SELECT 1 FROM dbo.t_RP_NewCheckInfo k WHERE k.FContactID=c.FID AND ${arCheck}
- ))`
-};
+LEFT JOIN ${plans} p ON p.FInterID=s.FInterID
+WHERE c.FRP=1 AND c.FType IN (3,5) AND ${where}`
+});
+/** The whole kept ledger, with its exclusions in `@ids`. */
+const entries = entriesOf('all', `${excluded} AND ${kept}`);
+/** Open items by id in `@ids`, kept or not: one that left the report is removed. */
+const entriesById = entriesOf('by id', `c.FID IN ${requested}`);
+/** The kept open items of the buckets in `@ids`. */
+const entriesByBucket = entriesOf('by bucket', `${kept} AND c.FID%${BUCKETS} IN ${requested}`);
 const invalid = (column: string, reason: string) => new SourceRowInvalid({ column, reason });
 const settlementsSchema = Schema.fromJsonString(
 	Schema.Array(Schema.Struct({ on: Schema.String, amount: Schema.String }))
@@ -97,6 +134,63 @@ const exclusions = (value: string | null | undefined) => {
 		);
 	return ids;
 };
+const Contacts = Schema.Array(
+	Schema.Struct({
+		bucket: Schema.Number,
+		n: Schema.Number,
+		ids: Schema.Number,
+		due: Schema.Number,
+		remaining: Schema.String
+	})
+);
+const Settled = Schema.Array(
+	Schema.Struct({
+		bucket: Schema.Number,
+		n: Schema.Number,
+		days: Schema.Number,
+		amount: Schema.String
+	})
+);
+const plainDecimal = (value: string) =>
+	BigDecimal.format(BigDecimal.normalize(BigDecimal.fromStringUnsafe(value)));
+const epochDays = (date: string | null | undefined) =>
+	date ? (Date.parse(`${date}T00:00:00Z`) - Date.parse('2000-01-01T00:00:00Z')) / 86_400_000 : 0;
+/** An open item as the report holds it. */
+type Entry = Row<'source_receivables'>['entries'][number];
+/** Each bucket's sums, as the checkpoint computes them in SQL, for the entries the report holds. */
+function digestsOf(entries: readonly Entry[]) {
+	const sums = Array.from({ length: BUCKETS }, () => ({
+		n: 0,
+		ids: 0,
+		due: 0,
+		remaining: BigDecimal.fromBigInt(0n),
+		sn: 0,
+		days: 0,
+		amount: BigDecimal.fromBigInt(0n)
+	}));
+	for (const entry of entries) {
+		const id = Number(entry.contact_id);
+		const bucket = sums[id % BUCKETS];
+		if (bucket === undefined) continue;
+		bucket.n++;
+		bucket.ids += id;
+		bucket.due += id * epochDays(entry.due_on);
+		bucket.remaining = BigDecimal.sum(
+			bucket.remaining,
+			BigDecimal.fromStringUnsafe(entry.remaining)
+		);
+		for (const check of entry.settlements) {
+			bucket.sn++;
+			bucket.days += id * epochDays(check.on);
+			bucket.amount = BigDecimal.sum(bucket.amount, BigDecimal.fromStringUnsafe(check.amount));
+		}
+	}
+	return sums.map((sum) =>
+		[sum.n, sum.ids, sum.due, plainDecimal(BigDecimal.format(sum.remaining)), sum.sn, sum.days]
+			.concat(plainDecimal(BigDecimal.format(sum.amount)))
+			.join('|')
+	);
+}
 const sourceCheckpoint = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	account: string,
@@ -106,12 +200,34 @@ const sourceCheckpoint = Effect.fnUntraced(function* (
 	if (!row || row.marker_type !== 189)
 		return yield* invalid('FModifyTime', 'AR contact requires a native rowversion marker');
 	return yield* checked(() => {
-		const { observed_at: _, ...stamp } = row;
+		const r = columns(row);
+		const contacts = Schema.decodeUnknownSync(Schema.fromJsonString(Contacts))(
+			r.text('contacts', '[]')
+		);
+		const settled = Schema.decodeUnknownSync(Schema.fromJsonString(Settled))(
+			r.text('settlements', '[]')
+		);
+		const upper = r.text('upper').toLowerCase();
+		if (!/^0x[0-9a-f]{16}$/.test(upper))
+			throw invalid('upper', 'The rowversion ceiling is unavailable');
 		return {
-			fingerprint: JSON.stringify(stamp),
-			observed_at: columns(row).instant('observed_at'),
+			upper,
+			observed_at: r.instant('observed_at'),
 			unclassified: exactId(row, 'unclassified'),
-			undated: exactId(row, 'undated')
+			undated: exactId(row, 'undated'),
+			digests: Array.from({ length: BUCKETS }, (_, bucket) => {
+				const c = contacts.find((sum) => sum.bucket === bucket);
+				const k = settled.find((sum) => sum.bucket === bucket);
+				return [
+					c?.n ?? 0,
+					c?.ids ?? 0,
+					c?.due ?? 0,
+					plainDecimal(c?.remaining ?? '0'),
+					k?.n ?? 0,
+					k?.days ?? 0,
+					plainDecimal(k?.amount ?? '0')
+				].join('|');
+			})
 		};
 	});
 });
@@ -120,7 +236,7 @@ const exclusionsXml = (ids: readonly string[]) =>
 export const testReceivables = Effect.fnUntraced(function* (ctx: DatabaseContext, account: string) {
 	yield* sourceCheckpoint(ctx, account, '<ids/>');
 	// SQL Server validates table and column permissions without transferring accounting rows.
-	yield* readNativeRows(ctx, { sql: entries.sql + ' AND 1=0' }, { account });
+	yield* readNativeRows(ctx, { sql: entries.sql + ' AND 1=0' }, { account, ids: '<ids/>' });
 });
 function mapEntry(row: SqlRow) {
 	const business_on = sourceDate(row, 'business_on');
@@ -167,18 +283,30 @@ function mapEntry(row: SqlRow) {
 	};
 }
 const Cursor = Schema.Struct({
-	protocol: Schema.Literal('kingdee-ar-v1'),
+	protocol: Schema.Literal('kingdee-ar-v2'),
 	account: Schema.String,
 	scope: Schema.String,
-	fingerprint: Schema.String,
+	// the ceiling every published entry has been read to, and each bucket's sums as published
+	bookmark: Schema.String,
+	buckets: Schema.Array(Schema.String),
 	observed_at: Schema.String
 });
+// a ledger published whole before reads became incremental: read in full once more
+const Whole = Schema.Struct({ protocol: Schema.Literal('kingdee-ar-v1'), account: Schema.String });
+/** A changed hour reads at most this many moved open items by id; past it the ledger is read whole. */
+const MOVED = 5000;
 
-/** Publish a complete ledger position in one native write after proving the source did not move. */
+/**
+ * Keeps the ledger's open items current a changed item at a time. The first read, or one after the account's scope
+ * changed, lists the kept ledger whole and proves it consistent. After it each run asks one checkpoint; when nothing
+ * moved it reads and writes nothing. Items whose own rows moved since the bookmark are read by id and merged, and a
+ * bucket whose sums no longer agree (a due plan edited, an item deleted: nothing a rowversion shows) is read again.
+ */
 export const readReceivables = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: SyncCtx<'kingdee'>
+	ctx: SyncCtx<'kingdee'>,
+	unchanged: boolean
 ) {
 	if (!ctx.configuration.receivablesAccount?.trim()) return { rows: [], cursor, more: false };
 	const account = kingdeeReceivablesAccount(ctx.configuration);
@@ -186,21 +314,24 @@ export const readReceivables = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Receivables aging requires a verified account identity'
 		});
-	const { sys_integration: ledgers } = yield* ctx.query({
-		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
-	});
-	if (
-		ledgers.rows.some(
-			(row) => row.id !== instance && kingdeeReceivablesAccount(row.configuration) === account
-		)
-	)
-		return yield* new SourceUnavailable({
-			reason: 'Enable account-wide receivables on one ledger per account set'
+	// one ledger per account set: what the last read proved stands while nothing changed here
+	if (!unchanged) {
+		const { sys_integration: ledgers } = yield* ctx.query({
+			sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
 		});
+		if (
+			ledgers.rows.some(
+				(row) => row.id !== instance && kingdeeReceivablesAccount(row.configuration) === account
+			)
+		)
+			return yield* new SourceUnavailable({
+				reason: 'Enable account-wide receivables on one ledger per account set'
+			});
+	}
 	const prior =
 		cursor === null
 			? null
-			: yield* Schema.decodeUnknownEffect(Cursor)(cursor).pipe(
+			: yield* Schema.decodeUnknownEffect(Schema.Union([Cursor, Whole]))(cursor).pipe(
 					Effect.mapError(() => invalid('$cursor', 'The receivables checkpoint is invalid'))
 				);
 	if (prior && prior.account !== account)
@@ -220,38 +351,90 @@ export const readReceivables = Effect.fnUntraced(function* (
 			't_RP_Contact',
 			'Unclassified balances or undated settlements require review before publishing receivables'
 		);
-	// an unchanged ledger is never listed again
-	if (prior?.scope === scope && prior.fingerprint === before.fingerprint)
+	const publish = (position: readonly Entry[]) =>
+		Effect.gen(function* () {
+			const sorted = [...position].sort((a, b) => Number(a.contact_id) - Number(b.contact_id));
+			if (new TextEncoder().encode(JSON.stringify(sorted)).byteLength > 5 * 1024 * 1024)
+				return yield* invalid(
+					't_RP_Contact',
+					'The receivables snapshot exceeds its atomic publish bound'
+				);
+			return {
+				rows: [
+					{
+						$id: 'receivables',
+						currency: denomination,
+						observed_at: Instant(before.observed_at),
+						entries: sorted
+					}
+				],
+				cursor: {
+					protocol: 'kingdee-ar-v2' as const,
+					account,
+					scope,
+					bookmark: before.upper,
+					buckets: digestsOf(sorted),
+					observed_at: before.observed_at
+				},
+				more: false
+			};
+		});
+	const whole = Effect.gen(function* () {
+		const rows = yield* readNativeRows(ctx, entries, { account, ids });
+		const after = yield* sourceCheckpoint(ctx, account, ids);
+		if (after.digests.some((digest, bucket) => digest !== before.digests[bucket]))
+			return yield* invalid(
+				'FModifyTime',
+				'The receivables ledger changed during this read. The previous snapshot is retained.'
+			);
+		const position = yield* checked(() => rows.map(mapEntry));
+		// the published sums must be the checkpoint's, or every later hour would read the ledger again
+		if (digestsOf(position).some((digest, bucket) => digest !== after.digests[bucket]))
+			return yield* invalid(
+				't_RP_Contact',
+				'The receivables listing does not add up to its checkpoint. The previous snapshot is retained.'
+			);
+		return yield* publish(position);
+	});
+	if (prior === null || prior.protocol !== 'kingdee-ar-v2' || prior.scope !== scope)
+		return yield* whole;
+	const changed = (yield* readNativeRows(ctx, moved, {
+		account,
+		from: prior.bookmark,
+		to: before.upper
+	}))
+		.map((row) => exactId(row, 'contact_id'))
+		.filter((id) => !excludedContacts.includes(id));
+	if (changed.length > MOVED) return yield* whole;
+	// an unchanged ledger is neither read nor written: the tenant database is not woken for it
+	if (
+		changed.length === 0 &&
+		before.digests.every((digest, bucket) => digest === prior.buckets[bucket])
+	)
 		return { rows: [], cursor, more: false };
-	const rows = yield* readNativeRows(ctx, entries, { account, ids });
-	const after = yield* sourceCheckpoint(ctx, account, ids);
-	if (before.fingerprint !== after.fingerprint)
-		return yield* invalid(
-			'FModifyTime',
-			'The receivables ledger changed during this read. The previous snapshot is retained.'
-		);
-	const position = yield* checked(() => rows.map(mapEntry));
-	if (new TextEncoder().encode(JSON.stringify(position)).byteLength > 5 * 1024 * 1024)
-		return yield* invalid(
-			't_RP_Contact',
-			'The receivables snapshot exceeds its atomic publish bound'
-		);
-	return {
-		rows: [
-			{
-				$id: 'receivables',
-				currency: denomination,
-				observed_at: Instant(after.observed_at),
-				entries: position
+	const { source_receivables: local } = yield* ctx.query({
+		source_receivables: { where: { source: { eq: instance } }, fields: ['entries'], limit: 1 }
+	});
+	const held = new Map((local.rows[0]?.entries ?? []).map((entry) => [entry.contact_id, entry]));
+	const merge = (rows: readonly SqlRow[]) =>
+		checked(() => {
+			for (const row of rows) {
+				const entry = mapEntry(row);
+				if (excludedContacts.includes(entry.contact_id)) continue;
+				if (columns(row).bool('kept')) held.set(entry.contact_id, entry);
+				else held.delete(entry.contact_id);
 			}
-		],
-		cursor: {
-			protocol: 'kingdee-ar-v1',
-			account,
-			scope,
-			fingerprint: after.fingerprint,
-			observed_at: after.observed_at
-		},
-		more: false
-	};
+		});
+	// a moved item that no longer exists, or no longer counts, leaves the report
+	for (const id of changed) held.delete(id);
+	yield* merge(yield* selectByIds(ctx, entriesById, changed, '', account));
+	const disagreeing = digestsOf([...held.values()]).flatMap((digest, bucket) =>
+		digest === before.digests[bucket] ? [] : [String(bucket)]
+	);
+	if (disagreeing.length) {
+		for (const id of held.keys())
+			if (disagreeing.includes(String(Number(id) % BUCKETS))) held.delete(id);
+		yield* merge(yield* selectByIds(ctx, entriesByBucket, disagreeing, '', account));
+	}
+	return yield* publish([...held.values()]);
 });

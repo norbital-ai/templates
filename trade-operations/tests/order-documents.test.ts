@@ -235,7 +235,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 						quantity_display: '81',
 						unit_display: '吨',
 						unit_price_display: '1,653.20',
-						tax_rate_display: '9'
+						tax_rate_display: '9.00'
 					}
 				]
 			});

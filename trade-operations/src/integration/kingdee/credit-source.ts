@@ -78,8 +78,11 @@ const payload = Schema.fromJsonString(
 		)
 	})
 );
-// Full snapshots retain only their account pin; projection changes need no history marker.
-const checkpoint = Schema.Struct({ account: Schema.String });
+// A snapshot keeps its account pin and the fingerprint of the payload it last applied: an unchanged one is not sent.
+const checkpoint = Schema.Struct({
+	account: Schema.String,
+	fingerprint: Schema.optionalKey(Schema.String)
+});
 const invalid = (column: string, reason: string) => new SourceRowInvalid({ column, reason });
 const items = {
 	当前单据金额: { column: null, sign: 1 },
@@ -93,15 +96,18 @@ const items = {
 } as const;
 const catalogue = new Map(Object.entries(items));
 
-const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: string) {
+const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: string, prior = '') {
 	const current = yield* readChangedSnapshot(
 		{ request: (op) => ctx.request({ ...op, transaction: 'serializable' }) },
 		creditSnapshot,
 		account,
-		''
+		prior
 	);
+	if (current.entries === null)
+		return { rows: null, fingerprint: current.fingerprint, observedAt: current.observed_at };
+	const entries = current.entries;
 	const rows = yield* checked(() => {
-		const page = Schema.decodeUnknownSync(payload)(current.entries);
+		const page = Schema.decodeUnknownSync(payload)(entries);
 		const option = page.options[0];
 		if (
 			page.options.length !== 1 ||
@@ -173,14 +179,16 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 			};
 		});
 	});
-	return { rows, observedAt: current.observed_at };
+	return { rows, fingerprint: current.fingerprint, observedAt: current.observed_at };
 });
 export const testCreditSource = (ctx: DatabaseContext, account: string) => observe(ctx, account);
 
 export const readCreditSource = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: SyncCtx<'kingdee'>
+	ctx: SyncCtx<'kingdee'>,
+	/** Nothing was written here since the last read: with the payload unchanged too, there is nothing to check. */
+	unchanged: boolean
 ) {
 	const account = kingdeeCreditAccount(ctx.configuration);
 	if (
@@ -198,6 +206,9 @@ export const readCreditSource = Effect.fnUntraced(function* (
 			'$cursor',
 			'The credit account changed. Review the retained snapshot before resetting.'
 		);
+	// an unchanged payload comes back without its entries; its rows stand as committed (freshness is the feed's health)
+	const current = yield* observe(ctx, account, prior?.fingerprint);
+	if (current.rows === null && unchanged) return { rows: [], cursor, more: false };
 	const {
 		sys_integration: ledgers,
 		parties,
@@ -223,9 +234,11 @@ export const readCreditSource = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Enable account-wide credit on one ledger per account set'
 		});
-	const current = yield* observe(ctx, account);
+	const cursorAfter = { account, fingerprint: current.fingerprint };
+	if (current.rows === null) return { rows: [], cursor: cursorAfter, more: false };
+	const native = current.rows;
 	const rows = yield* checked(() =>
-		current.rows.map((row) => {
+		native.map((row) => {
 			const party = parties.rows.filter(
 				(p) => p.external_code === row.customer_id && p.kind !== 'supplier' && p.currency === 'CNY'
 			);
@@ -245,7 +258,7 @@ export const readCreditSource = Effect.fnUntraced(function* (
 	);
 	// Removing a native limit must not leave a previously imported limit/hold looking current.
 	const removed = existing.rows
-		.filter((row) => !current.rows.some((native) => native.customer_id === row.external_code))
+		.filter((row) => !native.some((source) => source.customer_id === row.external_code))
 		.map((row) => ({
 			$id: row.external_code,
 			external_code: row.external_code,
@@ -258,7 +271,7 @@ export const readCreditSource = Effect.fnUntraced(function* (
 		}));
 	return {
 		rows: [...rows, ...removed],
-		cursor: { account },
+		cursor: cursorAfter,
 		more: false
 	};
 });

@@ -173,6 +173,8 @@ export const bindings = {
 		key: 'external_code',
 		keyParts: ['item_id', 'warehouse_id', 'lot_number'],
 		columns: ['item_id', 'warehouse_id', 'lot_number', 'unit', 'on_hand'],
+		// most ICInventory rows are spent lots: the listing carries stock only, and a lot that runs out leaves it
+		filters: [{ field: ref('stock_snapshots', 'FQty'), op: 'ne', value: 0 }],
 		fields: {
 			item_id: column('stock_snapshots', 'FItemID'),
 			warehouse_id: column('stock_snapshots', 'FStockID'),

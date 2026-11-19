@@ -13,6 +13,7 @@ import {
 	flag,
 	headerWindow,
 	kingdeeOrder,
+	nullableText,
 	orderWindow,
 	ownedOrders,
 	pairLines,
@@ -91,8 +92,11 @@ const headerOnly = (live: SqlRow) =>
 	checked(() =>
 		kingdeeOrder({ live, headers: [live], reference: text(live, 'reference'), lines: [] })
 	);
+// a header with no FUUID (KIS leaves it unset outside the integration) is neither ours nor importable
 const uuidOf = (header: SqlRow) =>
-	checked(() => (flag(header, 'archive') ? null : text(header, 'uuid').toLowerCase()));
+	checked(() =>
+		flag(header, 'archive') ? null : (nullableText(header, 'uuid')?.toLowerCase() ?? null)
+	);
 
 /**
  * The SO and PO headers this ledger's orders mirror, read by one rowversion window: a header that moved updates its
@@ -102,9 +106,13 @@ const uuidOf = (header: SqlRow) =>
 export const readKingdeeOrders = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: OrderSourceContext
+	ctx: OrderSourceContext,
+	unchanged: boolean
 ) {
 	const directions = directionsOf(ctx.configuration);
+	// Kingdee first: a quiet window, with nothing changed here, asks the workspace nothing
+	const window = yield* orderWindow(ctx, cursor, 500, headerWindow(directions));
+	if (unchanged && window.quiet) return { rows: [], cursor, more: false };
 	const sides = yield* Effect.forEach(directions, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
@@ -148,16 +156,12 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 		)
 	);
 	// what a waiting order waits on: an employee binding or a party arriving
-	const window = yield* orderWindow(
-		ctx,
-		cursor,
-		500,
-		yield* hash([ctx.configuration.salespersonBindings ?? '', parties.rows.length]),
-		headerWindow(directions)
+	const { retry, close } = window.with(
+		yield* hash([ctx.configuration.salespersonBindings ?? '', parties.rows.length])
 	);
 	const target = kingdeeWriteTarget(ctx.configuration);
 	const moved = yield* Effect.forEach(window.headers, uuidOf);
-	const forced = window.first ? [...staged.keys(), ...window.retry] : [];
+	const forced = window.first ? [...staged.keys(), ...retry] : [];
 	const wanted = [...new Set([...moved.flatMap((uuid) => uuid ?? []), ...forced])];
 	const anchors = sides.flatMap((side) => side.anchors);
 	// a waiting or staged order that did not move is read by its UUID; the rest are the window's own rows
@@ -236,12 +240,25 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 	}
 	// a live order no order here holds: Kingdee created it. It arrives as a draft, and the read after confirms it.
 	const known = new Set(anchors.map((anchor) => anchor.uuid));
+	// a live row in the bill family of an order here (an amendment that archived the original) is that order's
+	const families = new Set(
+		sides.flatMap(({ bill, owned }) =>
+			owned.flatMap((order) =>
+				order.kingdee ? [`${bill.direction}:${order.kingdee.reference}`] : []
+			)
+		)
+	);
 	for (const [direction, live] of target && target.account === window.account ? lives : []) {
 		const uuid = yield* uuidOf(live);
 		if (
 			!uuid ||
 			known.has(uuid) ||
-			!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid)
+			!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid) ||
+			// a void or completed order no order here holds (history, or the archived copy an amendment leaves) is
+			// nothing to import: only open Kingdee orders arrive, so a first read does not import the account's history
+			(!staged.has(uuid) &&
+				((yield* checked(() => flag(live, 'cancelled') || flag(live, 'closed'))) ||
+					families.has(`${direction}:${yield* checked(() => text(live, 'reference'))}`)))
 		)
 			continue;
 		known.add(uuid);
@@ -287,22 +304,26 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 				: { status: 'draft' as const })
 		});
 	}
-	const closed = yield* window.close(waiting);
+	const closed = yield* close(waiting);
 	return sourceHealth({ rows, cursor: closed.cursor, more: window.more }, issues, closed.backlog);
 });
 
 /**
  * The lines of the confirmed orders this ledger receives, read for the Kingdee orders whose header moved: a changed
  * entry updates its line, a new entry adds one, and a line whose entry left the order is deleted. A line not yet sent
- * keeps its local terms. An order no entry is bound to yet, or one a write was refused on, is read without waiting
+ * keeps its local terms. An order with a line no entry is bound to yet, or one a write was refused on, is read without waiting
  * for Kingdee to move.
  */
 export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: OrderSourceContext
+	ctx: OrderSourceContext,
+	unchanged: boolean
 ) {
 	const directions = directionsOf(ctx.configuration);
+	// Kingdee first: a quiet window, with nothing changed here, asks the workspace nothing
+	const window = yield* orderWindow(ctx, cursor, 100, headerWindow(directions));
+	if (unchanged && window.quiet) return { rows: [], cursor, more: false };
 	const sides = yield* Effect.forEach(directions, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
@@ -329,21 +350,13 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 	const state = (line: { readonly id: string }) =>
 		order_lines.rows.find((row) => row.id === line.id)?.$sync?.kingdee?.status;
 	// a waiting order waits on an item arriving
-	const window = yield* orderWindow(
-		ctx,
-		cursor,
-		100,
-		String(products.rows.length),
-		headerWindow(directions)
-	);
+	const { retry, close } = window.with(String(products.rows.length));
 	const moved = yield* Effect.forEach(window.headers, uuidOf);
 	const unsettled = window.first
 		? sides.flatMap(({ owned, anchors }) =>
 				owned
-					.filter(
-						(order) =>
-							order.lines.every((line) => !line.source_entry_id) ||
-							order.lines.some((line) => state(line) === 'failed')
+					.filter((order) =>
+						order.lines.some((line) => !line.source_entry_id || state(line) === 'failed')
 					)
 					.flatMap((order) => anchors.find((anchor) => anchor.order === order.id)?.uuid ?? [])
 			)
@@ -351,7 +364,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 	const wanted = new Set([
 		...moved.flatMap((uuid) => uuid ?? []),
 		...unsettled,
-		...(window.first ? window.retry : [])
+		...(window.first ? retry : [])
 	]);
 	const issues: string[] = [];
 	const waiting: string[] = [];
@@ -372,10 +385,13 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 			// a write Kingdee refused for good is over: its terms return, and a line it never took leaves
 			const refused = order.lines.filter((line) => state(line) === 'failed');
 			const orphans = refused.filter((line) => !line.source_entry_id);
-			const held = new Set(unsent.flatMap((line) => line.source_entry_id ?? []));
+			// paired as the writer pairs them: a pending line Kingdee took before its reply was lost holds its entry
 			const pairs = pairLines(
-				order.lines.filter((line) => !unsent.includes(line) && !orphans.includes(line)),
+				order.lines.filter((line) => !orphans.includes(line)),
 				source.lines
+			);
+			const held = new Set(
+				[...pairs].flatMap(([entry, line]) => (unsent.includes(line) ? [entry] : []))
 			);
 			for (const line of orphans)
 				rows.push({
@@ -461,7 +477,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 					});
 		}
 	}
-	const closed = yield* window.close(waiting);
+	const closed = yield* close(waiting);
 	return sourceHealth({ rows, cursor: closed.cursor, more: window.more }, issues, closed.backlog);
 });
 
@@ -598,8 +614,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 		if (same) return bound(before);
 		if (before.status === 'void' || before.closed)
 			return yield* refuse(`The Kingdee ${bills[direction].label} is void or closed.`);
-		if (direction === 'sales' && before.status !== 'issued')
-			return yield* defer('The Kingdee SO must be audited before its lines change.');
+		// an unaudited order changes its lines in place, as Kingdee's own 修改 does; an audited SO takes a 订单变更
 		if (direction === 'purchasing' && before.status !== 'draft')
 			return yield* refuse(
 				'Kingdee changes a PO’s lines only before it is audited; unaudit it there first.'
@@ -608,6 +623,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 			{
 				...payload,
 				previous: {
+					audited: before.status === 'issued',
 					source_id: before.fid,
 					source_uuid: before.uuid,
 					source_version: before.version,

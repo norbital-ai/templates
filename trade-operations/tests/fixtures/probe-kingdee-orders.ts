@@ -213,6 +213,7 @@ try {
 			{ ...line, source_entry_id: '1', quantity: '12', net: '24', tax: '3.12', total: '27.12' }
 		],
 		previous: {
+			audited: true,
 			source_id: String(created.id),
 			source_uuid: correlation,
 			source_version: '000',

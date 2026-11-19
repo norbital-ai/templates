@@ -19,10 +19,11 @@ A quotation and confirmed sale share one order ID. Confirmation seals the contra
 commission basis and queues an idempotent source write. The supported writer creates a saved, unapproved
 SO or PO and retains its source identity. A successful write does not imply native Kingdee audit.
 
-Retries read back the stored header and lines before acknowledging the write. An SO amendment keeps the
-live source identity and archives the source version it replaces; a PO's lines are replaced only while
-it is unaudited and open. Conflicts stay visible for review rather than silently replacing either side's
-values.
+Retries read back the stored header and lines before acknowledging the write. While the SO or PO is
+unaudited and open its lines are replaced in place, as KIS's own 修改 does. An audited SO is amended: it
+keeps its live source identity, archives the version it replaces and logs one 订单变更 row per changed
+field. An audited PO refuses the change. Conflicts stay visible for review rather than silently replacing
+either side's values.
 
 Validate header and line mappings against the connected account set. Document IDs, entry identifiers
 and line ordinals have different meanings; ambiguous or missing identities must be refused before a

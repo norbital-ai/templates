@@ -15,6 +15,7 @@ import {
 	type PurchaseLotCosts
 } from './lot-cost.js';
 import { contractKind, currentTemplate, sealDocument } from './order-document.js';
+import { confirmedAt, feeds, type Ledger } from '../integration/kingdee/connection-status.js';
 /**
  * The published templates and the settings a draft is quoted and confirmed against. It names no order, so every
  * open draft's page shares one live read of it; the order update re-reads both when it confirms.
@@ -104,7 +105,12 @@ function draftOf(
 export function confirmationCheck(
 	answer: ReadAnswer<ReturnType<typeof confirmationRead>>,
 	configuration: Configuration,
-	input: { revision?: number | null; as_of: string }
+	input: {
+		revision?: number | null;
+		as_of: string;
+		/** The order's ledger: its connection and failing feeds date what Kingdee last confirmed of credit. */
+		ledger: Ledger | null;
+	}
 ) {
 	const draft = draftOf(answer, configuration, input.revision);
 	if (Result.isFailure(draft)) return Result.fail(draft.failure);
@@ -126,6 +132,7 @@ export function confirmationCheck(
 			doc,
 			BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.total))),
 			credit,
+			input.ledger ? confirmedAt(input.ledger, feeds.credit, input.as_of) : null,
 			input.as_of,
 			config.credit_fresh_minutes
 		),
@@ -172,11 +179,16 @@ export function confirmationCheck(
 export function quotationFifoCosts(
 	answer: ReadAnswer<ReturnType<typeof confirmationRead>>,
 	purchase: PurchaseLotCosts,
-	as_of: string
+	as_of: string,
+	ledger: Ledger
 ) {
 	const doc = answer.orders.rows[0];
 	if (!doc || doc.direction !== 'sales' || !doc.warehouse || !doc.ledger) return [];
 	const source = doc.ledger;
+	const confirmed = {
+		stock: confirmedAt(ledger, feeds.stock, as_of),
+		lots: confirmedAt(ledger, feeds.lotCosts, as_of)
+	};
 	const warehouse = doc.warehouse;
 	const groups = new Map<
 		string,
@@ -209,7 +221,8 @@ export function quotationFifoCosts(
 					quantity: BigDecimal.format(quantity),
 					unit: line.unit,
 					currency: doc.currency,
-					as_of
+					as_of,
+					confirmed
 				});
 		return {
 			key,

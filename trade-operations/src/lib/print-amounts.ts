@@ -162,7 +162,12 @@ export function printAmounts(seal: Terms, locale: 'en' | 'zh' = 'en') {
 					minimumFractionDigits: 2,
 					maximumFractionDigits: 2
 				}).format(numeric(BigDecimal.format(shownPrice))),
-				tax_rate_display: plain(BigDecimal.fromStringUnsafe(line.tax_rate)),
+				// as Salesbridge printed its numeric(5,2) rate: 13.00
+				tax_rate_display: new Intl.NumberFormat('en', {
+					useGrouping: false,
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				}).format(numeric(line.tax_rate)),
 				quantity_grouped: new Intl.NumberFormat('en', { maximumFractionDigits: 100 }).format(
 					numeric(line.quantity)
 				),

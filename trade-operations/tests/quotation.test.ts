@@ -167,7 +167,7 @@ test.live(
 			);
 			const read = () => confirmationReadOf(as, order);
 			const scoped = yield* read();
-			const at = { as_of: '2026-08-02T00:00:00Z' };
+			const at = { as_of: '2026-08-02T00:00:00Z', ledger: null };
 			const configuration = yield* as.query(configurationRead);
 			const check = confirmationCheck(scoped, configuration, at);
 			expect(scoped.pricing_floors.rows).toHaveLength(1);
@@ -226,7 +226,10 @@ const checkedWith = Effect.fnUntraced(function* (
 	configuration: ReadAnswer<typeof configurationRead>,
 	as_of: string
 ) {
-	const check = confirmationCheck(yield* confirmationReadOf(as, order), configuration, { as_of });
+	const check = confirmationCheck(yield* confirmationReadOf(as, order), configuration, {
+		as_of,
+		ledger: null
+	});
 	if (Result.isFailure(check)) throw new Error(check.failure);
 	return { ...check.success, check_hash: yield* confirmationHash(check.success) };
 });

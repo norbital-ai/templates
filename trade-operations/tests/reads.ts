@@ -44,11 +44,20 @@ export const confirmationOf = Effect.fnUntraced(function* (
 	as: Reader,
 	input: { order: Id<'orders'>; revision?: number | null; as_of: string }
 ) {
+	// the order page's own read of its ledger, whose feeds date what Kingdee last confirmed of credit
+	const { orders } = yield* as.query({
+		orders: {
+			where: { id: { eq: input.order } },
+			fields: ['ledger'],
+			limit: 1,
+			ledger: { fields: ['active', 'status'] }
+		}
+	});
 	const check = yield* settled(
 		confirmationCheck(
 			yield* confirmationReadOf(as, input.order),
 			yield* as.query(configurationRead),
-			input
+			{ ...input, ledger: orders.rows[0]?.ledger ?? null }
 		)
 	);
 	return { ...check, check_hash: yield* confirmationHash(check) };

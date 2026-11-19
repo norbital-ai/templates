@@ -147,22 +147,27 @@ commits each page and its continuation together; only completion advances the sa
 An in-flight transaction cannot be skipped by advancing past its uncommitted marker. Failed reads,
 invalid rows or failed model writes leave the last committed page position unchanged.
 
-One SQL request returns the account identity, checked marker metadata and ceiling. If a versioned
-feed has no unfinished window, no full listing is due, and its ceiling equals its bookmark, the
-worker stops before querying business rows. A changed page needs the checkpoint and data requests.
-The combined request preserves the existing checkpoint fingerprint. [SQL Server rowversion boundary](https://learn.microsoft.com/en-us/sql/t-sql/functions/min-active-rowversion-transact-sql)
+One SQL request returns the account identity and ceiling. Hourly, and on a feed's first poll, the same
+request also returns the declared marker columns' metadata, which the cursor fingerprints; in between the
+cursor keeps the fingerprint it last verified, and an account or fork that changed is still refused at once.
+If a versioned feed has no unfinished window, no full listing is due, and its ceiling equals its bookmark,
+the worker stops before querying business rows. A changed page needs the checkpoint and data requests. [SQL Server rowversion boundary](https://learn.microsoft.com/en-us/sql/t-sql/functions/min-active-rowversion-transact-sql)
 
 This copies current state. It does not retain every intermediate edit as a transaction log would.
-Periodic complete master listings repair missed dependency changes. After a successful complete
-listing, bounded checks of existing local identities deactivate rows that have disappeared; no
-partial scan triggers absence reconciliation. Master records and local product settings remain.
+A master feed lists its tables once, when it begins; after that only rows whose marker moved are
+read, and no periodic listing runs (the link is metered). A joined row's own marker is part of the
+effective marker, so a joined edit is not missed. Kingdee's audited records are deleted softly and
+arrive as moved rows; a row removed outright stays as last read. Master records and local product
+settings remain.
 
 The SQL Server 2017 concurrency probe uses read-committed snapshot isolation in its disposable
 account set so a poll can complete while an update is open. On an account set using locking read
 committed, a read can wait for the source writer. Include that account set’s isolation setting
 and lock behavior in deployment acceptance. [SQL Server locking and row versioning](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-2017)
 
-Stock is an aggregate complete read of ICInventory by item, warehouse and batch. Unknown cost,
+Stock is an aggregate complete read of ICInventory by item, warehouse and batch, of rows with a non-zero
+quantity: a spent lot leaves the listing. A product the listing leaves out has no stock as of that listing,
+so Available shows its shortfall. Unknown cost,
 commitments and source position remain null. Unknown product prices, tax and units are not
 invented; order entry requires the missing commercial values before confirming.
 
@@ -190,8 +195,8 @@ poll against a different destination stops before reading document or order deta
 Invoice-only Sales Analysis has a separate bookmark on the native `ICSale.FOperDate` header
 rowversion. It copies issued sales-invoice and accrual lines from January 2025 with verified
 standalone or invoice-source codes. The local row key uses `ICSaleEntry.FDetailID`. The same
-row keeps its identity when the source audit or data changes. Periodic reconciliation handles
-disappeared lines and line changes that do not advance the header marker. Dates come from the
+row keeps its identity when the source audit or data changes. KIS saves an invoice whole, so a line
+change moves its header; no periodic reconciliation runs. Dates come from the
 invoice. A later red line retains its signed values in its own month. Rows without a shipment
 remain report facts with no local order, lot cost, booked freight or commission basis.
 Displayed amounts use the invoice denomination. Verify base-currency reconciliation and the
@@ -219,13 +224,23 @@ and first delivery date, which the entries view shows. It restores past balances
 notes and unapplied cash. For the due date, the reader chooses the earliest open plan date,
 then the last plan date, then the AR contact date.
 
-The worker reads a compact ledger fingerprint first. An unchanged hourly check sends no
-business rows. On a change, bounded pages carry one contact and its settlement days per row.
-The worker checks the fingerprint again and publishes one complete local snapshot. A ledger
-change mid-read, undated settlement, unclassified balance or failed account pin retains the
-previous snapshot. The current atomic publish limit is 5 MiB. Changes confined to due plans
-or display names are refreshed by periodic full reconciliation. Test volume and elapsed time
-on the deployed route.
+The first read, and one after the account, base currency or exclusions change, lists the kept ledger
+whole in bounded pages and publishes it only if a second checkpoint matches the first. After that the
+ledger is kept current an open item at a time. Each hourly run asks one checkpoint: the rowversion
+ceiling, the guards, and for 64 buckets of open items (by id) their count, id and due-date sums and
+remaining balance, and the count, date sum and amount of their dated settlements, all computed in SQL.
+Then:
+
+- open items whose own row, invoice (`ICSale.FOperDate`), customer (`t_Organization.FModifyTime`) or a
+  delivery the invoice bills (`ICStockBill.FOperDate`) moved since the bookmark are read by id and merged;
+  one that no longer counts (paid before 2025, deleted) leaves the report;
+- a bucket whose sums still disagree with the merged entries is read again whole: this catches what moves
+  no rowversion, such as an edited due plan, a settlement's date or an open item deleted outright;
+- when nothing moved and every bucket agrees, the run reads and writes nothing.
+
+More than 5,000 moved items in one hour read the ledger whole instead. An undated settlement, an
+unclassified balance or a failed account pin retains the previous snapshot. The atomic publish limit is
+5 MiB. A renamed settlement method shows on an invoice when that invoice next moves.
 
 Aging uses the local account snapshot for enabled ledgers once it has been published. Linked
 transaction and payment rows remain the evidence on their orders. Other ledgers and order-scoped
@@ -252,8 +267,9 @@ snapshot stores product and warehouse quantities without customer, order or pric
 poll keeps the previous snapshot.
 
 Each lot shows its product's figures for its warehouse. A product with an open order that names no
-warehouse leaves Available blank, as do a feed older than **Max age of stock data** (Data freshness
-on the Kingdee connection, default 30 minutes), a missing feed and disagreeing units. The two feeds publish on
+warehouse leaves Available blank, as do a feed failing for longer than **Max age of stock data** (Data
+freshness on the Kingdee connection, default 30 minutes), a paused or unverified ledger, a missing feed and
+disagreeing units. The two feeds publish on
 their own schedules. They provide an inventory estimate for planning and can differ while Kingdee
 posts a shipment and the next reads catch up. Brand aggregation still needs a verified product binding.
 
@@ -384,6 +400,25 @@ issued; it does not attempt an invalid document upsert or reconcile rows as abse
 The reader observes subsequent Kingdee approval; the template does not call a fictional approval
 procedure. Unsupported source documents and credit settings fail explicitly. They must not fall back
 to normalized simulation tables or fabricate empty successful results.
+
+## Before connecting a customer account set
+
+The simulator and the SQL Server 2017 probes follow what SalesBridge measured on the customer's account set.
+These facts were not measured; read each on the target account set (read login) before enabling the feed or
+write that depends on it.
+
+| Check                          | Query or step                                                                                                                                                                                                        | Why                                                                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engine and level               | `SELECT @@VERSION, compatibility_level FROM sys.databases WHERE name = DB_NAME()`                                                                                                                                    | SalesBridge measured SQL Server 2008 R2 at level 80. On 2008 R2 `FOR JSON`, `HASHBYTES` over 8,000 bytes and `TOP (@n)` fail, so every read and the credit, AR and snapshot feeds stop.                          |
+| `SEOrder` defaults and `FUUID` | `sys.columns` (nullability, default) for `FVersionNo`, `FUUID`, `FChangeMark`, `FCancellation`, `FClosed`, `FStatus`; `SELECT COUNT(*) FROM dbo.SEOrder WHERE FUUID IS NULL`                                         | The writer sends `FVersionNo='000'`. A header without `FUUID` is neither an owned nor an importable order and is skipped.                                                                                        |
+| `ICOrderAlter` widths          | `sys.columns` for `ICOrderAlter`                                                                                                                                                                                     | The change cause is cut to `FChangeCauses` keeping its tag; a column under 19 characters refuses amendments.                                                                                                     |
+| Purchase columns               | `sys.columns` for `POOrder`, `POOrderEntry`, `ICPurchase`, `ICPurchaseEntry`: `FUUID`, `FDeptID`, `FBillerID`, `FSettleID`, `FSettleDate`, `FCESS` or `FTaxRate`, `FTaxAmt` or `FTaxAmount`, `FAuxTaxPrice`, `FBrNO` | Only row counts were measured. On SO lines KIS keeps the rate in `FCESS`; if a PO does too, the PO price map in `bills.ts` changes. Rehearse one PO through audit and 下推 外购入库 on a test account set first. |
+| Audited PO changes             | Make one 订单变更 on an audited PO in a test account set; read its `POOrder` rows and `ICOrderAlter`                                                                                                                 | KIS logged 303 PO line changes, so audited POs change; the archive shape is unknown. Until it is measured an audited PO refuses a local change.                                                                  |
+| Settlement placement           | `SELECT k.FType, ce.FType, ce.FType_SRC, COUNT(*) FROM dbo.t_rp_CheckEntry ce JOIN dbo.t_RP_NewCheckInfo k ON k.FInterID=ce.FInterID GROUP BY k.FType, ce.FType, ce.FType_SRC`                                       | The payment feed reads the invoice side of each link under an `FType` 3 header naming the invoice's open item; another placement holds receipts for review.                                                      |
+| Order-line units               | `SELECT e.FUnitID, d.FUnitID AS base_unit, COUNT(*) FROM dbo.SEOrderEntry e JOIN dbo.t_ICItem d ON d.FItemID=e.FItemID GROUP BY e.FUnitID, d.FUnitID`                                                                | Lines read `FQty` in the base unit. A Kingdee line entered in a pack unit (25kg/包) would carry the pack's name and price beside a base quantity.                                                                |
+| Credit control                 | `SELECT FCreditControl, FMainAmtCustom, FRangeCustom FROM dbo.ICCreditOption`; `SELECT COUNT(*) FROM dbo.ICCreditObject`                                                                                             | SalesBridge found credit control off and no limits in production; the credit feed then reports itself unavailable.                                                                                               |
+| Rowversion indexes             | `sys.indexes` on `SEOrder.FOperDate`, `ICStockBill.FOperDate`, `ICSale.FOperDate`, `t_RP_Contact.FModifyTime`                                                                                                        | Without them each window scans its table on the server. It costs ERP CPU, not link bytes; adding an index is the customer's decision.                                                                            |
+| Collation                      | `SELECT DATABASEPROPERTYEX(DB_NAME(), 'Collation')`                                                                                                                                                                  | Measured `Chinese_PRC_CI_AS`; some text columns are `varchar` in GBK. The simulator uses the server default and `nvarchar`.                                                                                      |
 
 ## Local validation boundary
 

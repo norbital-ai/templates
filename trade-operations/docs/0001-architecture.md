@@ -77,8 +77,9 @@ draft --(sales: approval; purchasing: confirm)--> confirmed --(change: approval 
 - `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their contacts and source evidence.
 - `credit_snapshots` is read-only credit evidence. The explicit `kis-sales-out-v1` policy and a verified
   `creditAccount` bind native sales-out exposure and amount/overdue blocking decisions. Its minute feed
-  reads native credit, invoice, receipt and DO tables; it refreshes limit, used, derived available credit
-  and observation time. Unsupported native settings preserve last-good evidence.
+  reads native credit, invoice, receipt and DO tables; it writes limit, used and derived available credit
+  only when the position changes, and its freshness is the feed's health on the ledger. Unsupported native
+  settings preserve last-good evidence.
 - `products` holds the SKU, code, base unit, tax rate, optional price and commission settings.
 - `warehouses` holds warehouse rows and their `group_code`; a price floor is keyed by the group, not a single
   warehouse.
@@ -166,9 +167,9 @@ order's terms are protected by the sales policy's commercial review, not by a UI
 
 ## 7. Automations and effects
 
-| Name            | Trigger              | Policy          | What it does                                                               |
-| --------------- | -------------------- | --------------- | -------------------------------------------------------------------------- |
-| `source_health` | cron every 5 minutes | `source_health` | Notifies workspace administrators when a ledger connection needs attention |
+| Name            | Trigger                   | Policy          | What it does                                                               |
+| --------------- | ------------------------- | --------------- | -------------------------------------------------------------------------- |
+| `source_health` | `sys_integration` updates | `source_health` | Notifies workspace administrators when a ledger connection needs attention |
 
 Models declare no post-commit effects. Ordinary writes, approvals and syncs own their own follow-up.
 

@@ -6,8 +6,8 @@ export default sync('orders', 'kingdee', {
 	with: 'kingdee',
 	policies: ['kingdee_sync'],
 	every: '1min',
-	read: function* ({ cursor, instance }, ctx) {
-		return yield* readKingdeeOrders(instance, cursor, ctx);
+	read: function* ({ cursor, instance, local_unchanged }, ctx) {
+		return yield* readKingdeeOrders(instance, cursor, ctx, local_unchanged);
 	},
 	write: function* ({ op, row, instance }, ctx) {
 		if (op === 'delete') return null;

@@ -5,7 +5,7 @@ import { readStockLotCosts } from '../../../integration/kingdee/stock-lot-costs.
 export default sync('source_lot_costs', 'kingdee', {
 	with: 'kingdee',
 	policies: ['kingdee_sync'],
-	read: function* ({ instance, cursor }, ctx) {
-		return fromSource(yield* readStockLotCosts(instance, cursor, ctx), instance);
+	read: function* ({ instance, cursor, local_unchanged }, ctx) {
+		return fromSource(yield* readStockLotCosts(instance, cursor, ctx, local_unchanged), instance);
 	}
 });

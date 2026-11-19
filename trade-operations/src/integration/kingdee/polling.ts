@@ -20,7 +20,13 @@ import {
 	type Json
 } from '@norbital-ai/bolt';
 import type { SourceProjection as Projection } from './sql.js';
-import { sourceCheckpoint, sourcePage, sourceMarkers } from './sql.js';
+import {
+	sourceCeiling,
+	sourceCheckpoint,
+	sourceFingerprint,
+	sourcePage,
+	sourceMarkers
+} from './sql.js';
 import { bindings, normalizeSourceRow } from './source-bindings.js';
 /** An ISO 4217 code the runtime knows; anything else throws. */
 export function currency(code: string): CurrencyCode {
@@ -75,8 +81,15 @@ const Cursor = Schema.Struct({
 	source: Schema.String,
 	bookmark: Rowversion,
 	fullAt: Schema.NullOr(Schema.String),
-	continuation: Schema.NullOr(Continuation)
+	continuation: Schema.NullOr(Continuation),
+	// when the marker schema behind `source` was last verified, and on which account: polls in between send the ceiling alone
+	checkedAt: Schema.optionalKey(Schema.String),
+	account: Schema.optionalKey(Schema.String),
+	// a feed with no marker: the fingerprint of the listing it last began, with the base currency it was read in
+	fingerprint: Schema.optionalKey(Schema.String)
 });
+/** How long a verified marker schema stands before a poll checks it again: the link is metered. */
+const SCHEMA_CHECK_MS = 3_600_000;
 type Cursor = typeof Cursor.Type;
 const SqlResult = Schema.Struct({ rows: Schema.Array(Schema.Record(Schema.String, Schema.Json)) });
 /** SQL transport belongs to the host; polling and source semantics belong to this integration. */
@@ -235,6 +248,25 @@ export const sourceState = Effect.fnUntraced(function* (
 		now: current.observed_at
 	};
 });
+/** The account and ceiling without the marker schema; `source` stays the one last verified. */
+const sourceCeilingState = Effect.fnUntraced(function* (ctx: DatabaseContext) {
+	const [row] = yield* sourceCeiling(ctx);
+	const current = yield* Schema.decodeUnknownEffect(
+		Schema.Struct({
+			database_guid: Schema.String,
+			recovery_fork_guid: Schema.String,
+			maximum: Rowversion,
+			observed_at: Schema.String
+		})
+	)(row).pipe(Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) })));
+	if (!Number.isFinite(Date.parse(current.observed_at)))
+		return yield* new SourceUnavailable({ reason: 'The SQL Server clock is unavailable' });
+	return {
+		account: `${current.database_guid}/${current.recovery_fork_guid}`.toLowerCase(),
+		maximum: current.maximum.toLowerCase(),
+		now: current.observed_at
+	};
+});
 export type SourcePage<R> = {
 	readonly rows: readonly (R & { readonly $id: string; readonly $version?: string })[];
 	readonly cursor: Json;
@@ -278,24 +310,68 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 	| CheckpointInvalid
 	| DigestUnavailable
 > {
-	const current = yield* sourceState(ctx, projection);
+	const prior =
+		cursor === null
+			? null
+			: yield* Schema.decodeUnknownEffect(Cursor)(cursor).pipe(
+					Effect.mapError((cause) => new CheckpointInvalid({ reason: String(cause) }))
+				);
+	const versioned = sourceMarkers(projection).length > 0;
+	// a feed with no marker lists its table whole; one request first tells whether anything in it moved, and an
+	// unchanged listing answers with no rows and the same cursor, so neither the link nor the workspace does more
+	let listing: string | undefined;
+	if (!versioned && (prior === null || prior.continuation === null)) {
+		const [row] = yield* sourceFingerprint(ctx, projection, account);
+		const now = yield* Schema.decodeUnknownEffect(
+			Schema.Struct({
+				database_guid: Schema.String,
+				recovery_fork_guid: Schema.String,
+				fingerprint: Schema.String.check(Schema.isPattern(/^[0-9A-F]{64}$/))
+			})
+		)(row).pipe(Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) })));
+		listing = `${now.fingerprint}:${ctx.configuration.baseCurrency}`;
+		if (
+			prior !== null &&
+			prior.fullAt !== null &&
+			prior.fingerprint === listing &&
+			prior.account === `${now.database_guid}/${now.recovery_fork_guid}`.toLowerCase()
+		)
+			return { rows: [], cursor: prior, more: false };
+	}
+	// on the same account the ceiling alone is read while the verified marker schema is under an hour old, or while
+	// nothing has moved: an idle feed changes no cursor, so the tenant database is not woken to record a check
+	const ceiling =
+		prior?.checkedAt === undefined || prior.account === undefined
+			? null
+			: yield* sourceCeilingState(ctx);
+	const recent =
+		ceiling !== null &&
+		prior?.checkedAt !== undefined &&
+		ceiling.account === prior.account &&
+		((Date.parse(ceiling.now) - Date.parse(prior.checkedAt) < SCHEMA_CHECK_MS &&
+			Date.parse(ceiling.now) >= Date.parse(prior.checkedAt)) ||
+			(versioned &&
+				prior.fullAt !== null &&
+				prior.continuation === null &&
+				ceiling.maximum === prior.bookmark.toLowerCase()));
+	const current =
+		recent && prior !== null
+			? { ...ceiling, source: prior.source }
+			: yield* sourceState(ctx, projection);
 	if (account !== undefined && current.account !== account)
 		return yield* new SourceUnavailable({
 			reason: 'The verified Kingdee read account identity does not match'
 		});
-	const versioned = sourceMarkers(projection).length > 0;
-	let state: Cursor =
-		cursor === null
-			? {
-					protocol: 'rowversion-v1',
-					source: current.source,
-					bookmark: ZERO,
-					fullAt: null,
-					continuation: null
-				}
-			: yield* Schema.decodeUnknownEffect(Cursor)(cursor).pipe(
-					Effect.mapError((cause) => new CheckpointInvalid({ reason: String(cause) }))
-				);
+	let state: Cursor = {
+		...(prior ?? {
+			protocol: 'rowversion-v1',
+			source: current.source,
+			bookmark: ZERO,
+			fullAt: null,
+			continuation: null
+		}),
+		...(recent ? {} : { checkedAt: current.now, account: current.account })
+	};
 	state = {
 		...state,
 		bookmark: state.bookmark.toLowerCase(),
@@ -326,6 +402,7 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 	// one listing when a feed begins; after it only rows whose rowversion moved are read. Kingdee's deletes are
 	// soft: they move the row, so nothing is ever listed again to find what left.
 	const full = state.fullAt === null || !versioned;
+	if (listing !== undefined) state = { ...state, fingerprint: listing };
 	const position = state.continuation ?? {
 		mode: full ? ('snapshot' as const) : ('changes' as const),
 		upper: current.maximum,

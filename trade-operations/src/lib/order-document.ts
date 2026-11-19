@@ -331,7 +331,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 			template.layout === 'table_v1'
 				? renderTableDocument({ ...template, title }, terms, reference, order.ordered_on)
 				: renderOrderDocument(title, '{agreement}', { agreement: text }),
-		filename: `${reference}-${confirmed ? 'contract' : template.print_layout ? 'draft' : purchase ? 'purchase-commitment' : 'quotation'}.pdf`,
+		filename: `${reference}-${confirmed ? 'contract' : !purchase ? 'quotation' : template.print_layout ? 'draft' : 'purchase-commitment'}.pdf`,
 		reference,
 		template_version: template.version,
 		// the seller's stamp goes on its quotations and sales contracts, never on a purchase contract

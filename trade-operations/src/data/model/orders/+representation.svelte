@@ -113,7 +113,8 @@
 		checkRead?.current && configuration?.current && view.mode !== 'create'
 			? confirmationCheck(checkRead.current, configuration.current, {
 					revision: view.record.revision,
-					as_of: clock.now
+					as_of: clock.now,
+					ledger: ledger ?? null
 				})
 			: null
 	);
@@ -130,8 +131,8 @@
 	);
 	const purchaseCosts = $derived(purchaseCostRead?.current?.source_lot_costs.rows[0]);
 	const fifoCosts = $derived(
-		checkRead?.current && purchaseCosts
-			? quotationFifoCosts(checkRead.current, purchaseCosts, clock.now)
+		checkRead?.current && purchaseCosts && ledger
+			? quotationFifoCosts(checkRead.current, purchaseCosts, clock.now, ledger)
 			: []
 	);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);

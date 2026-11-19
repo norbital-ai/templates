@@ -6,7 +6,7 @@ export default sync('source_receivables', 'kingdee', {
 	with: 'kingdee',
 	policies: ['kingdee_sync'],
 	every: '1h',
-	read: function* ({ instance, cursor }, ctx) {
-		return fromSource(yield* readReceivables(instance, cursor, ctx), instance);
+	read: function* ({ instance, cursor, local_unchanged }, ctx) {
+		return fromSource(yield* readReceivables(instance, cursor, ctx, local_unchanged), instance);
 	}
 });

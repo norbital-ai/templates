@@ -45,6 +45,7 @@ const amended: OrderPayload = {
 	payment_terms: 'NET30',
 	lines: [{ ...original, quantity: '12', net: '24', tax: '3.12', total: '27.12' }],
 	previous: {
+		audited: true,
 		source_id: '9002',
 		source_uuid: '00000000-0000-8000-8000-000000000001',
 		source_version: '007',

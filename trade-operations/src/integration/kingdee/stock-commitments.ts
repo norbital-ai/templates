@@ -46,7 +46,9 @@ export const testStockCommitments = (ctx: DatabaseContext, account: string) =>
 export const readStockCommitments = Effect.fnUntraced(function* (
 	instance: InstanceId<'kingdee'>,
 	cursor: Json | null,
-	ctx: SyncCtx<'kingdee'>
+	ctx: SyncCtx<'kingdee'>,
+	/** Nothing was written here since the last read: the orders' warehouses it hashed and the ledger check stand. */
+	unchanged: boolean
 ) {
 	if (!ctx.configuration.stockAvailabilityAccount?.trim()) return { rows: [], cursor, more: false };
 	const account = kingdeeStockAvailabilityAccount(ctx.configuration);
@@ -61,29 +63,34 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 			'$cursor',
 			'The verified stock account changed. Review its snapshot before resetting.'
 		);
-	const { sys_integration: ledgers, orders } = yield* ctx.query({
-		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] },
-		orders: {
-			where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-			fields: ['kingdee', 'warehouse']
-		}
-	});
-	if (
-		ledgers.rows.some(
-			(ledger) =>
-				ledger.id !== instance && kingdeeStockAvailabilityAccount(ledger.configuration) === account
-		)
-	)
-		return yield* new SourceUnavailable({
-			reason: 'Enable stock availability on one ledger per account set'
+	const local = Effect.gen(function* () {
+		const { sys_integration: ledgers, orders } = yield* ctx.query({
+			sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] },
+			orders: {
+				where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
+				fields: ['kingdee', 'warehouse']
+			}
 		});
-	const warehouses = new Map<string, string | null>();
-	for (const order of orders.rows) {
-		if (!order.kingdee) continue;
-		const key = JSON.stringify([ctx.configuration.branchNo, order.kingdee.fid]);
-		warehouses.set(key, warehouses.has(key) ? null : order.warehouse);
-	}
-	const warehouseDigest = yield* sha256Hex(JSON.stringify([...warehouses].sort()));
+		if (
+			ledgers.rows.some(
+				(ledger) =>
+					ledger.id !== instance &&
+					kingdeeStockAvailabilityAccount(ledger.configuration) === account
+			)
+		)
+			return yield* new SourceUnavailable({
+				reason: 'Enable stock availability on one ledger per account set'
+			});
+		const warehouses = new Map<string, string | null>();
+		for (const order of orders.rows) {
+			if (!order.kingdee) continue;
+			const key = JSON.stringify([ctx.configuration.branchNo, order.kingdee.fid]);
+			warehouses.set(key, warehouses.has(key) ? null : order.warehouse);
+		}
+		return { warehouses, digest: yield* sha256Hex(JSON.stringify([...warehouses].sort())) };
+	});
+	const known = unchanged && prior ? null : yield* local;
+	const warehouseDigest = known?.digest ?? prior?.warehouseDigest ?? '';
 	const current = yield* readChangedSnapshot(
 		ctx,
 		stockCommitments,
@@ -96,8 +103,10 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		warehouseDigest,
 		fingerprint: current.fingerprint
 	};
+	// an unchanged payload comes back without its entries: the committed header stands (freshness is the feed's health)
+	if (current.entries === null) return { rows: [], cursor: checkpoint, more: false };
+	const { warehouses } = known ?? (yield* local);
 	const header = { $id: 'open-stock', observed_at: current.observed_at };
-	if (current.entries === null) return { rows: [header], cursor: checkpoint, more: false };
 	const payload = current.entries;
 	const entries = yield* checked(() => {
 		const rows = Schema.decodeUnknownSync(entriesSchema)(payload);

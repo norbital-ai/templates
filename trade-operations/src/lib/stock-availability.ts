@@ -1,5 +1,6 @@
 import type { ReadAnswer } from '@norbital-ai/bolt';
 import { BigDecimal, Duration } from 'effect';
+import { confirmedAt, feeds, type Ledger } from '../integration/kingdee/connection-status.js';
 
 export const stockAvailabilityRead = {
 	commercial_settings: {
@@ -7,7 +8,11 @@ export const stockAvailabilityRead = {
 		fields: ['stock_fresh_minutes'],
 		limit: 1
 	},
-	products: { fields: ['source', 'external_code', 'source_number', 'name', 'unit'], limit: 10000 },
+	products: {
+		fields: ['source', 'external_code', 'source_number', 'name', 'unit'],
+		source: { fields: ['active', 'status'] },
+		limit: 10000
+	},
 	warehouses: { fields: ['name', 'group_code'], limit: 10000 },
 	stock_snapshots: {
 		fields: [
@@ -41,7 +46,7 @@ export const logisticsStockAvailabilityRead = {
 } as const;
 
 type Answer = ReadAnswer<typeof logisticsStockAvailabilityRead>;
-type Product = Answer['products']['rows'][number];
+type Product = Omit<Answer['products']['rows'][number], 'source'> & { readonly source: string };
 type Lot = Answer['stock_snapshots']['rows'][number];
 type Snapshot = Answer['source_stock_commitments']['rows'][number];
 type Commitment = Snapshot['entries'][number];
@@ -52,20 +57,28 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 	const freshness = Duration.toMillis(
 		Duration.minutes(answer.commercial_settings.rows[0]?.stock_fresh_minutes ?? 30)
 	);
+	// a quiet read writes nothing: a figure is as old as what its ledger last confirmed, not its row's time
+	const at = new Date(now).toISOString();
+	const productRows = answer.products.rows.flatMap((row) =>
+		row.source ? [{ ...row, source: row.source.id, ledger: row.source }] : []
+	);
+	const ledgers = new Map<string, Ledger>(productRows.map((row) => [row.source, row.ledger]));
+	const confirmed = (source: string, feed: (typeof feeds)[keyof typeof feeds]) => {
+		const ledger = ledgers.get(source);
+		return ledger ? confirmedAt(ledger, feed, at) : null;
+	};
 	const warehouses = new Map<string, Answer['warehouses']['rows'][number]>(
 		answer.warehouses.rows.map((row) => [row.id, row])
 	);
-	const snapshots = new Map(
+	const snapshots = new Map<string, Snapshot>(
 		answer.source_stock_commitments.rows.flatMap((row) =>
 			row.source ? [[row.source.id, row] as const] : []
 		)
 	);
 	const key = (source: string, product: string) => JSON.stringify([source, product]);
 	const groups = new Map<string, Group>();
-	const products = new Map(answer.products.rows.map((row) => [row.id, row]));
-	const codes = new Map(
-		answer.products.rows.map((row) => [key(row.source, row.external_code), row])
-	);
+	const products = new Map(productRows.map((row) => [row.id, row]));
+	const codes = new Map(productRows.map((row) => [key(row.source, row.external_code), row]));
 	const group = (product: Product) => {
 		const id = key(product.source, product.external_code);
 		const existing = groups.get(id);
@@ -84,12 +97,19 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 			if (product) group(product).commitments.push(commitment);
 		}
 	}
+	// a complete listing names every lot with stock: a product it leaves out has none, as of that listing
+	const listed = new Set<string>(answer.stock_snapshots.rows.map((lot) => lot.source));
 	const fresh = (date: string | null) =>
 		date !== null && Math.abs(now - Date.parse(date)) < freshness;
 	return [...groups.values()].flatMap(({ product, lots, commitments }) => {
-		const snapshot = snapshots.get(product.source);
-		const orderTime = snapshot?.observed_at ?? null;
-		const stockUnits = new Set(lots.map((row) => normalizeUnit(row.unit ?? null)));
+		const source = product.source;
+		const snapshot = snapshots.get(source);
+		const orderTime = snapshot ? confirmed(source, feeds.commitments) : null;
+		const stockUnits = new Set(
+			lots.length
+				? lots.map((row) => normalizeUnit(row.unit ?? null))
+				: [normalizeUnit(product.unit ?? null)]
+		);
 		const orderUnits = new Set(commitments.map((row) => normalizeUnit(row.unit ?? null)));
 		const stockKnown = stockUnits.size === 1 && !stockUnits.has(null);
 		const orderKnown = orderUnits.size <= 1 && !orderUnits.has(null);
@@ -118,11 +138,15 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 							(row.warehouse && warehouses.has(row.warehouse) ? row.warehouse : null) === warehouse
 					)
 				: commitments;
-			const stockTime = selectedLots.map((row) => row.as_of).sort()[0] ?? null;
-			const onHand =
-				selectedLots.length && stockKnown
+			const stockTime =
+				selectedLots.length > 0 || listed.has(source) ? confirmed(source, feeds.stock) : null;
+			const onHand = !stockKnown
+				? null
+				: selectedLots.length
 					? BigDecimal.sumAll(selectedLots.map((lot) => BigDecimal.fromStringUnsafe(lot.on_hand)))
-					: null;
+					: listed.has(source)
+						? BigDecimal.fromBigInt(0n)
+						: null;
 			const awaiting =
 				snapshot && orderKnown
 					? BigDecimal.sumAll(
@@ -149,7 +173,7 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 				on_hand: onHand && BigDecimal.format(onHand),
 				awaiting: awaiting && BigDecimal.format(awaiting),
 				available,
-				ledger: snapshot?.source?.name ?? product.source,
+				ledger: snapshot?.source?.name ?? source,
 				stock_as_of: stockTime,
 				orders_as_of: orderTime
 			};

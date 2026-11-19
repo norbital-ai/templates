@@ -110,6 +110,12 @@ export const requireReadAccount = requireAccount('@read_account', 'read');
 const readAccount = (p: ReturnType<typeof parameters>, account?: string) =>
 	account === undefined ? '' : requireAccount(p.bind(account, 'read_account'), 'read') + '\n';
 
+/** The account identity and polling ceiling alone, between the hourly checks of the marker schema. */
+export const sourceCeiling = (ctx: DatabaseContext) =>
+	execute(
+		ctx,
+		`SELECT database_guid,recovery_fork_guid,CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS maximum,CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at FROM sys.database_recovery_status WHERE database_id=DB_ID()`
+	);
 /** One SQL request establishes the account identity, marker schema and safe polling ceiling. */
 export const sourceCheckpoint = (ctx: DatabaseContext, source: SourceProjection) => {
 	const p = parameters(),
@@ -261,18 +267,38 @@ export const sourcePage = (
 			`__rowversion < CONVERT(binary(8),${p.bind(window.to, 'to')},1)`
 		);
 	}
-	const columns = source.columns.map((name) =>
-		source.decimals?.includes(name)
-			? `CONVERT(varchar(100),${q(name)}) AS ${q(name)}`
-			: source.dates?.includes(name)
-				? `CONVERT(varchar(10),${q(name)},23) AS ${q(name)}`
-				: source.texts?.includes(name)
-					? `CONVERT(nvarchar(max),${q(name)}) AS ${q(name)}`
-					: q(name)
-	);
 	return execute(
 		ctx,
-		`${readAccount(p, account)}SELECT TOP ${limit} ${selected.key} AS __key${selected.versioned ? ',CONVERT(varchar(18),CONVERT(binary(8),__rowversion),1) AS __rowversion' : ''},${columns.join(', ')} FROM (${selected.sql}) AS projected WHERE ${conditions.join(' AND ')} ORDER BY ${selected.key} COLLATE ${binaryOrder}`,
+		`${readAccount(p, account)}SELECT TOP ${limit} ${selected.key} AS __key${selected.versioned ? ',CONVERT(varchar(18),CONVERT(binary(8),__rowversion),1) AS __rowversion' : ''},${listed(source)} FROM (${selected.sql}) AS projected WHERE ${conditions.join(' AND ')} ORDER BY ${selected.key} COLLATE ${binaryOrder}`,
+		p.values
+	);
+};
+const listed = (source: SourceProjection) =>
+	source.columns
+		.map((name) =>
+			source.decimals?.includes(name)
+				? `CONVERT(varchar(100),${q(name)}) AS ${q(name)}`
+				: source.dates?.includes(name)
+					? `CONVERT(varchar(10),${q(name)},23) AS ${q(name)}`
+					: source.texts?.includes(name)
+						? `CONVERT(nvarchar(max),${q(name)}) AS ${q(name)}`
+						: q(name)
+		)
+		.join(', ');
+/**
+ * The account identity and the SHA-256 of a whole listing (keys and columns as a page reads them), in one request: a
+ * feed with no marker lists its table again only when this moved.
+ */
+export const sourceFingerprint = (
+	ctx: DatabaseContext,
+	source: SourceProjection,
+	account?: string
+) => {
+	const p = parameters(),
+		selected = projection(source, p.bind);
+	return execute(
+		ctx,
+		`${readAccount(p, account)}SELECT database_guid,recovery_fork_guid,CONVERT(varchar(64),HASHBYTES('SHA2_256',COALESCE((SELECT ${selected.key} AS __key,${listed(source)} FROM (${selected.sql}) AS projected ORDER BY ${selected.key} COLLATE ${binaryOrder} FOR JSON PATH,INCLUDE_NULL_VALUES),N'[]')),2) AS fingerprint FROM sys.database_recovery_status WHERE database_id=DB_ID()`,
 		p.values
 	);
 };

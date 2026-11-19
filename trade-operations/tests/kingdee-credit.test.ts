@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { expect, it } from '@effect/vitest';
 import { Effect, Exit } from 'effect';
 import type { Json } from '@norbital-ai/bolt';
@@ -44,13 +45,15 @@ const setup = Effect.fnUntraced(function* () {
 		observed: string;
 		unavailable: boolean;
 		reads: number;
+		transfers: number;
 	} = {
 		rows: [credit],
 		options: [{ mask: '255', control_range: '3', control: 2 }],
 		fields,
 		observed: '2026-11-17T03:00:00.000Z',
 		unavailable: false,
-		reads: 0
+		reads: 0,
+		transfers: 0
 	};
 	const t = yield* workspace({
 		now: state.observed,
@@ -83,16 +86,21 @@ const setup = Effect.fnUntraced(function* () {
 				return Effect.fail(
 					new FacilityFailure({ kind: 'invalid', message: 'Wrong source account' })
 				);
+			// as the SQL does: the payload travels only when its fingerprint differs from the caller's
+			const entries = JSON.stringify({
+				options: state.options,
+				fields: state.fields,
+				customers: state.rows
+			});
+			const fingerprint = createHash('sha256').update(entries).digest('hex').toUpperCase();
+			const changed = fingerprint !== op.arguments.prior;
+			if (changed) state.transfers++;
 			return Effect.succeed({
 				rows: [
 					{
-						fingerprint: 'A'.repeat(64),
+						fingerprint,
 						oversized: false,
-						entries: JSON.stringify({
-							options: state.options,
-							fields: state.fields,
-							customers: state.rows
-						}),
+						entries: changed ? entries : null,
 						observed_at: state.observed
 					}
 				]
@@ -115,7 +123,7 @@ const setup = Effect.fnUntraced(function* () {
 });
 
 it.live(
-	'publishes RMB invoice/payment credit, refreshes unchanged observations, and retains the last good position on failure',
+	'publishes RMB invoice/payment credit, writes nothing for an unchanged position, and retains the last good position on failure',
 	() =>
 		Effect.gen(function* () {
 			const s = yield* setup();
@@ -133,9 +141,15 @@ it.live(
 			expect(sameDecimal(row.credit_used, '88')).toBe(true);
 			expect(sameDecimal(row.credit_available, '99912')).toBe(true);
 			s.state.observed = '2026-11-17T03:02:00.000Z';
+			const transfers = s.state.transfers;
+			const changed = row;
 			yield* s.t.pull('credit_snapshots');
+			// an unchanged position does not cross the link again and writes nothing: its row keeps the time it
+			// changed, and its freshness is the feed's health on the ledger
+			expect(s.state.transfers).toBe(transfers);
 			row = firstRow((yield* s.read()).credit_snapshots.rows);
-			expect(row.as_of).toBe(s.state.observed);
+			expect(row).toEqual(changed);
+			expect(row.as_of).toBe('2026-11-17T03:01:00.000Z');
 			const retained = row;
 			for (const broken of [
 				[{ ...credit, known_customer: false }],

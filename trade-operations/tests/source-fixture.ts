@@ -94,6 +94,7 @@ export function sourceFixture(records: () => Record<string, Json[]>, identity = 
 							{
 								database_guid: identity,
 								recovery_fork_guid: identity,
+								maximum: hex(sequence + 1),
 								observed_at: '2026-10-10T00:00:00.000Z'
 							}
 						]
