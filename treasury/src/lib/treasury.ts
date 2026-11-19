@@ -1185,6 +1185,7 @@ export function lineWarnings(
 // ── bank advices ──────────────────────────────────────────────────────────────────────────────
 
 export type Advice = {
+	readonly doc_type: 'drawdown_advice' | 'settlement_advice' | 'other';
 	readonly principal: string | null;
 	readonly interest_rate_pct: string | null;
 	readonly interest_amount: string | null;
@@ -1196,8 +1197,8 @@ export type Advice = {
 };
 /**
  * The arithmetic on an advice, checked by the workspace and not by the reader: days = due − start, interest =
- * amount × rate × days ÷ basis with the bank's rounding, and total debited = principal + interest (+ charges).
- * Each answer is ok or not, with the figures to show.
+ * amount × rate × days ÷ basis with the bank's rounding, and total debited = principal + interest (+ charges), or the
+ * charges alone on a drawdown advice. Each answer is ok or not, with the figures to show.
  */
 export function adviceChecks(advice: Advice, basis: DayBasis, rounding: Rounding) {
 	const out: { ok: boolean; key: MessageKey; values: Record<string, string | number> }[] = [];
@@ -1215,9 +1216,16 @@ export function adviceChecks(advice: Advice, basis: DayBasis, rounding: Rounding
 			key: 'check.interest',
 			values: { expected, printed: advice.interest_amount }
 		});
-	if (advice.total_debited !== null && advice.principal !== null) {
+	const charges = sum(advice.charges.map((c) => decimal(c.amount_usd)));
+	if (advice.total_debited !== null && advice.doc_type === 'drawdown_advice')
+		out.push({
+			ok: BigDecimal.equals(decimal(advice.total_debited), charges),
+			key: 'check.total_charges',
+			values: { total: advice.total_debited, expected: text(charges) }
+		});
+	else if (advice.total_debited !== null && advice.principal !== null) {
 		const base = BigDecimal.sum(decimal(advice.principal), decimal(advice.interest_amount ?? 0));
-		const full = BigDecimal.sum(base, sum(advice.charges.map((c) => decimal(c.amount_usd))));
+		const full = BigDecimal.sum(base, charges);
 		const total = decimal(advice.total_debited);
 		out.push({
 			ok: BigDecimal.equals(total, full) || BigDecimal.equals(total, base),

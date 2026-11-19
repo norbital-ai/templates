@@ -67,6 +67,7 @@
 			? []
 			: adviceChecks(
 					{
+						doc_type: record.doc_type,
 						principal: record.extracted.principal ?? null,
 						interest_rate_pct: record.extracted.interest_rate_pct ?? null,
 						interest_amount: record.extracted.interest_amount ?? null,

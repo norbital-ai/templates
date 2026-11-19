@@ -440,6 +440,7 @@ describe('advice and invoice checks', () => {
 	it('recomputes an advice’s days, interest and total debited', () => {
 		const checks = adviceChecks(
 			{
+				doc_type: 'settlement_advice',
 				principal: '1000000',
 				interest_rate_pct: '5',
 				interest_amount: '8333.34',
@@ -457,6 +458,25 @@ describe('advice and invoice checks', () => {
 			['check.interest', false],
 			['check.total', true]
 		]);
+	});
+	it('checks a drawdown advice’s total debited against its charges alone', () => {
+		const advice = {
+			doc_type: 'drawdown_advice' as const,
+			principal: '236023.50',
+			interest_rate_pct: '5.225',
+			interest_amount: '4110.74',
+			interest_days: 120,
+			start_date: '2026-11-17',
+			due_date: '2027-03-17',
+			total_debited: '330.03',
+			charges: [{ amount_usd: '295.03' }, { amount_usd: '35.00' }]
+		};
+		const total = (debited: string) =>
+			adviceChecks({ ...advice, total_debited: debited }, 'actual_360', 'down_to_cent').find(
+				(c) => c.key === 'check.total_charges'
+			);
+		expect(total('330.03')).toMatchObject({ ok: true, values: { expected: '330.03' } });
+		expect(total('236353.53')?.ok).toBe(false);
 	});
 	const po = {
 		currency: 'USD',

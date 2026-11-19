@@ -206,6 +206,7 @@ export default messages({
 	'check.days': 'Days: due − start = {actual}; the advice prints {printed}.',
 	'check.interest': 'Interest: expected {expected}; the advice shows {printed}.',
 	'check.total': 'Total debited {total}; principal + interest + charges = {expected}.',
+	'check.total_charges': 'Total debited {total}; charges = {expected}.',
 	'finding.total': 'Invoice total {total} does not equal its lines {lines}.',
 	'finding.currency': 'Invoice in {invoice}, PO in {po}.',
 	'finding.price': '{item}: invoiced at {invoiced}/kg, PO price {ordered}/kg.',

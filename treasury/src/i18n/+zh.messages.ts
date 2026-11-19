@@ -193,6 +193,7 @@ export default messages({
 	'check.days': '天数：到期 − 起息 = {actual}；通知书为 {printed}。',
 	'check.interest': '利息：应为 {expected}；通知书为 {printed}。',
 	'check.total': '扣款总额 {total}；本金+利息+费用 = {expected}。',
+	'check.total_charges': '扣款总额 {total}；费用 = {expected}。',
 	'finding.total': '发票总额 {total} 与明细合计 {lines} 不符。',
 	'finding.currency': '发票币种 {invoice}，订单币种 {po}。',
 	'finding.price': '{item}：发票单价 {invoiced}/公斤，订单单价 {ordered}/公斤。',
