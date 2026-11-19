@@ -3,6 +3,7 @@
 	import { run } from '@norbital-ai/ui/effect';
 	import { selectOrderProduct } from '../../../../lib/ui/order-product-defaults.js';
 	import {
+		format,
 		Picker,
 		MoneyInput,
 		type RecordView,
@@ -12,6 +13,8 @@
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
+	import { contractKind, currentTemplate } from '../../../../lib/order-document.js';
+	import { floorFor, quoteBelowFloor } from '../../../../lib/commercial.js';
 	let {
 		view,
 		ctx
@@ -32,6 +35,70 @@
 	const currency = $derived(
 		view.mode !== 'create' ? view.record.currency : (header?.currency ?? chosenCurrency)
 	);
+	// a line's print details belong to its order's current contract layout
+	const layouts = ctx.query({
+		document_templates: {
+			where: { status: { eq: 'published' } },
+			fields: ['kind', 'locale', 'status', 'version'],
+			limit: 1000
+		}
+	});
+	const layout = $derived(
+		header &&
+			currentTemplate(
+				layouts.current?.document_templates.rows ?? [],
+				contractKind(header.direction),
+				header.document_locale
+			)?.id
+	);
+	// the floor book a sales line is priced against, read as the order stands
+	const floorRead = $derived(
+		header?.direction === 'sales'
+			? ctx.query({
+					pricing_floors: {
+						where: { currency: { eq: header.currency }, effective_on: { lte: header.ordered_on } },
+						limit: 10000
+					},
+					warehouses: {
+						where: { id: { in: header.warehouse ? [header.warehouse] : [] } },
+						fields: ['group_code']
+					},
+					commercial_settings: {
+						where: { code: { eq: 'default' } },
+						fields: ['floor_rule'],
+						limit: 1
+					}
+				})
+			: null
+	);
+	/** The floor the line as typed meets, whether its price is below it, and what the floor rule does then. */
+	function floorState(form: FormState) {
+		const book = floorRead?.current;
+		const productId = form.id<'products'>('product');
+		const quantity = form.get('quantity');
+		if (!book || !header || !productId || quantity == null || String(quantity) === '') return null;
+		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
+		const floor = floorFor(
+			header,
+			book.warehouses.rows[0]?.group_code,
+			{ product: productId, quantity: String(quantity) },
+			book.pricing_floors.rows
+		);
+		const price = form.get('unit_price');
+		const below =
+			floor && price != null && String(price) !== ''
+				? quoteBelowFloor(
+						{
+							unit_price: String(price),
+							discount_pct: String(form.get('discount_pct') ?? '0'),
+							tax_rate: String(form.get('tax_rate') ?? '0'),
+							floor_net: floor.floor_net
+						},
+						header.tax_inclusive
+					)
+				: false;
+		return { floor, below, rule, flagged: !floor || below };
+	}
 </script>
 
 {#snippet product(form: FormState, field: FieldEditor)}
@@ -58,7 +125,8 @@
 			)}
 	/>
 {/snippet}
-{#snippet unitPrice(_form: FormState, field: FieldEditor)}
+{#snippet unitPrice(form: FormState, field: FieldEditor)}
+	{@const state = floorState(form)}
 	<MoneyInput
 		{ctx}
 		id={field.id}
@@ -67,13 +135,35 @@
 		{...currency ? { currency } : {}}
 		scale={4}
 		disabled={field.disabled}
-		invalid={Boolean(field.error)}
+		invalid={Boolean(field.error) || Boolean(state?.flagged && state.rule === 'refuse')}
 	/>
+	{#if state}
+		<p
+			id={`${field.id}-floor`}
+			class="mt-1 text-xs"
+			class:text-destructive={state.flagged && state.rule !== 'warn'}
+			class:text-warning={state.flagged && state.rule === 'warn'}
+			class:text-muted-foreground={!state.flagged}
+		>
+			{#if state.floor}
+				{ctx.t('component.quote_floor_minimum')}: {header?.currency}
+				{format({ kind: 'decimal', scale: 8 }, state.floor.floor_net, {
+					locale: ctx.locale
+				})}/{state.floor.unit} · {state.floor.effective_on}
+				· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
+			{:else}
+				{ctx.t('component.floor_none')}
+			{/if}
+			{#if state.flagged && state.rule !== 'warn'}
+				· {ctx.t(`component.floor_rule_${state.rule}`)}
+			{/if}
+		</p>
+	{/if}
 {/snippet}
 {#snippet printDetails(_form: FormState, field: FieldEditor)}
 	<PrintDetails
 		{ctx}
-		layout={header?.document_template}
+		{layout}
 		scope="line"
 		value={field.value}
 		on_change={field.on_change}
@@ -82,12 +172,7 @@
 	/>
 {/snippet}
 {#snippet printDetailsView(form: FormState)}
-	<PrintDetails
-		{ctx}
-		layout={header?.document_template}
-		scope="line"
-		value={form.get('print_values')}
-	/>
+	<PrintDetails {ctx} {layout} scope="line" value={form.get('print_values')} />
 {/snippet}
 <RecordForm
 	{ctx}
@@ -107,7 +192,7 @@
 				'unit_price',
 				'discount_pct',
 				'tax_rate',
-				...(header?.document_template ? ['print_values'] : [])
+				...(layout ? ['print_values'] : [])
 			],
 			wide: ['print_values']
 		}

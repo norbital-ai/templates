@@ -206,6 +206,74 @@ export const bindings = {
 		],
 		texts: ['item_id', 'warehouse_id'],
 		decimals: ['on_hand']
+	},
+	// the one contact KIS keeps on a customer or supplier master
+	contacts: {
+		table: { schema: 'dbo', name: 't_Item' },
+		alias: 'contacts',
+		key: 'external_code',
+		columns: [
+			'external_code',
+			'item_class',
+			'customer_contact',
+			'customer_mobile',
+			'customer_phone',
+			'customer_email',
+			'supplier_contact',
+			'supplier_mobile',
+			'supplier_phone',
+			'supplier_email'
+		],
+		fields: {
+			external_code: column('contacts', 'FItemID'),
+			item_class: column('contacts', 'FItemClassID'),
+			customer_contact: column('customer', 'FContact'),
+			customer_mobile: column('customer', 'FMobilePhone'),
+			customer_phone: column('customer', 'FPhone'),
+			customer_email: column('customer', 'FEmail'),
+			supplier_contact: column('supplier', 'FContact'),
+			supplier_mobile: column('supplier', 'FMobilePhone'),
+			supplier_phone: column('supplier', 'FPhone'),
+			supplier_email: column('supplier', 'FEmail')
+		},
+		joins: [
+			{
+				kind: 'left',
+				table: { schema: 'dbo', name: 't_Organization' },
+				alias: 'customer',
+				on: [{ left: ref('contacts', 'FItemID'), right: ref('customer', 'FItemID') }]
+			},
+			{
+				kind: 'left',
+				table: { schema: 'dbo', name: 't_Supplier' },
+				alias: 'supplier',
+				on: [{ left: ref('contacts', 'FItemID'), right: ref('supplier', 'FItemID') }]
+			}
+		],
+		filters: [
+			{ field: ref('contacts', 'FItemClassID'), op: 'in', value: [1, 8] },
+			{ field: ref('contacts', 'FDetail'), op: 'eq', value: 1 }
+		],
+		rowversions: [
+			ref('contacts', 'FModifyTime'),
+			ref('customer', 'FModifyTime'),
+			ref('supplier', 'FModifyTime')
+		],
+		texts: ['external_code']
+	},
+	// KIS settlement methods (结算方式): an order's payment terms name one
+	settlements: {
+		table: { schema: 'dbo', name: 't_Settle' },
+		alias: 'settlements',
+		key: 'external_code',
+		columns: ['external_code', 'code', 'name', 'deleted'],
+		fields: {
+			external_code: column('settlements', 'FItemID'),
+			code: column('settlements', 'FNumber'),
+			name: column('settlements', 'FName'),
+			deleted: column('settlements', 'FDeleted')
+		},
+		texts: ['external_code']
 	}
 } satisfies Record<string, SourceProjection>;
 
@@ -249,6 +317,30 @@ export function normalizeSourceRow(
 		observed = Instant(observedAt);
 	} catch {
 		return invalid('observedAt', 'Expected an ISO observation instant');
+	}
+	if (alias === 'contacts') {
+		const itemClass = integer('item_class');
+		if (itemClass !== 1n && itemClass !== 8n)
+			return invalid('item_class', 'Expected a Kingdee customer or supplier class');
+		const side = itemClass === 1n ? 'customer' : 'supplier';
+		return {
+			...row,
+			external_code: integer('external_code').toString(),
+			name: text(`${side}_contact`, true),
+			phone: text(`${side}_mobile`, true) ?? text(`${side}_phone`, true),
+			email: text(`${side}_email`, true)
+		};
+	}
+	if (alias === 'settlements') {
+		const code = text('code');
+		return {
+			...row,
+			external_code: integer('external_code').toString(),
+			code,
+			name: text('name', true) ?? code,
+			active: !flag('deleted'),
+			source_updated_at: observed
+		};
 	}
 	if (alias === 'stock_snapshots')
 		return {

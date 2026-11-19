@@ -8,4 +8,4 @@
 	let { ctx }: { ctx: PageContext } = $props();
 </script>
 
-<CommercialSettingsForm {ctx} fields={['credit_fresh_minutes', 'stock_fresh_minutes']} />
+<CommercialSettingsForm {ctx} fields={['stock_fresh_minutes']} />

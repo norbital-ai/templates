@@ -3,7 +3,7 @@ import { printDetailFields } from './print-details.js';
 import { Effect, Schema } from 'effect';
 import type { AutomationCtx, Id, ReadAnswer, Row } from '@norbital-ai/bolt';
 import * as Base64 from 'effect/encoding/Base64';
-import { contract, snapshot, type Terms } from './commercial.js';
+import { contract, shipmentText, snapshot, type Terms } from './commercial.js';
 import { commercialDocument, escape, paragraphs } from './commercial-document.js';
 
 type ConvertSource = Parameters<AutomationCtx['convert']['document']>[0];
@@ -49,10 +49,10 @@ type DocumentTemplate = Row<'document_templates'>;
 type DocumentSnapshot = Terms;
 
 type DocumentKind = DocumentTemplate['kind'];
-/** What a confirmation seals: a sales contract, or a purchase contract. */
+/** What a synced order prints as: a sales contract, or a purchase contract. */
 export const contractKind = (direction: Row<'orders'>['direction']): DocumentKind =>
 	direction === 'purchasing' ? 'purchase_contract' : 'sales_contract';
-/** What an order prints as: a sales order is a quotation until it is confirmed. */
+/** What an order prints as: a sales order is a quotation until it syncs to Kingdee. */
 export const documentKind = (order: Pick<Row<'orders'>, 'direction' | 'status'>): DocumentKind =>
 	order.direction === 'sales' && order.status !== 'confirmed'
 		? 'quotation'
@@ -69,12 +69,6 @@ export function currentTemplate<
 	return rows
 		.filter((row) => row.status === 'published' && row.kind === kind && row.locale === locale)
 		.sort(newestFirst)[0];
-}
-export function sealDocument(template: DocumentTemplate) {
-	return {
-		document_title: template.title,
-		document_template_id: template.id
-	};
 }
 function templateValues(
 	template: Pick<DocumentTemplate, 'version'>,
@@ -111,8 +105,8 @@ export function agreementText(
 			? commercialDocument(seal, template.locale, reference, date).text
 			: contract(
 					template.locale === 'zh'
-						? '商务协议 {reference}\n往来单位：{party}\n币种：{currency}\n结算方式：{payment_terms}\n有效期：{valid_from} – {valid_until}\n交付：{delivery_terms}\n{lines}\n合计：{total}'
-						: 'Commercial agreement {reference}\nParty: {party}\nCurrency: {currency}\nCredit / payment: {payment_terms}\nValidity: {valid_from} – {valid_until}\nDelivery: {delivery_terms}\n{lines}\nTotal: {total}',
+						? '商务协议 {reference}\n往来单位：{party}\n币种：{currency}\n结算方式：{payment_terms}\n有效期：{valid_from} – {valid_until}\n贸易条款：{shipping_terms}\n装运期：{time_of_shipment}\n{lines}\n合计：{total}'
+						: 'Commercial agreement {reference}\nParty: {party}\nCurrency: {currency}\nCredit / payment: {payment_terms}\nValidity: {valid_from} – {valid_until}\nShipping terms: {shipping_terms}\nTime of shipment: {time_of_shipment}\n{lines}\nTotal: {total}',
 					seal,
 					reference
 				);
@@ -138,6 +132,11 @@ export class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>
 	}
 ) {}
 type PrintFields = Readonly<Record<string, string>>;
+/** A payment method as each document language prints it. */
+const paymentMethods = {
+	wire_transfer: { en: 'Wire transfer', zh: '电汇' },
+	acceptance_bill: { en: 'Acceptance bill', zh: '承兑' }
+} as const;
 
 type PrintContext = {
 	owner: string;
@@ -174,23 +173,26 @@ function printValues(
 			valid_from: seal.valid_from ?? '',
 			valid_until: seal.valid_until ?? '',
 			payment_terms: seal.payment_terms,
-			delivery_terms: seal.delivery_terms,
 			shipping_terms: seal.shipping_terms,
 			place_of_loading: seal.place_of_loading,
 			place_of_delivery: seal.place_of_delivery,
 			packaging: seal.packaging,
 			shipping_mark: seal.shipping_mark,
-			time_of_shipment: seal.time_of_shipment,
+			time_of_shipment: shipmentText(seal, template.locale === 'zh' ? ' 至 ' : ' – '),
 			other_terms: seal.other_terms,
 			other_terms_first: otherFirst,
 			other_terms_more: otherMore
 				.map((line, index) => `${String.fromCharCode(97 + index)}.) ${line}`)
 				.join('\n'),
-			payment_method: seal.payment_method,
+			payment_method:
+				Object.entries(paymentMethods).find(([method]) => method === seal.payment_method)?.[1][
+					template.locale
+				] ?? '',
 			buyer_contact: seal.buyer_contact,
 			buyer_mobile: seal.buyer_mobile,
+			buyer_email: seal.buyer_email,
 			delivery_address: seal.delivery_address,
-			delivery_date: seal.delivery_date,
+			delivery_date: seal.shipment_to,
 			party_code: seal.party_code,
 			party_address: context.party_address,
 			party_phone: context.party_phone,
@@ -257,31 +259,27 @@ export const documentRead = (order: Id<'orders'>) =>
 				'warehouse',
 				'currency',
 				'ordered_on',
-				'document_template',
 				'document_locale',
 				'print_values',
 				'tax_inclusive',
 				'valid_from',
 				'valid_until',
-				'payment_terms',
-				'delivery_terms',
 				'shipping_terms',
 				'place_of_loading',
 				'place_of_delivery',
 				'packaging',
 				'shipping_mark',
-				'time_of_shipment',
+				'shipment',
 				'other_terms',
 				'payment_method',
-				'buyer_contact',
-				'buyer_mobile',
 				'delivery_address',
-				'delivery_date',
 				'owner',
 				'logistics_handler'
 			],
 			limit: 1,
 			party: { fields: ['name', 'external_code', 'address', 'phone'] },
+			payment_terms: { fields: ['name'] },
+			buyer_contact: { fields: ['name', 'phone', 'email'] },
 			lines: { product: { fields: ['brand', 'brand_en', 'producing_area'] } }
 		},
 		document_templates: { where: { status: { eq: 'published' } } },
@@ -296,12 +294,12 @@ export const orderDocument = Effect.fnUntraced(function* (
 	if (!order) return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	const reference = order.number;
 	const purchase = order.direction === 'purchasing';
-	// a confirmed order prints the version its confirmation sealed; any other, its case's current layout
-	const template =
-		(order.status === 'confirmed'
-			? answer.document_templates.rows.find((row) => row.id === order.document_template)
-			: undefined) ??
-		currentTemplate(answer.document_templates.rows, documentKind(order), order.document_locale);
+	// the case's current layout in the order's language
+	const template = currentTemplate(
+		answer.document_templates.rows,
+		documentKind(order),
+		order.document_locale
+	);
 	if (!template)
 		return yield* new DocumentUnavailable({ message: 'errors.document_layout_unpublished' });
 	if (!order.party || !order.lines.length)
@@ -311,9 +309,16 @@ export const orderDocument = Effect.fnUntraced(function* (
 	);
 	if (lines.length !== order.lines.length)
 		return yield* new DocumentUnavailable({ message: 'Draft document is incomplete' });
-	// documents list lines as they were entered; the sealed snapshot keeps its own (id) order
+	// documents list lines as they were entered; the snapshot keeps its own (id) order
 	const entered = new Map(order.lines.map((line) => [line.id, line.created_at]));
-	const sealed = snapshot(order, order.party, lines, template.version);
+	const sealed = snapshot(order, order.party, lines, template.version, {
+		payment_terms: order.payment_terms?.name ?? '',
+		buyer: {
+			name: order.buyer_contact?.name ?? '',
+			phone: order.buyer_contact?.phone ?? '',
+			email: order.buyer_contact?.email ?? ''
+		}
+	});
 	const terms = {
 		...sealed,
 		lines: [...sealed.lines].sort(

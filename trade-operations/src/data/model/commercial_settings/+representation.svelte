@@ -19,7 +19,7 @@
 			name: 'controls',
 			icon: 'lucide:sliders-horizontal',
 			title: ctx.t('section.general'),
-			fields: ['freight_treatment', 'require_floor']
+			fields: ['freight_treatment', 'floor_rule']
 		}
 	]}
 />

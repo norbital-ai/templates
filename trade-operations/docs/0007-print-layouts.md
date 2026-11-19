@@ -1,15 +1,15 @@
 # Print layouts
 
-Orders print three documents: a sales order prints its **quotation** until it is confirmed and its
+Orders print three documents: a sales order prints its **quotation** until it syncs to Kingdee and its
 **sales contract** after; a purchase order prints its **purchase contract**. Each has one layout per language,
 and an order only chooses its **Document language**.
 
 In **Trade configuration → Documents**, choose **Revise** (or **Add**) beside a document and language. The
 revision opens as a draft with the current layout's title, body, fields and artwork; upload a UTF-8 HTML
 document in **Print layout HTML**, then set the status to **Published** and save. Its version number is the
-next for that document and language. Publishing it changes the layout for every order not yet confirmed; a
-confirmed order keeps the contract version its confirmation sealed. Fresh workspaces start with all three
-documents in English and Chinese.
+next for that document and language. Publishing it changes the layout that every order of that document and
+language prints, synced or not; the signed copy filed on the order is the record of what was signed. Fresh
+workspaces start with all three documents in English and Chinese.
 
 Use inline print CSS and embed fonts and fixed decorative images as data URIs. Use
 `{{letterhead}}` and `{{stamp}}` inside quoted image sources for the tenant's separately
@@ -17,12 +17,13 @@ uploaded PNG files. The stamp is the seller's: a sales order's quotation and con
 contract never does. Hide missing artwork with CSS, for example `img[src=""] { display: none; }`. The HTML limit is 3 MiB and
 the limit per PNG is 512 KiB. The renderer loads neither remote URLs nor local files.
 
-Regular text and commercial table layouts use the standard renderer. Order preview and download
-share one PDF generated from the saved order. The browser holds the PDF for the life
-of the dialog. Bolt creates no file record, and the converter creates no queued job or retained
+Regular text and commercial table layouts use the standard renderer. The Orders table's actions menu
+has **Preview document** for one selected order and **Download PDFs** for any selection, saved as one zip.
+Order preview and download share one PDF generated from the saved order. The browser holds the PDF for the
+life of the dialog. Bolt creates no file record, and the converter creates no queued job or retained
 result. Uploaded layouts, artwork and signed returns remain separately managed records.
 The preview stamps a sales document whose layout has a stamp; turn off **Include company stamp**
-for a clean copy.
+for a clean copy. Download PDFs stamps them.
 
 Orders carry no personal signature image. Use the company stamp for the seller's artwork, and file
 customer-signed or chopped copies on the confirmed order. The `{{signature}}` placeholder renders
@@ -34,12 +35,17 @@ it does not supply a tenant's artwork or impose a separate signing workflow.
 
 ## Fields
 
-| Where                      | Fields                                                                                                                                                                                                                                                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document header            | `title`, `reference`, `order_title`, `party`, `party_code`, `party_address`, `party_phone`, `ordered_on`, `currency`, `currency_symbol`, `valid_from`, `valid_until`, `owner`, `logistics_handler`                                                                                                                                          |
-| Document amounts and terms | `payment_terms`, `payment_method`, `delivery_terms`, `delivery_address`, `delivery_date`, `shipping_terms`, `place_of_loading`, `place_of_delivery`, `time_of_shipment`, `packaging`, `shipping_mark`, `other_terms`, `other_terms_first`, `other_terms_more`, `buyer_contact`, `buyer_mobile`, `terms`, `agreement`, `net`, `tax`, `total` |
-| Images                     | `letterhead`, `stamp`, `signature`                                                                                                                                                                                                                                                                                                          |
-| Inside the line block      | `line_number`, `product`, `product_code`, `product_spec`, `brand`, `brand_en`, `producing_area`, `unit`, `quantity`, `unit_price`, `discount`, `tax_rate`, `net`, `tax`, `total`                                                                                                                                                            |
+| Where                      | Fields                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document header            | `title`, `reference`, `order_title`, `party`, `party_code`, `party_address`, `party_phone`, `ordered_on`, `currency`, `currency_symbol`, `valid_from`, `valid_until`, `owner`, `logistics_handler`                                                                                                                                       |
+| Document amounts and terms | `payment_terms`, `payment_method`, `delivery_address`, `delivery_date`, `shipping_terms`, `place_of_loading`, `place_of_delivery`, `time_of_shipment`, `packaging`, `shipping_mark`, `other_terms`, `other_terms_first`, `other_terms_more`, `buyer_contact`, `buyer_mobile`, `buyer_email`, `terms`, `agreement`, `net`, `tax`, `total` |
+| Images                     | `letterhead`, `stamp`, `signature`                                                                                                                                                                                                                                                                                                       |
+| Inside the line block      | `line_number`, `product`, `product_code`, `product_spec`, `brand`, `brand_en`, `producing_area`, `unit`, `quantity`, `unit_price`, `discount`, `tax_rate`, `net`, `tax`, `total`                                                                                                                                                         |
+
+`payment_terms` prints the settlement method's name. `payment_method` prints Wire transfer or Acceptance
+bill (电汇 or 承兑 in Chinese). `buyer_contact`, `buyer_mobile` and `buyer_email` are the buyer contact's name,
+phone and email. `time_of_shipment` prints the shipment window: one day, or `from – to` (`from 至 to` in
+Chinese); `delivery_date` is its last day.
 
 Write fields with double braces. Use one `{{#lines}}` … `{{/lines}}` block for line items. Lines print in the order they were entered.
 Values are escaped as text. Write CSS and markup in the layout itself. The `terms` field holds

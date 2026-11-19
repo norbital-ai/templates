@@ -1,8 +1,7 @@
 import { Effect } from 'effect';
-import { layer } from '@effect/vitest';
+import { expect, layer } from '@effect/vitest';
 import type { NativeActAnswer } from '@norbital-ai/bolt-cli/test';
-import { CUSTOMER, Trade, shared, draft, confirm, committed } from './kit.js';
-import { confirmationOf } from './reads.js';
+import { CUSTOMER, PRODUCT, SETTINGS, Trade, shared, draft, committed, NET30 } from './kit.js';
 import { fixtureId } from './test-runtime.js';
 const held = (outcome: NativeActAnswer) => {
 	if (outcome.kind !== 'pending_approval') throw new Error(JSON.stringify(outcome));
@@ -18,13 +17,24 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 	});
 	const contact = (name: string) => ({ party: CUSTOMER, name, job_title: 'Buyer' });
 
-	test.effect('a sales rep adding a party contact waits for a commercial manager', () =>
+	test.effect('a sales rep adds contacts directly; the Kingdee contact changes only there', () =>
 		Effect.gen(function* () {
-			const { sales, manager } = yield* people;
-			const request = held(yield* sales.act({ 'contacts.create': [contact('Buyer 1')] }));
-			yield* Effect.flip(sales.approvals.decide(request, { decision: 'approve' }));
-			yield* manager.approvals.decide(request, { decision: 'approve' });
-			committed('contacts', yield* manager.act({ 'contacts.create': [contact('Buyer 2')] }));
+			const { t, sales } = yield* people;
+			committed('contacts', yield* sales.act({ 'contacts.create': [contact('Buyer 1')] }));
+			const admin = yield* t.as(t.admin);
+			const kingdee = committed(
+				'contacts',
+				yield* admin.act({ 'contacts.create': [{ ...contact('Kingdee buyer'), primary: true }] })
+			);
+			expect(
+				yield* Effect.flip(
+					sales.act({
+						'contacts.update': [
+							{ target: yield* t.at('contacts', kingdee), set: { job_title: 'Owner' } }
+						]
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.kingdee_contact' });
 		})
 	);
 
@@ -40,58 +50,94 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 		})
 	);
 
-	test.effect('a sales rep confirming an own order waits for a commercial manager', () =>
+	test.effect('a sales rep syncs an own order and changes it after, directly', () =>
 		Effect.gen(function* () {
-			const { t, seller, sales, manager } = yield* people;
-			const { order } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
-			const check = yield* confirmationOf(sales, { order, as_of: t.clock.now() });
-			const request = held(
+			const { t, seller, sales } = yield* people;
+			const { order, line } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
+			committed(
+				'orders',
 				yield* sales.act({
-					'orders.update': [
-						{
-							target: yield* t.at('orders', order),
-							set: { status: 'confirmed', check_hash: check.check_hash }
-						}
+					'orders.update': [{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }]
+				})
+			);
+			committed(
+				'order_lines',
+				yield* sales.act({
+					'order_lines.update': [
+						{ target: yield* t.at('order_lines', line), set: { quantity: '12' } }
 					]
 				})
 			);
-			yield* Effect.flip(sales.approvals.decide(request, { decision: 'approve' }));
-			yield* manager.approvals.decide(request, { decision: 'approve' });
+			committed(
+				'orders',
+				yield* sales.act({
+					'orders.update': [
+						{ target: yield* t.at('orders', order), set: { shipping_terms: 'CIF Singapore' } }
+					]
+				})
+			);
 		})
 	);
 
 	test.effect(
-		'a sales rep changing a confirmed order or its lines waits for a commercial manager',
+		'under the approve floor rule a line without a floor waits, and so does the sync',
 		() =>
 			Effect.gen(function* () {
 				const { t, seller, sales, manager } = yield* people;
-				const { order, line } = yield* draft(t, 'sales', fixtureId('sys_user', seller.id));
-				yield* confirm(t, order);
-				const terms = held(
+				const admin = yield* t.as(t.admin);
+				const rule = (floor_rule: 'warn' | 'approve') =>
+					Effect.gen(function* () {
+						committed(
+							'commercial_settings',
+							yield* admin.act({
+								'commercial_settings.update': [
+									{ target: yield* t.at('commercial_settings', SETTINGS), set: { floor_rule } }
+								]
+							})
+						);
+					});
+				yield* rule('approve');
+				const order = committed(
+					'orders',
 					yield* sales.act({
-						'orders.update': [
-							{ target: yield* t.at('orders', order), set: { payment_terms: 'Net 60' } }
+						'orders.create': [
+							{
+								title: 'Below floor',
+								direction: 'sales',
+								party: CUSTOMER,
+								owner: fixtureId('sys_user', seller.id),
+								currency: 'SGD',
+								payment_terms: NET30
+							}
 						]
 					})
 				);
-				yield* manager.approvals.decide(terms, { decision: 'approve' });
-				const quantity = held(
+				const request = held(
 					yield* sales.act({
-						'order_lines.update': [
-							{ target: yield* t.at('order_lines', line), set: { quantity: '12' } }
+						'order_lines.create': [
+							{ order, product: PRODUCT, quantity: '10', unit_price: '2', tax_rate: '9' }
 						]
 					})
 				);
-				yield* manager.approvals.decide(quantity, { decision: 'approve' });
-				// remarks stay the rep's own
+				expect(
+					yield* Effect.flip(
+						sales.act({
+							'orders.update': [
+								{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }
+							]
+						})
+					)
+				).toMatchObject({ _tag: 'ActRefused', key: 'errors.lines_pending' });
+				yield* manager.approvals.decide(request, { decision: 'approve' });
 				committed(
 					'orders',
 					yield* sales.act({
 						'orders.update': [
-							{ target: yield* t.at('orders', order), set: { notes: 'Called buyer' } }
+							{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }
 						]
 					})
 				);
+				yield* rule('warn');
 			})
 	);
 });

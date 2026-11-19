@@ -1,7 +1,7 @@
 import { sameDecimal } from './test-runtime.js';
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { committed, draft, workspace, type T } from './kit.js';
+import { committed, draft, workspace, type T, NET60 } from './kit.js';
 
 const orderHeader = [
 	'Order number',
@@ -16,19 +16,17 @@ const orderHeader = [
 	'Valid from',
 	'Valid until',
 	'Payment terms',
-	'Delivery terms',
 	'Shipping terms',
 	'Place of loading',
 	'Place of delivery',
 	'Packaging',
 	'Shipping mark',
-	'Time of shipment',
+	'Ships from',
+	'Ships by',
 	'Other terms',
 	'Payment method',
 	'Buyer contact',
-	'Buyer mobile',
 	'Delivery address',
-	'Delivery date',
 	'Logistics handler id',
 	'Remarks'
 ];
@@ -104,9 +102,10 @@ it.live('round-trips the order workbook by sequential number', () =>
 			Title: 'Sheet title',
 			'Order date': '2026-10-10',
 			Currency: 'SGD',
-			'Payment terms': 'Net 45',
+			'Payment terms': 'NET60',
 			'Delivery address': '1 Sheet Road',
-			'Delivery date': '2026-11-01'
+			'Ships from': '2026-10-20',
+			'Ships by': '2026-11-01'
 		});
 		expect(yield* load([updated])).toMatchObject([
 			{ state: 'succeeded', output: { applied: true, updated: 1 } }
@@ -115,9 +114,9 @@ it.live('round-trips the order workbook by sequential number', () =>
 			.rows[0];
 		expect(current).toMatchObject({
 			title: 'Sheet title',
-			payment_terms: 'Net 45',
+			payment_terms: NET60,
 			delivery_address: '1 Sheet Road',
-			delivery_date: '2026-11-01'
+			shipment: { from: '2026-10-20', to: '2026-11-01' }
 		});
 		expect(yield* load([updated])).toMatchObject([
 			{ state: 'succeeded', output: { applied: true, created: 0, updated: 0 } }
@@ -128,7 +127,7 @@ it.live('round-trips the order workbook by sequential number', () =>
 			Title: 'Imported commitment',
 			'Order date': '2026-10-11',
 			Currency: 'SGD',
-			'Payment terms': 'Net 30'
+			'Payment terms': 'NET30'
 		});
 		const broken = orderRow({
 			Direction: 'sales',
@@ -136,7 +135,7 @@ it.live('round-trips the order workbook by sequential number', () =>
 			Title: 'Should not apply',
 			'Order date': '2026-10-11',
 			Currency: 'SGD',
-			'Payment terms': 'Net 30'
+			'Payment terms': 'NET30'
 		});
 		expect(yield* load([created, broken])).toMatchObject([
 			{ state: 'succeeded', output: { applied: false, findings: [{ at: 3 }] } }
@@ -156,6 +155,18 @@ it.live('round-trips the order workbook by sequential number', () =>
 		expect(exported.text).toContain(number);
 		expect(exported.text).toContain('Imported commitment');
 		expect(exported.text).toContain('1 Sheet Road');
+		expect(exported.text).toContain('NET60');
+		const unknown = orderRow({
+			'Order number': number,
+			Direction: 'sales',
+			'Party code': 'C-101',
+			Title: 'Sheet title',
+			Currency: 'SGD',
+			'Payment terms': 'NET99'
+		});
+		expect(yield* load([unknown])).toMatchObject([
+			{ state: 'succeeded', output: { applied: false, findings: [{ field: 'Payment terms' }] } }
+		]);
 	})
 );
 

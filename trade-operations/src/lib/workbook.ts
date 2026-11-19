@@ -16,20 +16,20 @@ export const orderWorkbook = {
 	tax_inclusive: { kind: 'bool', optional: true },
 	valid_from: { kind: 'date', optional: true },
 	valid_until: { kind: 'date', optional: true },
-	payment_terms: { kind: 'text' },
-	delivery_terms: { kind: 'text', optional: true },
+	// the Kingdee settlement method's code
+	payment_terms: { kind: 'text', optional: true },
 	shipping_terms: { kind: 'text', optional: true },
 	place_of_loading: { kind: 'text', optional: true },
 	place_of_delivery: { kind: 'text', optional: true },
 	packaging: { kind: 'text', optional: true },
 	shipping_mark: { kind: 'text', optional: true },
-	time_of_shipment: { kind: 'text', optional: true },
+	shipment_from: { kind: 'date', optional: true },
+	shipment_to: { kind: 'date', optional: true },
 	other_terms: { kind: 'text', optional: true },
-	payment_method: { kind: 'text', optional: true },
+	payment_method: { kind: 'enum', values: ['wire_transfer', 'acceptance_bill'], optional: true },
+	// the name of one of the party's contacts
 	buyer_contact: { kind: 'text', optional: true },
-	buyer_mobile: { kind: 'text', optional: true },
 	delivery_address: { kind: 'text', optional: true },
-	delivery_date: { kind: 'date', optional: true },
 	logistics_handler: { kind: 'text', optional: true },
 	notes: { kind: 'text', optional: true }
 } as const satisfies InputFields;

@@ -1,4 +1,4 @@
-import { BigDecimal, Duration, Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
 import type { Row } from '@norbital-ai/bolt';
 
@@ -80,30 +80,31 @@ type Header = Pick<
 	| 'currency'
 	| 'tax_inclusive'
 	| 'print_values'
-	| 'payment_terms'
-	| 'delivery_terms'
 	| 'shipping_terms'
 	| 'place_of_loading'
 	| 'place_of_delivery'
 	| 'packaging'
 	| 'shipping_mark'
-	| 'time_of_shipment'
+	| 'shipment'
 	| 'other_terms'
 	| 'payment_method'
-	| 'buyer_contact'
-	| 'buyer_mobile'
 	| 'delivery_address'
-	| 'delivery_date'
 	| 'valid_from'
 	| 'valid_until'
 	| 'title'
 	| 'warehouse'
 >;
+/** The names an order's references print as: its settlement method and its buyer contact. */
+export type Named = {
+	readonly payment_terms: string;
+	readonly buyer: { readonly name: string; readonly phone: string; readonly email: string };
+};
 export function snapshot(
 	order: Header,
 	party: Pick<Row<'parties'>, 'name' | 'external_code'>,
 	lines: readonly Row<'order_lines'>[],
-	contractVersion: string
+	contractVersion: string,
+	named: Named
 ) {
 	const net = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.net)));
 	const tax = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.tax)));
@@ -119,21 +120,21 @@ export function snapshot(
 		tax_inclusive: order.tax_inclusive,
 		valid_from: order.valid_from ?? '',
 		valid_until: order.valid_until ?? '',
-		payment_terms: order.payment_terms,
+		payment_terms: named.payment_terms,
 		...(order.print_values?.length ? { print_values: order.print_values } : {}),
-		delivery_terms: order.delivery_terms ?? '',
 		shipping_terms: order.shipping_terms ?? '',
 		place_of_loading: order.place_of_loading ?? '',
 		place_of_delivery: order.place_of_delivery ?? '',
 		packaging: order.packaging ?? '',
 		shipping_mark: order.shipping_mark ?? '',
-		time_of_shipment: order.time_of_shipment ?? '',
+		shipment_from: order.shipment?.from ?? '',
+		shipment_to: order.shipment?.to ?? order.shipment?.from ?? '',
 		other_terms: order.other_terms ?? '',
 		payment_method: order.payment_method ?? '',
-		buyer_contact: order.buyer_contact ?? '',
-		buyer_mobile: order.buyer_mobile ?? '',
+		buyer_contact: named.buyer.name,
+		buyer_mobile: named.buyer.phone,
+		buyer_email: named.buyer.email,
 		delivery_address: order.delivery_address ?? '',
-		delivery_date: order.delivery_date ?? '',
 		contract_version: contractVersion,
 		lines: [...lines]
 			.sort((a, b) => a.id.localeCompare(b.id))
@@ -176,6 +177,11 @@ export function snapshot(
 }
 /** An order's commercial terms as its documents render them. */
 export type Terms = ReturnType<typeof snapshot>;
+/** The shipment window as a document prints it: one day, or its first and last. */
+export const shipmentText = (seal: Pick<Terms, 'shipment_from' | 'shipment_to'>, to = ' – ') =>
+	!seal.shipment_from || seal.shipment_from === seal.shipment_to
+		? seal.shipment_from
+		: `${seal.shipment_from}${to}${seal.shipment_to}`;
 export function contract(template: string, seal: Terms, reference: string) {
 	const values = {
 		number: reference,
@@ -185,19 +191,8 @@ export function contract(template: string, seal: Terms, reference: string) {
 		valid_from: seal.valid_from ?? '',
 		valid_until: seal.valid_until ?? '',
 		payment_terms: seal.payment_terms,
-		delivery_terms: seal.delivery_terms,
-		shipping_terms: seal.shipping_terms ?? '',
-		place_of_loading: seal.place_of_loading ?? '',
-		place_of_delivery: seal.place_of_delivery ?? '',
-		packaging: seal.packaging ?? '',
-		shipping_mark: seal.shipping_mark ?? '',
-		time_of_shipment: seal.time_of_shipment ?? '',
-		other_terms: seal.other_terms ?? '',
-		payment_method: seal.payment_method ?? '',
-		buyer_contact: seal.buyer_contact ?? '',
-		buyer_mobile: seal.buyer_mobile ?? '',
-		delivery_address: seal.delivery_address ?? '',
-		delivery_date: seal.delivery_date ?? '',
+		shipping_terms: seal.shipping_terms,
+		time_of_shipment: shipmentText(seal),
 		total: seal.total,
 		lines: seal.lines
 			.map(
@@ -207,76 +202,45 @@ export function contract(template: string, seal: Terms, reference: string) {
 			.join('\n')
 	};
 	return template.replace(
-		/\{(number|party|currency|payment_terms|delivery_terms|shipping_terms|place_of_loading|place_of_delivery|packaging|shipping_mark|time_of_shipment|other_terms|payment_method|buyer_contact|buyer_mobile|delivery_address|delivery_date|total|lines|reference|valid_from|valid_until)\}/g,
+		/\{(number|party|currency|payment_terms|shipping_terms|time_of_shipment|total|lines|reference|valid_from|valid_until)\}/g,
 		(_, key: keyof typeof values) => values[key]
 	);
 }
-export function creditWarning(
-	order: Pick<Row<'orders'>, 'currency' | 'direction'>,
-	gross: BigDecimal.BigDecimal,
-	credit:
-		| Pick<Row<'credit_snapshots'>, 'currency' | 'credit_hold' | 'credit_limit' | 'credit_used'>
-		| undefined,
-	/** What the ledger last confirmed of its credit (`confirmedAt`): a quiet read leaves a row's own time behind. */
-	confirmed: string | null,
-	now: string,
-	freshMinutes: number
-) {
-	if (order.direction === 'purchasing') return { warning: false, unavailable: false };
-	const unavailable =
-		!credit ||
-		credit.currency !== order.currency ||
-		credit.credit_limit === null ||
-		credit.credit_used === null ||
-		confirmed === null ||
-		Date.parse(now) - Date.parse(confirmed) > Duration.toMillis(Duration.minutes(freshMinutes));
-	const adverse =
-		credit !== undefined &&
-		(credit.credit_hold ||
-			(!unavailable &&
-				credit.credit_used !== null &&
-				credit.credit_limit !== null &&
-				BigDecimal.isGreaterThan(
-					BigDecimal.sum(BigDecimal.fromStringUnsafe(credit.credit_used), gross),
-					BigDecimal.fromStringUnsafe(credit.credit_limit)
-				)));
-	return { warning: unavailable || adverse, unavailable };
-}
-/** The floors the order's lines meet at confirmation. */
-export function currentFloors(
-	order: Pick<Row<'orders'>, 'currency' | 'ordered_on'>,
-	lines: readonly Row<'order_lines'>[],
-	floors: readonly Row<'pricing_floors'>[],
-	group: string | null | undefined
-) {
-	return lines.map((line) => {
-		const floor = floors
-			.filter(
-				(f) =>
-					group != null &&
-					f.product === line.product &&
-					f.currency === order.currency &&
-					f.group_code === group &&
-					f.effective_on <= order.ordered_on &&
-					BigDecimal.isLessThanOrEqualTo(
-						BigDecimal.fromStringUnsafe(f.minimum_quantity),
-						BigDecimal.fromStringUnsafe(line.quantity)
-					)
-			)
-			.sort(
-				(a, b) =>
-					b.effective_on.localeCompare(a.effective_on) ||
-					BigDecimal.Order(
-						BigDecimal.fromStringUnsafe(b.minimum_quantity),
-						BigDecimal.fromStringUnsafe(a.minimum_quantity)
-					)
-			)[0];
-		return {
-			...line,
-			floor_net: floor && floor.unit === line.unit ? floor.floor_net : null,
-			floor_on: floor?.effective_on ?? null
-		};
-	});
+type Floor = Pick<
+	Row<'pricing_floors'>,
+	'product' | 'currency' | 'group_code' | 'effective_on' | 'minimum_quantity' | 'unit' | 'floor_net'
+>;
+/**
+ * The floor a sales line is priced against: the newest row on or before the order date, in the order's currency and
+ * warehouse group, whose quantity band the line meets. Its unit must be the line's; a purchase has none.
+ */
+export function floorFor<F extends Floor>(
+	order: Pick<Row<'orders'>, 'direction' | 'currency' | 'ordered_on'>,
+	group: string | null | undefined,
+	line: { readonly product: string; readonly quantity: string },
+	floors: readonly F[]
+): F | undefined {
+	if (order.direction !== 'sales' || group == null) return undefined;
+	return floors
+		.filter(
+			(f) =>
+				f.product === line.product &&
+				f.currency === order.currency &&
+				f.group_code === group &&
+				f.effective_on <= order.ordered_on &&
+				BigDecimal.isLessThanOrEqualTo(
+					BigDecimal.fromStringUnsafe(f.minimum_quantity),
+					BigDecimal.fromStringUnsafe(line.quantity)
+				)
+		)
+		.sort(
+			(a, b) =>
+				b.effective_on.localeCompare(a.effective_on) ||
+				BigDecimal.Order(
+					BigDecimal.fromStringUnsafe(b.minimum_quantity),
+					BigDecimal.fromStringUnsafe(a.minimum_quantity)
+				)
+		)[0];
 }
 
 /**

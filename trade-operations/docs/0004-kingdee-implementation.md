@@ -14,7 +14,7 @@ carries background replication of mapped table rows, including incoming fulfillm
 accounting evidence. A work action completes against the local database, and an outbound write
 is a separate job. Staff can keep changing and approving orders while the link is unavailable.
 The outbox retains pending source writes for retry. The verified source writer creates a saved
-SO or PO. Replicating the locally approved state as an audited SO still requires native Kingdee
+SO or PO. Replicating the synced order as an audited SO still requires native Kingdee
 validation on a restored account set.
 
 The customer's account set ran SQL Server 2008 R2 at compatibility level 80 when SalesBridge measured it; it now
@@ -50,9 +50,9 @@ the deployed network path or the deployed TLS handshake.
 
 Pair each Kingdee integration instance with its own SQL connection string in the native credential
 fields. Use the approved network endpoint and the database and login for the on-premises account set.
-Bolt tests the account-set bindings before displaying Connected. For parties, products, warehouses
-and stock it checks the required tables and markers, then executes the sync projection with
-`TOP 0`. SQL Server validates the columns and SELECT permissions without returning business rows.
+Bolt tests the account-set bindings before displaying Connected. For parties, contacts, products,
+warehouses, stock and settlement methods it checks the required tables and markers, then executes the
+sync projection with `TOP 0`. SQL Server validates the columns and SELECT permissions without returning business rows.
 Unpaired, paused and failed-test
 instances do not run source reads or deliver queued changes. Administrators see the ledger state in
 Settings → Integrations → Connections. Use Test connection on previously paired
@@ -128,7 +128,8 @@ database or changed recovery fork requires review.
 
 Writes additionally require `billerId`, `salespersonBindings` (owner ID to employee/department IDs),
 `currencyBindings` (ISO currency to source ID and base flag) and `settlementRules` (source settlement
-number to credit days/month-end rule). `packagingId` is optional. IDs and business rules must be
+number to credit days/month-end rule). An order's payment terms name a `settlements` row and the writer
+sends its code. `packagingId` is optional. IDs and business rules must be
 verified for each account set; there are no guessed exchange, employee or payment-term mappings.
 `fromMonthEnd: true` selects the configured month-end rule: zero days means current month-end, and any
 positive term means next month-end (including both 30 and 60). It does not add days to month-end.
@@ -140,6 +141,13 @@ Parties, products and warehouses use the native `FModifyTime` markers on their a
 joined detail rows. The effective marker is the greatest dependency marker. SQL's type metadata
 must confirm each declared marker is a native eight-byte rowversion, including a marker exposed
 through a view. `FNumber` is a display number; stable master identities use `FItemID`.
+
+Contacts follow the same markers on `t_Item`, `t_Organization` and `t_Supplier`. The one contact on a
+customer or supplier master (`FContact` → name, `FMobilePhone`, else `FPhone` → phone, `FEmail` → email) is
+its party's primary contact; a blank `FContact` removes it. Settlement methods mirror `t_Settle`
+(`FItemID` → `external_code`, `FNumber` → `code`, `FName` → `name`, `FDeleted` → inactive). The table has no
+marker: one request first fingerprints it, and the feed lists it only when that moved. A Kingdee order whose
+settlement code is not mirrored yet waits for it.
 
 Each window captures `U = MIN_ACTIVE_ROWVERSION()` before fetching data and selects
 `bookmark <= effective_marker < U`. The ceiling remains fixed across keyset pages. The engine
@@ -332,7 +340,7 @@ sync mirrors its entries (quantity, price, tax and amounts, bound by `source_ent
 row carries a content hash as its `$version`; an unchanged SO is skipped. A write acknowledges only
 the SO identity (`$id`), so the next read brings back what Kingdee holds (identity, version, audit
 state, entry ids) as the same values, never as a change that bounces back. A Kingdee change applies
-to the order directly; a sales rep's local change waits for a commercial manager, then writes the SO.
+to the order directly; a local saved change writes the SO.
 
 The lines are ours and the header is Kingdee's. A line whose own write is still pending
 (`$sync.kingdee`) keeps its local terms through every read, including a Kingdee edit of the same
@@ -340,8 +348,8 @@ entry; the write then amends the SO to the local terms, and Kingdee's `ICOrderAl
 value it replaced. A write Kingdee refused for good (`failed`: the SO is void or closed, or the
 quantity is below what shipped) ends there: the next read returns the line to the SO's terms and
 removes a line the SO never took. A customer or salesperson changed on the SO moves the order to
-that customer and to the one user bound to that employee. An SO removed outright from Kingdee's SQL is not recreated by a later write. A confirmed Kingdee-bound order refuses a local header change (customer,
-currency, date, tax basis, owner, settlement) with its reason; Kingdee's header changes arrive by
+that customer and to the one user bound to that employee. An SO removed outright from Kingdee's SQL is not recreated by a later write. A synced order refuses a local change to Kingdee's header (customer,
+currency, date, owner, settlement; `errors.kingdee_header`); Kingdee's header changes arrive by
 read, and a line write that meets a header the read has not brought in yet waits for it.
 
 A write reads the live SO first. With no SO, it creates one; with an SO whose lines differ, it
@@ -357,8 +365,10 @@ unaudited and open, so a line change after audit is refused (unaudit the PO in K
 change before audit replaces the PO's entries, provided they are still the entries last read. A PO keeps
 one live row; it has no amendment versions.
 
-A confirmed sales order creates an **unapproved** SEOrder and its SEOrderEntry rows; a purchase order an
-unapproved POOrder and its POOrderEntry rows.
+A synced sales order creates an **unapproved** SEOrder and its SEOrderEntry rows; a purchase order an
+unapproved POOrder and its POOrderEntry rows. Each line's delivery date (`SEOrderEntry.FDate` and
+`FAdviceConsignDate`; `POOrderEntry.FDate`) is the last day of the order's shipment window, or its order date
+without one; it is sent with the order and with every later line change.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
 FInterID through ICMaxNum, and writes the complete header/line set. Existing FUUID provenance
 makes retry identity independent of the nonunique bill number. A retry verifies the written
@@ -418,6 +428,7 @@ write that depends on it.
 | Order-line units               | `SELECT e.FUnitID, d.FUnitID AS base_unit, COUNT(*) FROM dbo.SEOrderEntry e JOIN dbo.t_ICItem d ON d.FItemID=e.FItemID GROUP BY e.FUnitID, d.FUnitID`                                                                | Lines read `FQty` in the base unit. A Kingdee line entered in a pack unit (25kg/包) would carry the pack's name and price beside a base quantity.                                                                |
 | Credit control                 | `SELECT FCreditControl, FMainAmtCustom, FRangeCustom FROM dbo.ICCreditOption`; `SELECT COUNT(*) FROM dbo.ICCreditObject`                                                                                             | SalesBridge found credit control off and no limits in production; the credit feed then reports itself unavailable.                                                                                               |
 | Rowversion indexes             | `sys.indexes` on `SEOrder.FOperDate`, `ICStockBill.FOperDate`, `ICSale.FOperDate`, `t_RP_Contact.FModifyTime`                                                                                                        | Without them each window scans its table on the server. It costs ERP CPU, not link bytes; adding an index is the customer's decision.                                                                            |
+| Supplier contact columns       | `sys.columns` for `t_Supplier`: `FContact`, `FMobilePhone`, `FPhone`, `FEmail`                                                                                                                                       | Standard KIS, not yet measured on the customer's account set. The contacts feed reads them and Test connection probes them, so a missing column fails the test.                                                  |
 | Collation                      | `SELECT DATABASEPROPERTYEX(DB_NAME(), 'Collation')`                                                                                                                                                                  | Measured `Chinese_PRC_CI_AS`; some text columns are `varchar` in GBK. The simulator uses the server default and `nvarchar`.                                                                                      |
 
 ## Local validation boundary

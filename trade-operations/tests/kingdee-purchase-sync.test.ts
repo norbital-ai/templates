@@ -3,7 +3,7 @@ import type { Id } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { committed, workspace } from './kit.js';
+import { committed, workspace, PROBE_NET60 } from './kit.js';
 import { kingdeeCatalogue, kingdeeFixture, kingdeePurchase } from './kingdee-fixture.js';
 import { sameDecimal } from './test-runtime.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
@@ -399,7 +399,7 @@ it.live('Kingdee changes to a Kingdee-created PO’s lines and terms reach the o
 		});
 		const order = orders.rows[0];
 		expect(order).toMatchObject({
-			payment_terms: 'PROBE-NET60',
+			payment_terms: PROBE_NET60,
 			ordered_on: '2026-10-13',
 			party: parties.rows[0]?.id,
 			party_name: 'Second supplier'

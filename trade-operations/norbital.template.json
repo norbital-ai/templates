@@ -6,8 +6,8 @@
 	"description": "Order-centered B2B trading, distribution and manufacturing commerce with approved pricing and contracts, purchasing, fulfillment and ERP-synced models.",
 	"visibility": "public",
 	"counts": {
-		"models": 22,
-		"apps": 5,
+		"models": 23,
+		"apps": 6,
 		"automations": 1
 	},
 	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],

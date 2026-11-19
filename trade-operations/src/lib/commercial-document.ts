@@ -15,7 +15,7 @@ const labels = {
 		exclusive: 'Unit prices exclude VAT',
 		validity: 'Validity',
 		payment: 'Payment terms',
-		delivery: 'Delivery terms',
+		shipping: 'Shipping terms',
 		product: 'Product',
 		quantity: 'Quantity',
 		unitPrice: 'Unit price',
@@ -36,7 +36,7 @@ const labels = {
 		exclusive: '单价未税',
 		validity: '有效期',
 		payment: '付款条件',
-		delivery: '交付条件',
+		shipping: '贸易条款',
 		product: '品名',
 		quantity: '数量',
 		unitPrice: '单价',
@@ -76,7 +76,7 @@ export function commercialDocument(seal: Terms, locale: Locale, reference: strin
 		[label.currency, seal.currency],
 		[label.validity, validity],
 		[label.payment, seal.payment_terms],
-		[label.delivery, seal.delivery_terms]
+		[label.shipping, seal.shipping_terms]
 	].filter(([, value]) => value);
 	const taxBasis = seal.tax_inclusive ? label.inclusive : label.exclusive;
 	const columns = [

@@ -4,11 +4,15 @@ import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { confirmationOf } from './reads.js';
 export const CUSTOMER = fixtureId('parties', '00000000-0000-4000-8000-000000000101');
 export const SUPPLIER = fixtureId('parties', '00000000-0000-4000-8000-000000000102');
 export const PRODUCT = fixtureId('products', '00000000-0000-4000-8000-000000000201');
 export const SETTINGS = fixtureId('commercial_settings', '00000000-0000-4000-8000-000000000401');
+/** The test pack's Kingdee settlement methods (`seed/test/settlements.json`), by code. */
+export const NET30 = fixtureId('settlements', '00000000-0000-4000-8000-000000000501');
+export const NET60 = fixtureId('settlements', '00000000-0000-4000-8000-000000000502');
+export const PROBE_NET30 = fixtureId('settlements', '00000000-0000-4000-8000-000000000503');
+export const PROBE_NET60 = fixtureId('settlements', '00000000-0000-4000-8000-000000000504');
 export function committed<C extends ModelName>(model: C, outcome: NativeActAnswer) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	const record = outcome.records.find((record) => record.model === model);
@@ -22,6 +26,8 @@ export type Synced =
 	| 'parties'
 	| 'products'
 	| 'warehouses'
+	| 'settlements'
+	| 'contacts'
 	| 'stock_snapshots'
 	| 'source_stock_commitments'
 	| 'source_lot_costs'
@@ -93,7 +99,7 @@ export const draft = Effect.fnUntraced(function* (
 					direction,
 					party: direction === 'sales' ? CUSTOMER : SUPPLIER,
 					currency: 'SGD',
-					payment_terms: 'Net 30',
+					payment_terms: NET30,
 					...(owner ? { owner } : {}),
 					...(warehouse ? { warehouse } : {}),
 					...(ordered_on ? { ordered_on: ordered_on } : {})
@@ -118,18 +124,13 @@ export const draft = Effect.fnUntraced(function* (
 	);
 	return { order, line };
 });
+/** Syncs a saved draft to Kingdee, once: from then on the order and its SO or PO stay in step. */
 export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 	const as = yield* t.as(t.admin);
-	const check = yield* confirmationOf(as, { as_of: t.clock.now(), order });
 	return committed(
 		'orders',
 		yield* as.act({
-			'orders.update': [
-				{
-					target: yield* t.at('orders', order),
-					set: { status: 'confirmed', check_hash: check.check_hash }
-				}
-			]
+			'orders.update': [{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }]
 		})
 	);
 });

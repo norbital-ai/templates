@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { direct } from './synced-kit.js';
 import { businessRows } from './business-source.js';
 import { expect, it as test } from '@effect/vitest';
-import { committed, confirm, workspace, PRODUCT } from './kit.js';
+import { committed, confirm, workspace, PRODUCT, NET30 } from './kit.js';
 
 const now = '2026-10-10T00:00:00Z';
 
@@ -65,7 +65,7 @@ test.live(
 							direction: 'sales',
 							party: first.id,
 							currency: 'SGD',
-							payment_terms: 'Net 30'
+							payment_terms: NET30
 						}
 					]
 				})
@@ -120,7 +120,7 @@ test.live(
 								direction: 'sales',
 								party: first.id,
 								currency: 'SGD',
-								payment_terms: 'Net 30'
+								payment_terms: NET30
 							}
 						]
 					})

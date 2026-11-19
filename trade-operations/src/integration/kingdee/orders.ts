@@ -4,7 +4,7 @@ import { BigDecimal, Effect, Result, Schema } from 'effect';
 import type { Id, InstanceId, Row, Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { hash, numeric } from '../../lib/commercial.js';
-import { sealedCommission } from '../../lib/commission-expressions.js';
+import { commissionRule } from '../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from './configuration.js';
 import type { SourceRowInvalid, SqlRow } from './polling.js';
 import {
@@ -121,6 +121,7 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 	const {
 		orders: drafts,
 		parties,
+		settlements,
 		sys_user
 	} = yield* ctx.query({
 		orders: {
@@ -135,6 +136,7 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			where: { source: { eq: instance }, active: { eq: true } },
 			fields: ['external_code', 'name', 'kind']
 		},
+		settlements: { where: { source: { eq: instance } }, fields: ['code'] },
 		sys_user: { where: { active: { eq: true } }, fields: ['id'] }
 	});
 	// an order confirmed here keeps the commission rule and freight treatment in force, as a local confirmation does
@@ -155,9 +157,13 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			)(JSON.parse(ctx.configuration.salespersonBindings ?? '{}'))
 		)
 	);
-	// what a waiting order waits on: an employee binding or a party arriving
+	// what a waiting order waits on: an employee binding, or a party or settlement method arriving
 	const { retry, close } = window.with(
-		yield* hash([ctx.configuration.salespersonBindings ?? '', parties.rows.length])
+		yield* hash([
+			ctx.configuration.salespersonBindings ?? '',
+			parties.rows.length,
+			settlements.rows.length
+		])
 	);
 	const target = kingdeeWriteTarget(ctx.configuration);
 	const moved = yield* Effect.forEach(window.headers, uuidOf);
@@ -183,7 +189,8 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			(row) =>
 				row.external_code === code && row.kind !== (direction === 'sales' ? 'supplier' : 'customer')
 		);
-	const header = (source: KingdeeOrder) => ({
+	const settlement = (code: string) => settlements.rows.find((row) => row.code === code)?.id;
+	const header = (source: KingdeeOrder, payment_terms: Id<'settlements'>) => ({
 		kingdee: {
 			fid: source.fid,
 			reference: source.reference,
@@ -193,7 +200,7 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			exchange_rate: source.exchange_rate
 		},
 		currency: source.currency,
-		payment_terms: source.payment_terms,
+		payment_terms,
 		ordered_on: source.ordered_on
 	});
 	const lives: (readonly [Direction, SqlRow])[] = window.headers.map(
@@ -218,6 +225,14 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 				waiting.push(source.uuid);
 				continue;
 			}
+			const terms = settlement(source.payment_terms);
+			if (terms === undefined) {
+				issues.push(
+					`${source.reference}: Kingdee settlement ${source.payment_terms} is not synchronized.`
+				);
+				waiting.push(source.uuid);
+				continue;
+			}
 			const person = owner(source.employee);
 			rows.push({
 				$id: binding(direction, ctx.configuration.branchNo, source.fid, order.source_order_key),
@@ -226,7 +241,7 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 				$version: yield* hash([yield* headerVersion(source), person ?? null]),
 				...(party ? { party: party.id, party_name: party.name } : {}),
 				...(person && person !== order.owner ? { owner: person } : {}),
-				...header(source)
+				...header(source, terms)
 			});
 		}
 		if (absent.length)
@@ -272,9 +287,10 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 		const source = read.success;
 		const party = counterparty(direction, source.party);
 		const person = owner(source.employee);
-		if (!party || !person || !target) {
+		const terms = settlement(source.payment_terms);
+		if (!party || !person || !target || !terms) {
 			issues.push(
-				`${source.reference}: import waits for an active party and one employee binding.`
+				`${source.reference}: import waits for an active party, its settlement method and one employee binding.`
 			);
 			waiting.push(uuid);
 			continue;
@@ -292,11 +308,11 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			ledger: instance,
 			write_target: target,
 			tax_inclusive: false,
-			...header(source),
+			...header(source, terms),
 			...(staged.has(uuid)
 				? {
 						status: 'confirmed' as const,
-						commission: sealedCommission(commission_rules.rows, source.currency, source.ordered_on),
+						commission: commissionRule(commission_rules.rows, source.currency, source.ordered_on),
 						...(commercial_settings.rows[0]
 							? { freight_treatment: commercial_settings.rows[0].freight_treatment }
 							: {})
@@ -507,11 +523,12 @@ export const pushOrder = Effect.fnUntraced(function* (
 				'kingdee',
 				'currency',
 				'tax_inclusive',
-				'payment_terms',
+				'shipment',
 				'ordered_on'
 			],
 			limit: 1,
 			party: { fields: ['external_code'] },
+			payment_terms: { fields: ['code'] },
 			lines: {}
 		}
 	});
@@ -524,7 +541,8 @@ export const pushOrder = Effect.fnUntraced(function* (
 		order.ledger !== instance ||
 		!order.write_target ||
 		!order.source_order_key ||
-		!order.party
+		!order.party ||
+		!order.payment_terms
 	)
 		return null;
 	const { direction } = order;
@@ -561,7 +579,8 @@ export const pushOrder = Effect.fnUntraced(function* (
 		currency: order.currency,
 		tax_inclusive: order.tax_inclusive,
 		party_code: order.party.external_code,
-		payment_terms: order.payment_terms,
+		payment_terms: order.payment_terms.code,
+		...(order.shipment ? { delivery_on: order.shipment.to ?? order.shipment.from } : {}),
 		write_target: order.write_target,
 		lines: lines.map((line) => {
 			const entry = entries.get(line.id);
@@ -597,7 +616,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 		if (
 			before.currency !== order.currency ||
 			before.party !== order.party.external_code ||
-			before.payment_terms !== order.payment_terms ||
+			before.payment_terms !== order.payment_terms.code ||
 			before.ordered_on !== order.ordered_on
 		)
 			// Kingdee owns the header and confirmed orders refuse local header edits: the next read brings it in

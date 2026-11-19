@@ -2,11 +2,14 @@ import { policy } from '@norbital-ai/bolt';
 import {
 	commercialReview,
 	draftOrders,
+	floorReview,
 	lineDeletes,
+	linesOrders,
 	memberOf,
+	orderFloorLines,
 	ordersIn,
 	ownSales,
-	reviewOrders
+	scopedOrders
 } from '../../lib/order-review.js';
 const own = {
 	order: { is: { direction: { eq: 'sales' }, owner: { eq: { var: 'actor.id' } } } }
@@ -33,6 +36,9 @@ export default policy({
 		parties: {
 			outputs: { default: {} }
 		},
+		settlements: {
+			outputs: { default: {} }
+		},
 		products: {
 			outputs: { default: {} }
 		},
@@ -54,15 +60,23 @@ export default policy({
 		commission_rules: {
 			outputs: { default: {} }
 		},
-		// a new contact at a customer or supplier waits for a commercial manager
 		contacts: {
 			outputs: { default: { history: true } },
-			create: {
-				verdict: function* (_changes, ctx) {
-					return ctx.approve(commercialReview);
+			create: { fields: ['party', 'name', 'email', 'phone', 'job_title'] },
+			// the Kingdee contact changes in Kingdee; only its sync writes it
+			update: {
+				fields: ['name', 'email', 'phone', 'job_title'],
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
 				}
 			},
-			update: {}
+			delete: {
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			}
 		},
 		orders: {
 			// the layers under an own order (its party, lines and documents) are read with it
@@ -78,15 +92,30 @@ export default policy({
 						({ after: row }) =>
 							row.direction !== 'sales' || (row.owner !== undefined && row.owner !== memberOf(ctx))
 					);
-					return away >= 0
-						? yield* ctx.refuse('errors.sales_scope', { row: away, field: 'direction' })
-						: ctx.allow();
+					if (away >= 0)
+						return yield* ctx.refuse('errors.sales_scope', { row: away, field: 'direction' });
+					const lines = changes.flatMap(({ after }) =>
+						(after.lines ?? []).map((line) => ({
+							...line,
+							order: {
+								direction: after.direction,
+								currency: after.currency,
+								ordered_on: after.ordered_on ?? ctx.today,
+								tax_inclusive: after.tax_inclusive ?? false,
+								warehouse: after.warehouse ?? null
+							}
+						}))
+					);
+					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
 				}
 			},
-			// a confirmation or a confirmed order's change needs a commercial manager; a draft edit is direct
+			// an own order's edits and its sync to Kingdee are direct; a line below its floor may need a manager
 			update: {
 				verdict: function* (changes, ctx) {
-					return yield* reviewOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
+					yield* scopedOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
+					return (yield* floorReview(ctx, yield* orderFloorLines(ctx, changes)))
+						? ctx.approve(commercialReview)
+						: ctx.allow();
 				},
 				moves: 'all'
 			},
@@ -105,34 +134,37 @@ export default policy({
 		},
 		order_lines: {
 			outputs: { default: { where: own, history: true } },
+			// a line below its floor, or with none, may need a commercial manager (the floor rule)
 			create: {
 				verdict: function* (changes, ctx) {
-					const scoped = yield* ordersIn(
+					const orders = yield* linesOrders(
 						ctx,
-						changes.map(({ after }) => after.order),
-						ownSales(ctx)
+						changes.map(({ after }) => after.order)
 					);
-					// a confirmed order's lines change once a commercial manager agrees
-					return !scoped
-						? yield* ctx.refuse('errors.sales_scope')
-						: scoped.confirmed
-							? ctx.approve(commercialReview)
-							: ctx.allow();
+					if (orders.length !== new Set(changes.map(({ after }) => after.order)).size)
+						return yield* ctx.refuse('errors.sales_scope');
+					if (!orders.every(ownSales(ctx))) return yield* ctx.refuse('errors.sales_scope');
+					const lines = changes.flatMap(({ after }) => {
+						const order = orders.find((o) => o.id === after.order);
+						return order ? [{ ...after, order }] : [];
+					});
+					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
 				}
 			},
 			update: {
 				verdict: function* (changes, ctx) {
-					const scoped = yield* ordersIn(
+					const orders = yield* linesOrders(
 						ctx,
-						changes.map((change) => change.before.order),
-						ownSales(ctx)
+						changes.map(({ before }) => before.order)
 					);
-					// a confirmed order's lines change once a commercial manager agrees
-					return !scoped
-						? yield* ctx.refuse('errors.sales_scope')
-						: scoped.confirmed
-							? ctx.approve(commercialReview)
-							: ctx.allow();
+					if (orders.length !== new Set(changes.map(({ before }) => before.order)).size)
+						return yield* ctx.refuse('errors.sales_scope');
+					if (!orders.every(ownSales(ctx))) return yield* ctx.refuse('errors.sales_scope');
+					const lines = changes.flatMap(({ before, after }) => {
+						const order = orders.find((o) => o.id === before.order);
+						return order ? [{ ...after, order }] : [];
+					});
+					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
 				}
 			},
 			delete: {
@@ -141,17 +173,13 @@ export default policy({
 						changes.map(({ before }) => before),
 						ctx
 					);
-					const scoped = yield* ordersIn(
+					return (yield* ordersIn(
 						ctx,
 						changes.map(({ before }) => before.order),
 						ownSales(ctx)
-					);
-					// a confirmed order's lines change once a commercial manager agrees
-					return !scoped
-						? yield* ctx.refuse('errors.sales_scope')
-						: scoped.confirmed
-							? ctx.approve(commercialReview)
-							: ctx.allow();
+					))
+						? ctx.allow()
+						: yield* ctx.refuse('errors.sales_scope');
 				}
 			}
 		},

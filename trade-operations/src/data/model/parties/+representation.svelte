@@ -21,7 +21,8 @@
 			{ctx}
 			of="contacts"
 			where={{ party: { eq: id } }}
-			columns={['name', 'email', 'phone', 'job_title']}
+			columns={['name', 'email', 'phone', 'job_title', 'primary']}
+			order_by={[{ primary: 'desc' }, { name: 'asc' }]}
 			toolbar={{
 				new: ctx.catalog?.contacts?.create ? () => openCreate('contacts', { party: id }) : false
 			}}
@@ -31,17 +32,7 @@
 			of="orders"
 			where={{ party: { eq: id } }}
 			columns={['number', 'status', 'ordered_on', 'total']}
-			toolbar={{
-				new: !ctx.catalog?.orders?.create
-					? false
-					: () =>
-							openCreate('orders', {
-								party: id,
-								direction: supplier ? 'purchasing' : 'sales',
-								...(supplier ? { payment_terms: '' } : {}),
-								...(view.mode !== 'create' ? { currency: view.record.currency } : {})
-							})
-			}}
+			toolbar={{ new: false }}
 		/>{/if}{/snippet}
 
 {#snippet credit()}{#if id && !supplier}<Bound size="viewport"

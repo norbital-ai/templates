@@ -15,9 +15,10 @@ Keep those identities in the integration mapping and retain the resulting source
 
 ## Create and amend
 
-A quotation and confirmed sale share one order ID. Confirmation seals the contract layout version and
-commission basis and queues an idempotent source write. The supported writer creates a saved, unapproved
-SO or PO and retains its source identity. A successful write does not imply native Kingdee audit.
+A quotation and the sale synced to Kingdee share one order ID. Syncing happens once: it stamps the commission
+rule in force on the order date and queues an idempotent source write, and every later saved change to the
+order or its lines queues another. The supported writer creates a saved, unapproved SO or PO and retains its
+source identity. A successful write does not imply native Kingdee audit.
 
 Retries read back the stored header and lines before acknowledging the write. While the SO or PO is
 unaudited and open its lines are replaced in place, as KIS's own 修改 does. An audited SO is amended: it
@@ -33,7 +34,7 @@ write. Use the source's retained identifiers when reconciling a response.
 
 The read mirrors expose source approval, delivery, invoice, payment and stock facts. They are owned by
 the sync and remain read-only to members. Source changes update the mirror; local commercial changes
-remain subject to the workspace's approval and sealing rules.
+remain subject to the workspace's policies and floor rule.
 
 Archiving a local order preserves its history and evidence. It does not silently delete a Kingdee SO or PO.
 A customer-issued PO, signed return or other supporting file is retained on the order.

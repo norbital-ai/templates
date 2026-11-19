@@ -1323,6 +1323,22 @@ export function agingSummary(details: readonly (AgingDetail & Partial<AgingEstim
 				a.ledger_name.localeCompare(b.ledger_name)
 		);
 }
+/** Each currency's customers owing past due on the aging cutoff, and the sum of their overdue buckets. */
+export const overdueTotals = (summary: readonly AgingSummary[]) =>
+	[...Map.groupBy(summary, (row) => row.currency)].flatMap(([currency, group]) => {
+		const owed = group
+			.map((row) =>
+				BigDecimal.sumAll(
+					(['1_30', '31_60', '61_90', 'over_90'] as const).map((bucket) =>
+						BigDecimal.fromStringUnsafe(row[bucket])
+					)
+				)
+			)
+			.filter(BigDecimal.isPositive);
+		return owed.length
+			? [{ currency, customers: owed.length, overdue: BigDecimal.format(BigDecimal.sumAll(owed)) }]
+			: [];
+	});
 /** Whole days `due` lies before `on`; zero when it is not past due or has no due date. */
 export const daysOverdue = (due: PlainDate | null, on: PlainDate) =>
 	due === null || due >= on
@@ -1424,6 +1440,25 @@ export function creditExceptions(
 	const flagged = new Set(customers.flatMap((row) => row.keys));
 	return { customers, invoices: invoices.filter((row) => flagged.has(row.customer)) };
 }
+/** Each currency's credit exceptions: how many customers, and what they owe past due and over their limits. */
+export const creditTotals = (
+	customers: readonly Pick<
+		ReturnType<typeof creditExceptions>['customers'][number],
+		'currency' | 'overdue' | 'over_limit'
+	>[]
+) =>
+	[...Map.groupBy(customers, (row) => row.currency)].map(([currency, group]) => ({
+		currency,
+		customers: group.length,
+		figures: (['overdue', 'over_limit'] as const).map((field) => ({
+			field,
+			value: BigDecimal.format(
+				BigDecimal.sumAll(
+					group.flatMap((row) => (row[field] ? [BigDecimal.fromStringUnsafe(row[field])] : []))
+				)
+			)
+		}))
+	}));
 /** The payment ledger's read: payments and refunds (of one order, settled by `as_of`), with order, party and invoice. */
 export function ledgerRead(input: { order?: Id<'orders'> | null; as_of?: PlainDate | null } = {}) {
 	const where: Where<'source_payments'> = {

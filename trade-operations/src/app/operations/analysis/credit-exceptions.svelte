@@ -2,7 +2,7 @@
 	// Credit exceptions: the customers that need credit attention today — held in Kingdee, over their limit, or with
 	// overdue invoices — and the overdue invoices behind them. Credit and overdue amounts meet only in one currency.
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { BigDecimal, Effect } from 'effect';
+	import type { Effect } from 'effect';
 	import {
 		Badge,
 		Button,
@@ -16,7 +16,7 @@
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { run } from '@norbital-ai/ui/effect';
-	import { creditExceptions, creditRead, readAgingAt } from '../../../lib/reports.js';
+	import { creditExceptions, creditRead, creditTotals, readAgingAt } from '../../../lib/reports.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
 
 	let { ctx }: { ctx: PageContext } = $props();
@@ -60,20 +60,7 @@
 	const invoices = $derived(
 		exceptions?.invoices.filter((row) => !customer || customer.keys.includes(row.customer)) ?? []
 	);
-	const totals = $derived(
-		[...Map.groupBy(rows ?? [], (row) => row.currency)].map(([currency, group]) => ({
-			currency,
-			customers: group.length,
-			figures: (['overdue', 'over_limit'] as const).map((field) => ({
-				field,
-				value: BigDecimal.format(
-					BigDecimal.sumAll(
-						group.flatMap((row) => (row[field] ? [BigDecimal.fromStringUnsafe(row[field])] : []))
-					)
-				)
-			}))
-		}))
-	);
+	const totals = $derived(creditTotals(rows ?? []));
 	const moneyKind: Kind = { kind: 'money', currency: 'currency', optional: true };
 	const daysKind: Kind = { kind: 'int', optional: true };
 </script>

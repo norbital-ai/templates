@@ -8,7 +8,7 @@ import sql from 'mssql';
 import { validate_database_request } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
-import { workspace, committed, confirm } from './kit.js';
+import { workspace, committed, confirm, NET30 } from './kit.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
 const Access = Schema.Struct({
@@ -189,7 +189,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 								direction: 'sales',
 								party: firstRow(masters.parties.rows).id,
 								currency: 'CNY',
-								payment_terms: 'NET30'
+								payment_terms: NET30
 							}
 						]
 					})
@@ -483,7 +483,7 @@ it.live.skipIf(!process.env.TRADE_SIMULATOR_ACCESS)(
 								direction: 'sales',
 								party: firstRow(masters.parties.rows).id,
 								currency: 'CNY',
-								payment_terms: 'NET30'
+								payment_terms: NET30
 							}
 						]
 					})

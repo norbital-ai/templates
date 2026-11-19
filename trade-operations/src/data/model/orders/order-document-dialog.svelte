@@ -5,14 +5,9 @@
 	import { Button, Dialog } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
-	import { FetchHttpClient, HttpClient } from 'effect/http';
 	import OrderPdfViewer from './order-pdf-viewer.svelte';
-	import {
-		DocumentUnavailable,
-		documentSource,
-		documentRead,
-		orderDocument
-	} from '../../../lib/order-document.js';
+	import { DocumentUnavailable } from '../../../lib/order-document.js';
+	import { orderPdf } from './order-pdf.js';
 
 	let {
 		order,
@@ -30,27 +25,14 @@
 	// sales documents are stamped unless a clean copy is asked for
 	let includeStamp = $state(true);
 	const loadPdf = attach(() => {
-		const request = documentRead(order);
 		const stamp = includeStamp;
 		return Effect.gen(function* () {
 			file = null;
 			error = null;
-			const document = yield* orderDocument(yield* ctx.query(request));
+			const { document, bytes } = yield* orderPdf(ctx, order, stamp);
 			stampAvailable = document.stamp != null;
-			const source = yield* documentSource(
-				{ ...document, stamp: stamp ? document.stamp : null },
-				(asset) =>
-					HttpClient.get(ctx.file_url(asset)).pipe(
-						Effect.flatMap((response) => response.arrayBuffer),
-						Effect.map((bytes) => new Uint8Array(bytes)),
-						Effect.provide(FetchHttpClient.layer)
-					)
-			);
-			const bytes = yield* ctx.preview_pdf(source, { page: 'A4' });
 			const url = yield* Effect.acquireRelease(
-				Effect.sync(() =>
-					URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }))
-				),
+				Effect.sync(() => URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))),
 				(url) => Effect.sync(() => URL.revokeObjectURL(url))
 			);
 			file = { title: document.title, url, name: document.filename };

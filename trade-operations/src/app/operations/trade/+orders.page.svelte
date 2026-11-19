@@ -6,6 +6,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	import OrderDocumentDialog from '../../../data/model/orders/order-document-dialog.svelte';
+	import { downloadOrderPdfs } from '../../../data/model/orders/order-pdf.js';
 
 	const actor = $derived(ctx.actor?.kind === 'member' ? ctx.actor : null);
 	const canCreate = (direction: 'sales' | 'purchasing') =>
@@ -17,8 +18,7 @@
 		openCreate('orders', {
 			direction,
 			// documents print in the workspace's language until the order picks another
-			document_locale: ctx.locale.startsWith('zh') ? 'zh' : 'en',
-			...(direction === 'purchasing' ? { payment_terms: '' } : {})
+			document_locale: ctx.locale.startsWith('zh') ? 'zh' : 'en'
 		});
 	}
 	const purchaseOnly = $derived(
@@ -40,6 +40,7 @@
 		)
 	);
 	let selectedOrder = $state<Id<'orders'> | null>(null);
+	const day = ctx.clock('day');
 </script>
 
 {#snippet orders(direction: 'sales' | 'purchasing')}
@@ -72,6 +73,12 @@
 								run: (ids) => {
 									selectedOrder = ids[0] ?? null;
 								}
+							},
+							{
+								icon: 'lucide:file-down',
+								name: ctx.t('component.download_pdfs'),
+								requires_selection: true,
+								run: (ids) => downloadOrderPdfs(ctx, ids, `${direction}-orders-${day.today}.zip`)
 							}
 						]
 					: []

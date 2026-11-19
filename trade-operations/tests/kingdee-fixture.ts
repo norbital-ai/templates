@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Id } from '@norbital-ai/bolt';
-import { committed, confirm, type T } from './kit.js';
+import { committed, confirm, PROBE_NET30, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
 import { Effect } from 'effect';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
@@ -75,6 +75,10 @@ export function kingdeeCatalogue(name = 'Kingdee'): KingdeeRecords {
 				unused: 0,
 				detail_deleted: 0
 			}
+		],
+		'/settlements': [
+			{ external_code: '1', code: 'PROBE-NET30', name: 'Probe net 30', deleted: 0 },
+			{ external_code: '2', code: 'PROBE-NET60', name: 'Probe net 60', deleted: 0 }
 		],
 		'/warehouses': [
 			{
@@ -664,7 +668,7 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 					direction: 'sales',
 					party: party.id,
 					currency: 'CNY',
-					payment_terms: 'PROBE-NET30',
+					payment_terms: PROBE_NET30,
 					ordered_on: '2026-10-10',
 					tax_inclusive: false
 				}
@@ -723,7 +727,7 @@ export const kingdeePurchase = Effect.fnUntraced(function* (
 					direction: 'purchasing',
 					party: party.id,
 					currency: 'CNY',
-					payment_terms: 'PROBE-NET30',
+					payment_terms: PROBE_NET30,
 					ordered_on: '2026-10-10',
 					tax_inclusive: false
 				}

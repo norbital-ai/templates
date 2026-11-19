@@ -4,16 +4,7 @@
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal, Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
-	import {
-		Checkbox,
-		Combobox,
-		CustomView,
-		Label,
-		Table,
-		Tabs,
-		TimeInput,
-		use_act
-	} from '@norbital-ai/ui';
+	import { Combobox, CustomView, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
 	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -32,7 +23,9 @@
 	});
 	const rules = $derived(settings.current?.commercial_settings.rows[0]);
 	const setRule = (
-		set: { readonly require_floor: boolean } | { readonly freight_treatment: 'deduct' | 'include' }
+		set:
+			| { readonly floor_rule: 'warn' | 'approve' | 'refuse' }
+			| { readonly freight_treatment: 'deduct' | 'include' }
 	) =>
 		rules &&
 		save.run(
@@ -231,13 +224,20 @@
 {#snippet bookScope()}
 	{@render scope()}
 	{#if rules}
-		<Label class="flex items-center gap-2 text-sm whitespace-nowrap"
-			><Checkbox
-				checked={rules.require_floor}
+		<div class="w-44">
+			<Combobox
+				options={(['warn', 'approve', 'refuse'] as const).map((value) => ({
+					value,
+					label: ctx.t(`models.commercial_settings.fields.floor_rule.${value}`)
+				}))}
+				value={rules.floor_rule}
 				disabled={save.pending}
-				on_checked_change={(checked: boolean) => setRule({ require_floor: checked })}
-			/>{ctx.t('models.commercial_settings.fields.require_floor')}</Label
-		>
+				on_change={(value) => {
+					if (value) setRule({ floor_rule: value });
+				}}
+				aria-label={ctx.t('models.commercial_settings.fields.floor_rule')}
+			/>
+		</div>
 	{/if}
 	<label class="sr-only" for="price-book-month">{ctx.t('component.price_book_month')}</label>
 	<div class="w-36">

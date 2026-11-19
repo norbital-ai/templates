@@ -1,10 +1,10 @@
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { Effect, Schema } from 'effect';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 const Record = Schema.Record(Schema.String, Schema.Json);
 const hex = (value: number) => '0x' + value.toString(16).padStart(16, '0');
-const VERSIONED = new Set(['parties', 'products', 'warehouses']);
+const VERSIONED = new Set(['parties', 'contacts', 'products', 'warehouses']);
 /** Scripted physical projection rows at the native request boundary; this is not a SQL engine. */
 export function sourceFixture(records: () => Record<string, Json[]>, identity = randomUUID()) {
 	let sequence = 10;
@@ -84,6 +84,25 @@ export function sourceFixture(records: () => Record<string, Json[]>, identity = 
 								maximum: hex(sequence + 1),
 								observed_at: '2026-10-10T00:00:00.000Z',
 								metadata: JSON.stringify(rows)
+							}
+						]
+					};
+				}
+				// an unversioned feed's listing fingerprint: it moves whenever any of its rows does
+				if (statement.includes('HASHBYTES')) {
+					const listed = /FROM\s+\[([^\]]+)\]\.\[([^\]]+)\]\s+AS\s+\[([^\]]+)\]/i.exec(statement);
+					const rows = [...(stored.get(listed?.[3] ?? '')?.values() ?? [])]
+						.map((entry) => entry.encoded)
+						.sort();
+					return {
+						rows: [
+							{
+								database_guid: identity,
+								recovery_fork_guid: identity,
+								fingerprint: createHash('sha256')
+									.update(JSON.stringify(rows))
+									.digest('hex')
+									.toUpperCase()
 							}
 						]
 					};

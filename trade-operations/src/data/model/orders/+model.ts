@@ -1,12 +1,10 @@
 import { lineDeletes } from '../../../lib/order-review.js';
 import { logisticsDocument, logisticsLine, logisticsOrder } from '../../../lib/logistics.js';
-import { contractKind, currentTemplate, sealDocument } from '../../../lib/order-document.js';
-import { confirmationBasis } from '../../../lib/confirmation.js';
-import { sealedCommission } from '../../../lib/commission-expressions.js';
+import { commissionRule } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
-import { model, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
+import { model, type Id, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { currentFloors, hash, quoteBelowFloor, snapshot } from '../../../lib/commercial.js';
+import { floorFor, quoteBelowFloor } from '../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -58,28 +56,30 @@ const terms = [
 	'valid_from',
 	'valid_until',
 	'payment_terms',
-	'delivery_terms',
 	'shipping_terms',
 	'place_of_loading',
 	'place_of_delivery',
 	'packaging',
 	'shipping_mark',
-	'time_of_shipment',
+	'shipment',
 	'other_terms',
 	'payment_method',
 	'buyer_contact',
-	'buyer_mobile',
 	'delivery_address',
-	'delivery_date',
 	'logistics_handler',
 	'notes',
 	'supporting_documents'
 ] as const;
+// what Kingdee keeps on a synced order's header: changed there, read back here
+const kingdeeHeader = ['party', 'currency', 'ordered_on', 'owner', 'payment_terms'] as const;
+// what a line is priced against: a change re-prices a draft's lines (and a synced order's, which Kingdee then takes)
+const pricingBasis = ['party', 'warehouse', 'currency', 'tax_inclusive', 'ordered_on'] as const;
 /** The party and warehouse an order names must be active, match its direction, and share the party's ledger. */
-const admitParty = Effect.fnUntraced(function* (
+const admitParty = Effect.fnUntraced(function* <
+	P extends Pick<StoredRow<'parties'>, 'active' | 'kind' | 'source' | 'name' | 'address'>
+>(
 	ctx: WriteCtx<'orders'>,
-	party:
-		Pick<StoredRow<'parties'>, 'active' | 'kind' | 'source' | 'name' | 'external_code'> | undefined,
+	party: P | undefined,
 	direction: Row<'orders'>['direction'],
 	warehouse: Pick<StoredRow<'warehouses'>, 'source'> | undefined
 ) {
@@ -91,6 +91,40 @@ const admitParty = Effect.fnUntraced(function* (
 		return yield* ctx.refuse('errors.ledger_mismatch', { field: 'warehouse' });
 	return party;
 });
+type Contact = Pick<StoredRow<'contacts'>, 'id' | 'party' | 'primary'>;
+/** The contact an order's buyer is: one of its party's, by default the party's Kingdee contact. */
+const buyerOf = (contacts: readonly Contact[], party: Id<'parties'>) =>
+	contacts.find((c) => c.party === party && c.primary)?.id ?? null;
+/**
+ * Where the goods leave and arrive, filled from the warehouse and party while a writer leaves them blank or as the
+ * previous default had them: a sale loads at our warehouse and delivers to the customer's address, a purchase
+ * delivers to our warehouse.
+ */
+function placeDefaults(
+	direction: Row<'orders'>['direction'],
+	current: Partial<
+		Pick<Row<'orders'>, 'place_of_loading' | 'place_of_delivery' | 'delivery_address'>
+	>,
+	input: Partial<Record<'place_of_loading' | 'place_of_delivery' | 'delivery_address', unknown>>,
+	warehouse: { readonly before?: string | null; readonly after?: string | null },
+	address: { readonly before?: string | null; readonly after?: string | null }
+) {
+	const follows = (
+		field: 'place_of_loading' | 'place_of_delivery' | 'delivery_address',
+		was: string | null | undefined
+	) => input[field] === undefined && (!current[field] || current[field] === was);
+	const site = direction === 'sales' ? 'place_of_loading' : 'place_of_delivery';
+	return {
+		...(warehouse.after !== undefined && follows(site, warehouse.before)
+			? { [site]: warehouse.after }
+			: {}),
+		...(direction === 'sales' &&
+		address.after !== undefined &&
+		follows('delivery_address', address.before)
+			? { delivery_address: address.after }
+			: {})
+	};
+}
 
 export default model('orders', {
 	description: 'orders',
@@ -113,16 +147,10 @@ export default model('orders', {
 		warehouse: { kind: 'ref', to: 'warehouses', optional: true },
 		// the language the order's documents print in; its case (quotation, contract) follows from the order
 		document_locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' },
-		// the contract layout version its confirmation sealed
-		document_template: {
-			kind: 'ref',
-			to: 'document_templates',
-			optional: true,
-			where: { status: { eq: 'published' } }
-		},
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		source_order_key: { kind: 'text', optional: true, hidden: true },
 		archived: { kind: 'bool', default: false },
+		// `confirmed`: synced to Kingdee, once; from then on the order and its SO or PO stay in step
 		status: {
 			kind: 'state',
 			initial: 'draft',
@@ -144,25 +172,25 @@ export default model('orders', {
 		},
 		valid_from: { kind: 'date', optional: true },
 		valid_until: { kind: 'date', optional: true },
+		// Kingdee's settlement method (结算方式), written to the SO or PO
 		payment_terms: {
-			kind: 'text'
-		},
-		delivery_terms: {
-			kind: 'text',
-			optional: true
+			kind: 'ref',
+			to: 'settlements',
+			optional: true,
+			where: { active: { eq: true } }
 		},
 		shipping_terms: { kind: 'text', optional: true },
 		place_of_loading: { kind: 'text', optional: true },
 		place_of_delivery: { kind: 'text', optional: true },
 		packaging: { kind: 'text', optional: true },
 		shipping_mark: { kind: 'text', optional: true },
-		time_of_shipment: { kind: 'text', optional: true },
+		// when the goods ship; Kingdee takes its last day as each line's delivery date
+		shipment: { kind: 'period', of: 'date', optional: true },
 		other_terms: { kind: 'text', optional: true },
-		payment_method: { kind: 'text', optional: true },
-		buyer_contact: { kind: 'text', optional: true },
-		buyer_mobile: { kind: 'text', format: 'phone', optional: true },
+		payment_method: { kind: 'enum', values: ['wire_transfer', 'acceptance_bill'], optional: true },
+		// one of the party's contacts: its name, phone and email print on the documents
+		buyer_contact: { kind: 'ref', to: 'contacts', optional: true },
 		delivery_address: { kind: 'text', optional: true },
-		delivery_date: { kind: 'date', optional: true },
 		logistics_handler: { kind: 'ref', to: 'sys_user', optional: true },
 		notes: {
 			kind: 'text',
@@ -181,11 +209,6 @@ export default model('orders', {
 			max: '20MiB',
 			many: true,
 			optional: true
-		},
-		check_hash: {
-			kind: 'text',
-			optional: true,
-			hidden: true
 		},
 		party_name: {
 			kind: 'text',
@@ -207,7 +230,7 @@ export default model('orders', {
 			kind: 'count',
 			of: 'lines'
 		},
-		// the commission rule in force when the order was confirmed
+		// the commission rule in force on the order date, stamped when it syncs: a later rule edit leaves it be
 		commission: {
 			hidden: true,
 			kind: 'json',
@@ -215,7 +238,7 @@ export default model('orders', {
 			shape: commissionShape,
 			was: 'sealed_commission'
 		},
-		// the Kingdee account set and branch a confirmed sales order is written to
+		// the Kingdee account set and branch a synced order is written to
 		write_target: {
 			hidden: true,
 			kind: 'json',
@@ -245,6 +268,8 @@ export default model('orders', {
 			fields: 'all',
 			party: { fields: 'all' },
 			ledger: { fields: ['active', 'status'] },
+			payment_terms: { fields: ['code', 'name'] },
+			buyer_contact: { fields: ['name', 'phone', 'email'] },
 			// documents print each product's brand and origin
 			lines: { fields: 'all', product: { fields: ['brand', 'brand_en', 'producing_area'] } },
 			transactions: { fields: 'all' }
@@ -301,9 +326,14 @@ export default model('orders', {
 			)
 				return yield* ctx.refuse('errors.save_before_confirm');
 			const rows = changes.map(({ after }) => after);
-			const { parties, warehouses } = yield* ctx.query({
-				parties: { where: { id: { in: rows.map((r) => r.party) } } },
-				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } }
+			const partyIds = rows.map((r) => r.party);
+			const { parties, warehouses, contacts } = yield* ctx.query({
+				parties: { where: { id: { in: partyIds } } },
+				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } },
+				contacts: {
+					where: { party: { in: partyIds } },
+					fields: ['party', 'primary']
+				}
 			});
 			const out = [];
 			for (const { after: row, set } of changes) {
@@ -311,15 +341,27 @@ export default model('orders', {
 					return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 				if (row.valid_from && row.valid_until && row.valid_until < row.valid_from)
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
+				const warehouse = warehouses.rows.find((w) => w.id === row.warehouse);
 				const party = yield* admitParty(
 					ctx,
 					parties.rows.find((p) => p.id === row.party),
 					row.direction,
-					warehouses.rows.find((w) => w.id === row.warehouse)
+					warehouse
 				);
+				if (
+					row.buyer_contact &&
+					!contacts.rows.some((c) => c.id === row.buyer_contact && c.party === row.party)
+				)
+					return yield* ctx.refuse('errors.contact_party', { field: 'buyer_contact' });
 				out.push({
 					...set,
 					...(row.print_values ? { print_values: orderedPrintValues(row.print_values) } : {}),
+					...placeDefaults(row.direction, row, set, warehouse ? { after: warehouse.name } : {}, {
+						after: party.address
+					}),
+					...(set.buyer_contact === undefined
+						? { buyer_contact: buyerOf(contacts.rows, row.party) }
+						: {}),
 					source_order_key: row.source_order_key ?? crypto.randomUUID(),
 					ledger: party.source,
 					party_name: party.name
@@ -333,7 +375,6 @@ export default model('orders', {
 		fields: [
 			...terms,
 			'status',
-			'check_hash',
 			'archived',
 			'source_order_key',
 			'kingdee',
@@ -356,30 +397,32 @@ export default model('orders', {
 			)
 				return yield* ctx.refuse('errors.evidence_sealed');
 			const ids = changes.map((c) => c.before.id);
+			const partyIds = [
+				...new Set(changes.flatMap(({ before, after }) => [before.party, after.party]))
+			];
 			const {
 				parties,
 				order_lines: lines,
 				commercial_settings: settings,
-				document_templates: templates,
 				commission_rules: rules,
-				warehouses
+				warehouses,
+				contacts
 			} = yield* ctx.query({
 				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
-				parties: {
-					where: { id: { in: changes.map(({ after }) => after.party) } }
-				},
+				parties: { where: { id: { in: partyIds } } },
 				order_lines: { where: { order: { in: ids } } },
-				document_templates: { where: { status: { eq: 'published' } } },
 				commercial_settings: { where: { code: { eq: 'default' } }, limit: 1 },
 				warehouses: {
 					where: {
 						id: {
-							in: changes.flatMap(({ before, set }) =>
-								set.warehouse !== undefined ? (set.warehouse ?? []) : (before.warehouse ?? [])
-							)
+							in: changes.flatMap(({ before, after }) => [
+								...(before.warehouse ? [before.warehouse] : []),
+								...(after.warehouse ? [after.warehouse] : [])
+							])
 						}
 					}
-				}
+				},
+				contacts: { where: { party: { in: partyIds } }, fields: ['party', 'primary'] }
 			});
 			const productIds = [...new Set(lines.rows.map((l) => l.product))];
 			const { products, pricing_floors: floors } = yield* ctx.query({
@@ -395,13 +438,13 @@ export default model('orders', {
 					ctx
 				);
 			// the Kingdee ledgers a draft -> confirmed order writes to, read once for the batch
-			const confirming = changes.flatMap(({ before, after }) =>
+			const syncing = changes.flatMap(({ before, after }) =>
 				before.status !== 'confirmed' && after.status !== 'draft' ? [before.ledger] : []
 			);
-			const ledgers = confirming.length
+			const ledgers = syncing.length
 				? (yield* ctx.query({
 						sys_integration: {
-							where: { id: { in: confirming }, integration: { eq: 'kingdee' } },
+							where: { id: { in: syncing }, integration: { eq: 'kingdee' } },
 							fields: ['configuration']
 						}
 					})).sys_integration.rows
@@ -437,101 +480,107 @@ export default model('orders', {
 					transformed.push(input);
 					continue;
 				}
+				// Kingdee keeps a synced order's header; the sync's read brings its changes in
+				const header = kingdeeHeader.find(
+					(k) => old.status === 'confirmed' && input[k] !== undefined && input[k] !== old[k]
+				);
+				if (header) return yield* ctx.refuse('errors.kingdee_header', { field: header });
 				const party = parties.rows.find((p) => p.id === after.party);
 				const warehouse = warehouses.rows.find((w) => w.id === after.warehouse);
 				const admitted = yield* admitParty(ctx, party, old.direction, warehouse);
+				if (
+					after.buyer_contact &&
+					!contacts.rows.some((c) => c.id === after.buyer_contact && c.party === after.party)
+				)
+					return yield* ctx.refuse('errors.contact_party', { field: 'buyer_contact' });
 				const own = lines.rows.filter((l) => l.order === old.id);
-				// a confirmed order keeps its party, owner and the basis its lines were priced on
-				if (
-					(
-						[
-							'party',
-							'warehouse',
-							'currency',
-							'tax_inclusive',
-							'direction',
-							'ordered_on',
-							...(old.status === 'confirmed' ? (['owner', 'document_locale'] as const) : [])
-						] as const
-					).some(
-						(k) =>
-							(own.length || old.status === 'confirmed') &&
-							input[k] !== undefined &&
-							input[k] !== old[k]
-					)
-				)
-					return yield* ctx.refuse('errors.line_basis_locked');
-				// Kingdee keeps the SO header; the sync's read brings its changes in
-				if (
-					old.status === 'confirmed' &&
-					old.write_target &&
-					input.payment_terms !== undefined &&
-					input.payment_terms !== old.payment_terms
-				)
-					return yield* ctx.refuse('errors.kingdee_header', { field: 'payment_terms' });
+				const movedParty = after.party !== old.party;
+				const defaults = {
+					...placeDefaults(
+						old.direction,
+						old,
+						input,
+						after.warehouse !== old.warehouse
+							? {
+									before: warehouses.rows.find((w) => w.id === old.warehouse)?.name ?? null,
+									after: warehouse?.name ?? null
+								}
+							: {},
+						movedParty
+							? {
+									before: parties.rows.find((p) => p.id === old.party)?.address ?? null,
+									after: admitted.address
+								}
+							: {}
+					),
+					// a new party brings its own contact unless the writer names one
+					...(movedParty && input.buyer_contact === undefined
+						? { buyer_contact: buyerOf(contacts.rows, after.party) }
+						: {})
+				};
+				// a changed pricing basis re-prices every line through this order's layer (each line's own transform)
+				const repriced =
+					own.length && pricingBasis.some((k) => input[k] !== undefined && input[k] !== old[k])
+						? {
+								lines: {
+									...input.lines,
+									update: [
+										...(input.lines?.update ?? []),
+										...own
+											.filter((l) => !input.lines?.update?.some((u) => u.target.id === l.id))
+											.map((l) => ({
+												target: { id: l.id, revision: l.revision },
+												set: { quantity: l.quantity }
+											}))
+									]
+								}
+							}
+						: {};
+				const common = {
+					...input,
+					...defaults,
+					...repriced,
+					ledger: admitted.source,
+					...(input.print_values ? { print_values: orderedPrintValues(input.print_values) } : {})
+				};
 				if (old.status === 'confirmed' || after.status === 'draft') {
-					transformed.push({
-						...input,
-						ledger: admitted.source,
-						check_hash: null,
-						...(input.print_values ? { print_values: orderedPrintValues(input.print_values) } : {})
-					});
+					transformed.push(common);
 					continue;
 				}
-				// draft -> confirmed
+				// draft -> confirmed: the saved order goes to Kingdee as it stands
 				if (terms.some((k) => input[k] !== undefined && input[k] !== old[k]))
 					return yield* ctx.refuse('errors.save_before_confirm');
-				// the confirmation seals its case's current contract layout in the order's language
-				const template = currentTemplate(
-					templates.rows,
-					contractKind(old.direction),
-					old.document_locale
-				);
 				if (!config) return yield* ctx.refuse('errors.configuration_missing');
-				if (!template)
-					return yield* ctx.refuse('errors.document_layout_unpublished', {
-						field: 'document_locale'
-					});
 				if (!own.length) return yield* ctx.refuse('errors.lines_required');
+				// a line a commercial manager has yet to decide waits, rather than reaching Kingdee
+				if (own.some((l) => l.$approval)) return yield* ctx.refuse('errors.lines_pending');
 				if (old.warehouse && !warehouse?.active)
 					return yield* ctx.refuse('errors.warehouse_inactive');
-				if (!old.payment_terms.trim())
+				if (!old.payment_terms)
 					return yield* ctx.refuse('errors.payment_terms', { field: 'payment_terms' });
 				if (own.some((l) => !products.rows.find((p) => p.id === l.product)?.active))
 					return yield* ctx.refuse('errors.product_inactive');
-				const basis = currentFloors(old, own, floors.rows, warehouse?.group_code);
-				const check_hash = yield* hash(
-					confirmationBasis(
-						old.revision,
-						{ ...snapshot(old, admitted, basis, template.version), ...sealDocument(template) },
-						config,
-						template
-					)
-				);
-				if (input.check_hash !== check_hash) return yield* ctx.refuse('errors.check_changed');
+				// a floor that moved since the line was priced still holds
 				if (
-					config.require_floor &&
+					config.floor_rule === 'refuse' &&
 					old.direction === 'sales' &&
-					basis.some((l) => l.floor_net === null)
-				)
-					return yield* ctx.refuse('errors.floor_missing');
-				if (
-					config.require_floor &&
-					old.direction === 'sales' &&
-					basis.some((l) => quoteBelowFloor(l, old.tax_inclusive))
+					own.some((l) => {
+						const floor = floorFor(old, warehouse?.group_code, l, floors.rows);
+						return (
+							!floor ||
+							floor.unit !== l.unit ||
+							quoteBelowFloor({ ...l, floor_net: floor.floor_net }, old.tax_inclusive)
+						);
+					})
 				)
 					return yield* ctx.refuse('errors.floor_below');
-				const writeTarget = kingdeeWriteTarget(
-					ledgers.find((l) => l.id === old.ledger)?.configuration
-				);
 				transformed.push({
-					...input,
+					...common,
 					source_order_key: old.source_order_key ?? crypto.randomUUID(),
 					party_name: admitted.name,
 					freight_treatment: config.freight_treatment,
-					write_target: writeTarget,
-					document_template: template.id,
-					commission: sealedCommission(rules.rows, old.currency, old.ordered_on)
+					write_target: kingdeeWriteTarget(ledgers.find((l) => l.id === old.ledger)?.configuration),
+					commission: commissionRule(rules.rows, old.currency, old.ordered_on)
 				});
 			}
 			return transformed;

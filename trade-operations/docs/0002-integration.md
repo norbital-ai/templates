@@ -24,7 +24,7 @@ The source system owns:
 
 Trade Operations owns:
 
-- the locally approved agreement, its floors and commission basis;
+- the agreement, its floors and commission basis;
 - what staff may see, approve, change and archive;
 - the local projections needed to work and report.
 
@@ -32,15 +32,17 @@ Trade Operations owns:
 
 ```text
 READ (poll)                                      WRITE (outbox)
-Kingdee tables -> verified page -> local table    local approval -> sys_outbox -> verified SQL -> Kingdee
+Kingdee tables -> verified page -> local table    local change   -> sys_outbox -> verified SQL -> Kingdee
      ^                                                        |
      |                                                        v
      +------------- the SO or PO read back onto the order ------+
 ```
 
-Reads are the normal path. Writes are narrow: a confirmed order creates its SO or PO; a later change to its
-lines replaces them in place while the SO or PO is unaudited, as KIS's own 修改 does, and amends an audited SO
-into a new version, as KIS's 订单变更 does. An audited PO refuses the change. Kingdee keeps the header. Purchase
+Reads are the normal path. Writes are narrow: syncing an order creates its SO or PO; a later saved change to the
+order or its lines replaces the lines in place while the SO or PO is unaudited, as KIS's own 修改 does, and amends
+an audited SO into a new version, as KIS's 订单变更 does. An audited PO refuses the change. Each line carries the
+last day of the order's shipment window as its delivery date. Kingdee keeps the header (party, currency, order
+date, salesperson, settlement); a local change to it is refused. Purchase
 orders take part once the ledger's **Verified SQL account for purchase documents** is set (`directionsOf`);
 until then a PO stays local. The [README](../README.md#two-way-kingdee-sync) walks the four paths.
 
@@ -70,9 +72,10 @@ and the invoice's open item `t_RP_Contact.FModifyTime` from the header that move
 and read only those orders' documents. An entry edited without
 its header being saved again would not be seen; KIS saves a bill whole.
 
-A row that cannot be applied yet (an SO whose customer is not synchronized, a document whose SO is not audited)
-does not hold the bookmark. Its SO is kept by identity in the cursor, at most 500, and read again when what it
-waits on changes here. `ICInventory` carries no marker: stock is the one feed that lists its table.
+A row that cannot be applied yet (an SO whose customer or settlement method is not synchronized, a document whose
+SO is not audited) does not hold the bookmark. Its SO is kept by identity in the cursor, at most 500, and read
+again when what it waits on changes here. `ICInventory` and `t_Settle` carry no marker: stock and settlements list their tables, each
+only when its fingerprint moved.
 
 An SO or PO created in Kingdee arrives through the same order window: the read that first sees it creates a
 draft, the next confirms it under the commission rule and freight treatment in force, and its lines follow.
@@ -117,27 +120,30 @@ local change to it is refused, never recreated. Removed rows are not searched fo
 These are real tenant tables, not a hidden schema. "Hidden" here means **no standalone app page**: the row is
 read through an order, party, product, stock or report surface. The table name is the model name.
 
-| Local table                | Source read (SQL Server)                                                                                                                                                         | Cadence / gate                                                      | Surfaced as                                               |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
-| `parties`                  | `t_Item`, `t_Organization`, `t_Supplier`                                                                                                                                         | 1 min                                                               | Partners list/record, order party picker                  |
-| `products`                 | `t_Item`, `t_ICItem`, unit and brand `t_Item`                                                                                                                                    | 1 min                                                               | Warehouse products, order line picker, price book         |
-| `warehouses`               | `t_Item`, `t_Stock`, parent `t_Item`                                                                                                                                             | 1 min                                                               | Warehouse tab, order warehouse picker, price group        |
-| `stock_snapshots`          | `ICInventory`, `t_ICItem`, unit `t_Item`                                                                                                                                         | scheduled                                                           | Warehouse → Stock; availability                           |
-| `credit_snapshots`         | `ICCreditOption` / `ICCreditField` / `ICCreditObject`, `t_RP_Contact`, `ICSale`, `t_RP_NewReceiveBill`, `ICStockBill` / entries                                                  | 1 min, opt-in `creditPolicy` + `creditAccount`                      | Partner limit, used, available, hold and observation time |
-| `source_lot_costs`         | `ICStockBill`, `ICStockBillEntry`, `t_ICItem`, `t_Item`                                                                                                                          | opt-in `stockLotCostAccount`                                        | Quote FIFO estimate, stock cost evidence                  |
-| `source_stock_commitments` | `SEOrder`, `SEOrderEntry`, `t_ICItem`, `t_Item`                                                                                                                                  | 5 min, opt-in `stockAvailabilityAccount`                            | Warehouse → Stock: awaiting and available columns         |
-| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`/`ICSaleEntry`, `ICStockBill`, `t_Settle`, `t_Organization`                                                         | 1 h, opt-in `receivablesAccount`                                    | Analysis → AR aging                                       |
-| `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                                             | scheduled, two syncs (`kingdee`, `invoice_only`)                    | Sales analysis, partner agreement fulfilment, reports     |
-| `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`, `ICPurchase`                                                                            | 5 min; AR receipts and AP payments; invoice must exist first        | Order payments, AR aging                                  |
-| `source_purchase_lines`    | receipts `ICStockBill`/`ICStockBillEntry` type 1; `ICPurchase`/`ICPurchaseEntry`; payable `t_RP_Contact` FRP 0 type 4, `t_RP_NewCheckInfo`; `t_Supplier`, `t_Item`, `t_Currency` | 5 min, two syncs (`receipts`, `invoices`), opt-in `purchaseAccount` | Sales analysis purchase chain                             |
-| `transactions`             | deliveries and receipts `ICStockBill`/`ICStockBillEntry`, invoices `ICSale`/`ICSaleEntry` and `ICPurchase`/`ICPurchaseEntry`, parent `SEOrder` or `POOrder`                      | 5 min; parent SO or PO must be issued                               | Order Transactions, AR aging, reports                     |
-| `orders`                   | `SEOrder`/`POOrder` and entries, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Supplier`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency`   | 1 min read + outbox write                                           | Orders list, order record (SO or PO header)               |
+| Local table                | Source read (SQL Server)                                                                                                                                                         | Cadence / gate                                                      | Surfaced as                                                         |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `parties`                  | `t_Item`, `t_Organization`, `t_Supplier`                                                                                                                                         | 1 min                                                               | Partners list/record, order party picker                            |
+| `products`                 | `t_Item`, `t_ICItem`, unit and brand `t_Item`                                                                                                                                    | 1 min                                                               | Warehouse products, order line picker, price book                   |
+| `warehouses`               | `t_Item`, `t_Stock`, parent `t_Item`                                                                                                                                             | 1 min                                                               | Warehouse tab, order warehouse picker, price group                  |
+| `stock_snapshots`          | `ICInventory`, `t_ICItem`, unit `t_Item`                                                                                                                                         | scheduled                                                           | Warehouse → Stock; availability                                     |
+| `credit_snapshots`         | `ICCreditOption` / `ICCreditField` / `ICCreditObject`, `t_RP_Contact`, `ICSale`, `t_RP_NewReceiveBill`, `ICStockBill` / entries                                                  | 1 min, opt-in `creditPolicy` + `creditAccount`                      | Partner limit, used, available, hold and observation time           |
+| `source_lot_costs`         | `ICStockBill`, `ICStockBillEntry`, `t_ICItem`, `t_Item`                                                                                                                          | opt-in `stockLotCostAccount`                                        | Quote FIFO estimate, stock cost evidence                            |
+| `source_stock_commitments` | `SEOrder`, `SEOrderEntry`, `t_ICItem`, `t_Item`                                                                                                                                  | 5 min, opt-in `stockAvailabilityAccount`                            | Warehouse → Stock: awaiting and available columns                   |
+| `source_receivables`       | `t_RP_Contact`, `t_RP_NewCheckInfo`, `t_RP_Plan_Ar`, `ICSale`/`ICSaleEntry`, `ICStockBill`, `t_Settle`, `t_Organization`                                                         | 1 h, opt-in `receivablesAccount`                                    | Analysis → AR aging                                                 |
+| `source_sales_lines`       | deliveries `ICStockBill`/`ICStockBillEntry`; invoices `ICSale`/`ICSaleEntry`; linked to owned orders                                                                             | scheduled, two syncs (`kingdee`, `invoice_only`)                    | Sales analysis, partner agreement fulfilment, reports               |
+| `source_payments`          | `t_rp_CheckEntry`, `t_RP_NewCheckInfo`, `t_RP_Contact`, `t_RP_NewReceiveBill`, `ICSale`, `ICPurchase`                                                                            | 5 min; AR receipts and AP payments; invoice must exist first        | Order payments, AR aging                                            |
+| `source_purchase_lines`    | receipts `ICStockBill`/`ICStockBillEntry` type 1; `ICPurchase`/`ICPurchaseEntry`; payable `t_RP_Contact` FRP 0 type 4, `t_RP_NewCheckInfo`; `t_Supplier`, `t_Item`, `t_Currency` | 5 min, two syncs (`receipts`, `invoices`), opt-in `purchaseAccount` | Sales analysis purchase chain                                       |
+| `transactions`             | deliveries and receipts `ICStockBill`/`ICStockBillEntry`, invoices `ICSale`/`ICSaleEntry` and `ICPurchase`/`ICPurchaseEntry`, parent `SEOrder` or `POOrder`                      | 5 min; parent SO or PO must be issued                               | Order Transactions, AR aging, reports                               |
+| `contacts`                 | `t_Item`, `t_Organization` / `t_Supplier` (`FContact`, `FMobilePhone` or `FPhone`, `FEmail`)                                                                                     | 1 min                                                               | Partner Contacts (the party's primary contact), order buyer contact |
+| `settlements`              | `t_Settle`                                                                                                                                                                       | 1 min; listed when its fingerprint moved                            | Order payment terms, printed settlement name                        |
+| `orders`                   | `SEOrder`/`POOrder` and entries, `ICOrderAlter`, `ICMaxNum`, `t_User`, `t_Item`, `t_ICItem`, `t_Organization`, `t_Supplier`, `t_Settle`, `t_Emp`, `t_Department`, `t_Currency`   | 1 min read + outbox write                                           | Orders list, order record (SO or PO header)                         |
 
 `order_lines` is the SO's or PO's lines: its `kingdee` sync reads `SEOrderEntry` and `POOrderEntry` every minute,
 and a line change writes the order's SO or PO.
 
-Local-only tables (never written by Kingdee): `order_files`, `activities`, `contacts`, `commercial_settings`,
-`document_templates`, `pricing_floors`, `commission_rules`, `commission_statements`.
+Local-only tables (never written by Kingdee): `order_files`, `activities`, `commercial_settings`,
+`document_templates`, `pricing_floors`, `commission_rules`, `commission_statements`. A party's other contacts
+are local too; only its primary contact comes from Kingdee.
 
 The platform tables beside them carry the sync machinery, not business rows:
 
@@ -192,7 +198,7 @@ or after an explicit operator request. A refresh of the browser never resets a c
   `observed_at` is when it last changed. Bolt lists each failing sync on the ledger with when it began failing
   (`sys_integration.status.failing`, written only when that set changes). Figures are current while the ledger is
   connected and verified and their feed is absent there; once listed, they are as old as the failure, and **Max
-  age of stock data** / **Max age of credit data** (and the 30-minute lot-cost limit) count from it. A paused or
+  age of stock data** (and the 30-minute lot-cost limit) count from it. A paused or
   unverified ledger confirms nothing.
 - **Bounded windows.** `maxWindowMinutes` (default 15) surfaces a window that is taking too long; a slow source
   becomes visible instead of silently falling behind.

@@ -27,6 +27,8 @@ export type OrderPayload = {
 	readonly tax_inclusive: boolean;
 	readonly party_code: string;
 	readonly payment_terms: string;
+	/** The day the goods ship by: each line's delivery date (交货日期), else the order date. */
+	readonly delivery_on?: string;
 	readonly write_target?: { readonly account: string; readonly branch: string };
 	readonly lines: readonly OrderLine[];
 	/** The Kingdee order as it was read, when this write changes its lines. */
@@ -287,6 +289,8 @@ export function sourceOrderBatch(
 	if (!BigDecimal.isPositive(rate))
 		return invalid('currency', 'A positive source exchange rate is required');
 	const date = `${payload.ordered_on}T00:00:00`;
+	if (payload.delivery_on !== undefined) PlainDate(payload.delivery_on);
+	const delivery = `${payload.delivery_on ?? payload.ordered_on}T00:00:00`;
 	const sales = {
 		FBrNo: bindings.branchNo,
 		FBillNo: payload.reference,
@@ -477,8 +481,8 @@ export function sourceOrderBatch(
 				minimumFractionDigits: actual.tax.scale,
 				maximumFractionDigits: actual.tax.scale
 			}).format(numeric(BigDecimal.format(actual.tax))),
-			FDate: date,
-			FAdviceConsignDate: date,
+			FDate: delivery,
+			FAdviceConsignDate: delivery,
 			FNote: '',
 			FICPrcPly_FName: '',
 			FTplExtendKey1: '',
@@ -500,7 +504,7 @@ export function sourceOrderBatch(
 					FAmount: entry.FAmount,
 					FTaxAmount: entry.FTaxAmt,
 					FAllAmount: entry.FAllAmount,
-					FDate: date
+					FDate: delivery
 				};
 	});
 	return { header: values, items: rows };

@@ -6,9 +6,9 @@ configured integration, without replacing the ERP's accounting and fulfillment l
 
 ## Commercial records
 
-A draft quotation and confirmed sales agreement keep one order identity. The order holds its terms;
-a change to a confirmed sales order waits for a Commercial Manager, and record history keeps every
-earlier value. Supplier purchase orders use the same agreement model and editor. Supporting customer
+A draft quotation and the sales agreement synced to Kingdee keep one order identity. The order holds
+its terms; a change to a synced order follows to its Kingdee order, a sales line below its floor may wait
+for a Commercial Manager under the floor rule, and record history keeps every earlier value. Supplier purchase orders use the same agreement model and editor. Supporting customer
 POs and signed returns remain attached to the order.
 
 Price rules, effective dates and quantity tiers supply pricing guidance. Commission rules and
@@ -19,8 +19,8 @@ scope explicit so a total can be reconciled with its underlying records.
 
 Each printed document (quotation, sales contract, purchase contract) has one layout per language. Its
 structure, branding, legal wording and signing details are supplied by the adopting organization.
-Previews and downloads render a draft order in its document's current layout and a confirmed order in the
-contract version it sealed. An order chooses only its document language. A sales order's quotation and
+Previews and downloads render an order in its document's newest published layout, synced or not. An order
+chooses only its document language. A sales order's quotation and
 contract may carry the seller's stamp; a purchase contract never does. A returned signed copy is evidence;
 workflow state does not rewrite the generated commercial terms or apply somebody's signature automatically.
 

@@ -28,13 +28,14 @@ at the read mirrors and the two-way order sync (SO and PO).
 
 ## 2. Application surfaces
 
-| App                    | Page(s)                          | Owns                                                                                                                                                  |
-| ---------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operations → Orders    | Sales orders; Purchase orders    | Draft, approve, confirm, change, archive and read one agreement                                                                                       |
-| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                   |
-| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse groups                                                                                 |
-| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                  |
-| Trade configuration    | Documents, Prices and commission | Each document case's layout per language; dated price book with minimum-price enforcement, price history, CEL commission rules with freight treatment |
+| App                    | Page(s)                          | Owns                                                                                                                                                                                                                                                         |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Operations → Dashboard | Dashboard                        | What needs attention: drafts to sync and those blocked, order approvals, Kingdee sync failures and pending audits, this month's synced sales per currency, overdue receivables, credit exceptions, ledger connections; each figure opens its table or report |
+| Operations → Orders    | Sales orders; Purchase orders    | Draft, sync to Kingdee, change, approve exceptions, print, archive and read one agreement                                                                                                                                                                    |
+| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                                                                                                                          |
+| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse groups                                                                                                                                                                                        |
+| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                                                                                                                         |
+| Trade configuration    | Documents, Prices and commission | Each document case's layout per language; dated price book with its floor rule, floor list, CEL commission rules with freight treatment                                                                                                                      |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -48,33 +49,47 @@ creation (`sales` or `purchasing`). `order_lines` are owned contract lines.
 
 The order and its lines hold the terms: header terms on `orders`, contract SKU, quantity, price, tax, floor
 and commission conversion on `order_lines`. There are no contract versions; native record history is the
-audit trail of every change. A confirmed order also keeps the commission rule in force when it was confirmed
-(`commission`), its freight treatment, and, for an order written to Kingdee, the account set and branch
-(`write_target`) and the SO or PO as last read (`kingdee`).
+audit trail of every change. Syncing to Kingdee (`status: confirmed`) stamps the commission rule in force on the
+order date (`commission`), the freight treatment (`freight_treatment`) and, for an order written to Kingdee, the
+account set and branch (`write_target`); the order also keeps the SO or PO as last read (`kingdee`). A stamp is a
+record of the basis, not a lock.
 
-A confirmed order is the shadow of its Kingdee SO or PO (a PO once the ledger's purchase documents are
-verified). The `orders` and `order_lines` `kingdee` syncs keep the two equal: confirmation creates it, a later
-line change amends an
-audited SO or replaces an unaudited PO's lines, and a Kingdee change updates the order and its lines. Kingdee
-keeps the header (party, currency, date, settlement); only lines change after confirmation.
+A synced order is the shadow of its Kingdee SO or PO (a PO once the ledger's purchase documents are verified).
+The `orders` and `order_lines` `kingdee` syncs keep the two equal: syncing creates it, every later saved change to
+the order or its lines follows (an unaudited SO's or PO's lines are replaced in place, an audited SO is amended,
+an audited PO refuses), and a Kingdee change updates the order and its lines. Kingdee keeps the header fields
+party, currency, order date, salesperson (`owner`) and payment terms: a local change to them is refused
+(`errors.kingdee_header`) and made in Kingdee. Every other term and the lines stay editable.
 
 ### Lifecycle
 
 ```text
-draft --(sales: approval; purchasing: confirm)--> confirmed --(change: approval for sales)--> confirmed
-  ^                                                   |
-  +---------------------------------------------------+ archive (reversible)
+draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee)--> confirmed
+  ^                                   |
+  +-----------------------------------+ archive (reversible)
 ```
 
-- Sales confirmation needs a Commercial Manager approval. Procurement confirms its purchase orders directly.
-- A confirmed order never returns to draft. A sales rep's change to it or its lines waits for a Commercial
-  Manager; a Kingdee change applies directly.
+- Sales syncs its own orders and Procurement its purchase orders directly. An order with a line awaiting
+  approval cannot sync (`errors.lines_pending`; Bolt locks a held record). A sales rep's delete of an own draft
+  waits for a Commercial Manager.
+- A synced order never returns to draft. A later change to it or its lines is direct, unless the floor rule
+  sends a sales line to a Commercial Manager; a Kingdee change applies directly.
+- A change to the warehouse, currency, tax basis, order date or party re-prices the order's lines through its
+  lines layer. On create, and when the warehouse or party changes, a blank or still-default place of loading
+  (sales) or delivery (purchases) takes the warehouse name, a sale's delivery address the party address, and a
+  party change resets the buyer contact to the new party's primary contact.
 - Archive is reversible and keeps the agreement, history, source evidence and sync. It never voids the source.
 - `source_health` tells workspace administrators when a ledger needs attention.
 
 ### Parties, products and warehouses
 
-- `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their contacts and source evidence.
+- `parties` holds customers and suppliers (`customer`, `supplier`, `both`) and source evidence.
+- `contacts` are many per party. The `contacts` `kingdee` sync keeps the one contact on the party's Kingdee
+  customer or supplier master as its `primary` contact, listed first and read-only to members
+  (`errors.kingdee_contact`); members add, edit and delete the others directly. An order's `buyer_contact` is
+  one of its party's contacts.
+- `settlements` mirrors Kingdee's settlement methods (`t_Settle`), read-only; an order's `payment_terms` names
+  one.
 - `credit_snapshots` is read-only credit evidence. The explicit `kis-sales-out-v1` policy and a verified
   `creditAccount` bind native sales-out exposure and amount/overdue blocking decisions. Its minute feed
   reads native credit, invoice, receipt and DO tables; it writes limit, used and derived available credit
@@ -99,17 +114,22 @@ product · group_code · currency · effective_on · minimum_quantity
 
 - A row is the floor for that exact day and quantity band. Blank days have no typed price.
 - Orders use the newest row on or before the order date whose quantity band the line meets, in the order's
-  currency and warehouse group. The floor's unit must match the line unit.
-- The monthly page shows one row per product/band and one column per day, with inline cell editing. The dated
-  table keeps import/export and history.
-- `commercial_settings.require_floor` makes a sales confirmation refuse a line with no compatible floor.
+  currency and warehouse group. The floor's unit must match the line unit. `floorFor` in
+  `src/lib/commercial.ts` is the one lookup.
+- **Monthly price book** shows one row per product/band and one column per day, with inline cell editing. The
+  dated **Floor list** keeps import/export and history.
+- `commercial_settings.floor_rule` decides what happens to a sales line below its floor, or with none: `warn`
+  (a hint; the default), `approve` (a sales rep's write waits for a Commercial Manager) or `refuse` (refused at
+  write; sync also refuses a line below the floor in force then).
+- The line editor shows the floor under the unit price: the minimum, its effective day, met or below, and what
+  the rule will do.
 - The floor is a commercial warning/gate; cost-based margin warnings are separate.
 
 ### Commission
 
 `commission_rules` are versioned CEL expressions, not code branches. A rule declares eligibility, the amount
-expression and named parameters. On confirmation the order keeps the applicable rule, its expressions, engine
-version, currency, basis unit, fixed rate and spread.
+expression and named parameters. At sync the order stamps the rule in force on its order date: its expressions,
+engine version, currency, basis unit, fixed rate and spread.
 
 `commission_statements` is the one monthly salesperson review and approval workflow. There is no parallel
 per-order acknowledgment table. The commission board and statement retain their calculation basis.
@@ -118,15 +138,12 @@ per-order acknowledgment table. The commission board and statement retain their 
 
 - **Commission accrues on what shipped and was invoiced**, in the delivery month. SalesBridge accrued on the
   ordered quantity in the order month; an order that never ships earns nothing here.
-- **Below-floor is not a separate approval.** Every sales confirmation already waits for a Commercial Manager,
-  who sees the floor warning. `require_floor` is the hard gate for a workspace that wants none below it.
+- **Below-floor is a setting.** The floor rule chooses a hint, a Commercial Manager's approval or a refusal.
 - **A quantity band is its own dated row.** The newest row on or before the order date that the quantity meets
   is the floor: retyping the base price on a later day replaces the bands of the earlier day.
 - **The floor book is kept in the line's unit.** There is no kg-to-tonne conversion; a book kept per tonne is
   converted when it is imported.
 - **Kingdee owns void and close.** Trade Operations reads them and never writes them; archive is local only.
-- **A line change waits for Kingdee to audit the SO.** An unaudited SO is edited in Kingdee, and the change
-  reads back.
 - **Freight is not deducted by default.** No Kingdee feed carries it; a workspace that records freight chooses
   `deduct` in its commercial settings.
 
@@ -140,12 +157,14 @@ contract) and language. A layout carries:
 - document fields the order fills in, each free text or a fixed list of choices (`options`, one per line);
 - optional letterhead and company-stamp artwork.
 
-An order chooses only its document language: a sales order prints its quotation until confirmed and its sales
-contract after, a purchase order its purchase contract, each in the newest published version, and confirmation
-seals the contract version it used. Preview and download render the order's current terms as one PDF through
-`ctx.preview_pdf`. Supporting documents are attached to the order; `order_files` keeps documents received after
-confirmation. A sales order's quotation and contract carry the seller's stamp when **Include company stamp** is
-ticked in the preview; a purchase contract never does.
+An order chooses only its document language: a sales order prints its quotation while draft and its sales
+contract once synced, a purchase order its purchase contract, each in its case's newest published version. No
+version is kept per order: a newly published layout reaches every order, and the signed copy the customer
+returns, filed on the order, is the evidence of what was signed. The Orders table's actions menu has **Preview
+document** (one order) and **Download PDFs** (the selection, as one zip); both render the order's current terms
+through `ctx.preview_pdf`. Supporting documents are attached to the order; `order_files` keeps documents
+received after sync. A sales order's quotation and contract carry the seller's stamp when **Include company
+stamp** is ticked in the preview, and in Download PDFs; a purchase contract never does.
 
 ## 6. Access control
 
@@ -162,8 +181,8 @@ Teams map to one policy each:
 
 Policies filter rows and choose read outputs; they never reshape a model. The `logistics` output removes
 commercial prices and totals while preserving quantities, dates and references. Direct permission executes; a
-matching policy's approval flow holds a provisional write when direct permission is absent. A confirmed sales
-order's terms are protected by the sales policy's commercial review, not by a UI rule alone.
+matching policy's approval flow holds a provisional write when direct permission is absent. A synced order's
+Kingdee header and the floor rule are enforced by the model and policies, not by a UI rule alone.
 
 ## 7. Automations and effects
 
@@ -196,6 +215,7 @@ orders/                       activities, order_files, order_lines, source_payme
                               source_sales_lines, transactions
 parties/                      contacts, credit_snapshots
 products/                     pricing_floors, stock_snapshots
+settlements/
 source_lot_costs/
 source_purchase_lines/
 source_receivables/
@@ -203,19 +223,24 @@ source_stock_commitments/
 warehouses/
 ```
 
+A sync sits beside its model: `parties/contacts/+kingdee.sync.ts` reads each party's Kingdee contact and
+`settlements/+kingdee.sync.ts` Kingdee's settlement methods.
+
 The current field/output/write inventory is [the source reference](0003-source-reference.md). The coding-agent
 map is [`src/agent/AGENTS.md`](../src/agent/AGENTS.md); the workspace brief is
 [`src/agent/+agent.md`](../src/agent/+agent.md).
 
 ## 10. Invariants
 
-1. An order holds its own terms; a confirmed order never returns to draft, and its history is the audit trail.
+1. An order holds its own terms; a synced order never returns to draft, Kingdee keeps its header, and its history
+   is the audit trail.
 2. Kingdee transactions, payments, receivables, credit, stock and cost facts are read-only.
 3. There is one delivery/invoice ledger and one payment ledger; no parallel manual ledger.
 4. A remaining source commitment cannot be released locally while its external order is active.
 5. Missing source facts stay missing; never fill a price, cost, credit limit or exchange rate.
 6. Money and currency travel together.
 7. A price floor's unit must match the line unit; a missing compatible floor never becomes zero.
-8. A line keeps the floor it was priced against and an order the commission rule it was confirmed under, not today's config.
+8. A line keeps the floor it was priced against and a synced order the commission rule in force on its order date,
+   not today's config.
 
 Next: [integration](0002-integration.md) · [source reference](0003-source-reference.md)

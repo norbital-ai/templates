@@ -31,19 +31,16 @@ export default sync('orders', 'sheet', {
 					'valid_from',
 					'valid_until',
 					'payment_terms',
-					'delivery_terms',
 					'shipping_terms',
 					'place_of_loading',
 					'place_of_delivery',
 					'packaging',
 					'shipping_mark',
-					'time_of_shipment',
+					'shipment',
 					'other_terms',
 					'payment_method',
 					'buyer_contact',
-					'buyer_mobile',
 					'delivery_address',
-					'delivery_date',
 					'logistics_handler',
 					'notes'
 				]
@@ -61,9 +58,33 @@ export default sync('orders', 'sheet', {
 				fields: ['id', 'source', 'external_code', 'source_number', 'name', 'active']
 			}
 		});
+		const { settlements, contacts } = yield* ctx.query({
+			settlements: {
+				where: {
+					code: {
+						in: [...new Set(records.flatMap((r) => (r.payment_terms ? [r.payment_terms] : [])))]
+					}
+				},
+				fields: ['code', 'source']
+			},
+			contacts: {
+				where: {
+					party: { in: parties.rows.map((party) => party.id) },
+					name: {
+						in: [...new Set(records.flatMap((r) => (r.buyer_contact ? [r.buyer_contact] : [])))]
+					}
+				},
+				fields: ['party', 'name']
+			}
+		});
 		const byNumber = new Map(orders.rows.map((order) => [order.number, order]));
 		const findings: Finding[] = [];
-		const rows: Record<string, string | boolean>[] = [];
+		const rows: Record<string, string | boolean | { from: string; to: string | null }>[] = [];
+		// a shipment window compares by its days: storage does not keep its keys in order
+		const same = (value: unknown) =>
+			typeof value === 'object' && value !== null && 'from' in value && 'to' in value
+				? `${String(value.from)}/${String(value.to)}`
+				: String(value ?? '');
 		const text = (value: string | null | undefined) =>
 			value != null && value.trim() !== '' ? value : undefined;
 		for (const record of records) {
@@ -132,12 +153,48 @@ export default sync('orders', 'sheet', {
 				});
 				continue;
 			}
-			const row: Record<string, string | boolean> = {
+			const terms = record.payment_terms
+				? settlements.rows.filter(
+						(row) => row.code === record.payment_terms && row.source === party.source
+					)
+				: [];
+			if (record.payment_terms && terms.length !== 1) {
+				findings.push({
+					at,
+					field: 'Payment terms',
+					severity: 'refuse',
+					message: 'No Kingdee settlement method has this code in the party’s ledger.'
+				});
+				continue;
+			}
+			const buyers = record.buyer_contact
+				? contacts.rows.filter((row) => row.party === party.id && row.name === record.buyer_contact)
+				: [];
+			if (record.buyer_contact && buyers.length !== 1) {
+				findings.push({
+					at,
+					field: 'Buyer contact',
+					severity: 'refuse',
+					message:
+						buyers.length === 0
+							? 'The party has no contact with this name.'
+							: 'The party has more than one contact with this name.'
+				});
+				continue;
+			}
+			const row: Record<string, string | boolean | { from: string; to: string | null }> = {
 				party: party.id,
 				direction: record.direction,
-				title: record.title,
-				payment_terms: record.payment_terms
+				title: record.title
 			};
+			if (terms[0]) row.payment_terms = terms[0].id;
+			if (buyers[0]) row.buyer_contact = buyers[0].id;
+			if (record.payment_method) row.payment_method = record.payment_method;
+			if (record.shipment_from)
+				row.shipment = {
+					from: String(record.shipment_from),
+					to: record.shipment_to == null ? null : String(record.shipment_to)
+				};
 			if (record.currency) row.currency = record.currency;
 			if (existing) {
 				if (existing.source_order_key == null) {
@@ -157,24 +214,19 @@ export default sync('orders', 'sheet', {
 			const handler = text(record.logistics_handler);
 			if (handler) row.logistics_handler = handler;
 			for (const field of [
-				'delivery_terms',
 				'shipping_terms',
 				'place_of_loading',
 				'place_of_delivery',
 				'packaging',
 				'shipping_mark',
-				'time_of_shipment',
 				'other_terms',
-				'payment_method',
-				'buyer_contact',
-				'buyer_mobile',
 				'delivery_address',
 				'notes'
 			] as const) {
 				const value = text(record[field]);
 				if (value !== undefined) row[field] = value;
 			}
-			for (const field of ['ordered_on', 'valid_from', 'valid_until', 'delivery_date'] as const) {
+			for (const field of ['ordered_on', 'valid_from', 'valid_until'] as const) {
 				const value = record[field] == null ? undefined : String(record[field]);
 				if (value !== undefined) row[field] = value;
 			}
@@ -184,7 +236,7 @@ export default sync('orders', 'sheet', {
 				existing === undefined ||
 				Object.entries(row).some(
 					([field, value]) =>
-						field !== 'source_order_key' && String(before.get(field) ?? '') !== String(value ?? '')
+						field !== 'source_order_key' && same(before.get(field)) !== same(value)
 				);
 			if (changed) rows.push(row);
 		}
@@ -204,26 +256,23 @@ export default sync('orders', 'sheet', {
 					'tax_inclusive',
 					'valid_from',
 					'valid_until',
-					'payment_terms',
-					'delivery_terms',
 					'title',
 					'shipping_terms',
 					'place_of_loading',
 					'place_of_delivery',
 					'packaging',
 					'shipping_mark',
-					'time_of_shipment',
+					'shipment',
 					'other_terms',
 					'payment_method',
-					'buyer_contact',
-					'buyer_mobile',
 					'delivery_address',
-					'delivery_date',
 					'logistics_handler',
 					'notes'
 				],
 				order_by: { number: 'asc' },
-				limit: 10000
+				limit: 10000,
+				payment_terms: { fields: ['code'] },
+				buyer_contact: { fields: ['name'] }
 			}
 		});
 		const { parties, warehouses } = yield* ctx.query({
@@ -261,20 +310,18 @@ export default sync('orders', 'sheet', {
 			tax_inclusive: order.tax_inclusive,
 			valid_from: date(order.valid_from),
 			valid_until: date(order.valid_until),
-			payment_terms: order.payment_terms,
-			delivery_terms: date(order.delivery_terms),
+			payment_terms: date(order.payment_terms?.code),
 			shipping_terms: date(order.shipping_terms),
 			place_of_loading: date(order.place_of_loading),
 			place_of_delivery: date(order.place_of_delivery),
 			packaging: date(order.packaging),
 			shipping_mark: date(order.shipping_mark),
-			time_of_shipment: date(order.time_of_shipment),
+			shipment_from: date(order.shipment?.from),
+			shipment_to: date(order.shipment?.to),
 			other_terms: date(order.other_terms),
 			payment_method: date(order.payment_method),
-			buyer_contact: date(order.buyer_contact),
-			buyer_mobile: date(order.buyer_mobile),
+			buyer_contact: date(order.buyer_contact?.name),
 			delivery_address: date(order.delivery_address),
-			delivery_date: date(order.delivery_date),
 			logistics_handler: date(order.logistics_handler),
 			notes: date(order.notes)
 		}));

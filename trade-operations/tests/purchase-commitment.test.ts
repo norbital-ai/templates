@@ -1,7 +1,6 @@
 import { Effect } from 'effect';
 import { expect, it } from '@effect/vitest';
 import { committed, draft, workspace } from './kit.js';
-import { confirmationOf } from './reads.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
 
 it.live('procurement records and changes a local commitment directly, without Kingdee', () =>
@@ -16,16 +15,10 @@ it.live('procurement records and changes a local commitment directly, without Ki
 			as
 				.query({ orders: { where: { id: { eq: order } }, limit: 1 } })
 				.pipe(Effect.map((answer) => firstRow(answer.orders.rows)));
-		const check = yield* confirmationOf(as, { order, as_of: t.clock.now() });
 		committed(
 			'orders',
 			yield* as.act({
-				'orders.update': [
-					{
-						target: yield* t.at('orders', order),
-						set: { status: 'confirmed', check_hash: check.check_hash }
-					}
-				]
+				'orders.update': [{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }]
 			})
 		);
 		yield* t.deliver();

@@ -24,6 +24,17 @@ export default policy({
 			create: {},
 			update: {}
 		},
+		settlements: {
+			outputs: { default: {} },
+			create: {},
+			update: {}
+		},
+		contacts: {
+			outputs: { default: {} },
+			create: {},
+			update: {},
+			delete: {}
+		},
 		stock_snapshots: {
 			outputs: { default: {} },
 			create: {},

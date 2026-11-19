@@ -26,6 +26,9 @@ export default policy({
 		parties: {
 			outputs: { default: {} }
 		},
+		settlements: {
+			outputs: { default: {} }
+		},
 		products: {
 			outputs: { default: {} },
 			// the rest mirrors Kingdee
@@ -87,8 +90,21 @@ export default policy({
 		},
 		contacts: {
 			outputs: { default: { history: true } },
-			create: {},
-			update: {}
+			create: { fields: ['party', 'name', 'email', 'phone', 'job_title'] },
+			// the Kingdee contact changes in Kingdee; only its sync writes it
+			update: {
+				fields: ['name', 'email', 'phone', 'job_title'],
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			},
+			delete: {
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			}
 		},
 		source_payments: {
 			outputs: { default: { history: true } }

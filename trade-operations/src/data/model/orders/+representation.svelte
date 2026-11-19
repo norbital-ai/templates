@@ -1,17 +1,17 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { BigDecimal, Effect, Result, Schema } from 'effect';
-	import { observe_once } from '@norbital-ai/ui/effect';
+	import { BigDecimal, DateTime, Effect, Schema } from 'effect';
+	import type { Id } from '@norbital-ai/bolt';
+	import { observe_once, run } from '@norbital-ai/ui/effect';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
 	import {
-		configurationRead,
-		confirmationCheck,
-		confirmationHash,
-		confirmationRead,
-		confirmationScopeRead,
+		belowInventoryCost,
+		quotationCostRead,
+		quotationScopeRead,
 		quotationFifoCosts
-	} from '../../../lib/confirmation.js';
+	} from '../../../lib/quotation.js';
+	import { quoteBelowFloor } from '../../../lib/commercial.js';
 	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
 	import {
 		Table,
@@ -34,7 +34,6 @@
 	} from '@norbital-ai/ui';
 	import { Bound, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
-	import OrderDocumentDialog from './order-document-dialog.svelte';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import { contractKind, currentTemplate } from '../../../lib/order-document.js';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
@@ -45,6 +44,8 @@
 		from: Schema.NullOr(Schema.String),
 		to: Schema.NullOr(Schema.String)
 	});
+	// "within N days" of the order date, the way contracts state a shipment
+	const shipWithin = [7, 15, 30, 45, 60, 90] as const;
 	let {
 		view,
 		ctx
@@ -67,7 +68,7 @@
 			: view.record.direction === 'purchasing'
 	);
 	const draft = $derived(view.mode === 'create' || view.record.status === 'draft');
-	// the contract layout the order's print details belong to: the sealed one, else its case's current version
+	// the contract layout the order's print details belong to: its case's current version
 	const layouts = ctx.query({
 		document_templates: {
 			where: { status: { eq: 'published' } },
@@ -76,9 +77,6 @@
 		}
 	});
 	const contractLayout = (form: FormState) =>
-		(view.mode !== 'create' && view.record.status === 'confirmed'
-			? form.id<'document_templates'>('document_template')
-			: null) ??
 		currentTemplate(
 			layouts.current?.document_templates.rows ?? [],
 			contractKind(form.get('direction') === 'purchasing' ? 'purchasing' : 'sales'),
@@ -98,31 +96,26 @@
 	);
 	const ledger = $derived(ledgerRead?.current?.orders.rows[0]?.ledger);
 	const sourceState = $derived(ledger ? kingdeeConnectionStatus(ledger) : null);
-	// credit freshness is judged against the minute, so the check re-answers as the minute turns
+	// FIFO costs are judged against the minute's stock feed
 	const clock = ctx.clock('minute');
-	const checkScopeRead = $derived(
+	const day = ctx.clock('day');
+	const costScopeRead = $derived(
 		id && view.mode !== 'create' && view.record.status === 'draft' && commercial
-			? ctx.query(confirmationScopeRead(id))
+			? ctx.query(quotationScopeRead(id))
 			: null
 	);
-	const checkScope = $derived(checkScopeRead?.current?.orders.rows[0]);
-	const checkRead = $derived(checkScope ? ctx.query(confirmationRead(checkScope)) : null);
-	// the same read for every draft: open orders share its one live answer
-	const configuration = $derived(checkScopeRead ? ctx.query(configurationRead) : null);
-	const check = $derived(
-		checkRead?.current && configuration?.current && view.mode !== 'create'
-			? confirmationCheck(checkRead.current, configuration.current, {
-					revision: view.record.revision,
-					as_of: clock.now,
-					ledger: ledger ?? null
-				})
+	const costScope = $derived(costScopeRead?.current?.orders.rows[0]);
+	const costRead = $derived(costScope ? ctx.query(quotationCostRead(costScope)) : null);
+	const quote = $derived(costRead?.current?.orders.rows[0]);
+	const belowCost = $derived(costRead?.current ? belowInventoryCost(costRead.current) : []);
+	// a line a commercial manager has yet to decide holds the sync: root rows carry their open request
+	const linesRead = $derived(
+		id && draft
+			? ctx.query({ order_lines: { where: { order: { eq: id } }, fields: ['id'], limit: 200 } })
 			: null
 	);
-	const quote = $derived(checkRead?.current?.orders.rows[0]);
-	const quoteFloors = $derived(
-		new Map(
-			check && Result.isSuccess(check) ? check.success.floors.map((line) => [line.id, line]) : []
-		)
+	const linesPending = $derived(
+		Boolean(linesRead?.current?.order_lines.rows.some((line) => line.$approval))
 	);
 	const purchaseCostRead = $derived(
 		quote?.direction === 'sales' && quote.ledger && ctx.catalog?.source_lot_costs
@@ -131,12 +124,11 @@
 	);
 	const purchaseCosts = $derived(purchaseCostRead?.current?.source_lot_costs.rows[0]);
 	const fifoCosts = $derived(
-		checkRead?.current && purchaseCosts && ledger
-			? quotationFifoCosts(checkRead.current, purchaseCosts, clock.now, ledger)
+		costRead?.current && purchaseCosts && ledger
+			? quotationFifoCosts(costRead.current, purchaseCosts, clock.now, ledger)
 			: []
 	);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);
-	let documentOpen = $state(false);
 	const deliveryRequest = $derived(
 		id &&
 			!draft &&
@@ -207,32 +199,79 @@
 					: { label: ctx.t('component.contract_pending'), variant: 'warning' as const };
 		return {
 			...presentation,
-			detail: `Kingdee · ${so.reference} · ${ctx.t('component.kingdee_version')} ${so.version}`
+			detail: `${ctx.t('component.kingdee')} · ${so.reference} · ${ctx.t('component.kingdee_version')} ${so.version}`
 		};
 	});
-	function confirmOrder() {
-		if (!id || view.mode === 'create' || !check || Result.isFailure(check) || archived) return;
-		const target = { id, revision: view.record.revision };
+	// once: from then on the order and its Kingdee SO or PO stay in step
+	function syncOrder() {
+		if (!id || view.mode === 'create' || archived) return;
 		save.run(
-			// a browser without Web Crypto cannot confirm: a defect, not an outcome
-			confirmationHash(check.success).pipe(
-				Effect.orDie,
-				Effect.flatMap((check_hash) =>
-					ctx.act({ 'orders.update': [{ target, set: { status: 'confirmed', check_hash } }] })
+			ctx.act({
+				'orders.update': [
+					{ target: { id, revision: view.record.revision }, set: { status: 'confirmed' } }
+				]
+			})
+		);
+	}
+	// the warehouse and party fill the places and the buyer while the form still holds their previous defaults
+	const follow = (
+		form: FormState,
+		field: 'place_of_loading' | 'place_of_delivery' | 'delivery_address',
+		was: string | null,
+		next: string | null
+	) => {
+		const current = form.get(field);
+		if (!current || current === was) form.set(field, next);
+	};
+	function pickWarehouse(form: FormState, field: FieldEditor, next: Id<'warehouses'> | null) {
+		const before = form.id<'warehouses'>('warehouse');
+		field.on_change(next);
+		const site = form.get('direction') === 'purchasing' ? 'place_of_delivery' : 'place_of_loading';
+		void run(
+			ctx
+				.query({
+					warehouses: {
+						where: { id: { in: [before, next].flatMap((w) => (w ? [w] : [])) } },
+						fields: ['name']
+					}
+				})
+				.pipe(
+					Effect.map(({ warehouses }) => {
+						const name = (w: Id<'warehouses'> | null) =>
+							warehouses.rows.find((row) => row.id === w)?.name ?? null;
+						if (form.id<'warehouses'>('warehouse') === next)
+							follow(form, site, name(before), name(next));
+					})
 				)
-			),
-			{
-				then: (result) => {
-					const controller = recordController?.current;
-					if (
-						result.kind === 'committed' &&
-						controller?.spec.target.of === 'model' &&
-						controller.spec.target.model === 'orders' &&
-						controller.spec.target.id === target.id
-					)
-						controller.view();
-				}
-			}
+		);
+	}
+	function pickParty(form: FormState, field: FieldEditor, next: Id<'parties'> | null) {
+		const before = form.id<'parties'>('party');
+		field.on_change(next);
+		if (next === null) return form.set('buyer_contact', null);
+		void run(
+			ctx
+				.query({
+					parties: {
+						where: { id: { in: [before, next].flatMap((p) => (p ? [p] : [])) } },
+						fields: ['address']
+					},
+					contacts: {
+						where: { party: { eq: next }, primary: { eq: true } },
+						fields: ['id'],
+						limit: 1
+					}
+				})
+				.pipe(
+					Effect.map(({ parties, contacts }) => {
+						if (form.id<'parties'>('party') !== next) return;
+						const address = (p: Id<'parties'> | null) =>
+							parties.rows.find((row) => row.id === p)?.address ?? null;
+						if (form.get('direction') !== 'purchasing')
+							follow(form, 'delivery_address', address(before), address(next));
+						form.set('buyer_contact', contacts.rows[0]?.id ?? null);
+					})
+				)
 		);
 	}
 	function archiveOrder(archive: boolean) {
@@ -281,8 +320,72 @@
 		}}
 		disabled={field.disabled}
 		invalid={Boolean(field.error)}
+		on_change={(next) => pickParty(form, field, next)}
+	/>
+{/snippet}
+{#snippet warehouse(form: FormState, field: FieldEditor)}
+	<Picker
+		{ctx}
+		of="warehouses"
+		id={field.id}
+		value={form.id<'warehouses'>('warehouse')}
+		where={{ active: { eq: true } }}
+		disabled={field.disabled}
+		invalid={Boolean(field.error)}
+		on_change={(next) => pickWarehouse(form, field, next)}
+	/>
+{/snippet}
+{#snippet buyer(form: FormState, field: FieldEditor)}
+	{@const party = form.id<'parties'>('party')}
+	<Picker
+		{ctx}
+		of="contacts"
+		id={field.id}
+		value={form.id<'contacts'>('buyer_contact')}
+		where={party ? { party: { eq: party } } : { id: { in: [] } }}
+		disabled={field.disabled || !party}
+		invalid={Boolean(field.error)}
 		on_change={field.on_change}
 	/>
+{/snippet}
+{#snippet shipment(form: FormState, field: FieldEditor)}
+	{@const window = form.get('shipment')}
+	<Cluster gap="sm" class="max-w-full">
+		<TimeRangeInput
+			{ctx}
+			of="date"
+			precision="day"
+			id={field.id}
+			value={Schema.is(DateBounds)(window) ? window : { from: null, to: null }}
+			disabled={field.disabled}
+			on_change={(range) => {
+				if (Schema.is(DateBounds)(range))
+					field.on_change(range.from ? { from: range.from, to: range.to } : null);
+			}}
+		/>
+		<div class="w-40">
+			<Combobox
+				options={shipWithin.map((days) => ({
+					value: String(days),
+					label: ctx.t('component.ship_within', { days })
+				}))}
+				value={null}
+				placeholder={ctx.t('component.ship_within_placeholder')}
+				aria-label={ctx.t('component.ship_within_placeholder')}
+				disabled={field.disabled}
+				on_change={(days) => {
+					const from = String(form.get('ordered_on') ?? day.today);
+					if (days)
+						field.on_change({
+							from,
+							to: DateTime.formatIsoDateUtc(
+								DateTime.add(DateTime.makeUnsafe(from), { days: Number(days) })
+							)
+						});
+				}}
+			/>
+		</div>
+	</Cluster>
 {/snippet}
 {#snippet printDetails(form: FormState, field: FieldEditor)}
 	<PrintDetails
@@ -306,10 +409,10 @@
 {/snippet}
 
 {#snippet confirmationNotices(form: FormState)}
-	{#if checkRead && draft}
-		{#if check && Result.isSuccess(check)}
-			{#if !purchaseCosts && check.success.below_inventory_cost.length}<p class="text-sm">
-					{ctx.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(', ')}
+	{#if costRead && draft}
+		{#if costRead.current}
+			{#if !purchaseCosts && belowCost.length}<p class="text-sm">
+					{ctx.t('component.below_inventory_cost')}: {belowCost.join(', ')}
 				</p>{/if}
 			{#if purchaseCosts && !form.dirty}
 				{#if !quote?.warehouse}
@@ -356,25 +459,27 @@
 		{/if}
 	{/if}
 {/snippet}
-{#snippet sealButton(form: FormState)}
-	{#if checkScopeRead && draft}
+{#snippet syncButton(form: FormState)}
+	{#if view.mode !== 'create' && draft && commercial}
 		{@const blocked = archived
 			? ctx.t('component.order_archived')
 			: form.dirty
-				? ctx.t('component.seal_explanation')
-				: check && Result.isFailure(check)
-					? ctx.t(check.failure)
-					: !check
-						? (checkScopeRead.error?.message ??
-							checkRead?.error?.message ??
-							ctx.t('component.check_loading'))
-						: null}
+				? ctx.t('component.sync_save_first')
+				: view.record.$approval || linesPending
+					? ctx.t('component.sync_pending_approval')
+					: !view.record.line_count
+						? ctx.t('errors.lines_required')
+						: !view.record.payment_terms
+							? ctx.t('errors.payment_terms')
+							: sourceState && sourceState !== 'connected'
+								? ctx.t(`component.kingdee_${sourceState}`)
+								: null}
 		<Button
 			disabled={save.pending || form.pending || Boolean(blocked)}
-			aria-describedby={blocked ? 'seal-blocked' : undefined}
-			onclick={confirmOrder}>{ctx.t('component.confirm_seal')}</Button
+			aria-describedby={blocked ? 'sync-blocked' : undefined}
+			onclick={syncOrder}>{ctx.t('component.sync_kingdee')}</Button
 		>
-		{#if blocked}<span id="seal-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
+		{#if blocked}<span id="sync-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
 	{/if}
 {/snippet}
 {#snippet lineUnitPrice({
@@ -384,17 +489,36 @@
 	row: RowOf<'order_lines'>;
 	value: RowOf<'order_lines'>['unit_price'] | undefined;
 })}
-	{@const floor = draft ? quoteFloors.get(row.id) : undefined}
-	{#if floor?.net != null && quote && value != null}
+	{@const floor =
+		view.mode !== 'create' &&
+		row.floor_net != null &&
+		row.unit_price != null &&
+		row.discount_pct != null &&
+		row.tax_rate != null
+			? {
+					net: row.floor_net,
+					effective_on: row.floor_on,
+					below: quoteBelowFloor(
+						{
+							unit_price: row.unit_price,
+							discount_pct: row.discount_pct,
+							tax_rate: row.tax_rate,
+							floor_net: row.floor_net
+						},
+						view.record.tax_inclusive
+					)
+				}
+			: undefined}
+	{#if floor && value != null}
 		{@const status = ctx.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-		{@const minimum = `${quote.currency} ${format({ kind: 'decimal', scale: 8 }, floor.net, { locale: ctx.locale })}/${floor.unit}`}
-		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on}`}
+		{@const minimum = `${row.currency} ${format({ kind: 'decimal', scale: 8 }, floor.net, { locale: ctx.locale })}/${row.unit}`}
+		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on ?? ''}`}
 		<Tooltip text={hint}>
 			{#snippet trigger({ props })}
 				<button
 					{...props}
 					type="button"
-					aria-label={`${quote.currency} ${format({ kind: 'decimal', scale: 4 }, value, { locale: ctx.locale })}. ${hint}`}
+					aria-label={`${row.currency} ${format({ kind: 'decimal', scale: 4 }, value, { locale: ctx.locale })}. ${hint}`}
 					class="inline-flex items-center gap-1 rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
 					class:text-destructive={floor.below}
 					class:text-success={!floor.below}
@@ -507,12 +631,7 @@
 					>{/snippet}
 			</Tooltip>
 		{/if}
-		{#if id && commercial && !recordController?.historical}
-			<Button type="button" variant="outline" onclick={() => (documentOpen = true)}
-				>{ctx.t('component.preview_document')}</Button
-			>
-		{/if}
-		{#if form}{@render sealButton(form)}{/if}
+		{#if form}{@render syncButton(form)}{/if}
 	</Cluster>{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
 		{@render confirmationNotices(form)}
@@ -554,24 +673,20 @@
 			'total',
 			'ordered_on',
 			'document_locale',
-			'document_template',
 			'currency',
 			'valid_from',
 			'valid_until',
 			'payment_terms',
-			'delivery_terms',
 			'shipping_terms',
 			'place_of_loading',
 			'place_of_delivery',
 			'packaging',
 			'shipping_mark',
-			'time_of_shipment',
+			'shipment',
 			'other_terms',
 			'payment_method',
 			'buyer_contact',
-			'buyer_mobile',
 			'delivery_address',
-			'delivery_date',
 			'logistics_handler',
 			'notes',
 			'supporting_documents'
@@ -587,6 +702,9 @@
 	}}
 	editors={{
 		party,
+		warehouse,
+		buyer_contact: buyer,
+		shipment,
 		valid_from: validity,
 		print_values: printDetails
 	}}
@@ -595,6 +713,7 @@
 	sections={[
 		{
 			name: 'order',
+			// Kingdee keeps a synced order's header
 			readonlyFields: draft ? [] : ['party', 'owner'],
 			fields: ['title', 'party', 'owner', 'notes']
 		},
@@ -611,30 +730,22 @@
 				'tax_inclusive',
 				'valid_from',
 				'payment_terms',
-				'delivery_terms',
 				'shipping_terms',
 				'place_of_loading',
 				'place_of_delivery',
 				'packaging',
 				'shipping_mark',
-				'time_of_shipment',
+				'shipment',
 				'other_terms',
 				'payment_method',
 				'buyer_contact',
-				'buyer_mobile',
 				'delivery_address',
-				'delivery_date',
 				'logistics_handler',
 				'document_locale',
 				'supporting_documents',
 				'print_values'
 			],
-			// a confirmed order, or one with lines, keeps the basis its lines were priced on
-			readonlyFields:
-				view.mode !== 'create' &&
-				(!draft || (typeof view.record.line_count === 'number' && view.record.line_count > 0))
-					? ['warehouse', 'ordered_on', 'currency', 'tax_inclusive']
-					: [],
+			readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],
 			wide: ['print_values']
 		}
 	]}
@@ -648,7 +759,3 @@
 			]
 		: []}
 />
-
-{#if id && documentOpen}
-	<OrderDocumentDialog {ctx} order={id} on_close={() => (documentOpen = false)} />
-{/if}

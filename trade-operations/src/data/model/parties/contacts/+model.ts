@@ -20,10 +20,13 @@ export default model('contacts', {
 		job_title: {
 			kind: 'text',
 			optional: true
-		}
+		},
+		// the contact on the party's Kingdee master, written only by its sync; it is listed first
+		primary: { kind: 'bool', default: false }
 	},
 	outputs: { default: { fields: 'all', party: { fields: ['name'] } } },
 	indexes: { search: { text: ['name', 'email', 'phone'] } },
-	create: { fields: ['party', 'name', 'email', 'phone', 'job_title'] },
-	update: { fields: ['name', 'email', 'phone', 'job_title'] }
+	create: { fields: ['party', 'name', 'email', 'phone', 'job_title', 'primary'] },
+	update: { fields: ['name', 'email', 'phone', 'job_title', 'primary'] },
+	delete: {}
 });

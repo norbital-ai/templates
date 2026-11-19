@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { lineDeletes, ordersIn, purchasing, reviewOrders } from '../../lib/order-review.js';
+import { lineDeletes, ordersIn, purchasing, scopedOrders } from '../../lib/order-review.js';
 const own = { order: { is: { direction: { eq: 'purchasing' } } } } as const;
 export default policy({
 	description: 'procurement commercial work scoped by order.',
@@ -18,6 +18,9 @@ export default policy({
 			outputs: { default: { where: own, history: true } }
 		},
 		parties: {
+			outputs: { default: {} }
+		},
+		settlements: {
 			outputs: { default: {} }
 		},
 		products: {
@@ -43,8 +46,21 @@ export default policy({
 		},
 		contacts: {
 			outputs: { default: {} },
-			create: {},
-			update: {}
+			create: { fields: ['party', 'name', 'email', 'phone', 'job_title'] },
+			// the Kingdee contact changes in Kingdee; only its sync writes it
+			update: {
+				fields: ['name', 'email', 'phone', 'job_title'],
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			},
+			delete: {
+				verdict: function* (changes, ctx) {
+					const row = changes.findIndex(({ before }) => before.primary);
+					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			}
 		},
 		orders: {
 			// the layers under a purchasing order (its party, lines and documents) are read with it
@@ -57,10 +73,10 @@ export default policy({
 						: ctx.allow();
 				}
 			},
-			// procurement confirms its own purchase orders
+			// procurement syncs its own purchase orders to Kingdee
 			update: {
 				verdict: function* (changes, ctx) {
-					return yield* reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope', false);
+					return yield* scopedOrders(changes, ctx, purchasing, 'errors.purchasing_scope');
 				},
 				moves: 'all'
 			}

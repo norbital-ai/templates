@@ -1,17 +1,10 @@
 // The reads the pages make, as a test caller makes them: each former declared query is the page's read request
 // (`src/lib`) answered under the caller's authority, then the same pure helper the page and the file sync call.
-import { BigDecimal, Effect, Result, Schema } from 'effect';
+import { BigDecimal, Effect, Schema } from 'effect';
 import type { Id, PlainDate } from '@norbital-ai/bolt';
 import type { Typed } from './test-runtime.js';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';
-import {
-	configurationRead,
-	confirmationCheck,
-	confirmationHash,
-	confirmationRead,
-	confirmationScopeRead,
-	quotationRead
-} from '../src/lib/confirmation.js';
+import { belowInventoryCost, quotationCostRead, quotationScopeRead } from '../src/lib/quotation.js';
 import { inventoryCost, inventoryCostRead } from '../src/lib/lot-cost.js';
 import { boardRead, commissionBoard, monthOf } from '../src/lib/monthly-commission.js';
 import { documentRead, orderDocument } from '../src/lib/order-document.js';
@@ -30,42 +23,17 @@ import {
 type Reader = Pick<Typed, 'query'>;
 /** The message key a page's helper refuses with. */
 class Refusal extends Schema.TaggedError<Refusal>()('Refusal', { message: Schema.String }) {}
-/** A helper's refusal surfaces as the message key the declared query refused with. */
-const settled = <A>(result: Result.Result<A, string>) =>
-	Result.isSuccess(result)
-		? Effect.succeed(result.success)
-		: Effect.fail(new Refusal({ message: result.failure }));
-export const confirmationReadOf = Effect.fnUntraced(function* (as: Reader, order: Id<'orders'>) {
-	const scope = (yield* as.query(confirmationScopeRead(order))).orders.rows[0];
+/** A draft's quotation notices as its page reads them: the lines priced below remaining inventory cost. */
+export const quotationOf = Effect.fnUntraced(function* (as: Reader, order: Id<'orders'>) {
+	const scope = (yield* as.query(quotationScopeRead(order))).orders.rows[0];
 	if (!scope) return yield* new Refusal({ message: 'errors.configuration_missing' });
-	return yield* as.query(confirmationRead(scope));
-});
-export const confirmationOf = Effect.fnUntraced(function* (
-	as: Reader,
-	input: { order: Id<'orders'>; revision?: number | null; as_of: string }
-) {
-	// the order page's own read of its ledger, whose feeds date what Kingdee last confirmed of credit
-	const { orders } = yield* as.query({
-		orders: {
-			where: { id: { eq: input.order } },
-			fields: ['ledger'],
-			limit: 1,
-			ledger: { fields: ['active', 'status'] }
-		}
-	});
-	const check = yield* settled(
-		confirmationCheck(
-			yield* confirmationReadOf(as, input.order),
-			yield* as.query(configurationRead),
-			{ ...input, ledger: orders.rows[0]?.ledger ?? null }
-		)
-	);
-	return { ...check, check_hash: yield* confirmationHash(check) };
+	const answer = yield* as.query(quotationCostRead(scope));
+	return { answer, below_inventory_cost: belowInventoryCost(answer) };
 });
 export const documentOf = Effect.fnUntraced(function* (as: Reader, input: { order: Id<'orders'> }) {
 	return yield* orderDocument(yield* as.query(documentRead(input.order)));
 });
-/** Each confirmed sales order's commission on its agreed lines, as its confirmation seals it. */
+/** Each synced sales order's commission on its agreed lines, under the rule it was synced with. */
 export const commissionOf = Effect.fnUntraced(function* (
 	as: Reader,
 	input: { order?: Id<'orders'> | null } = {}

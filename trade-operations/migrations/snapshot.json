@@ -161,10 +161,14 @@
 						"default"
 					]
 				},
-				"credit_fresh_minutes": {
-					"default": 60,
-					"kind": "int",
-					"min": 1
+				"floor_rule": {
+					"default": "warn",
+					"kind": "enum",
+					"values": [
+						"warn",
+						"approve",
+						"refuse"
+					]
 				},
 				"freight_treatment": {
 					"default": "deduct",
@@ -173,10 +177,6 @@
 						"deduct",
 						"include"
 					]
-				},
-				"require_floor": {
-					"default": false,
-					"kind": "bool"
 				},
 				"stock_fresh_minutes": {
 					"default": 30,
@@ -390,6 +390,10 @@
 					"format": "phone",
 					"kind": "text",
 					"optional": true
+				},
+				"primary": {
+					"default": false,
+					"kind": "bool"
 				}
 			},
 			"record_label": "record.name",
@@ -764,18 +768,9 @@
 					"kind": "bool"
 				},
 				"buyer_contact": {
-					"kind": "text",
-					"optional": true
-				},
-				"buyer_mobile": {
-					"format": "phone",
-					"kind": "text",
-					"optional": true
-				},
-				"check_hash": {
-					"hidden": true,
-					"kind": "text",
-					"optional": true
+					"kind": "ref",
+					"optional": true,
+					"to": "contacts"
 				},
 				"commission": {
 					"hidden": true,
@@ -838,14 +833,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"delivery_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"delivery_terms": {
-					"kind": "text",
-					"optional": true
-				},
 				"direction": {
 					"kind": "enum",
 					"values": [
@@ -860,16 +847,6 @@
 						"en",
 						"zh"
 					]
-				},
-				"document_template": {
-					"kind": "ref",
-					"optional": true,
-					"to": "document_templates",
-					"where": {
-						"status": {
-							"eq": "published"
-						}
-					}
 				},
 				"freight_treatment": {
 					"default": "deduct",
@@ -973,11 +950,22 @@
 					"optional": true
 				},
 				"payment_method": {
-					"kind": "text",
-					"optional": true
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"wire_transfer",
+						"acceptance_bill"
+					]
 				},
 				"payment_terms": {
-					"kind": "text"
+					"kind": "ref",
+					"optional": true,
+					"to": "settlements",
+					"where": {
+						"active": {
+							"eq": true
+						}
+					}
 				},
 				"place_of_delivery": {
 					"kind": "text",
@@ -998,6 +986,11 @@
 					},
 					"kind": "object",
 					"many": true,
+					"optional": true
+				},
+				"shipment": {
+					"kind": "period",
+					"of": "date",
 					"optional": true
 				},
 				"shipping_mark": {
@@ -1045,10 +1038,6 @@
 				"tax_inclusive": {
 					"default": false,
 					"kind": "bool"
-				},
-				"time_of_shipment": {
-					"kind": "text",
-					"optional": true
 				},
 				"title": {
 					"kind": "text"
@@ -1417,6 +1406,53 @@
 			},
 			"key": "text",
 			"record_label": "record.user_id"
+		},
+		"settlements": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"code": {
+					"kind": "text"
+				},
+				"external_code": {
+					"kind": "text"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_updated_at": {
+					"kind": "instant"
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"code"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"source",
+						"external_code"
+					],
+					"import_key": true,
+					"name": "source_code"
+				}
+			]
 		},
 		"source_lot_costs": {
 			"audit": true,

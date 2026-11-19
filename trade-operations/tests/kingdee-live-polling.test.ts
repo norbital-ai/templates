@@ -6,10 +6,10 @@ import mssql from 'mssql';
 import { validate_database_request, type DatabaseRequest } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { compile_sql_server } from '@norbital-ai/store/sqlserver';
-import { committed, confirm, SETTINGS, workspace } from './kit.js';
+import { committed, confirm, SETTINGS, workspace, NET30 } from './kit.js';
 import { decimalText, firstRow, fixtureId, sameDecimal } from './test-runtime.js';
-import { quotationFifoCosts } from '../src/lib/confirmation.js';
-import { confirmationReadOf } from './reads.js';
+import { quotationFifoCosts } from '../src/lib/quotation.js';
+import { quotationOf } from './reads.js';
 import { estimateFifoCost, inventoryCostRead, purchaseLotCostRead } from '../src/lib/lot-cost.js';
 import {
 	logisticsStockAvailabilityRead,
@@ -377,7 +377,7 @@ it.effect.skipIf(!password)(
 							warehouse,
 							currency: 'CNY',
 							ordered_on: '2026-11-07',
-							payment_terms: 'NET30'
+							payment_terms: NET30
 						}
 					]
 				})
@@ -391,7 +391,7 @@ it.effect.skipIf(!password)(
 					tax_rate: '0'
 				}))
 			});
-			const savedQuote = yield* confirmationReadOf(admin, order);
+			const savedQuote = (yield* quotationOf(admin, order)).answer;
 			const guidance = quotationFifoCosts(savedQuote, costs, now(), ledger);
 			expect(guidance).toHaveLength(1);
 			expect(guidance[0]?.below).toBe(true);
@@ -676,7 +676,7 @@ it.effect.skipIf(!password)(
 							party: firstRow(masters.parties.rows).id,
 							currency: 'CNY',
 							ordered_on: '2026-10-26',
-							payment_terms: 'NET30'
+							payment_terms: NET30
 						}
 					]
 				})
@@ -1572,7 +1572,7 @@ it.effect.skipIf(!password)(
 							party: firstRow(masters.parties.rows).id,
 							currency: 'CNY',
 							ordered_on: '2026-10-26',
-							payment_terms: 'NET30'
+							payment_terms: NET30
 						}
 					]
 				})

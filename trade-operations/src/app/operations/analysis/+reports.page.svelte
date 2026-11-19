@@ -16,11 +16,14 @@
 	// the page scope each report reads: a sales period, an aging cutoff (last month's end), a commission month
 	const day = ctx.clock('day');
 	const currentMonth = day.today.slice(0, 7) + '-01';
+	// a link may open one report (`?tab=`) and the aging on its own cutoff (`?as_of=`)
+	const linked = new URL(location.href).searchParams;
 	let salesBasis = $state<SalesBasis>('invoice');
 	let salesFrom = $state<string | null>(currentMonth);
 	let salesTo = $state<string | null>(currentMonth);
 	let as_of = $state<string | null>(
-		DateTime.formatIsoDateUtc(DateTime.subtract(DateTime.makeUnsafe(currentMonth), { days: 1 }))
+		linked.get('as_of') ??
+			DateTime.formatIsoDateUtc(DateTime.subtract(DateTime.makeUnsafe(currentMonth), { days: 1 }))
 	);
 	let commissionMonth = $state<string | null>(currentMonth);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
@@ -38,9 +41,11 @@
 		commission: Boolean(ctx.catalog?.commission_statements),
 		credit: Boolean(ctx.catalog?.credit_snapshots)
 	});
-	let chosenTab = $state<string | null>(null);
+	let chosenTab = $state<string | null>(linked.get('tab'));
 	const tab = $derived(
-		chosenTab ??
+		(['sales', 'aging', 'commission', 'credit'] as const).find(
+			(name) => name === chosenTab && shown[name]
+		) ??
 			(['sales', 'aging', 'commission', 'credit'] as const).find((name) => shown[name]) ??
 			null
 	);

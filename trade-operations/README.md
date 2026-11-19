@@ -13,26 +13,29 @@ source inventory and the deeper Kingdee, capability, print and probe references.
 
 ## Apps and roles
 
-Operations contains Trade (one filterable Orders table), Partners (one customer/supplier table),
+Operations opens on Dashboard (what needs attention: drafts to sync and those blocked, order approvals,
+Kingdee follow-up, this month's synced sales, overdue receivables, credit exceptions and ledger connections;
+each figure opens its table or report). It also contains Trade (one filterable Orders table), Partners (one customer/supplier table),
 Warehouse (SKUs, inventory and warehouses), and Analysis (reports). Trade configuration contains
 Documents (each printed document's layout per language) and Prices and commission (monthly price book,
-historical prices and commission rules).
+floor list and commission rules).
 
 An order has General, Activities and Transactions. General holds its customer/supplier, owner,
 contract SKU, quota quantities, prices, credit/payment terms and validity, with the Kingdee SO or PO state.
 Activities contains follow-ups. Native History combines the revision scrubber with order, item, activity and source-record changes; it is the order's audit trail. Transactions shows delivery orders and invoices against the agreed quota. Each transaction
-owns its documents. Partners has General, Contacts and Orders.
+owns its documents. Partners has General, Contacts (the party's Kingdee contact first) and Orders (read-only;
+orders start in the Orders app).
 
 Editable child tables use an explicit create form in a modal opened by a right-aligned
 `+ Model` toolbar button. Source-owned tables have no create button or editable form.
 The base pack supplies generic commercial settings and EN/ZH layouts for each printed document:
 quotation, sales contract and purchase contract. An order chooses only its document language; to
-customise an output, revise that document's layout in Trade configuration → Documents and publish it.
-Confirmation seals the contract version the order used. Preview and Export PDF render the saved order
-as one generated file. The commercial table includes the saved item specification, quantity, price,
+customise an output, revise that document's layout in Trade configuration → Documents and publish it; every
+order prints the newest published version. The Orders table's actions menu has **Preview document** (one order)
+and **Download PDFs** (the selection, as one zip); each renders the saved order as one generated file. The commercial table includes the saved item specification, quantity, price,
 discount, tax and totals. Company letterhead and contract-stamp artwork are optional tenant PNGs.
 A sales order's quotation and contract carry the stamp when **Include company stamp** is ticked in the
-preview; a purchase contract never does. A document field may offer fixed choices (`options`, one per line).
+preview, and in Download PDFs; a purchase contract never does. A document field may offer fixed choices (`options`, one per line).
 
 A published layout can also carry an optional **Print layout HTML** upload. It controls print
 CSS, typography and artwork placement. Use this when recreating an approved document or
@@ -43,12 +46,14 @@ Contract SKU, quota, prices, credit terms and validity belong to the order in Ge
 shows every earlier value. To keep a customer PO or signed return received later, add it under
 Filed documents on the confirmed order.
 
-Orders has Sales orders and Purchase orders views for the teams that use them. A purchase order can
-also start from the supplier record. Procurement confirms it without commercial manager approval; once
-the ledger's purchase documents are verified, confirming writes it to Kingdee as an unaudited PO, a line
-change replaces the PO's lines until it is audited, and its receipts, purchase invoices and payments
-attach to it. A sales rep's confirmation, and any later change to a confirmed sales order, use native
-Bolt commercial approval. Credit limits and
+Orders has Sales orders and Purchase orders views for the teams that use them. **Sync to Kingdee** moves a
+draft to confirmed (shown as Synced to Kingdee) once; from then on every saved change to the order or its lines
+follows to its Kingdee order. Sales and Procurement sync and change their own orders directly. Once the ledger's
+purchase documents are verified, syncing writes a purchase order to Kingdee as an unaudited PO, a line change
+replaces the PO's lines until it is audited, and its receipts, purchase invoices and payments attach to it.
+Approval is for exceptions: under the floor rule's **Manager approves**, a sales rep's line below its floor
+waits for a Commercial Manager, and the order cannot sync while it waits. Deleting an own sales draft also
+waits for one. Credit limits and
 balances are read-only source facts, with credit enforcement owned by the source system.
 
 Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
@@ -56,21 +61,27 @@ Stock rows represent remaining lots, including lot number and unit cost. Price w
 Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sales** (`sales` →
 `sales`), **Procurement** (`procurement` → `procurement`), **Commercial Managers**
 (`commercial_managers` → `manager`), **Finance** (`finance` → `finance`), **Logistics**
-(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Sales confirmations go to a `commercial_managers` approval step.
+(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Below-floor sales lines (under **Manager approves**) and sales draft deletes go to a `commercial_managers` approval step.
 
 Sales reads its own customer agreements and financial facts; procurement reads its own supplier
 agreements. Logistics sees operational quantities with commercial fields masked. Finance and
 managers use the reports; configuration access does not grant commercial records. Source records
 are written only by their Kingdee sync; configurators and commercial managers can change only a
-product's local commission settings.
+product's local commission settings, and Sales, Procurement and Commercial Managers keep a party's contacts
+other than its Kingdee one.
 English and Chinese catalogs own captions, business statuses and error messages. Native Bolt
 history, permissions, approvals, Actions, kinds and runs are reused.
 
 ## Data model
 
 - `orders` / `order_lines`: our sales or purchase agreement and its contract SKU rows, holding the
-  terms. A confirmed order is a two-way shadow of its Kingdee SO or PO: confirmation creates it, a later
-  line change amends it, and a Kingdee change updates the order. Kingdee keeps the header.
+  terms. A synced order (`confirmed`) is a two-way shadow of its Kingdee SO or PO: syncing creates it, every
+  later saved change follows to it, and a Kingdee change updates the order. Kingdee keeps the header (party,
+  currency, order date, salesperson, payment terms).
+- `contacts`: many per party. The party's Kingdee contact (`primary`, listed first) is read from its customer
+  or supplier master and changes in Kingdee; members add the others. An order's buyer contact is one of them.
+- `settlements`: a read-only mirror of Kingdee's settlement methods (`t_Settle`). An order's payment terms
+  name one; its documents print the name.
 - `transactions`: read-only deliveries (receipts, for a purchase) and invoices linked to their order.
   Issued invoices retain their actual issue date, due date and total; AR does not invent these values.
 - `source_payments`: one read-only receipt/payment/refund ledger, optionally applied to an invoice transaction.
@@ -79,8 +90,8 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 - `source_sales_lines`: canonical financial reporting facts distinguishing shipments, returns and
   invoice-only revenue. This remains separate until verified source mappings provide equivalent
   transaction financial facts without counting shipment/invoice pairs twice.
-- `commission_rules`: dynamic CEL expressions and parameters. A confirmed order keeps the rule in
-  force when it was confirmed; its lines keep their floors and conversion facts.
+- `commission_rules`: dynamic CEL expressions and parameters. A synced order keeps the rule in force on
+  its order date; its lines keep their floors and conversion facts.
 - `commission_statements`: the single retained monthly commission approval workflow. No extra
   per-order commission acknowledgment model or duplicate table.
 - `stock_snapshots`: read-only source lots with lot number, on-hand quantity and unit cost. The Stock
@@ -118,13 +129,13 @@ its own ledger.
 
 Workspace administrators open Settings → Integrations → Connections → Kingdee for native
 pairing, testing, sync options and data freshness. The Connections list shows the ledger state.
-Saving a SQL credential checks the master and stock projections and their SQL read permissions
+Saving a SQL credential checks the master, contact, settlement and stock projections and their SQL read permissions
 before activating SQL sync. Unpaired or paused
 instances leave queued order writes waiting.
 Administrators are notified when a ledger needs attention. Trade configuration keeps each rule beside
 what it governs: Documents holds each printed document's layout per language (quotation, sales contract, purchase
-contract); Prices and commission holds the minimum-price enforcement on the price book and the freight treatment beside the
-commission rules. Source documents are read-only.
+contract); Prices and commission holds the floor rule (Warn, Manager approves, Refuse) on the price book and the
+freight treatment beside the commission rules. Source documents are read-only.
 
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
 Focused local probes use synthetic physical tables with CDC disabled. Trade Operations connects directly
@@ -149,20 +160,20 @@ and Trade Operations adds no objects, triggers or CDC to the account set.
 
 ### The four paths
 
-| Path                           | What moves                                                                                                                                                                                                                                                                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SO: Trade Operations → Kingdee | Confirming a sales order creates an unaudited SO whose `FUUID` is derived from the order. A later line change replaces the SO's lines while it is unaudited, as KIS's own 修改 does; once it is audited the change is a 订单变更: an archive copy of the old version, `FVersionNo` + 1 and one `ICOrderAlter` row per changed field. |
-| SO: Kingdee → Trade Operations | The SO header (customer, salesperson, settlement, order date, currency, rate, audit, void, close, version) and its lines (item, unit, quantity, prices, tax, amounts) update the order every minute. An open SO created in Kingdee arrives as a draft and the next read confirms it; void or completed history is not imported.      |
-| PO: Trade Operations → Kingdee | Confirming a purchase order creates an unaudited PO; a line change replaces its lines while it is unaudited. An audited PO refuses the change and the line returns to the PO's terms.                                                                                                                                                |
-| PO: Kingdee → Trade Operations | As for an SO, from `POOrder`.                                                                                                                                                                                                                                                                                                        |
+| Path                           | What moves                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SO: Trade Operations → Kingdee | Syncing a sales order creates an unaudited SO whose `FUUID` is derived from the order; each line's delivery date is the shipment window's last day. A later saved change replaces the SO's lines while it is unaudited, as KIS's own 修改 does; once it is audited the change is a 订单变更: an archive copy of the old version, `FVersionNo` + 1 and one `ICOrderAlter` row per changed field. |
+| SO: Kingdee → Trade Operations | The SO header (customer, salesperson, settlement, order date, currency, rate, audit, void, close, version) and its lines (item, unit, quantity, prices, tax, amounts) update the order every minute. An open SO created in Kingdee arrives as a draft and the next read confirms it; void or completed history is not imported.                                                                 |
+| PO: Trade Operations → Kingdee | Syncing a purchase order creates an unaudited PO; a line change replaces its lines while it is unaudited. An audited PO refuses the change and the line returns to the PO's terms.                                                                                                                                                                                                              |
+| PO: Kingdee → Trade Operations | As for an SO, from `POOrder`.                                                                                                                                                                                                                                                                                                                                                                   |
 
 Purchase orders take part once the ledger's **Verified SQL account for purchase documents** is set; writes of
 either direction need **Verified SQL account for order writes**. Deliveries (receipts for a PO), invoices and
 payments read from Kingdee attach to their order.
 
-**Who owns what.** Kingdee owns the header: a confirmed order refuses local edits to its party, payment terms,
-date or currency, and a change in Kingdee moves the order. Lines are shared: a local change (approved, for a
-sales order) is written to Kingdee, and a Kingdee change is read back. When both sides change one line, the
+**Who owns what.** Kingdee owns the header: a synced order refuses local edits to its party, salesperson,
+payment terms, date or currency, and a change in Kingdee moves the order. The lines and other terms are shared:
+a local change is written to Kingdee, and a Kingdee change is read back. When both sides change one line, the
 local change still waiting to be written wins: it is applied on top of what Kingdee holds.
 
 ### Why both sides converge
@@ -178,15 +189,16 @@ local change still waiting to be written wins: it is applied on top of what King
 
 ### What is read, and how often
 
-| Feed                                         | Cadence      | How                                                                  |
-| -------------------------------------------- | ------------ | -------------------------------------------------------------------- |
-| Parties, products, warehouses                | 1 min        | Master rowversions (`FModifyTime`), joined rows included             |
-| Orders and their lines                       | 1 min        | `SEOrder` / `POOrder.FOperDate` window                               |
-| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions, followed to the order their lines name  |
-| Sales and purchase analysis lines, lot costs | 5–15 min     | Header rowversions; opt-in accounts                                  |
-| Stock (`ICInventory`)                        | 15 min       | Complete listing of lots with stock: the table has no rowversion     |
-| Open SO commitments, credit                  | 5 min, 1 min | One fingerprinted snapshot; the payload is sent only when it changed |
-| AR aging                                     | 1 h          | Open items that moved, by rowversion; bucket sums catch the rest     |
+| Feed                                         | Cadence      | How                                                                      |
+| -------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
+| Parties, contacts, products, warehouses      | 1 min        | Master rowversions (`FModifyTime`), joined rows included                 |
+| Settlement methods (`t_Settle`)              | 1 min        | Complete listing when its fingerprint moved: the table has no rowversion |
+| Orders and their lines                       | 1 min        | `SEOrder` / `POOrder.FOperDate` window                                   |
+| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions, followed to the order their lines name      |
+| Sales and purchase analysis lines, lot costs | 5–15 min     | Header rowversions; opt-in accounts                                      |
+| Stock (`ICInventory`)                        | 15 min       | Complete listing of lots with stock: the table has no rowversion         |
+| Open SO commitments, credit                  | 5 min, 1 min | One fingerprinted snapshot; the payload is sent only when it changed     |
+| AR aging                                     | 1 h          | Open items that moved, by rowversion; bucket sums catch the rest         |
 
 A window reads `[bookmark, MIN_ACTIVE_ROWVERSION())`, so a row committed late is never skipped, and no feed
 lists its table again after it begins: the link is metered. KIS stamps document headers, not lines, and saves

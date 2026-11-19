@@ -218,7 +218,11 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				saved.lines.flatMap(({ product, ...line }) =>
 					product ? [{ ...line, product: product.id }] : []
 				),
-				'1'
+				'1',
+				{
+					payment_terms: saved.payment_terms?.name ?? '',
+					buyer: { name: '', phone: '', email: '' }
+				}
 			);
 			const lineBasis = firstRow(sealed.lines);
 			const kg = { ...lineBasis, quantity: '81000.000', unit_price: '1.6532', unit: 'kg' };
@@ -347,7 +351,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		})
 	);
 	test.effect(
-		'a confirmed order keeps the contract it sealed; a newer version reaches only orders not yet confirmed; logistics cannot export it',
+		'a synced order prints its contract in the newest published version; logistics cannot export it',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -389,12 +393,12 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 						document_templates: { where: { id: { eq: newer } }, fields: ['version'], limit: 1 }
 					})).document_templates.rows[0]?.version
 				).toBe('2');
-				expect(yield* documentOf(admin, { order })).toEqual(preview);
-				const later = yield* draft(t);
-				yield* confirm(t, later.order);
-				const revised = yield* documentOf(admin, { order: later.order });
-				expect(revised.title).toBe('New contract heading');
-				expect(revised.html).toContain('New contract wording');
+				// a published version reaches every order, synced earlier or not
+				for (const synced of [order, next.order]) {
+					const revised = yield* documentOf(admin, { order: synced });
+					expect(revised.title).toBe('New contract heading');
+					expect(revised.html).toContain('New contract wording');
+				}
 				expect(preview.html).toContain('21.80');
 				// Logistics reads no order terms through the default document query.
 				expect(
@@ -518,7 +522,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 		})
 	);
 	test.effect(
-		'a purchase PDF retains the published table, artwork and saved SKU specification',
+		'a purchase PDF prints the newest published table, its artwork and the saved SKU specification',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -583,14 +587,18 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					text: 'UPDATE products SET spec = $1 WHERE id = $2',
 					params: ['A-120', PRODUCT]
 				});
-				expect(yield* documentOf(admin, { order })).toEqual(original);
+				// a newer version reaches the synced order too; its line keeps the specification it was saved with
+				const revised = yield* documentOf(admin, { order });
+				expect(revised.title).toBe('New purchase layout');
+				expect(revised.html).toContain('Changed terms.');
+				expect(revised.html).toContain('A-110 &lt;grade&gt;');
 				converted.length = 0;
 				yield* renderPreview(t, original);
 				expect(converted).toHaveLength(1);
 				expect(converted[0]).toContain('Company letterhead');
 				expect(converted[0]).toContain('Retained terms.');
 				expect(converted[0]).not.toContain('A-120');
-				// the newer version is what a purchase order not yet confirmed prints
+				// and so does a purchase order not yet synced
 				const next = yield* draft(t, 'purchasing');
 				expect((yield* documentOf(admin, { order: next.order })).html).toContain('Changed terms.');
 			})

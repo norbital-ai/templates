@@ -24,6 +24,7 @@ parties/
 products/
   pricing_floors/
   stock_snapshots/
+settlements/
 warehouses/
 ```
 
@@ -31,7 +32,7 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 ## Surfaces
 
-- Apps: `operations/analysis`, `operations/partners`, `operations/trade`, `operations/warehouse`, `trade_configuration`
+- Apps: `operations/analysis`, `operations/dashboard`, `operations/partners`, `operations/trade`, `operations/warehouse`, `trade_configuration`
 - Kiosks: none
 - Automations: `source_health`
 - Policies: `configuration`, `finance`, `logistics`, `manager`, `procurement`, `sales`
@@ -44,8 +45,9 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 ## Invariants
 
-- An order holds its own terms; there are no contract versions. A confirmed sales order syncs both ways with its Kingdee SO (`orders` and `order_lines` `kingdee` syncs), and record history is its audit trail.
-- A confirmed order never returns to draft. A sales rep's change to it waits for a commercial manager.
+- An order holds its own terms; there are no contract versions. Syncing it to Kingdee (`status: confirmed`) happens once; from then on it syncs both ways with its Kingdee SO or PO (`orders` and `order_lines` `kingdee` syncs), and record history is its audit trail.
+- A synced order never returns to draft. Kingdee keeps its header (party, currency, date, salesperson, payment terms); everything else stays editable. Approval is for exceptions only: the floor rule's `approve` mode.
+- Settlement methods and each party's primary contact are Kingdee's (`settlements`, `contacts` `kingdee` syncs); members add other contacts.
 - Source confirmations, transactions, payments, receivables snapshots and stock facts are read-only.
 - There is one delivery/invoice ledger and one payment ledger; do not create a parallel one.
 - Money is a value and a currency together; never add or convert across currencies.

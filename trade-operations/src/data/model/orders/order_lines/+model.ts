@@ -1,7 +1,7 @@
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { price, numeric } from '../../../../lib/commercial.js';
+import { floorFor, price, numeric, quoteBelowFloor } from '../../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -45,12 +45,16 @@ const priced = Effect.fnUntraced(function* (
 	const {
 		products,
 		pricing_floors: floors,
-		warehouses
+		warehouses,
+		commercial_settings: settings
 	} = yield* ctx.query({
 		products: { where: { id: { in: productIds } } },
 		pricing_floors: { where: { product: { in: productIds } } },
-		warehouses: {}
+		warehouses: {},
+		commercial_settings: { where: { code: { eq: 'default' } }, fields: ['floor_rule'], limit: 1 }
 	});
+	// the Kingdee read brings lines in as Kingdee holds them
+	const refuseBelow = settings.rows[0]?.floor_rule === 'refuse' && ctx.actor.kind !== 'system';
 	// an order created with its lines in the same act is read as the act leaves it
 	const ids = [...new Set(lines.map((l) => l.order))];
 	const orders = (yield* ctx.query({ orders: { where: { id: { in: ids } }, as_of: 'act' } })).orders
@@ -144,30 +148,23 @@ const priced = Effect.fnUntraced(function* (
 		if (details && !validPrintValues(details))
 			return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 		const print_values = details ? orderedPrintValues(details) : null;
-		const group = warehouses.rows.find((v) => v.id === order.warehouse)?.group_code;
-		const floor = floors.rows
-			.filter(
-				(f) =>
-					order.direction === 'sales' &&
-					f.product === product.id &&
-					f.currency === order.currency &&
-					f.group_code === group &&
-					f.effective_on <= order.ordered_on &&
-					BigDecimal.isLessThanOrEqualTo(
-						BigDecimal.fromStringUnsafe(f.minimum_quantity),
-						BigDecimal.fromStringUnsafe(quantity)
-					)
-			)
-			.sort(
-				(a, b) =>
-					b.effective_on.localeCompare(a.effective_on) ||
-					BigDecimal.Order(
-						BigDecimal.fromStringUnsafe(b.minimum_quantity),
-						BigDecimal.fromStringUnsafe(a.minimum_quantity)
-					)
-			)[0];
+		const floor = floorFor(
+			order,
+			warehouses.rows.find((v) => v.id === order.warehouse)?.group_code,
+			{ product: product.id, quantity },
+			floors.rows
+		);
 		if (floor && floor.unit !== unit) return yield* ctx.refuse('errors.unit_mismatch');
 		const floor_net = floor ? floor.floor_net : null;
+		if (
+			refuseBelow &&
+			order.direction === 'sales' &&
+			(floor_net === null ||
+				quoteBelowFloor({ unit_price, discount_pct, tax_rate, floor_net }, order.tax_inclusive))
+		)
+			return yield* ctx.refuse(floor_net === null ? 'errors.floor_missing' : 'errors.floor_below', {
+				field: 'unit_price'
+			});
 		const amounts = price(order, { quantity, unit_price, discount_pct, tax_rate });
 		out.push({
 			source_entry_id,

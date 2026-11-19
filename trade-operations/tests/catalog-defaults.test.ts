@@ -2,7 +2,7 @@ import type { Row } from '@norbital-ai/bolt';
 import { decimalText } from './test-runtime.js';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
-import { committed, CUSTOMER, SUPPLIER, PRODUCT, workspace } from './kit.js';
+import { committed, CUSTOMER, SUPPLIER, PRODUCT, workspace, NET30 } from './kit.js';
 test.live(
 	'sales uses product defaults, explicit zero tax is retained, and purchasing requires cost',
 	() =>
@@ -20,7 +20,7 @@ test.live(
 							direction,
 							party: direction === 'sales' ? CUSTOMER : SUPPLIER,
 							currency,
-							payment_terms: 'Net 30'
+							payment_terms: NET30
 						}
 					]
 				});

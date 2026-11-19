@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect';
 import { expect, it } from '@effect/vitest';
-import { committed, workspace } from './kit.js';
+import { committed, workspace, PROBE_NET30, PROBE_NET60 } from './kit.js';
 import { kingdeeCatalogue, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 import { fixtureId, sameDecimal } from './test-runtime.js';
 import type { SqlRow } from '../src/integration/kingdee/polling.js';
@@ -43,7 +43,7 @@ it.live('a confirmed order writes its SO and reads its Kingdee state and line en
 		const { orders, order_lines } = yield* read();
 		expect(orders.rows[0]).toMatchObject({
 			status: 'confirmed',
-			payment_terms: 'PROBE-NET30',
+			payment_terms: PROBE_NET30,
 			kingdee: { fid, version: '000', status: 'issued', closed: false }
 		});
 		expect(order_lines.rows).toMatchObject([{ id: sale.line, source_entry_id: '1' }]);
@@ -372,7 +372,7 @@ it.live('a full read takes Kingdee header changes and keeps unsent local line ed
 		const { orders, order_lines } = yield* s.read();
 		expect(orders.rows[0]).toMatchObject({
 			ordered_on: '2026-10-11',
-			payment_terms: 'PROBE-NET60'
+			payment_terms: PROBE_NET60
 		});
 		expect(sameDecimal(quantity(order_lines.rows), '15')).toBe(true);
 		s.t.clock.advance('2min');
@@ -389,12 +389,12 @@ it.live('a header change on a Kingdee-bound confirmed order is refused with its 
 		const refused = yield* Effect.flip(
 			s.as.act({
 				'orders.update': [
-					{ target: yield* s.t.at('orders', s.sale.order), set: { payment_terms: 'PROBE-NET60' } }
+					{ target: yield* s.t.at('orders', s.sale.order), set: { payment_terms: PROBE_NET60 } }
 				]
 			})
 		);
 		expect(refused.message).toContain('Kingdee keeps');
-		expect((yield* s.read()).orders.rows[0]?.payment_terms).toBe('PROBE-NET30');
+		expect((yield* s.read()).orders.rows[0]?.payment_terms).toBe(PROBE_NET30);
 		expect((yield* s.t.deliver()).delivered).toBe(0);
 	})
 );
@@ -478,7 +478,7 @@ it.live('every Kingdee-updated header and line field appears in Trade Operations
 		expect(secondProduct).toBeTruthy();
 		expect(orders.rows[0]).toMatchObject({
 			currency: 'USD',
-			payment_terms: 'PROBE-NET60',
+			payment_terms: PROBE_NET60,
 			ordered_on: '2026-11-05',
 			kingdee: {
 				fid,

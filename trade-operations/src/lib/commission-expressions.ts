@@ -183,7 +183,7 @@ export function commissionPreview(
 }
 
 /** The commission rule in force for an order's currency and day, as the order keeps it. */
-export function sealedCommission(
+export function commissionRule(
 	rules: readonly Row<'commission_rules'>[],
 	currency: string,
 	ordered_on: string

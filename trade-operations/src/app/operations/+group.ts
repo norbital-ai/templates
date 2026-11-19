@@ -3,5 +3,5 @@ export default group({
 	title: 'component.operations_group',
 	description: 'component.operations_description',
 	icon: 'lucide:briefcase',
-	default_child: 'trade'
+	default_child: 'dashboard'
 });

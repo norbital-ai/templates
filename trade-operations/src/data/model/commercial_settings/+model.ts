@@ -10,15 +10,8 @@ export default model('commercial_settings', {
 			default: 'default',
 			hidden: true
 		},
-		require_floor: {
-			kind: 'bool',
-			default: false
-		},
-		credit_fresh_minutes: {
-			kind: 'int',
-			min: 1,
-			default: 60
-		},
+		// a sales line below its floor, or with none: a hint, a commercial manager's approval, or refused
+		floor_rule: { kind: 'enum', values: ['warn', 'approve', 'refuse'], default: 'warn' },
 		stock_fresh_minutes: {
 			kind: 'int',
 			min: 1,
@@ -28,6 +21,6 @@ export default model('commercial_settings', {
 	outputs: { default: { fields: 'all' }, logistics: { fields: ['code', 'stock_fresh_minutes'] } },
 	constraints: { natural_key: { unique: ['code'], import_key: true } },
 	update: {
-		fields: ['freight_treatment', 'require_floor', 'credit_fresh_minutes', 'stock_fresh_minutes']
+		fields: ['freight_treatment', 'floor_rule', 'stock_fresh_minutes']
 	}
 });

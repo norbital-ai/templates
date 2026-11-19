@@ -35,7 +35,10 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 					'commercial_settings',
 					yield* as.act({
 						'commercial_settings.update': [
-							{ target: yield* t.at('commercial_settings', SETTINGS), set: { require_floor: true } }
+							{
+								target: yield* t.at('commercial_settings', SETTINGS),
+								set: { floor_rule: 'refuse' }
+							}
 						]
 					})
 				);
@@ -53,7 +56,7 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 				expect(
 					(yield* as.query({ commercial_settings: {} })).commercial_settings.rows
 				).toMatchObject([
-					{ id: SETTINGS, code: 'default', stock_fresh_minutes: 21, require_floor: true }
+					{ id: SETTINGS, code: 'default', stock_fresh_minutes: 21, floor_rule: 'refuse' }
 				]);
 			})
 	);
@@ -82,7 +85,7 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 });
 
 it.effect(
-	'Kingdee pairing checks SELECT access on every configured master and stock projection',
+	'Kingdee pairing checks SELECT access on every configured master, contact, settlement and stock projection',
 	() =>
 		Effect.gen(function* () {
 			const metadata = sourceFixture(() => ({}));
@@ -105,6 +108,9 @@ it.effect(
 			expect(reads.at(-1)).toContain('[dbo].[ICInventory]');
 			canReadStock = true;
 			yield* testConnection();
-			expect(reads).toHaveLength(8);
+			// the masters' contacts and the settlement methods are probed too
+			expect(reads).toHaveLength(10);
+			expect(reads.at(-2)).toContain('FContact');
+			expect(reads.at(-1)).toContain('[dbo].[t_Settle]');
 		})
 );

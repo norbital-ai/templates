@@ -3,7 +3,7 @@ import { Context, Effect, Exit, Layer, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { DatabaseRequest, type DatabaseResult } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { committed, workspace } from './kit.js';
+import { committed, workspace, PROBE_NET30 } from './kit.js';
 import { kingdeeCatalogue, kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 
 const first = fixtureId('sys_integration', 'kingdee');
@@ -102,7 +102,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 									direction: 'sales',
 									party: party.id,
 									currency: 'CNY',
-									payment_terms: 'PROBE-NET30'
+									payment_terms: PROBE_NET30
 								}
 							]
 						})
