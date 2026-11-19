@@ -25,7 +25,8 @@ const TRANSPORTS = ['email', 'whatsapp', 'telegram', 'slack', 'discord'] as cons
 export default automation({
 	description:
 		'Mirrors members’ WhatsApp and mailbox accounts and the workspace’s WhatsApp, email, Telegram, Slack and Discord accounts into the shared CRM intake table; a voice note is filed as its transcript, images and documents as its attachments.',
-	on: [{ cron: '* * * * *' }],
+	// rests a day after a slot with nothing to file; an arriving message wakes the database and the next slot runs
+	on: [{ cron: '* * * * *', rest: '1d' }],
 	input: { batch: { kind: 'int', optional: true } },
 	policies: ['hq_automation'],
 	concurrency: { max: 1 },

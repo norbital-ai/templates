@@ -364,7 +364,7 @@ function route(input: {
 export default automation({
 	description:
 		'Automatically routes personal account messages to customers and retries incomplete classification.',
-	on: [{ cron: '*/5 * * * *' }],
+	on: [{ cron: '*/5 * * * *', rest: '1d' }],
 	policies: ['hq_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
