@@ -1,11 +1,5 @@
 import { BigDecimal, DateTime, Effect, Option } from 'effect';
-import {
-	automation,
-	is_instance,
-	type AutomationCtx,
-	type CreateInput,
-	type Id
-} from '@norbital-ai/bolt';
+import { automation, is_instance, type CreateInput } from '@norbital-ai/bolt';
 import {
 	NEWS_URL,
 	QUOTE_URL,
@@ -23,6 +17,7 @@ import {
 	search,
 	sourceOf,
 	unlinked,
+	type Quote,
 	type Read,
 	type Source
 } from '../lib/portfolio/market.ts';
@@ -43,57 +38,54 @@ const WRITING = [
 	'6. Never invent a figure, a headline or a source.'
 ].join('\n');
 
-/** The report's record view rendered to PDF bytes: never stored, only attached. */
-type Rendered = Effect.Success<ReturnType<AutomationCtx['convert']['record']>>;
-
-/**
- * How a text and the rendered report reach one chat through the configured account, by its channel, and the account as
- * a notice channel for subscribers: `null` for an account that carries no chat. A WhatsApp recipient may be a plain
- * number or a group JID.
- */
-const senderOf = (
-	ctx: Pick<AutomationCtx, 'send'>,
-	account: { readonly id: Id<'sys_integration'>; readonly integration: string }
-) => {
-	if (is_instance('whatsapp', account))
-		return {
-			via: account.id,
-			send: (to: string, text: string, pdf: Rendered) =>
-				ctx.send(account.id, {
-					to: to.includes('@') ? to : `${to.replace(/\D/g, '')}@s.whatsapp.net`,
-					text,
-					attachments: [pdf]
-				})
-		};
-	if (is_instance('telegram', account))
-		return {
-			via: account.id,
-			send: (to: string, text: string, pdf: Rendered) =>
-				ctx.send(account.id, { to, text, attachments: [pdf] })
-		};
-	if (is_instance('slack', account))
-		return {
-			via: account.id,
-			send: (to: string, text: string, pdf: Rendered) =>
-				ctx.send(account.id, { to, text, attachments: [pdf] })
-		};
-	if (is_instance('discord', account))
-		return {
-			via: account.id,
-			send: (to: string, text: string, pdf: Rendered) =>
-				ctx.send(account.id, { to, text, attachments: [pdf] })
-		};
-	return null;
-};
+/** A figure as the stored decimal, two places; null stays null. */
+const fixed = (value: number | null) =>
+	value === null
+		? null
+		: BigDecimal.format(
+				BigDecimal.round(BigDecimal.fromNumberUnsafe(value), { scale: 2, mode: 'half-from-zero' })
+			);
+/** The signals as stored on a holding and a markets row. */
+const signals = (quote: Quote) => ({
+	change_1w_pct: fixed(quote.change_1w_pct),
+	change_1m_pct: fixed(quote.change_1m_pct),
+	change_1y_pct: fixed(quote.change_1y_pct),
+	trend: quote.trend,
+	money_flow: fixed(quote.money_flow),
+	pressure: quote.pressure,
+	rsi: fixed(quote.rsi),
+	from_high_pct: fixed(quote.from_high_pct),
+	volatility_pct: fixed(quote.volatility_pct)
+});
+/** The trading in words for the model: only what the bars carried. */
+const tradingOf = (quote: Quote) =>
+	[
+		quote.change_pct === null ? '' : `day ${quote.change_pct}%`,
+		quote.change_1w_pct === null ? '' : `week ${quote.change_1w_pct}%`,
+		quote.change_1m_pct === null ? '' : `month ${quote.change_1m_pct}%`,
+		quote.change_1y_pct === null ? '' : `year ${quote.change_1y_pct}%`,
+		quote.trend === null
+			? ''
+			: `trend ${quote.trend} (price and 50-session average against the 200-session average)`,
+		quote.money_flow === null
+			? ''
+			: `20-session money flow ${quote.money_flow} (${quote.pressure} pressure)`,
+		quote.volume_ratio === null ? '' : `volume ${quote.volume_ratio}x its 20-session average`,
+		quote.rsi === null ? '' : `RSI(14) ${quote.rsi}`,
+		quote.from_high_pct === null ? '' : `${quote.from_high_pct}% from the 52-week high`,
+		quote.volatility_pct === null ? '' : `volatility ${quote.volatility_pct}% a year`
+	]
+		.filter((part) => part.length > 0)
+		.join(', ');
 
 /**
  * The one agent. Once a day it prices the book, measures each line's trading, files each line's P&L for the day,
  * researches the market and the largest lines in its browser, asks the model for the market view and one call per
- * position, files the day's report and sends it to the configured recipients.
+ * position, files the day's report and sends it to every subscriber through the envoy's accounts.
  */
 export default automation({
 	description:
-		'Once a day: prices the book and its benchmarks, files each line’s P&L, researches the market and the largest lines in its browser, writes the day’s report with every claim cited (a section per line with cited news), and sends its record view as a PDF to the chats in the portfolio settings and every subscribed user.',
+		'Once a day: prices the book and its benchmarks, files each line’s P&L, researches the market and the largest lines in its browser, writes the day’s report with every claim cited (a section per line with cited news), and sends its record view as a PDF to every subscriber through the accounts an envoy is deployed on.',
 	input: { send: { kind: 'bool', optional: true, default: true } },
 	on: [{ cron: '0 8 * * *' }],
 	policies: ['portfolio_automation'],
@@ -109,23 +101,26 @@ export default automation({
 		if (portfolio_settings.rows.length > 1) return yield* ctx.refuse('errors.settings_ambiguous');
 		const settings = portfolio_settings.rows[0];
 		const base = settings?.base_currency ?? DEFAULT_CURRENCY;
-		const recipients = input.send === false ? [] : (settings?.recipients ?? []);
 		const subscribers = input.send === false ? [] : report_subscription.rows.map((one) => one.user);
-		const via =
-			recipients.length > 0 || subscribers.length > 0 ? (settings?.report_via ?? null) : null;
-		const account =
-			via === null
-				? undefined
-				: (yield* ctx.query({
-						sys_integration: { where: { id: { eq: via }, active: { eq: true } }, limit: 1 }
-					})).sys_integration.rows[0];
-		const channel = account === undefined ? null : senderOf(ctx, account);
-		/** Chats named in the settings need the account; a client's own subscription never stops the run. */
-		if (recipients.length > 0 && channel === null)
-			return yield* ctx.refuse('errors.no_report_account');
-		if (subscribers.length > 0 && channel === null)
-			log.push(`${subscribers.length} subscriber(s) not sent: no active account to send through`);
 		if (holding.rows.length === 0) return;
+		/** The chat accounts an envoy is deployed on: the report reaches each subscriber's own handle there. */
+		const { sys_integration } = yield* ctx.query({
+			sys_integration: { where: { envoy: { is_null: false }, active: { eq: true } }, limit: 20 }
+		});
+		const via = sys_integration.rows.flatMap((one) =>
+			is_instance('whatsapp', one) ||
+			is_instance('telegram', one) ||
+			is_instance('slack', one) ||
+			is_instance('discord', one)
+				? [one.id]
+				: []
+		);
+		if (subscribers.length > 0)
+			log.push(
+				via.length === 0
+					? `${subscribers.length} subscriber(s) notified in the app only: no envoy is deployed on a chat account`
+					: `${subscribers.length} subscriber(s) sent through ${via.length} envoy account(s)`
+			);
 
 		const ratesPage = yield* read(RATES_URL(base));
 		const rates = Option.match(ratesPage, {
@@ -135,7 +130,7 @@ export default automation({
 		log.push(`rates ${base}: ${rates.size > 0 ? `${rates.size} currencies` : 'did not answer'}`);
 
 		/** Each tickered line priced from the market; the rest keep their last values. */
-		type Live = {
+		type Live = ReturnType<typeof signals> & {
 			live_price: string;
 			live_change_pct: string | null;
 			live_value_base: string;
@@ -145,68 +140,67 @@ export default automation({
 		};
 		const book: {
 			row: (typeof holding.rows)[number];
+			quote: Quote | null;
 			live: Live | null;
 			value: BigDecimal.BigDecimal;
 		}[] = [];
+		/** Base per unit of a currency at this run; base itself is 1. */
+		const rateOf = (code: string) => (code === base ? 1 : rates.get(code));
 		for (const row of holding.rows) {
 			const ticker = row.symbol ? quoteSymbol(row.symbol) : null;
 			const page = ticker ? yield* read(QUOTE_URL(ticker)) : Option.none();
 			const quote = Option.isSome(page) ? parseQuote(page.value.text) : null;
 			if (ticker) log.push(`quote ${ticker}: ${quote ? quote.price : 'no answer'}`);
-			const perBase = row.currency === base ? 1 : rates.get(row.currency);
-			const value =
-				quote && perBase !== undefined
-					? BigDecimal.round(
-							BigDecimal.multiply(
-								BigDecimal.multiply(
-									BigDecimal.fromStringUnsafe(row.quantity),
-									BigDecimal.fromNumberUnsafe(quote.price)
-								),
-								BigDecimal.fromNumberUnsafe(perBase)
+			const valued =
+				quote === null ? null : { price: quote.price, currency: quote.currency ?? row.currency };
+			const value = lineValue(row, valued, rateOf);
+			/** A quote counts once its currency has a rate: then the line is priced at it. */
+			const live: Live | null =
+				quote && valued && rateOf(valued.currency) !== undefined
+					? {
+							live_price: BigDecimal.format(
+								BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.price), {
+									scale: 4,
+									mode: 'half-from-zero'
+								})
 							),
-							{ scale: 2, mode: 'half-from-zero' }
-						)
-					: lineValue(row);
-			const live: Live | null = quote
-				? {
-						live_price: BigDecimal.format(
-							BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.price), {
-								scale: 4,
-								mode: 'half-from-zero'
-							})
-						),
-						live_change_pct:
-							quote.change_pct === null
-								? null
-								: BigDecimal.format(
-										BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.change_pct), {
-											scale: 2,
-											mode: 'half-from-zero'
-										})
-									),
-						live_value_base: BigDecimal.format(
-							BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })
-						),
-						price_updated_at: ctx.now,
-						volume_ratio:
-							quote.volume_ratio === null
-								? null
-								: BigDecimal.format(
-										BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.volume_ratio), {
-											scale: 2,
-											mode: 'half-from-zero'
-										})
-									),
-						movement: movementOf(quote.volume_ratio)
-					}
-				: null;
-			book.push({ row, live, value });
+							live_change_pct:
+								quote.change_pct === null
+									? null
+									: BigDecimal.format(
+											BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.change_pct), {
+												scale: 2,
+												mode: 'half-from-zero'
+											})
+										),
+							live_value_base: BigDecimal.format(
+								BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })
+							),
+							price_updated_at: ctx.now,
+							volume_ratio:
+								quote.volume_ratio === null
+									? null
+									: BigDecimal.format(
+											BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.volume_ratio), {
+												scale: 2,
+												mode: 'half-from-zero'
+											})
+										),
+							movement: movementOf(quote.volume_ratio),
+							...signals(quote)
+						}
+					: null;
+			book.push({ row, quote, live, value });
 		}
+		/** Unrealised P&L in base: each position's value now less its cost; cash and facilities carry none. */
 		const metrics = computeMetrics(
 			book.map(({ row, value }) => ({
 				asset_class: row.asset_class,
+				currency: row.currency,
 				value,
-				unrealised_pl: BigDecimal.fromStringUnsafe(row.unrealised_pl ?? '0')
+				unrealised_pl: isPosition(row)
+					? BigDecimal.subtract(value, costInBase(row))
+					: BigDecimal.fromBigInt(0n)
 			}))
 		);
 
@@ -246,7 +240,7 @@ export default automation({
 		const sections = [];
 		const cited: Source[] = [];
 		const writes = [];
-		for (const { row, live, value } of book) {
+		for (const { row, quote, live, value } of book) {
 			if (!isPosition(row)) {
 				if (live) writes.push({ target: row, set: live });
 				continue;
@@ -277,6 +271,7 @@ export default automation({
 										`Today is ${ctx.today}. The book is valued in ${base}.`,
 										`Holding: ${row.instrument} (${row.symbol ?? 'no ticker'}), ${row.asset_class}, ${row.currency}.`,
 										`Per [1]: cost ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(cost, { scale: 2, mode: 'half-from-zero' })))}, worth ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })))}, P&L ${base} ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(pnl, { scale: 2, mode: 'half-from-zero' })))}${pnl_pct === null ? '' : ` (${BigDecimal.format(pnl_pct)}%)`}.`,
+										quote ? `Per [1], the trading: ${tradingOf(quote)}.` : '',
 										row.research_direction ? `Research direction: ${row.research_direction}.` : '',
 										'Sources:',
 										`[1] ${QUOTE_SOURCE.publisher}: ${QUOTE_SOURCE.title}`,
@@ -384,49 +379,31 @@ export default automation({
 		}
 		if (writes.length > 0) yield* ctx.act({ 'holding.update': writes });
 
+		/** A markets row: the price, the move over a day, a week, a month and a year, the trend and the pressure. */
+		const marketRow = (instrument: string, quote: Quote) => ({
+			instrument,
+			level: fixed(quote.price) ?? '0',
+			change_pct: fixed(quote.change_pct),
+			change_1w_pct: fixed(quote.change_1w_pct),
+			change_1m_pct: fixed(quote.change_1m_pct),
+			change_1y_pct: fixed(quote.change_1y_pct),
+			trend: quote.trend,
+			pressure: quote.pressure
+		});
 		/** The benchmarks the settings name, quoted like the book's lines; one that does not answer is left out. */
 		const benchmarks = [];
 		for (const one of settings?.benchmarks ?? []) {
 			const page = yield* read(QUOTE_URL(one.symbol));
 			const quote = Option.isSome(page) ? parseQuote(page.value.text) : null;
 			log.push(`benchmark ${one.symbol}: ${quote ? quote.price : 'no answer'}`);
-			if (quote)
-				benchmarks.push({
-					instrument: one.name ?? one.symbol,
-					level: BigDecimal.format(
-						BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.price), {
-							scale: 2,
-							mode: 'half-from-zero'
-						})
-					),
-					change_pct:
-						quote.change_pct === null
-							? null
-							: BigDecimal.format(
-									BigDecimal.round(BigDecimal.fromNumberUnsafe(quote.change_pct), {
-										scale: 2,
-										mode: 'half-from-zero'
-									})
-								)
-				});
+			if (quote) benchmarks.push(marketRow(one.name ?? one.symbol, quote));
 		}
-		/** Every line of the book: its price where it is quoted, else its value in base. */
+		/** The benchmarks, then every quoted line of the book. */
 		const markets = [
 			...benchmarks,
-			...book.map(({ row, live, value }) => ({
-				instrument: row.instrument,
-				level: live
-					? BigDecimal.format(
-							BigDecimal.round(BigDecimal.fromStringUnsafe(live.live_price), {
-								scale: 2,
-								mode: 'half-from-zero'
-							})
-						)
-					: BigDecimal.format(BigDecimal.round(value, { scale: 2, mode: 'half-from-zero' })),
-				change_pct: live ? live.live_change_pct : null
-			}))
+			...book.flatMap(({ row, quote }) => (quote ? [marketRow(row.instrument, quote)] : []))
 		];
-		const quoted = benchmarks.length > 0 || book.some(({ live }) => live !== null);
+		const quoted = markets.length > 0;
 		const asOf = DateTime.format(DateTime.makeZonedUnsafe(ctx.now, { timeZone: ctx.tz }), {
 			locale: 'en-US',
 			timeZone: ctx.tz,
@@ -437,9 +414,22 @@ export default automation({
 			minute: '2-digit',
 			timeZoneName: 'short'
 		});
-		const dataLine = quoted
-			? `Data as of ${asOf}; prices per [${QUOTE_SOURCE.publisher}](${QUOTE_SOURCE.url})${rates.size > 0 ? `, rates per [${RATES_SOURCE.publisher}](${RATES_SOURCE.url})` : ''}. Lines without a quote show their value in ${base}.`
-			: `Data as of ${asOf}. No quote answered: every line shows its recorded value in ${base}.`;
+		/** The latest statement the book stands on: lines without a quote keep its amounts, revalued at today's rates. */
+		const statement = holding.rows
+			.flatMap((one) => (one.price_date === null ? [] : [one.price_date]))
+			.sort()
+			.at(-1);
+		const dataLine = [
+			`Data as of ${asOf}`,
+			statement === undefined ? '' : `; holdings per the statement of ${statement}`,
+			quoted
+				? `; prices per [${QUOTE_SOURCE.publisher}](${QUOTE_SOURCE.url})`
+				: '; no quote answered',
+			rates.size > 0
+				? `; rates per [${RATES_SOURCE.publisher}](${RATES_SOURCE.url})`
+				: `; no rate answered, so lines stand at the statement's rates`,
+			'.'
+		].join('');
 
 		const { report } = yield* ctx.query({
 			report: {
@@ -469,7 +459,7 @@ export default automation({
 					system: `You write the lead and the market paragraph of a daily portfolio report for the owner of the book.\n${WRITING}`,
 					prompt: [
 						`Today is ${ctx.today}. Per [1] and [2]: ${totals}; invested ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.invested, { scale: 2, mode: 'half-from-zero' })))}, cash ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.cash, { scale: 2, mode: 'half-from-zero' })))}, owed ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(BigDecimal.toNumberUnsafe(BigDecimal.round(metrics.liabilities, { scale: 2, mode: 'half-from-zero' })))}.`,
-						`Per [1]: ${markets.map((one) => `${one.instrument} ${one.change_pct === null ? 'no change read' : `${one.change_pct}%`}`).join('; ')}.`,
+						`Per [1]: ${markets.map((one) => `${one.instrument} ${one.change_pct === null ? 'no change read' : `${one.change_pct}% on the day`}${one.change_1m_pct === null ? '' : `, ${one.change_1m_pct}% on the month`}${one.trend === null ? '' : `, trend ${one.trend}`}${one.pressure === null ? '' : `, ${one.pressure} pressure`}`).join('; ')}.`,
 						'Sections in this report:',
 						sections
 							.map((one) => `- ${one.symbol ?? one.instrument}: ${one.headline}`)
@@ -538,8 +528,18 @@ export default automation({
 					BigDecimal.round(one.weight, { scale: 2, mode: 'half-from-zero' })
 				)
 			})),
+			exposure: metrics.exposure.map((one) => ({
+				currency: one.label,
+				value: BigDecimal.format(one.value),
+				weight: BigDecimal.format(one.weight)
+			})),
+			/** Every rate a line or a quote was valued at. */
 			fx_used: [...rates]
-				.filter(([code]) => code !== base && book.some(({ row }) => row.currency === code))
+				.filter(
+					([code]) =>
+						code !== base &&
+						book.some(({ row, quote }) => row.currency === code || quote?.currency === code)
+				)
 				.map(([code, rate]) => ({
 					pair: `${code}/${base}`,
 					rate: BigDecimal.format(
@@ -561,31 +561,21 @@ export default automation({
 			return yield* ctx.refuse('errors.report_not_filed');
 
 		/**
-		 * The report's own record view rendered to PDF: a short text carries it to each chat and a notice to each
-		 * subscriber, directly on the account. Each chat message id is kept on the report; a notice's messages are queued
-		 * only once the run commits, so they stay on the notice.
+		 * The report's own record view rendered to PDF goes to every subscriber: in their inbox, and through each account
+		 * an envoy is deployed on to their own handle there (WhatsApp at their phone, Telegram, Slack or Discord).
 		 */
-		if (channel !== null) {
+		if (subscribers.length > 0) {
 			const pdf = yield* ctx.convert.record('report', written.id, {
 				to: 'pdf',
 				name: `portfolio-report-${ctx.today}.pdf`
 			});
-			const text = `${title}\n\n${unlinked(headline)}`;
-			const sent = [];
-			for (const recipient of recipients)
-				sent.push(yield* channel.send(recipient.handle, text, pdf));
-			if (subscribers.length > 0)
-				yield* ctx.notify({
-					title,
-					description: unlinked(headline),
-					to: subscribers.map((user) => ({ user })),
-					via: [channel.via],
-					attachments: [pdf]
-				});
-			yield* ctx.act({
-				'report.update': [
-					{ target: written, set: { deliveries: [...(existing?.deliveries ?? []), ...sent] } }
-				]
+			yield* ctx.notify({
+				title,
+				description: `${unlinked(headline)}\n\n${unlinked(summary)}`,
+				to: subscribers.map((user) => ({ user })),
+				via,
+				attachments: [pdf],
+				once: `report-sent-${ctx.today}`
 			});
 		}
 

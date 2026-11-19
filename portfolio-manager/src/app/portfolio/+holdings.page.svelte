@@ -24,6 +24,9 @@
 			'value_base',
 			'live_value_base',
 			'live_change_pct',
+			'change_1m_pct',
+			'trend',
+			'pressure',
 			'movement',
 			'research_at'
 		]}

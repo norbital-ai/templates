@@ -189,12 +189,7 @@ it.layer(
 								liabilities: decimal(2000),
 								headline: `Acme won a large order, per ${ACME_LINK}.`,
 								summary: '- Markets: net assets USD 18,100.00\n- ACME UW: Acme wins a large order',
-								markets: [
-									{ instrument: 'Acme Robotics Inc', level: decimal(12000), change_pct: null },
-									{ instrument: 'Global Bond Index Fund' },
-									{ instrument: 'Operating account' },
-									{ instrument: 'Credit facility' }
-								],
+								markets: [],
 								market_view: expect.stringContaining(
 									'Rates were steady, per [Yahoo Finance](https://finance.yahoo.com).'
 								),
@@ -282,26 +277,24 @@ const whatsapp: Provider = {
 
 const settled = (answer: { readonly kind: string }) =>
 	answer.kind === 'committed' ? Effect.void : Effect.die(new Error(answer.kind));
-const GROUP = '120363000000000001@g.us';
-const sgd = {
-	base_currency: 'SGD',
-	recipients: [
-		{ name: 'Owner', handle: '+65 9123 4567' },
-		{ name: 'Family', handle: GROUP }
-	]
-} as const;
-
 it.layer(TestWorkspace.layer({ root, now: '2026-11-02T12:00:00.000Z', ports }))(
-	'recipients with no account',
+	'subscribers with no envoy deployed',
 	(it) => {
-		it.effect('refuse the run before it starts work', () =>
+		it.effect('get the report in the app; the run files it and logs why nothing was sent', () =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				const owner = yield* t.as(t.member(['portfolio_manage']));
-				yield* settled(yield* owner.act({ 'portfolio_settings.create': [sgd] }));
+				const client = yield* t.as(t.member(['portfolio_read'], { phone: '+65 9000 0001' }));
+				yield* settled(yield* client.act({ 'report_subscription.create': [{}] }));
 				yield* owner.run('portfolio_agent', {}, JobResult);
-				const { failed } = yield* t.run_due();
-				expect(failed).toMatchObject([{ error: expect.stringContaining('no active account') }]);
+				expect((yield* t.run_due()).failed).toEqual([]);
+				expect(
+					yield* owner.query({ report: { fields: ['research_log'], limit: 1 } })
+				).toMatchObject({
+					report: {
+						rows: [{ research_log: expect.stringContaining('notified in the app only') }]
+					}
+				});
 			})
 		);
 	}
@@ -317,7 +310,7 @@ it.layer(
 	})
 )('the report in another currency, sent on WhatsApp', (it) => {
 	it.effect(
-		'values the book in SGD and sends its record view as a PDF to each chat and subscriber through the paired account',
+		'values the book in SGD and sends its record view as a PDF to each subscriber through the envoy’s account',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -325,9 +318,17 @@ it.layer(
 				const admin = yield* t.as(t.admin);
 				const client = yield* t.as(t.member(['portfolio_read'], { phone: '+65 9000 0001' }));
 				yield* settled(yield* client.act({ 'report_subscription.create': [{}] }));
+				yield* settled(yield* admin.act({ 'sys_envoy.create': [{ name: 'Reports desk' }] }));
+				const [envoy] = yield* t.db.rows(Schema.Struct({ id: Schema.String }), {
+					text: `SELECT id::text AS id FROM sys_envoy`,
+					params: []
+				});
+				if (envoy === undefined) return yield* Effect.die(new Error('no envoy'));
 				yield* settled(
 					yield* admin.act({
-						'sys_integration.create': [{ integration: 'whatsapp', name: 'Reports' }]
+						'sys_integration.create': [
+							{ integration: 'whatsapp', name: 'Reports', envoy: envoy.id }
+						]
 					})
 				);
 				const [account] = yield* t.db.rows(Schema.Struct({ id: id_of('sys_integration') }), {
@@ -337,9 +338,7 @@ it.layer(
 				if (account === undefined) return yield* Effect.die(new Error('no account'));
 				yield* t.integrations.pair(account.id, { key: 'k1' });
 				yield* settled(
-					yield* owner.act({
-						'portfolio_settings.create': [{ ...sgd, report_via: account.id }]
-					})
+					yield* owner.act({ 'portfolio_settings.create': [{ base_currency: 'SGD' }] })
 				);
 
 				yield* owner.run('portfolio_agent', {}, JobResult);
@@ -349,8 +348,7 @@ it.layer(
 						rows: [
 							{
 								base_currency: 'SGD',
-								summary: expect.stringContaining('net assets SGD'),
-								deliveries: [expect.any(String), expect.any(String)]
+								summary: expect.stringContaining('net assets SGD')
 							}
 						]
 					}
@@ -361,25 +359,22 @@ it.layer(
 					params: []
 				});
 				if (filed === undefined) return yield* Effect.die(new Error('no report'));
-				expect(rendered).toEqual([expect.stringContaining(`?record=report/${filed.id}&print`)]);
+				expect(rendered).toContainEqual(
+					expect.stringContaining(`?record=report/${filed.id}&print`)
+				);
 
 				yield* t.syncs.deliver();
 				const pdf = [expect.objectContaining({ mime: 'application/pdf' })];
-				expect(t.fakes.links.sent).toHaveLength(3);
-				expect(t.fakes.links.sent).toEqual(
-					expect.arrayContaining(
-						['6591234567@s.whatsapp.net', GROUP, '6590000001@s.whatsapp.net'].map((to) =>
-							expect.objectContaining({
-								instance: account.id,
-								message: expect.objectContaining({
-									to,
-									text: expect.stringContaining('Acme won a large order, per news.example.'),
-									attachments: pdf
-								})
-							})
-						)
-					)
-				);
+				expect(t.fakes.links.sent).toEqual([
+					expect.objectContaining({
+						instance: account.id,
+						message: expect.objectContaining({
+							to: '6590000001@s.whatsapp.net',
+							text: expect.stringContaining('Acme won a large order, per news.example.'),
+							attachments: pdf
+						})
+					})
+				]);
 				yield* t.event(account.id, {
 					kind: 'delivery',
 					provider_id: `${account.id}:1`,

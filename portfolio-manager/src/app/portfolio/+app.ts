@@ -10,6 +10,7 @@ export default app({
 		dashboard: { title: 'Dashboard', icon: 'lucide:layout-dashboard' },
 		reports: { title: 'Reports', icon: 'lucide:newspaper' },
 		holdings: { title: 'Holdings', icon: 'lucide:trending-up' },
+		subscribers: { title: 'Subscribers', icon: 'lucide:bell' },
 		settings: { title: 'Settings', icon: 'lucide:settings' }
 	}
 });

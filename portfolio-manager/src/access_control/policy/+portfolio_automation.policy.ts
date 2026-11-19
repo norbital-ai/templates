@@ -1,8 +1,8 @@
 import { policy } from '@norbital-ai/bolt';
 
 /**
- * What the daily agent holds: read the book and the settings with the account they name, write the research on each
- * line and the day's report with the messages it went out as.
+ * What the daily agent holds: read the book, the settings, the subscribers and the envoy's accounts, write the research
+ * on each line and the day's report.
  */
 export default policy({
 	description:
@@ -13,8 +13,7 @@ export default policy({
 		portfolio_settings: { outputs: { default: {} } },
 		/** Every subscriber, notified directly. */
 		report_subscription: { outputs: { default: {} } },
-		sys_integration: { outputs: { default: {} } },
-		/** The report keeps the messages it was sent as. */
-		sys_message: { outputs: { default: {} } }
+		/** The accounts an envoy is deployed on: the report goes out through them. */
+		sys_integration: { outputs: { default: {} } }
 	}
 });

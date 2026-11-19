@@ -118,6 +118,11 @@
 				}
 			},
 			"fields": {
+				"accrued_interest": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"asset_class": {
 					"default": "equity",
 					"kind": "enum",
@@ -131,6 +136,21 @@
 						"loan",
 						"other"
 					]
+				},
+				"change_1m_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"change_1w_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"change_1y_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
 				},
 				"cost_value": {
 					"kind": "decimal",
@@ -155,6 +175,11 @@
 					"many": true,
 					"max": "32MiB",
 					"optional": true
+				},
+				"from_high_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
 				},
 				"insights": {
 					"fields": {
@@ -201,6 +226,11 @@
 					"kind": "decimal",
 					"scale": 2
 				},
+				"money_flow": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"movement": {
 					"kind": "enum",
 					"optional": true,
@@ -230,6 +260,15 @@
 					"kind": "object",
 					"many": true,
 					"optional": true
+				},
+				"pressure": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"buying",
+						"balanced",
+						"selling"
+					]
 				},
 				"price_date": {
 					"kind": "date",
@@ -263,6 +302,11 @@
 					"min": 1,
 					"optional": true
 				},
+				"rsi": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
 				"sources": {
 					"fields": {
 						"label": {
@@ -281,6 +325,15 @@
 					"kind": "text",
 					"optional": true
 				},
+				"trend": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"up",
+						"sideways",
+						"down"
+					]
+				},
 				"unrealised_pl": {
 					"kind": "decimal",
 					"optional": true,
@@ -288,6 +341,11 @@
 				},
 				"value_base": {
 					"kind": "decimal",
+					"scale": 2
+				},
+				"volatility_pct": {
+					"kind": "decimal",
+					"optional": true,
 					"scale": 2
 				},
 				"volume_ratio": {
@@ -327,26 +385,6 @@
 					"kind": "object",
 					"many": true,
 					"optional": true
-				},
-				"recipients": {
-					"fields": {
-						"handle": {
-							"kind": "text"
-						},
-						"name": {
-							"kind": "text",
-							"optional": true
-						}
-					},
-					"key": "handle",
-					"kind": "object",
-					"many": true,
-					"optional": true
-				},
-				"report_via": {
-					"kind": "ref",
-					"optional": true,
-					"to": "sys_integration"
 				}
 			},
 			"record_label": "'Portfolio settings'"
@@ -385,11 +423,24 @@
 					"optional": true,
 					"scale": 2
 				},
-				"deliveries": {
-					"kind": "ref",
+				"exposure": {
+					"fields": {
+						"currency": {
+							"kind": "text"
+						},
+						"value": {
+							"kind": "decimal",
+							"scale": 2
+						},
+						"weight": {
+							"kind": "decimal",
+							"scale": 2
+						}
+					},
+					"key": "currency",
+					"kind": "object",
 					"many": true,
-					"optional": true,
-					"to": "sys_message"
+					"optional": true
 				},
 				"for_date": {
 					"kind": "date"
@@ -428,6 +479,21 @@
 				},
 				"markets": {
 					"fields": {
+						"change_1m_pct": {
+							"kind": "decimal",
+							"optional": true,
+							"scale": 2
+						},
+						"change_1w_pct": {
+							"kind": "decimal",
+							"optional": true,
+							"scale": 2
+						},
+						"change_1y_pct": {
+							"kind": "decimal",
+							"optional": true,
+							"scale": 2
+						},
 						"change_pct": {
 							"kind": "decimal",
 							"optional": true,
@@ -439,6 +505,24 @@
 						"level": {
 							"kind": "decimal",
 							"scale": 2
+						},
+						"pressure": {
+							"kind": "enum",
+							"optional": true,
+							"values": [
+								"buying",
+								"balanced",
+								"selling"
+							]
+						},
+						"trend": {
+							"kind": "enum",
+							"optional": true,
+							"values": [
+								"up",
+								"sideways",
+								"down"
+							]
 						}
 					},
 					"key": "instrument",

@@ -1,28 +1,28 @@
 <script lang="ts">
-	/** The one settings row (base currency, benchmarks, the account and chats the report goes to) and its subscribers. */
+	/** The one settings row as a form: the currency the book is valued in and the benchmarks the markets table leads with. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Table } from '@norbital-ai/ui';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { EmptyState, RecordShell } from '@norbital-ai/ui';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
+
+	const read = ctx.query({ portfolio_settings: { limit: 1 } });
+	const settings = $derived(read.current?.portfolio_settings.rows[0] ?? null);
 </script>
 
 <AppShell
 	title="Settings"
-	description="The currency the book is valued in, the benchmarks, the paired account and chats the daily report goes to, and the users subscribed to it. Keep one settings row."
+	description="The currency the book is valued and reported in, and the indices the report's markets table leads with."
 	icon="lucide:settings"
+	variant="full"
 >
-	<Stack size="fill" gap="lg">
-		<Table
-			{ctx}
-			of="portfolio_settings"
-			columns={['base_currency', 'report_via', 'recipients', 'benchmarks']}
-			toolbar={{ title: 'Settings', new: true }}
-		/>
-		<Table
-			{ctx}
-			of="report_subscription"
-			columns={['user']}
-			toolbar={{ title: 'Subscribers', new: true }}
-		/>
-	</Stack>
+	{#if read.error}<EmptyState title={read.error.message} />
+	{:else if read.current !== undefined}
+		{#key settings?.id ?? 'new'}<RecordShell
+				{ctx}
+				of="portfolio_settings"
+				{...settings === null ? { mode: 'create' as const } : { id: settings.id }}
+				fields={['base_currency', 'benchmarks']}
+				on_done={() => {}}
+			/>{/key}
+	{/if}
 </AppShell>

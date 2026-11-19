@@ -16,7 +16,7 @@ report_subscription/
 
 ## Surfaces
 
-- App: `portfolio` — `dashboard`, `reports`, `holdings`, `settings`
+- App: `portfolio` — `dashboard`, `reports`, `holdings`, `subscribers`, `settings`
 - Automation: `portfolio_agent` (daily, 08:00 in the workspace zone, `src/+workspace.ts` `tz`)
 - Policies: `portfolio_manage`, `portfolio_read`, `portfolio_automation`
 - Teams: `investors`, `portfolio_viewers`
@@ -24,7 +24,7 @@ report_subscription/
   and headline readers, browser research, sources and citations)
 - Record view: `src/data/model/report/+representation.svelte` is the client-facing report; the PDF sent
   is this view rendered
-- Custom fields, integrations: none; delivery uses a built-in chat account named by the settings row
+- Custom fields, integrations: none; delivery goes through every chat account an envoy is deployed on
 
 ## Gates
 
@@ -35,8 +35,9 @@ generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.jso
 ## Invariants
 
 - Four models. Cash and facilities are `holding` lines; a facility's base value is never positive.
-- Currency, delivery account, recipients and benchmarks are the `portfolio_settings` row; subscribers
-  are `report_subscription` rows, one per user, each client's own: configuration, not code.
+- Currency and benchmarks are the `portfolio_settings` row; subscribers are `report_subscription`
+  rows, one per user, each client's own; the delivery account is wherever an envoy is deployed:
+  configuration, not code.
 - Every claim in a report links its source (`cite` in `market.ts`); an uncited section is dropped.
 - One report per day: a second run that day updates it.
 - The agent asks the model for no host tool.

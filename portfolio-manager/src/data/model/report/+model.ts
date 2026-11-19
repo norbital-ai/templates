@@ -15,17 +15,17 @@ const columns = [
 	'unrealised_pl',
 	'day_change',
 	'allocation',
+	'exposure',
 	'fx_used',
 	'positions',
-	'sources',
-	'deliveries'
+	'sources'
 ] as const;
 
 /**
  * One day's report, written to be read in a minute: the lead, what is in it, the markets table with the data line and
  * the move, and one section per line with cited news. Every claim links its source; `sources` keeps them. The book's
- * totals, allocation and rates stay on the record. The daily agent sends its record view, rendered to PDF, to the
- * subscribed users and the chats in the settings.
+ * totals, allocation and rates stay on the record. The daily agent sends its record view, rendered to PDF, to every
+ * subscriber through the envoy's accounts.
  */
 export default model('report', {
 	description:
@@ -39,7 +39,10 @@ export default model('report', {
 		headline: { kind: 'text', format: 'markdown' },
 		/** In today's report: two to four bullets. */
 		summary: { kind: 'text', format: 'markdown' },
-		/** Every line of the book and the benchmarks: its price where quoted, else its value in base. */
+		/**
+		 * The benchmarks and every quoted line of the book: price, the move over a day, a week, a month and a year, the
+		 * trend, and whether buyers or sellers lead.
+		 */
 		markets: {
 			kind: 'object',
 			many: true,
@@ -48,7 +51,12 @@ export default model('report', {
 			fields: {
 				instrument: { kind: 'text' },
 				level: { kind: 'decimal', scale: 2 },
-				change_pct: { kind: 'decimal', scale: 2, optional: true }
+				change_pct: { kind: 'decimal', scale: 2, optional: true },
+				change_1w_pct: { kind: 'decimal', scale: 2, optional: true },
+				change_1m_pct: { kind: 'decimal', scale: 2, optional: true },
+				change_1y_pct: { kind: 'decimal', scale: 2, optional: true },
+				trend: { kind: 'enum', values: ['up', 'sideways', 'down'], optional: true },
+				pressure: { kind: 'enum', values: ['buying', 'balanced', 'selling'], optional: true }
 			}
 		},
 		/** The data line (as of, providers) and one cited paragraph on the move. */
@@ -74,6 +82,19 @@ export default model('report', {
 				weight: { kind: 'decimal', scale: 2 }
 			}
 		},
+		/** The book by currency, in base, weighed against total assets: what a move in each rate touches. */
+		exposure: {
+			kind: 'object',
+			many: true,
+			optional: true,
+			key: 'currency',
+			fields: {
+				currency: { kind: 'text' },
+				value: { kind: 'decimal', scale: 2 },
+				weight: { kind: 'decimal', scale: 2 }
+			}
+		},
+		/** Every rate the run valued a line or a quote at: base per unit of the currency. */
 		fx_used: {
 			kind: 'object',
 			many: true,
@@ -112,9 +133,7 @@ export default model('report', {
 				url: { kind: 'text', format: 'url' },
 				at: { kind: 'instant' }
 			}
-		},
-		/** The messages the report went out as: queue admission; each message's own status says whether it arrived. */
-		deliveries: { kind: 'ref', to: 'sys_message', many: true, optional: true }
+		}
 	},
 	constraints: { one_per_day: { unique: ['for_date'], message: 'errors.report_exists' } },
 	indexes: { find: { text: ['headline', 'summary', 'market_view'] } },

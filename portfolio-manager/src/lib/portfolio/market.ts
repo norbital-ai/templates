@@ -4,7 +4,7 @@ import type { AutomationCtx } from '@norbital-ai/bolt';
 /** Free, keyless sources the daily agent reads over plain HTTP. */
 export const RATES_URL = (base: string) => `https://open.er-api.com/v6/latest/${base}`;
 export const QUOTE_URL = (ticker: string) =>
-	`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=3mo&interval=1d`;
+	`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1y&interval=1d`;
 export const NEWS_URL = (query: string) =>
 	`https://news.google.com/rss/search?q=${encodeURIComponent(`${query} when:7d`)}&hl=en-US&gl=US&ceid=US:en`;
 
@@ -93,10 +93,111 @@ export const quoteSymbol = (symbol: string): string | null => {
 	return null;
 };
 
-export type Quote = {
+/**
+ * What a year of daily bars says beyond the day, each null where the bars cannot carry it: the move over a week, a month
+ * and the year (5 and 21 sessions back, the year's first session); the trend (the price and its 50-session average
+ * against the 200-session one); buying against selling pressure (20-session Chaikin money flow, −1 to 1: where each
+ * close sits in its day's range, weighted by volume); RSI over 14 sessions (Wilder); the distance from the 52-week high;
+ * and volatility a year (the last 63 daily moves, annualised).
+ */
+export type Signals = {
+	readonly change_1w_pct: number | null;
+	readonly change_1m_pct: number | null;
+	readonly change_1y_pct: number | null;
+	readonly trend: 'up' | 'sideways' | 'down' | null;
+	readonly money_flow: number | null;
+	readonly pressure: 'buying' | 'balanced' | 'selling' | null;
+	readonly rsi: number | null;
+	readonly from_high_pct: number | null;
+	readonly volatility_pct: number | null;
+};
+export type Quote = Signals & {
+	/** In major units of `currency`: a quote in pence (GBp) is read in pounds. */
 	readonly price: number;
+	/** The quote's own currency; undefined when the answer names none (then the line's). */
+	readonly currency: string | undefined;
 	readonly change_pct: number | null;
 	readonly volume_ratio: number | null;
+};
+/** One session: its close, and its range and volume where the answer has them. */
+type Bar = {
+	readonly close: number;
+	readonly high: number | null;
+	readonly low: number | null;
+	readonly volume: number | null;
+};
+const round2 = (value: number) =>
+	BigDecimal.toNumberUnsafe(
+		BigDecimal.round(BigDecimal.fromNumberUnsafe(value), { scale: 2, mode: 'half-ceil' })
+	);
+const mean = (values: readonly number[]) => values.reduce((a, b) => a + b, 0) / values.length;
+const pctFrom = (now: number, then: number | undefined) =>
+	then === undefined || then <= 0 ? null : round2(((now - then) / then) * 100);
+
+/** The signals of `price` over its bars, oldest first (see `Signals`). */
+export const signalsOf = (price: number, bars: readonly Bar[]): Signals => {
+	const closes = bars.map((one) => one.close);
+	const year = closes.length >= 200;
+	const sma = (n: number) => (closes.length >= n ? mean(closes.slice(-n)) : null);
+	const sma50 = sma(50);
+	const sma200 = sma(200);
+	const flowBars = bars
+		.slice(-20)
+		.flatMap(({ close, high, low, volume }) =>
+			high !== null && low !== null && volume !== null && volume > 0 && high > low
+				? [{ close, high, low, volume }]
+				: []
+		);
+	const flowVolume = flowBars.reduce((a, one) => a + one.volume, 0);
+	const flow =
+		flowBars.length >= 10 && flowVolume > 0
+			? flowBars.reduce(
+					(a, one) =>
+						a +
+						((one.close - one.low - (one.high - one.close)) / (one.high - one.low)) * one.volume,
+					0
+				) / flowVolume
+			: null;
+	const moves = closes.slice(1).map((close, i) => close - (closes[i] ?? close));
+	let rsi: number | null = null;
+	if (moves.length >= 14) {
+		let gain = mean(moves.slice(0, 14).map((d) => Math.max(d, 0)));
+		let loss = mean(moves.slice(0, 14).map((d) => Math.max(-d, 0)));
+		for (const d of moves.slice(14)) {
+			gain = (gain * 13 + Math.max(d, 0)) / 14;
+			loss = (loss * 13 + Math.max(-d, 0)) / 14;
+		}
+		rsi = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+	}
+	const recent = closes.slice(-64);
+	const returns = recent.slice(1).map((close, i) => Math.log(close / (recent[i] ?? close)));
+	const drift = returns.length > 0 ? mean(returns) : 0;
+	const volatility =
+		returns.length >= 20
+			? Math.sqrt(returns.reduce((a, r) => a + (r - drift) ** 2, 0) / (returns.length - 1)) *
+				Math.sqrt(252) *
+				100
+			: null;
+	return {
+		change_1w_pct: pctFrom(price, closes.at(-6)),
+		change_1m_pct: pctFrom(price, closes.at(-22)),
+		change_1y_pct: year ? pctFrom(price, closes[0]) : null,
+		trend:
+			sma50 === null || sma200 === null
+				? null
+				: price > sma200 && sma50 > sma200
+					? 'up'
+					: price < sma200 && sma50 < sma200
+						? 'down'
+						: 'sideways',
+		money_flow: flow === null ? null : round2(flow),
+		pressure: flow === null ? null : flow > 0.05 ? 'buying' : flow < -0.05 ? 'selling' : 'balanced',
+		rsi: rsi === null ? null : round2(rsi),
+		from_high_pct: year
+			? pctFrom(price, Math.max(price, ...bars.slice(-252).map((one) => one.high ?? one.close)))
+			: null,
+		volatility_pct: volatility === null ? null : round2(volatility)
+	};
 };
 
 const Series = Schema.Array(Schema.NullOr(Schema.Number));
@@ -105,12 +206,18 @@ const Chart = Schema.Struct({
 		result: Schema.Array(
 			Schema.Struct({
 				meta: Schema.Struct({
+					currency: Schema.optionalKey(Schema.NullOr(Schema.String)),
 					regularMarketPrice: Schema.optionalKey(Schema.Number),
 					previousClose: Schema.optionalKey(Schema.Number)
 				}),
 				indicators: Schema.Struct({
 					quote: Schema.Array(
-						Schema.Struct({ close: Schema.optionalKey(Series), volume: Schema.optionalKey(Series) })
+						Schema.Struct({
+							close: Schema.optionalKey(Series),
+							high: Schema.optionalKey(Series),
+							low: Schema.optionalKey(Series),
+							volume: Schema.optionalKey(Series)
+						})
 					)
 				})
 			})
@@ -118,12 +225,14 @@ const Chart = Schema.Struct({
 	})
 });
 const decodeChart = Schema.decodeUnknownOption(Schema.fromJsonString(Chart));
+/** Exchanges that quote in a minor unit: the major currency it is a hundredth of. */
+const MINOR: Readonly<Record<string, string>> = { GBp: 'GBP', GBX: 'GBP', ZAc: 'ZAR', ILA: 'ILS' };
 const positive = (values: readonly (number | null)[] | undefined) =>
 	(values ?? []).filter((one): one is number => one !== null && one > 0);
 
 /**
- * The last price, its change on the day, and the last complete session's volume against the twenty
- * before it, from a chart answer; null when unreadable.
+ * The last price, its change on the day, the last complete session's volume against the twenty before it, and the
+ * signals of the year's bars (`Signals`), from a chart answer; null when unreadable.
  */
 export const parseQuote = (payload: string): Quote | null => {
 	const body = decodeChart(payload);
@@ -131,19 +240,36 @@ export const parseQuote = (payload: string): Quote | null => {
 	if (!result) return null;
 	const series = result.indicators.quote[0];
 	const closes = positive(series?.close);
-	const price = result.meta.regularMarketPrice ?? closes.at(-1);
-	if (price === undefined || price <= 0) return null;
+	const quoted = result.meta.regularMarketPrice ?? closes.at(-1);
+	if (quoted === undefined || quoted <= 0) return null;
+	const named = result.meta.currency ?? undefined;
+	const major = named === undefined ? undefined : MINOR[named];
+	const price = major === undefined ? quoted : quoted / 100;
 	const previous = result.meta.previousClose ?? closes.at(-2);
 	/** The last bar may be a partial session: measure the last complete one. */
 	const volumes = positive(series?.volume).slice(0, -1);
 	const volume = volumes.at(-1);
 	const prior = volumes.slice(0, -1).slice(-20);
 	const average = prior.length > 0 ? prior.reduce((a, b) => a + b, 0) / prior.length : 0;
+	const bars = (series?.close ?? []).flatMap((close, i) =>
+		close === null || close <= 0
+			? []
+			: [
+					{
+						close,
+						high: series?.high?.[i] ?? null,
+						low: series?.low?.[i] ?? null,
+						volume: series?.volume?.[i] ?? null
+					}
+				]
+	);
 	return {
+		...signalsOf(quoted, bars),
 		price,
+		currency: major ?? named,
 		change_pct: previous
 			? BigDecimal.toNumberUnsafe(
-					BigDecimal.round(BigDecimal.fromNumberUnsafe(((price - previous) / previous) * 100), {
+					BigDecimal.round(BigDecimal.fromNumberUnsafe(((quoted - previous) / previous) * 100), {
 						scale: 2,
 						mode: 'half-ceil'
 					})

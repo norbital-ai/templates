@@ -1,0 +1,30 @@
+-- 0004_schema.sql: 3 step(s), from ff7da3f1da2f8a61f2016638ed3ccb7b2544ee1822eaa8c830ec35ffdd3b379d to e532a69ab0c26217b33491fd9efa1bb88075d67aeda99a87efb43bcc86e98935.
+-- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- hazard: validating: refuses, naming the constraint and the row count, if existing rows break it.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+
+-- step drop:constraint:report.report__ck__83f2d44c (additive)
+-- operational risk: access-exclusive-lock
+alter table "report" drop constraint if exists "report__ck__83f2d44c";
+
+-- step replace:history:schema:report (additive)
+select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"format":"markdown","kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"format":"markdown","kind":"text","optional":true},"markets":{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"format":"markdown","kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text"},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"sources":{"fields":{"at":{"kind":"instant"},"publisher":{"kind":"text"},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"summary":{"format":"markdown","kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"''Portfolio report · '' + string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
+
+-- step data:report.markets (data)
+-- hazard: the shape of report.markets changed; rows written under the old shape may not decode under the new one.
+-- Transform them here (an UPDATE over report); the check below counts the rows the new shape still refuses.
+-- step check:report.markets (validating)
+do $store$ declare n bigint; begin
+	execute 'select count(*) from "report" where "markets" is not null and store_json_valid("markets", ''{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true}''::jsonb) is not true' into n;
+	if n > 0 then raise exception 'the shape of report.markets refuses % existing row(s)', n; end if;
+end $store$;
+
+-- step create:constraint:report.report__ck__5c5adf28 (validating)
+-- operational risk: access-exclusive-lock, table-scan
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "report" where (("markets" is null or store_json_valid("markets", ''{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'report__ck__5c5adf28 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "report" add constraint "report__ck__5c5adf28" check (("markets" is null or store_json_valid("markets", '{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true));
