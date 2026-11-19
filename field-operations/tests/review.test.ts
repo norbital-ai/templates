@@ -55,6 +55,7 @@ const ScriptedAi = Layer.succeed(Ai, {
 	maxChoices: undefined,
 	models: ['default'],
 	catalog: Port.unavailable('ai'),
+	deciders: Port.unavailable('ai'),
 	infer: () =>
 		Stream.suspend(() => {
 			calls.infer += 1;

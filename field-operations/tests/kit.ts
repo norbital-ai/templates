@@ -23,6 +23,7 @@ const TestAi = Layer.succeed(Ai, {
 	maxChoices: undefined,
 	models: ['default'],
 	catalog: Port.unavailable('ai'),
+	deciders: Port.unavailable('ai'),
 	infer: () =>
 		Stream.fail(new Unavailable({ facility: 'ai', reason: 'the test host scripts no inference' })),
 	embed: (inputs, _model, dimensions = 256) =>

@@ -8,6 +8,7 @@ const base: Ai['Service'] = {
 	maxChoices: undefined,
 	models: ['default'],
 	catalog: Effect.succeed({ models: [{ id: 'default', label: 'Test' }], default: 'default' }),
+	deciders: Effect.succeed({ models: [{ id: 'default', label: 'Test' }], default: 'default' }),
 	ask: () => Port.unavailable('ai.sys_1', 'No scripted System 1 answer remains.'),
 	infer: () => Stream.fromEffect(Port.unavailable('ai', 'fake')),
 	embed: () => Port.unavailable('ai.embed')
