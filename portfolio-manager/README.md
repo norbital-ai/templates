@@ -12,7 +12,8 @@ written by one agent.
 | ----------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
 | `portfolio` | Dashboard, Reports, Holdings, Subscribers, Settings | `investors` (`portfolio_manage`), `portfolio_viewers` (`portfolio_read`) |
 
-- `portfolio_manage` reads and maintains the book, the reports and the settings, and may start the agent by hand.
+- `portfolio_manage` reads and maintains the book and the settings, reads and deletes reports (a report is read-only:
+  it is what the agent saw that day), and may start the agent by hand.
 - `portfolio_read` reads the book and the reports and changes nothing.
 - `portfolio_automation` is what the agent holds: it reads the book, the settings, the subscribers and the accounts
   an envoy is deployed on, and writes the research and the report.
@@ -55,9 +56,10 @@ every benchmark and quoted line.
 
 `portfolio_agent` runs every morning at 08:00 in the workspace's zone, or by hand from Holdings. It
 reads exchange rates and quotes from free, keyless sources over plain HTTP; searches the market and
-the largest lines in its own browser tab (`ctx.browser`) and reads the _sources to read_ stored on
-each line; files each line's P&L for the day; asks the model for a section on each line it read
-something on and for the lead and the market paragraph; files the day's report (a second run that day rewrites it); renders the report's own record
+the six largest positions in its own browser tab (`ctx.browser`), the rest through their news feed, and reads the
+_sources to read_ stored on each line; files each line's P&L for the day; asks the model for a call on every position
+it read news on or holds a quote for (the quote's trading is itself a citable source), and for the lead and the
+market paragraph; files the day's report (a second run that day rewrites it); renders the report's own record
 view to PDF (`ctx.convert.record`, never stored) and sends it with the lead and the summary to each
 `report_subscription` user, once a day: in their inbox, and through every chat account an envoy is deployed on
 (a notice `via` those accounts, to the user's own WhatsApp number, Telegram, Slack or Discord); and notifies
@@ -73,7 +75,8 @@ what the PDF shows, all Markdown, in this order: the date and a one-sentence lea
 four bullets; the book at a glance (net assets over the recent reports, allocation, the P&L of each line in the
 report), charts with axes and legends so they read on paper; the markets as a plain Markdown table (every benchmark
 and every quoted line: price, change ▲/▼) with a _data as of_ line naming the providers and one paragraph on the
-move; then one section per line with
+move; then every position as the run valued it (value, share, the day's move, P&L and its call), a plain Markdown
+table; then one section per call with
 cited news, with _What happened_, _Why it matters for the book_ and _Call_. The model writes to six
 numbered rules (plain words, no hype or filler, units and dates, every claim cited, cut what does not
 change a decision, invent nothing). It cites a numbered source as `[n]`; `cite` in

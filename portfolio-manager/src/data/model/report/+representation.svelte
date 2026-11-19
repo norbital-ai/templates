@@ -61,6 +61,47 @@
 				return `| ${one.currency} | ${rate ?? '—'} | ${decimal(one.value)} | ${one.weight}% |`;
 			})
 		].join('\n');
+	/**
+	 * Every position as the run valued it, a plain Markdown table: value and P&L in base, its weight, the day's move and
+	 * the call where the agent made one.
+	 */
+	const positionTable = (
+		base: string,
+		rows: readonly {
+			readonly instrument: string;
+			readonly symbol?: string | null;
+			readonly value?: string | null;
+			readonly weight?: string | null;
+			readonly change_pct?: string | null;
+			readonly pnl?: string | null;
+			readonly pnl_pct?: string | null;
+			readonly call?: string | null;
+		}[]
+	) =>
+		[
+			`| ${[
+				t('component.report_position'),
+				t('component.report_value', { base }),
+				t('component.report_share'),
+				t('component.report_change'),
+				t('component.report_pnl_column', { base }),
+				t('component.report_pnl_pct'),
+				t('component.report_call')
+			].join(' | ')} |`,
+			'| --- | ---: | ---: | ---: | ---: | ---: | --- |',
+			...rows.map(
+				(one) =>
+					`| ${[
+						(one.symbol ?? one.instrument).replaceAll('|', '\\|'),
+						one.value == null ? '—' : decimal(one.value),
+						one.weight == null ? '—' : `${one.weight}%`,
+						move(one.change_pct),
+						one.pnl == null ? '—' : decimal(one.pnl),
+						move(one.pnl_pct),
+						word(one.call)
+					].join(' | ')} |`
+			)
+		].join('\n');
 	/** A change as the table shows it: ▲ or ▼ and the percentage. */
 	const move = (value: string | null | undefined) =>
 		value == null ? '—' : `${value.startsWith('-') ? '▼' : '▲'} ${value.replace(/^-/, '')}%`;
@@ -111,7 +152,14 @@
 	<RecordShell {ctx} of="report" mode="create" values={view.values} />
 {:else}
 	{@const report = view.record}
-	<RecordShell {ctx} of="report" mode={view.mode} id={report.id}>
+	<!-- read-only for everyone, admins too: a report is what the agent saw that day -->
+	<RecordShell
+		{ctx}
+		of="report"
+		mode={view.mode}
+		id={report.id}
+		lock={t('component.report_locked')}
+	>
 		<article class="flex max-w-4xl flex-col gap-6">
 			<ReadonlyMarkdown value={`**${report.headline}**`} />
 			<section>
@@ -175,14 +223,22 @@
 					/>{/if}
 				{#if report.market_view}<ReadonlyMarkdown value={report.market_view} />{/if}
 			</section>
-			{#each report.positions ?? [] as item (item.instrument)}
-				<section class="flex flex-col gap-1">
-					<p class="text-muted-foreground text-xs uppercase">
-						{item.symbol ?? item.instrument} · {item.call}
-					</p>
-					<h2 class="font-semibold">{item.headline}</h2>
-					<ReadonlyMarkdown value={item.analysis} />
+			{#if (report.positions ?? []).length > 0}
+				<section>
+					<h2 class="font-semibold">{t('component.report_positions')}</h2>
+					<ReadonlyMarkdown value={positionTable(report.base_currency, report.positions ?? [])} />
 				</section>
+			{/if}
+			{#each report.positions ?? [] as item (item.instrument)}
+				{#if item.analysis}
+					<section class="flex flex-col gap-1">
+						<p class="text-muted-foreground text-xs uppercase">
+							{item.symbol ?? item.instrument} · {item.call}
+						</p>
+						<h2 class="font-semibold">{item.headline}</h2>
+						<ReadonlyMarkdown value={item.analysis} />
+					</section>
+				{/if}
 			{/each}
 		</article>
 	</RecordShell>

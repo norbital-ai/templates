@@ -267,7 +267,7 @@ accumulator's mark, keeps its row) -->
 						{/if}
 					</section>
 					<section class="panel calls">
-						<h2 class="mb-4">Calls</h2>
+						<h2 class="mb-4">Positions and calls</h2>
 						<Table
 							{ctx}
 							of={latest.positions ?? []}
@@ -276,6 +276,7 @@ accumulator's mark, keeps its row) -->
 							columns={[
 								'instrument',
 								'call',
+								{ field: 'value', label: 'Value' },
 								{ field: 'weight', label: 'Weight %' },
 								{ field: 'change_pct', label: 'Day', cell: move },
 								{ field: 'pnl', label: 'P&L' },

@@ -102,6 +102,10 @@ export default model('report', {
 			key: 'pair',
 			fields: { pair: { kind: 'text' }, rate: { kind: 'decimal', scale: 6 } }
 		},
+		/**
+		 * Every position of the book as the run valued it (value and P&L in base, weight of total assets), with the call
+		 * where the agent made a cited one: headline, call and analysis are absent on a line it had nothing to cite for.
+		 */
 		positions: {
 			kind: 'object',
 			many: true,
@@ -110,14 +114,15 @@ export default model('report', {
 			fields: {
 				instrument: { kind: 'text' },
 				symbol: { kind: 'text', optional: true },
+				value: { kind: 'decimal', scale: 2, optional: true },
 				weight: { kind: 'decimal', scale: 2, optional: true },
 				change_pct: { kind: 'decimal', scale: 2, optional: true },
-				call: { kind: 'enum', values: ['buy', 'sell', 'hold', 'watch'] },
-				headline: { kind: 'text' },
+				call: { kind: 'enum', values: ['buy', 'sell', 'hold', 'watch'], optional: true },
+				headline: { kind: 'text', optional: true },
 				pnl: { kind: 'decimal', scale: 2, optional: true },
 				pnl_pct: { kind: 'decimal', scale: 2, optional: true },
 				/** What happened, why it matters for the book, the call: each paragraph cites its sources inline. */
-				analysis: { kind: 'text', format: 'markdown' },
+				analysis: { kind: 'text', format: 'markdown', optional: true },
 				confidence: { kind: 'decimal', scale: 2, optional: true }
 			}
 		},

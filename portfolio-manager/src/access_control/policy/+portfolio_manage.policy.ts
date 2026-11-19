@@ -1,13 +1,14 @@
 import { policy } from '@norbital-ai/bolt';
 
-/** The portfolio owner: reads every record, maintains the book and the settings, and runs the agent by hand. */
+/** The portfolio owner: reads every record, maintains the book and the settings, and runs the agent by hand; reports are read-only. */
 export default policy({
 	description:
 		'Full access to the book and the reports, and the agent that researches and reports on it.',
 	capabilities: { apps: ['portfolio'], automations: ['portfolio_agent'] },
 	grants: {
 		holding: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
-		report: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		/** Reports are what the agent saw on a day: read and delete them, never edit them. */
+		report: { outputs: { default: {} }, delete: {} },
 		portfolio_settings: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		sys_integration: { outputs: { default: {} } },
 		report_subscription: { outputs: { default: {} }, create: {}, delete: {} },

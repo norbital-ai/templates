@@ -10,11 +10,11 @@ settings row configures them, subscriptions say who gets the report, and one age
   `insights` hold what the agent found. A quoted line also carries its signals from a year of daily
   bars: `change_1w_pct`, `change_1m_pct`, `change_1y_pct`, `trend` (up, sideways, down), `money_flow`
   and `pressure` (buying, balanced, selling), `volume_ratio`, `rsi`, `from_high_pct`, `volatility_pct`.
-- **`report`** — one per day, read in a minute: `headline` (the lead), `summary` (in today's report),
+- **`report`** — one per day, read-only (what the agent saw that day), read in a minute: `headline` (the lead), `summary` (in today's report),
   `markets` (the benchmarks and every quoted line: price, the day, week, month and year, trend,
   pressure), `market_view` (data line and the move),
-  `positions` (one section per line with cited news: headline, what happened, why it matters, the
-  call) and `sources` (everything it cites). Totals, `allocation`, `exposure` (by currency) and
+  `positions` (every position as the run valued it: value, weight, the day's move, P&L, and where the
+  agent made a cited call its headline, what happened, why it matters and the call) and `sources` (everything it cites). Totals, `allocation`, `exposure` (by currency) and
   `fx_used` stay on the record.
 - **Statements** — the holdings are the latest bank statement, a monthly snapshot (`price_date` is its
   date; `accrued_interest` is in the line's currency). A new statement updates each line to it, adds

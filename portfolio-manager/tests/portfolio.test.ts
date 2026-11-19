@@ -132,10 +132,11 @@ it.layer(TestWorkspace.layer({ root, ports }))('the book', (it) => {
 			})
 	);
 
-	it.effect('a loan is owed and a day has one report', () =>
+	it.effect('a loan is owed, a day has one report and an owner cannot write one', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const owner = yield* t.as(t.member(['portfolio_manage']));
+			const admin = yield* t.as(t.admin);
 			const loan = yield* Effect.flip(
 				owner.act({
 					'holding.create': [
@@ -155,8 +156,11 @@ it.layer(TestWorkspace.layer({ root, ports }))('the book', (it) => {
 				cash: '0',
 				liabilities: '0'
 			} as const;
-			yield* owner.act({ 'report.create': [report] });
-			const twice = yield* Effect.flip(owner.act({ 'report.create': [report] }));
+			expect(yield* Effect.flip(owner.act({ 'report.create': [report] }))).toBeInstanceOf(
+				ActRefused
+			);
+			yield* admin.act({ 'report.create': [report] });
+			const twice = yield* Effect.flip(admin.act({ 'report.create': [report] }));
 			expect(twice).toMatchObject({ _tag: 'ActRefused', key: 'errors.report_exists' });
 		})
 	);
@@ -203,6 +207,12 @@ it.layer(
 											'**Why it matters for the book:** The line is the largest in the book, per [Yahoo Finance](https://finance.yahoo.com).',
 											`**Call:** HOLD. The order backs the backlog, per ${ACME_LINK}.`
 										].join('\n\n')
+									},
+									/** Every position is filed; the bond's uncited call is dropped, its figures stay. */
+									{
+										instrument: 'Global Bond Index Fund',
+										value: decimal(5100),
+										pnl: decimal(100)
 									}
 								],
 								sources: expect.arrayContaining([

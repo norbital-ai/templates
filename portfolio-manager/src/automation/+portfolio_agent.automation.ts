@@ -23,7 +23,7 @@ import {
 } from '../lib/portfolio/market.ts';
 import { computeMetrics, costInBase, isPosition, lineValue } from '../lib/portfolio/book.ts';
 
-/** How many dated P&L entries a line keeps, and how many of the largest lines are researched. */
+/** How many dated P&L entries a line keeps, and how many of the largest lines are researched in the browser. */
 const PNL_DAYS = 90;
 const RESEARCHED = 6;
 /** The base currency of a workspace with no `portfolio_settings` row. */
@@ -205,14 +205,16 @@ export default automation({
 		);
 
 		/**
-		 * The market and the largest positions, searched in the browser; a line the browser finds nothing on falls back to
-		 * its news feed. Each line's stored sources are read too.
+		 * The market, searched in the browser; then each position (below): a line the browser finds nothing on, or past the
+		 * largest few, reads its news feed. Each line's stored sources are read too.
 		 */
 		const market = yield* search(ctx, 'stock market today', 3, log);
 		const reads = new Map<string, Read[]>();
-		for (const { row } of book.filter(({ row }) => isPosition(row)).slice(0, RESEARCHED)) {
+		/** Every position's news: the largest ones searched in the browser, the rest from their news feed. */
+		for (const [index, { row }] of book.filter(({ row }) => isPosition(row)).entries()) {
 			const name = row.symbol ?? row.instrument;
-			const pages = yield* search(ctx, `${name} stock news`, 2, log);
+			const pages: Read[] =
+				index < RESEARCHED ? [...(yield* search(ctx, `${name} stock news`, 2, log))] : [];
 			if (pages.length === 0) {
 				const feed = yield* read(NEWS_URL(`${name} stock`), true);
 				const headlines = Option.match(feed, {
@@ -238,6 +240,7 @@ export default automation({
 		 * cites what was read; an uncited answer is dropped. Every line takes its price read and its P&L for the day.
 		 */
 		const sections = [];
+		const positions = [];
 		const cited: Source[] = [];
 		const writes = [];
 		for (const { row, quote, live, value } of book) {
@@ -259,8 +262,9 @@ export default automation({
 			const pages = reads.get(row.id) ?? [];
 			const name = row.symbol ?? row.instrument;
 			const sources = [QUOTE_SOURCE, ...pages.map(sourceOf)];
+			/** A line with news read or a quote gets a call: the quote's trading is itself a source ([1]). */
 			const call =
-				pages.length === 0
+				pages.length === 0 && quote === null
 					? null
 					: Option.getOrNull(
 							yield* ctx.ai.sys_2
@@ -300,26 +304,30 @@ export default automation({
 			const happened = call && cite(call.happened, sources);
 			const matters = call && cite(call.matters, sources);
 			const reason = call && cite(call.reason, sources);
+			/** The line as this run valued it; a cited call joins it. Today's change only: a stale one is no snapshot. */
+			const line = {
+				instrument: row.instrument,
+				symbol: row.symbol,
+				value: BigDecimal.format(value),
+				weight: BigDecimal.format(
+					BigDecimal.isPositive(metrics.total_assets)
+						? BigDecimal.round(
+								BigDecimal.divideUnsafe(
+									BigDecimal.multiply(value, BigDecimal.fromBigInt(100n)),
+									metrics.total_assets
+								),
+								{ scale: 2, mode: 'half-from-zero' }
+							)
+						: BigDecimal.fromBigInt(0n)
+				),
+				change_pct: live ? live.live_change_pct : null,
+				pnl: BigDecimal.format(pnl),
+				pnl_pct: pnl_pct === null ? null : BigDecimal.format(pnl_pct)
+			};
 			const section =
 				call && happened && matters && reason
 					? {
-							instrument: row.instrument,
-							symbol: row.symbol,
-							weight: BigDecimal.format(
-								BigDecimal.round(
-									(BigDecimal.isPositive(metrics.total_assets)
-										? BigDecimal.round(
-												BigDecimal.divideUnsafe(
-													BigDecimal.multiply(value, BigDecimal.fromBigInt(100n)),
-													metrics.total_assets
-												),
-												{ scale: 2, mode: 'half-from-zero' }
-											)
-										: null) ?? BigDecimal.fromBigInt(0n),
-									{ scale: 2, mode: 'half-from-zero' }
-								)
-							),
-							change_pct: live ? live.live_change_pct : row.live_change_pct,
+							...line,
 							call: call.call,
 							headline: call.headline,
 							analysis: [
@@ -327,18 +335,12 @@ export default automation({
 								`**Why it matters for the book:** ${matters.text}`,
 								`**Call:** ${call.call.toUpperCase()}. ${reason.text}`
 							].join('\n\n'),
-							confidence: call.confidence ?? null,
-							pnl: BigDecimal.format(BigDecimal.round(pnl, { scale: 2, mode: 'half-from-zero' })),
-							pnl_pct:
-								pnl_pct === null
-									? null
-									: BigDecimal.format(
-											BigDecimal.round(pnl_pct, { scale: 2, mode: 'half-from-zero' })
-										)
+							confidence: call.confidence ?? null
 						}
 					: null;
+			positions.push(section ?? line);
 			log.push(
-				`model ${name}: ${pages.length === 0 ? 'nothing read' : call === null ? 'no answer' : section ? call.call : 'dropped, uncited'}`
+				`model ${name}: ${pages.length === 0 && quote === null ? 'nothing read' : call === null ? 'no answer' : section ? call.call : 'dropped, uncited'}`
 			);
 			if (section && happened && matters && reason) {
 				sections.push(section);
@@ -549,7 +551,7 @@ export default automation({
 						})
 					)
 				})),
-			positions: sections,
+			positions,
 			sources
 		};
 		const answer = existing

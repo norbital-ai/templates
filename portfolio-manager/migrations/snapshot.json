@@ -538,10 +538,12 @@
 					"fields": {
 						"analysis": {
 							"format": "markdown",
-							"kind": "text"
+							"kind": "text",
+							"optional": true
 						},
 						"call": {
 							"kind": "enum",
+							"optional": true,
 							"values": [
 								"buy",
 								"sell",
@@ -560,7 +562,8 @@
 							"scale": 2
 						},
 						"headline": {
-							"kind": "text"
+							"kind": "text",
+							"optional": true
 						},
 						"instrument": {
 							"kind": "text"
@@ -578,6 +581,11 @@
 						"symbol": {
 							"kind": "text",
 							"optional": true
+						},
+						"value": {
+							"kind": "decimal",
+							"optional": true,
+							"scale": 2
 						},
 						"weight": {
 							"kind": "decimal",
