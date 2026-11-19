@@ -1,7 +1,7 @@
 import { app } from '@norbital-ai/bolt';
 
 export default app({
-	title: 'Entities',
+	title: 'app.hr_controller.entities_title',
 	description: 'app.hr_controller.entities_description',
 	icon: 'lucide:building-2',
 	banner: 'app-media/entities-banner.webp',

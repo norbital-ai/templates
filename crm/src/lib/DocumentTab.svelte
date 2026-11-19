@@ -203,6 +203,7 @@
 					body={shown}
 					title={name}
 					signature={signature ? ctx.file_url(signature) : undefined}
+					signaturesLabel={t('component.signatures')}
 				/>
 			{/if}
 		{/if}

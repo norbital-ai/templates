@@ -6,8 +6,15 @@
 		body,
 		title,
 		signature,
+		signaturesLabel = 'Signatures',
 		children
-	}: { body: string; title: string; signature?: string | undefined; children?: Snippet } = $props();
+	}: {
+		body: string;
+		title: string;
+		signature?: string | undefined;
+		signaturesLabel?: string;
+		children?: Snippet;
+	} = $props();
 	const document = $derived(documentLayout(body));
 </script>
 
@@ -24,7 +31,7 @@
 	<article class="document-paper document-body" aria-label={title}>
 		<ReadonlyMarkdown value={document.body} />
 		{#if document.signatures}
-			<section class="document-signatures" aria-label="Signatures">
+			<section class="document-signatures" aria-label={signaturesLabel}>
 				{#if document.signatures.introduction}<p>{document.signatures.introduction}</p>{/if}
 				<div class="signature-parties">
 					{#each document.signatures.parties as party, index}

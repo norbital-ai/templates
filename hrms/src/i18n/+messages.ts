@@ -1008,5 +1008,22 @@ export default messages({
 	'import.loans': 'Import loans',
 	'import.cases': 'Import workplace cases',
 	'import.holidays': 'Import holidays',
-	'import.no_holidays': 'This file has no holidays to import.'
+	'import.no_holidays': 'This file has no holidays to import.',
+	'component.code': 'Code',
+	'component.fields_comma': 'Fields (comma separated)',
+	'component.add_model_read': 'Add a model to read',
+	'component.no_reads': 'No reads.',
+	'component.rows': '{count} rows',
+	'component.fields': 'fields',
+	'component.id': 'id',
+	'component.sealed': 'Sealed',
+	'component.open': 'Open',
+	'component.add_allowance': 'Add allowance',
+	'component.select_leave_type': 'Select leave type',
+	'component.leave_type': 'Leave type',
+	'component.half_day_hint':
+		'Tap a half-day to select or deselect it. Filled buttons are selected; dimmed days are unavailable.',
+	'component.days_left': '{count} d left',
+	'component.catalog': 'Catalog',
+	'component.employment': 'Employment'
 });

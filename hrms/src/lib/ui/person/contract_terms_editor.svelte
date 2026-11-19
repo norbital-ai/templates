@@ -102,6 +102,7 @@
 		<Stack gap="xs">
 			<span class="text-sm font-medium">{ctx.t('contract.allowances')}</span>
 			<AllowanceTermsEditor
+				{ctx}
 				field={{
 					id: `${field.id}-allowances`,
 					disabled: field.disabled,

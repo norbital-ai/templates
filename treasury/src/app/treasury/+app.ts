@@ -1,16 +1,16 @@
 import { app } from '@norbital-ai/bolt';
 /** Financing, evidence, decisions and reporting. */
 export default app({
-	title: 'Treasury',
-	description: 'Plan financing, record bank advices and close the month.',
+	title: 'app.treasury.title',
+	description: 'app.treasury.description',
 	icon: 'lucide:landmark',
 	banner: 'app-media/treasury.webp',
 	pages: {
-		dashboard: { title: 'Overview', icon: 'lucide:layout-dashboard' },
-		drawdowns: { title: 'Financing', icon: 'lucide:hand-coins' },
-		advices: { title: 'Bank advices', icon: 'lucide:file-scan' },
-		alerts: { title: 'Attention', icon: 'lucide:bell' },
-		costs: { title: 'Costs', icon: 'lucide:percent' },
-		month_end: { title: 'Month-end', icon: 'lucide:calendar-check' }
+		dashboard: { title: 'app.treasury.dashboard', icon: 'lucide:layout-dashboard' },
+		drawdowns: { title: 'app.treasury.drawdowns', icon: 'lucide:hand-coins' },
+		advices: { title: 'app.treasury.advices', icon: 'lucide:file-scan' },
+		alerts: { title: 'app.treasury.alerts', icon: 'lucide:bell' },
+		costs: { title: 'app.treasury.costs', icon: 'lucide:percent' },
+		month_end: { title: 'app.treasury.month_end', icon: 'lucide:calendar-check' }
 	}
 });

@@ -12,13 +12,16 @@
 		value_object
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
+	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Law } from '../../law.js';
 	import { isJsonObject } from '../../payroll_engine/foundation.js';
 
 	let {
+		ctx,
 		field,
 		law
 	}: {
+		ctx: PageContext;
 		field: Pick<FieldEditor, 'id' | 'value' | 'disabled' | 'on_change'>;
 		law: Law | undefined;
 	} = $props();
@@ -90,7 +93,7 @@
 			id={`${field.id}-add`}
 			value={null}
 			options={unused}
-			placeholder="Add allowance"
+			placeholder={ctx.t('component.add_allowance')}
 			searchable
 			on_change={add}
 		/>

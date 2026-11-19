@@ -130,7 +130,11 @@ accumulator's mark, keeps its row) -->
 	{#if typeof value === 'string'}<span
 			class:gain={value === 'up' || value === 'buying'}
 			class:loss={value === 'down' || value === 'selling'}
-			>{{ up: '↑ Up', down: '↓ Down', sideways: '→ Sideways' }[value] ?? label(value)}</span
+			>{{
+				up: ctx.t('component.dashboard.up'),
+				down: ctx.t('component.dashboard.down'),
+				sideways: ctx.t('component.dashboard.sideways')
+			}[value] ?? label(value)}</span
 		>{/if}
 {/snippet}
 {#snippet analysis({ value }: { value: ShowProps['value'] })}
@@ -140,27 +144,27 @@ accumulator's mark, keeps its row) -->
 {/snippet}
 
 <AppShell
-	title="Dashboard"
-	description="The book as the latest report found it. The agent writes a report every morning; run it from Holdings for a fresh one."
+	title={ctx.t('component.dashboard.title')}
+	description={ctx.t('component.dashboard.description')}
 	icon="lucide:layout-dashboard"
 	variant="full"
 >
 	<Scroll name="dashboard" size="fill" min_height="24rem" inset>
 		{#if read.error}
-			<EmptyState title="The book could not be read" hint={String(read.error)} />
+			<EmptyState title={ctx.t('component.dashboard.read_failed')} hint={String(read.error)} />
 		{:else if read.current === undefined}
-			<EmptyState title="Loading the book" />
+			<EmptyState title={ctx.t('component.dashboard.loading')} />
 		{:else if !latest}
 			<EmptyState
-				title="No report yet"
-				hint="Add the book's lines under Holdings, then run the agent."
+				title={ctx.t('component.dashboard.no_report')}
+				hint={ctx.t('component.dashboard.no_report_hint')}
 			/>
 		{:else}
 			<div class="dashboard">
 				<div class="dashboard-grid">
 					<section class="panel summary">
 						<div class="panel-heading">
-							<h2>Net assets</h2>
+							<h2>{ctx.t('component.dashboard.net_assets')}</h2>
 							<span class="text-meta"
 								>{format({ kind: 'date' }, latest.for_date, { locale: ctx.locale })}</span
 							>
@@ -172,11 +176,11 @@ accumulator's mark, keeps its row) -->
 								class:gain={!latest.day_change.startsWith('-')}
 								class:loss={latest.day_change.startsWith('-')}
 							>
-								{signed(latest.day_change)} since the last report
+								{ctx.t('component.dashboard.since_last', { change: signed(latest.day_change) })}
 							</p>
 						{/if}
 						<div class="metric-grid">
-							{#each [['Invested', latest.invested], ['Cash', latest.cash], ['Owed', latest.liabilities], ['Unrealised P&L', latest.unrealised_pl]] as const as [title, value] (title)}
+							{#each [[ctx.t('component.dashboard.invested'), latest.invested], [ctx.t('component.dashboard.cash'), latest.cash], [ctx.t('component.dashboard.owed'), latest.liabilities], [ctx.t('component.dashboard.unrealised'), latest.unrealised_pl]] as const as [title, value] (title)}
 								<div>
 									<p class="text-meta">{title}</p>
 									<p class="metric tabular-nums">{money(value)}</p>
@@ -185,7 +189,7 @@ accumulator's mark, keeps its row) -->
 						</div>
 					</section>
 					<section class="panel trend">
-						<h2>Net assets over time</h2>
+						<h2>{ctx.t('component.dashboard.net_assets_over_time')}</h2>
 						{#if trend.length > 1}
 							<Bound size="fill"
 								><Chart
@@ -197,15 +201,19 @@ accumulator's mark, keeps its row) -->
 								/></Bound
 							>
 						{:else}
-							<p class="text-meta">The trend starts with the second report.</p>
+							<p class="text-meta">{ctx.t('component.dashboard.trend_start')}</p>
 						{/if}
 					</section>
 					<section class="panel allocation">
-						{@render shares('Allocation', latest.allocation ?? [], label)}
+						{@render shares(
+							ctx.t('component.dashboard.allocation'),
+							latest.allocation ?? [],
+							label
+						)}
 					</section>
 					<section class="panel currencies">
 						{@render shares(
-							'Currencies',
+							ctx.t('component.dashboard.currencies'),
 							(latest.exposure ?? []).map((one) => ({ ...one, label: one.currency })),
 							(code) => {
 								const rate = latest.fx_used?.find(
@@ -218,7 +226,7 @@ accumulator's mark, keeps its row) -->
 						)}
 					</section>
 					<section class="panel pnl">
-						<h2>P&L by position</h2>
+						<h2>{ctx.t('component.dashboard.pnl_by_position')}</h2>
 						{#if pnl.length > 0}
 							<Bound size="fill"
 								><Chart
@@ -231,16 +239,12 @@ accumulator's mark, keeps its row) -->
 								/></Bound
 							>
 						{:else}
-							<p class="text-meta">The agent files each position's P&L when it runs.</p>
+							<p class="text-meta">{ctx.t('component.dashboard.pnl_waiting')}</p>
 						{/if}
 					</section>
 					<section class="panel signals">
-						<h2>Signals</h2>
-						<p class="mb-4 text-meta">
-							From each position's last year of trading. Trend: the price and its 50-session average
-							against the 200-session one. Pressure: 20-session money flow, buyers lead above 0.05
-							and sellers below −0.05. RSI above 70 is stretched, below 30 oversold.
-						</p>
+						<h2>{ctx.t('component.dashboard.signals')}</h2>
+						<p class="mb-4 text-meta">{ctx.t('component.dashboard.signals_help')}</p>
 						{#if signals.length > 0}
 							<Table
 								{ctx}
@@ -248,26 +252,30 @@ accumulator's mark, keeps its row) -->
 								embedded
 								controlled
 								columns={[
-									{ field: 'line', label: 'Position' },
-									{ field: 'live_change_pct', label: 'Day', cell: move },
-									{ field: 'change_1w_pct', label: 'Week', cell: move },
-									{ field: 'change_1m_pct', label: 'Month', cell: move },
-									{ field: 'change_1y_pct', label: 'Year', cell: move },
-									{ field: 'trend', label: 'Trend', cell: direction },
-									{ field: 'pressure', label: 'Pressure', cell: direction },
-									{ field: 'money_flow', label: 'Money flow' },
-									{ field: 'volume_ratio', label: 'Volume vs average' },
-									{ field: 'rsi', label: 'RSI (14)' },
-									{ field: 'from_high_pct', label: 'From 52-week high %' },
-									{ field: 'volatility_pct', label: 'Volatility % a year' }
+									{ field: 'line', label: ctx.t('component.dashboard.position') },
+									{ field: 'live_change_pct', label: ctx.t('component.dashboard.day'), cell: move },
+									{ field: 'change_1w_pct', label: ctx.t('component.dashboard.week'), cell: move },
+									{ field: 'change_1m_pct', label: ctx.t('component.dashboard.month'), cell: move },
+									{ field: 'change_1y_pct', label: ctx.t('component.dashboard.year'), cell: move },
+									{ field: 'trend', label: ctx.t('component.dashboard.trend'), cell: direction },
+									{
+										field: 'pressure',
+										label: ctx.t('component.dashboard.pressure'),
+										cell: direction
+									},
+									{ field: 'money_flow', label: ctx.t('component.dashboard.money_flow') },
+									{ field: 'volume_ratio', label: ctx.t('component.dashboard.volume_average') },
+									{ field: 'rsi', label: ctx.t('component.dashboard.rsi') },
+									{ field: 'from_high_pct', label: ctx.t('component.dashboard.from_high') },
+									{ field: 'volatility_pct', label: ctx.t('component.dashboard.volatility') }
 								]}
 							/>
 						{:else}
-							<p class="text-meta">The agent reads each position's trading when it runs.</p>
+							<p class="text-meta">{ctx.t('component.dashboard.signals_waiting')}</p>
 						{/if}
 					</section>
 					<section class="panel calls">
-						<h2 class="mb-4">Positions and calls</h2>
+						<h2 class="mb-4">{ctx.t('component.dashboard.positions_calls')}</h2>
 						<Table
 							{ctx}
 							of={latest.positions ?? []}
@@ -276,11 +284,11 @@ accumulator's mark, keeps its row) -->
 							columns={[
 								'instrument',
 								'call',
-								{ field: 'value', label: 'Value' },
-								{ field: 'weight', label: 'Weight %' },
-								{ field: 'change_pct', label: 'Day', cell: move },
-								{ field: 'pnl', label: 'P&L' },
-								{ field: 'analysis', label: 'Analysis', cell: analysis }
+								{ field: 'value', label: ctx.t('component.dashboard.value') },
+								{ field: 'weight', label: ctx.t('component.dashboard.weight') },
+								{ field: 'change_pct', label: ctx.t('component.dashboard.day'), cell: move },
+								{ field: 'pnl', label: ctx.t('component.dashboard.pnl') },
+								{ field: 'analysis', label: ctx.t('component.dashboard.analysis'), cell: analysis }
 							]}
 						/>
 					</section>

@@ -501,7 +501,9 @@
 <Stack gap="md">
 	<div class="grid gap-3 sm:grid-cols-2">
 		{#if showPerson}<Stack gap="xs">
-				<span class="text-xs font-medium text-muted-foreground">Employment</span>
+				<span class="text-xs font-medium text-muted-foreground"
+					>{ctx.t('component.employment')}</span
+				>
 				<Picker
 					{ctx}
 					of="employment"
@@ -520,25 +522,24 @@
 				/>
 			</Stack>{/if}
 		<Stack gap="xs" class={showPerson ? 'relative' : 'relative sm:col-span-2'}>
-			<span class="text-xs font-medium text-muted-foreground">Catalog</span>
+			<span class="text-xs font-medium text-muted-foreground">{ctx.t('component.catalog')}</span>
 			<Combobox
 				options={catalogOptions}
 				value={catalog}
-				placeholder="Select leave type"
-				aria-label="Leave type"
+				placeholder={ctx.t('component.select_leave_type')}
+				aria-label={ctx.t('component.leave_type')}
 				disabled={!editable}
 				on_change={(value) => form.set('catalog_code', value)}
 			/>
 			{#if chosenCatalog !== null && !isNoCap(chosenCatalog)}<span
 					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
-					>{availableDays} d left</span
+					>{ctx.t('component.days_left', { count: availableDays })}</span
 				>{/if}
 		</Stack>
 	</div>
 
 	{#if editable}<p class="text-xs text-muted-foreground">
-			Tap a half-day to select or deselect it. Filled buttons are selected; dimmed days are
-			unavailable.
+			{ctx.t('component.half_day_hint')}
 		</p>{/if}
 	<div class="rounded-xl border">
 		<Cluster justify="between" class="border-b px-3 py-2">

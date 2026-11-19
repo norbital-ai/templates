@@ -30,8 +30,8 @@
 {/snippet}
 
 <AppShell
-	title="Reports"
-	description="One report per day: the lead, the markets and a section on each line with cited news."
+	title={ctx.t('component.reports.title')}
+	description={ctx.t('component.reports.description')}
 	icon="lucide:newspaper"
 	actions={subscribe}
 >
@@ -46,6 +46,6 @@
 			'day_change',
 			'market_view'
 		]}
-		toolbar={{ title: 'Reports', new: false }}
+		toolbar={{ title: ctx.t('component.reports.title'), new: false }}
 	/>
 </AppShell>

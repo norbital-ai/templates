@@ -142,6 +142,7 @@
 		emptyText="—"
 		copyLabel={t('common.copy')}
 		copiedLabel={t('common.copied')}
+		openSourceLabel={t('component.open_source')}
 	/>
 {/snippet}
 
@@ -153,6 +154,7 @@
 		emptyText="—"
 		copyLabel={t('common.copy')}
 		copiedLabel={t('common.copied')}
+		openSourceLabel={t('component.open_source')}
 	/>
 {/snippet}
 

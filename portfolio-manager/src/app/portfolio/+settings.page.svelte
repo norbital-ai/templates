@@ -10,8 +10,8 @@
 </script>
 
 <AppShell
-	title="Settings"
-	description="The currency the book is valued and reported in, and the indices the report's markets table leads with."
+	title={ctx.t('component.settings.title')}
+	description={ctx.t('component.settings.description')}
 	icon="lucide:settings"
 	variant="full"
 >

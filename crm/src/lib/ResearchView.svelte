@@ -14,7 +14,8 @@
 		mode = 'research',
 		emptyText,
 		copyLabel = 'Copy',
-		copiedLabel = 'Copied'
+		copiedLabel = 'Copied',
+		openSourceLabel = 'Open source'
 	}: {
 		research: string | null | undefined;
 		useCases?: readonly string[] | null | undefined;
@@ -22,6 +23,7 @@
 		emptyText: string;
 		copyLabel?: string;
 		copiedLabel?: string;
+		openSourceLabel?: string;
 	} = $props();
 
 	const parsed = $derived(parseResearch(research));
@@ -119,7 +121,7 @@
 						rel="noopener noreferrer"
 						class="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
 					>
-						<span>Open source</span>
+						<span>{openSourceLabel}</span>
 						<Icon name="lucide:external-link" class="size-3" />
 					</a>
 				</Cluster>

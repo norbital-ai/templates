@@ -796,5 +796,7 @@ export default messages({
 	'meetings.no_recording_short': 'No audio',
 	'meetings.minutes_ready': 'Transcribed',
 	'lead.research_action': 'Research company',
-	'lead.research_sweep': 'Research unresearched'
+	'lead.research_sweep': 'Research unresearched',
+	'component.open_source': 'Open source',
+	'component.signatures': 'Signatures'
 });

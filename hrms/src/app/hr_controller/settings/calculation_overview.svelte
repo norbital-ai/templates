@@ -212,7 +212,8 @@
 							</Popover.Trigger>
 							<Popover.Content align="start" class="max-w-sm space-y-1.5 text-xs">
 								<p>
-									<span class="font-medium">Code.</span> <span class="font-mono">{node.code}</span>
+									<span class="font-medium">{ctx.t('component.code')}.</span>
+									<span class="font-mono">{node.code}</span>
 								</p>
 								<p>{guide(node.code)}</p>
 							</Popover.Content>

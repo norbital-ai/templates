@@ -7,8 +7,8 @@
 </script>
 
 <AppShell
-	title="Holdings"
-	description="Every line of the book as the statement recorded it. The calculated columns come from the market at the agent's last run. Cash is a line of its own; a facility is a loan line with a negative value."
+	title={ctx.t('component.holdings.title')}
+	description={ctx.t('component.holdings.description')}
 	icon="lucide:trending-up"
 >
 	<Table
@@ -31,13 +31,13 @@
 			'research_at'
 		]}
 		toolbar={{
-			title: 'Holdings',
+			title: ctx.t('component.holdings.title'),
 			new: true,
 			actions: [
 				{
 					icon: 'lucide:sparkles',
-					name: 'Run the agent now',
-					description: 'Price the book, research the largest lines and write today’s report.',
+					name: ctx.t('component.holdings.run_agent'),
+					description: ctx.t('component.holdings.run_agent_description'),
 					run: () => ctx.run('portfolio_agent', {})
 				}
 			]

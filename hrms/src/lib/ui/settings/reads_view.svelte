@@ -82,7 +82,7 @@
 </script>
 
 {#if reads.length === 0}
-	<p class="text-sm text-muted-foreground">No reads.</p>
+	<p class="text-sm text-muted-foreground">{ctx.ui.bolt?.t('component.no_reads') ?? 'No reads.'}</p>
 {:else}
 	<Stack gap="sm">
 		{#each reads as read (read.model)}
@@ -90,16 +90,19 @@
 				<div class="flex items-center justify-between gap-3 border-b border-border/70 px-3 py-2">
 					<code class="font-mono text-xs">{read.model}</code>
 					{#if read.limit !== null}<span class="text-xs text-muted-foreground"
-							>{read.limit} rows</span
+							>{ctx.ui.bolt?.t('component.rows', { count: read.limit }) ??
+								`${read.limit} rows`}</span
 						>{/if}
 				</div>
 				<div class="grid gap-2 p-3">
 					{#if read.fields !== null}<div class="flex items-center gap-2 text-xs">
-							<span class="text-muted-foreground">fields</span>
+							<span class="text-muted-foreground"
+								>{ctx.ui.bolt?.t('component.fields') ?? 'fields'}</span
+							>
 							<span class="font-mono">{read.fields}</span>
 						</div>{/if}
 					{#if read.id !== null}<div class="flex items-center gap-2 text-xs">
-							<span class="text-muted-foreground">id</span>
+							<span class="text-muted-foreground">{ctx.ui.bolt?.t('component.id') ?? 'id'}</span>
 							<code class="rounded-sm bg-muted px-1.5 py-0.5 font-mono">{read.id}</code>
 						</div>{/if}
 					{#if read.filter.where !== undefined || read.filter.order_by !== undefined}<FilterEditor

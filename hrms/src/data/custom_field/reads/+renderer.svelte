@@ -142,7 +142,7 @@
 					id={id(String(index), 'fields')}
 					{disabled}
 					value={(value.fields ?? []).join(', ')}
-					placeholder="Fields (comma separated)"
+					placeholder={ctx.ui.bolt?.t('component.fields_comma') ?? 'Fields (comma separated)'}
 					aria-label={`${model} fields`}
 					oninput={(event) =>
 						set(
@@ -161,7 +161,7 @@
 				id="reads-add"
 				value={null}
 				options={unused.map((model) => ({ value: model, label: model }))}
-				placeholder="Add a model to read"
+				placeholder={ctx.ui.bolt?.t('component.add_model_read') ?? 'Add a model to read'}
 				searchable
 				on_change={add}
 			/>

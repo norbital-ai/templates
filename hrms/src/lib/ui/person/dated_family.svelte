@@ -61,6 +61,7 @@
 		readonly: boolean;
 		set: (value: Value) => void;
 	})}<AllowanceTermsEditor
+			{ctx}
 			field={{ id, value: fact.value, disabled: readonly, on_change: set }}
 			law={family.lawOn(stint, fact.from)}
 		/>{/snippet}

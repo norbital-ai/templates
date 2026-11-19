@@ -104,7 +104,10 @@
 
 {#snippet who({ value }: { value: unknown })}{stints.of(value)}{/snippet}
 
-{#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
+{#snippet sealCell({ value }: { value: unknown })}<SealedBadge
+		sealed={value != null}
+		{ctx}
+	/>{/snippet}
 
 <AppShell
 	title={ctx.t('app.loans.title')}

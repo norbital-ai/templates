@@ -35,6 +35,7 @@
 				body={record.body}
 				title={record.title}
 				signature={signature ? ctx.file_url(signature) : undefined}
+				signaturesLabel={t('component.signatures')}
 			/>{/if}
 	</Scroll>
 {/snippet}

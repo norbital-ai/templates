@@ -16,23 +16,25 @@
 </script>
 
 <AppShell
-	title="Subscribers"
-	description="Each morning, once the report is filed, the envoy sends it with its PDF to every subscriber at their own WhatsApp, Telegram, Slack or Discord. Clients subscribe themselves from Reports."
+	title={ctx.t('component.subscribers.title')}
+	description={ctx.t('component.subscribers.description')}
 	icon="lucide:bell"
 >
 	<Stack size="fill" gap="md">
 		{#if envoys.current !== undefined}
 			<p class="text-meta">
 				{accounts.length === 0
-					? 'No envoy is deployed: subscribers get the report in their inbox only. Deploy one on a chat account under Settings → Integrations → Envoys.'
-					: `Sent through ${accounts.map((one) => `${one.name} (${one.integration})`).join(', ')}.`}
+					? ctx.t('component.subscribers.no_envoy')
+					: ctx.t('component.subscribers.sent_through', {
+							accounts: accounts.map((one) => `${one.name} (${one.integration})`).join(', ')
+						})}
 			</p>
 		{/if}
 		<Table
 			{ctx}
 			of="report_subscription"
 			columns={['user']}
-			toolbar={{ title: 'Subscribers', new: true }}
+			toolbar={{ title: ctx.t('component.subscribers.title'), new: true }}
 		/>
 	</Stack>
 </AppShell>
