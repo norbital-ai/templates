@@ -241,10 +241,9 @@ describe('an overtime award', () => {
 		assert.equal(awardedMinutes(plan, [span('17:30', '19:30')]), 120);
 	});
 
-	it('pays clocked time rounded down to the quarter hour short of the whole plan', () => {
-		assert.equal(awardedMinutes(plan, [span('08:30', '18:29')]), 45);
-		assert.equal(awardedMinutes(plan, [span('08:30', '18:59')]), 75);
-		assert.equal(awardedMinutes(plan, [span('08:30', '19:29')]), 105);
+	it('pays the clocked minutes of a plan the clock does not cover', () => {
+		assert.equal(awardedMinutes(plan, [span('08:30', '18:29')]), 59);
+		assert.equal(awardedMinutes(plan, [span('08:30', '19:29')]), 119);
 	});
 
 	it('counts only the planned hours the clock overlaps', () => {

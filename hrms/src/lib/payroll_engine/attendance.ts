@@ -70,8 +70,6 @@ interface Span {
 	readonly end: number;
 }
 
-const AWARD_STEP_MINUTES = 15;
-
 /** Where two sets of spans overlap. */
 export const overlapSpans = (a: readonly Span[], b: readonly Span[]): readonly Span[] =>
 	a.flatMap((left) =>
@@ -89,15 +87,11 @@ export const spanMinutes = (spans: readonly Span[]): number =>
 	);
 
 /**
- * What the clock awards of planned overtime: all of it once the clock covers the whole plan, otherwise the covered time
- * rounded down to the quarter hour. A clock-out at 17:59 pays until 17:45, and time outside the plan never counts.
+ * What the clock awards of planned overtime: the planned minutes the clock covers, to the minute. A clock-out at 17:59
+ * pays until 17:59; time outside the plan never counts. The law pays overtime worked, with no rounding unit.
  */
-export function awardedMinutes(planned: readonly Span[], clock: readonly Span[]): number {
-	const total = spanMinutes(planned);
-	const covered = spanMinutes(overlapSpans(planned, clock));
-	if (covered > 0 && covered >= total) return total;
-	return Math.floor(covered / AWARD_STEP_MINUTES) * AWARD_STEP_MINUTES;
-}
+export const awardedMinutes = (planned: readonly Span[], clock: readonly Span[]): number =>
+	spanMinutes(overlapSpans(planned, clock));
 
 /** The published holidays observed on a day. */
 export function holidaysForDay(

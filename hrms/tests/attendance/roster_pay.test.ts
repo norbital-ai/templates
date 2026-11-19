@@ -366,25 +366,23 @@ describe('a clock the plan does not back', () => {
 		})
 	);
 
-	it.live(
-		'pays planned overtime whole once the clock covers it, else to the last whole quarter hour',
-		() =>
-			Effect.gen(function* () {
-				const overtime = (until: string) =>
-					paid(
-						seedOf(
-							month({
-								[DAY]: { date: DAY, shift: WORK, clock: ['08:00', until], plan: ['16:00', '18:00'] }
-							})
-						)
-					).pipe(Effect.map((slip) => line(slip, 'OVERTIME')));
-				const whole = yield* overtime('18:00');
-				assert.ok(whole > 0);
-				assert.equal(yield* overtime('16:00'), 0);
-				// 119 of the plan's 120 minutes pay 105; 60 pay 60
-				assert.ok(Math.abs((yield* overtime('17:59')) - (whole * 105) / 120) < 0.02);
-				assert.ok(Math.abs((yield* overtime('17:00')) - whole / 2) < 0.02);
-			})
+	it.live('pays planned overtime to the minute the clock covers it', () =>
+		Effect.gen(function* () {
+			const overtime = (until: string) =>
+				paid(
+					seedOf(
+						month({
+							[DAY]: { date: DAY, shift: WORK, clock: ['08:00', until], plan: ['16:00', '18:00'] }
+						})
+					)
+				).pipe(Effect.map((slip) => line(slip, 'OVERTIME')));
+			const whole = yield* overtime('18:00');
+			assert.ok(whole > 0);
+			assert.equal(yield* overtime('16:00'), 0);
+			// 119 of the plan's 120 minutes pay 119; 60 pay 60
+			assert.ok(Math.abs((yield* overtime('17:59')) - (whole * 119) / 120) < 0.02);
+			assert.ok(Math.abs((yield* overtime('17:00')) - whole / 2) < 0.02);
+		})
 	);
 });
 
