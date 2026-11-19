@@ -24,6 +24,7 @@
 			'amount',
 			'quantity',
 			'invoiced_amount',
+			'payment_date',
 			'lc_requested',
 			'is_cancelled'
 		]}

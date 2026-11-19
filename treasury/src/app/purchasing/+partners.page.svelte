@@ -14,8 +14,7 @@
 	<Table
 		{ctx}
 		of="business_partner"
-		initial_filter={{ is_active: { eq: true } }}
-		columns={['name', 'role', 'country', 'payment_terms', 'eligible_banks', 'is_active']}
+		columns={['name', 'role', 'country', 'payment_terms', 'eligible_banks']}
 		toolbar={{ title: false }}
 	/>
 </AppShell>

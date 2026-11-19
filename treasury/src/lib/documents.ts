@@ -1,9 +1,18 @@
 import type { AutomationCtx, FileRef } from '@norbital-ai/bolt';
 
+/** A reader fills only what a person left empty. */
+export const blank = <V>(current: V | null, value: V | null | undefined) =>
+	(current === null || current === '') && value != null ? value : current;
+
 /** Native document ingest supplies text and page images; a raw PDF is not a model image. */
 export function* documentSource(
 	file: FileRef,
-	owner: 'bank_document_read' | 'facility_form_read',
+	owner:
+		| 'bank_document_read'
+		| 'facility_form_read'
+		| 'purchase_order_read'
+		| 'fx_document_read'
+		| 'fx_proposal_read',
 	ctx: AutomationCtx
 ) {
 	const parsed = yield* ctx.convert.ingest(file, { for: owner, pictures: true });

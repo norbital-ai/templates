@@ -36,7 +36,6 @@ export default automation({
 		const closing = {
 			status: 'settled' as const,
 			settlement_date: input.date,
-			settled_principal: bill.amount,
 			settled_interest: '0',
 			is_archived: true
 		};

@@ -17,21 +17,26 @@ const EARMARK_FIELDS = [
 	'amount',
 	'expected_draw_date',
 	'earliest_invoice_date',
-	'requested_by',
 	'purpose',
 	'notes'
 ] as const;
 
 /**
  * Finance: opens every treasury page, plans payments as earmarks (and cancels them), keeps the supplier list,
- * records supplier invoices against purchase orders and keeps PO documents (the issued LC). Which banks finance a
+ * keeps every purchase order as Accounts (edit, cancel or reopen it, record its supplier invoices, file or remove any
+ * document, the issued LC included). Which banks finance a
  * supplier, and everything on a line once Treasury has allocated it, stay with Treasury.
  */
 export default policy({
 	description: 'Finance: plan earmarks, keep suppliers, record invoices; read everything else.',
 	capabilities: {
-		apps: ['treasury', 'purchasing', 'configuration'],
-		automations: ['drawdown_cancel', 'facility_form_pack']
+		apps: ['treasury', 'hedging', 'purchasing', 'configuration'],
+		automations: [
+			'drawdown_cancel',
+			'drawdown_earmark_po',
+			'facility_form_pack',
+			'purchase_order_read'
+		]
 	},
 	grants: {
 		bank: { outputs: { default: {} } },
@@ -43,30 +48,10 @@ export default policy({
 		business_partner: {
 			outputs: { default: {} },
 			create: {
-				fields: [
-					'name',
-					'role',
-					'aliases',
-					'country',
-					'payment_terms',
-					'products',
-					'relationship_since',
-					'notes',
-					'is_active'
-				]
+				fields: ['name', 'role', 'aliases', 'country', 'payment_terms', 'products', 'notes']
 			},
 			update: {
-				fields: [
-					'name',
-					'role',
-					'aliases',
-					'country',
-					'payment_terms',
-					'products',
-					'relationship_since',
-					'notes',
-					'is_active'
-				]
+				fields: ['name', 'role', 'aliases', 'country', 'payment_terms', 'products', 'notes']
 			}
 		},
 		supplier_bank: { outputs: { default: {} } },
@@ -92,10 +77,27 @@ export default policy({
 		month_end: { outputs: { default: {} } },
 		month_end_line: { outputs: { default: {} } },
 		fx_rate: { outputs: { default: {} } },
+		fx_deal: { outputs: { default: {} } },
+		fx_fixing: { outputs: { default: {} } },
+		fx_document: { outputs: { default: {} } },
+		fx_proposal: { outputs: { default: {} } },
 		purchase_order: {
 			outputs: { default: {} },
 			update: {
-				fields: ['notes'],
+				fields: [
+					'po_number',
+					'po_date',
+					'supplier',
+					'salesperson',
+					'currency',
+					'ship_to_country',
+					'lc_requested',
+					'is_cancelled',
+					'payment_date',
+					'no_financing',
+					'notes'
+				],
+				lines: { fields: ['item', 'quantity', 'amount'] },
 				invoices: {
 					fields: [...INVOICE_FIELDS],
 					lines: { fields: ['po_line', 'quantity', 'amount'] }
@@ -105,7 +107,7 @@ export default policy({
 		po_line: { outputs: { default: {} } },
 		invoice: { outputs: { default: {} } },
 		invoice_line: { outputs: { default: {} } },
-		po_document: { outputs: { default: {} }, create: {}, update: {} },
+		po_document: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		po_financing: { outputs: { default: {} } },
 		facility_form: { outputs: { default: {} } },
 		facility_attachment: { outputs: { default: {} } }

@@ -192,12 +192,12 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				if (file.kind !== 'committed') throw new Error('Expected document upload.');
 				const document = {
 					po: Schema.decodeUnknownSync(id_of('purchase_order'))(order.id),
-					title: 'Private document',
+					kind: 'supporting' as const,
 					file: file.output
 				};
 				const saved = (yield* owner.act({ 'po_document.create': [document] })).records[0];
 				if (saved === undefined) throw new Error('Expected document.');
-				expect(yield* other.query({ po_document: { fields: ['title'] } })).toMatchObject({
+				expect(yield* other.query({ po_document: { fields: ['kind'] } })).toMatchObject({
 					po_document: { rows: [] }
 				});
 				expect(
@@ -213,7 +213,7 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 											id: Schema.decodeUnknownSync(id_of('po_document'))(saved.id),
 											revision: saved.revision
 										},
-										set: { title: 'Changed by somebody else' }
+										set: { kind: 'other' }
 									}
 								]
 							})
@@ -234,6 +234,25 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 					})
 				);
 				expect(Exit.isFailure(refused)).toBe(true);
+				// the issued LC is Accounts' to file; a purchaser removes only what they filed
+				expect(
+					Exit.isFailure(
+						yield* Effect.exit(
+							owner.act({ 'po_document.create': [{ ...document, kind: 'issued_lc' as const }] })
+						)
+					)
+				).toBe(true);
+				const target = {
+					id: Schema.decodeUnknownSync(id_of('po_document'))(saved.id),
+					revision: saved.revision
+				};
+				expect(
+					Exit.isFailure(yield* Effect.exit(other.act({ 'po_document.delete': [{ target }] })))
+				).toBe(true);
+				yield* owner.act({ 'po_document.delete': [{ target }] });
+				expect(yield* owner.query({ po_document: { fields: ['kind'] } })).toMatchObject({
+					po_document: { rows: [] }
+				});
 			})
 		);
 

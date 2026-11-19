@@ -3,7 +3,7 @@ import { workspace } from '@norbital-ai/bolt';
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
-	apps: ['treasury', 'purchasing', 'configuration'],
+	apps: ['treasury', 'hedging', 'purchasing', 'configuration'],
 	convert: { to: ['pdf'] },
 	theme: {
 		light: {

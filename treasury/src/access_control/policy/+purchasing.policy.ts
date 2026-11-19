@@ -2,17 +2,19 @@ import { policy } from '@norbital-ai/bolt';
 
 const OWN = { created_by: { eq: { var: 'actor.id' } } } as const;
 const OWN_PO = { po: { is: OWN } } as const;
+/** What a purchaser files on their own PO; the issued LC and the supplier's invoice are Accounts'. */
+const PURCHASER_KINDS: readonly string[] = ['purchase_order', 'supporting', 'other'];
 /**
  * Purchasing: a purchaser raises purchase orders with their item lines and documents, and changes one until its first
- * invoice is recorded; reads the supplier list to pick from; and prepares facility forms. Each purchaser sees only the
- * orders they raised (the created-by stamp every record carries). They see which line pays an order, never Treasury's
- * pages.
+ * invoice is recorded; files the PO, supporting documents and others on their own orders and removes files they
+ * filed; reads the supplier list to pick from; and prepares facility forms. Each purchaser sees only the orders they
+ * raised (the created-by stamp every record carries). They see which line pays an order, never Treasury's pages.
  */
 export default policy({
 	description: 'Purchasing: raise and change your own purchase orders; prepare financing requests.',
 	capabilities: {
 		apps: ['purchasing'],
-		automations: ['facility_form_read', 'facility_form_pack']
+		automations: ['facility_form_read', 'facility_form_pack', 'purchase_order_read']
 	},
 	grants: {
 		business_partner: { outputs: { default: {} } },
@@ -24,12 +26,12 @@ export default policy({
 					'po_number',
 					'po_date',
 					'supplier',
-					'purchaser',
 					'salesperson',
 					'currency',
 					'ship_to_country',
 					'lc_requested',
 					'is_cancelled',
+					'payment_date',
 					'notes'
 				],
 				lines: { fields: ['item', 'quantity', 'amount'] },
@@ -72,7 +74,14 @@ export default policy({
 					});
 					const own = new Set(purchase_order.rows.map((p) => p.id));
 					const away = changes.findIndex(({ after }) => !own.has(after.po));
-					return away < 0 ? ctx.allow() : yield* ctx.refuse('errors.po_owner', { row: away });
+					if (away >= 0) return yield* ctx.refuse('errors.po_owner', { row: away });
+					// an omitted kind takes the model's default, a supporting document
+					const kind = changes.findIndex(
+						({ after }) => after.kind !== undefined && !PURCHASER_KINDS.includes(after.kind)
+					);
+					return kind < 0
+						? ctx.allow()
+						: yield* ctx.refuse('errors.po_document_kind', { row: kind });
 				}
 			},
 			update: {
@@ -89,7 +98,21 @@ export default policy({
 					});
 					const own = new Set(purchase_order.rows.map((p) => p.id));
 					const away = changes.findIndex(({ before }) => !own.has(before.po));
-					return away < 0 ? ctx.allow() : yield* ctx.refuse('errors.po_owner', { row: away });
+					if (away >= 0) return yield* ctx.refuse('errors.po_owner', { row: away });
+					const kind = changes.findIndex(({ after }) => !PURCHASER_KINDS.includes(after.kind));
+					return kind < 0
+						? ctx.allow()
+						: yield* ctx.refuse('errors.po_document_kind', { row: kind });
+				}
+			},
+			delete: {
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(
+						({ before }) => ctx.actor.kind !== 'member' || before.created_by !== ctx.actor.id
+					);
+					return away < 0
+						? ctx.allow()
+						: yield* ctx.refuse('errors.po_document_owner', { row: away });
 				}
 			}
 		},

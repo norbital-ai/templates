@@ -145,10 +145,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"is_active": {
-					"default": true,
-					"kind": "bool"
-				},
 				"name": {
 					"kind": "text"
 				},
@@ -195,14 +191,6 @@
 						"card",
 						"cash"
 					]
-				},
-				"settlement_instructions": {
-					"kind": "text",
-					"optional": true
-				},
-				"terms_notes": {
-					"kind": "text",
-					"optional": true
 				}
 			},
 			"record_label": "record.code",
@@ -394,10 +382,6 @@
 					"kind": "file",
 					"max": "10MiB"
 				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
 				"read_note": {
 					"kind": "text",
 					"optional": true
@@ -415,9 +399,6 @@
 			},
 			"locks": {
 				"submitted_advice": {
-					"except": [
-						"notes"
-					],
 					"where": {
 						"read_status": {
 							"eq": "applied"
@@ -439,10 +420,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"is_active": {
-					"default": true,
-					"kind": "bool"
-				},
 				"name": {
 					"kind": "text"
 				},
@@ -456,10 +433,6 @@
 				},
 				"products": {
 					"kind": "text",
-					"optional": true
-				},
-				"relationship_since": {
-					"kind": "date",
 					"optional": true
 				},
 				"role": {
@@ -492,6 +465,29 @@
 		},
 		"drawdown": {
 			"audit": true,
+			"check": {
+				"due_after_start": {
+					"or": [
+						{
+							"start_date": {
+								"is_null": true
+							}
+						},
+						{
+							"due_date": {
+								"is_null": true
+							}
+						},
+						{
+							"due_date": {
+								"gt": {
+									"field": "start_date"
+								}
+							}
+						}
+					]
+				}
+			},
 			"computed": {
 				"amount_usd": {
 					"expr": {
@@ -668,10 +664,6 @@
 					"kind": "date",
 					"optional": true
 				},
-				"requested_by": {
-					"kind": "text",
-					"optional": true
-				},
 				"settled_by": {
 					"kind": "enum",
 					"optional": true,
@@ -682,11 +674,6 @@
 					]
 				},
 				"settled_interest": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 2
-				},
-				"settled_principal": {
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
@@ -855,10 +842,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"entity": {
-					"kind": "text",
-					"optional": true
-				},
 				"expiry_date": {
 					"kind": "date",
 					"optional": true
@@ -889,20 +872,7 @@
 				"name": {
 					"kind": "text"
 				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"pledged_deposit": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 2
-				},
 				"pricing_basis": {
-					"kind": "text",
-					"optional": true
-				},
-				"pricing_notes": {
 					"kind": "text",
 					"optional": true
 				},
@@ -973,10 +943,11 @@
 					]
 				},
 				"title": {
-					"kind": "text"
+					"kind": "text",
+					"optional": true
 				}
 			},
-			"record_label": "record.title"
+			"record_label": "record.title != null ? record.title : string(record.kind)"
 		},
 		"facility_fee": {
 			"audit": true,
@@ -1107,8 +1078,8 @@
 					"optional": true
 				},
 				"currency": {
-					"default": "USD",
-					"kind": "currency"
+					"kind": "currency",
+					"optional": true
 				},
 				"customer_po_number": {
 					"kind": "text",
@@ -1124,8 +1095,8 @@
 					"optional": true
 				},
 				"facility_required": {
-					"default": "tt",
 					"kind": "enum",
+					"optional": true,
 					"values": [
 						"tt",
 						"lc"
@@ -1165,7 +1136,8 @@
 				},
 				"po_number": {
 					"kind": "text",
-					"max": 60
+					"max": 60,
+					"optional": true
 				},
 				"product_description": {
 					"kind": "text",
@@ -1223,7 +1195,7 @@
 					"optional": true
 				}
 			},
-			"record_label": "record.po_number",
+			"record_label": "record.po_number != null ? record.po_number : 'Facility form'",
 			"search": {
 				"text": [
 					"po_number",
@@ -1232,22 +1204,622 @@
 				]
 			}
 		},
+		"fx_deal": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "fx_deals",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "bank"
+				},
+				"bank_reference": {
+					"kind": "text",
+					"max": 100,
+					"optional": true
+				},
+				"dci_deposit_amount": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"dci_deposit_currency": {
+					"kind": "currency",
+					"optional": true
+				},
+				"dci_yield_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 4
+				},
+				"ended_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"forward_reference": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"forward_reference_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"knock_in": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"knock_out": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"knock_out_type": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"at_expiry",
+						"continuous"
+					]
+				},
+				"leveraged_notional": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"notional": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"notional_currency": {
+					"kind": "currency",
+					"optional": true
+				},
+				"pair": {
+					"kind": "text",
+					"max": 6
+				},
+				"proposal": {
+					"inverse": "alternatives",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "fx_proposal"
+				},
+				"side": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"sell",
+						"buy"
+					]
+				},
+				"spot_reference": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"status": {
+					"default": "draft",
+					"kind": "enum",
+					"values": [
+						"proposal",
+						"draft",
+						"live"
+					]
+				},
+				"strike": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"structure": {
+					"default": "fwd",
+					"kind": "enum",
+					"values": [
+						"fwd",
+						"trf",
+						"dci",
+						"exko",
+						"eko",
+						"eko_eki",
+						"enh",
+						"enh_spot",
+						"pivot",
+						"acc",
+						"other"
+					]
+				},
+				"structure_as_written": {
+					"kind": "text",
+					"optional": true
+				},
+				"target": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"target_rule": {
+					"default": "prorata",
+					"kind": "enum",
+					"values": [
+						"prorata",
+						"full",
+						"none"
+					]
+				},
+				"terms": {
+					"kind": "text",
+					"optional": true
+				},
+				"trade_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"view_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"view_direction": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"up",
+						"down",
+						"flat"
+					]
+				},
+				"view_rate": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				}
+			},
+			"record_label": "(record.bank_reference != null ? record.bank_reference : record.pair) + ' · ' + string(record.structure)",
+			"search": {
+				"text": [
+					"bank_reference",
+					"pair",
+					"structure_as_written"
+				]
+			}
+		},
+		"fx_document": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "fx_documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "bank"
+				},
+				"bank_reference": {
+					"kind": "text",
+					"max": 100,
+					"optional": true
+				},
+				"deal": {
+					"inverse": "documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "fx_deal"
+				},
+				"extracted": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"bank_code": {
+								"kind": "text",
+								"optional": true
+							},
+							"bank_reference": {
+								"kind": "text",
+								"optional": true
+							},
+							"dci_deposit_amount": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"dci_deposit_currency": {
+								"kind": "currency",
+								"optional": true
+							},
+							"dci_yield_pct": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 4
+							},
+							"fixings": {
+								"fields": {
+									"condition": {
+										"kind": "text",
+										"optional": true
+									},
+									"condition_level": {
+										"kind": "decimal",
+										"optional": true,
+										"scale": 8
+									},
+									"condition_side": {
+										"kind": "enum",
+										"optional": true,
+										"values": [
+											"above",
+											"below"
+										]
+									},
+									"firm": {
+										"kind": "bool",
+										"optional": true
+									},
+									"fixing_date": {
+										"kind": "date"
+									},
+									"leveraged_notional": {
+										"kind": "decimal",
+										"optional": true,
+										"scale": 2
+									},
+									"notional": {
+										"kind": "decimal",
+										"optional": true,
+										"scale": 2
+									},
+									"settlement_date": {
+										"kind": "date",
+										"optional": true
+									},
+									"strike": {
+										"kind": "decimal",
+										"optional": true,
+										"scale": 8
+									}
+								},
+								"kind": "object",
+								"many": true,
+								"optional": true
+							},
+							"forward_reference": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"forward_reference_date": {
+								"kind": "date",
+								"optional": true
+							},
+							"kind": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"term_sheet",
+									"confirmation",
+									"notice",
+									"letter",
+									"other"
+								]
+							},
+							"knock_in": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"knock_out": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"knock_out_type": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"at_expiry",
+									"continuous"
+								]
+							},
+							"leveraged_notional": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"notional": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 2
+							},
+							"notional_currency": {
+								"kind": "currency",
+								"optional": true
+							},
+							"other_references": {
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
+							"pair": {
+								"kind": "text",
+								"optional": true
+							},
+							"side": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"sell",
+									"buy"
+								]
+							},
+							"signed": {
+								"kind": "bool",
+								"optional": true
+							},
+							"spot_reference": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"strike": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"structure": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"fwd",
+									"trf",
+									"dci",
+									"exko",
+									"eko",
+									"eko_eki",
+									"enh",
+									"enh_spot",
+									"pivot",
+									"acc",
+									"other"
+								]
+							},
+							"structure_as_written": {
+								"kind": "text",
+								"optional": true
+							},
+							"target": {
+								"kind": "decimal",
+								"optional": true,
+								"scale": 8
+							},
+							"target_rule": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"prorata",
+									"full",
+									"none"
+								]
+							},
+							"termination_date": {
+								"kind": "date",
+								"optional": true
+							},
+							"terms": {
+								"kind": "text",
+								"optional": true
+							},
+							"trade_date": {
+								"kind": "date",
+								"optional": true
+							},
+							"uncertain": {
+								"kind": "text",
+								"many": true,
+								"optional": true
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"file": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png"
+					],
+					"kind": "file",
+					"max": "10MiB"
+				},
+				"kind": {
+					"default": "other",
+					"kind": "enum",
+					"values": [
+						"term_sheet",
+						"confirmation",
+						"notice",
+						"letter",
+						"other"
+					]
+				},
+				"read_note": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_status": {
+					"default": "uploaded",
+					"kind": "enum",
+					"values": [
+						"uploaded",
+						"checked",
+						"filed",
+						"failed"
+					]
+				},
+				"signed": {
+					"kind": "bool",
+					"optional": true
+				},
+				"trade_date": {
+					"kind": "date",
+					"optional": true
+				}
+			},
+			"record_label": "record.bank_reference != null ? record.bank_reference : string(record.kind)"
+		},
+		"fx_fixing": {
+			"audit": true,
+			"fields": {
+				"condition": {
+					"kind": "text",
+					"optional": true
+				},
+				"condition_level": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"condition_side": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"above",
+						"below"
+					]
+				},
+				"deal": {
+					"inverse": "fixings",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "fx_deal"
+				},
+				"firm": {
+					"default": true,
+					"kind": "bool"
+				},
+				"fixing_date": {
+					"kind": "date"
+				},
+				"fixing_rate": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				},
+				"leveraged_notional": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"note": {
+					"kind": "text",
+					"optional": true
+				},
+				"notional": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"outcome": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"exercised",
+						"leveraged",
+						"not_exercised",
+						"knocked_out",
+						"converted",
+						"not_converted",
+						"ended",
+						"target_not_paid"
+					]
+				},
+				"settled_amount": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"settlement_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"strike": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 8
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"fixing_date"
+					]
+				}
+			],
+			"record_label": "string(record.fixing_date)"
+		},
+		"fx_proposal": {
+			"audit": true,
+			"fields": {
+				"bank": {
+					"inverse": "fx_proposals",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "bank"
+				},
+				"file": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png"
+					],
+					"kind": "file",
+					"max": "10MiB",
+					"optional": true
+				},
+				"read_note": {
+					"kind": "text",
+					"optional": true
+				},
+				"read_status": {
+					"default": "uploaded",
+					"kind": "enum",
+					"values": [
+						"uploaded",
+						"checked",
+						"failed"
+					]
+				},
+				"text": {
+					"kind": "text",
+					"optional": true
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"record_label": "record.title != null ? record.title : 'Proposal'"
+		},
 		"fx_rate": {
 			"audit": true,
 			"fields": {
 				"currency": {
 					"kind": "currency"
 				},
-				"is_month_end": {
+				"preliminary": {
 					"default": false,
 					"kind": "bool"
 				},
 				"rate_date": {
 					"kind": "date"
-				},
-				"source": {
-					"kind": "text",
-					"optional": true
 				},
 				"usd_per_unit": {
 					"kind": "decimal",
@@ -1669,21 +2241,14 @@
 						"other"
 					]
 				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
 				"po": {
 					"inverse": "documents",
 					"kind": "ref",
 					"on_delete": "cascade",
 					"to": "purchase_order"
-				},
-				"title": {
-					"kind": "text"
 				}
 			},
-			"record_label": "record.title"
+			"record_label": "string(record.kind)"
 		},
 		"po_financing": {
 			"audit": true,
@@ -1701,7 +2266,7 @@
 					"to": "purchase_order"
 				}
 			},
-			"record_label": "record.purchase_order.po_number + ' · ' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))",
+			"record_label": "(record.purchase_order.po_number != null ? record.purchase_order.po_number : 'PO') + ' · ' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))",
 			"unique": [
 				{
 					"fields": [
@@ -1768,19 +2333,25 @@
 					"default": false,
 					"kind": "bool"
 				},
+				"no_financing": {
+					"default": false,
+					"kind": "bool"
+				},
 				"notes": {
 					"kind": "text",
 					"optional": true
 				},
+				"payment_date": {
+					"kind": "date",
+					"optional": true
+				},
 				"po_date": {
-					"kind": "date"
+					"kind": "date",
+					"optional": true
 				},
 				"po_number": {
 					"kind": "text",
-					"max": 60
-				},
-				"purchaser": {
-					"kind": "text",
+					"max": 60,
 					"optional": true
 				},
 				"quantity": {
@@ -1798,16 +2369,16 @@
 				"supplier": {
 					"inverse": "purchase_orders",
 					"kind": "ref",
+					"optional": true,
 					"to": "business_partner"
 				}
 			},
-			"record_label": "record.po_number",
+			"record_label": "record.po_number != null ? record.po_number : 'Purchase order'",
 			"unique": [
 				{
 					"fields": [
 						"po_number"
 					],
-					"import_key": true,
 					"name": "po_number"
 				}
 			]
@@ -1840,10 +2411,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
 				},
 				"product": {
 					"kind": "enum",

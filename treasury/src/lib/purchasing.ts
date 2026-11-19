@@ -4,8 +4,16 @@
  * that paid it (same supplier, not over-invoiced). Differences are for Accounts to raise with the purchaser.
  */
 import type { MessageKey } from '@norbital-ai/bolt';
-import { BigDecimal } from 'effect';
+import { BigDecimal, DateTime } from 'effect';
 import { decimal, ratio, sum, text } from './calculations.js';
+
+/** Treasury pays on Tuesdays (urgent) and Fridays; no date is fine until one is chosen. */
+export const paymentDay = (date: string | null) =>
+	date === null ||
+	[2, 5].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(`${date}T00:00:00Z`)).weekDay);
+/** A Tuesday payment is the urgent one. */
+export const urgentPayment = (date: string | null) =>
+	date !== null && DateTime.toPartsUtc(DateTime.makeUnsafe(`${date}T00:00:00Z`)).weekDay === 2;
 
 const PRICE_TOLERANCE = decimal('0.005');
 const QTY_TOLERANCE = decimal('0.001');
@@ -42,7 +50,11 @@ const unitPrice = (amount: string, quantity: string) => ratio(decimal(amount), d
 /** Every difference between one invoice and its PO; empty when it matches. */
 export function invoiceFindings(
 	invoice: InvoiceIn,
-	po: { readonly currency: string; readonly supplier: string; readonly lines: readonly PoLine[] },
+	po: {
+		readonly currency: string;
+		readonly supplier: string | null;
+		readonly lines: readonly PoLine[];
+	},
 	financing: Financing
 ): Finding[] {
 	const out: Finding[] = [];
@@ -84,7 +96,7 @@ export function invoiceFindings(
 			});
 	}
 	if (financing !== null) {
-		if (financing.supplier !== null && financing.supplier !== po.supplier)
+		if (financing.supplier !== null && po.supplier !== null && financing.supplier !== po.supplier)
 			out.push({ key: 'finding.financing_supplier', values: {} });
 		if (BigDecimal.isGreaterThan(decimal(financing.invoiced), decimal(financing.amount)))
 			out.push({

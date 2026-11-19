@@ -6,12 +6,15 @@ A treasury and purchasing workspace for a business that finances its purchases t
 facilities. Treasury keeps its bank lines, limits and terms, and moves each financing line from
 earmark to settlement with the bank's advices; purchasing raises purchase orders, records the
 invoices that come back and prepares the facility requisition for each PO paid by T/T or LC.
+Hedging keeps the FX hedges the company trades with its banks, from the banker's proposal to the
+last fixing.
 
 ## Apps and roles
 
 | App               | Pages                                                          |
 | ----------------- | -------------------------------------------------------------- |
 | **Treasury**      | Overview, Financing, Bank advices, Attention, Costs, Month-end |
+| **Hedging**       | Overview, Structures, Fixings, Planning                        |
 | **Purchasing**    | Business partners, Purchase orders, Financing requests         |
 | **Configuration** | Banks, Facilities, Exchange rates                              |
 
@@ -19,12 +22,12 @@ Open a record for its supporting evidence and actions. The lists use native tabl
 
 The workspace uses a blue-accented theme with navy surfaces in dark mode and light surfaces in light mode. Its shared colour tokens are declared once in `src/+workspace.ts` under `theme.light` and `theme.dark`; they apply to navigation, controls, record sheets and charts. Change those tokens through the normal workspace preview and release flow to customize the theme without changing the calculations.
 
-| Team           | May do                                                                                                                                                                                         |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Treasury**   | Change banks, facilities, fee rules, lines (allocate, advices, settle, cash or convert), suppliers and the banks that finance them, month-end locks, FX rates; key invoices; link POs to lines |
-| **Finance**    | Read everything; add, change and cancel earmarks; keep the supplier list; key invoices against POs; keep PO documents                                                                          |
-| **Purchasing** | Raise purchase orders (each purchaser sees their own) and change one until it is invoiced; prepare financing requests                                                                          |
-| **View**       | Read every page                                                                                                                                                                                |
+| Team           | May do                                                                                                                                                                                                                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Treasury**   | Change banks, facilities, fee rules, lines (allocate, advices, settle, cash or convert), suppliers and the banks that finance them, month-end locks, FX rates; upload and remove unsubmitted bank advices; link POs to lines; as Accounts, edit, cancel or reopen any PO, key its invoices and file or remove any PO document |
+| **Finance**    | Read everything; add, change and cancel earmarks; keep the supplier list; as Accounts, edit, cancel or reopen any PO, key its invoices and file or remove any PO document                                                                                                                                                     |
+| **Purchasing** | Raise purchase orders (each purchaser sees their own, starting from the PO PDF) and change one until it is invoiced; file the PO, supporting and other documents and remove their own; prepare financing requests                                                                                                             |
+| **View**       | Read every page                                                                                                                                                                                                                                                                                                               |
 
 Administrators have workspace-wide access; record locks and native approval holds still apply.
 Each record's history is the audit trail.
@@ -62,7 +65,7 @@ for Treasury approval, alongside checks of days, interest with the bank's roundi
 | Term                                   | Meaning here                                                                                                                                                                                                                                                    |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Bank                                   | The lender, with contacts, cut-off time, offered products and watch points. A bank can have several facilities.                                                                                                                                                 |
-| Facility / credit line                 | One agreement's limit, entity, pricing, day-count basis, rounding and maximum tenor. Limit and headroom reports use USD.                                                                                                                                        |
+| Facility / credit line                 | One agreement's limit, pricing, day-count basis, rounding and maximum tenor. Limit and headroom reports use USD.                                                                                                                                                |
 | Letter of offer                        | The attached bank agreement and its review date; the actual terms remain the bank document's.                                                                                                                                                                   |
 | Sub-limit                              | A product or supplier cap within a facility. It is a warning against allocation, rather than a second pot of credit added to the limit.                                                                                                                         |
 | Drawdown / line                        | One financing obligation or planned payment. The product says what kind; the status says where it is in its life.                                                                                                                                               |
@@ -180,8 +183,9 @@ planning warnings; the application does not submit instructions to a bank or exe
 
 ## Uploads and document reading
 
-1. In **Bank advices**, create a record and attach its PDF (up to 10 MiB). Bank, advice type and
-   financing line are optional hints. Saving automatically starts the reader; there is no separate Read or Apply step.
+1. In **Bank advices**, upload the PDF (up to 10 MiB); the upload asks for nothing else. Saving starts the
+   reader, which fills the advice type, issuing bank, advice date and financing line; there is no separate Read or
+   Apply step. A demo reset reads its seeded unread advices the same way.
 2. Native document ingest supplies text and pictures; scanned pages become images for the configured multimodal
    model. Extraction copies printed facts, excludes account numbers and lists uncertain fields. The original PDF
    and the extracted figures appear side by side; narrow screens switch between the two panes.
@@ -194,17 +198,19 @@ planning warnings; the application does not submit instructions to a bank or exe
    state before treating the change as final. The original PDF is retained as evidence.
 5. Review the figures and arithmetic checks against the PDF, then approve or reject in Bolt's native approval
    controls. Checks compare tenor, bank-basis interest and rounding, and principal + interest + charges against
-   the debit total. A failed extraction or incomplete operation remains visible in the run history. **Read again**
-   retries extraction; replacing the PDF clears old figures before rereading it. After rejection, correct and save
+   the debit total (the charges alone on a drawdown advice). A failed extraction or incomplete operation remains
+   visible in the run history. **Read again** appears only on a failed advice and retries it; replacing the PDF clears old figures before rereading it. After rejection, correct and save
    the figures to submit a new proposal. Submitted figures and their PDF stay locked together;
    use a new advice for a later bank notice.
 
-Financing requests keep each attachment's role: supplier PO supplies order/vendor/shipping fields;
-proforma supplies payment remarks and a currency/amount cross-check; customer PO supplies its
-number and purpose. **Fill from attachments** reads the newest attachment of each kind separately,
-fills empty fields and links a saved PO with the form's PO number. It preserves entered values,
-including currency, T/T versus LC and pay-by date; mismatches are written in the read note for
-the purchaser to resolve. Planning-detail and other attachments remain supporting evidence.
+A new financing request asks only for its attachments. Each attachment is read as it is attached or
+replaced: one left as other is first given its kind (supplier PO, proforma, customer PO, planning detail)
+and its file name as title. Supplier PO supplies the PO number, order/vendor/shipping fields, currency,
+amount and T/T versus LC; proforma supplies payment remarks and a currency/amount cross-check; customer PO
+supplies its number and purpose. The reader takes the newest attachment of each kind, fills empty fields
+and links a saved PO with the form's PO number. It preserves entered values and never sets the pay-by
+date; mismatches are written in the read note for the purchaser to resolve. Planning-detail and other
+attachments remain supporting evidence.
 
 Use the native PO form or import to create orders and item lines. Norbius's native document
 reading and guarded record tools can assist with that task; the facility-form filler does not
@@ -241,8 +247,42 @@ totals. Configure provider connections and host capabilities separately from bus
 | `month_end_lock`         | Freezes a month's lines and figures                             |
 | `month_end_unlock`       | Lets a month follow live data again                             |
 | `facility_form_read`     | Fills a facility form from its PO, proforma and customer PO     |
+| `purchase_order_read`    | Fills a purchase order from its PO PDF                          |
 | `facility_form_pack`     | Downloads the printed form, sign-off and attachments as one PDF |
 | `daily_alerts`           | Every morning, tells Treasury what the Alerts page holds        |
+| `drawdown_earmark_po`    | Earmarks a purchase order no line covers yet, linked to it      |
+| `fx_document_read`       | Reads a hedge document and files it with its deal               |
+| `fx_proposal_read`       | Turns a banker's proposal into alternatives to weigh            |
+| `fx_rates_fetch`         | Fetches the official daily exchange rates on weekdays           |
+
+## FX hedging
+
+A deal is a forward, target redemption forward (TRF), knock-out forward, dual currency investment
+(DCI) or another structure, on a pair where the company sells or buys the first currency. Its
+fixings are child rows; the bank's fixing rate is the one fact a person records on each.
+
+- **Documents.** Upload a term sheet, confirmation, notice or letter; nothing else is asked. The
+  reader fills its kind, bank, reference and trade date and files it with its deal (same bank and
+  reference, else the same pair and trade date). An unmatched term sheet or confirmation becomes a
+  deal to confirm; a termination notice ends its deal from its effective date.
+- **Results.** Each fixing is worked out from the bank's rate: knock-outs at expiry or any time,
+  a knock-in on a TRF, conditions read from their wording, leverage on a fixing against the
+  company, and the fixing that reaches a TRF target paid pro rata, in full or not at all. A result
+  a person chooses is kept. Whether a deal has ended is worked out, never typed.
+- **Today.** Positions use the official daily rate (the Monetary Authority of Singapore's feed,
+  connected under Settings → Connections; rates can also be keyed in). Every open fixing is valued
+  at today's rate, and the watch list flags a knock-out within 3%, a target 75% used, a deal out
+  of the money and a last fixing within 30 days.
+- **Scenarios and how likely.** Every open fixing played at today's rate ±2/4/6%, the strike, the
+  knock-out or any rate typed in. The odds bootstrap the pair's own past daily moves (last 3 and 12
+  months, trend removed), 3,000 paths each, centred on the bank's quoted forward when there is one,
+  and play each path through the same rules. A person's view tilts a second run.
+- **Planning.** Paste a banker's message or attach it; each alternative becomes a proposal deal
+  with its listed dates or a worked-out schedule. Compare them side by side; "We traded this"
+  makes one a deal to confirm, and confirming makes it live.
+
+Treasury changes hedges; Finance and View read them. Knock-ins are not yet in the scenarios or odds,
+and figures at the official rate are a guide, not the banks' valuations.
 
 ## Seed
 

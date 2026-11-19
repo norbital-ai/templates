@@ -7,7 +7,7 @@ export default model('po_financing', {
 	description: 'A purchase order linked to the line that pays it.',
 	icon: 'lucide:link',
 	record_label:
-		"record.purchase_order.po_number + ' · ' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))",
+		"(record.purchase_order.po_number != null ? record.purchase_order.po_number : 'PO') + ' · ' + (record.drawdown.bank_reference != null ? record.drawdown.bank_reference : string(record.drawdown.product))",
 	fields: {
 		purchase_order: {
 			kind: 'ref',

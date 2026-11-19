@@ -1,5 +1,7 @@
 import type { MessageKey, ReadAnswer } from '@norbital-ai/bolt';
 import { addDays } from './calculations.js';
+import { FX_DEAL_READ, workOut } from './fx.js';
+import { urgentPayment } from './purchasing.js';
 import { FACILITY_FIELDS, LINE_FIELDS, lineFigures, utilisation } from './treasury.js';
 
 /** The page and morning notification share their facts and rules. */
@@ -9,9 +11,10 @@ export const ATTENTION_READ = {
 		bank: { fields: ['code'] }
 	},
 	drawdown: {
-		where: { status: { in: ['earmarked', 'applied', 'active'] } },
+		where: { status: { in: ['earmarked', 'applied', 'active', 'unclear'] } },
 		fields: [
 			...LINE_FIELDS,
+			'discrepancy_note',
 			'fx_rate_to_usd',
 			'bank_reference',
 			'expected_draw_date',
@@ -20,19 +23,38 @@ export const ATTENTION_READ = {
 		]
 	},
 	purchase_order: {
-		where: { lc_requested: { eq: true }, is_cancelled: { eq: false } },
-		fields: ['po_number', 'po_date', 'currency'],
-		financings: { fields: ['drawdown'], drawdown: { fields: ['product', 'lc_number'] } }
+		where: { is_cancelled: { eq: false } },
+		fields: [
+			'po_number',
+			'po_date',
+			'currency',
+			'amount',
+			'lc_requested',
+			'no_financing',
+			'payment_date'
+		],
+		financings: { fields: ['drawdown'], drawdown: { fields: ['product', 'lc_number', 'status'] } }
 	},
 	facility_form: {
 		where: { facility_required: { eq: 'tt' } },
 		fields: ['po_number', 'currency', 'amount', 'pay_by_date']
+	},
+	fx_deal: {
+		where: { status: { in: ['draft', 'live'] } },
+		fields: FX_DEAL_READ.fx_deal.fields,
+		fixings: FX_DEAL_READ.fx_deal.fixings,
+		limit: 1000
+	},
+	fx_document: {
+		where: { read_status: { in: ['checked', 'failed'] } },
+		fields: ['kind', 'bank_reference', 'trade_date', 'read_status']
 	}
 } as const;
 
 export type AttentionItem = {
 	readonly id: string;
-	readonly model: 'drawdown' | 'facility' | 'purchase_order' | 'facility_form';
+	readonly model:
+		'drawdown' | 'facility' | 'purchase_order' | 'facility_form' | 'fx_deal' | 'fx_document';
 	readonly reference: string;
 	readonly date: string | null;
 	readonly amount: string | null;
@@ -45,6 +67,8 @@ export function attention(data: ReadAnswer<typeof ATTENTION_READ>, today: string
 	const items: AttentionItem[] = [];
 	for (const line of data.drawdown.rows) {
 		const reasons: MessageKey[] = [];
+		if (line.status === 'unclear') reasons.push('app.alerts.unclear');
+		if (line.discrepancy_note !== null) reasons.push('app.alerts.check');
 		if (line.status === 'earmarked') {
 			if (line.expected_draw_date !== null && line.expected_draw_date < today)
 				reasons.push('app.alerts.stale');
@@ -90,8 +114,8 @@ export function attention(data: ReadAnswer<typeof ATTENTION_READ>, today: string
 		if (facility.status !== 'active') continue;
 		const reasons: MessageKey[] = [];
 		if (high.has(facility.bank?.code ?? '—')) reasons.push('app.alerts.high');
-		if (facility.review_date !== null && facility.review_date <= addDays(today, 60))
-			reasons.push('app.alerts.reviews');
+		if (facility.review_date === null) reasons.push('app.alerts.no_review');
+		else if (facility.review_date <= addDays(today, 60)) reasons.push('app.alerts.reviews');
 		if (reasons.length > 0)
 			items.push({
 				id: facility.id,
@@ -104,17 +128,24 @@ export function attention(data: ReadAnswer<typeof ATTENTION_READ>, today: string
 			});
 	}
 	for (const po of data.purchase_order.rows) {
-		if (po.financings.some((f) => f.drawdown?.product === 'lc' || f.drawdown?.lc_number != null))
-			continue;
-		items.push({
-			id: po.id,
-			model: 'purchase_order',
-			reference: po.po_number,
-			date: po.po_date,
-			amount: null,
-			currency: po.currency,
-			reasons: ['app.alerts.lcs']
-		});
+		const reasons: MessageKey[] = [];
+		const lines = po.financings.flatMap((f) => (f.drawdown === null ? [] : [f.drawdown]));
+		if (po.lc_requested && !lines.some((d) => d.product === 'lc' || d.lc_number != null))
+			reasons.push('app.alerts.lcs');
+		if (!po.no_financing && lines.every((d) => d.status === 'cancelled'))
+			reasons.push(
+				urgentPayment(po.payment_date) ? 'app.alerts.to_earmark_urgent' : 'app.alerts.to_earmark'
+			);
+		if (reasons.length > 0)
+			items.push({
+				id: po.id,
+				model: 'purchase_order',
+				reference: po.po_number ?? '—',
+				date: po.payment_date ?? po.po_date,
+				amount: po.amount,
+				currency: po.currency,
+				reasons
+			});
 	}
 	for (const form of data.facility_form.rows) {
 		if (
@@ -126,12 +157,43 @@ export function attention(data: ReadAnswer<typeof ATTENTION_READ>, today: string
 		items.push({
 			id: form.id,
 			model: 'facility_form',
-			reference: form.po_number,
+			reference: form.po_number ?? '—',
 			date: form.pay_by_date,
 			amount: form.amount,
-			currency: form.currency,
+			currency: form.currency ?? 'USD',
 			reasons: ['app.alerts.tt']
 		});
 	}
+	for (const deal of data.fx_deal.rows) {
+		const reasons: MessageKey[] = [];
+		if (deal.status === 'draft') reasons.push('app.alerts.fx_confirm');
+		const worked = workOut(deal, deal.fixings);
+		const open = new Set(worked.results.filter((r) => r.outcome === null).map((r) => r.id));
+		const waiting = deal.fixings
+			.filter((f) => f.fixing_date < today && open.has(f.id))
+			.map((f) => f.fixing_date)
+			.sort();
+		if (waiting.length > 0) reasons.push('app.alerts.fx_rate');
+		if (reasons.length > 0)
+			items.push({
+				id: deal.id,
+				model: 'fx_deal',
+				reference: deal.bank_reference ?? deal.pair,
+				date: waiting[0] ?? deal.trade_date,
+				amount: deal.notional,
+				currency: deal.notional_currency ?? deal.pair.slice(0, 3),
+				reasons
+			});
+	}
+	for (const doc of data.fx_document.rows)
+		items.push({
+			id: doc.id,
+			model: 'fx_document',
+			reference: doc.bank_reference ?? doc.kind,
+			date: doc.trade_date,
+			amount: null,
+			currency: '',
+			reasons: [doc.read_status === 'failed' ? 'app.alerts.fx_failed' : 'app.alerts.fx_document']
+		});
 	return items.sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
 }

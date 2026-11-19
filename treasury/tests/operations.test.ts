@@ -157,6 +157,54 @@ it.layer(
 			})
 	);
 
+	it.effect('a PO is paid on a Tuesday or a Friday, and Earmark it plans and links it once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const treasury = yield* t.as(t.member(['treasury']));
+			const purchasing = yield* t.as(t.member(['purchasing']));
+			const finance = yield* t.as(t.member(['finance']));
+			const supplier = created(
+				(yield* treasury.act({ 'business_partner.create': [{ name: 'Supplier Pay' }] })).records
+			);
+			const order = (payment_date: string) => ({
+				po_number: `PO-PAY-${payment_date}`,
+				po_date: '2026-11-16',
+				supplier: Schema.decodeUnknownSync(id_of('business_partner'))(supplier),
+				payment_date,
+				lines: [{ item: 'Grade A natural', quantity: '1000.000', amount: '1500.00' }]
+			});
+			// Wednesday 25 Nov 2026 is no payment day; Tuesday 24 Nov (urgent) is
+			expect(
+				Exit.isFailure(
+					yield* Effect.exit(purchasing.act({ 'purchase_order.create': [order('2026-11-25')] }))
+				)
+			).toBe(true);
+			const po = Schema.decodeUnknownSync(id_of('purchase_order'))(
+				created((yield* purchasing.act({ 'purchase_order.create': [order('2026-11-24')] })).records)
+			);
+			const earmark = () => finished(t, finance.run('drawdown_earmark_po', { po }, JobResult));
+			yield* earmark();
+			expect(
+				yield* finance.query({
+					po_financing: {
+						where: { purchase_order: { eq: po } },
+						fields: ['drawdown'],
+						drawdown: { fields: ['status', 'amount', 'currency'] }
+					}
+				})
+			).toMatchObject({
+				po_financing: {
+					rows: [{ drawdown: { status: 'earmarked', amount: '1500.00', currency: 'USD' } }]
+				}
+			});
+			// covered now; and a purchaser never earmarks
+			expect(Exit.isFailure(yield* Effect.exit(earmark()))).toBe(true);
+			expect(
+				Exit.isFailure(yield* Effect.exit(purchasing.run('drawdown_earmark_po', { po }, JobResult)))
+			).toBe(true);
+		})
+	);
+
 	it.effect('an LC converts into financing that keeps its purchase orders', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

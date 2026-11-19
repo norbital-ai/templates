@@ -24,7 +24,6 @@ const EDITABLE = [
 	'day_count_basis',
 	'expected_draw_date',
 	'earliest_invoice_date',
-	'requested_by',
 	'purpose',
 	'notes'
 ] as const;
@@ -102,10 +101,8 @@ export default model('drawdown', {
 		},
 		expected_draw_date: { kind: 'date', optional: true },
 		earliest_invoice_date: { kind: 'date', optional: true },
-		requested_by: { kind: 'text', optional: true },
 		purpose: { kind: 'text', optional: true },
 		settlement_date: { kind: 'date', optional: true },
-		settled_principal: { kind: 'decimal', scale: 2, optional: true },
 		settled_interest: { kind: 'decimal', scale: 2, optional: true },
 		settled_by: { kind: 'enum', values: ['repaid', 'cash', 'converted'], optional: true },
 		converted_from: {
@@ -119,6 +116,16 @@ export default model('drawdown', {
 		notes: { kind: 'text', optional: true }
 	},
 	constraints: {
+		due_after_start: {
+			check: {
+				or: [
+					{ start_date: { is_null: true } },
+					{ due_date: { is_null: true } },
+					{ due_date: { gt: { field: 'start_date' } } }
+				]
+			},
+			message: 'errors.due_before_start'
+		},
 		sealed_line: {
 			locked: { status: { in: ['settled', 'cancelled'] } },
 			except: ['is_archived', 'discrepancy_note', 'notes'],
@@ -160,7 +167,6 @@ export default model('drawdown', {
 			...EDITABLE,
 			'is_archived',
 			'settlement_date',
-			'settled_principal',
 			'settled_interest',
 			'settled_by',
 			'discrepancy_note'

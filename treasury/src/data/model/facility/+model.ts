@@ -10,14 +10,12 @@ export default model('facility', {
 	record_label: 'record.name',
 	fields: {
 		bank: { kind: 'ref', to: 'bank', inverse: 'facilities' },
-		entity: { kind: 'text', optional: true },
 		name: { kind: 'text' },
 		currency: { kind: 'currency', default: 'USD' },
 		limit: { kind: 'decimal', scale: 2, default: 0 },
 		status: { kind: 'enum', values: ['active', 'expired'], default: 'active' },
 		margin_pct: { kind: 'decimal', scale: 6, optional: true },
 		pricing_basis: { kind: 'text', optional: true },
-		pricing_notes: { kind: 'text', optional: true },
 		day_count_basis: { kind: 'enum', values: ['actual_360', 'actual_365'], default: 'actual_360' },
 		interest_rounding: {
 			kind: 'enum',
@@ -31,11 +29,9 @@ export default model('facility', {
 			optional: true
 		},
 		early_settlement_penalty: { kind: 'text', optional: true },
-		pledged_deposit: { kind: 'decimal', scale: 2, optional: true },
 		review_date: { kind: 'date', optional: true },
 		expiry_date: { kind: 'date', optional: true },
-		security: { kind: 'text', optional: true },
-		notes: { kind: 'text', optional: true }
+		security: { kind: 'text', optional: true }
 	},
 	constraints: {
 		facility_name_per_bank: { unique: ['bank', 'name'] }
@@ -44,7 +40,7 @@ export default model('facility', {
 		default: {
 			fields: 'all',
 			bank: { fields: ['code', 'name', 'cut_off_time', 'offered_products'] },
-			sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
+			sub_limits: { fields: ['name', 'product', 'supplier', 'limit'] },
 			fees: {
 				fields: [
 					'fee_type',
@@ -67,26 +63,22 @@ export default model('facility', {
 	create: {
 		fields: [
 			'bank',
-			'entity',
 			'name',
 			'currency',
 			'limit',
 			'status',
 			'margin_pct',
 			'pricing_basis',
-			'pricing_notes',
 			'day_count_basis',
 			'interest_rounding',
 			'max_tenor_days',
 			'tenor_start_rule',
 			'early_settlement_penalty',
-			'pledged_deposit',
 			'review_date',
 			'expiry_date',
-			'security',
-			'notes'
+			'security'
 		],
-		sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
+		sub_limits: { fields: ['name', 'product', 'supplier', 'limit'] },
 		fees: {
 			fields: [
 				'fee_type',
@@ -106,26 +98,22 @@ export default model('facility', {
 	update: {
 		fields: [
 			'bank',
-			'entity',
 			'name',
 			'currency',
 			'limit',
 			'status',
 			'margin_pct',
 			'pricing_basis',
-			'pricing_notes',
 			'day_count_basis',
 			'interest_rounding',
 			'max_tenor_days',
 			'tenor_start_rule',
 			'early_settlement_penalty',
-			'pledged_deposit',
 			'review_date',
 			'expiry_date',
-			'security',
-			'notes'
+			'security'
 		],
-		sub_limits: { fields: ['name', 'product', 'supplier', 'limit', 'notes'] },
+		sub_limits: { fields: ['name', 'product', 'supplier', 'limit'] },
 		fees: {
 			fields: [
 				'fee_type',

@@ -18,12 +18,11 @@ export default model('sub_limit', {
 			optional: true,
 			on_delete: 'set_null'
 		},
-		limit: { kind: 'decimal', scale: 2 },
-		notes: { kind: 'text', optional: true }
+		limit: { kind: 'decimal', scale: 2 }
 	},
 	outputs: {
 		default: { fields: 'all', facility: { fields: ['name'] } }
 	},
-	create: { fields: ['facility', 'name', 'product', 'supplier', 'limit', 'notes'] },
-	update: { fields: ['facility', 'name', 'product', 'supplier', 'limit', 'notes'] }
+	create: { fields: ['facility', 'name', 'product', 'supplier', 'limit'] },
+	update: { fields: ['facility', 'name', 'product', 'supplier', 'limit'] }
 });

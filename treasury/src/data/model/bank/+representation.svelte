@@ -9,19 +9,19 @@
 			name: 'bank',
 			icon: 'lucide:landmark',
 			title: t('app.sections.bank'),
-			fields: ['code', 'name', 'is_active', 'offered_products']
+			fields: ['code', 'name', 'offered_products']
 		},
 		{
 			name: 'contacts',
 			icon: 'lucide:contact',
 			title: t('app.sections.contacts'),
-			fields: ['contacts', 'cut_off_time', 'settlement_instructions']
+			fields: ['contacts', 'cut_off_time']
 		},
 		{
 			name: 'terms',
 			icon: 'lucide:file-check-2',
 			title: t('app.sections.terms'),
-			fields: ['terms_notes', 'watch_points', 'letters_of_offer']
+			fields: ['watch_points', 'letters_of_offer']
 		},
 		{
 			name: 'facilities',

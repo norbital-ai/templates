@@ -24,6 +24,7 @@ export default policy({
 					'read_status',
 					'read_note',
 					'advice_reference',
+					'advice_date',
 					'doc_type',
 					'drawdown',
 					'bank'

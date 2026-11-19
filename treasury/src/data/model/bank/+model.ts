@@ -30,11 +30,8 @@ export default model('bank', {
 			}
 		},
 		cut_off_time: { kind: 'text', optional: true },
-		settlement_instructions: { kind: 'text', optional: true },
-		terms_notes: { kind: 'text', optional: true },
 		/** What the bank does; a line on another product is flagged. */
-		offered_products: { kind: 'enum', values: PRODUCT_CODES, many: true, optional: true },
-		is_active: { kind: 'bool', default: true }
+		offered_products: { kind: 'enum', values: PRODUCT_CODES, many: true, optional: true }
 	},
 	constraints: {
 		bank_code: { unique: ['code'], import_key: true }
@@ -51,32 +48,14 @@ export default model('bank', {
 		}
 	},
 	create: {
-		fields: [
-			'code',
-			'name',
-			'contacts',
-			'cut_off_time',
-			'settlement_instructions',
-			'terms_notes',
-			'offered_products',
-			'is_active'
-		],
+		fields: ['code', 'name', 'contacts', 'cut_off_time', 'offered_products'],
 		watch_points: { fields: ['facility', 'category', 'text', 'is_active'] },
 		letters_of_offer: {
 			fields: ['facility', 'title', 'offer_date', 'next_review_date', 'document', 'notes']
 		}
 	},
 	update: {
-		fields: [
-			'code',
-			'name',
-			'contacts',
-			'cut_off_time',
-			'settlement_instructions',
-			'terms_notes',
-			'offered_products',
-			'is_active'
-		],
+		fields: ['code', 'name', 'contacts', 'cut_off_time', 'offered_products'],
 		watch_points: { fields: ['facility', 'category', 'text', 'is_active'] },
 		letters_of_offer: {
 			fields: ['facility', 'title', 'offer_date', 'next_review_date', 'document', 'notes']

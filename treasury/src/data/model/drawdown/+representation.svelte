@@ -43,7 +43,7 @@
 			name: 'references',
 			icon: 'lucide:hash',
 			title: t('app.sections.references'),
-			fields: ['bank_reference', 'lc_number', 'bill_number', 'purpose', 'requested_by']
+			fields: ['bank_reference', 'lc_number', 'bill_number', 'purpose']
 		},
 		{
 			name: 'dates',
@@ -75,13 +75,7 @@
 			name: 'settlement',
 			icon: 'lucide:badge-check',
 			title: t('app.sections.settlement'),
-			fields: [
-				'settlement_date',
-				'settled_principal',
-				'settled_interest',
-				'settled_by',
-				'converted_from'
-			]
+			fields: ['settlement_date', 'settled_interest', 'settled_by', 'converted_from']
 		},
 		{
 			name: 'evidence',

@@ -33,15 +33,15 @@ const FIELDS = [
 
 /**
  * A financing application and its source-document facts, separate from agreed bank facilities and the current PO.
- * The purchaser attaches the PO, the
- * supplier's proforma, the customer's PO and the planning detail; the reader can fill the form from them; the
- * purchaser checks it, adds what only they know (pay-by date, shipment terms) and prints it with its attachments for
- * signature. An LC form asks for an LC: saving it ticks Pay by LC on its purchase order.
+ * The purchaser starts one by attaching the PO, the supplier's proforma and the customer's PO; each attachment is
+ * read as it lands and fills the form's empty fields, its PO number and T/T or LC included. The purchaser checks it,
+ * adds what only they know (pay-by date, shipment terms) and prints it with its attachments for signature. An LC form
+ * asks for an LC: saving it ticks Pay by LC on its purchase order.
  */
 export default model('facility_form', {
 	description: 'A purchase facility requisition for a PO paid by T/T advance or LC.',
 	icon: 'lucide:file-signature',
-	record_label: 'record.po_number',
+	record_label: "record.po_number != null ? record.po_number : 'Facility form'",
 	fields: {
 		purchase_order: {
 			kind: 'ref',
@@ -50,7 +50,7 @@ export default model('facility_form', {
 			optional: true,
 			on_delete: 'set_null'
 		},
-		po_number: { kind: 'text', max: 60 },
+		po_number: { kind: 'text', max: 60, optional: true },
 		po_date: { kind: 'date', optional: true },
 		ship_date: { kind: 'date', optional: true },
 		payment_terms: { kind: 'text', optional: true },
@@ -59,8 +59,8 @@ export default model('facility_form', {
 		requested_by: { kind: 'text', optional: true },
 		buyer: { kind: 'text', optional: true },
 		vendor: { kind: 'text', optional: true },
-		facility_required: { kind: 'enum', values: ['tt', 'lc'], default: 'tt' },
-		currency: { kind: 'currency', default: 'USD' },
+		facility_required: { kind: 'enum', values: ['tt', 'lc'], optional: true },
+		currency: { kind: 'currency', optional: true },
 		amount: { kind: 'decimal', scale: 2, optional: true },
 		latest_shipment_date: { kind: 'date', optional: true },
 		partial_shipment: { kind: 'bool', default: false },
@@ -107,7 +107,7 @@ export default model('facility_form', {
 function* askForLc(
 	changes: readonly {
 		readonly after: {
-			readonly facility_required?: 'tt' | 'lc';
+			readonly facility_required?: 'tt' | 'lc' | null;
 			readonly purchase_order?: Id<'purchase_order'> | null;
 		};
 	}[],

@@ -14,8 +14,7 @@
 	<Table
 		{ctx}
 		of="bank"
-		initial_filter={{ is_active: { eq: true } }}
-		columns={['code', 'name', 'cut_off_time', 'offered_products', 'is_active']}
+		columns={['code', 'name', 'cut_off_time', 'offered_products']}
 		toolbar={{ title: false }}
 	/>
 </AppShell>

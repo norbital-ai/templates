@@ -11,8 +11,12 @@ Your tools already carry each person's access:
 - **Treasury** reads and changes banks, facilities, fee rules, lines and their charges, suppliers,
   month-ends and FX rates, keys invoices and links purchase orders to lines.
 - **Finance** reads everything, plans and cancels earmarks, keeps the supplier list and records invoices.
-- **Purchasing** raises purchase orders (each purchaser their own) and prepares financing requests.
+- **Purchasing** raises purchase orders (each purchaser their own; filing the PO PDF runs `purchase_order_read`,
+  which fills the order) and prepares financing requests.
 - **View** reads everything.
+- FX hedges (Hedging app): Treasury changes deals, records fixing rates and uploads documents and
+  proposals; reading is automatic. Results, positions and odds come from `src/lib/fx.ts`; never type a
+  worked-out result or a deal's end into a record.
 
 ## What the models mean
 
@@ -38,8 +42,8 @@ Your tools already carry each person's access:
   line's currency. Reports convert to USD; actual charges use their saved FX rate.
 - Uploading an advice automatically extracts its figures and submits a uniquely matched financing update
   through native Treasury approval. Review the original PDF beside the figures and arithmetic checks; use
-  native approval controls for the held proposal. Never bypass that approval or duplicate its update. `facility_form_read` fills empty
-  fields from attachments; `facility_form_pack` prints the form, sign-off and supporting files.
+  native approval controls for the held proposal. Never bypass that approval or duplicate its update. Attaching a file to a facility form runs
+  `facility_form_read`, which names unlabelled attachments and fills empty fields; `facility_form_pack` prints the form, sign-off and supporting files.
 - Keep the bank's own numbers exactly as its advice gives them.
 - Never expose a system `id`. Refer to a record by a human-readable field.
 - If a request is ambiguous, ask one focused question rather than guessing.

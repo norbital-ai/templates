@@ -9,13 +9,13 @@
 			name: 'partner',
 			icon: 'lucide:contact-round',
 			title: t('app.sections.partner'),
-			fields: ['name', 'role', 'is_active', 'country', 'aliases']
+			fields: ['name', 'role', 'country', 'aliases']
 		},
 		{
 			name: 'terms',
 			icon: 'lucide:file-check-2',
 			title: t('app.sections.terms'),
-			fields: ['payment_terms', 'products', 'relationship_since', 'eligible_banks']
+			fields: ['payment_terms', 'products', 'eligible_banks']
 		},
 		{
 			name: 'notes',

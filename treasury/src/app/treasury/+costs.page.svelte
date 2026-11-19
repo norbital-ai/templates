@@ -45,7 +45,6 @@
 		fx_rate: { fields: ['currency', 'rate_date', 'usd_per_unit'] },
 		sub_limit: { fields: ['facility', 'name', 'product', 'supplier', 'limit'] },
 		business_partner: {
-			where: { is_active: { eq: true } },
 			fields: ['name'],
 			eligible_banks: { fields: ['bank'], bank: { fields: ['code'] } }
 		}

@@ -1,14 +1,18 @@
 <script lang="ts">
 	/**
-	 * A purchase order: its fields, items and invoices (the generated form), where it stands against its invoices, every
-	 * difference an invoice shows against it, and the lines that pay it. Treasury links a line here.
+	 * A purchase order: started from its PO PDF (filed first, it fills the rest), then its fields, items and invoices
+	 * (the generated form), where it stands against its invoices, every difference an invoice shows against it, and the
+	 * lines that pay it. Treasury links a line here.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Alert,
+		Button,
 		Form,
 		RecordShell,
+		RunStatus,
 		Table,
+		use_act,
 		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -21,13 +25,20 @@
 			name: 'order',
 			icon: 'lucide:clipboard-list',
 			title: t('app.sections.order'),
-			fields: ['po_number', 'po_date', 'supplier', 'purchaser', 'salesperson', 'currency']
+			fields: ['po_number', 'po_date', 'supplier', 'salesperson', 'currency']
 		},
 		{
 			name: 'items',
 			icon: 'lucide:package',
 			title: t('app.sections.items'),
-			fields: ['lines', 'ship_to_country', 'lc_requested', 'is_cancelled']
+			fields: [
+				'lines',
+				'ship_to_country',
+				'payment_date',
+				'lc_requested',
+				'no_financing',
+				'is_cancelled'
+			]
 		},
 		{
 			name: 'evidence',
@@ -45,6 +56,16 @@
 		}
 	];
 
+	/** Creating starts with the PO PDF; the reader fills the order from it. */
+	const upload: readonly RecordSection[] = [
+		{
+			name: 'evidence',
+			icon: 'lucide:paperclip',
+			title: t('app.sections.evidence'),
+			fields: ['documents']
+		},
+		...sections.filter((s) => s.name !== 'evidence')
+	];
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const read = $derived.by(() => {
 		const id = record?.id;
@@ -52,7 +73,7 @@
 		return ctx.query({
 			purchase_order: {
 				where: { id: { eq: id } },
-				fields: ['currency', 'supplier', 'is_cancelled'],
+				fields: ['currency', 'supplier', 'is_cancelled', 'no_financing'],
 				lines: { fields: ['item', 'quantity', 'amount', 'invoiced_quantity'] },
 				invoices: {
 					fields: ['invoice_number', 'currency', 'amount', 'drawdown'],
@@ -86,6 +107,21 @@
 					).map((f) => ({ ...f, invoice: inv.invoice_number }))
 				)
 	);
+	// an open order no live line covers waits for Treasury's earmark
+	const uncovered = $derived(
+		po !== undefined &&
+			!po.is_cancelled &&
+			!po.no_financing &&
+			po.financings.every((f) => f.drawdown?.status === 'cancelled')
+	);
+	const act = use_act(ctx);
+	let run = $state<string | null>(null);
+	const earmark = () => {
+		if (record === null) return;
+		const handle = ctx.run('drawdown_earmark_po', { po: record.id });
+		run = handle.id;
+		act.run(handle);
+	};
 	const financings = $derived(
 		(po?.financings ?? []).map((f) => ({
 			bank_reference: f.drawdown?.bank_reference ?? '—',
@@ -96,6 +132,13 @@
 		}))
 	);
 </script>
+
+{#snippet next()}
+	{#if uncovered}<Button variant="outline" disabled={act.pending} onclick={earmark}
+			>{t('app.orders.earmark')}</Button
+		>{/if}
+	{#if run}<RunStatus {ctx} automation="drawdown_earmark_po" {run} />{/if}
+{/snippet}
 
 {#snippet checks()}
 	<Stack gap="sm">
@@ -144,9 +187,10 @@
 	<RecordShell
 		{ctx}
 		of="purchase_order"
-		{sections}
+		sections={upload}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
+		footer={t('app.orders.upload_hint')}
 	/>
 {:else}
 	<RecordShell
@@ -154,7 +198,8 @@
 		of="purchase_order"
 		{sections}
 		id={record.id}
-		subtitle={['supplier', 'po_date']}
+		subtitle={['supplier', 'payment_date']}
+		footer_actions={next}
 		tabs={[
 			{ name: 'checks', title: t('app.orders.checks'), icon: 'lucide:list-checks', body: checks },
 			{

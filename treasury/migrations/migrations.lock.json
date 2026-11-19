@@ -1,10 +1,12 @@
 {
-	"snapshot": "55df2a94b58fe661891d151d6d4a574c83342852f64d5e2108c9454b675968a7",
+	"snapshot": "5b2af1d7bc86c46567e0276932bf0486d2fe5e80d8f05b563e3ea7c7ae44de9b",
 	"files": {
-		"0001_initial.sql": "ea831b4cd4c2fb6e0e793be1bce2a018a96a6d12757c9b4a6b289c6fef0c20bd"
+		"0001_initial.sql": "ea831b4cd4c2fb6e0e793be1bce2a018a96a6d12757c9b4a6b289c6fef0c20bd",
+		"0002_schema.sql": "d3aa8ac1356dfd1a1e2a6a0dbdf6fdabb013ccd5517dd6b16b377ffa42f106a3"
 	},
 	"physical": {
 		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-		"0001_initial.sql": "6e40eb202ec551c862704ded38b080d71f94cf75cf99d6d580b2a3dd7374a94a"
+		"0001_initial.sql": "6e40eb202ec551c862704ded38b080d71f94cf75cf99d6d580b2a3dd7374a94a",
+		"0002_schema.sql": "b006bd1c58438bfed53c6a795fcc8127736382274ae55e7e32ea1093c9b00fa1"
 	}
 }

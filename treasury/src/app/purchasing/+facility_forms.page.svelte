@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * Facility forms: one per PO paid by T/T advance or LC. New starts a form; attach the PO, proforma and customer PO,
-	 * fill it from them, check it, add the pay-by date, and print it with its attachments for signature.
+	 * Facility forms: one per PO paid by T/T advance or LC. New asks only for the PO, proforma and customer PO, which
+	 * fill the form as they land; check it, add the pay-by date, and print it with its attachments for signature.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Table } from '@norbital-ai/ui';

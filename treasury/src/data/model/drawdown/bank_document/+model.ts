@@ -39,13 +39,11 @@ export default model('bank_document', {
 			values: ['uploaded', 'checked', 'applied', 'failed'],
 			default: 'uploaded'
 		},
-		read_note: { kind: 'text', optional: true },
-		notes: { kind: 'text', optional: true }
+		read_note: { kind: 'text', optional: true }
 	},
 	constraints: {
 		submitted_advice: {
 			locked: { read_status: { eq: 'applied' } },
-			except: ['notes'],
 			message: 'errors.advice_submitted'
 		}
 	},
@@ -57,7 +55,7 @@ export default model('bank_document', {
 		}
 	},
 	create: {
-		fields: ['bank', 'drawdown', 'doc_type', 'advice_reference', 'advice_date', 'file', 'notes'],
+		fields: ['bank', 'drawdown', 'doc_type', 'advice_reference', 'advice_date', 'file'],
 		effect: function* (changes, ctx) {
 			for (const { after } of changes)
 				yield* ctx.schedule(
@@ -77,8 +75,7 @@ export default model('bank_document', {
 			'file',
 			'extracted',
 			'read_status',
-			'read_note',
-			'notes'
+			'read_note'
 		],
 		transform: function* (changes) {
 			return changes.map((change) =>
@@ -113,6 +110,13 @@ export default model('bank_document', {
 						{ key: `submit:${doc.id}:${doc.revision}` }
 					);
 			}
+		}
+	},
+	delete: {
+		// a submitted advice is evidence of what its line holds; an unsubmitted one may go
+		transform: function* (changes, ctx) {
+			const row = changes.findIndex(({ before }) => before.read_status === 'applied');
+			if (row >= 0) return yield* ctx.refuse('errors.advice_submitted', { row });
 		}
 	}
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
-	 * One advice: its fields and the figures read from it (edit any the PDF shows differently, then Save), the
-	 * workspace's own arithmetic on those figures, and native approval controls.
+	 * One advice: uploading asks only for the PDF; the reader fills its type, bank, date, line and figures (edit any
+	 * the PDF shows differently, then Save). Beside them, the workspace's own arithmetic and native approval controls.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -10,7 +10,6 @@
 		Form,
 		RecordShell,
 		RunsFor,
-		RunStatus,
 		Spinner,
 		use_act,
 		type RecordSection,
@@ -21,6 +20,9 @@
 	let { view, ctx }: { view: RecordView<'bank_document'>; ctx: PageContext } = $props();
 	const t = ctx.t;
 	const record = $derived(view.mode === 'create' ? null : view.record);
+	const upload: readonly RecordSection[] = [
+		{ name: 'advice', icon: 'lucide:file-text', title: t('app.advices.title'), fields: ['file'] }
+	];
 	const sections: readonly RecordSection[] = [
 		{
 			name: 'advice',
@@ -39,7 +41,7 @@
 			icon: 'lucide:list',
 			title: t('app.advices.details'),
 			default_open: false,
-			fields: ['advice_reference', 'advice_date', 'notes']
+			fields: ['advice_reference', 'advice_date']
 		},
 		{
 			name: 'reading',
@@ -84,16 +86,8 @@
 	const subject = $derived(record?.id ?? null);
 	const runWhere = $derived(subject === null ? {} : { input: { eq: { advice: [subject] } } });
 	const act = use_act(ctx);
-	let run = $state<string | null>(null);
 	const retry = () => {
 		if (record === null) return;
-		if (record.read_status === 'uploaded') {
-			const handle = ctx.run('bank_document_read', { advice: [record.id] });
-			run = handle.id;
-			act.run(handle, { saved: t('app.advices.reading_started') });
-			return;
-		}
-		run = null;
 		act.run(
 			ctx.act({
 				'bank_document.update': [
@@ -117,12 +111,9 @@
 {/snippet}
 
 {#snippet next()}
-	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && ['uploaded', 'checked', 'failed'].includes(record.read_status)}
+	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed && record.read_status === 'failed'}
 		<Button variant="ghost" disabled={act.pending} onclick={retry}>{t('app.advices.reread')}</Button
 		>
-	{/if}
-	{#if run && record?.read_status === 'uploaded'}
-		<RunStatus {ctx} automation="bank_document_read" {run} />
 	{/if}
 {/snippet}
 
@@ -132,7 +123,8 @@
 		of="bank_document"
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
-		{sections}
+		fields={['file']}
+		sections={upload}
 		footer={t('app.advices.upload_hint')}
 	/>
 {:else}
@@ -171,7 +163,7 @@
 					{#snippet end()}
 						<Scroll name={t('app.advices.figures')} size="fill">
 							<Stack gap="md">
-								{#if run && shown.record.read_status === 'uploaded'}
+								{#if shown.record.read_status === 'uploaded'}
 									<Alert.Root variant="default">
 										<Alert.Description class="flex items-center gap-2">
 											<Spinner class="size-3.5 shrink-0" />
@@ -193,7 +185,6 @@
 										'extracted',
 										'advice_reference',
 										'advice_date',
-										'notes',
 										'read_status',
 										'read_note'
 									]}

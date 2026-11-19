@@ -63,7 +63,6 @@ export default automation({
 						status: 'settled' as const,
 						settled_by: 'repaid' as const,
 						settlement_date: input.settlement_date,
-						settled_principal: input.principal,
 						settled_interest: input.interest,
 						is_archived: true,
 						...(input.interest_rate_pct == null

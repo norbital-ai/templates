@@ -15,7 +15,7 @@
 		{ctx}
 		of="fx_rate"
 		order_by={{ rate_date: 'desc' }}
-		columns={['currency', 'rate_date', 'usd_per_unit', 'is_month_end', 'source']}
+		columns={['currency', 'rate_date', 'usd_per_unit']}
 		toolbar={{ title: false }}
 	/>
 </AppShell>

@@ -3,7 +3,7 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'View: read every treasury and purchasing record; change nothing.',
 	capabilities: {
-		apps: ['treasury', 'purchasing', 'configuration'],
+		apps: ['treasury', 'hedging', 'purchasing', 'configuration'],
 		automations: ['facility_form_pack']
 	},
 	grants: {
@@ -21,6 +21,10 @@ export default policy({
 		month_end: { outputs: { default: {} } },
 		month_end_line: { outputs: { default: {} } },
 		fx_rate: { outputs: { default: {} } },
+		fx_deal: { outputs: { default: {} } },
+		fx_fixing: { outputs: { default: {} } },
+		fx_document: { outputs: { default: {} } },
+		fx_proposal: { outputs: { default: {} } },
 		purchase_order: { outputs: { default: {} } },
 		po_line: { outputs: { default: {} } },
 		invoice: { outputs: { default: {} } },

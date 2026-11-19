@@ -29,7 +29,11 @@ export default automation({
 			const bytes = yield* ctx.files.get(attachment.file);
 			held += bytes.byteLength;
 			if (held > 4 * 1024 * 1024) return yield* ctx.refuse('errors.pack_large');
-			attachments.push({ name: attachment.title, mime: attachment.file.mime, bytes });
+			attachments.push({
+				name: attachment.title ?? attachment.file.name,
+				mime: attachment.file.mime,
+				bytes
+			});
 		}
 		const bytes = yield* pdfPack(cover.bytes, attachments).pipe(
 			Effect.catchTag('PdfPackFailure', (error) =>
@@ -38,7 +42,7 @@ export default automation({
 		);
 		if (bytes.byteLength > 4 * 1024 * 1024) return yield* ctx.refuse('errors.pack_large');
 		const file = yield* ctx.files.put(bytes, {
-			name: `Facility form-${f.po_number}-pack.pdf`,
+			name: `Facility form-${f.po_number ?? 'draft'}-pack.pdf`,
 			mime: 'application/pdf',
 			for: 'facility_form_pack'
 		});

@@ -1,5 +1,8 @@
 <script lang="ts">
-	/** A facility form: its fields and attachments (the generated form), and Fill from attachments in the footer. */
+	/**
+	 * A facility form: starting one asks only for its attachments, which fill the form as they land; then its fields
+	 * and attachments (the generated form), and the PDF pack in the footer.
+	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
@@ -11,6 +14,12 @@
 	} from '@norbital-ai/ui';
 	let { view, ctx }: { view: RecordView<'facility_form'>; ctx: PageContext } = $props();
 	const t = ctx.t;
+	const evidence: RecordSection = {
+		name: 'evidence',
+		icon: 'lucide:paperclip',
+		title: t('app.sections.evidence'),
+		fields: ['attachments']
+	};
 	const sections: readonly RecordSection[] = [
 		{
 			name: 'request',
@@ -59,13 +68,7 @@
 			fields: ['purpose', 'product_description', 'intended_period_of_sales', 'projected_sales'],
 			default_open: false
 		},
-		{
-			name: 'evidence',
-			icon: 'lucide:paperclip',
-			title: t('app.sections.evidence'),
-			fields: ['attachments'],
-			default_open: false
-		},
+		{ ...evidence, default_open: false },
 		{
 			name: 'notes',
 			icon: 'lucide:notebook-pen',
@@ -75,45 +78,34 @@
 		}
 	];
 
+	const attach: readonly RecordSection[] = [evidence];
+
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const act = use_act(ctx);
 	let run = $state<string | null>(null);
-	let automation = $state<'facility_form_read' | 'facility_form_pack'>('facility_form_read');
-	const start = (which: typeof automation) => {
+	const pack = () => {
 		if (record === null) return;
-		const handle = ctx.run(which, { form: [record.id] });
-		automation = which;
+		const handle = ctx.run('facility_form_pack', { form: [record.id] });
 		run = handle.id;
 		act.run(handle);
 	};
 </script>
 
 {#snippet fill()}
-	{#if record !== null && view.mode !== 'create' && view.capabilities?.update.allowed}
-		<Button variant="outline" disabled={act.pending} onclick={() => start('facility_form_read')}
-			>{t('app.forms.fill')}</Button
-		>
-	{/if}
-	{#if record !== null}<Button
-			variant="outline"
-			disabled={act.pending}
-			onclick={() => start('facility_form_pack')}>{t('app.forms.pack')}</Button
+	{#if record !== null}<Button variant="outline" disabled={act.pending} onclick={pack}
+			>{t('app.forms.pack')}</Button
 		>{/if}
-	{#if run}<RunStatus
-			{ctx}
-			{automation}
-			{run}
-			download={automation === 'facility_form_pack'}
-		/>{/if}
+	{#if run}<RunStatus {ctx} automation="facility_form_pack" {run} download />{/if}
 {/snippet}
 
 {#if record === null}
 	<RecordShell
 		{ctx}
 		of="facility_form"
-		{sections}
+		sections={attach}
 		mode="create"
 		values={view.mode === 'create' ? view.values : {}}
+		footer={t('app.forms.upload_hint')}
 	/>
 {:else}
 	<RecordShell

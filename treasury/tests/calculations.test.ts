@@ -571,6 +571,8 @@ it('combines overlapping attention conditions into one record', () => {
 			facility: { rows: [], next: null, total: 0 },
 			purchase_order: { rows: [], next: null, total: 0 },
 			facility_form: { rows: [], next: null, total: 0 },
+			fx_deal: { rows: [], next: null, total: 0 },
+			fx_document: { rows: [], next: null, total: 0 },
 			drawdown: {
 				rows: [
 					{
@@ -589,6 +591,7 @@ it('combines overlapping attention conditions into one record', () => {
 						settlement_date: null,
 						facility: null,
 						bank_reference: 'OVERLAP',
+						discrepancy_note: null,
 						expected_draw_date: null,
 						earliest_invoice_date: null,
 						lc_expiry_date: '2026-03-11'

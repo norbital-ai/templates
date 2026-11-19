@@ -51,12 +51,12 @@ Long forms use native `RecordShell sections` in create, edit and read modes. Gro
 
 ## Surfaces
 
-- Apps: `treasury`, `purchasing`, `configuration`
+- Apps: `treasury`, `hedging`, `purchasing`, `configuration`
 - Kiosks: none
-- Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `facility_form_read`, `facility_form_pack`, `month_end_lock`, `month_end_unlock`
-- Policies: `bank_advices`, `facility_forms`, `finance`, `month_end_closing`, `purchasing`, `treasury`, `viewer`
+- Automations: `bank_document_apply`, `bank_document_read`, `daily_alerts`, `drawdown_allocate`, `drawdown_cancel`, `drawdown_close_bill`, `drawdown_record_advice`, `drawdown_settle`, `drawdown_earmark_po`, `facility_form_read`, `facility_form_pack`, `fx_document_read`, `fx_proposal_read`, `fx_rates_fetch`, `month_end_lock`, `month_end_unlock`, `purchase_order_read`
+- Policies: `bank_advices`, `facility_forms`, `finance`, `fx_rates`, `fx_reader`, `month_end_closing`, `po_earmarks`, `purchase_orders`, `purchasing`, `treasury`, `viewer`
 - Custom fields: none
-- Integrations: none
+- Integrations: `mas_rates` (official daily exchange rates; the account is a tenant connection, never seeded)
 
 ## Gates
 

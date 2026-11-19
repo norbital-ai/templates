@@ -9,32 +9,19 @@
 			name: 'facility',
 			icon: 'lucide:vault',
 			title: t('app.sections.facility'),
-			fields: ['bank', 'entity', 'name', 'status', 'currency', 'limit']
+			fields: ['bank', 'name', 'status', 'currency', 'limit']
 		},
 		{
 			name: 'pricing',
 			icon: 'lucide:percent',
 			title: t('app.sections.pricing'),
-			fields: [
-				'margin_pct',
-				'pricing_basis',
-				'pricing_notes',
-				'day_count_basis',
-				'interest_rounding',
-				'fees'
-			]
+			fields: ['margin_pct', 'pricing_basis', 'day_count_basis', 'interest_rounding', 'fees']
 		},
 		{
 			name: 'terms',
 			icon: 'lucide:file-check-2',
 			title: t('app.sections.terms'),
-			fields: [
-				'max_tenor_days',
-				'tenor_start_rule',
-				'early_settlement_penalty',
-				'pledged_deposit',
-				'security'
-			]
+			fields: ['max_tenor_days', 'tenor_start_rule', 'early_settlement_penalty', 'security']
 		},
 		{
 			name: 'dates',
