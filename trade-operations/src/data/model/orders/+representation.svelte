@@ -474,12 +474,24 @@
 							: sourceState && sourceState !== 'connected'
 								? ctx.t(`component.kingdee_${sourceState}`)
 								: null}
-		<Button
-			disabled={save.pending || form.pending || Boolean(blocked)}
-			aria-describedby={blocked ? 'sync-blocked' : undefined}
-			onclick={syncOrder}>{ctx.t('component.sync_kingdee')}</Button
-		>
-		{#if blocked}<span id="sync-blocked" class="text-xs text-muted-foreground">{blocked}</span>{/if}
+		{#if blocked}
+			<!-- a disabled button takes no hover: its wrapper carries the reason -->
+			<Tooltip text={blocked}>
+				{#snippet trigger({ props })}
+					<span
+						{...props}
+						tabindex="0"
+						aria-label={`${ctx.t('component.sync_kingdee')}. ${blocked}`}
+						><Button disabled class="pointer-events-none">{ctx.t('component.sync_kingdee')}</Button
+						></span
+					>
+				{/snippet}
+			</Tooltip>
+		{:else}
+			<Button disabled={save.pending || form.pending} onclick={syncOrder}
+				>{ctx.t('component.sync_kingdee')}</Button
+			>
+		{/if}
 	{/if}
 {/snippet}
 {#snippet lineUnitPrice({
