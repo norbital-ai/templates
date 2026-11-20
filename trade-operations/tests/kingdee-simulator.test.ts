@@ -121,7 +121,8 @@ const simulator = Effect.fnUntraced(function* () {
 	const t = yield* workspace({ source, now: '2026-11-17T03:00:00Z' }),
 		as = yield* t.as(t.admin),
 		instance = fixtureId('sys_integration', 'kingdee');
-	for (const model of ['parties', 'products', 'warehouses'] as const) yield* t.pull(model);
+	for (const model of ['parties', 'products', 'warehouses', 'contacts', 'settlements'] as const)
+		yield* t.pull(model);
 	const masters = yield* as.query({
 		parties: { where: { source: { eq: instance }, external_code: { eq: '110' } } },
 		products: { where: { source: { eq: instance }, external_code: { in: ['210', '211'] } } },
@@ -130,6 +131,17 @@ const simulator = Effect.fnUntraced(function* () {
 	assert.equal(masters.parties.rows.length, 1);
 	assert.equal(masters.products.rows.length, 2);
 	assert.equal(masters.warehouses.rows.length, 1);
+	const read = yield* as.query({
+		contacts: {
+			where: { party: { eq: firstRow(masters.parties.rows).id } },
+			fields: ['name', 'phone', 'email', 'primary']
+		},
+		settlements: { where: { source: { eq: instance } }, fields: ['code'] }
+	});
+	assert.partialDeepStrictEqual(read.contacts.rows, [
+		{ name: 'Simulator Buyer A', phone: '13800000110', email: 'buyer.a@example.com', primary: true }
+	]);
+	assert.ok(read.settlements.rows.some((s) => s.code === 'NET30'));
 	const configure = (owner: string) => {
 		const config = {
 			baseCurrency: 'CNY',

@@ -12,10 +12,12 @@ CREATE TABLE dbo.t_Item (
 );
 CREATE TABLE dbo.t_Organization (
   FItemID int PRIMARY KEY, FName nvarchar(100) NOT NULL, FDeleted bit NOT NULL DEFAULT 0,
-  FAddress nvarchar(200), FPhone nvarchar(30), FCurrencyID int, FModifyTime rowversion
+  FAddress nvarchar(200), FPhone nvarchar(30), FCurrencyID int, FContact nvarchar(100),
+  FMobilePhone nvarchar(30), FEmail nvarchar(100), FModifyTime rowversion
 );
 CREATE TABLE dbo.t_Supplier (
   FItemID int PRIMARY KEY, FName nvarchar(100) NOT NULL, FDeleted bit NOT NULL DEFAULT 0,
+  FContact nvarchar(100), FPhone nvarchar(30), FMobilePhone nvarchar(30), FEmail nvarchar(100),
   FModifyTime rowversion
 );
 CREATE TABLE dbo.t_ICItem (
@@ -33,8 +35,8 @@ INSERT dbo.t_Item (FItemID,FNumber,FName,FItemClassID,FDetail,FParentID) VALUES
   (210,'RESIN-A',N'树脂 A',4,1,0), (310,'WH','Local warehouses',5,0,0),
   (311,'WH-01','Test warehouse',5,1,310), (710,'kg','kg',7,1,0),
   (212,'BRAND-A',N'利华益',2038,1,0);
-INSERT dbo.t_Organization (FItemID,FName,FAddress,FPhone,FCurrencyID)
-  VALUES (110,N'客户测试',N'测试路 1 号','010-12345678',1);
+INSERT dbo.t_Organization (FItemID,FName,FAddress,FPhone,FCurrencyID,FContact,FMobilePhone)
+  VALUES (110,N'客户测试',N'测试路 1 号','010-12345678',1,N'测试联系人','13800000110');
 INSERT dbo.t_Supplier (FItemID,FName) VALUES (120,N'供应商测试');
 INSERT dbo.t_ICItem (FItemID,FModel,FUnitID,FProducingArea,FComBrandID,F_102)
   VALUES (210,'A-100',710,N'中国',212,'TARFLON');
