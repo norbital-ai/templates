@@ -22,6 +22,8 @@ export const bills = {
 		invoice: 'ICSale',
 		invoiceTypes: { blue: ['80'], red: ['80', '86'] },
 		dueOn: 'CONVERT(varchar(10),head.FSettleDate,23)',
+		// the order's settlement method, copied onto its invoices: their terms run from delivery
+		invoiceTerms: true,
 		settlement: { rp: 1, type: 3, source: 5 },
 		ids: { delivery: 'delivery', invoice: 'invoice', settlement: 'receipt' }
 	},
@@ -41,6 +43,7 @@ export const bills = {
 		// a purchase invoice is due when its payable is
 		dueOn:
 			'(SELECT CONVERT(varchar(10),MAX(due.FRPDate),23) FROM dbo.t_RP_Contact due WHERE due.FRP=0 AND due.FType=4 AND due.FInvoiceID=head.FInterID)',
+		invoiceTerms: false,
 		settlement: { rp: 0, type: 4, source: 6 },
 		ids: { delivery: 'receipt', invoice: 'purchase_invoice', settlement: 'payment' }
 	}

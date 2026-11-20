@@ -40,7 +40,7 @@ with its Kingdee PO, as a sales order does with its SO.
 3. **Use the ERP as evidence, not as the workflow.** Kingdee supplies observed sales and purchase orders,
    deliveries, receipts, invoices, payments, stock and AR facts, read-only here. Staff work in Trade
    Operations; the source system remains the authority for what it issued and for credit enforcement.
-4. **Price with a dated floor book.** Pricing floors are per product, warehouse group, currency, quantity band
+4. **Price with a dated floor book.** Pricing floors are per product, warehouse region, currency, quantity band
    and effective day. The floor rule warns about a sales line below its floor or with none, sends it to a
    Commercial Manager, or refuses it.
 5. **Calculate commission from stamped facts.** A commission rule is a versioned CEL expression. Syncing stamps

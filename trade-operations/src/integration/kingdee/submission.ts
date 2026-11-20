@@ -19,7 +19,7 @@ import {
 	previousOrderDocument,
 	sourceAmendmentSql
 } from './amendment.js';
-import { kingdeeWriteTarget } from './configuration.js';
+import { kingdeeWriteTarget, SettlementRules } from './configuration.js';
 import { requireWriteAccount } from './sql.js';
 import { bills, type Direction } from './bills.js';
 export type { OrderPayload } from './order-batch.js';
@@ -48,13 +48,6 @@ const Salespeople = Schema.Record(
 const Currencies = Schema.Record(
 	Schema.String,
 	Schema.Struct({ id: SourceId, base: Schema.Boolean })
-);
-const SettlementRules = Schema.Record(
-	Schema.String,
-	Schema.Struct({
-		creditDays: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 3660 })),
-		fromMonthEnd: Schema.Boolean
-	})
 );
 const LookupRow = Schema.Struct({
 	kind: Schema.String,

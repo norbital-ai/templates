@@ -50,7 +50,7 @@ Your tools already carry each person's access:
 - Left blank, an order's place of loading (or a purchase's place of delivery), delivery address and buyer
   contact fill from its warehouse and party; write them only when the person names something else.
 - A sales line's floor is the newest `pricing_floors` row on or before the order date for its product,
-  currency, warehouse group and quantity band. Under the floor rule a line below it, or with none, is
+  currency, warehouse region and quantity band. Under the floor rule a line below it, or with none, is
   refused (`refuse`) or waits for a commercial manager (`approve`); name the floor when quoting a price.
 - A sales item's net unit price is compared with quantity-weighted remaining inventory cost for the
   same SKU, unit and currency. Missing cost remains unknown; never assume zero.

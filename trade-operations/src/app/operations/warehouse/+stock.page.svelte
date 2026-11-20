@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Table, Tabs, type Col } from '@norbital-ai/ui';
+	import { Badge, Table, Tabs, type Col } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { downloadXlsx, xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import {
@@ -14,10 +14,9 @@
 	const day = ctx.clock('day');
 	let tab = $state('products');
 	const logistics = $derived(ctx.catalog?.stock_snapshots?.output === 'logistics');
-	// each lot with what open sales orders await from its product in its warehouse, and what is left to sell
-	const counted = $derived(Boolean(ctx.catalog?.source_stock_commitments));
+	// each SKU per warehouse region: on hand, what open orders promise out and in, and the balance they leave
 	const inventory = $derived(
-		counted && tab === 'stock'
+		tab === 'stock'
 			? logistics
 				? ctx.query(logisticsStockAvailabilityRead)
 				: ctx.query(stockAvailabilityRead)
@@ -26,58 +25,36 @@
 	const incomplete = $derived(
 		Boolean(inventory?.current && Object.values(inventory.current).some((page) => page.next))
 	);
-	const lots = $derived.by(() => {
-		const answer = inventory?.current;
-		if (!answer) return null;
-		const figures = new Map(
-			stockAvailability(answer, Date.parse(clock.now), true).map((row) => [row.$id, row])
-		);
-		const products = new Map(answer.products.rows.map((row) => [row.id, row]));
-		const warehouses = new Map(answer.warehouses.rows.map((row) => [row.id, row]));
-		return answer.stock_snapshots.rows.map((lot) => {
-			const figure = figures.get(JSON.stringify([lot.product, lot.warehouse]));
-			return {
-				id: lot.id,
-				product: products.get(lot.product)?.name ?? '',
-				warehouse: warehouses.get(lot.warehouse)?.name ?? '',
-				lot_number: lot.lot_number,
-				unit: lot.unit,
-				on_hand: lot.on_hand,
-				awaiting: figure?.awaiting ?? null,
-				available: figure?.available ?? null,
-				// cost only where the viewer's output carries it
-				currency: 'currency' in lot && typeof lot.currency === 'string' ? lot.currency : null,
-				unit_cost: 'unit_cost' in lot && typeof lot.unit_cost === 'string' ? lot.unit_cost : null,
-				as_of: lot.as_of
-			};
-		});
-	});
+	const rows = $derived(
+		inventory?.current
+			? stockAvailability(inventory.current, Date.parse(clock.now))
+					.map((row) => ({ ...row, region: row.region ?? ctx.t('stock.availability.no_region') }))
+					.sort((a, b) => a.region.localeCompare(b.region) || a.code.localeCompare(b.code))
+			: null
+	);
 	const quantityKind = { kind: 'decimal', scale: 3, optional: true } as const;
-	const lotColumns = $derived<readonly Col<NonNullable<typeof lots>[number]>[]>([
+	const stockColumns = $derived<readonly Col<NonNullable<typeof rows>[number]>[]>([
+		{ field: 'region', label: ctx.t('models.warehouses.fields.group_code') },
+		{ field: 'code', label: ctx.t('models.products.fields.external_code') },
 		{ field: 'product', label: ctx.t('models.stock_snapshots.fields.product') },
-		{ field: 'warehouse', label: ctx.t('models.stock_snapshots.fields.warehouse') },
-		{ field: 'lot_number', label: ctx.t('models.stock_snapshots.fields.lot_number') },
 		{ field: 'unit', label: ctx.t('models.stock_snapshots.fields.unit') },
-		...(['on_hand', 'awaiting', 'available'] as const).map((field) => ({
+		...(['on_hand', 'promised_out', 'promised_in'] as const).map((field) => ({
 			field,
 			label: ctx.t(`stock.availability.${field}`),
 			kind: quantityKind,
 			align: 'end' as const
 		})),
-		...(logistics
-			? []
-			: [
-					{
-						field: 'unit_cost' as const,
-						label: ctx.t('models.stock_snapshots.fields.unit_cost'),
-						kind: { kind: 'money', currency: 'currency', optional: true } as const,
-						align: 'end' as const
-					}
-				]),
 		{
-			field: 'as_of',
+			field: 'projected',
+			label: ctx.t('stock.availability.projected'),
+			kind: quantityKind,
+			align: 'end' as const,
+			cell: projectedCell
+		},
+		{
+			field: 'stock_as_of',
 			label: ctx.t('models.stock_snapshots.fields.as_of'),
-			kind: { kind: 'instant' }
+			kind: { kind: 'instant', optional: true }
 		}
 	]);
 	const productColumns = $derived<XlsxColumn[]>(
@@ -197,43 +174,32 @@
 			]
 		}}
 	/>{/snippet}
-{#snippet stock()}{#if counted}<Table
-			{ctx}
-			layout="grid"
-			of={lots ?? []}
-			key="stock_snapshots"
-			columns={lotColumns}
-			toolbar={{
-				// a stock past one read says so in the title, where it shifts nothing
-				title: incomplete
-					? `${ctx.t('models.stock_snapshots.label')} · ${ctx.t('stock.availability.incomplete')}`
-					: ctx.t('models.stock_snapshots.label'),
-				description: ctx.t('stock.availability.basis'),
-				new: false,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('stock', day.today, lotColumns, lots ?? [])
-					}
-				]
-			}}
-		/>{:else}<Table
-			{ctx}
-			layout="grid"
-			of="stock_snapshots"
-			columns={[
-				'product',
-				'warehouse',
-				'lot_number',
-				'unit',
-				'on_hand',
-				'currency',
-				'unit_cost',
-				'as_of'
-			]}
-			toolbar={{ new: false, export: true }}
-		/>{/if}{/snippet}
+{#snippet projectedCell({ row }: { row: NonNullable<typeof rows>[number] })}<span
+		class="tabular-nums">{row.projected ?? '—'}</span
+	>{#if row.short}
+		<Badge variant="destructive">{ctx.t('stock.availability.short')}</Badge>{/if}{/snippet}
+{#snippet stock()}<Table
+		{ctx}
+		layout="grid"
+		of={rows ?? []}
+		key="stock_regions"
+		columns={stockColumns}
+		toolbar={{
+			// a stock past one read says so in the title, where it shifts nothing
+			title: incomplete
+				? `${ctx.t('models.stock_snapshots.label')} · ${ctx.t('stock.availability.incomplete')}`
+				: ctx.t('models.stock_snapshots.label'),
+			description: ctx.t('stock.availability.basis'),
+			new: false,
+			actions: [
+				{
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('component.export_xlsx'),
+					run: () => downloadXlsx('stock', day.today, stockColumns, rows ?? [])
+				}
+			]
+		}}
+	/>{/snippet}
 {#snippet warehouses()}<Table
 		{ctx}
 		of="warehouses"

@@ -15,17 +15,7 @@ export const stockAvailabilityRead = {
 	},
 	warehouses: { fields: ['name', 'group_code'], limit: 10000 },
 	stock_snapshots: {
-		fields: [
-			'source',
-			'product',
-			'warehouse',
-			'lot_number',
-			'unit',
-			'on_hand',
-			'currency',
-			'unit_cost',
-			'as_of'
-		],
+		fields: ['source', 'product', 'warehouse', 'unit', 'on_hand', 'as_of'],
 		limit: 10000
 	},
 	source_stock_commitments: {
@@ -37,12 +27,7 @@ export const logisticsStockAvailabilityRead = {
 	...stockAvailabilityRead,
 	commercial_settings: { ...stockAvailabilityRead.commercial_settings, output: 'logistics' },
 	products: { ...stockAvailabilityRead.products, output: 'logistics' },
-	// logistics sees quantities, never cost
-	stock_snapshots: {
-		output: 'logistics',
-		fields: ['source', 'product', 'warehouse', 'lot_number', 'unit', 'on_hand', 'as_of'],
-		limit: 10000
-	}
+	stock_snapshots: { ...stockAvailabilityRead.stock_snapshots, output: 'logistics' }
 } as const;
 
 type Answer = ReadAnswer<typeof logisticsStockAvailabilityRead>;
@@ -52,8 +37,17 @@ type Snapshot = Answer['source_stock_commitments']['rows'][number];
 type Commitment = Snapshot['entries'][number];
 type Group = { product: Product; lots: Lot[]; commitments: Commitment[] };
 const normalizeUnit = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase() || null;
+const zero = BigDecimal.fromBigInt(0n);
+const sum = (values: readonly string[]) =>
+	BigDecimal.sumAll(values.map((value) => BigDecimal.fromStringUnsafe(value)));
 
-export function stockAvailability(answer: Answer, now: number, byWarehouse: boolean) {
+/**
+ * Each SKU per warehouse region: what is on hand across its lots and warehouses, what open sales orders have yet to ship
+ * (promised out) and open purchase orders yet to receive (promised in), and the projected balance, short when promised
+ * out exceeds on hand plus promised in. A warehouse without a region stands as its own; an open order whose warehouse
+ * is unknown counts under no region. The projection needs fresh stock and orders in one unit.
+ */
+export function stockAvailability(answer: Answer, now: number) {
 	const freshness = Duration.toMillis(
 		Duration.minutes(answer.commercial_settings.rows[0]?.stock_fresh_minutes ?? 30)
 	);
@@ -70,6 +64,10 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 	const warehouses = new Map<string, Answer['warehouses']['rows'][number]>(
 		answer.warehouses.rows.map((row) => [row.id, row])
 	);
+	const regionOf = (warehouse: string | null | undefined) => {
+		const location = warehouse ? warehouses.get(warehouse) : undefined;
+		return location ? location.group_code || location.name : null;
+	};
 	const snapshots = new Map<string, Snapshot>(
 		answer.source_stock_commitments.rows.flatMap((row) =>
 			row.source ? [[row.source.id, row] as const] : []
@@ -121,58 +119,48 @@ export function stockAvailability(answer: Answer, now: number, byWarehouse: bool
 			stockUnit && orderUnit && !compatible
 				? `${stockUnit} / ${orderUnit}`
 				: (stockUnit ?? orderUnit ?? product.unit);
-		const unattributed = commitments.some(
-			(row) => !row.warehouse || !warehouses.has(row.warehouse)
-		);
-		const locations = new Set<string | null>([
-			...lots.map((lot) => lot.warehouse),
-			...commitments.map((row) =>
-				row.warehouse && warehouses.has(row.warehouse) ? row.warehouse : null
-			)
+		const regions = new Set<string | null>([
+			...lots.map((lot) => regionOf(lot.warehouse)),
+			...commitments.map((row) => regionOf(row.warehouse))
 		]);
-		return (byWarehouse ? [...locations] : [null]).map((warehouse) => {
-			const selectedLots = byWarehouse ? lots.filter((lot) => lot.warehouse === warehouse) : lots;
-			const selectedOrders = byWarehouse
-				? commitments.filter(
-						(row) =>
-							(row.warehouse && warehouses.has(row.warehouse) ? row.warehouse : null) === warehouse
-					)
-				: commitments;
+		return [...regions].map((region) => {
+			const here = lots.filter((lot) => regionOf(lot.warehouse) === region);
+			const orders = commitments.filter((row) => regionOf(row.warehouse) === region);
 			const stockTime =
-				selectedLots.length > 0 || listed.has(source) ? confirmed(source, feeds.stock) : null;
+				here.length > 0 || listed.has(source) ? confirmed(source, feeds.stock) : null;
 			const onHand = !stockKnown
 				? null
-				: selectedLots.length
-					? BigDecimal.sumAll(selectedLots.map((lot) => BigDecimal.fromStringUnsafe(lot.on_hand)))
+				: here.length
+					? sum(here.map((lot) => lot.on_hand))
 					: listed.has(source)
-						? BigDecimal.fromBigInt(0n)
+						? zero
 						: null;
-			const awaiting =
+			const promised = (direction: Commitment['direction']) =>
 				snapshot && orderKnown
-					? BigDecimal.sumAll(
-							selectedOrders.map((row) => BigDecimal.fromStringUnsafe(row.quantity))
-						)
+					? sum(orders.filter((row) => row.direction === direction).map((row) => row.quantity))
 					: null;
-			const available =
+			const out = promised('out');
+			const incoming = promised('in');
+			const projected =
 				compatible &&
 				onHand !== null &&
-				awaiting !== null &&
+				out !== null &&
+				incoming !== null &&
 				fresh(stockTime) &&
-				fresh(orderTime) &&
-				(!byWarehouse || !unattributed)
-					? BigDecimal.format(BigDecimal.subtract(onHand, awaiting))
+				fresh(orderTime)
+					? BigDecimal.subtract(BigDecimal.sum(onHand, incoming), out)
 					: null;
-			const location = warehouse ? warehouses.get(warehouse) : null;
 			return {
-				$id: JSON.stringify([product.id, warehouse]),
+				$id: JSON.stringify([product.id, region]),
+				region,
 				product: product.name,
 				code: product.source_number ?? product.external_code,
 				unit,
-				warehouse: location?.name ?? null,
-				warehouse_group: location?.group_code ?? null,
 				on_hand: onHand && BigDecimal.format(onHand),
-				awaiting: awaiting && BigDecimal.format(awaiting),
-				available,
+				promised_out: out && BigDecimal.format(out),
+				promised_in: incoming && BigDecimal.format(incoming),
+				projected: projected && BigDecimal.format(projected),
+				short: projected !== null && BigDecimal.isNegative(projected),
 				ledger: snapshot?.source?.name ?? source,
 				stock_as_of: stockTime,
 				orders_as_of: orderTime

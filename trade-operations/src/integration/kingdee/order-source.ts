@@ -5,6 +5,8 @@ import { hash, sha256Hex, numeric } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
 import { bills, directionsOf, type Bill, type Direction } from './bills.js';
+import { kingdeeSettlementRules } from './configuration.js';
+import { termDueOn } from './order-batch.js';
 import {
 	columns,
 	currency,
@@ -46,6 +48,8 @@ type SalesDocument = {
 	readonly reference: string;
 	readonly issuedOn: string;
 	readonly dueOn: string | null;
+	/** A sales invoice's settlement method (number and name), which dates it due from delivery. */
+	readonly terms: { readonly code: string; readonly name: string | null } | null;
 	readonly currency: string;
 	readonly status: 'issued' | 'void';
 	readonly owner: OwnedSales;
@@ -268,9 +272,11 @@ SELECT ${padded('candidate.fid')} AS __key,${textId('candidate.fid')} AS fid,
  ${textId('head.FTranType')} AS type,CONVERT(varchar(10),head.FDate,23) AS date,
  CONVERT(varchar(10),head.FCheckDate,23) AS checked_on,head.FCancellation AS cancelled,head.FROB AS rob
  ${kind === 'invoice' ? `,cur.FNumber AS currency,${bill.dueOn} AS due_on` : ''}
+ ${kind === 'invoice' && bill.invoiceTerms ? ',settle.FNumber AS settlement_code,settle.FName AS settlement_name' : ''}
 FROM (${documentIds(bill, kind)}) candidate
  LEFT JOIN dbo.${kind === 'delivery' ? 'ICStockBill' : bill.invoice} head ON head.FInterID=candidate.fid
- ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}`
+ ${kind === 'invoice' ? 'LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=head.FCurrencyID' : ''}
+ ${kind === 'invoice' && bill.invoiceTerms ? 'LEFT JOIN dbo.t_Settle settle ON settle.FItemID=head.FSettleID' : ''}`
 });
 
 /** Families are discovered from an owned UUID first; a bill number alone never establishes ownership. */
@@ -783,6 +789,13 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 					reference: text(header, 'reference'),
 					issuedOn,
 					dueOn: kind === 'invoice' ? sourceDate(header, 'due_on') : null,
+					terms:
+						kind === 'invoice' && bill.invoiceTerms && nullableText(header, 'settlement_code')
+							? {
+									code: text(header, 'settlement_code'),
+									name: nullableText(header, 'settlement_name')
+								}
+							: null,
 					currency: docCurrency,
 					status: flag(header, 'cancelled') ? 'void' : 'issued',
 					owner,
@@ -1110,6 +1123,17 @@ export const readTransactions = Effect.fnUntraced(function* (
 		}
 	});
 	const known = existing.rows.map((row) => row.erp_id);
+	// an invoice is due by its order's terms from its first delivery, else when Kingdee dates it
+	const rules = kingdeeSettlementRules(ctx.configuration);
+	const delivered = new Map(graph.deliveries.map((document) => [document.fid, document.issuedOn]));
+	const dueOf = (document: SalesDocument) => {
+		const rule = document.terms ? rules[document.terms.code] : undefined;
+		if (!rule || !document.terms) return document.dueOn;
+		const first = document.lines
+			.flatMap((line) => (line.upstream ? (delivered.get(line.upstream.fid) ?? []) : []))
+			.sort()[0];
+		return termDueOn(rule, document.terms.name, document.issuedOn, first ?? null);
+	};
 	const documents = [
 		...graph.deliveries.map((document) => ({ kind: 'delivery' as const, document })),
 		...graph.invoices.map((document) => ({ kind: 'invoice' as const, document }))
@@ -1182,7 +1206,7 @@ export const readTransactions = Effect.fnUntraced(function* (
 					currency: currency(document.currency),
 					status: document.status,
 					issued_on: document.issuedOn,
-					due_on: document.dueOn,
+					due_on: dueOf(document),
 					total:
 						document.total === null
 							? null

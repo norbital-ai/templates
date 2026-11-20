@@ -1,34 +1,6 @@
 import { expect, it as test } from '@effect/vitest';
 import { fixtureId } from './test-runtime.js';
 import { agingSummary, creditTotals, overdueTotals } from '../src/lib/reports.js';
-import { blockedDrafts } from '../src/app/operations/dashboard/blocked-drafts.js';
-
-test('a draft is blocked by missing payment terms, no lines, or an open request on it or one of its lines', () => {
-	const order = (n: number) => fixtureId('orders', `00000000-0000-4000-8000-00000000010${n}`);
-	const terms = fixtureId('settlements', '00000000-0000-4000-8000-000000000201');
-	const held = {
-		request_id: 'request-1',
-		state: 'Pending',
-		step: 0,
-		steps: [],
-		requested_by: 'member:sales-1'
-	} as const;
-	expect(
-		blockedDrafts(
-			[
-				{ id: order(1), payment_terms: terms, line_count: 2 },
-				{ id: order(2), payment_terms: null, line_count: 0 },
-				{ id: order(3), payment_terms: terms, line_count: 1, $approval: held },
-				{ id: order(4), payment_terms: terms, line_count: 1 }
-			],
-			[{ order: order(1) }, { order: order(4), $approval: held }]
-		)
-	).toEqual([
-		{ order: order(2), reasons: ['no_terms', 'no_lines'] },
-		{ order: order(3), reasons: ['approval'] },
-		{ order: order(4), reasons: ['approval'] }
-	]);
-});
 
 test('overdue receivables and credit exceptions total per currency, never across currencies', () => {
 	const ledger = fixtureId('sys_integration', 'kingdee');

@@ -257,6 +257,25 @@ export function settlementDate(orderedOn: string, days: number, fromMonthEnd: bo
 			: DateTime.add(ordered, { days })
 	);
 }
+/**
+ * When an invoice falls due under its settlement method, as SalesBridge settles EPG's: from its first delivery (a 票到
+ * term from the invoice, 货到票到 from the later of the two), by the term's credit days or month-end rule. KIS keeps one
+ * term per customer, mostly none, and so dates the invoice due on issue.
+ */
+export function termDueOn(
+	rule: { readonly creditDays: number; readonly fromMonthEnd: boolean },
+	name: string | null,
+	invoicedOn: string,
+	deliveredOn: string | null
+): string {
+	const basis =
+		deliveredOn === null || name?.includes('票到')
+			? name?.includes('货到') && deliveredOn !== null && deliveredOn > invoicedOn
+				? deliveredOn
+				: invoicedOn
+			: deliveredOn;
+	return settlementDate(basis, rule.creditDays, rule.fromMonthEnd);
+}
 const escape = (value: string) =>
 	value.replace(/[&<>"']/g, (character) => {
 		switch (character) {

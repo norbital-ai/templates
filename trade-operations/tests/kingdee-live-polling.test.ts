@@ -92,6 +92,8 @@ it.effect.skipIf(!password)(
 			CREATE TABLE dbo.SEOrder (FBrNo nvarchar(20), FInterID int, FCancellation bit, FStatus int, FClosed bit, FChangeMark bit);
 			CREATE TABLE dbo.SEOrderEntry (FBrNO nvarchar(20), FInterID int, FItemID int, FQty decimal(28,10), FStockQty decimal(28,10), FMrpClosed bit);
 			INSERT dbo.SEOrder VALUES ('0',1,0,0,0,0),('1',1,0,2,0,0),('0',2,0,3,0,0),('0',3,0,1,0,1),('0',4,1,1,0,0),('0',5,0,1,1,0);
+			CREATE TABLE dbo.POOrder (FBrNo nvarchar(20), FInterID int, FCancellation bit, FStatus int, FClosed bit);
+			CREATE TABLE dbo.POOrderEntry (FBrNO nvarchar(20), FInterID int, FItemID int, FQty decimal(28,10), FStockQty decimal(28,10), FMrpClosed bit);
 			INSERT dbo.SEOrderEntry VALUES ('0',1,210,8,2,0),('0',1,210,5,0,1),('1',1,210,1,0,0),('0',2,210,4,0,0),('0',3,210,4,0,0),('0',4,210,4,0,0),('0',5,210,4,0,0);
 			DELETE dbo.ICInventory;
 			INSERT dbo.ICInventory VALUES (210,311,'LOT-01',5), (210,311,'LOT-02',5.5), (210,311,'LOT-00',0);
@@ -102,6 +104,8 @@ it.effect.skipIf(!password)(
 			CREATE USER trade_stock_reader WITHOUT LOGIN;
 			GRANT SELECT ON dbo.SEOrder TO trade_stock_reader;
 			GRANT SELECT ON dbo.SEOrderEntry TO trade_stock_reader;
+			GRANT SELECT ON dbo.POOrder TO trade_stock_reader;
+			GRANT SELECT ON dbo.POOrderEntry TO trade_stock_reader;
 			GRANT SELECT ON dbo.t_ICItem TO trade_stock_reader;
 			GRANT SELECT ON dbo.t_Item TO trade_stock_reader;
 			GRANT SELECT ON dbo.ICStockBill TO trade_stock_reader;
@@ -187,10 +191,14 @@ it.effect.skipIf(!password)(
 			const pull = () => t.pull('source_stock_commitments');
 			yield* pull();
 			expect(payloads).toEqual([]);
-			expect(
-				firstRow(stockAvailability(yield* sales.query(stockAvailabilityRead), Date.now(), false))
-					.available
-			).toBeNull();
+			// the fixture's lots sit in region WH; its open order names no warehouse, so it counts under no region
+			type Report = Parameters<typeof stockAvailability>[0];
+			const region = (answer: Report, name: string | null, at = Date.now()) => {
+				const row = stockAvailability(answer, at).find((r) => r.region === name);
+				if (!row) throw new Error(`No stock row for region ${name}`);
+				return row;
+			};
+			expect(region(yield* sales.query(stockAvailabilityRead), 'WH').projected).toBeNull();
 			yield* configure('11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111');
 			expect(Exit.isFailure(yield* Effect.exit(pull()))).toBe(true);
 			yield* configure(account);
@@ -198,54 +206,29 @@ it.effect.skipIf(!password)(
 			const observed = yield* sales.query(stockAvailabilityRead);
 			const snapshot = firstRow(observed.source_stock_commitments.rows);
 			expect(snapshot.entries).toEqual([
-				{ product_code: '210', unit: 'kg', warehouse: null, quantity: '7.000' }
+				{ direction: 'out', product_code: '210', unit: 'kg', warehouse: null, quantity: '7.000' }
 			]);
-			const totals = firstRow(stockAvailability(observed, Date.now(), false));
-			expect(sameDecimal(totals.on_hand, '10.500')).toBe(true);
-			expect(sameDecimal(totals.available, '3.500')).toBe(true);
-			// a spent lot is not listed; a product the listing leaves out has none and is short by what is awaited
-			expect(observed.stock_snapshots.rows.map((lot) => lot.lot_number).sort()).toEqual([
+			const stocked = region(observed, 'WH');
+			expect(sameDecimal(stocked.on_hand, '10.500')).toBe(true);
+			expect(sameDecimal(stocked.projected, '10.500')).toBe(true);
+			const unplaced = region(observed, null);
+			expect(sameDecimal(unplaced.on_hand, '0')).toBe(true);
+			expect(sameDecimal(unplaced.promised_out, '7')).toBe(true);
+			expect(sameDecimal(unplaced.projected, '-7')).toBe(true);
+			expect(unplaced.short).toBe(true);
+			// a spent lot is not listed; a region the listing leaves out has none and is short by what is awaited
+			const listedLots = yield* sales.query({ stock_snapshots: { fields: ['lot_number'] } });
+			expect(listedLots.stock_snapshots.rows.map((lot) => lot.lot_number).sort()).toEqual([
 				'LOT-01',
 				'LOT-02'
 			]);
-			const unlisted = firstRow(
-				stockAvailability(
-					{
-						...observed,
-						stock_snapshots: {
-							...observed.stock_snapshots,
-							rows: observed.stock_snapshots.rows.map((lot) => ({
-								...lot,
-								product: fixtureId('products', '00000000-0000-4000-8000-000000000999')
-							}))
-						}
-					},
-					Date.now(),
-					false
-				)
-			);
-			expect(sameDecimal(unlisted.on_hand, '0')).toBe(true);
-			expect(sameDecimal(unlisted.available, '-7.000')).toBe(true);
 			// a ledger with no listing at all stays unknown
 			expect(
-				firstRow(
-					stockAvailability(
-						{ ...observed, stock_snapshots: { ...observed.stock_snapshots, rows: [] } },
-						Date.now(),
-						false
-					)
-				).available
+				region({ ...observed, stock_snapshots: { ...observed.stock_snapshots, rows: [] } }, null)
+					.projected
 			).toBeNull();
-			expect(
-				stockAvailability(observed, Date.now(), true).every((row) => row.available === null)
-			).toBe(true);
 			const logisticsReport = yield* logistics.query(logisticsStockAvailabilityRead);
-			expect(
-				sameDecimal(
-					firstRow(stockAvailability(logisticsReport, Date.now(), false)).available,
-					'3.500'
-				)
-			).toBe(true);
+			expect(sameDecimal(region(logisticsReport, 'WH').projected, '10.500')).toBe(true);
 			// a quiet read writes nothing: figures go stale only once their feed has failed past the limit
 			const failing = <A extends { products: { rows: readonly { source: object | null }[] } }>(
 				answer: A,
@@ -267,11 +250,9 @@ it.effect.skipIf(!password)(
 					}))
 				}
 			});
-			expect(
-				firstRow(stockAvailability(failing(observed, 29), Date.now(), false)).available
-			).not.toBeNull();
-			const stale = firstRow(stockAvailability(failing(observed, 31), Date.now(), false));
-			expect(stale.available).toBeNull();
+			expect(region(failing(observed, 29), 'WH').projected).not.toBeNull();
+			const stale = region(failing(observed, 31), 'WH');
+			expect(stale.projected).toBeNull();
 			expect(sameDecimal(stale.on_hand, '10.500')).toBe(true);
 			committed(
 				'commercial_settings',
@@ -285,12 +266,7 @@ it.effect.skipIf(!password)(
 				})
 			);
 			const configured = yield* logistics.query(logisticsStockAvailabilityRead);
-			expect(
-				sameDecimal(
-					firstRow(stockAvailability(failing(configured, 31), Date.now(), false)).available,
-					'3.500'
-				)
-			).toBe(true);
+			expect(sameDecimal(region(failing(configured, 31), 'WH').projected, '10.500')).toBe(true);
 			yield* pull();
 			expect(payloads).toHaveLength(2);
 			expect(payloads[1]).toBeNull();
@@ -305,10 +281,24 @@ it.effect.skipIf(!password)(
 				"UPDATE dbo.SEOrderEntry SET FStockQty=4 WHERE FBrNO='0' AND FInterID=1 AND FMrpClosed=0"
 			);
 			yield* pull();
-			const shipped = firstRow(
-				stockAvailability(yield* sales.query(stockAvailabilityRead), Date.now(), false)
+			const shipped = region(yield* sales.query(stockAvailabilityRead), null);
+			// 8 less 4 shipped on branch 0, and 1 on branch 1
+			expect(sameDecimal(shipped.promised_out, '5')).toBe(true);
+			expect(sameDecimal(shipped.projected, '-5')).toBe(true);
+			// an open purchase line is promised in until received; it lifts the projection out of shortfall
+			yield* sql(
+				"INSERT dbo.POOrder VALUES ('0',16901,0,1,0); INSERT dbo.POOrderEntry VALUES ('0',16901,210,7,1,0)"
 			);
-			expect(sameDecimal(shipped.available, '5.500')).toBe(true);
+			yield* pull();
+			const incoming = region(yield* sales.query(stockAvailabilityRead), null);
+			// 7 ordered less 1 received
+			expect(sameDecimal(incoming.promised_in, '6')).toBe(true);
+			expect(sameDecimal(incoming.projected, '1')).toBe(true);
+			expect(incoming.short).toBe(false);
+			yield* sql(
+				'DELETE dbo.POOrderEntry WHERE FInterID=16901; DELETE dbo.POOrder WHERE FInterID=16901'
+			);
+			yield* pull();
 			const pullCosts = () => t.pull('source_lot_costs');
 			yield* pullCosts();
 			expect(costPayloads).toEqual([]);
@@ -414,19 +404,15 @@ it.effect.skipIf(!password)(
 				"INSERT dbo.t_Item (FItemID,FNumber,FName,FItemClassID,FDetail) VALUES (711,'box','box',7,1); UPDATE dbo.t_ICItem SET FUnitID=711 WHERE FItemID=210"
 			);
 			yield* pull();
-			const mismatched = firstRow(
-				stockAvailability(yield* sales.query(stockAvailabilityRead), Date.now(), false)
-			);
-			expect(mismatched.available).toBeNull();
+			const mismatched = region(yield* sales.query(stockAvailabilityRead), null);
+			expect(mismatched.projected).toBeNull();
 			expect(mismatched.unit).toBe('kg / box');
-			expect(sameDecimal(mismatched.awaiting, '5')).toBe(true);
+			expect(sameDecimal(mismatched.promised_out, '5')).toBe(true);
 			yield* sql('DELETE dbo.SEOrderEntry');
 			yield* pull();
 			const empty = yield* sales.query(stockAvailabilityRead);
 			expect(firstRow(empty.source_stock_commitments.rows).entries).toEqual([]);
-			expect(
-				sameDecimal(firstRow(stockAvailability(empty, Date.now(), false)).available, '10.500')
-			).toBe(true);
+			expect(sameDecimal(region(empty, 'WH').projected, '10.500')).toBe(true);
 		}),
 	120_000
 );
@@ -859,7 +845,8 @@ it.effect.skipIf(!password)(
 			const invoice = before.transactions.rows.find((row) => row.reference === 'INV-PROBE');
 			expect(invoice).toMatchObject({
 				issued_on: '2026-11-02',
-				due_on: '2026-12-02',
+				// the order's 30-day terms from its delivery on 26 October, not the date Kingdee holds (2 December)
+				due_on: '2026-11-25',
 				items: [{ lot_number: 'LOT-01', order_line_id: line }]
 			});
 			expect(sameDecimal(invoice?.total, '9.04')).toBe(true);

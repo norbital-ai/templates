@@ -6,23 +6,29 @@ import { checked } from './order-source.js';
 import { SourceRowInvalid, SourceUnavailable, type DatabaseContext } from './polling.js';
 import { readChangedSnapshot, snapshotFingerprint, snapshotStatement } from './changed-snapshot.js';
 
-const stockCommitments = snapshotStatement(`/* kingdee-stock-commitments */
- SELECT TOP (10001) o.FBrNo AS branch, CONVERT(varchar(20),o.FInterID) AS fid,
+// An open line's balance is Kingdee's own: ordered less shipped (or received), in the base unit, net of red returns.
+const openLines = (direction: 'out' | 'in', order: string, archive: string) => `
+ SELECT o.FBrNo AS branch, CONVERT(varchar(20),o.FInterID) AS fid, '${direction}' AS direction,
   CONVERT(varchar(20),e.FItemID) AS item, u.FName AS unit,
   CONVERT(varchar(100),CONVERT(decimal(38,3),SUM(e.FQty-ISNULL(e.FStockQty,0)))) AS quantity
- FROM dbo.SEOrder o
- JOIN dbo.SEOrderEntry e ON e.FBrNO=o.FBrNo AND e.FInterID=o.FInterID
+ FROM dbo.${order} o
+ JOIN dbo.${order}Entry e ON e.FBrNO=o.FBrNo AND e.FInterID=o.FInterID
  LEFT JOIN dbo.t_ICItem d ON d.FItemID=e.FItemID
  LEFT JOIN dbo.t_Item u ON u.FItemID=d.FUnitID AND u.FItemClassID=7
  WHERE @probe=0 AND o.FCancellation=0 AND o.FStatus IN (0,1,2)
-  AND ISNULL(o.FClosed,0)=0 AND ISNULL(o.FChangeMark,0)=0 AND ISNULL(e.FMrpClosed,0)=0
+  AND ISNULL(o.FClosed,0)=0${archive} AND ISNULL(e.FMrpClosed,0)=0
   AND e.FQty-ISNULL(e.FStockQty,0)>0
- GROUP BY o.FBrNo,o.FInterID,e.FItemID,u.FName
- ORDER BY o.FBrNo,o.FInterID,e.FItemID,u.FName
+ GROUP BY o.FBrNo,o.FInterID,e.FItemID,u.FName`;
+const stockCommitments = snapshotStatement(`/* kingdee-stock-commitments */
+ SELECT TOP (10001) x.branch,x.fid,x.direction,x.item,x.unit,x.quantity FROM (
+ ${openLines('out', 'SEOrder', ' AND ISNULL(o.FChangeMark,0)=0')}
+ UNION ALL
+ ${openLines('in', 'POOrder', '')}
+ ) x ORDER BY x.direction,x.branch,x.fid,x.item,x.unit
  FOR JSON PATH`);
 
 const cursorSchema = Schema.Struct({
-	protocol: Schema.Literal('kingdee-open-stock-v1'),
+	protocol: Schema.Literal('kingdee-open-stock-v2'),
 	account: Schema.String,
 	warehouseDigest: Schema.String,
 	fingerprint: snapshotFingerprint
@@ -32,6 +38,7 @@ const entriesSchema = Schema.fromJsonString(
 		Schema.Struct({
 			branch: Schema.String,
 			fid: Schema.String.check(Schema.isPattern(/^[1-9]\d*$/)),
+			direction: Schema.Literals(['out', 'in']),
 			item: Schema.String.check(Schema.isPattern(/^[1-9]\d*$/)),
 			unit: Schema.optionalKey(Schema.String),
 			quantity: Schema.String.check(Schema.isPattern(/^\d+\.\d{3}$/))
@@ -67,8 +74,8 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		const { sys_integration: ledgers, orders } = yield* ctx.query({
 			sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] },
 			orders: {
-				where: { ledger: { eq: instance }, direction: { eq: 'sales' } },
-				fields: ['kingdee', 'warehouse']
+				where: { ledger: { eq: instance } },
+				fields: ['kingdee', 'warehouse', 'direction']
 			}
 		});
 		if (
@@ -84,7 +91,11 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		const warehouses = new Map<string, string | null>();
 		for (const order of orders.rows) {
 			if (!order.kingdee) continue;
-			const key = JSON.stringify([ctx.configuration.branchNo, order.kingdee.fid]);
+			const key = JSON.stringify([
+				ctx.configuration.branchNo,
+				order.direction === 'sales' ? 'out' : 'in',
+				order.kingdee.fid
+			]);
 			warehouses.set(key, warehouses.has(key) ? null : order.warehouse);
 		}
 		return { warehouses, digest: yield* sha256Hex(JSON.stringify([...warehouses].sort())) };
@@ -98,7 +109,7 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		prior?.warehouseDigest === warehouseDigest ? prior.fingerprint : ''
 	);
 	const checkpoint = {
-		protocol: 'kingdee-open-stock-v1' as const,
+		protocol: 'kingdee-open-stock-v2' as const,
 		account,
 		warehouseDigest,
 		fingerprint: current.fingerprint
@@ -115,6 +126,7 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		const totals = new Map<
 			string,
 			{
+				direction: 'out' | 'in';
 				product_code: string;
 				warehouse: string | null;
 				unit: string | null;
@@ -124,12 +136,20 @@ export const readStockCommitments = Effect.fnUntraced(function* (
 		for (const row of rows) {
 			const quantity = BigDecimal.fromStringUnsafe(row.quantity);
 			if (BigDecimal.isZero(quantity)) continue;
-			const warehouse = warehouses.get(JSON.stringify([row.branch, row.fid])) ?? null;
+			const warehouse =
+				warehouses.get(JSON.stringify([row.branch, row.direction, row.fid])) ?? null;
 			const unit = row.unit?.trim() || null;
-			const key = JSON.stringify([row.item, warehouse, unit]);
+			const key = JSON.stringify([row.direction, row.item, warehouse, unit]);
 			const previous = totals.get(key);
 			if (previous) previous.quantity = BigDecimal.sum(previous.quantity, quantity);
-			else totals.set(key, { product_code: row.item, warehouse, unit, quantity });
+			else
+				totals.set(key, {
+					direction: row.direction,
+					product_code: row.item,
+					warehouse,
+					unit,
+					quantity
+				});
 		}
 		return [...totals.values()].map((entry) => ({
 			...entry,

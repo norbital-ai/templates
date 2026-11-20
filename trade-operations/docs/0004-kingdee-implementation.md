@@ -175,7 +175,7 @@ and lock behavior in deployment acceptance. [SQL Server locking and row versioni
 
 Stock is an aggregate complete read of ICInventory by item, warehouse and batch, of rows with a non-zero
 quantity: a spent lot leaves the listing. A product the listing leaves out has no stock as of that listing,
-so Available shows its shortfall. Unknown cost,
+so its projection shows the shortfall. Unknown cost,
 commitments and source position remain null. Unknown product prices, tax and units are not
 invented; order entry requires the missing commercial values before confirming.
 
@@ -260,10 +260,11 @@ actual signed net receivable (owed, or in credit), and the estimate leaves invoi
 
 ### Stock availability
 
-The Stock tab's awaiting and available columns use the local lot balances and a read-only open-order
-snapshot, per product and warehouse, shown on each lot. It sums
-Kingdee base-unit quantity less shipped quantity for live, non-cancelled, open sales lines. Saved
-orders count before Kingdee audit. The report subtracts each source commitment once. Local orders
+The Stock tab shows one row per SKU and warehouse region (a warehouse without a region stands alone): on hand
+across the region's lots, promised out, promised in, and projected (on hand plus in less out), marked Short when
+negative. Promised out is Kingdee's own balance of open sales lines, base-unit `FQty - FStockQty` (net of red
+returns), and promised in the same of open purchase lines (`POOrderEntry`); a voided, closed, archived or
+MRP-closed line does not count. Saved orders count before Kingdee audit. The report subtracts each source commitment once. Local orders
 waiting for delivery to Kingdee become part of availability after the source sees them.
 
 Set `stockAvailabilityAccount` to the verified database and recovery-fork identity on one ledger
@@ -274,8 +275,8 @@ attribution changes. Each transfer is bounded to 10,000 groups and 1 MB of sourc
 snapshot stores product and warehouse quantities without customer, order or price details. A failed
 poll keeps the previous snapshot.
 
-Each lot shows its product's figures for its warehouse. A product with an open order that names no
-warehouse leaves Available blank, as do a feed failing for longer than **Max age of stock data** (Data
+An order line's warehouse comes from its Trade Operations order (KIS order lines name none); an open order
+without one counts under no region. Projected is blank for a feed failing for longer than **Max age of stock data** (Data
 freshness on the Kingdee connection, default 30 minutes), a paused or unverified ledger, a missing feed and
 disagreeing units. The two feeds publish on
 their own schedules. They provide an inventory estimate for planning and can differ while Kingdee
@@ -291,7 +292,7 @@ receipt or mixed purchase prices leave that batch unpriced. The first purchase r
 batch date. The source sends the complete bounded result only when its fingerprint changes.
 
 Quote guidance combines matching SKU lines before picking batches from the selected warehouse.
-A positive price-floor tier estimates the quantity across the chosen warehouse group. Both consume
+A positive price-floor tier estimates the quantity across the chosen warehouse region. Both consume
 the oldest batch date first, with batch number as a deterministic same-date tie-breaker. Missing or
 stale evidence, insufficient physical stock, unit mismatch and incompatible currency withhold the
 estimate. Configuration, Finance and Commercial Managers can read the purchase basis. Sales still

@@ -7,6 +7,7 @@ import {
 	sourceOrderBatch,
 	sourceOrderDocument,
 	settlementDate,
+	termDueOn,
 	type OrderPayload,
 	type SourceOrderBindings
 } from '../src/integration/kingdee/order-batch.js';
@@ -176,6 +177,21 @@ it('carries the approved discount into the source effective price and refuses in
 	expect(settlementDate('2026-12-15', 30, true)).toBe('2027-01-31');
 	expect(settlementDate('2026-12-15', 60, true)).toBe('2027-01-31');
 	expect(settlementDate('2026-12-15', 0, true)).toBe('2026-12-31');
+});
+
+it('an invoice falls due by its terms from its first delivery, a 票到 term from the invoice', () => {
+	const net60 = { creditDays: 60, fromMonthEnd: false };
+	// 货到60天付款: from delivery, whatever the invoice date
+	expect(termDueOn(net60, '货到60天付款（电汇）', '2026-11-20', '2026-11-02')).toBe('2027-01-01');
+	// no delivery read: from the invoice
+	expect(termDueOn(net60, '货到60天付款', '2026-11-20', null)).toBe('2027-01-19');
+	// 票到: from the invoice; 货到票到: from the later of the two
+	expect(termDueOn(net60, '票到60天', '2026-11-20', '2026-11-02')).toBe('2027-01-19');
+	expect(termDueOn(net60, '货到票到60天', '2026-11-20', '2026-11-25')).toBe('2027-01-24');
+	// 月结: month end after the delivery month
+	expect(
+		termDueOn({ creditDays: 30, fromMonthEnd: true }, '月结30天', '2026-12-20', '2026-11-28')
+	).toBe('2026-12-31');
 });
 
 it.effect('uses only the existing RPC with stable provenance and bound data on retries', () =>

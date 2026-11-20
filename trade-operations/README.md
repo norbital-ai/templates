@@ -13,9 +13,8 @@ source inventory and the deeper Kingdee, capability, print and probe references.
 
 ## Apps and roles
 
-Operations opens on Dashboard (what needs attention: drafts to sync and those blocked, order approvals,
-Kingdee follow-up, this month's synced sales, overdue receivables, credit exceptions and ledger connections;
-each figure opens its table or report). It also contains Trade (one filterable Orders table), Partners (one customer/supplier table),
+Operations opens on Dashboard (what needs attention: drafts to sync, order approvals, Kingdee follow-up,
+overdue receivables and credit exceptions; each figure opens its table or report). It also contains Trade (one filterable Orders table), Partners (one customer/supplier table),
 Warehouse (SKUs, inventory and warehouses), and Analysis (reports). Trade configuration contains
 Documents (each printed document's layout per language) and Prices and commission (monthly price book,
 floor list and commission rules).
@@ -95,9 +94,9 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 - `commission_statements`: the single retained monthly commission approval workflow. No extra
   per-order commission acknowledgment model or duplicate table.
 - `stock_snapshots`: read-only source lots with lot number and on-hand quantity; audited purchase cost comes from the lot-cost feed. The Stock
-  tab shows beside each lot what open Kingdee sales orders await (`source_stock_commitments`) and what
-  is available, per product and warehouse; a missing or stale feed, a unit mismatch or an open order
-  without a warehouse leaves Available blank.
+  tab sums them per SKU and warehouse region beside what open Kingdee sales orders promise out and purchase
+  orders promise in (`source_stock_commitments`), and marks a projected shortfall; a missing or stale feed or
+  a unit mismatch leaves the projection blank, and an open order without a warehouse counts under no region.
 
 There is one delivery/invoice ledger. Closure counts delivery items once. Archive is reversible and local:
 it never voids the Kingdee order or releases its commitment; only Kingdee's void or close ends it. A
@@ -112,7 +111,7 @@ confirmed order cannot be deleted.
 Order documents need no automation. The shared preview generates a PDF with `ctx.preview_pdf` and uses
 its file for both preview and download. The `orders` file sync imports and exports the order
 workbook (XLSX or CSV), not documents.
-The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
+The price book opens a month matrix per warehouse region and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
 
 The custom [Kingdee integration](docs/0004-kingdee-implementation.md) lives in
 `src/integration/kingdee/`. It owns SQL Server rowversion polling and complete listings, source identity,

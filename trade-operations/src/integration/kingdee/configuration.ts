@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 export const kingdeeCreditPolicy = 'kis-sales-out-v1';
 export const kingdeeConfiguration = {
@@ -102,3 +102,22 @@ export function kingdeeWriteTarget(configuration: unknown) {
 		return null;
 	return { account, branch: configuration.branchNo };
 }
+
+/** Each Kingdee settlement number's credit days, counted from the day or from month end: the ledger's term rules. */
+export const SettlementRules = Schema.Record(
+	Schema.String,
+	Schema.Struct({
+		creditDays: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 3660 })),
+		fromMonthEnd: Schema.Boolean
+	})
+);
+/** The ledger's term rules, none while they are unset or unreadable (an order write refuses such terms on its own). */
+export const kingdeeSettlementRules = (configuration: unknown): typeof SettlementRules.Type =>
+	isConfiguration(configuration) && typeof configuration['settlementRules'] === 'string'
+		? Option.getOrElse(
+				Schema.decodeUnknownOption(Schema.fromJsonString(SettlementRules))(
+					configuration['settlementRules']
+				),
+				() => ({})
+			)
+		: {};

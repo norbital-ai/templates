@@ -228,7 +228,7 @@ type Floor = Pick<
 >;
 /**
  * The floor a sales line is priced against: the newest row on or before the order date, in the order's currency and
- * warehouse group, whose quantity band the line meets. Its unit must be the line's; a purchase has none.
+ * warehouse region, whose quantity band the line meets. Its unit must be the line's; a purchase has none.
  */
 export function floorFor<F extends Floor>(
 	order: Pick<Row<'orders'>, 'direction' | 'currency' | 'ordered_on'>,

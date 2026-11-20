@@ -1768,6 +1768,10 @@
 										"receipt"
 									]
 								},
+								"kingdee_due_on": {
+									"kind": "date",
+									"optional": true
+								},
 								"reference": {
 									"kind": "text"
 								},
@@ -1956,6 +1960,13 @@
 					"kind": "json",
 					"shape": {
 						"fields": {
+							"direction": {
+								"kind": "enum",
+								"values": [
+									"out",
+									"in"
+								]
+							},
 							"product_code": {
 								"kind": "text"
 							},

@@ -1,7 +1,8 @@
 import { model } from '@norbital-ai/bolt';
 
 export default model('source_stock_commitments', {
-	description: 'Open sales quantities by product and warehouse from Kingdee.',
+	description:
+		'Open order quantities by product and warehouse from Kingdee: what sales orders have yet to ship, purchase orders yet to receive.',
 	record_label: 'record.source.name',
 	fields: {
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
@@ -12,6 +13,8 @@ export default model('source_stock_commitments', {
 				kind: 'object',
 				many: true,
 				fields: {
+					// out: an open sales order line still to ship; in: an open purchase order line still to receive
+					direction: { kind: 'enum', values: ['out', 'in'] },
 					product_code: { kind: 'text' },
 					warehouse: { kind: 'text', optional: true },
 					unit: { kind: 'text', optional: true },

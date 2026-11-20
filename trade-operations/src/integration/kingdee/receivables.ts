@@ -1,7 +1,12 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json, Row } from '@norbital-ai/bolt';
 import { sha256Hex, numeric } from '../../lib/commercial.js';
-import { kingdeeReceivablesAccount } from './configuration.js';
+import {
+	kingdeeReceivablesAccount,
+	kingdeeSettlementRules,
+	type SettlementRules
+} from './configuration.js';
+import { termDueOn } from './order-batch.js';
 import {
 	checked,
 	exactId,
@@ -92,7 +97,7 @@ SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),c.FID),20) AS __key,
  CASE WHEN c.FType=3 THEN COALESCE(s.FBillNo,c.FNumber) ELSE c.FNumber END AS reference,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN COALESCE(s.FDate,c.FDate) ELSE c.FDate END,23) AS business_on,
  CONVERT(varchar(10),${dueOn},23) AS due_on,
- CASE WHEN c.FType=3 THEN st.FName END AS settlement,
+ CASE WHEN c.FType=3 THEN st.FName END AS settlement,CASE WHEN c.FType=3 THEN st.FNumber END AS settlement_code,
  CONVERT(varchar(10),CASE WHEN c.FType=3 THEN d.delivered_on END,23) AS delivered_on,
  CONVERT(varchar(100),c.FRemainAmount) AS remaining,
  CONVERT(bit,CASE WHEN ${kept} THEN 1 ELSE 0 END) AS kept,
@@ -174,7 +179,7 @@ function digestsOf(entries: readonly Entry[]) {
 		if (bucket === undefined) continue;
 		bucket.n++;
 		bucket.ids += id;
-		bucket.due += id * epochDays(entry.due_on);
+		bucket.due += id * epochDays(entry.kingdee_due_on ?? null);
 		bucket.remaining = BigDecimal.sum(
 			bucket.remaining,
 			BigDecimal.fromStringUnsafe(entry.remaining)
@@ -238,7 +243,7 @@ export const testReceivables = Effect.fnUntraced(function* (ctx: DatabaseContext
 	// SQL Server validates table and column permissions without transferring accounting rows.
 	yield* readNativeRows(ctx, { sql: entries.sql + ' AND 1=0' }, { account, ids: '<ids/>' });
 });
-function mapEntry(row: SqlRow) {
+function mapEntry(row: SqlRow, rules: typeof SettlementRules.Type) {
 	const business_on = sourceDate(row, 'business_on');
 	const contact_id = exactId(row, 'contact_id');
 	const customer_id = exactId(row, 'customer_id');
@@ -247,6 +252,13 @@ function mapEntry(row: SqlRow) {
 		throw invalid('t_RP_Contact', 'Receivables require a dated reference and a verified customer');
 	const r = columns(row);
 	const kind = exactId(row, 'contact_type') === '3' ? ('invoice' as const) : ('receipt' as const);
+	// KIS names "no settlement method" `*`
+	const settlement =
+		[clean(nullableText(row, 'settlement') ?? '')].find((name) => name && name !== '*') ?? null;
+	const code = kind === 'invoice' ? nullableText(row, 'settlement_code') : null;
+	const rule = code ? rules[code] : undefined;
+	const kingdee_due_on = sourceDate(row, 'due_on');
+	const delivered_on = sourceDate(row, 'delivered_on');
 	const remainingAmount = r.decimal('remaining');
 	const remaining = new Intl.NumberFormat('en', {
 		useGrouping: false,
@@ -260,11 +272,11 @@ function mapEntry(row: SqlRow) {
 		reference,
 		kind,
 		business_on,
-		due_on: sourceDate(row, 'due_on'),
-		// KIS names "no settlement method" `*`
-		settlement:
-			[clean(nullableText(row, 'settlement') ?? '')].find((name) => name && name !== '*') ?? null,
-		delivered_on: sourceDate(row, 'delivered_on'),
+		// the due date the order's terms set, else Kingdee's own, which a customer without terms dates on issue
+		due_on: rule ? termDueOn(rule, settlement, business_on, delivered_on) : kingdee_due_on,
+		kingdee_due_on,
+		settlement,
+		delivered_on,
 		remaining,
 		settlements: Schema.decodeUnknownSync(settlementsSchema)(r.text('settlements', '[]')).map(
 			(check) => {
@@ -344,7 +356,9 @@ export const readReceivables = Effect.fnUntraced(function* (
 	);
 	const ids = exclusionsXml(excludedContacts);
 	const denomination = yield* checked(() => currency(ctx.configuration.baseCurrency));
-	const scope = yield* sha256Hex(JSON.stringify([account, denomination, excludedContacts]));
+	// the term rules date what is due: a change to them reads the ledger whole
+	const rules = kingdeeSettlementRules(ctx.configuration);
+	const scope = yield* sha256Hex(JSON.stringify([account, denomination, excludedContacts, rules]));
 	const before = yield* sourceCheckpoint(ctx, account, ids);
 	if (before.unclassified !== '0' || before.undated !== '0')
 		return yield* invalid(
@@ -387,7 +401,7 @@ export const readReceivables = Effect.fnUntraced(function* (
 				'FModifyTime',
 				'The receivables ledger changed during this read. The previous snapshot is retained.'
 			);
-		const position = yield* checked(() => rows.map(mapEntry));
+		const position = yield* checked(() => rows.map((row) => mapEntry(row, rules)));
 		// the published sums must be the checkpoint's, or every later hour would read the ledger again
 		if (digestsOf(position).some((digest, bucket) => digest !== after.digests[bucket]))
 			return yield* invalid(
@@ -419,7 +433,7 @@ export const readReceivables = Effect.fnUntraced(function* (
 	const merge = (rows: readonly SqlRow[]) =>
 		checked(() => {
 			for (const row of rows) {
-				const entry = mapEntry(row);
+				const entry = mapEntry(row, rules);
 				if (excludedContacts.includes(entry.contact_id)) continue;
 				if (columns(row).bool('kept')) held.set(entry.contact_id, entry);
 				else held.delete(entry.contact_id);

@@ -24,7 +24,7 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 			.rows[0];
 		if (!product?.unit) throw new Error('Fixture product required');
 		const header =
-			'Ledger ID,Product code,Warehouse group,Effective date,Currency,Unit,Minimum quantity,Floor price,Tax inclusive,Tax rate (%)';
+			'Ledger ID,Product code,Warehouse region,Effective date,Currency,Unit,Minimum quantity,Floor price,Tax inclusive,Tax rate (%)';
 		const row = (code: string, amount: string) =>
 			`kingdee,${code},WEST,2026-10-01,SGD,${product.unit},5,${amount},true,9`;
 		const load = (contents: string) =>
