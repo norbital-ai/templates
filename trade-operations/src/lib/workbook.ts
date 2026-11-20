@@ -1,4 +1,5 @@
 import type { InputFields } from '@norbital-ai/bolt';
+import { incoterms } from './commercial.js';
 
 /**
  * Workbook schemas: one column set per table, shared by Import, Download template and Export.
@@ -18,7 +19,7 @@ export const orderWorkbook = {
 	valid_until: { kind: 'date', optional: true },
 	// the Kingdee settlement method's code
 	payment_terms: { kind: 'text', optional: true },
-	shipping_terms: { kind: 'text', optional: true },
+	shipping_terms: { kind: 'enum', values: incoterms, optional: true },
 	place_of_loading: { kind: 'text', optional: true },
 	place_of_delivery: { kind: 'text', optional: true },
 	packaging: { kind: 'text', optional: true },
@@ -29,6 +30,7 @@ export const orderWorkbook = {
 	payment_method: { kind: 'enum', values: ['wire_transfer', 'acceptance_bill'], optional: true },
 	// the name of one of the party's contacts
 	buyer_contact: { kind: 'text', optional: true },
+	customer_po_no: { kind: 'text', optional: true },
 	delivery_address: { kind: 'text', optional: true },
 	logistics_handler: { kind: 'text', optional: true },
 	notes: { kind: 'text', optional: true }

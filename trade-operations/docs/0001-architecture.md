@@ -156,11 +156,13 @@ contract) and language. A layout carries:
 
 - case, locale, version, title and status;
 - the Markdown/HTML body and optional print CSS/HTML;
-- document fields the order fills in, each free text or a fixed list of choices (`options`, one per line);
+- document fields the order fills in, each free text or a fixed list of choices (`options`, one per line),
+  labelled in the layout's language with a translation for the other;
 - optional letterhead and company-stamp artwork.
 
-An order chooses only its document language: a sales order prints its quotation while draft and its sales
-contract once synced, a purchase order its purchase contract, each in its case's newest published version. No
+An order's currency chooses its document language (CNY prints Chinese, any other English): a sales order
+prints its quotation while draft and its sales contract once synced, a purchase order its purchase
+contract, each in its case's newest published version. No
 version is kept per order: a newly published layout reaches every order, and the signed copy the customer
 returns, filed on the order, is the evidence of what was signed. The Orders table's actions menu has **Preview
 document** (one order) and **Download PDFs** (the selection, as one zip); both render the order's current terms

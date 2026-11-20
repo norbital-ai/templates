@@ -62,6 +62,9 @@ export const newestFirst = (
 	a: Pick<DocumentTemplate, 'id' | 'version'>,
 	b: Pick<DocumentTemplate, 'id' | 'version'>
 ) => Number(b.version) - Number(a.version) || b.id.localeCompare(a.id);
+/** A CNY order prints in Chinese (a domestic contract); any other currency in English (an export contract). */
+export const documentLocale = (currency: string): DocumentTemplate['locale'] =>
+	currency === 'CNY' ? 'zh' : 'en';
 /** A case's current layout in one language: its newest published version. */
 export function currentTemplate<
 	T extends Pick<DocumentTemplate, 'id' | 'kind' | 'locale' | 'status' | 'version'>
@@ -105,8 +108,8 @@ export function agreementText(
 			? commercialDocument(seal, template.locale, reference, date).text
 			: contract(
 					template.locale === 'zh'
-						? '商务协议 {reference}\n往来单位：{party}\n币种：{currency}\n结算方式：{payment_terms}\n有效期：{valid_from} – {valid_until}\n贸易条款：{shipping_terms}\n装运期：{time_of_shipment}\n{lines}\n合计：{total}'
-						: 'Commercial agreement {reference}\nParty: {party}\nCurrency: {currency}\nCredit / payment: {payment_terms}\nValidity: {valid_from} – {valid_until}\nShipping terms: {shipping_terms}\nTime of shipment: {time_of_shipment}\n{lines}\nTotal: {total}',
+						? '商务协议 {reference}\n往来单位：{party}\n币种：{currency}\n结算方式：{payment_terms}\n有效期：{valid_from} – {valid_until}\n贸易术语：{shipping_terms}\n交货期：{time_of_shipment}\n{lines}\n合计：{total}'
+						: 'Commercial agreement {reference}\nParty: {party}\nCurrency: {currency}\nCredit / payment: {payment_terms}\nValidity: {valid_from} – {valid_until}\nShipping terms: {shipping_terms}\nDelivery period: {time_of_shipment}\n{lines}\nTotal: {total}',
 					seal,
 					reference
 				);
@@ -191,6 +194,7 @@ function printValues(
 			buyer_contact: seal.buyer_contact,
 			buyer_mobile: seal.buyer_mobile,
 			buyer_email: seal.buyer_email,
+			customer_po_no: seal.customer_po_no,
 			delivery_address: seal.delivery_address,
 			delivery_date: seal.shipment_to,
 			party_code: seal.party_code,
@@ -259,7 +263,6 @@ export const documentRead = (order: Id<'orders'>) =>
 				'warehouse',
 				'currency',
 				'ordered_on',
-				'document_locale',
 				'print_values',
 				'tax_inclusive',
 				'valid_from',
@@ -272,6 +275,7 @@ export const documentRead = (order: Id<'orders'>) =>
 				'shipment',
 				'other_terms',
 				'payment_method',
+				'customer_po_no',
 				'delivery_address',
 				'owner',
 				'logistics_handler'
@@ -298,7 +302,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 	const template = currentTemplate(
 		answer.document_templates.rows,
 		documentKind(order),
-		order.document_locale
+		documentLocale(order.currency)
 	);
 	if (!template)
 		return yield* new DocumentUnavailable({ message: 'errors.document_layout_unpublished' });

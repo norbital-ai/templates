@@ -35,7 +35,7 @@
 	import { Bound, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
-	import { contractKind, currentTemplate } from '../../../lib/order-document.js';
+	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
@@ -80,7 +80,7 @@
 		currentTemplate(
 			layouts.current?.document_templates.rows ?? [],
 			contractKind(form.get('direction') === 'purchasing' ? 'purchasing' : 'sales'),
-			form.get('document_locale') === 'zh' ? 'zh' : 'en'
+			documentLocale(String(form.get('currency') ?? ''))
 		)?.id;
 	const ledgerRead = $derived(
 		id && commercial
@@ -657,7 +657,6 @@
 {/snippet}
 <RecordForm
 	{ctx}
-	editable_presets={['document_locale']}
 	trailing={orderState}
 	readonly={archived}
 	readonly_reason={ctx.t('component.order_archived')}
@@ -672,7 +671,6 @@
 			'archived',
 			'total',
 			'ordered_on',
-			'document_locale',
 			'currency',
 			'valid_from',
 			'valid_until',
@@ -686,10 +684,10 @@
 			'other_terms',
 			'payment_method',
 			'buyer_contact',
+			'customer_po_no',
 			'delivery_address',
 			'logistics_handler',
-			'notes',
-			'supporting_documents'
+			'notes'
 		],
 		sources: id
 			? [
@@ -739,10 +737,9 @@
 				'other_terms',
 				'payment_method',
 				'buyer_contact',
+				'customer_po_no',
 				'delivery_address',
 				'logistics_handler',
-				'document_locale',
-				'supporting_documents',
 				'print_values'
 			],
 			readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],

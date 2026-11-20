@@ -202,7 +202,7 @@ test.live('syncing once leaves Kingdee the header; terms and lines stay editable
 				'orders.update': [
 					{
 						target: yield* t.at('orders', order),
-						set: { shipping_terms: 'FOB Shanghai', document_locale: 'zh' }
+						set: { shipping_terms: 'fob', place_of_loading: 'Shanghai' }
 					}
 				]
 			})
@@ -216,7 +216,7 @@ test.live('syncing once leaves Kingdee the header; terms and lines stay editable
 			})
 		);
 		const edited = yield* orderOf(as, order);
-		expect(edited).toMatchObject({ status: 'confirmed', shipping_terms: 'FOB Shanghai' });
+		expect(edited).toMatchObject({ status: 'confirmed', shipping_terms: 'fob' });
 		expect(sameDecimal(edited?.total, '32.70')).toBe(true);
 	})
 );
@@ -309,7 +309,7 @@ test.live('a document prints the buyer contact, payment terms and shipment windo
 				{
 					target: yield* t.at('orders', order),
 					set: {
-						shipping_terms: 'FOB Shanghai',
+						shipping_terms: 'fob',
 						payment_method: 'acceptance_bill',
 						shipment: { from: '2026-10-10', to: '2026-10-25' }
 					}
@@ -321,7 +321,7 @@ test.live('a document prints the buyer contact, payment terms and shipment windo
 		});
 		const document = yield* documentOf(as, { order });
 		expect(document.html).toContain('Net 30');
-		expect(document.html).toContain('FOB Shanghai');
+		expect(document.html).toContain('FOB');
 		expect(document.html).toContain('2026-10-10 – 2026-10-25');
 	})
 );

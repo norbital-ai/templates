@@ -40,6 +40,7 @@ export default sync('orders', 'sheet', {
 					'other_terms',
 					'payment_method',
 					'buyer_contact',
+					'customer_po_no',
 					'delivery_address',
 					'logistics_handler',
 					'notes'
@@ -220,6 +221,7 @@ export default sync('orders', 'sheet', {
 				'packaging',
 				'shipping_mark',
 				'other_terms',
+				'customer_po_no',
 				'delivery_address',
 				'notes'
 			] as const) {
@@ -265,6 +267,7 @@ export default sync('orders', 'sheet', {
 					'shipment',
 					'other_terms',
 					'payment_method',
+					'customer_po_no',
 					'delivery_address',
 					'logistics_handler',
 					'notes'
@@ -321,6 +324,7 @@ export default sync('orders', 'sheet', {
 			other_terms: date(order.other_terms),
 			payment_method: date(order.payment_method),
 			buyer_contact: date(order.buyer_contact?.name),
+			customer_po_no: date(order.customer_po_no),
 			delivery_address: date(order.delivery_address),
 			logistics_handler: date(order.logistics_handler),
 			notes: date(order.notes)

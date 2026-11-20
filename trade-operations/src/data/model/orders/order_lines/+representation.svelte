@@ -13,7 +13,7 @@
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
-	import { contractKind, currentTemplate } from '../../../../lib/order-document.js';
+	import { contractKind, currentTemplate, documentLocale } from '../../../../lib/order-document.js';
 	import { floorFor, quoteBelowFloor } from '../../../../lib/commercial.js';
 	let {
 		view,
@@ -48,7 +48,7 @@
 			currentTemplate(
 				layouts.current?.document_templates.rows ?? [],
 				contractKind(header.direction),
-				header.document_locale
+				documentLocale(header.currency)
 			)?.id
 	);
 	// the floor book a sales line is priced against, read as the order stands

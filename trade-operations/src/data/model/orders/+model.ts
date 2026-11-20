@@ -4,7 +4,7 @@ import { commissionRule } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
 import { model, type Id, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { floorFor, quoteBelowFloor } from '../../../lib/commercial.js';
+import { floorFor, incoterms, quoteBelowFloor } from '../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -49,7 +49,6 @@ const terms = [
 	'owner',
 	'warehouse',
 	'ordered_on',
-	'document_locale',
 	'print_values',
 	'currency',
 	'tax_inclusive',
@@ -65,10 +64,10 @@ const terms = [
 	'other_terms',
 	'payment_method',
 	'buyer_contact',
+	'customer_po_no',
 	'delivery_address',
 	'logistics_handler',
-	'notes',
-	'supporting_documents'
+	'notes'
 ] as const;
 // what Kingdee keeps on a synced order's header: changed there, read back here
 const kingdeeHeader = ['party', 'currency', 'ordered_on', 'owner', 'payment_terms'] as const;
@@ -145,8 +144,6 @@ export default model('orders', {
 		party: { kind: 'ref', to: 'parties', inverse: 'orders' },
 		owner: { kind: 'ref', to: 'sys_user', default: { var: 'actor.id' } },
 		warehouse: { kind: 'ref', to: 'warehouses', optional: true },
-		// the language the order's documents print in; its case (quotation, contract) follows from the order
-		document_locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' },
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		source_order_key: { kind: 'text', optional: true, hidden: true },
 		archived: { kind: 'bool', default: false },
@@ -179,7 +176,7 @@ export default model('orders', {
 			optional: true,
 			where: { active: { eq: true } }
 		},
-		shipping_terms: { kind: 'text', optional: true },
+		shipping_terms: { kind: 'enum', values: incoterms, optional: true },
 		place_of_loading: { kind: 'text', optional: true },
 		place_of_delivery: { kind: 'text', optional: true },
 		packaging: { kind: 'text', optional: true },
@@ -190,6 +187,8 @@ export default model('orders', {
 		payment_method: { kind: 'enum', values: ['wire_transfer', 'acceptance_bill'], optional: true },
 		// one of the party's contacts: its name, phone and email print on the documents
 		buyer_contact: { kind: 'ref', to: 'contacts', optional: true },
+		// the buyer's own reference for this order (需方合同号)
+		customer_po_no: { kind: 'text', optional: true },
 		delivery_address: { kind: 'text', optional: true },
 		logistics_handler: { kind: 'ref', to: 'sys_user', optional: true },
 		notes: {
@@ -197,19 +196,6 @@ export default model('orders', {
 			optional: true
 		},
 		print_values: printValueKind,
-		supporting_documents: {
-			kind: 'file',
-			accept: [
-				'application/pdf',
-				'image/jpeg',
-				'image/png',
-				'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-			],
-			max: '20MiB',
-			many: true,
-			optional: true
-		},
 		party_name: {
 			kind: 'text',
 			optional: true

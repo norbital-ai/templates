@@ -73,6 +73,20 @@ export const sha256Hex = (text: string) =>
 		catch: (cause) => new DigestUnavailable({ message: String(cause) })
 	}).pipe(Effect.map((bytes) => Hex.encode(new Uint8Array(bytes))));
 export const hash = (value: unknown) => sha256Hex(canonical(value));
+/** Incoterms 2020; documents print the code in capitals, with its named place beside it. */
+export const incoterms = [
+	'exw',
+	'fca',
+	'fas',
+	'fob',
+	'cfr',
+	'cif',
+	'cpt',
+	'cip',
+	'dap',
+	'dpu',
+	'ddp'
+] as const;
 type Header = Pick<
 	Row<'orders'>,
 	| 'id'
@@ -88,6 +102,7 @@ type Header = Pick<
 	| 'shipment'
 	| 'other_terms'
 	| 'payment_method'
+	| 'customer_po_no'
 	| 'delivery_address'
 	| 'valid_from'
 	| 'valid_until'
@@ -122,7 +137,7 @@ export function snapshot(
 		valid_until: order.valid_until ?? '',
 		payment_terms: named.payment_terms,
 		...(order.print_values?.length ? { print_values: order.print_values } : {}),
-		shipping_terms: order.shipping_terms ?? '',
+		shipping_terms: order.shipping_terms?.toUpperCase() ?? '',
 		place_of_loading: order.place_of_loading ?? '',
 		place_of_delivery: order.place_of_delivery ?? '',
 		packaging: order.packaging ?? '',
@@ -134,6 +149,7 @@ export function snapshot(
 		buyer_contact: named.buyer.name,
 		buyer_mobile: named.buyer.phone,
 		buyer_email: named.buyer.email,
+		customer_po_no: order.customer_po_no ?? '',
 		delivery_address: order.delivery_address ?? '',
 		contract_version: contractVersion,
 		lines: [...lines]

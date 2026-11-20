@@ -12,10 +12,12 @@ export const printFieldKind = {
 	fields: {
 		key: { kind: 'text' },
 		label: { kind: 'text' },
+		// the label in the workspace's other language: the screen shows the reader's, the document prints in the layout's
+		translation: { kind: 'text', optional: true },
 		scope: { kind: 'enum', values: ['order', 'line'] },
 		multiline: { kind: 'bool', optional: true },
 		default_value: { kind: 'text', optional: true },
-		// one choice per line: the order picks one instead of typing
+		// one choice per line, `printed value | translation`: the order picks one instead of typing
 		options: { kind: 'text', optional: true }
 	},
 	optional: true,
@@ -29,16 +31,17 @@ type PrintValues = typeof PrintValues.Type;
 type PrintField = {
 	key: string;
 	label: string;
+	translation?: string | null | undefined;
 	scope: 'order' | 'line';
 	default_value?: string | null | undefined;
 	options?: string | null | undefined;
 };
-/** A field's fixed choices, or none for free text. */
+/** A field's fixed choices (what prints, and its translation), or none for free text. */
 export const printChoices = (field: Pick<PrintField, 'options'>) =>
-	(field.options ?? '')
-		.split('\n')
-		.map((choice) => choice.trim())
-		.filter(Boolean);
+	(field.options ?? '').split('\n').flatMap((line) => {
+		const [value = '', translation = ''] = line.split('|').map((part) => part.trim());
+		return value ? [{ value, translation: translation || value }] : [];
+	});
 const validKey = /^[a-z][a-z0-9_]{0,39}$/;
 export const printValueLimit = 2000;
 
@@ -61,10 +64,11 @@ export function validPrintFields(fields: readonly PrintField[]) {
 				(field) =>
 					field.label.trim().length > 0 &&
 					field.label.length <= 80 &&
+					(field.translation ?? '').length <= 80 &&
 					// a field with choices defaults to one of them
 					(!printChoices(field).length ||
 						!field.default_value ||
-						printChoices(field).includes(field.default_value))
+						printChoices(field).some(({ value }) => value === field.default_value))
 			)
 		);
 	});

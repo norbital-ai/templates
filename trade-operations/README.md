@@ -35,7 +35,7 @@ order prints the newest published version. The Orders table's actions menu has *
 and **Download PDFs** (the selection, as one zip); each renders the saved order as one generated file. The commercial table includes the saved item specification, quantity, price,
 discount, tax and totals. Company letterhead and contract-stamp artwork are optional tenant PNGs.
 A sales order's quotation and contract carry the stamp when **Include company stamp** is ticked in the
-preview, and in Download PDFs; a purchase contract never does. A document field may offer fixed choices (`options`, one per line).
+preview, and in Download PDFs; a purchase contract never does. A document field may offer fixed choices (`options`, one per line), each with a translation.
 
 A published layout can also carry an optional **Print layout HTML** upload. It controls print
 CSS, typography and artwork placement. Use this when recreating an approved document or

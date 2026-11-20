@@ -34,17 +34,22 @@
 			? ctx.query({
 					document_templates: {
 						where: { id: { eq: layout }, status: { eq: 'published' } },
-						fields: ['print_fields'],
+						fields: ['print_fields', 'locale'],
 						limit: 1
 					}
 				})
 			: null
 	);
-	const fields = $derived(
-		selection?.current?.document_templates.rows[0]?.print_fields?.filter(
-			(f) => f.scope === scope
-		) ?? []
+	const template = $derived(selection?.current?.document_templates.rows[0]);
+	const fields = $derived(template?.print_fields?.filter((f) => f.scope === scope) ?? []);
+	// a reader of another language than the layout's sees its translations; the document prints the values
+	const translated = $derived(
+		Boolean(template) && (ctx.locale.startsWith('zh') ? 'zh' : 'en') !== template?.locale
 	);
+	const label = (field: (typeof fields)[number]) =>
+		(translated && field.translation) || field.label;
+	const shown = (field: (typeof fields)[number], text: string) =>
+		(translated && printChoices(field).find(({ value }) => value === text)?.translation) || text;
 	const values = $derived(Schema.is(PrintValues)(value) ? value : []);
 	const saved = $derived(new Map(values.map(({ key, value }) => [key, value])));
 
@@ -63,12 +68,15 @@
 			<div class="min-w-0 space-y-1">
 				{#if on_change}
 					<label for={fieldId} class="block text-xs font-medium text-muted-foreground"
-						>{field.label}</label
+						>{label(field)}</label
 					>
 					{#if printChoices(field).length}
 						<Combobox
 							id={fieldId}
-							options={printChoices(field).map((choice) => ({ value: choice, label: choice }))}
+							options={printChoices(field).map(({ value, translation }) => ({
+								value,
+								label: translated ? translation : value
+							}))}
 							value={text}
 							{disabled}
 							on_change={(value) => change(field.key, value ?? '')}
@@ -92,8 +100,8 @@
 						/>
 					{/if}
 				{:else}
-					<div class="text-xs font-medium text-muted-foreground">{field.label}</div>
-					<p class="whitespace-pre-wrap break-words text-sm">{text || '—'}</p>
+					<div class="text-xs font-medium text-muted-foreground">{label(field)}</div>
+					<p class="whitespace-pre-wrap break-words text-sm">{shown(field, text) || '—'}</p>
 				{/if}
 			</div>
 		{/each}

@@ -37,7 +37,7 @@ the sync and remain read-only to members. Source changes update the mirror; loca
 remain subject to the workspace's policies and floor rule.
 
 Archiving a local order preserves its history and evidence. It does not silently delete a Kingdee SO or PO.
-A customer-issued PO, signed return or other supporting file is retained on the order.
+A customer-issued PO, signed return or other supporting file is filed on the order (Filed documents).
 Source approval and any required business review remain explicit steps.
 
 ## Verify a connection

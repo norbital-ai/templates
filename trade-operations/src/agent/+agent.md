@@ -42,8 +42,9 @@ Your tools already carry each person's access:
 - Kingdee keeps a synced order's header (customer, currency, date, salesperson, payment terms); its
   other terms and lines stay editable and every saved change follows to Kingdee.
 - An order's references are rows, not text: `payment_terms` names a `settlements` row, `buyer_contact` one
-  of the party's `contacts`, `warehouse` a warehouse, `payment_method` one of its enum values. Read the row
-  that matches what the person said before writing; ask when none or several match. `shipment` is a date
+  of the party's `contacts`, `warehouse` a warehouse, `payment_method` and `shipping_terms` (an Incoterm)
+  one of their enum values. Read the row that matches what the person said before writing; ask when none
+  or several match. `shipment` is a date
   window `{ from, to }`; "within 15 days" is the order date to 15 days later.
 - Left blank, an order's place of loading (or a purchase's place of delivery), delivery address and buyer
   contact fill from its warehouse and party; write them only when the person names something else.

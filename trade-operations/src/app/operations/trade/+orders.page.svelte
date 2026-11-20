@@ -15,11 +15,7 @@
 			actor?.teams.includes('commercial_managers') ||
 			actor?.teams.includes(direction === 'sales' ? 'sales' : 'procurement'));
 	function newOrder(direction: 'sales' | 'purchasing') {
-		openCreate('orders', {
-			direction,
-			// documents print in the workspace's language until the order picks another
-			document_locale: ctx.locale.startsWith('zh') ? 'zh' : 'en'
-		});
+		openCreate('orders', { direction });
 	}
 	const purchaseOnly = $derived(
 		Boolean(

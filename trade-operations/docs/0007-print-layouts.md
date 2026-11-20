@@ -2,7 +2,7 @@
 
 Orders print three documents: a sales order prints its **quotation** until it syncs to Kingdee and its
 **sales contract** after; a purchase order prints its **purchase contract**. Each has one layout per language,
-and an order only chooses its **Document language**.
+and an order's currency chooses the language: a CNY order prints in Chinese, any other currency in English.
 
 In **Trade configuration → Documents**, choose **Revise** (or **Add**) beside a document and language. The
 revision opens as a draft with the current layout's title, body, fields and artwork; upload a UTF-8 HTML
@@ -35,15 +35,16 @@ it does not supply a tenant's artwork or impose a separate signing workflow.
 
 ## Fields
 
-| Where                      | Fields                                                                                                                                                                                                                                                                                                                                   |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document header            | `title`, `reference`, `order_title`, `party`, `party_code`, `party_address`, `party_phone`, `ordered_on`, `currency`, `currency_symbol`, `valid_from`, `valid_until`, `owner`, `logistics_handler`                                                                                                                                       |
-| Document amounts and terms | `payment_terms`, `payment_method`, `delivery_address`, `delivery_date`, `shipping_terms`, `place_of_loading`, `place_of_delivery`, `time_of_shipment`, `packaging`, `shipping_mark`, `other_terms`, `other_terms_first`, `other_terms_more`, `buyer_contact`, `buyer_mobile`, `buyer_email`, `terms`, `agreement`, `net`, `tax`, `total` |
-| Images                     | `letterhead`, `stamp`, `signature`                                                                                                                                                                                                                                                                                                       |
-| Inside the line block      | `line_number`, `product`, `product_code`, `product_spec`, `brand`, `brand_en`, `producing_area`, `unit`, `quantity`, `unit_price`, `discount`, `tax_rate`, `net`, `tax`, `total`                                                                                                                                                         |
+| Where                      | Fields                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document header            | `title`, `reference`, `order_title`, `party`, `party_code`, `party_address`, `party_phone`, `ordered_on`, `currency`, `currency_symbol`, `valid_from`, `valid_until`, `owner`, `logistics_handler`                                                                                                                                                         |
+| Document amounts and terms | `payment_terms`, `payment_method`, `customer_po_no`, `delivery_address`, `delivery_date`, `shipping_terms`, `place_of_loading`, `place_of_delivery`, `time_of_shipment`, `packaging`, `shipping_mark`, `other_terms`, `other_terms_first`, `other_terms_more`, `buyer_contact`, `buyer_mobile`, `buyer_email`, `terms`, `agreement`, `net`, `tax`, `total` |
+| Images                     | `letterhead`, `stamp`, `signature`                                                                                                                                                                                                                                                                                                                         |
+| Inside the line block      | `line_number`, `product`, `product_code`, `product_spec`, `brand`, `brand_en`, `producing_area`, `unit`, `quantity`, `unit_price`, `discount`, `tax_rate`, `net`, `tax`, `total`                                                                                                                                                                           |
 
 `payment_terms` prints the settlement method's name. `payment_method` prints Wire transfer or Acceptance
-bill (电汇 or 承兑 in Chinese). `buyer_contact`, `buyer_mobile` and `buyer_email` are the buyer contact's name,
+bill (电汇 or 承兑 in Chinese). `shipping_terms` prints the Incoterm code (CIF); the named place is in
+`place_of_loading` or `place_of_delivery`. `customer_po_no` is the buyer's own reference (需方合同号). `buyer_contact`, `buyer_mobile` and `buyer_email` are the buyer contact's name,
 phone and email. `time_of_shipment` prints the shipment window: one day, or `from – to` (`from 至 to` in
 Chinese); `delivery_date` is its last day.
 
@@ -55,9 +56,12 @@ prints the order lines and amounts.
 
 Add named fields in the layout's **Document fields** list when a contract needs extra
 details. Choose **order** for a header field or **line** for an item field. Use a unique
-lowercase key in that scope, a label people will recognize, and an optional default. Enable
+lowercase key in that scope, a label people will recognize, its translation into the workspace's other
+language, and an optional default. Enable
 **Multiline** for addresses and clauses. List **Options**, one per line, when the order picks
-one of fixed choices instead of typing; the default must be one of them. A layout can switch
+one of fixed choices instead of typing, each optionally followed by a bar and its translation
+(`预收款 | Advance payment`); the default must be one of them. The layout prints the value; a reader of
+the other language sees the translations. A layout can switch
 whole clauses on a choice with an attribute selector, for example
 `<div data-terms="{{detail_terms}}">` with `[data-terms="Credit"] .advance { display: none; }`. Use `white-space: pre-line` in the layout to print
 the saved line breaks. For

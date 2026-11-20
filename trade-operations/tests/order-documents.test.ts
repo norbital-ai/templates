@@ -141,7 +141,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			const admin = yield* t.as(t.admin);
 			const html =
 				'<!doctype html><html><style>@page{size:A4;margin:20mm}</style><body>' +
-				'<h1>{{title}}</h1><p>{{reference}} · {{party}} · {{detail_buyer_reference}}</p><ul>' +
+				'<h1>{{title}}</h1><p>{{reference}} · {{party}} · {{detail_buyer_reference}} · {{customer_po_no}} · {{detail_terms}}</p><ul>' +
 				'{{#lines}}<li>{{product_code}}: {{quantity_tonnes}} t · {{gross_unit_price_per_tonne}} · {{detail_brand}}</li>{{/lines}}</ul><b>{{total}}</b><p>{{terms}}</p></body></html>';
 			const upload = yield* admin.upload('document_templates.print_layout', {
 				name: 'approved-print.html',
@@ -166,6 +166,14 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 									scope: 'order',
 									multiline: true
 								},
+								{
+									key: 'terms',
+									label: 'Terms',
+									translation: '条款版本',
+									scope: 'order',
+									options: 'Advance | 预收款\nCredit | 账期',
+									default_value: 'Advance'
+								},
 								{ key: 'brand', label: 'Brand', scope: 'line', default_value: 'Standard' }
 							]
 						}
@@ -183,6 +191,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					{
 						target: yield* t.at('orders', order),
 						set: {
+							customer_po_no: 'PO-77',
 							print_values: [{ key: 'buyer_reference', value: 'BUY <42>\nNorth entrance' }]
 						}
 					}
@@ -209,7 +218,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 			expect(printed[0]).toContain('<h1>Approved print layout</h1>');
 			expect(printed[0]).toContain('<b>21.80</b><p>Delivery by arrangement.</p>');
 			expect(printed[0]).toContain('0.010 t · 2,180.00 · Synthetic &amp; Co');
-			expect(printed[0]).toContain('BUY &lt;42&gt;\nNorth entrance');
+			expect(printed[0]).toContain('BUY &lt;42&gt;\nNorth entrance · PO-77 · Advance');
 			const saved = firstRow((yield* admin.query(documentRead(order))).orders.rows);
 			if (!saved.party) throw new Error('Expected the saved print fixture');
 			const sealed = snapshot(
@@ -458,68 +467,77 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				expect(converted[0]).toContain('data:image/png;base64,');
 			})
 	);
-	test.effect('an order prints its case in its language, with no layout to choose', () =>
-		Effect.gen(function* () {
-			const t = yield* Trade;
-			const admin = yield* t.as(t.admin);
-			const print = (direction: 'sales' | 'purchasing', locale: 'en' | 'zh', confirmed: boolean) =>
-				Effect.gen(function* () {
-					const { order } = yield* draft(t, direction);
-					yield* admin.act({
-						'orders.update': [
-							{ target: yield* t.at('orders', order), set: { document_locale: locale } }
-						]
+	test.effect(
+		'an order prints its case in the language of its currency, with no layout to choose',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* Trade;
+				const admin = yield* t.as(t.admin);
+				const print = (
+					direction: 'sales' | 'purchasing',
+					locale: 'en' | 'zh',
+					confirmed: boolean
+				) =>
+					Effect.gen(function* () {
+						const { order } = yield* draft(t, direction);
+						yield* admin.act({
+							'orders.update': [
+								{
+									target: yield* t.at('orders', order),
+									set: { currency: locale === 'zh' ? 'CNY' : 'USD' }
+								}
+							]
+						});
+						if (confirmed) yield* confirm(t, order);
+						return yield* documentOf(admin, { order });
 					});
-					if (confirmed) yield* confirm(t, order);
-					return yield* documentOf(admin, { order });
-				});
-			// the English contracts are revised by the tests beside this one; their seeded versions print in those tests
-			const cases = [
-				['sales', 'en', false, 'Quotation', 'This quotation is valid for the period'],
-				['sales', 'zh', false, '报价单', '本报价在以上有效期内有效'],
-				['sales', 'zh', true, '销售合同', '卖方按上述数量'],
-				['purchasing', 'zh', false, '采购合同', '供应商：'],
-				['purchasing', 'zh', true, '采购合同', '供应商：']
-			] as const;
-			for (const [direction, locale, confirmed, title, clause] of cases) {
-				const document = yield* print(direction, locale, confirmed);
-				expect(document.title).toBe(title);
-				expect(document.html).toContain(clause);
-				if (direction === 'purchasing') expect(document.stamp).toBeNull();
-			}
-			// after the seeded cases print: a stamped quotation layout stamps the next draft
-			const stamp = yield* admin.upload('document_templates.contract_stamp', {
-				name: 'sample-mark.png',
-				mime: 'image/png',
-				bytes: Result.getOrThrow(
-					Base64.decode(
-						'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
+				// the English contracts are revised by the tests beside this one; their seeded versions print in those tests
+				const cases = [
+					['sales', 'en', false, 'Quotation', 'This quotation is valid for the period'],
+					['sales', 'zh', false, '报价单', '本报价在以上有效期内有效'],
+					['sales', 'zh', true, '销售合同', '卖方按上述数量'],
+					['purchasing', 'zh', false, '采购合同', '供应商：'],
+					['purchasing', 'zh', true, '采购合同', '供应商：']
+				] as const;
+				for (const [direction, locale, confirmed, title, clause] of cases) {
+					const document = yield* print(direction, locale, confirmed);
+					expect(document.title).toBe(title);
+					expect(document.html).toContain(clause);
+					if (direction === 'purchasing') expect(document.stamp).toBeNull();
+				}
+				// after the seeded cases print: a stamped quotation layout stamps the next draft
+				const stamp = yield* admin.upload('document_templates.contract_stamp', {
+					name: 'sample-mark.png',
+					mime: 'image/png',
+					bytes: Result.getOrThrow(
+						Base64.decode(
+							'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='
+						)
 					)
-				)
-			});
-			if (stamp.kind !== 'committed') throw new Error('Stamp upload required');
-			const quotation = committed(
-				'document_templates',
+				});
+				if (stamp.kind !== 'committed') throw new Error('Stamp upload required');
+				const quotation = committed(
+					'document_templates',
+					yield* admin.act({
+						'document_templates.create': [
+							{
+								kind: 'quotation',
+								locale: 'en',
+								title: 'Stamped quotation',
+								body: '{agreement}',
+								contract_stamp: stamp.output
+							}
+						]
+					})
+				);
 				yield* admin.act({
-					'document_templates.create': [
-						{
-							kind: 'quotation',
-							locale: 'en',
-							title: 'Stamped quotation',
-							body: '{agreement}',
-							contract_stamp: stamp.output
-						}
+					'document_templates.update': [
+						{ target: yield* t.at('document_templates', quotation), set: { status: 'published' } }
 					]
-				})
-			);
-			yield* admin.act({
-				'document_templates.update': [
-					{ target: yield* t.at('document_templates', quotation), set: { status: 'published' } }
-				]
-			});
-			const quoted = yield* draft(t);
-			expect((yield* documentOf(admin, { order: quoted.order })).stamp?.id).toBe(stamp.output.id);
-		})
+				});
+				const quoted = yield* draft(t);
+				expect((yield* documentOf(admin, { order: quoted.order })).stamp?.id).toBe(stamp.output.id);
+			})
 	);
 	test.effect(
 		'a purchase PDF prints the newest published table, its artwork and the saved SKU specification',

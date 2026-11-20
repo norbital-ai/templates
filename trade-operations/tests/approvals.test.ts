@@ -72,7 +72,7 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 				'orders',
 				yield* sales.act({
 					'orders.update': [
-						{ target: yield* t.at('orders', order), set: { shipping_terms: 'CIF Singapore' } }
+						{ target: yield* t.at('orders', order), set: { shipping_terms: 'cif' } }
 					]
 				})
 			);

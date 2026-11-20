@@ -551,6 +551,10 @@
 								"order",
 								"line"
 							]
+						},
+						"translation": {
+							"kind": "text",
+							"optional": true
 						}
 					},
 					"kind": "object",
@@ -829,6 +833,10 @@
 				"currency": {
 					"kind": "currency"
 				},
+				"customer_po_no": {
+					"kind": "text",
+					"optional": true
+				},
 				"delivery_address": {
 					"kind": "text",
 					"optional": true
@@ -838,14 +846,6 @@
 					"values": [
 						"sales",
 						"purchasing"
-					]
-				},
-				"document_locale": {
-					"default": "en",
-					"kind": "enum",
-					"values": [
-						"en",
-						"zh"
 					]
 				},
 				"freight_treatment": {
@@ -998,8 +998,21 @@
 					"optional": true
 				},
 				"shipping_terms": {
-					"kind": "text",
-					"optional": true
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"exw",
+						"fca",
+						"fas",
+						"fob",
+						"cfr",
+						"cif",
+						"cpt",
+						"cip",
+						"dap",
+						"dpu",
+						"ddp"
+					]
 				},
 				"source_order_key": {
 					"hidden": true,
@@ -1017,19 +1030,6 @@
 							]
 						}
 					}
-				},
-				"supporting_documents": {
-					"accept": [
-						"application/pdf",
-						"image/jpeg",
-						"image/png",
-						"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-						"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
 				},
 				"tax": {
 					"kind": "sum",
