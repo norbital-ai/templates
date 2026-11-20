@@ -1,5 +1,14 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'component.order_domestic': '国内订单',
+	'component.order_foreign': '外贸订单',
+	'component.choose_order_type': '要创建哪种订单？',
+	'models.orders.fields.trade': '订单类型',
+	'models.orders.fields.delivery_place': '交货地点',
+	'models.orders.fields.delivery_date': '送货日期',
+	'models.orders.syncs.sheet.schema.fields.trade_kind': '订单类型',
+	'models.orders.syncs.sheet.schema.fields.delivery_place': '交货地点',
+	'models.orders.syncs.sheet.schema.fields.delivery_date': '送货日期',
 	'app.analysis.description': '销售、余额与佣金。',
 	'app.partners.description': '客户、供应商及其协议。',
 	'app.warehouse.description': '产品、批次与库存。',

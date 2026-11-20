@@ -73,20 +73,6 @@ export const sha256Hex = (text: string) =>
 		catch: (cause) => new DigestUnavailable({ message: String(cause) })
 	}).pipe(Effect.map((bytes) => Hex.encode(new Uint8Array(bytes))));
 export const hash = (value: unknown) => sha256Hex(canonical(value));
-/** Incoterms 2020; documents print the code in capitals, with its named place beside it. */
-export const incoterms = [
-	'exw',
-	'fca',
-	'fas',
-	'fob',
-	'cfr',
-	'cif',
-	'cpt',
-	'cip',
-	'dap',
-	'dpu',
-	'ddp'
-] as const;
 type Header = Pick<
 	Row<'orders'>,
 	| 'id'
@@ -94,13 +80,8 @@ type Header = Pick<
 	| 'currency'
 	| 'tax_inclusive'
 	| 'print_values'
-	| 'shipping_terms'
-	| 'place_of_loading'
-	| 'place_of_delivery'
+	| 'trade'
 	| 'packaging'
-	| 'shipping_mark'
-	| 'shipment'
-	| 'other_terms'
 	| 'payment_method'
 	| 'customer_po_no'
 	| 'delivery_address'
@@ -121,6 +102,8 @@ export function snapshot(
 	contractVersion: string,
 	named: Named
 ) {
+	const foreign = order.trade.kind === 'foreign' ? order.trade : null;
+	const domestic = order.trade.kind === 'domestic' ? order.trade : null;
 	const net = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.net)));
 	const tax = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.tax)));
 	const total = BigDecimal.sumAll(lines.map((l) => BigDecimal.fromStringUnsafe(l.total)));
@@ -137,14 +120,14 @@ export function snapshot(
 		valid_until: order.valid_until ?? '',
 		payment_terms: named.payment_terms,
 		...(order.print_values?.length ? { print_values: order.print_values } : {}),
-		shipping_terms: order.shipping_terms?.toUpperCase() ?? '',
-		place_of_loading: order.place_of_loading ?? '',
-		place_of_delivery: order.place_of_delivery ?? '',
+		shipping_terms: foreign?.shipping_terms?.toUpperCase() ?? '',
+		place_of_loading: foreign?.place_of_loading ?? '',
+		place_of_delivery: foreign?.place_of_delivery ?? domestic?.delivery_place ?? '',
 		packaging: order.packaging ?? '',
-		shipping_mark: order.shipping_mark ?? '',
-		shipment_from: order.shipment?.from ?? '',
-		shipment_to: order.shipment?.to ?? order.shipment?.from ?? '',
-		other_terms: order.other_terms ?? '',
+		shipping_mark: foreign?.shipping_mark ?? '',
+		shipment_from: foreign?.shipment?.from ?? domestic?.delivery_date ?? '',
+		shipment_to: foreign?.shipment?.to ?? foreign?.shipment?.from ?? domestic?.delivery_date ?? '',
+		other_terms: foreign?.other_terms ?? '',
 		payment_method: order.payment_method ?? '',
 		buyer_contact: named.buyer.name,
 		buyer_mobile: named.buyer.phone,

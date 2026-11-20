@@ -41,7 +41,7 @@ Kingdee tables -> verified page -> local table    local change   -> sys_outbox -
 Reads are the normal path. Writes are narrow: syncing an order creates its SO or PO; a later saved change to the
 order or its lines replaces the lines in place while the SO or PO is unaudited, as KIS's own 修改 does, and amends
 an audited SO into a new version, as KIS's 订单变更 does. An audited PO refuses the change. Each line carries the
-last day of the order's shipment window as its delivery date. Kingdee keeps the header (party, currency, order
+domestic delivery date or the last day of the foreign shipment window. Kingdee keeps the header (party, currency, order
 date, salesperson, settlement); a local change to it is refused. Purchase
 orders take part once the ledger's **Verified SQL account for purchase documents** is set (`directionsOf`);
 until then a PO stays local. The [README](../README.md#two-way-kingdee-sync) walks the four paths.

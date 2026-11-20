@@ -1,5 +1,5 @@
 import type { InputFields } from '@norbital-ai/bolt';
-import { incoterms } from './commercial.js';
+import { incoterms } from './order-trade.js';
 
 /**
  * Workbook schemas: one column set per table, shared by Import, Download template and Export.
@@ -8,6 +8,9 @@ import { incoterms } from './commercial.js';
 export const orderWorkbook = {
 	number: { kind: 'text', optional: true },
 	direction: { kind: 'enum', values: ['sales', 'purchasing'] },
+	trade_kind: { kind: 'enum', values: ['domestic', 'foreign'], optional: true },
+	delivery_place: { kind: 'text', optional: true },
+	delivery_date: { kind: 'date', optional: true },
 	party_code: { kind: 'text' },
 	title: { kind: 'text' },
 	owner: { kind: 'text', optional: true },

@@ -46,7 +46,7 @@ it does not supply a tenant's artwork or impose a separate signing workflow.
 bill (电汇 or 承兑 in Chinese). `shipping_terms` prints the Incoterm code (CIF); the named place is in
 `place_of_loading` or `place_of_delivery`. `customer_po_no` is the buyer's own reference (需方合同号). `buyer_contact`, `buyer_mobile` and `buyer_email` are the buyer contact's name,
 phone and email. `time_of_shipment` prints the shipment window: one day, or `from – to` (`from 至 to` in
-Chinese); `delivery_date` is its last day.
+Chinese). For a domestic order, `place_of_delivery` and `delivery_date` print its delivery place and date. For a foreign order, `delivery_date` prints the last day of its shipment window.
 
 Write fields with double braces. Use one `{{#lines}}` … `{{/lines}}` block for line items. Lines print in the order they were entered.
 Values are escaped as text. Write CSS and markup in the layout itself. The `terms` field holds

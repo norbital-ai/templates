@@ -87,11 +87,15 @@ export default policy({
 			update: {
 				verdict: function* (changes, ctx) {
 					if (ctx.actor.kind !== 'member') return yield* ctx.refuse('errors.po_owner');
+					const member = ctx.actor.id;
+					const uploader = changes.findIndex(({ before }) => before.created_by !== member);
+					if (uploader >= 0)
+						return yield* ctx.refuse('errors.po_document_owner', { row: uploader });
 					const { purchase_order } = yield* ctx.query({
 						purchase_order: {
 							where: {
 								id: { in: changes.map(({ before }) => before.po) },
-								created_by: { eq: ctx.actor.id }
+								created_by: { eq: member }
 							},
 							fields: ['id']
 						}
@@ -99,7 +103,10 @@ export default policy({
 					const own = new Set(purchase_order.rows.map((p) => p.id));
 					const away = changes.findIndex(({ before }) => !own.has(before.po));
 					if (away >= 0) return yield* ctx.refuse('errors.po_owner', { row: away });
-					const kind = changes.findIndex(({ after }) => !PURCHASER_KINDS.includes(after.kind));
+					const kind = changes.findIndex(
+						({ before, after }) =>
+							!PURCHASER_KINDS.includes(before.kind) || !PURCHASER_KINDS.includes(after.kind)
+					);
 					return kind < 0
 						? ctx.allow()
 						: yield* ctx.refuse('errors.po_document_kind', { row: kind });

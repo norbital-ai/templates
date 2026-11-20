@@ -247,6 +247,16 @@ export function parseCondition(condition: string, strike: BigDecimal.BigDecimal)
 	};
 }
 
+// One confirmation can give its two options opposite directions without giving the deal a side.
+function fixingSide(dealSide: FxSide | null, condition: string | null): FxSide | null {
+	if (dealSide !== null) return dealSide;
+	const wording = condition?.toLowerCase() ?? '';
+	const buys = wording.includes('ops buys') || wording.includes('ops is the buyer');
+	const sells = wording.includes('ops sells') || wording.includes('ops is the seller');
+	if (buys === sells) return null;
+	return buys ? 'buy' : 'sell';
+}
+
 type Step = {
 	outcome: FxOutcome;
 	amount: BigDecimal.BigDecimal;
@@ -353,8 +363,9 @@ export function fixingAt(
 			if (!happens) return none('not_exercised');
 		}
 	}
-	if (terms.side === null) return null;
-	const gain = perUnitGain(terms.side, strike, rate);
+	const side = fixingSide(terms.side, f.condition);
+	if (side === null) return null;
+	const gain = perUnitGain(side, strike, rate);
 	if (BigDecimal.isNegative(gain) && leveraged !== null)
 		return { outcome: 'leveraged', amount: leveraged, added: ZERO, ends: false };
 	const target = dec(terms.target);
@@ -434,7 +445,7 @@ export function workOut(terms: FxTerms, fixings: readonly FxFixingFacts[]) {
 		}
 		const exchanged = dec(f.settled_amount) ?? amount;
 		const strike = dec(f.strike ?? terms.strike);
-		const side = terms.side;
+		const side = fixingSide(terms.side, f.condition);
 		const gain =
 			outcome === null ||
 			terms.structure === 'dci' ||
@@ -513,7 +524,7 @@ export function play(
 		if (ended || knocked.has(i)) return;
 		const rate = rateOf(i);
 		const step = fixingAt(terms, f, decimal(rate.toFixed(8)), u);
-		if (step === null) {
+		if (step === null || (terms.side === null && terms.structure !== 'dci')) {
 			unknown = true;
 			return;
 		}

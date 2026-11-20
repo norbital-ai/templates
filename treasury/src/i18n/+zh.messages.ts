@@ -572,7 +572,7 @@ export default messages({
 	'errors.po_owner': '您只能修改自己创建的采购订单及其文件。',
 	'errors.po_document_kind':
 		'采购员可上传采购订单、支持文件及其他文件；开立的信用证和供应商发票由财务上传。',
-	'errors.po_document_owner': '您只能删除自己上传的文件。',
+	'errors.po_document_owner': '您只能更改或删除自己上传的文件。',
 	'errors.payment_day': '资金部在周二（紧急）和周五付款，请选择其中一天。',
 	'errors.po_covered': '该采购订单已有融资覆盖、无需融资或已取消。',
 	'errors.po_incomplete': '请先填写采购订单的供应商和明细，再进行预留。',

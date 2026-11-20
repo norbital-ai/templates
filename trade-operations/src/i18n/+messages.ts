@@ -1,5 +1,14 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
+	'component.order_domestic': 'Domestic order',
+	'component.order_foreign': 'Foreign order',
+	'component.choose_order_type': 'Which type of order are you creating?',
+	'models.orders.fields.trade': 'Order type',
+	'models.orders.fields.delivery_place': 'Delivery place',
+	'models.orders.fields.delivery_date': 'Delivery date',
+	'models.orders.syncs.sheet.schema.fields.trade_kind': 'Order type',
+	'models.orders.syncs.sheet.schema.fields.delivery_place': 'Delivery place',
+	'models.orders.syncs.sheet.schema.fields.delivery_date': 'Delivery date',
 	'integrations.kingdee.configuration.fields.baseCurrency': 'Verified account-set base currency',
 	'integrations.kingdee.configuration.fields.branchNo': 'Kingdee branch number',
 	'integrations.kingdee.configuration.fields.stockAvailabilityAccount':

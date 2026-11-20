@@ -253,6 +253,32 @@ it.layer(TestWorkspace.layer({ root: new URL('..', import.meta.url).pathname }))
 				expect(yield* owner.query({ po_document: { fields: ['kind'] } })).toMatchObject({
 					po_document: { rows: [] }
 				});
+				const lc = yield* treasury.upload('po_document.file', {
+					name: 'issued-lc.pdf',
+					mime: 'application/pdf',
+					bytes: new TextEncoder().encode('%PDF synthetic issued LC')
+				});
+				if (lc.kind !== 'committed') throw new Error('Expected issued LC file.');
+				const issued = (yield* treasury.act({
+					'po_document.create': [{ ...document, kind: 'issued_lc', file: lc.output }]
+				})).records[0];
+				if (issued === undefined) throw new Error('Expected issued LC record.');
+				const issuedTarget = {
+					id: Schema.decodeUnknownSync(id_of('po_document'))(issued.id),
+					revision: issued.revision
+				};
+				expect(
+					Exit.isFailure(
+						yield* Effect.exit(
+							owner.act({
+								'po_document.update': [{ target: issuedTarget, set: { kind: 'supporting' } }]
+							})
+						)
+					)
+				).toBe(true);
+				expect(yield* owner.query({ po_document: { fields: ['kind'] } })).toMatchObject({
+					po_document: { rows: [{ kind: 'issued_lc' }] }
+				});
 			})
 		);
 

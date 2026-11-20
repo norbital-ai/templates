@@ -1,10 +1,11 @@
+import { orderTrade, type OrderTrade } from '../../../lib/order-trade.js';
 import { lineDeletes } from '../../../lib/order-review.js';
 import { logisticsDocument, logisticsLine, logisticsOrder } from '../../../lib/logistics.js';
 import { commissionRule } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
 import { model, type Id, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { floorFor, incoterms, quoteBelowFloor } from '../../../lib/commercial.js';
+import { floorFor, quoteBelowFloor } from '../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -55,13 +56,8 @@ const terms = [
 	'valid_from',
 	'valid_until',
 	'payment_terms',
-	'shipping_terms',
-	'place_of_loading',
-	'place_of_delivery',
+	'trade',
 	'packaging',
-	'shipping_mark',
-	'shipment',
-	'other_terms',
 	'payment_method',
 	'buyer_contact',
 	'customer_po_no',
@@ -99,33 +95,39 @@ type Contact = Pick<StoredRow<'contacts'>, 'id' | 'party' | 'primary'>;
 /** The contact an order's buyer is: one of its party's, by default the party's Kingdee contact. */
 const buyerOf = (contacts: readonly Contact[], party: Id<'parties'>) =>
 	contacts.find((c) => c.party === party && c.primary)?.id ?? null;
-/**
- * Where the goods leave and arrive, filled from the warehouse and party while a writer leaves them blank or as the
- * previous default had them: a sale loads at our warehouse and delivers to the customer's address, a purchase
- * delivers to our warehouse.
- */
-function placeDefaults(
+/** Follow the previous party or warehouse default until the writer supplies their own place. */
+function defaultPlaces(
 	direction: Row<'orders'>['direction'],
-	current: Partial<
-		Pick<Row<'orders'>, 'place_of_loading' | 'place_of_delivery' | 'delivery_address'>
-	>,
-	input: Partial<Record<'place_of_loading' | 'place_of_delivery' | 'delivery_address', unknown>>,
-	warehouse: { readonly before?: string | null; readonly after?: string | null },
-	address: { readonly before?: string | null; readonly after?: string | null }
+	trade: OrderTrade,
+	address: string | null | undefined,
+	set: { trade?: OrderTrade; delivery_address?: string | null },
+	before: { warehouse?: string | null | undefined; address?: string | null | undefined },
+	after: { warehouse?: string | null | undefined; address?: string | null | undefined }
 ) {
-	const follows = (
-		field: 'place_of_loading' | 'place_of_delivery' | 'delivery_address',
-		was: string | null | undefined
-	) => input[field] === undefined && (!current[field] || current[field] === was);
-	const site = direction === 'sales' ? 'place_of_loading' : 'place_of_delivery';
+	const site =
+		trade.kind === 'domestic'
+			? 'delivery_place'
+			: direction === 'sales'
+				? 'place_of_loading'
+				: 'place_of_delivery';
+	const source = trade.kind === 'domestic' && direction === 'sales' ? 'address' : 'warehouse';
+	const current =
+		trade.kind === 'domestic'
+			? trade.delivery_place
+			: direction === 'sales'
+				? trade.place_of_loading
+				: trade.place_of_delivery;
 	return {
-		...(warehouse.after !== undefined && follows(site, warehouse.before)
-			? { [site]: warehouse.after }
+		...(after[source] !== undefined &&
+		!(set.trade && Object.hasOwn(set.trade, site) && current == null) &&
+		(!current || current === before[source])
+			? { trade: { ...trade, [site]: after[source] } }
 			: {}),
 		...(direction === 'sales' &&
-		address.after !== undefined &&
-		follows('delivery_address', address.before)
-			? { delivery_address: address.after }
+		set.delivery_address === undefined &&
+		after.address !== undefined &&
+		(!address || address === before.address)
+			? { delivery_address: after.address }
 			: {})
 	};
 }
@@ -181,14 +183,8 @@ export default model('orders', {
 			optional: true,
 			where: { active: { eq: true } }
 		},
-		shipping_terms: { kind: 'enum', values: incoterms, optional: true },
-		place_of_loading: { kind: 'text', optional: true },
-		place_of_delivery: { kind: 'text', optional: true },
+		trade: { kind: 'json', shape: orderTrade, default: { kind: 'domestic' } },
 		packaging: { kind: 'text', optional: true },
-		shipping_mark: { kind: 'text', optional: true },
-		// when the goods ship; Kingdee takes its last day as each line's delivery date
-		shipment: { kind: 'period', of: 'date', optional: true },
-		other_terms: { kind: 'text', optional: true },
 		payment_method: { kind: 'enum', values: ['wire_transfer', 'acceptance_bill'], optional: true },
 		// one of the party's contacts: its name, phone and email print on the documents
 		buyer_contact: { kind: 'ref', to: 'contacts', optional: true },
@@ -367,9 +363,17 @@ export default model('orders', {
 				out.push({
 					...set,
 					...(row.print_values ? { print_values: orderedPrintValues(row.print_values) } : {}),
-					...placeDefaults(row.direction, row, set, warehouse ? { after: warehouse.name } : {}, {
-						after: party.address
-					}),
+					...defaultPlaces(
+						row.direction,
+						row.trade ?? { kind: 'domestic' },
+						row.delivery_address,
+						set,
+						{},
+						{
+							warehouse: warehouse?.name,
+							address: party.address
+						}
+					),
 					...(set.buyer_contact === undefined
 						? { buyer_contact: buyerOf(contacts.rows, row.party) }
 						: {}),
@@ -516,22 +520,23 @@ export default model('orders', {
 				const own = lines.rows.filter((l) => l.order === old.id);
 				const movedParty = after.party !== old.party;
 				const defaults = {
-					...placeDefaults(
+					...defaultPlaces(
 						old.direction,
-						old,
+						after.trade,
+						after.delivery_address,
 						input,
-						after.warehouse !== old.warehouse
-							? {
-									before: warehouses.rows.find((w) => w.id === old.warehouse)?.name ?? null,
-									after: warehouse?.name ?? null
-								}
-							: {},
-						movedParty
-							? {
-									before: parties.rows.find((p) => p.id === old.party)?.address ?? null,
-									after: admitted.address
-								}
-							: {}
+						{
+							warehouse: warehouses.rows.find((w) => w.id === old.warehouse)?.name,
+							address: parties.rows.find((p) => p.id === old.party)?.address
+						},
+						{
+							...(after.warehouse !== old.warehouse || old.trade.kind !== after.trade.kind
+								? { warehouse: warehouse?.name ?? null }
+								: {}),
+							...(movedParty || old.trade.kind !== after.trade.kind
+								? { address: admitted.address }
+								: {})
+						}
 					),
 					// a new party brings its own contact unless the writer names one
 					...(movedParty && input.buyer_contact === undefined

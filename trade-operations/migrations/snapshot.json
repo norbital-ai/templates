@@ -933,10 +933,6 @@
 					},
 					"kind": "date"
 				},
-				"other_terms": {
-					"kind": "text",
-					"optional": true
-				},
 				"owner": {
 					"default": {
 						"var": "actor.id"
@@ -975,14 +971,6 @@
 						}
 					}
 				},
-				"place_of_delivery": {
-					"kind": "text",
-					"optional": true
-				},
-				"place_of_loading": {
-					"kind": "text",
-					"optional": true
-				},
 				"print_values": {
 					"fields": {
 						"key": {
@@ -995,32 +983,6 @@
 					"kind": "object",
 					"many": true,
 					"optional": true
-				},
-				"shipment": {
-					"kind": "period",
-					"of": "date",
-					"optional": true
-				},
-				"shipping_mark": {
-					"kind": "text",
-					"optional": true
-				},
-				"shipping_terms": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"exw",
-						"fca",
-						"fas",
-						"fob",
-						"cfr",
-						"cif",
-						"cpt",
-						"cip",
-						"dap",
-						"dpu",
-						"ddp"
-					]
 				},
 				"source_order_key": {
 					"hidden": true,
@@ -1053,6 +1015,68 @@
 				"total": {
 					"kind": "sum",
 					"of": "lines.total"
+				},
+				"trade": {
+					"default": {
+						"kind": "domestic"
+					},
+					"kind": "json",
+					"shape": {
+						"arms": {
+							"domestic": {
+								"delivery_date": {
+									"kind": "date",
+									"optional": true
+								},
+								"delivery_place": {
+									"kind": "text",
+									"optional": true
+								}
+							},
+							"foreign": {
+								"other_terms": {
+									"kind": "text",
+									"optional": true
+								},
+								"place_of_delivery": {
+									"kind": "text",
+									"optional": true
+								},
+								"place_of_loading": {
+									"kind": "text",
+									"optional": true
+								},
+								"shipment": {
+									"kind": "period",
+									"of": "date",
+									"optional": true
+								},
+								"shipping_mark": {
+									"kind": "text",
+									"optional": true
+								},
+								"shipping_terms": {
+									"kind": "enum",
+									"optional": true,
+									"values": [
+										"exw",
+										"fca",
+										"fas",
+										"fob",
+										"cfr",
+										"cif",
+										"cpt",
+										"cip",
+										"dap",
+										"dpu",
+										"ddp"
+									]
+								}
+							}
+						},
+						"by": "kind",
+						"kind": "union"
+					}
 				},
 				"valid_from": {
 					"kind": "date",

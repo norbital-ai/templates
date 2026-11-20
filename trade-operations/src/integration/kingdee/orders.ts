@@ -1,3 +1,4 @@
+import { deliveryOn } from '../../lib/order-trade.js';
 import { bills, directionsOf, type Direction } from './bills.js';
 import { importedOrderIdentity, importedOrderKey } from './order-identity.js';
 import { BigDecimal, Effect, Result, Schema } from 'effect';
@@ -523,7 +524,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 				'kingdee',
 				'currency',
 				'tax_inclusive',
-				'shipment',
+				'trade',
 				'ordered_on'
 			],
 			limit: 1,
@@ -569,6 +570,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 	const lines = [...order.lines].sort((a, b) => a.id.localeCompare(b.id));
 	const pairs = before ? pairLines(lines, before.lines) : new Map<string, (typeof lines)[number]>();
 	const entries = new Map([...pairs].map(([entry, line]) => [line.id, entry]));
+	const delivery = deliveryOn(order.trade);
 	const payload: OrderPayload = {
 		order_id: order.id,
 		key,
@@ -580,7 +582,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 		tax_inclusive: order.tax_inclusive,
 		party_code: order.party.external_code,
 		payment_terms: order.payment_terms.code,
-		...(order.shipment ? { delivery_on: order.shipment.to ?? order.shipment.from } : {}),
+		...(delivery ? { delivery_on: delivery } : {}),
 		write_target: order.write_target,
 		lines: lines.map((line) => {
 			const entry = entries.get(line.id);

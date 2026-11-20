@@ -592,7 +592,7 @@ export default messages({
 	'errors.po_owner': 'You can only change your own purchase orders and their documents.',
 	'errors.po_document_kind':
 		'A purchaser files the PO, supporting documents and others; the issued LC and the supplier invoice are filed by Accounts.',
-	'errors.po_document_owner': 'You can only remove documents you filed.',
+	'errors.po_document_owner': 'You can only change or remove documents you filed.',
 	'errors.payment_day': 'Treasury pays on Tuesdays (urgent) and Fridays; choose one of those.',
 	'errors.po_covered':
 		'This purchase order is already covered, needs no financing or is cancelled.',

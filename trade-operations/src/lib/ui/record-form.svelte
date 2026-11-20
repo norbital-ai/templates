@@ -34,6 +34,7 @@
 		sections: readonly FormSection[];
 		/** Fields that remain editable when a create opens with preset values. */
 		editable_presets?: readonly string[];
+		on_created?: () => void;
 		/** A field's own editor (a picker filtered by another field, say). */
 		editors?: {
 			readonly [field: string]: Snippet<[FormState, FieldEditor]>;
@@ -80,6 +81,7 @@
 		subtitle,
 		sections,
 		editable_presets = [],
+		on_created,
 		editors = {},
 		viewers = {},
 		actions,
@@ -197,7 +199,8 @@
 				on_outcome={(o) => {
 					// a new record opens once it exists
 					if (record || o.kind !== 'committed' || !o.records[0]) return;
-					if (scoped) added++;
+					if (on_created) on_created();
+					else if (scoped) added++;
 					else open_record(view.model, o.records[0].id);
 				}}
 			>

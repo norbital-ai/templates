@@ -368,8 +368,8 @@ one live row; it has no amendment versions.
 
 A synced sales order creates an **unapproved** SEOrder and its SEOrderEntry rows; a purchase order an
 unapproved POOrder and its POOrderEntry rows. Each line's delivery date (`SEOrderEntry.FDate` and
-`FAdviceConsignDate`; `POOrderEntry.FDate`) is the last day of the order's shipment window, or its order date
-without one; it is sent with the order and with every later line change.
+`FAdviceConsignDate`; `POOrderEntry.FDate`) is the domestic delivery date or the last day of the foreign shipment window. It defaults to the order date
+when unspecified; it is sent with the order and with every later line change.
 One serializable SQL batch takes a transaction-owned application lock, allocates the numeric
 FInterID through ICMaxNum, and writes the complete header/line set. Existing FUUID provenance
 makes retry identity independent of the nonunique bill number. A retry verifies the written

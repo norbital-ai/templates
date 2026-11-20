@@ -267,13 +267,10 @@ export const documentRead = (order: Id<'orders'>) =>
 				'tax_inclusive',
 				'valid_from',
 				'valid_until',
-				'shipping_terms',
-				'place_of_loading',
-				'place_of_delivery',
+				'trade',
+
 				'packaging',
-				'shipping_mark',
-				'shipment',
-				'other_terms',
+
 				'payment_method',
 				'customer_po_no',
 				'delivery_address',

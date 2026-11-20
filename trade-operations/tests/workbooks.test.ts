@@ -6,6 +6,9 @@ import { committed, draft, workspace, type T, NET60 } from './kit.js';
 const orderHeader = [
 	'Order number',
 	'Direction',
+	'Order type',
+	'Delivery place',
+	'Delivery date',
 	'Party code',
 	'Title',
 	'Salesperson id',
@@ -104,6 +107,7 @@ it.live('round-trips the order workbook by sequential number', () =>
 			Currency: 'SGD',
 			'Payment terms': 'NET60',
 			'Delivery address': '1 Sheet Road',
+			'Order type': 'foreign',
 			'Ships from': '2026-10-20',
 			'Ships by': '2026-11-01'
 		});
@@ -116,7 +120,7 @@ it.live('round-trips the order workbook by sequential number', () =>
 			title: 'Sheet title',
 			payment_terms: NET60,
 			delivery_address: '1 Sheet Road',
-			shipment: { from: '2026-10-20', to: '2026-11-01' }
+			trade: { kind: 'foreign', shipment: { from: '2026-10-20', to: '2026-11-01' } }
 		});
 		expect(yield* load([updated])).toMatchObject([
 			{ state: 'succeeded', output: { applied: true, created: 0, updated: 0 } }
@@ -125,6 +129,8 @@ it.live('round-trips the order workbook by sequential number', () =>
 			Direction: 'purchasing',
 			'Party code': 'V-101',
 			Title: 'Imported commitment',
+			'Order type': 'domestic',
+			'Delivery date': '2026-11-09',
 			'Order date': '2026-10-11',
 			Currency: 'SGD',
 			'Payment terms': 'NET30'
@@ -149,7 +155,11 @@ it.live('round-trips the order workbook by sequential number', () =>
 		const imported = (yield* as.query({
 			orders: { where: { title: { eq: 'Imported commitment' } }, limit: 1 }
 		})).orders.rows[0];
-		expect(imported).toMatchObject({ direction: 'purchasing', currency: 'SGD' });
+		expect(imported).toMatchObject({
+			direction: 'purchasing',
+			currency: 'SGD',
+			trade: { kind: 'domestic', delivery_date: '2026-11-09' }
+		});
 		const exported = yield* exportRun(t)('orders');
 		expect(exported.name).toContain('orders-sheet');
 		expect(exported.text).toContain(number);

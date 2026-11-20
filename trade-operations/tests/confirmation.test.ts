@@ -151,6 +151,7 @@ const draftWithLine = Effect.fnUntraced(function* (
 			'orders.create': [
 				{
 					title: 'Sales order',
+					trade: { kind: 'foreign' },
 					direction: 'sales',
 					party: CUSTOMER,
 					warehouse: EAST,
@@ -202,7 +203,7 @@ test.live('syncing once leaves Kingdee the header; terms and lines stay editable
 				'orders.update': [
 					{
 						target: yield* t.at('orders', order),
-						set: { shipping_terms: 'fob', place_of_loading: 'Shanghai' }
+						set: { trade: { kind: 'foreign', shipping_terms: 'fob', place_of_loading: 'Shanghai' } }
 					}
 				]
 			})
@@ -216,7 +217,10 @@ test.live('syncing once leaves Kingdee the header; terms and lines stay editable
 			})
 		);
 		const edited = yield* orderOf(as, order);
-		expect(edited).toMatchObject({ status: 'confirmed', shipping_terms: 'fob' });
+		expect(edited).toMatchObject({
+			status: 'confirmed',
+			trade: { kind: 'foreign', shipping_terms: 'fob' }
+		});
 		expect(sameDecimal(edited?.total, '32.70')).toBe(true);
 	})
 );
@@ -313,23 +317,30 @@ test.live('places and the buyer follow the warehouse and party until typed over'
 		const t = yield* syncWorkspace();
 		const { as, order } = yield* draftWithLine(t);
 		expect(yield* orderOf(as, order)).toMatchObject({
-			place_of_loading: 'East warehouse',
+			trade: { kind: 'foreign', place_of_loading: 'East warehouse' },
 			delivery_address: '1 Test Road, Singapore',
 			buyer_contact: KINGDEE_CONTACT
 		});
 		yield* as.act({
 			'orders.update': [{ target: yield* t.at('orders', order), set: { warehouse: WEST } }]
 		});
-		expect(yield* orderOf(as, order)).toMatchObject({ place_of_loading: 'West warehouse' });
+		expect(yield* orderOf(as, order)).toMatchObject({
+			trade: { kind: 'foreign', place_of_loading: 'West warehouse' }
+		});
 		yield* as.act({
 			'orders.update': [
-				{ target: yield* t.at('orders', order), set: { place_of_loading: 'Shanghai port' } }
+				{
+					target: yield* t.at('orders', order),
+					set: { trade: { kind: 'foreign', place_of_loading: 'Shanghai port' } }
+				}
 			]
 		});
 		yield* as.act({
 			'orders.update': [{ target: yield* t.at('orders', order), set: { warehouse: EAST } }]
 		});
-		expect(yield* orderOf(as, order)).toMatchObject({ place_of_loading: 'Shanghai port' });
+		expect(yield* orderOf(as, order)).toMatchObject({
+			trade: { kind: 'foreign', place_of_loading: 'Shanghai port' }
+		});
 	})
 );
 
@@ -342,9 +353,12 @@ test.live('a document prints the buyer contact, payment terms and shipment windo
 				{
 					target: yield* t.at('orders', order),
 					set: {
-						shipping_terms: 'fob',
 						payment_method: 'acceptance_bill',
-						shipment: { from: '2026-10-10', to: '2026-10-25' }
+						trade: {
+							kind: 'foreign',
+							shipping_terms: 'fob',
+							shipment: { from: '2026-10-10', to: '2026-10-25' }
+						}
 					}
 				}
 			]
@@ -356,6 +370,29 @@ test.live('a document prints the buyer contact, payment terms and shipment windo
 		expect(document.html).toContain('Net 30');
 		expect(document.html).toContain('FOB');
 		expect(document.html).toContain('2026-10-10 – 2026-10-25');
+	})
+);
+
+test.live('a domestic delivery date prints and foreign fields cannot be stored on it', () =>
+	Effect.gen(function* () {
+		const t = yield* syncWorkspace();
+		const { as, order } = yield* draftWithLine(t);
+		const trade = {
+			kind: 'domestic',
+			delivery_date: '2026-11-09',
+			delivery_place: 'Gate 2'
+		} as const;
+		yield* as.act({ 'orders.update': [{ target: yield* t.at('orders', order), set: { trade } }] });
+		expect((yield* orderOf(as, order))?.trade).toEqual(trade);
+		yield* as.act({
+			'orders.update': [{ target: yield* t.at('orders', order), set: { status: 'confirmed' } }]
+		});
+		expect((yield* documentOf(as, { order })).html).toContain('2026-11-09');
+		const mixed = { ...trade, shipping_mark: 'Export only' };
+		yield* Effect.flip(
+			as.act({ 'orders.update': [{ target: yield* t.at('orders', order), set: { trade: mixed } }] })
+		);
+		expect((yield* orderOf(as, order))?.trade).toEqual(trade);
 	})
 );
 

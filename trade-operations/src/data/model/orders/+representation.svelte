@@ -3,6 +3,8 @@
 	import { BigDecimal, DateTime, Effect, Schema } from 'effect';
 	import type { Id } from '@norbital-ai/bolt';
 	import { observe_once, run } from '@norbital-ai/ui/effect';
+	import { orderTrade, type OrderTrade } from '../../../lib/order-trade.js';
+	import { translated } from '../../../lib/ui/message.js';
 	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
 	import { reportPages } from '../../../lib/reports.js';
 	import {
@@ -14,6 +16,10 @@
 	import { quoteBelowFloor } from '../../../lib/commercial.js';
 	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
 	import {
+		Form,
+		Editor,
+		RecordShell,
+		type Value,
 		Table,
 		Button,
 		format,
@@ -57,16 +63,11 @@
 	const commercial = $derived(ctx.catalog?.orders?.output === undefined);
 	const recordController = use_record_controller();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
-	const preset = createValues();
-	const purchase = $derived(
-		view.mode === 'create'
-			? (view.values && 'direction' in view.values
-					? view.values.direction
-					: 'direction' in preset
-						? preset.direction
-						: undefined) === 'purchasing'
-			: view.record.direction === 'purchasing'
-	);
+	const preset = createValues<'orders'>();
+	let choice = $state<OrderTrade['kind'] | null>(null);
+	const tradeValue = (value: Value) =>
+		Schema.is(Schema.Record(Schema.String, Schema.Json))(value) ? value : {};
+	const kinds = ['domestic', 'foreign'] as const;
 	const draft = $derived(view.mode === 'create' || view.record.status === 'draft');
 	// the contract layout the order's print details belong to: its case's current version
 	const layouts = ctx.query({
@@ -216,12 +217,18 @@
 	// the warehouse and party fill the places and the buyer while the form still holds their previous defaults
 	const follow = (
 		form: FormState,
-		field: 'place_of_loading' | 'place_of_delivery' | 'delivery_address',
+		field: 'place_of_loading' | 'place_of_delivery' | 'delivery_place' | 'delivery_address',
 		was: string | null,
 		next: string | null
 	) => {
-		const current = form.get(field);
-		if (!current || current === was) form.set(field, next);
+		const trade = tradeValue(form.get('trade'));
+		if (field === 'delivery_address') {
+			if (!form.get(field) || form.get(field) === was) form.set(field, next);
+		} else if (
+			(trade.kind === 'domestic') === (field === 'delivery_place') &&
+			(!trade[field] || trade[field] === was)
+		)
+			form.set('trade', { ...trade, [field]: next });
 	};
 	function pickWarehouse(form: FormState, field: FieldEditor, next: Id<'warehouses'> | null) {
 		const before = form.id<'warehouses'>('warehouse');
@@ -239,8 +246,11 @@
 					Effect.map(({ warehouses }) => {
 						const name = (w: Id<'warehouses'> | null) =>
 							warehouses.rows.find((row) => row.id === w)?.name ?? null;
-						if (form.id<'warehouses'>('warehouse') === next)
+						if (form.id<'warehouses'>('warehouse') === next) {
 							follow(form, site, name(before), name(next));
+							if (form.get('direction') === 'purchasing')
+								follow(form, 'delivery_place', name(before), name(next));
+						}
 					})
 				)
 		);
@@ -267,8 +277,10 @@
 						if (form.id<'parties'>('party') !== next) return;
 						const address = (p: Id<'parties'> | null) =>
 							parties.rows.find((row) => row.id === p)?.address ?? null;
-						if (form.get('direction') !== 'purchasing')
+						if (form.get('direction') !== 'purchasing') {
 							follow(form, 'delivery_address', address(before), address(next));
+							follow(form, 'delivery_place', address(before), address(next));
+						}
 						form.set('buyer_contact', contacts.rows[0]?.id ?? null);
 					})
 				)
@@ -348,19 +360,24 @@
 		on_change={field.on_change}
 	/>
 {/snippet}
-{#snippet shipment(form: FormState, field: FieldEditor)}
-	{@const window = form.get('shipment')}
+{#snippet shipment(
+	form: FormState,
+	field: FieldEditor,
+	window: Value,
+	change: (value: Value) => void,
+	id: string
+)}
 	<Cluster gap="sm" class="max-w-full">
 		<TimeRangeInput
 			{ctx}
 			of="date"
 			precision="day"
-			id={field.id}
+			{id}
 			value={Schema.is(DateBounds)(window) ? window : { from: null, to: null }}
 			disabled={field.disabled}
 			on_change={(range) => {
 				if (Schema.is(DateBounds)(range))
-					field.on_change(range.from ? { from: range.from, to: range.to } : null);
+					change(range.from ? { from: range.from, to: range.to } : null);
 			}}
 		/>
 		<div class="w-40">
@@ -376,7 +393,7 @@
 				on_change={(days) => {
 					const from = String(form.get('ordered_on') ?? day.today);
 					if (days)
-						field.on_change({
+						change({
 							from,
 							to: DateTime.formatIsoDateUtc(
 								DateTime.add(DateTime.makeUnsafe(from), { days: Number(days) })
@@ -386,6 +403,47 @@
 			/>
 		</div>
 	</Cluster>
+{/snippet}
+{#snippet tradeDetails(form: FormState, field?: FieldEditor)}
+	{@const data = tradeValue(form.get('trade'))}
+	{@const kind = data.kind === 'foreign' ? 'foreign' : 'domestic'}
+	<Stack gap="md">
+		{#if field}
+			<Combobox
+				options={kinds.map((value) => ({ value, label: ctx.t(`component.order_${value}`) }))}
+				value={kind}
+				aria-label={ctx.t('models.orders.fields.trade')}
+				disabled={field.disabled}
+				on_change={(next) => {
+					if (next && next !== kind) field.on_change({ kind: next });
+				}}
+			/>
+		{:else}
+			<span class="font-medium">{ctx.t(`component.order_${kind}`)}</span>
+		{/if}
+		{#each Object.entries(orderTrade.arms[kind]) as [name, descriptor] (name)}
+			{@const id = (field?.id ?? 'trade') + '-' + name}
+			{@const value = data[name] ?? null}
+			{@const change = (next: Value) =>
+				field?.on_change({ ...tradeValue(form.get('trade')), [name]: next })}
+			<Stack gap="xs">
+				<label for={id} class="text-xs font-medium text-muted-foreground"
+					>{translated(ctx, `models.orders.fields.${name}`)}</label
+				>
+				{#if !field}<Show {ctx} kind={descriptor} {value} readonly />
+				{:else if name === 'shipment'}{@render shipment(form, field, value, change, id)}
+				{:else}<Editor
+						{ctx}
+						kind={descriptor}
+						{name}
+						{id}
+						{value}
+						on_change={change}
+						disabled={field.disabled}
+					/>{/if}
+			</Stack>
+		{/each}
+	</Stack>
 {/snippet}
 {#snippet printDetails(form: FormState, field: FieldEditor)}
 	<PrintDetails
@@ -667,104 +725,130 @@
 		/>
 	{/if}
 {/snippet}
-<RecordForm
-	{ctx}
-	trailing={orderState}
-	readonly={archived}
-	readonly_reason={ctx.t('component.order_archived')}
-	history={{
-		fields: [
-			'title',
-			'direction',
-			'party',
-			'owner',
-			'warehouse',
-			'status',
-			'archived',
-			'total',
-			'ordered_on',
-			'currency',
-			'valid_from',
-			'valid_until',
-			'payment_terms',
-			'shipping_terms',
-			'place_of_loading',
-			'place_of_delivery',
-			'packaging',
-			'shipping_mark',
-			'shipment',
-			'other_terms',
-			'payment_method',
-			'buyer_contact',
-			'customer_po_no',
-			'delivery_address',
-			'logistics_handler',
-			'notes'
-		],
-		sources: id
-			? [
-					'activities',
-					'order_lines',
-					'transactions',
-					...(commercial ? ['source_payments', 'source_sales_lines', 'order_files'] : [])
-				].map((of) => ({ of, where: { order: { eq: id } } }))
-			: []
-	}}
-	editors={{
-		party,
-		warehouse,
-		buyer_contact: buyer,
-		shipment,
-		valid_from: validity,
-		print_values: printDetails
-	}}
-	viewers={{ print_values: printDetailsView }}
-	{view}
-	sections={[
-		{
-			name: 'order',
-			// Kingdee keeps a synced order's header
-			readonlyFields: draft ? [] : ['party', 'owner'],
-			fields: ['title', 'party', 'owner', 'notes']
-		},
-		{
-			name: 'contract',
-			icon: 'lucide:file-signature',
-			title: ctx.t('section.seal'),
-			actions: contractActions,
-			body: contractBody,
+{#if view.mode === 'create' && choice === null}
+	<RecordShell {ctx} of="orders" mode="create" values={{ ...preset, ...view.values }}>
+		<Form {ctx} of="orders" mode="create" readonly values={{ ...preset, ...view.values }}>
+			{#snippet children(form)}
+				<Stack gap="md">
+					<p class="text-sm text-muted-foreground">{ctx.t('component.choose_order_type')}</p>
+					{#each kinds as kind (kind)}
+						<Button
+							variant="outline"
+							class="justify-start"
+							type="button"
+							onclick={() => {
+								if (tradeValue(form.get('trade')).kind !== kind) form.set('trade', { kind });
+								choice = kind;
+							}}
+						>
+							<Icon name={kind === 'domestic' ? 'lucide:truck' : 'lucide:globe'} />
+							{ctx.t(`component.order_${kind}`)}
+						</Button>
+					{/each}
+				</Stack>
+			{/snippet}
+		</Form>
+	</RecordShell>
+{:else}
+	<RecordForm
+		{ctx}
+		trailing={orderState}
+		readonly={archived}
+		readonly_reason={ctx.t('component.order_archived')}
+		history={{
 			fields: [
+				'title',
+				'direction',
+				'party',
+				'owner',
 				'warehouse',
+				'status',
+				'archived',
+				'total',
 				'ordered_on',
 				'currency',
-				'tax_inclusive',
 				'valid_from',
+				'valid_until',
 				'payment_terms',
-				'shipping_terms',
-				'place_of_loading',
-				'place_of_delivery',
+				'trade',
 				'packaging',
-				'shipping_mark',
-				'shipment',
-				'other_terms',
 				'payment_method',
 				'buyer_contact',
 				'customer_po_no',
 				'delivery_address',
 				'logistics_handler',
-				'print_values'
+				'notes'
 			],
-			readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],
-			wide: ['print_values']
-		}
-	]}
-	tabs={id
-		? [
-				{ name: 'activities', title: ctx.t('models.activities.label'), body: activity },
-				{ name: 'transactions', title: ctx.t('section.transactions'), body: fulfillment },
-				...(commercial && ctx.catalog?.order_files
-					? [{ name: 'files', title: ctx.t('models.order_files.label'), body: filed }]
-					: [])
-			]
-		: []}
-/>
+			sources: id
+				? [
+						'activities',
+						'order_lines',
+						'transactions',
+						...(commercial ? ['source_payments', 'source_sales_lines', 'order_files'] : [])
+					].map((of) => ({ of, where: { order: { eq: id } } }))
+				: []
+		}}
+		editors={{
+			party,
+			warehouse,
+			buyer_contact: buyer,
+			trade: tradeDetails,
+			valid_from: validity,
+			print_values: printDetails
+		}}
+		viewers={{ trade: tradeDetails, print_values: printDetailsView }}
+		editable_presets={['trade']}
+		on_created={() => (choice = null)}
+		view={view.mode === 'create' && choice
+			? { ...view, values: { ...view.values, trade: { kind: choice } } }
+			: view}
+		sections={[
+			{
+				name: 'order',
+				// Kingdee keeps a synced order's header
+				readonlyFields: draft ? [] : ['party', 'owner'],
+				fields: [
+					'title',
+					...(view.mode === 'create' ? ['direction'] : []),
+					'party',
+					'owner',
+					'notes'
+				]
+			},
+			{
+				name: 'contract',
+				icon: 'lucide:file-signature',
+				title: ctx.t('section.seal'),
+				actions: contractActions,
+				body: contractBody,
+				fields: [
+					'warehouse',
+					'ordered_on',
+					'currency',
+					'tax_inclusive',
+					'valid_from',
+					'payment_terms',
+					'trade',
+					'packaging',
+					'payment_method',
+					'buyer_contact',
+					'customer_po_no',
+					'delivery_address',
+					'logistics_handler',
+					'print_values'
+				],
+				readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],
+				wide: ['trade', 'print_values']
+			}
+		]}
+		tabs={id
+			? [
+					{ name: 'activities', title: ctx.t('models.activities.label'), body: activity },
+					{ name: 'transactions', title: ctx.t('section.transactions'), body: fulfillment },
+					...(commercial && ctx.catalog?.order_files
+						? [{ name: 'files', title: ctx.t('models.order_files.label'), body: filed }]
+						: [])
+				]
+			: []}
+	/>
+{/if}
