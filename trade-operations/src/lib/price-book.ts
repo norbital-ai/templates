@@ -8,24 +8,21 @@ export const priceBookCatalogRead = {
 	warehouses: { fields: ['name', 'group_code', 'active'] }
 } as const;
 
-/** One month's dated book in one currency, with the product identity each cell prices. */
-export const priceBookRead = (group: string, currency: CurrencyCode, month: string) =>
-	({
+/** One month's dated book in one currency, and each product it prices once (not once per price). */
+export const priceBookRead = (group: string, currency: CurrencyCode, month: string) => {
+	const book = {
+		group_code: { eq: group },
+		currency: { eq: currency },
+		effective_on: {
+			gte: `${month}-01`,
+			lt: DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(`${month}-01`), { months: 1 }))
+		}
+	};
+	return {
 		pricing_floors: {
-			where: {
-				group_code: { eq: group },
-				currency: { eq: currency },
-				effective_on: {
-					gte: `${month}-01`,
-					lt: DateTime.formatIsoDateUtc(
-						DateTime.add(DateTime.makeUnsafe(`${month}-01`), { months: 1 })
-					)
-				}
-			},
+			where: book,
 			fields: [
 				'product',
-				'group_code',
-				'currency',
 				'effective_on',
 				'unit',
 				'floor_price',
@@ -35,12 +32,15 @@ export const priceBookRead = (group: string, currency: CurrencyCode, month: stri
 				'revision'
 			],
 			order_by: { effective_on: 'asc' },
-			limit: 10000,
-			product: {
-				fields: ['name', 'external_code', 'source_number']
-			}
+			limit: 10000
+		},
+		products: {
+			where: { pricing_floors: { some: book } },
+			fields: ['name', 'external_code', 'source_number'],
+			limit: 10000
 		}
-	}) as const;
+	} as const;
+};
 
 type Answer = ReadAnswer<ReturnType<typeof priceBookRead>>;
 
@@ -115,9 +115,10 @@ export const priceBookMonths = (
 /** The chosen month's rows, one per product and quantity band, with the cells stored on their exact days. */
 export function priceBookRows(answer: Answer, month: string): readonly PriceRow[] {
 	const rows = new Map<string, PriceRow & { inMonth: boolean }>();
+	const products = new Map(answer.products.rows.map((product) => [product.id, product]));
 	for (const row of answer.pricing_floors.rows) {
-		const product = row.product;
-		if (product === null) continue;
+		const product = products.get(row.product);
+		if (product === undefined) continue;
 		const cell = cellOf(row);
 		const key = `${product.id}|${cell.minimum_quantity}`;
 		const found = rows.get(key);

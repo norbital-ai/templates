@@ -59,7 +59,12 @@ export default model('products', {
 	},
 	// the ledger's connection and failing feeds date what Kingdee last confirmed of this product's stock and costs
 	outputs: {
-		default: { fields: 'all', source: { fields: ['active', 'status'] } },
+		default: {
+			fields: 'all',
+			source: { fields: ['active', 'status'] },
+			// the price book names each priced product once, by its floors
+			pricing_floors: { fields: ['group_code', 'currency', 'effective_on'] }
+		},
 		logistics: { fields: logisticsProduct, source: { fields: ['active', 'status'] } }
 	},
 	constraints: {

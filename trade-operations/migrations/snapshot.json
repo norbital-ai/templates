@@ -905,7 +905,15 @@
 				"logistics_handler": {
 					"kind": "ref",
 					"optional": true,
-					"to": "sys_user"
+					"to": "sys_user",
+					"where": {
+						"active": {
+							"eq": true
+						},
+						"team": {
+							"eq": "logistics"
+						}
+					}
 				},
 				"net": {
 					"kind": "sum",
@@ -1245,6 +1253,7 @@
 					"scale": 3
 				},
 				"product": {
+					"inverse": "pricing_floors",
 					"kind": "ref",
 					"to": "products"
 				},
@@ -1262,6 +1271,15 @@
 					"kind": "text"
 				}
 			},
+			"indexes": [
+				{
+					"on": [
+						"group_code",
+						"currency",
+						"effective_on"
+					]
+				}
+			],
 			"record_label": "record.product.name + ' · ' + record.group_code + ' · ' + string(record.effective_on)",
 			"search": {
 				"text": [

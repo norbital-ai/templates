@@ -70,6 +70,11 @@ const terms = [
 	'notes'
 ] as const;
 // what Kingdee keeps on a synced order's header: changed there, read back here
+/** An active member of the Logistics team, the only people an order's logistics handler may name. */
+const logisticsStaff = (
+	users: readonly { readonly id: string; readonly team: string | null; readonly active: boolean }[],
+	id: string
+) => users.some((u) => u.id === id && u.team === 'logistics' && u.active);
 const kingdeeHeader = ['party', 'currency', 'ordered_on', 'owner', 'payment_terms'] as const;
 // what a line is priced against: a change re-prices a draft's lines (and a synced order's, which Kingdee then takes)
 const pricingBasis = ['party', 'warehouse', 'currency', 'tax_inclusive', 'ordered_on'] as const;
@@ -190,7 +195,13 @@ export default model('orders', {
 		// the buyer's own reference for this order (需方合同号)
 		customer_po_no: { kind: 'text', optional: true },
 		delivery_address: { kind: 'text', optional: true },
-		logistics_handler: { kind: 'ref', to: 'sys_user', optional: true },
+		// the seller's own logistics staff, as SalesBridge assigns them; it prints in the contract's signature block
+		logistics_handler: {
+			kind: 'ref',
+			to: 'sys_user',
+			optional: true,
+			where: { team: { eq: 'logistics' }, active: { eq: true } }
+		},
 		notes: {
 			kind: 'text',
 			optional: true
@@ -313,8 +324,17 @@ export default model('orders', {
 				return yield* ctx.refuse('errors.save_before_confirm');
 			const rows = changes.map(({ after }) => after);
 			const partyIds = rows.map((r) => r.party);
-			const { parties, warehouses, contacts } = yield* ctx.query({
+			const {
+				parties,
+				warehouses,
+				contacts,
+				sys_user: handlers
+			} = yield* ctx.query({
 				parties: { where: { id: { in: partyIds } } },
+				sys_user: {
+					where: { id: { in: rows.flatMap((r) => r.logistics_handler ?? []) } },
+					fields: ['team', 'active']
+				},
 				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } },
 				contacts: {
 					where: { party: { in: partyIds } },
@@ -327,6 +347,11 @@ export default model('orders', {
 					return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
 				if (row.valid_from && row.valid_until && row.valid_until < row.valid_from)
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
+				// Kingdee takes no order without its settlement method, so an order starts with one
+				if (!row.payment_terms)
+					return yield* ctx.refuse('errors.payment_terms_required', { field: 'payment_terms' });
+				if (row.logistics_handler && !logisticsStaff(handlers.rows, row.logistics_handler))
+					return yield* ctx.refuse('errors.logistics_handler', { field: 'logistics_handler' });
 				const warehouse = warehouses.rows.find((w) => w.id === row.warehouse);
 				const party = yield* admitParty(
 					ctx,
@@ -392,8 +417,13 @@ export default model('orders', {
 				commercial_settings: settings,
 				commission_rules: rules,
 				warehouses,
-				contacts
+				contacts,
+				sys_user: handlers
 			} = yield* ctx.query({
+				sys_user: {
+					where: { id: { in: changes.flatMap(({ set }) => set.logistics_handler ?? []) } },
+					fields: ['team', 'active']
+				},
 				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
 				parties: { where: { id: { in: partyIds } } },
 				order_lines: { where: { order: { in: ids } } },
@@ -456,6 +486,10 @@ export default model('orders', {
 					return yield* ctx.refuse('errors.line_basis_locked', { field: 'direction' });
 				if (after.valid_from && after.valid_until && after.valid_until < after.valid_from)
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
+				if (input.payment_terms === null)
+					return yield* ctx.refuse('errors.payment_terms_required', { field: 'payment_terms' });
+				if (input.logistics_handler && !logisticsStaff(handlers.rows, input.logistics_handler))
+					return yield* ctx.refuse('errors.logistics_handler', { field: 'logistics_handler' });
 				const metadata = Object.keys(input).every((key) =>
 					['title', 'notes', 'archived'].includes(key)
 				);

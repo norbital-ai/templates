@@ -19,7 +19,12 @@ export default policy({
 	capabilities: { apps: ['operations'] },
 	grants: {
 		sys_user: {
-			outputs: { default: { where: { id: { eq: { var: 'actor.id' } } } } }
+			// themselves, and the Logistics staff an order's logistics handler names
+			outputs: {
+				default: {
+					where: { or: [{ id: { eq: { var: 'actor.id' } } }, { team: { eq: 'logistics' } }] }
+				}
+			}
 		},
 		source_stock_commitments: {
 			outputs: { default: {} }

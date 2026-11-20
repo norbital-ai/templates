@@ -241,37 +241,70 @@ test.live('a draft re-prices its lines when its pricing basis moves', () =>
 	})
 );
 
-test.live('a draft with no lines or no payment terms does not sync', () =>
+test.live(
+	'an order starts with payment terms and keeps them; a draft with no lines does not sync',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* syncWorkspace();
+			const as = yield* t.as(t.admin);
+			const header = {
+				title: 'Empty draft',
+				direction: 'sales',
+				party: CUSTOMER,
+				currency: 'SGD'
+			} as const;
+			expect(yield* Effect.flip(as.act({ 'orders.create': [header] }))).toMatchObject({
+				_tag: 'ActRefused',
+				key: 'errors.payment_terms_required'
+			});
+			const empty = committed(
+				'orders',
+				yield* as.act({ 'orders.create': [{ ...header, payment_terms: NET30 }] })
+			);
+			expect(
+				yield* Effect.flip(
+					as.act({
+						'orders.update': [
+							{ target: yield* t.at('orders', empty), set: { payment_terms: null } }
+						]
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.payment_terms_required' });
+			expect(
+				yield* Effect.flip(
+					as.act({
+						'orders.update': [
+							{ target: yield* t.at('orders', empty), set: { status: 'confirmed' } }
+						]
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused', key: 'errors.lines_required' });
+		})
+);
+
+test.live('the logistics handler is one of the Logistics team', () =>
 	Effect.gen(function* () {
 		const t = yield* syncWorkspace();
-		const as = yield* t.as(t.admin);
-		const empty = committed(
-			'orders',
-			yield* as.act({
-				'orders.create': [
-					{ title: 'Empty draft', direction: 'sales', party: CUSTOMER, currency: 'SGD' }
-				]
-			})
-		);
-		expect(
-			yield* Effect.flip(
-				as.act({
-					'orders.update': [{ target: yield* t.at('orders', empty), set: { status: 'confirmed' } }]
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused', key: 'errors.lines_required' });
-		yield* as.act({
-			'order_lines.create': [
-				{ order: empty, product: PRODUCT, quantity: '1', unit_price: '2', tax_rate: '9' }
-			]
+		const { as, order } = yield* draftWithLine(t);
+		const handler = fixtureId('sys_user', t.member(['logistics'], { teams: ['logistics'] }).id);
+		const sales = t.member(['sales'], { teams: ['sales'] });
+		const seller = fixtureId('sys_user', sales.id);
+		// the picker's list: a seller sees the Logistics staff, not other sellers
+		const staff = yield* (yield* t.as(sales)).query({
+			sys_user: { where: { team: { eq: 'logistics' } } }
 		});
-		expect(
-			yield* Effect.flip(
-				as.act({
-					'orders.update': [{ target: yield* t.at('orders', empty), set: { status: 'confirmed' } }]
-				})
-			)
-		).toMatchObject({ _tag: 'ActRefused', key: 'errors.payment_terms' });
+		expect(staff.sys_user.rows.map((u) => u.id)).toEqual([handler]);
+		const set = (logistics_handler: typeof handler) =>
+			Effect.gen(function* () {
+				return yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', order), set: { logistics_handler } }]
+				});
+			});
+		committed('orders', yield* set(handler));
+		expect(yield* Effect.flip(set(seller))).toMatchObject({
+			_tag: 'ActRefused',
+			key: 'errors.logistics_handler'
+		});
 	})
 );
 

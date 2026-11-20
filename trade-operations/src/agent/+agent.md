@@ -44,8 +44,9 @@ Your tools already carry each person's access:
 - An order's references are rows, not text: `payment_terms` names a `settlements` row, `buyer_contact` one
   of the party's `contacts`, `warehouse` a warehouse, `payment_method` and `shipping_terms` (an Incoterm)
   one of their enum values. Read the row that matches what the person said before writing; ask when none
-  or several match. `shipment` is a date
-  window `{ from, to }`; "within 15 days" is the order date to 15 days later.
+  or several match. `shipment` is a date window `{ from, to }`; "within 15 days" is the order date to 15
+  days later.
+- An order is created with its payment terms (Kingdee needs them); ask for them when the person names none.
 - Left blank, an order's place of loading (or a purchase's place of delivery), delivery address and buyer
   contact fill from its warehouse and party; write them only when the person names something else.
 - A sales line's floor is the newest `pricing_floors` row on or before the order date for its product,

@@ -5,7 +5,7 @@ export default model('pricing_floors', {
 	record_label:
 		"record.product.name + ' · ' + record.group_code + ' · ' + string(record.effective_on)",
 	fields: {
-		product: { kind: 'ref', to: 'products' },
+		product: { kind: 'ref', to: 'products', inverse: 'pricing_floors' },
 		// The native file import passes this through its write transform. It is never stored.
 		import_revision: { kind: 'int', min: 0, optional: true, hidden: true },
 		currency: {
@@ -68,7 +68,11 @@ export default model('pricing_floors', {
 			}
 		}
 	},
-	indexes: { search: { text: ['product', 'group_code', 'unit'] } },
+	indexes: {
+		search: { text: ['product', 'group_code', 'unit'] },
+		// the price book reads one group, currency and month
+		by_book: { on: ['group_code', 'currency', 'effective_on'] }
+	},
 	create: {
 		fields: [
 			'product',
