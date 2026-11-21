@@ -863,9 +863,10 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	 * A person's earnings in an earlier period on the terms signed by a day, priced once: what one period's back pay counts
 	 * on its pay date is what the next one's counts on the pay date before.
 	 */
-	const backPayCode = typeof objectValue(settings?.conversions).back_pay === 'string'
-		? String(objectValue(settings?.conversions).back_pay)
-		: '';
+	const backPayCode =
+		typeof objectValue(settings?.conversions).back_pay === 'string'
+			? String(objectValue(settings?.conversions).back_pay)
+			: '';
 	const earnings = new Map<string, number>();
 	const earnedOn = Effect.fn('payroll.earnedOn')(function* (
 		period: Period,
@@ -887,10 +888,14 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			const changed = agreedOf(employee).some(
 				(row) => signedOn(row) > period.payDate && signedOn(row) <= asOf
 			);
-			const held = !amended && !changed ? paidOf(employee).find((entry) => entry.run.id === period.id) : undefined;
+			const held =
+				!amended && !changed
+					? paidOf(employee).find((entry) => entry.run.id === period.id)
+					: undefined;
 			if (
 				held !== undefined &&
-				(backPayCode === '' || !linesOf(held.slip.breakdown).some((line) => line.code === backPayCode))
+				(backPayCode === '' ||
+					!linesOf(held.slip.breakdown).some((line) => line.code === backPayCode))
 			)
 				earnings.set(keyOf(employee), earned(held.slip.breakdown));
 		}
