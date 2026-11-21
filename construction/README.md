@@ -1,191 +1,58 @@
-# Construction Operations
+# Construction Operations (`norbital_construction`)
 
 ![Construction Operations application](docs/screenshots/application.webp)
 
-A project-centered construction operations workspace: projects, work fronts, jobs, workers and
-their permits, quality defects, RFIs, payment claims, handover documents, and a BIM reference
-matrix for cost and embodied-carbon baselines — with a server-enforced rule that a worker is only
-assigned to a work front when active permits in force today cover every certification required by
-at least one job linked to that work front. It provides the operations model and safety checks
-for project delivery; it does not replace an ERP, a BIM authoring tool, or a regulatory permit authority.
+A **main-contractor construction project management system (PMS)** under one roof — built on co-located typed values, append-only commercial ledgers, exact `BigDecimal` math, and native Bolt views.
 
-## Apps and roles
+## Core capabilities
 
-| App                                      | What a user does                                                             |
-| ---------------------------------------- | ---------------------------------------------------------------------------- |
-| `construction_project_workspace`         | Browse the project catalogue; open a project record for the delivery detail. |
-| `construction_settings_workforce`        | Manage workers, certifications and jobs.                                     |
-| `construction_settings_reference_matrix` | Maintain the BIM reference matrix: codes, units, rates, carbon factors.      |
+1. **3D BIM IFC viewer with click-to-tag issues & site photos**
+   - Upload `.ifc` models into `project_files` (with automatic `revision_trail`).
+   - Inspect IFC properties, scrub **3D X / Y / Z axis section planes**, highlight issues by severity or 4D schedule date, click any 3D element to pin a `seq`-numbered issue (`bim_pin` co-locates expressID, element name, GlobalId, 3D coordinates, and camera viewpoint), and attach site `photos`.
+2. **4D programme timeline, milestones & structured WBS tasks**
+   - Switch between **Timeline** (4D date-axis scrubber, milestone diamonds, VO markers), **Table**, and **Board** views of `tasks`.
+   - Post append-only **Site Progress** entries (`progress_updates`) to atomically advance linked `tasks` (`actual_range`, `progress_pct`) and recalculate BOQ `cost_items`.
+3. **WhatsApp, Telegram, email, Slack & Discord auto-sync**
+   - Connect personal or workspace channels in **Configuration → Connections**.
+   - Messages sync automatically (`sync_messages`), transcribe voice notes, route to projects (`classify_messages`), AI-extract (`extract_project_updates`) structured progress updates, issues, draft VOs, and tasks, and send 06:00 SGT digests (`daily_project_digest`).
+4. **Main-contractor commercial & cashflow roof (exact `BigDecimal`)**
+   - **BOQ & Costings (`cost_items`)**: `percentage`, `measured_qty`, or `milestone` lines.
+   - **Quotes & Revisions (`quotes`)**: client & subcontractor quotes with reusable `priced_lines`; `sent` quotes lock pricing, `sent -> revised` snapshots prior revisions into `revision_trail`, and `accepted` locks permanently.
+   - **Changes / VOs / EOTs (`change_orders`)**: itemized `priced_lines` auto-sum `cost_impact`; locks upon leaving `draft`.
+   - **Unified Cashflow & Payment Claims (`payment_claims`)**: append-only `seq`-numbered ledger with a **2-step polymorphic create flow** (**Client Inflow** carrying co-located `claim_valuation` vs **Subcontractor/Supplier Outflow**), offsetting `adjustment` entries, native monthly **Inflow vs Outflow** `<Chart>`, committed subcon cost & projected margin %, and one-click **Draft progress claim** (`generate_payment_claim`).
 
-The project workspace app is deliberately just the projects table: the depth lives in the project
-record itself. Its representation opens three tabs — **Model & coordination** (the IFC viewer next
-to the project's RFIs and defects), **Manpower allocation** (the native assignment table scoped to this project), and **Commercial & controls** (contract value against claimed/certified amounts, payment
-claims, project documents, and current permits to work). Site locations, asset documents, and
-permits to work have no tab of their own anywhere and are reached only through a project — the only
-context in which any of them means much.
+## Navigation & Project Hub
 
-Teams (`src/access_control/team/+team.ts`):
+Every model has one primary home across 2 apps:
 
-| Team (handle)                                                       | Policies                                                      |
-| ------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Project Delivery (`project_delivery`)                               | `construction_read`, `construction_project_workspace`         |
-| Reference Matrix Administrators (`reference_matrix_administrators`) | `construction_read`, `construction_settings_reference_matrix` |
-| Workforce Administrators (`workforce_administrators`)               | `construction_read`, `construction_settings_workforce`        |
-| Construction Administrators (`construction_administrators`)         | `construction_read` and all three app policies                |
+- **Operations**: `Projects` (portfolio & Project Hub), `Messages` (global synced inbox).
+- **Configuration**: `Connections` (`Channels` & `Intake & auto-extraction`), `Contacts`.
 
-`src/access_control/policy/+construction_read.policy.ts` owns the shared read grants. Three
-app-opening policies supply only capabilities. Source teams in
-`src/access_control/team/+team.ts` explicitly link those policies. Teams select available apps;
-these grants do not permit business writes. Creating and changing records requires the native
-workspace administrator flag. A team label containing “Administrators” does not confer that flag.
+Opening a project lands on the **Project Hub** (one concern & one scroll owner per tab):
 
-Team and policy definitions are source only. There is no runtime editor for these definitions,
-and this template declares no approval flows. Changing access requires editing source
-and adopting the rebuilt release.
+| Tab                  | What lives here                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Overview**         | Readable project details (`zones`, `address`, commercial terms), cashflow KPIs, and native monthly **Inflow vs Outflow** `<Chart>`. |
+| **BIM & Issues**     | 3D IFC viewer (X/Y/Z axis scrubbers + click-to-tag) alongside the scoped **Issues & RFIs** table with **Focus in 3D**.              |
+| **BIM & Drawings**   | `project_files` register with automatic `revision_trail`.                                                                           |
+| **Schedule & Tasks** | Same-model view switcher (**Timeline** / **Table** / **Board**) for `tasks` & milestones.                                           |
+| **Site Progress**    | Append-only `progress_updates` diary.                                                                                               |
+| **Commercial**       | Native level-2 tabs for **BOQ & Costings**, **Quotes & Revisions**, **Changes / VOs**, and **Claims & Cashflow**.                   |
+| **Site Comms**       | Project-scoped synced messages with Sync & Extract toolbar actions.                                                                 |
 
-## Data model
+## Data model (12 models, 6 custom fields)
 
-| Model                                 | Purpose                                                           |
-| ------------------------------------- | ----------------------------------------------------------------- |
-| `projects`                            | Construction projects and operating context.                      |
-| `jobs`                                | Work packages linked to site locations and BIM references.        |
-| `workers`                             | Worker roster used for assignment and compliance.                 |
-| `certification_types`                 | Certification library defining workforce requirements.            |
-| `site_locations`                      | Work fronts and delivery zones within a project.                  |
-| `defects`                             | Quality issues and closeout items.                                |
-| `rfis`                                | Design and coordination questions.                                |
-| `payment_claims`                      | Commercial claims with readiness and submission state.            |
-| `permits_to_work`                     | Permit and competency validity records.                           |
-| `asset_documents`                     | Handover and asset-linked documents.                              |
-| `bim_reference_matrix`                | BIM item master sheet for cost and carbon estimation.             |
-| `job_assignments`                     | Worker assignments to jobs and site locations (compliance-gated). |
-| `jobs_certification_types`            | Join: jobs ↔ certification_types.                                 |
-| `jobs_site_locations`                 | Join: jobs ↔ site_locations.                                      |
-| `permits_to_work_certification_types` | Join: permits_to_work ↔ certification_types.                      |
-| `permits_to_work_workers`             | Join: permits_to_work ↔ workers.                                  |
+- `projects` — project root, commercial terms, inline `zones` (`project_zones`), `capture_rules`, and `address` (`project_address`).
+  - Owned children (`owned: true`): `project_files`, `issues`, `tasks`, `progress_updates`, `cost_items`, `quotes`, `change_orders`, `payment_claims`.
+- Shared root models: `project_messages`, `contacts`, `communication_settings`.
+- Reusable custom fields: `project_zones`, `bim_pin`, `priced_lines`, `revision_trail`, `claim_valuation`, `project_address`.
 
-References (`ref` fields on the model holding the key): `permits_to_work` ↔ `certification_types` and ↔ `workers` (many-to-many through the
-join tables); `jobs` ↔ `certification_types` and ↔ `site_locations` (same); `job_assignments` →
-`workers` / `jobs` / `site_locations` (direct foreign keys). Every RFI, defect, claim, permit,
-document, site location, and job belongs to a project.
+See [docs/README.md](docs/README.md) and [docs/source-reference.md](docs/source-reference.md) for workflows and exact source inventory.
 
-### Job assignment compliance
-
-The `create.transform` and `update.transform` in `src/data/model/projects/jobs/job_assignments/+model.ts` share
-one check that uses one native keyed read for worker-permit links, site jobs, their active permits
-and their required certifications. Dependent members resolve from earlier members in that same read
-group.
-
-At least one site job must have a nonempty qualification set fully covered by the worker's active
-permits in force today. Otherwise the whole batch is refused, with no partial assignments. The
-check runs on create and when the worker or site changes. Changes to job, role, hours or dates that
-leave worker and site unchanged preserve the existing assignment without rechecking eligibility.
-
-### Operating model
-
-1. Establish a **project**, its **site locations** (work fronts), and BIM reference context.
-2. Configure **certification types** and issue **permits to work** that prove a worker's currently
-   valid authority and the certifications it covers.
-3. Define **jobs** (work packages), link them to work fronts and required certifications, then
-   create worker **assignments** — every assignment passes a server compliance check before it
-   exists.
-4. Run delivery in the project record: review the IFC coordination model, track RFIs and defects
-   per project, and allocate manpower per work front.
-5. Track commercial work through **payment claims** and keep the documents supporting each claim.
-6. Review the four scheduled daily exports for permits, defects, RFIs, and claim readiness.
-
-The data model keeps these concerns separate: jobs describe work packages; site locations describe
-work fronts; permits prove a worker's currently valid authority; and assignments connect a worker
-to work only after the compliance check passes.
-
-```
-projects ─┬─ site_locations ── job_assignments ── workers ── permits_to_work ── certification_types
-          ├─ jobs ────────────┘                         │             └── permit ↔ certification join
-          ├─ rfis · defects · payment_claims            └── permit ↔ worker join
-          └─ asset_documents · bim_reference_matrix   jobs ↔ certifications / site_locations (joins)
-```
-
-## Automations and integrations
-
-Four server automations run at `06:00` each day. They produce bounded JSON exports for operational
-review; they do not send messages, escalate records, or mutate business state.
-
-| Automation                      | Subject           | Export file                          |
-| ------------------------------- | ----------------- | ------------------------------------ |
-| `permit_expiry_watch`           | `permits_to_work` | `permit-expiry-watch.json`           |
-| `defect_closeout_digest`        | `defects`         | `defect-closeout-digest.json`        |
-| `rfi_followup_watch`            | `rfis`            | `rfi-followup-watch.json`            |
-| `payment_claim_readiness_watch` | `payment_claims`  | `payment-claim-readiness-watch.json` |
-
-All four share one shape: read at most 25 rows, report that number as the summary count, and export
-the same rows as the file body. The bounds hold a review a reviewer can read — the sweep is a
-morning digest, not a full table in a JSON blob. These read-only watches notify no one on their
-own: a deployment that wants alerts adds a conversation connection to `src/+workspace.ts` (e.g.
-`{ integration: 'whatsapp' }`), names it as a notification channel, and pairs the instance under
-**Settings → Integrations** with the business's own account.
-
-## Source layout
-
-Bolt discovers named declarations under `src/`, beginning with `src/+workspace.ts`.
-`bolt check` validates the source contract; `bolt build` generates types, the artifact and seed
-packs under `.norbital/`, plus editable schema migrations under `migrations/`.
-
-```text
-src/+workspace.ts                     workspace locale, timezone and defaults
-src/app/<app>/                        application declaration and pages
-src/access_control/team/+team.ts      source teams and explicit policy links
-src/access_control/policy/+*.policy.ts source grants and capabilities
-src/data/model/<name>/                model (storage, refs, exposure, write callbacks) and optional representation
-src/data/custom_field/<name>/         inline type definition and renderer
-src/automation/                       four daily review watches
-src/i18n/                             English and Chinese messages
-src/lib/ifc-viewer/                    lazy viewer and converter worker
-assets/                               media and the bundled sample IFC
-```
-
-How the pieces work:
-
-- **Representations.** Model folders hold `+representation.svelte` companions. Forms reuse
-  native `RecordShell`, `Form`, `Field`, `Section` and relationship `Picker` controls. The project
-  combines the IFC viewer, native model tables and per-currency commercial totals. Allocation
-  filtering, actions and record management belong to the native table toolbar and controller.
-- **The IFC viewer.** `src/lib/ifc-viewer/` holds a lazy-loaded WebGL viewer (`ifc_viewer.svelte`)
-  plus a converter that runs web-ifc in a worker (`ifc_viewer.converter.worker.ts`), with ambient
-  declarations for the esm.sh-loaded viewer libraries (`ifc_viewer.runtime.d.ts`). It is mounted inside the
-  project record when a linked `asset_documents` row carries an `ifc_model` document (or a
-  `.ifc` URL); the sample model under `assets/ifc/` is what a freshly seeded tenant shows.
-- **Join labels.** Each join model's `record_label` reads its two sides one hop deep; nothing is stored.
-- **Custom types.** Parent-owned structured values use `project_address`, `site_coordinates`,
-  `emergency_contact` and `permit_signatures`, each with one definition and a renderer. Money is a
-  builtin: `{ kind: 'money', currency: 'currency' }` uses the row's currency field and native controls.
-- **i18n.** English and Chinese message declarations supply localized app and record copy.
-
-Use a model's write callbacks for non-negotiable server rules, a custom type when a reusable field needs its
-own validation and renderer, and a model representation only when schema-derived UI is
-insufficient. Keep large BIM artefacts in a file-storage facility; the `bim_reference_matrix` is
-the reference and baseline model, not a replacement for native BIM files.
-
-## Seed
-
-No public rows: a new workspace starts empty. `seed/+seeder.ts` names the seed bank's private
-`construction` tree (projects, jobs, workers, permits, RFIs, defects, claims, the BIM matrix,
-documents), whose rows `bolt seed --bank=<checkout>` loads into a demo environment as they are. The
-sample IFC model under `assets/ifc/` is served for the project record's viewer.
-
-## Checks
+## Development & verification
 
 ```bash
-bun install
-bunx bolt check   # types, Svelte warnings, layout and declarations
-bun run build   # bolt build
-bun run test    # bolt test, including tests/e2e/surface-sweep.integration.test.ts
+bolt build
+bolt check
+bolt test
 ```
-
-`.norbital/` is generated and never committed. Schema changes generate the next editable SQL
-migration under `migrations/` and verify the complete history against the declaration. Commit
-the SQL, `snapshot.json` and `migrations.lock.json` together. Rebuilding does not reset an existing
-database or update an adopted tenant release. See the [template lifecycle](../README.md#release-and-tenant-lifecycle).
-
-## Maintained source reference
-
-See [the source reference](docs/source-reference.md) for the current applications/pages, model outputs and writes, automation policies, integrations and browser screenshot. The inventory is checked against this template's declarations; provider setup and deployed-release readiness remain separate checks.

@@ -3,3 +3,5 @@
 .tmp
 node_modules
 bun.lock
+migrations/snapshot.json
+migrations/physical.json

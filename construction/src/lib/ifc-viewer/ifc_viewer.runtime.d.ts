@@ -17,6 +17,8 @@ declare module 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-
 }
 declare module 'https://esm.sh/three@0.185.1' {
 	export const Color: import('./ifc_viewer.types.js').ViewerThreeModule['Color'];
+	export const Vector3: import('./ifc_viewer.types.js').ViewerThreeModule['Vector3'];
+	export const Plane: import('./ifc_viewer.types.js').ViewerThreeModule['Plane'];
 }
 declare module 'https://esm.sh/web-ifc@0.0.77' {
 	export const IfcAPI: import('./ifc_viewer.types.js').ViewerIfcApiConstructor;

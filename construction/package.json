@@ -1,6 +1,6 @@
 {
 	"name": "@template/construction",
-	"description": "Construction project management covering jobs, workers, permits, defects, RFIs, payment claims, and BIM reference data.",
+	"description": "Main-contractor construction PMS covering 3D BIM IFC issue & photo tagging, 4D timeline with milestones & axis scrubbers, WhatsApp/Telegram message sync & extraction, WBS tasks, BOQ costings, quotes & revisions, variation orders, and project cashflow.",
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",

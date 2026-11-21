@@ -1,29 +1,30 @@
 import { team } from '@norbital-ai/bolt';
-/** Source access roles: readable handles are membership and approval identities (`seed/+seeder.ts` maps the bank's ids). */
+
+/** Source access roles for main-contractor delivery, commercial/QS, client read-only, and workspace administration. */
 export default team({
 	project_delivery: {
 		name: 'Project Delivery',
 		parent: null,
-		policies: ['construction_read', 'construction_project_workspace']
+		policies: ['construction_read', 'construction_delivery', 'construction_connections']
 	},
-	reference_matrix_administrators: {
-		name: 'Reference Matrix Administrators',
+	commercial_qs: {
+		name: 'Commercial & QS',
 		parent: null,
-		policies: ['construction_read', 'construction_settings_reference_matrix']
+		policies: ['construction_read', 'construction_commercial', 'construction_connections']
 	},
-	workforce_administrators: {
-		name: 'Workforce Administrators',
+	client_consultant: {
+		name: 'Client & Consultant',
 		parent: null,
-		policies: ['construction_read', 'construction_settings_workforce']
+		policies: ['construction_read']
 	},
 	construction_administrators: {
 		name: 'Construction Administrators',
 		parent: null,
 		policies: [
 			'construction_read',
-			'construction_project_workspace',
-			'construction_settings_reference_matrix',
-			'construction_settings_workforce'
+			'construction_delivery',
+			'construction_commercial',
+			'construction_connections'
 		]
 	}
 });

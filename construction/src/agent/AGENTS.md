@@ -1,51 +1,39 @@
-# Construction Operations source
+# Construction Operations — Template Authoring Guide
 
-This is the coding-agent map for this workspace. Norbius reads [`+agent.md`](./+agent.md); this file says where the source lives and what an edit must not break.
+Main-contractor construction PMS (`norbital_construction`) built around co-located typed values, append-only commercial ledgers, exact `BigDecimal` math, and native Bolt views.
 
-## Model ownership
+## Structure
 
-`src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
+- **Models (12)** under `src/data/model/`:
+  - `projects/` — root project with inline `zones` (`project_zones`), `payment_terms_days`, retention/tax terms, `capture_rules`, and `address`
+    - `project_files/` (`owned: true`) — IFC models, drawings, specs, method statements with `revision_trail`
+    - `issues/` (`owned: true`) — `seq`-numbered defects, RFIs, clashes, safety, snags with `photos` and `bim_pin`
+    - `tasks/` (`owned: true`) — WBS work packages & milestones (`is_milestone`) with `schedule_range`, `actual_range`, and 4D `bim_express_ids`
+    - `progress_updates/` (`owned: true`) — append-only site diary propagating max batch progress to `tasks` & `cost_items`
+    - `cost_items/` (`owned: true`) — configurable BOQ lines (`percentage` | `measured_qty` | `milestone`)
+    - `quotes/` (`owned: true`) — `seq`-numbered client & subcon quotes with `priced_lines`, `revision_trail`, `sent_locked` & `accepted_locked`
+    - `change_orders/` (`owned: true`) — `seq`-numbered VOs/EOTs with `priced_lines`, `bim_pin`, `submitted_locked` & `approved_locked`
+    - `payment_claims/` (`owned: true`) — `seq`-numbered polymorphic cashflow ledger (`inflow` with `claim_valuation`, `outflow` subcon/supplier bills, `adjustment` offsetting entries), `submitted_locked` & `settled_locked`
+  - `project_messages/` — global WhatsApp/Telegram/email/Slack/Discord inbox routed to projects
+  - `contacts/` — subcontractor, supplier, consultant & client directory (`format: 'phone'`, `format: 'email'`)
+  - `communication_settings/` — per-member intake / auto-extraction rules
+- **Custom Fields (6)** under `src/data/custom_field/`: `project_zones`, `bim_pin`, `priced_lines`, `revision_trail`, `claim_valuation`, `project_address`.
+- **Apps (2)** under `src/app/`:
+  - `operations` — `projects`, `messages` (each model has one primary home; `tasks` lives in the Project Hub)
+  - `configuration` — `connections` (`Channels` + `Intake & auto-extraction` tabs), `contacts`
+- **Automations (6)** under `src/automation/`:
+  - `sync_messages`, `classify_messages`, `reclassify_messages`, `extract_project_updates`, `generate_payment_claim`, `daily_project_digest`
+- **Libraries** under `src/lib/`:
+  - `claims.ts` — pure Effect `BigDecimal` BOQ, quote, VO, valuation, margin & cashflow math
+  - `zones.ts` — shared batched validator checking child `zone` codes against `projects.zones`
+  - `ProjectTimeline.svelte` — 4D timeline with date scrubber, milestone diamonds, VO markers & BIM highlights
+  - `ifc-viewer/` — browser 3D IFC viewer with X/Y/Z axis section scrubbers & click-to-tag issues
+  - `ai.ts`, `conversations.ts`, `message-import.ts`, `MyConnections.svelte`
 
-```text
-certification_types/
-projects/
-  asset_documents/
-  bim_reference_matrix/
-  jobs/
-    defects/
-    job_assignments/
-    jobs_certification_types/
-    jobs_site_locations/
-  payment_claims/
-  permits_to_work/
-    permits_to_work_certification_types/
-    permits_to_work_workers/
-  rfis/
-  site_locations/
-workers/
-```
+## Key invariants
 
-Keep a new model in the branch of the record that owns it. Moving a model folder does not rename it: its leaf folder name is the model name.
-
-## Surfaces
-
-- Apps: `construction_project_workspace`, `construction_settings_reference_matrix`, `construction_settings_workforce`
-- Automations: `defect_closeout_digest`, `payment_claim_readiness_watch`, `permit_expiry_watch`, `rfi_followup_watch`
-- Policies: `construction_project_workspace`, `construction_read`, `construction_settings_reference_matrix`, `construction_settings_workforce`
-- Custom fields: `emergency_contact`, `permit_signatures`, `project_address`, `site_coordinates`
-- Integrations: none
-
-## Gates
-
-`bolt check` proves discovery, schema history, rules and types. `bolt test` runs the workspace tests. `bolt build` writes `.norbital/` and the release artifact; run it only when a schema or release change is intended. Migrations under `migrations/` are generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.json` together.
-
-## Invariants
-
-- A worker is assigned to a work front only when active permits in force today cover every certification required by at least one job linked to that work front.
-- A payment claim's claimed amount and certified amount are different facts; never conflate them.
-- Work under a lapsed permit is a compliance failure; permit dates are legal facts.
-
-## Read next
-
-- [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
-- `README.md` and `docs/` — operator walkthrough and design detail.
+1. **Exact `BigDecimal` arithmetic.** Zero floating-point money math; store all line/valuation money values as exact decimal strings.
+2. **Co-located typed values.** Reuse built-in kinds (`period`, `money`, `seq`, `state`) and shared custom fields (`priced_lines`, `revision_trail`, `bim_pin`, `claim_valuation`, `project_zones`). Validate child `zone` strings via `validateProjectZones`.
+3. **Immutable ledgers & documents.** `progress_updates` locks numeric progress after post; `quotes` locks `sent` & `accepted`; `change_orders` locks `submitted`/`under_review`/`approved`; `payment_claims` locks on leaving `draft`.
+4. **Polymorphic step UI & single scroll owner.** `payment_claims` uses a 2-step create flow (`inflow` vs `outflow`); every Project Hub tab owns one concern and one scroll container.
+5. **Verification gates.** From `templates/construction`, run `bolt build`, `bolt check`, `bolt test`, and `bolt seed --bank=../../seed_bank`. From the realm root, run `bun run privacy` before pushing.

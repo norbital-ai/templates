@@ -5,18 +5,32 @@
 	 */
 	import type { Snippet } from 'svelte';
 	import type { ModelName } from '@norbital-ai/bolt';
-	import { Form, RecordShell, open_record, type RecordView, type UiContext } from '@norbital-ai/ui';
+	import {
+		Form,
+		RecordShell,
+		open_record,
+		type FormState,
+		type RecordView,
+		type RunsForProps,
+		type UiContext
+	} from '@norbital-ai/ui';
 	let {
 		ctx,
 		view,
 		subtitle,
-		children
+		actions,
+		runs,
+		children: body
 	}: {
 		ctx: UiContext;
 		view: RecordView<ModelName>;
 		/** The fields under the heading, each shown by its kind. */
 		subtitle?: readonly string[];
-		children: Snippet;
+		/** Optional record header actions (e.g. an automation trigger). */
+		actions?: Snippet;
+		/** Optional persisted automation run history tabs. */
+		runs?: readonly RunsForProps[];
+		children: Snippet<[FormState]>;
 	} = $props();
 	const of = $derived(view.model);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
@@ -28,6 +42,8 @@
 	mode={view.mode}
 	{...record == null ? {} : { id: record.id }}
 	{...subtitle === undefined ? {} : { subtitle }}
+	{...actions === undefined ? {} : { actions }}
+	{...runs === undefined ? {} : { runs }}
 >
 	<Form
 		{ctx}
@@ -41,6 +57,8 @@
 			if (view.mode === 'create' && created !== undefined) open_record(of, created.id);
 		}}
 	>
-		{@render children()}
+		{#snippet children(form)}
+			{@render body(form)}
+		{/snippet}
 	</Form>
 </RecordShell>

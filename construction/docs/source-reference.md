@@ -1,67 +1,65 @@
-# Source reference
+# Source Reference (`norbital_construction`)
 
-Checked against this template's source and compiled declaration manifest on 30 October 2026.
-This is a local source inventory, not a declaration that a deployed tenant runs these bytes.
+Exact file map of the Construction Operations template.
 
-16 models, 3 applications, 4 automations.
+## Workspace manifest & i18n
 
-## Applications and pages
+- `src/+workspace.ts` — workspace name, title, icon, and runtime limits
+- `src/i18n/+messages.ts`, `src/i18n/+zh.messages.ts` — English and Simplified Chinese UI/error catalogs
 
-| Source application                                                                                  | Title            | Pages                    | Purpose                                                |
-| --------------------------------------------------------------------------------------------------- | ---------------- | ------------------------ | ------------------------------------------------------ |
-| [construction_project_workspace](../src/app/construction_project_workspace/+app.ts)                 | Projects         | projects: Projects       | Browse construction projects and open project records. |
-| [construction_settings_reference_matrix](../src/app/construction_settings_reference_matrix/+app.ts) | Reference matrix | matrix: Reference matrix | Maintain the BIM reference matrix.                     |
-| [construction_settings_workforce](../src/app/construction_settings_workforce/+app.ts)               | Workforce        | workforce: Workforce     | Manage workers, certifications and jobs.               |
+## Custom fields (6 co-located value types)
 
-## Models and exposed operations
+- `src/data/custom_field/project_zones/` — inline list of project storeys, zones, elevations, and grid axes (`projects.zones`)
+- `src/data/custom_field/bim_pin/` — inline IFC element tag, GlobalId, 3D coordinates, and camera viewpoint (`issues.bim_pin`, `change_orders.bim_pin`)
+- `src/data/custom_field/priced_lines/` — reusable exact-decimal priced line items with inline row editor & table renderer (`quotes.lines`, `change_orders.lines`)
+- `src/data/custom_field/revision_trail/` — chronological revision history table (`project_files.revisions`, `quotes.revisions`)
+- `src/data/custom_field/claim_valuation/` — client progress valuation totals & BOQ snapshot (`payment_claims.valuation`)
+- `src/data/custom_field/project_address/` — structured site address (`projects.address`)
 
-Outputs fix field visibility. Policies select outputs and scope rows; write columns and checks constrain mutations. Each row links to its owning declaration.
+## Record models (12)
 
-| Model                                                                                                                           | Fields | Read outputs | Writes         | Post-commit effects | Syncs |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------ | -------------- | ------------------- | ----- |
-| [asset_documents](../src/data/model/projects/asset_documents/+model.ts)                                                         | 10     | default      | create, update | none                | none  |
-| [bim_reference_matrix](../src/data/model/projects/bim_reference_matrix/+model.ts)                                               | 12     | default      | create, update | none                | none  |
-| [certification_types](../src/data/model/certification_types/+model.ts)                                                          | 8      | default      | create, update | none                | none  |
-| [defects](../src/data/model/projects/jobs/defects/+model.ts)                                                                    | 13     | default      | create, update | none                | none  |
-| [job_assignments](../src/data/model/projects/jobs/job_assignments/+model.ts)                                                    | 6      | default      | create, update | none                | none  |
-| [jobs](../src/data/model/projects/jobs/+model.ts)                                                                               | 9      | default      | create, update | none                | none  |
-| [jobs_certification_types](../src/data/model/projects/jobs/jobs_certification_types/+model.ts)                                  | 1      | default      | create, update | none                | none  |
-| [jobs_site_locations](../src/data/model/projects/jobs/jobs_site_locations/+model.ts)                                            | 1      | default      | create, update | none                | none  |
-| [payment_claims](../src/data/model/projects/payment_claims/+model.ts)                                                           | 11     | default      | create, update | none                | none  |
-| [permits_to_work](../src/data/model/projects/permits_to_work/+model.ts)                                                         | 9      | default      | create, update | none                | none  |
-| [permits_to_work_certification_types](../src/data/model/projects/permits_to_work/permits_to_work_certification_types/+model.ts) | 1      | default      | create, update | none                | none  |
-| [permits_to_work_workers](../src/data/model/projects/permits_to_work/permits_to_work_workers/+model.ts)                         | 1      | default      | create, update | none                | none  |
-| [projects](../src/data/model/projects/+model.ts)                                                                                | 12     | default      | create, update | none                | none  |
-| [rfis](../src/data/model/projects/rfis/+model.ts)                                                                               | 13     | default      | create, update | none                | none  |
-| [site_locations](../src/data/model/projects/site_locations/+model.ts)                                                           | 7      | default      | create, update | none                | none  |
-| [workers](../src/data/model/workers/+model.ts)                                                                                  | 12     | default      | create, update | none                | none  |
+- `src/data/model/projects/` — project root and Project Hub
+  - `projects/project_files/` (`owned: true`) — IFC models, drawings, specs, method statements with `revision_trail`
+  - `projects/issues/` (`owned: true`) — `seq`-numbered BIM-pinned defects, RFIs, clashes, safety & snags with site `photos`
+  - `projects/tasks/` (`owned: true`) — WBS work packages & milestones (`is_milestone`) with `schedule_range`, `actual_range`, and 4D `bim_express_ids`
+  - `projects/progress_updates/` (`owned: true`) — append-only site diary with atomic batch propagation to `tasks` & `cost_items`
+  - `projects/cost_items/` (`owned: true`) — configurable BOQ lines (`percentage` | `measured_qty` | `milestone`)
+  - `projects/quotes/` (`owned: true`) — `seq`-numbered client & subcontractor quotes with `priced_lines`, `revision_trail`, `sent_locked` & `accepted_locked`
+  - `projects/change_orders/` (`owned: true`) — `seq`-numbered VOs, instructions & EOTs with `priced_lines`, `bim_pin`, `submitted_locked` & `approved_locked`
+  - `projects/payment_claims/` (`owned: true`) — `seq`-numbered polymorphic cashflow ledger (`inflow` / `outflow` / `adjustment`), 2-step create UI, `claim_valuation`, `submitted_locked` & `settled_locked`
+- `src/data/model/project_messages/` — global WhatsApp/Telegram/email/Slack/Discord inbox & AI extraction state
+- `src/data/model/contacts/` — subcontractors, suppliers, consultants & client contacts (`phone`/`email` formats & handle keys)
+- `src/data/model/communication_settings/` — personal message intake / auto-extraction rules
 
-Import is available on a model whose unique constraint is marked `import_key: true`; it matches rows on that key and requires an explicit conflict rule. No model here declares one.
+## Apps (2)
 
-## Automations
+- `src/app/operations/` — `projects`, `messages`
+- `src/app/configuration/` — `connections`, `contacts`
 
-All named runs use the reserved system identity and the listed policies. A manual-start grant controls who may start a run; cron/webhook/schedules use their declared trigger path. Model effects run as their writer and are separate from these named automations.
+## Automations (6)
 
-| Automation                                                                                      | Trigger              | Policies          | Purpose                                                                                                                                                                                                     |
-| ----------------------------------------------------------------------------------------------- | -------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [defect_closeout_digest](../src/automation/+defect_closeout_digest.automation.ts)               | {"cron":"0 6 * * *"} | construction_read | Counts the defect register every morning at 6am and publishes the first 25 open defects as a JSON extract for the closeout meeting.                                                                         |
-| [payment_claim_readiness_watch](../src/automation/+payment_claim_readiness_watch.automation.ts) | {"cron":"0 6 * * *"} | construction_read | Counts the draft and submitted payment claims every morning at 6am and publishes the 25 most recently changed as a JSON extract so the commercial team can check progress-claim readiness.                  |
-| [permit_expiry_watch](../src/automation/+permit_expiry_watch.automation.ts)                     | {"cron":"0 6 * * *"} | construction_read | Sweeps the active and expiring permits to work every morning at 6am and publishes the first 25 as a JSON extract so permits nearing the end of their validity range are caught before crews are stood down. |
-| [rfi_followup_watch](../src/automation/+rfi_followup_watch.automation.ts)                       | {"cron":"0 6 * * *"} | construction_read | Sweeps the open RFIs every morning at 6am and publishes the first 25 by due date as a JSON extract so queries still waiting on the design team can be chased.                                               |
+- `src/automation/+sync_messages.automation.ts` — scheduled (5 min) + manual sync from `sys_message` into `project_messages`
+- `src/automation/+classify_messages.automation.ts` — AI (`sys_1`) project routing for pending messages
+- `src/automation/+reclassify_messages.automation.ts` — manual re-run of routing across pending/unassigned messages
+- `src/automation/+extract_project_updates.automation.ts` — AI (`sys_2`) extraction of progress updates, issues, draft VOs & tasks
+- `src/automation/+generate_payment_claim.automation.ts` — page RPC (`mode: 'call'`) drafting a client `payment_claims` valuation from BOQ + approved VOs
+- `src/automation/+daily_project_digest.automation.ts` — 06:00 SGT morning digest notifying teams of critical/high issues & blocked/overdue tasks
 
-## Integrations and source roles
+## Shared libraries
 
-- Integration definitions: none.
-- Named connections: none.
-- Source policies: `construction_project_workspace`, `construction_read`, `construction_settings_reference_matrix`, `construction_settings_workforce`.
-- Custom datatypes: `emergency_contact`, `permit_signatures`, `project_address`, `site_coordinates`.
+- `src/lib/claims.ts` — pure Effect `BigDecimal` BOQ, quote, variation, valuation, margin, and monthly cashflow math
+- `src/lib/zones.ts` — shared batched `zone` validator against parent `projects.zones`
+- `src/lib/ProjectTimeline.svelte` — 4D timeline with date scrubber, milestone diamonds, VO markers & BIM highlights
+- `src/lib/ifc-viewer/` — browser 3D IFC viewer with X/Y/Z axis scrubbers, severity/4D highlights & click-to-tag
+- `src/lib/ai.ts`, `src/lib/conversations.ts`, `src/lib/message-import.ts`, `src/lib/MyConnections.svelte`
+- `src/lib/record-editor.svelte`, `src/lib/record-form.svelte`
 
-Pairing and credentials belong to the host's Connections surface; defining a connection does not mean it is paired.
+## Access control
 
-## Browser evidence
+- `src/access_control/team/+team.ts` — 4 teams (`construction_administrators`, `project_delivery`, `commercial_qs`, `client_consultant`)
+- `src/access_control/policy/` — 5 policies (`construction_read`, `construction_delivery`, `construction_commercial`, `construction_connections`, `construction_automation`)
 
-![Current local workspace](screenshots/workspace-overview.webp)
+## Tests
 
-![Representative application](screenshots/application.webp)
-
-Captured through the browser from a separate local documentation workspace on 30 October 2026. This shows layout and navigation; it does not certify external providers, automation results or deployment.
+- `tests/claims-and-costings.test.ts` — BigDecimal BOQ/milestone math, zone validation, quote/VO/claim ledger locks, `seq` numbering, batch progress propagation & payment claim RPC
+- `tests/bim-and-messaging.test.ts` — `project_files` revision trail, BIM-pinned `issues`, WhatsApp intake/sync/dedupe/AI extraction & daily digest

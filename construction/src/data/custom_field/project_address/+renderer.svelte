@@ -36,7 +36,7 @@
 				.filter(Boolean)
 				.join(', ')}</span
 		>
-	{:else}<span class="text-sm text-muted-foreground">—</span>{/if}
+	{:else}<span class="text-sm text-muted-foreground">{t('component.no_value')}</span>{/if}
 {:else}
 	<RecordEditor
 		value={view.value}
