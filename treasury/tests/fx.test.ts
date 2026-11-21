@@ -57,17 +57,21 @@ describe('working out fixings', () => {
 		const rows = fixings(['1.31', '1.31', '1.29', '1.31']).map((f, i) => ({
 			...f,
 			firm: false,
-			condition: [
-				'OPS buys a USD call if above 1.30',
-				'OPS is the seller if above 1.30',
-				'OPS sells a USD call if above 1.30',
-				'OPS buys and OPS sells if above 1.30'
-			][i] ?? null
+			condition:
+				[
+					'OPS buys a USD call if above 1.30',
+					'OPS is the seller if above 1.30',
+					'OPS sells a USD call if above 1.30',
+					'OPS buys and OPS sells if above 1.30'
+				][i] ?? null
 		}));
 		const realized = (side: FxTerms['side']) =>
 			workOut({ ...deal, side }, rows).results.map(({ outcome, gain }) => [outcome, gain]);
 		expect(realized(null)).toEqual([
-			['exercised', '1000'], ['exercised', '-1000'], ['not_exercised', '0'], [null, null]
+			['exercised', '1000'],
+			['exercised', '-1000'],
+			['not_exercised', '0'],
+			[null, null]
 		]);
 		expect(realized('sell')[0]).toEqual(['exercised', '-1000']);
 	});
