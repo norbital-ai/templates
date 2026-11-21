@@ -446,4 +446,40 @@ describe('a raise from a month already paid', () => {
 			assert.equal(april[BACK_PAY], 15000);
 		}).pipe(Effect.provide(workspace({ seed: from, now: '2026-04-20T02:00:00.000Z' })));
 	});
+
+	it.live(
+		'a late-signed raise on a mid-month attendance cutoff loads the reached period’s earlier attendance days',
+		() => {
+			const base = pack(
+				'MY',
+				'Asia/Kuala_Lumpur',
+				packTerms(7500),
+				{},
+				['2026-01', '2026-02', '2026-03', '2026-04']
+					.flatMap(weekdays)
+					.map((date) => ({ date, shift: WORK, hours: 8 })),
+				[]
+			);
+			// attendance opens on the 21st of the prior month: March's run attends 21 Feb–20 Mar
+			const cutoff: Seed = {
+				...base,
+				pay_group: (base.pay_group ?? []).map((row) => ({
+					...row,
+					payment_schedule: { ...objectValue(row.payment_schedule), pay_cutoff_day: 21 }
+				}))
+			};
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* pay(t, '2026-02');
+				yield* pay(t, '2026-03');
+				// raise from 1 March, signed 1 April: must load 21–28 Feb attendance so those days stay worked, not absent
+				yield* raised(t, 9000, '2026-04-01', '2026-03-01');
+				yield* run(t, '2026-04');
+				const april = yield* ownLines(t, '2026-04');
+				assert.equal(april['BASIC/EMPLOYEE'], 9000);
+				assert.equal(april[BACK_PAY], 9000 - 7500);
+				assert.equal(april['ABSENCE/EMPLOYEE'], undefined);
+			}).pipe(Effect.provide(workspace({ seed: cutoff, now: '2026-04-20T02:00:00.000Z' })));
+		}
+	);
 });

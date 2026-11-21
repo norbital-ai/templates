@@ -509,14 +509,24 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	// terms signed since the last pay date that began before this period: they may owe back pay
 	const settings = (own.data.law_settings ?? [])[0];
 	const paysBack = typeof objectValue(settings?.conversions).back_pay === 'string';
+	const lastPayDate =
+		paidRuns
+			.filter(
+				(run) =>
+					String(run.pay_group_id) === String(own.row.pay_group_id) &&
+					String(run.pay_date) < ownPayDate
+			)
+			.map((run) => String(run.pay_date))
+			.toSorted()
+			.at(-1) ?? '';
 	const signedLately =
-		!paysBack || offCycle
+		!paysBack || offCycle || lastPayDate === ''
 			? []
 			: (own.data.contract_terms ?? []).flatMap((row) => {
 					const signed = signedOn(row);
 					const employee = employeeOf.get(String(row.employment_id));
 					return employee !== undefined &&
-						signed !== '' &&
+						signed > lastPayDate &&
 						signed <= ownPayDate &&
 						// terms from before this period's salary days: the attendance window may already hold their first days
 						fromOf(row) < String(objectValue(own.row.salary_coverage).from) &&
@@ -556,7 +566,25 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			...late
 				.filter((row) => employeeOf.get(String(row.employment_id)) === employee)
 				.map((row) => String(row.incurred_on)),
-			...signedLately.filter((row) => row.employee === employee).map((row) => row.from)
+			...signedLately
+				.filter((row) => row.employee === employee)
+				.map((row) => {
+					const reached = paidRuns
+						.filter(
+							(run) =>
+								String(run.pay_group_id) === String(own.row.pay_group_id) &&
+								String(objectValue(run.salary_coverage).to) >= row.from
+						)
+						.map((run) => {
+							const coverage = objectValue(run.salary_coverage);
+							const salary = { from: String(coverage.from), to: String(coverage.to) };
+							const schedule = schedules.get(String(run.pay_group_id));
+							const attended = schedule === undefined ? salary : attendanceOf(schedule, salary);
+							return attended.from < salary.from ? attended.from : salary.from;
+						})
+						.toSorted()[0];
+					return reached !== undefined && reached < row.from ? reached : row.from;
+				})
 		].toSorted()[0] ?? ownFrom;
 	const ordered = candidates.toSorted((a, b) => earliestOf(a).localeCompare(earliestOf(b)));
 	const people: string[] = [];
@@ -835,6 +863,9 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	 * A person's earnings in an earlier period on the terms signed by a day, priced once: what one period's back pay counts
 	 * on its pay date is what the next one's counts on the pay date before.
 	 */
+	const backPayCode = typeof objectValue(settings?.conversions).back_pay === 'string'
+		? String(objectValue(settings?.conversions).back_pay)
+		: '';
 	const earnings = new Map<string, number>();
 	const earnedOn = Effect.fn('payroll.earnedOn')(function* (
 		period: Period,
@@ -842,6 +873,27 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		who: readonly string[]
 	) {
 		const keyOf = (employee: string) => `${period.id}/${asOf}/${employee}`;
+		for (const employee of who) {
+			if (earnings.has(keyOf(employee))) continue;
+			// An un-amended paid period with no terms signed between its pay date and `asOf` (and no back pay of its own)
+			// already holds its exact earnings on the paid payslip.
+			const amended =
+				(again.get(employee) ?? []).some((p) => p.id === period.id) ||
+				(spanData.pay_amendment ?? []).some(
+					(row) =>
+						String(row.employee_id) === employee &&
+						`${String(row.pay_group_id)}/${String(row.period)}` === period.key
+				);
+			const changed = agreedOf(employee).some(
+				(row) => signedOn(row) > period.payDate && signedOn(row) <= asOf
+			);
+			const held = !amended && !changed ? paidOf(employee).find((entry) => entry.run.id === period.id) : undefined;
+			if (
+				held !== undefined &&
+				(backPayCode === '' || !linesOf(held.slip.breakdown).some((line) => line.code === backPayCode))
+			)
+				earnings.set(keyOf(employee), earned(held.slip.breakdown));
+		}
 		const missing = who.filter((employee) => !earnings.has(keyOf(employee)));
 		if (missing.length > 0) {
 			const { payslips } = yield* priced(period, missing, { termsAsOf: asOf });

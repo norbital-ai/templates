@@ -1027,22 +1027,23 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 							slot.date,
 							(unpaidOn.get(slot.date) ?? 0) + (1 - shareOf(catalog, entry, slot)) / 2
 						);
-					const unpaidAmount = [...unpaidOn].reduce(
-						(total, [date, share]) =>
-							total +
-							// the statute's own day rate is shared out before it is rounded (half a day is half the rate); a
-							// month's day count gives a rate that is rounded first, then shared
-							perDay(
-								settingsView.proration_basis === 'DAY_RATE'
-									? share * nplUnitOn(date)
-									: share *
-											perDay(
-												nplUnitOn(date) *
-													(settingsView.proration_basis === 'CALENDAR_DAYS'
-														? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
-														: 1)
-											)
-							),
+					// Sum unpaid share by calendar month and unit rate before rounding so two half-days in the same month
+					// equal one full day without double-rounding each half-day separately.
+					const unpaidByUnit = new Map<string, { unit: number; share: number }>();
+					for (const [date, share] of unpaidOn) {
+						const unit = perDay(
+							nplUnitOn(date) *
+								(settingsView.proration_basis === 'CALENDAR_DAYS'
+									? ownMonthWeight(input, coverage, 'CALENDAR_DAYS', date)
+									: 1)
+						);
+						const key = `${date.slice(0, 7)}:${String(unit)}`;
+						const existing = unpaidByUnit.get(key);
+						if (existing === undefined) unpaidByUnit.set(key, { unit, share });
+						else existing.share += share;
+					}
+					const unpaidAmount = [...unpaidByUnit.values()].reduce(
+						(total, { unit, share }) => total + perDay(Number((share * unit).toFixed(10))),
 						0
 					);
 					// no-pay days take what the basic still holds, never more
