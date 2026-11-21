@@ -53,7 +53,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 						verb: 'update',
 						input: [
 							{
-								target: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+								target: fixtureId('products', '019b76dc-5d80-7000-b01f-e12b4af40d08'),
 								set: { name: 'Overwrite ERP' }
 							}
 						]

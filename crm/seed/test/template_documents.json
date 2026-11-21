@@ -1,6 +1,6 @@
 [
 	{
-		"id": "0e000000-0000-4000-8000-000000000001",
+		"id": "019b76da-e680-7000-9178-e67365c28e20",
 		"key": "terms",
 		"kind": "document",
 		"scope": "company",
@@ -10,7 +10,7 @@
 		"body": "# Example terms\n\nBetween **{{provider_company}}** and **{{company}}** (UEN: {{uen}}), dated {{date_long}}.\n\n| {{provider_name}} | {{contact_name}} |\n| :--- | :--- |\n| For {{provider_company}} | For {{company}} |"
 	},
 	{
-		"id": "0e000000-0000-4000-8000-000000000002",
+		"id": "019b76da-ea68-7000-9255-0ee3dbb412f2",
 		"key": "scope",
 		"kind": "document",
 		"scope": "project",
@@ -20,7 +20,7 @@
 		"body": "# Scope — {{project}} for {{company}}\n\n{{overview}}\n\n{{implementation_scope}}\n\n{{milestones}}\n\n{{fees}}"
 	},
 	{
-		"id": "0e000000-0000-4000-8000-000000000003",
+		"id": "019b76da-ee50-7000-95f1-e3b061d63d76",
 		"key": "research",
 		"kind": "research",
 		"scope": "company",
@@ -30,7 +30,7 @@
 		"body": "Research {{company}} ({{website}}) and {{contact_name}}, {{contact_title}}: what they do, and where an operations system would help them."
 	},
 	{
-		"id": "0e000000-0000-4000-8000-000000000004",
+		"id": "019b76da-f238-7000-b0ab-e9493b56ef37",
 		"key": "outreach",
 		"kind": "email",
 		"scope": "company",

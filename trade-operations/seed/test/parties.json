@@ -1,6 +1,6 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000101",
+		"id": "019b76dc-51c8-7000-a2d1-819d9cbbbf03",
 		"external_code": "C-101",
 		"name": "Northline Manufacturing",
 		"kind": "customer",
@@ -10,7 +10,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000102",
+		"id": "019b76dc-55b0-7000-843e-8a138a0a4dae",
 		"external_code": "V-101",
 		"name": "Meridian Materials",
 		"kind": "supplier",
@@ -20,7 +20,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000103",
+		"id": "019b76dc-5998-7000-924d-57a2b9d6b1d1",
 		"external_code": "101",
 		"source_number": "CUST-101",
 		"name": "Kingdee customer",

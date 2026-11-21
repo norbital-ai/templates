@@ -118,7 +118,7 @@ it.live("Kingdee's settlement methods mirror read-only, and a deleted one goes i
 		// the test pack's PROBE-NET30 row is the same method: the read keeps its identity and takes Kingdee's name
 		expect(yield* read()).toMatchObject([
 			{ code: 'JF17', name: '月结30天收180天承兑汇票', active: true },
-			{ id: fixtureId('settlements', '00000000-0000-4000-8000-000000000503'), name: '月结30天' }
+			{ id: fixtureId('settlements', '019b76dc-3a58-7000-91cb-3a64f6ffefe1'), name: '月结30天' }
 		]);
 		settlements = method(1);
 		yield* t.pull('settlements');

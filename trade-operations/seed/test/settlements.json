@@ -1,6 +1,6 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000501",
+		"id": "019b76dc-6550-7000-971b-c5428655757b",
 		"external_code": "11",
 		"code": "NET30",
 		"name": "Net 30",
@@ -9,7 +9,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000502",
+		"id": "019b76dc-6938-7000-96b3-d968c091792a",
 		"external_code": "12",
 		"code": "NET60",
 		"name": "Net 60",
@@ -18,7 +18,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000503",
+		"id": "019b76dc-3a58-7000-91cb-3a64f6ffefe1",
 		"external_code": "1",
 		"code": "PROBE-NET30",
 		"name": "Probe net 30",
@@ -27,7 +27,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000504",
+		"id": "019b76dc-3e40-7000-afcf-e8e30e8de6e5",
 		"external_code": "2",
 		"code": "PROBE-NET60",
 		"name": "Probe net 60",

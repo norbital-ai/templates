@@ -1,6 +1,6 @@
 [
 	{
-		"id": "77d7f2c1-d9a9-5d46-981b-de47fa150de6",
+		"id": "019ad735-8400-7007-b5ce-c84e211332f5",
 		"jurisdiction_code": "TW",
 		"effective_from": "2025-12-01",
 		"law": {
@@ -1931,7 +1931,7 @@
 						},
 						{
 							"title": "衛生福利部 勞動基準法出勤加給工資標準 (summary of the Ministry of Labor reading)",
-							"url": "https://mohw.gov.tw/dl-56292-63ba2d18-295c-473e-8c0c-2cc15c0c159c.html",
+							"url": "https://mohw.gov.tw/dl-56292-019ad736-b4b0-7000-86a3-f1b0659213c4.html",
 							"locator": "休息日; read 2026-11-13",
 							"quote": "前2小時另再加給1又1/3，第3至8小時另再加給1又2/3，第9至12小時另再加給2又2/3"
 						},
@@ -5743,7 +5743,7 @@
 		}
 	},
 	{
-		"id": "93051339-836a-578b-b56d-acfd7caf5226",
+		"id": "019b76da-a800-7007-9516-1d964ac48fa0",
 		"jurisdiction_code": "TW",
 		"effective_from": "2026-01-01",
 		"law": {
@@ -5943,7 +5943,7 @@
 		}
 	},
 	{
-		"id": "6989db66-be35-5ae2-9b91-63345f5b2854",
+		"id": "019d4657-0000-7001-91a2-4a3e6426b97f",
 		"jurisdiction_code": "TW",
 		"effective_from": "2026-04-01",
 		"law": {
@@ -5997,7 +5997,7 @@
 		}
 	},
 	{
-		"id": "b8a4ef9c-27d4-5ef9-9f90-41a08e013742",
+		"id": "01a0f4c2-c400-7001-b1c4-21c272833e1e",
 		"jurisdiction_code": "TW",
 		"effective_from": "2026-10-01",
 		"law": {
@@ -6043,7 +6043,7 @@
 		}
 	},
 	{
-		"id": "5706ff72-a7a0-5289-af6e-bc407dbba2c5",
+		"id": "01a2ce8b-d400-7004-837c-f9fdd89363fe",
 		"jurisdiction_code": "TW",
 		"effective_from": "2027-01-01",
 		"law": {
@@ -6063,7 +6063,7 @@
 						},
 						{
 							"title": "行政院 院會 2026-10-01: 最低工資調整報告 (月薪30,900元、時薪205元)",
-							"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/59848ab4-676b-41b7-898e-9f5207325f0a",
+							"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/019ad736-b898-7000-8a49-3e5666a4b81f",
 							"locator": "院長提示; read 2026-11-13",
 							"quote": "月薪30,900元、時薪205元"
 						}
@@ -6084,7 +6084,7 @@
 						},
 						{
 							"title": "行政院 院會 2026-10-01: 最低工資調整報告 (月薪30,900元、時薪205元)",
-							"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/59848ab4-676b-41b7-898e-9f5207325f0a",
+							"url": "https://www.ey.gov.tw/Page/9277F759E41CCD91/019ad736-b898-7000-8a49-3e5666a4b81f",
 							"locator": "院長提示; read 2026-11-13",
 							"quote": "月薪30,900元、時薪205元"
 						}
@@ -6147,7 +6147,7 @@
 						},
 						{
 							"title": "行政院 勞保費率說明 (2027 reaches the 13% cap, employment insurance 1% included)",
-							"url": "https://www.ey.gov.tw/Page/5A8A0CB5B41DA11E/861ff425-ca86-48a9-9ea7-406b479a090b",
+							"url": "https://www.ey.gov.tw/Page/5A8A0CB5B41DA11E/019ad736-bc80-7000-be7b-737e08c1a346",
 							"locator": "費率; read 2026-11-13",
 							"quote": "116年調升至上限13%"
 						}

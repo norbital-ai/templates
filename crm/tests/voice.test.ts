@@ -113,8 +113,6 @@ describe('voice profiles', () => {
 	});
 });
 
-const fixture = (n: number) => `0b000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-
 // `seed/test`: Aaron, without a profile, tagged as S1 and again as `S1 repeated` in the first meeting; S2 untagged
 // in the next
 it.live(
@@ -126,10 +124,10 @@ it.live(
 				TestWorkspace
 			);
 			const sales = yield* t.as(yield* member(t, ['sales', 'crm']));
-			const contact = nativeId('contacts', fixture(24));
-			const speaker = nativeId('meeting_speakers', fixture(41));
-			const repeated = nativeId('meeting_speakers', fixture(42));
-			const recognised = nativeId('meeting_speakers', fixture(43));
+			const contact = nativeId('contacts', '019b76da-c740-7000-801c-97d6a00ba8e8');
+			const speaker = nativeId('meeting_speakers', '019b76da-cb28-7000-a5a4-ea902b25fe50');
+			const repeated = nativeId('meeting_speakers', '019b76da-cf10-7000-aad4-4fa93fe738e5');
+			const recognised = nativeId('meeting_speakers', '019b76da-d2f8-7000-9036-0e4d142f2986');
 			const voice = Array.from({ length: 512 }, (_, i) => (i === 0 ? 1 : 0));
 			const save = (target: typeof speaker, over: { consent?: true; automatic?: true } = {}) =>
 				runAutomation(
@@ -169,7 +167,7 @@ it.live(
 				'meeting_speakers.update': [
 					{
 						target: yield* targetOf(t, 'meeting_speakers', recognised),
-						set: { contact: nativeId('contacts', fixture(23)) }
+						set: { contact: nativeId('contacts', '019b76da-c358-7000-a956-c9b3d3911522') }
 					}
 				]
 			});

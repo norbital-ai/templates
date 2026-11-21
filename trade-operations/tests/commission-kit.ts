@@ -37,7 +37,7 @@ export const commissionRule = Effect.fnUntraced(function* (t: T) {
 	return { rule, floor };
 });
 /** The WEST warehouse the product's commission floor applies at. */
-export const WEST = fixtureId('warehouses', '00000000-0000-4000-8000-000000000301');
+export const WEST = fixtureId('warehouses', '019b76dc-6d20-7000-9891-d6e4d7d9cd57');
 /** A new salesperson's 1,000 kg sale at the WEST warehouse, sealed unless `confirmOrder` is false. */
 export const commissionSale = Effect.fnUntraced(function* (t: T, confirmOrder = true) {
 	const as = yield* t.as(t.admin);

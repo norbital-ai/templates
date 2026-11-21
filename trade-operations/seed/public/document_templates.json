@@ -1,6 +1,6 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000503",
+		"id": "019b76dc-3a58-7000-91cb-3a64f6ffefe1",
 		"kind": "purchase_contract",
 		"locale": "en",
 		"version": "1",
@@ -11,7 +11,7 @@
 		"layout": "table_v1"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000504",
+		"id": "019b76dc-3e40-7000-afcf-e8e30e8de6e5",
 		"kind": "quotation",
 		"locale": "en",
 		"version": "1",
@@ -22,7 +22,7 @@
 		"layout": "table_v1"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000505",
+		"id": "019b76dc-4228-7000-8d39-7bd813a0add2",
 		"kind": "sales_contract",
 		"locale": "en",
 		"version": "1",
@@ -33,7 +33,7 @@
 		"layout": "table_v1"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000506",
+		"id": "019b76dc-4610-7000-aaa6-4847026f5359",
 		"kind": "quotation",
 		"locale": "zh",
 		"version": "1",
@@ -44,7 +44,7 @@
 		"layout": "table_v1"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000507",
+		"id": "019b76dc-49f8-7000-a95d-4fa035dded37",
 		"kind": "sales_contract",
 		"locale": "zh",
 		"version": "1",
@@ -55,7 +55,7 @@
 		"layout": "table_v1"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000508",
+		"id": "019b76dc-4de0-7000-a955-7a7fae8b527d",
 		"kind": "purchase_contract",
 		"locale": "zh",
 		"version": "1",

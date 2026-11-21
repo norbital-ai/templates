@@ -88,7 +88,7 @@ it('reads Apollo contacts and leaves out one without a company', () => {
 });
 
 it('plans one company per domain and one PIC per email, joining stored companies', () => {
-	const stored = companyId('0b000000-0000-4000-8000-000000000001');
+	const stored = companyId('019b76da-afd0-7000-8a8f-a44b6ff1a5be');
 	const lead = { website: null, industry: null, job_title: null, phone: null };
 	const plan = planLeads(
 		[

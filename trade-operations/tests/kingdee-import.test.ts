@@ -254,7 +254,7 @@ it.live('an imported Kingdee SO keeps the commission rule in force on its order 
 				{
 					target: yield* s.t.at(
 						'commercial_settings',
-						fixtureId('commercial_settings', '00000000-0000-4000-8000-000000000401')
+						fixtureId('commercial_settings', '019b76dc-3670-7000-9684-acb01c0f3440')
 					),
 					set: { freight_treatment: 'include' }
 				}

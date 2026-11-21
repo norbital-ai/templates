@@ -1,6 +1,6 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000201",
+		"id": "019b76dc-5d80-7000-b01f-e12b4af40d08",
 		"external_code": "RESIN-A",
 		"name": "Resin A",
 		"unit": "kg",
@@ -14,7 +14,7 @@
 		"source": "kingdee"
 	},
 	{
-		"id": "00000000-0000-4000-8000-000000000202",
+		"id": "019b76dc-6168-7000-b506-247740f94219",
 		"external_code": "301",
 		"source_number": "ITEM-301",
 		"name": "Kingdee resin",

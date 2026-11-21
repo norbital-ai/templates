@@ -10,17 +10,15 @@ import { Effect, Schema } from 'effect';
 import { finished } from './automation-runtime.js';
 import { fixtureId, present } from './test-runtime.js';
 
-const id = <C extends string>(model: C, n: number) =>
-	fixtureId(model, `0d5000ff-0000-4000-8000-${String(n).padStart(12, '0')}`);
-const HOME_CLEANING = id('services', 1);
-const ALPHA = id('helpers', 2);
-const CHARLIE = id('helpers', 3);
+const HOME_CLEANING = fixtureId('services', '019ad736-e778-7000-b1fe-861d5e541192');
+const ALPHA = fixtureId('helpers', '019b76dc-1f00-7000-a3bb-dd6cc8f5ac58');
+const CHARLIE = fixtureId('helpers', '019b76dc-22e8-7000-a81d-cf841de9d389');
 /** Alpha's 10:00 visit, the day's first: asked at 07:45, never answered. */
-const CHECKED = id('visits', 5);
+const CHECKED = fixtureId('visits', '019b76dc-0f60-7000-a62e-d53c2544c573');
 /** Charlie's 08:45 visit, confirmed: its ETA is checked. */
-const DRIVEN = id('visits', 6);
+const DRIVEN = fixtureId('visits', '019b76dc-1348-7000-8bfd-cd9a22600c91');
 /** The customer's ready quote, timed at boot: Wednesday 10:00. */
-const QUOTE = id('availability_requests', 8);
+const QUOTE = fixtureId('availability_requests', '019b76dc-0790-7000-a470-307912f48d15');
 const WEDNESDAY_10 = '2026-09-30T02:00:00.000Z';
 const phone = '+6580000001';
 const address = '1 Example Avenue, Singapore 400001';

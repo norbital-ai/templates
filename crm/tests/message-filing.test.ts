@@ -5,14 +5,13 @@ import { Effect } from 'effect';
 import { skipRacedWrite } from '../src/lib/message-import.js';
 import { member, nativeId, recordOf, required, targetOf, pageOf } from './workspace.js';
 
-const fixture = (n: number) => `0b000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // `seed/test`: one customer with a closed and an open job and its PIC Casey; one with two jobs and its PIC Dana
-const single = nativeId('companies', fixture(1));
-const double = nativeId('companies', fixture(2));
-const portal = nativeId('projects', fixture(12));
-const website = nativeId('projects', fixture(13));
-const payroll = nativeId('projects', fixture(14));
-const casey = nativeId('contacts', fixture(21));
+const single = nativeId('companies', '019b76da-afd0-7000-8a8f-a44b6ff1a5be');
+const double = nativeId('companies', '019b76da-b3b8-7000-8a30-fd701b156c56');
+const portal = nativeId('projects', '019b76da-dac8-7000-a069-14bd3781606e');
+const website = nativeId('projects', '019b76da-deb0-7000-957d-55caa529eb0b');
+const payroll = nativeId('projects', '019b76da-e298-7000-91ed-70348734466f');
+const casey = nativeId('contacts', '019b76da-bb88-7000-bffe-168f4372e68e');
 
 layer(TestWorkspace.layer({ root: `${process.cwd()}/` }), { excludeTestServices: true })(
 	'message filing',

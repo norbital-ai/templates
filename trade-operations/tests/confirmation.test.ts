@@ -3,10 +3,10 @@ import { expect, it as test } from '@effect/vitest';
 import { workspace as acquireWorkspace, fixtureId, sameDecimal } from './test-runtime.js';
 import { committed, NET30, NET60 } from './kit.js';
 import { documentOf } from './reads.js';
-const CUSTOMER = fixtureId('parties', '00000000-0000-4000-8000-000000000101');
-const PRODUCT = fixtureId('products', '00000000-0000-4000-8000-000000000201');
-const EAST = fixtureId('warehouses', '00000000-0000-4000-8000-000000000301');
-const WEST = fixtureId('warehouses', '00000000-0000-4000-8000-000000000302');
+const CUSTOMER = fixtureId('parties', '019b76dc-51c8-7000-a2d1-819d9cbbbf03');
+const PRODUCT = fixtureId('products', '019b76dc-5d80-7000-b01f-e12b4af40d08');
+const EAST = fixtureId('warehouses', '019b76dc-6d20-7000-9891-d6e4d7d9cd57');
+const WEST = fixtureId('warehouses', '019b76dc-ee08-7000-9543-d61f576d4e4a');
 const KINGDEE_CONTACT = fixtureId('contacts', '00000000-0000-4000-8000-000000000601');
 const syncWorkspace = (floor_rule: 'warn' | 'approve' | 'refuse' = 'warn') =>
 	acquireWorkspace({
@@ -119,7 +119,7 @@ const syncWorkspace = (floor_rule: 'warn' | 'approve' | 'refuse' = 'warn') =>
 			],
 			commercial_settings: [
 				{
-					id: '00000000-0000-4000-8000-000000000401',
+					id: '019b76dc-3670-7000-9684-acb01c0f3440',
 					code: 'default',
 					floor_rule,
 					stock_fresh_minutes: 30
@@ -127,7 +127,7 @@ const syncWorkspace = (floor_rule: 'warn' | 'approve' | 'refuse' = 'warn') =>
 			],
 			document_templates: [
 				{
-					id: '00000000-0000-4000-8000-000000000502',
+					id: '019b76dc-6938-7000-96b3-d968c091792a',
 					kind: 'sales_contract',
 					locale: 'en',
 					version: '1',

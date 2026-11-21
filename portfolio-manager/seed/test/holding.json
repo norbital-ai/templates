@@ -1,6 +1,6 @@
 [
 	{
-		"id": "0f000001-0000-4000-8000-000000000001",
+		"id": "019b76dc-26d0-7000-be9f-75072e36f13e",
 		"instrument": "Acme Robotics Inc",
 		"symbol": "ACME UW",
 		"asset_class": "equity",
@@ -13,7 +13,7 @@
 		"research_direction": "Order backlog and margins"
 	},
 	{
-		"id": "0f000001-0000-4000-8000-000000000002",
+		"id": "019b76dc-2ab8-7000-8706-bff4e7ef0431",
 		"instrument": "Global Bond Index Fund",
 		"asset_class": "fund",
 		"currency": "USD",
@@ -24,7 +24,7 @@
 		"unrealised_pl": 100
 	},
 	{
-		"id": "0f000001-0000-4000-8000-000000000003",
+		"id": "019b76dc-2ea0-7000-8ab2-4654d4147049",
 		"instrument": "Operating account",
 		"asset_class": "cash",
 		"currency": "USD",
@@ -32,7 +32,7 @@
 		"value_base": 3000
 	},
 	{
-		"id": "0f000001-0000-4000-8000-000000000004",
+		"id": "019b76dc-3288-7000-a9bb-eabc9bc00b69",
 		"instrument": "Credit facility",
 		"asset_class": "loan",
 		"currency": "USD",

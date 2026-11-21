@@ -11,7 +11,7 @@ import { SourceRowInvalid, type SqlRow } from '../src/integration/kingdee/pollin
 
 const observed = '2026-10-26T03:00:00.000Z';
 const owner = {
-	order: fixtureId('orders', '00000000-0000-4000-8000-000000000101'),
+	order: fixtureId('orders', '019b76dc-51c8-7000-a2d1-819d9cbbbf03'),
 	currency: 'CNY'
 };
 type Line = FinancialDocument['lines'][number];
@@ -324,7 +324,7 @@ test('an invoice carries its delivery line cost only for the billed quantity', (
 test('invoice evidence cannot cross its delivery order or line', () => {
 	for (const changed of [
 		invoice('10', {
-			owner: { ...owner, order: fixtureId('orders', '00000000-0000-4000-8000-000000000102') }
+			owner: { ...owner, order: fixtureId('orders', '019b76dc-55b0-7000-843e-8a138a0a4dae') }
 		}),
 		invoice('10', { currency: 'USD' }),
 		invoice('10', {

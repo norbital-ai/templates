@@ -4,15 +4,15 @@ import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-export const CUSTOMER = fixtureId('parties', '00000000-0000-4000-8000-000000000101');
-export const SUPPLIER = fixtureId('parties', '00000000-0000-4000-8000-000000000102');
-export const PRODUCT = fixtureId('products', '00000000-0000-4000-8000-000000000201');
-export const SETTINGS = fixtureId('commercial_settings', '00000000-0000-4000-8000-000000000401');
+export const CUSTOMER = fixtureId('parties', '019b76dc-51c8-7000-a2d1-819d9cbbbf03');
+export const SUPPLIER = fixtureId('parties', '019b76dc-55b0-7000-843e-8a138a0a4dae');
+export const PRODUCT = fixtureId('products', '019b76dc-5d80-7000-b01f-e12b4af40d08');
+export const SETTINGS = fixtureId('commercial_settings', '019b76dc-3670-7000-9684-acb01c0f3440');
 /** The test pack's Kingdee settlement methods (`seed/test/settlements.json`), by code. */
-export const NET30 = fixtureId('settlements', '00000000-0000-4000-8000-000000000501');
-export const NET60 = fixtureId('settlements', '00000000-0000-4000-8000-000000000502');
-export const PROBE_NET30 = fixtureId('settlements', '00000000-0000-4000-8000-000000000503');
-export const PROBE_NET60 = fixtureId('settlements', '00000000-0000-4000-8000-000000000504');
+export const NET30 = fixtureId('settlements', '019b76dc-6550-7000-971b-c5428655757b');
+export const NET60 = fixtureId('settlements', '019b76dc-6938-7000-96b3-d968c091792a');
+export const PROBE_NET30 = fixtureId('settlements', '019b76dc-3a58-7000-91cb-3a64f6ffefe1');
+export const PROBE_NET60 = fixtureId('settlements', '019b76dc-3e40-7000-afcf-e8e30e8de6e5');
 export function committed<C extends ModelName>(model: C, outcome: NativeActAnswer) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
 	const record = outcome.records.find((record) => record.model === model);
