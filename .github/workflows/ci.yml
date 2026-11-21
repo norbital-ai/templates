@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       templates: ${{ steps.templates.outputs.templates }}
+      run_hrms: ${{ steps.templates.outputs.run_hrms }}
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
@@ -68,13 +69,21 @@ jobs:
           TEMPLATE: ${{ inputs.template }}
         run: |
           if [ -n "$TEMPLATE" ]; then
-            echo "templates=$(jq -cn --arg template "$TEMPLATE" '[$template]')" >> "$GITHUB_OUTPUT"
+            if [ "$TEMPLATE" = "hrms" ]; then
+              echo "templates=[]" >> "$GITHUB_OUTPUT"
+              echo "run_hrms=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "templates=$(jq -cn --arg template "$TEMPLATE" '[$template]')" >> "$GITHUB_OUTPUT"
+              echo "run_hrms=false" >> "$GITHUB_OUTPUT"
+            fi
           else
-            echo "templates=$(ls -d */norbital.template.json | cut -d/ -f1 | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+            echo "templates=$(ls -d */norbital.template.json | cut -d/ -f1 | grep -vx hrms | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+            echo "run_hrms=true" >> "$GITHUB_OUTPUT"
           fi
 
   template:
     needs: static
+    if: needs.static.outputs.templates != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -112,6 +121,77 @@ jobs:
       # catalog-only release keeps that name and size, and only an explicit copy replaces the record.
       - name: Upload to R2
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_RELEASE_BUCKETS: ${{ vars.R2_RELEASE_BUCKETS }}
+        run: |
+          : "${AWS_ACCESS_KEY_ID:?Missing R2 access key}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing R2 secret key}"
+          : "${R2_ENDPOINT:?Missing R2 endpoint}"
+          : "${R2_RELEASE_BUCKETS:?Missing R2 release buckets}"
+          for bucket in $R2_RELEASE_BUCKETS; do
+            aws s3 sync "$RUNNER_TEMP/releases" "s3://$bucket/releases/" --endpoint-url "$R2_ENDPOINT" --size-only
+            aws s3 cp "$RUNNER_TEMP/releases/template" "s3://$bucket/releases/template/" --recursive --endpoint-url "$R2_ENDPOINT"
+          done
+          cat "$RUNNER_TEMP"/releases/template/*/*.json
+
+  hrms-test:
+    needs: static
+    if: needs.static.outputs.run_hrms == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+      - name: Install
+        working-directory: hrms
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile
+          rm .npmrc
+      - name: bolt check
+        if: matrix.shard == 1
+        working-directory: hrms
+        run: bun x bolt check .
+      - name: bolt test (shard ${{ matrix.shard }}/4)
+        working-directory: hrms
+        run: bun x bolt test . --shard=${{ matrix.shard }}/4
+
+  hrms-publish:
+    needs: [static, hrms-test]
+    if: needs.static.outputs.run_hrms == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+      - name: Install
+        working-directory: hrms
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile
+          rm .npmrc
+      - name: bolt build
+        working-directory: hrms
+        run: bun x bolt build .
+      - name: Pack the release
+        run: '"hrms/node_modules/.bin/bolt" templates publish --filter "hrms" --out "$RUNNER_TEMP/releases"'
+      - name: Upload to R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
