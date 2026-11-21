@@ -48,7 +48,7 @@ export default automation({
 				facility_attachment: {
 					where: { form: { eq: f.id } },
 					fields: ['revision', 'kind', 'title', 'file'],
-					order_by: [{ created_at: 'desc' }, 'kind']
+					order_by: [{ created_at: 'desc' }, { kind: 'asc' }]
 				}
 			});
 			if (facility_attachment.rows.length === 0)

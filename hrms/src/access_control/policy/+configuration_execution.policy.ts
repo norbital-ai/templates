@@ -6,6 +6,6 @@ export default policy({
 		'Canonical jurisdiction configuration research and cloning. This policy is held only by declared system automations.',
 	grants: { ...READ_ALL, ...CONFIGURATION },
 	capabilities: {
-		tools: ['web_search', 'browser_navigate', 'browser_snapshot', 'browser_act']
+		tools: ['web_search', 'browser']
 	}
 });
