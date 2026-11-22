@@ -335,3 +335,123 @@ it.live(
 			expect(model.prompts.length).toBe(beforeSweep);
 		}).pipe(Effect.scoped)
 );
+
+it.live(
+	'runs exactly one infer call per lead across multiple research prompts, projects and outreach, and never re-researches unless manually triggered for that specific company',
+	() =>
+		Effect.gen(function* () {
+			let runCount = 0;
+			const model = answeringModel(() => {
+				runCount += 1;
+				return {
+					findings: `### Company research\nV${runCount} operates regional vessels [1].\n\n### PIC research\nDirector oversees fleet ops [1].`,
+					use_cases: ['FX & Cross-Border Payments: Multi-currency port settlements [1].'],
+					angle: 'Lead with FX savings on bunker settlements.',
+					sources: [{ url: 'https://vessel.example.com', title: 'Vessel Co' }],
+					pic_seniority: 'owner',
+					projects: ['Automate USD/SGD bunker payment rails', 'Multi-currency port disbursement cards'],
+					outreach: {
+						subject: 'Cutting FX spread on Vessel Co settlements',
+						body: 'Hi Alex, saw your regional fleet expansion.'
+					}
+				};
+			});
+			const t = yield* workspace({
+				now: '2026-10-01T02:00:00Z',
+				ports: model.ports,
+				host: {
+					agent: {
+						host_tools: [
+							{
+								name: 'web_search',
+								description: 'Stub search tool for test workspace.',
+								input: { type: 'object' },
+								behavior: {},
+								call: async () => []
+							}
+						]
+					}
+				}
+			});
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'template_documents.create': [
+					{
+						key: 'research_company',
+						kind: 'research',
+						title: 'Company research',
+						body: 'Research {{company}} operations.'
+					},
+					{
+						key: 'research_pic',
+						kind: 'research',
+						title: 'PIC research',
+						body: 'Research {{contact_name}} ({{contact_title}}).'
+					},
+					{
+						key: 'outreach_owner',
+						kind: 'email',
+						title: 'Outreach owner',
+						subject: 'Ideas for {{company}}',
+						body: 'Hi {{contact_name}}, ...'
+					}
+				],
+				'outreach_settings.create': [{ projects_prompt: 'Propose 2–3 FX/payment projects.' }]
+			});
+			const created = yield* admin.act({
+				'companies.create': [
+					{
+						name: 'Vessel Co',
+						contacts: [
+							{
+								full_name: 'Alex Tan',
+								job_title: 'Managing Director',
+								email: 'alex@vessel.example.com',
+								is_primary: true
+							}
+						]
+					}
+				]
+			});
+			if (created.kind !== 'committed') throw new Error('create failed');
+			const companyId = recordOf(created.records, 'companies', 0).id;
+			yield* t.run_due();
+
+			// Exactly ONE infer call handled both research prompts, PIC seniority, potential projects and outreach draft.
+			expect(model.prompts).toHaveLength(1);
+			const [companyRow] = pageOf(
+				yield* admin.query({
+					companies: {
+						where: { id: { eq: companyId } },
+						fields: ['research', 'researched_at']
+					}
+				}),
+				'companies'
+			).rows;
+			expect(companyRow?.['researched_at']).not.toBeNull();
+			expect(String(companyRow?.['research'] ?? '')).toContain('V1 operates regional vessels');
+			expect(
+				pageOf(
+					yield* admin.query({ potential_projects: { where: { company: { eq: companyId } }, fields: ['summary'] } }),
+					'potential_projects'
+				).rows
+			).toHaveLength(2);
+			expect(
+				pageOf(
+					yield* admin.query({ tasks: { where: { company: { eq: companyId } }, fields: ['subject'] } }),
+					'tasks'
+				).rows
+			).toHaveLength(1);
+
+			// Sweep `{}` and batch `{ companies: [companyId], force: true }` NEVER re-research an already-researched company.
+			yield* admin.run('research_lead', {}, JobResult);
+			yield* admin.run('research_lead', { companies: [companyId], force: true }, JobResult);
+			yield* t.run_due();
+			expect(model.prompts).toHaveLength(1);
+
+			// Only an explicit manual trigger for THAT specific company (`{ company, force: true }`) re-researches it.
+			yield* admin.run('research_lead', { company: companyId, force: true }, JobResult);
+			yield* t.run_due();
+			expect(model.prompts).toHaveLength(2);
+		}).pipe(Effect.scoped)
+);

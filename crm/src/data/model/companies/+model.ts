@@ -179,7 +179,7 @@ export default model('companies', {
 				values: { name: existing.name }
 			});
 		},
-		// a company without research is researched once, however it was created
+		// a company without research is researched once on creation; once researched_at is set it is not re-researched unless manually triggered for that company
 		effect: function* (changes, ctx) {
 			for (const { after } of changes)
 				if (after.researched_at == null)

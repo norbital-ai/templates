@@ -39,9 +39,7 @@
 					icon: 'lucide:sparkles',
 					name: t('lead.research_sweep'),
 					run: (ids: readonly Id<'companies'>[]) => {
-						act.run(
-							ctx.run('research_lead', ids.length > 0 ? { companies: [...ids], force: true } : {})
-						);
+						act.run(ctx.run('research_lead', ids.length > 0 ? { companies: [...ids] } : {}));
 					}
 				},
 				{
