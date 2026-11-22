@@ -349,7 +349,10 @@ it.live(
 					angle: 'Lead with FX savings on bunker settlements.',
 					sources: [{ url: 'https://vessel.example.com', title: 'Vessel Co' }],
 					pic_seniority: 'owner',
-					projects: ['Automate USD/SGD bunker payment rails', 'Multi-currency port disbursement cards'],
+					projects: [
+						'Automate USD/SGD bunker payment rails',
+						'Multi-currency port disbursement cards'
+					],
 					outreach: {
 						subject: 'Cutting FX spread on Vessel Co settlements',
 						body: 'Hi Alex, saw your regional fleet expansion.'
@@ -432,13 +435,17 @@ it.live(
 			expect(String(companyRow?.['research'] ?? '')).toContain('V1 operates regional vessels');
 			expect(
 				pageOf(
-					yield* admin.query({ potential_projects: { where: { company: { eq: companyId } }, fields: ['summary'] } }),
+					yield* admin.query({
+						potential_projects: { where: { company: { eq: companyId } }, fields: ['summary'] }
+					}),
 					'potential_projects'
 				).rows
 			).toHaveLength(2);
 			expect(
 				pageOf(
-					yield* admin.query({ tasks: { where: { company: { eq: companyId } }, fields: ['subject'] } }),
+					yield* admin.query({
+						tasks: { where: { company: { eq: companyId } }, fields: ['subject'] }
+					}),
 					'tasks'
 				).rows
 			).toHaveLength(1);

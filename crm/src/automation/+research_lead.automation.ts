@@ -384,9 +384,7 @@ const processCompany = Effect.fnUntraced(function* (
 					});
 				const heading = singlePrompt !== undefined ? `## ${singlePrompt.title}\n\n` : '';
 				const body =
-					answer === null
-						? ''
-						: `${heading}${renumber(answer.findings.trim(), answer.sources)}`;
+					answer === null ? '' : `${heading}${renumber(answer.findings.trim(), answer.sources)}`;
 				const use_cases =
 					answer === null
 						? []
@@ -439,7 +437,9 @@ const processCompany = Effect.fnUntraced(function* (
 											label: 'Potential projects'
 										})
 										.pipe(
-											Effect.map((res) => res.projects.map((s) => s.trim()).filter((s) => s !== '')),
+											Effect.map((res) =>
+												res.projects.map((s) => s.trim()).filter((s) => s !== '')
+											),
 											Effect.orElseSucceed(() => [])
 										)
 								: [];
