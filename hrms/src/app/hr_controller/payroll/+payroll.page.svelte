@@ -5,6 +5,7 @@
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
+	import { exportRunOvertimeReport } from '../../../data/model/payroll_run/service/exports/overtime_report_download.js';
 	import { exportSalaryListing } from '../../../data/model/payroll_run/service/exports/salary_listing_download.js';
 	import { periodLabel } from '../../../lib/ui/format/period_label.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -49,6 +50,13 @@
 						description: ctx.t('app.payroll.export_listing_description'),
 						requires_selection: true,
 						run: (ids) => exportSalaryListing(ctx, ids)
+					},
+					{
+						icon: 'lucide:clock',
+						name: ctx.t('app.payroll.export_overtime'),
+						description: ctx.t('app.payroll.export_overtime_description'),
+						requires_selection: true,
+						run: (ids) => exportRunOvertimeReport(ctx, ids)
 					}
 				]
 			}}

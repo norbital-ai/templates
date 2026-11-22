@@ -5,13 +5,14 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { cn, CustomView, open_record, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { cn, CustomView, open_record, RecordShell, Sheet, toast } from '@norbital-ai/ui';
 	import { Scroll } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { DateTime, Effect } from 'effect';
 	import { isJsonObject, jsonObject } from '../../foundation.js';
 	import { idOf } from '../../reads.js';
 	import { employmentOn, segmentsOf } from '../../../data/model/employee_profile/service/person.js';
+	import { exportMonthOvertimeReport } from '../../../data/model/payroll_run/service/exports/overtime_report_download.js';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {
@@ -287,6 +288,24 @@
 			)
 		);
 	}
+	let exportingOvertime = $state(false);
+	function downloadOvertimeReport() {
+		exportingOvertime = true;
+		fork(
+			exportMonthOvertimeReport(ctx, company.id, from.slice(0, 7)).pipe(
+				Effect.catch((err) =>
+					Effect.sync(() =>
+						toast.error(err instanceof Error ? err.message : ctx.t('component.error'))
+					)
+				),
+				Effect.ensuring(
+					Effect.sync(() => {
+						exportingOvertime = false;
+					})
+				)
+			)
+		);
+	}
 	function downloadRoster() {
 		const rows = people.flatMap((person) =>
 			dates.flatMap((date) => {
@@ -340,6 +359,12 @@
 					icon: 'lucide:download',
 					name: ctx.t('roster.download_workbook'),
 					disabled: () => (loading ? ctx.t('component.loading') : null)
+				},
+				{
+					run: downloadOvertimeReport,
+					icon: 'lucide:clock',
+					name: ctx.t('roster.export_overtime'),
+					disabled: () => (exportingOvertime || loading ? ctx.t('component.loading') : null)
 				}
 			]
 		}}

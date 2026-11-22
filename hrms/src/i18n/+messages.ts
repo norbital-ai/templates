@@ -46,6 +46,9 @@ export default messages({
 	'app.payroll.mark_paid': 'Mark as paid',
 	'app.payroll.export_listing': 'Export salary listing',
 	'app.payroll.export_listing_description': 'One workbook, a sheet for each selected run',
+	'app.payroll.export_overtime': 'Export overtime report',
+	'app.payroll.export_overtime_description':
+		'Overtime pay by catalogue item following attendance cutoff',
 	'app.payroll.earnings': 'Earnings',
 	'app.payroll.deductions': 'Deductions',
 	'app.payroll.employer_contributions': 'Employer contributions',
@@ -356,6 +359,7 @@ export default messages({
 	'roster.leave': 'On leave',
 	'roster.lock_rung_consumed': 'Consumed by payroll',
 	'roster.download_workbook': 'Download workbook',
+	'roster.export_overtime': 'Export overtime report',
 	'app.payroll.separate_runs':
 		'These people were not employed in the same period. Pay them in separate runs.',
 	'settings_form.calendar': 'Currency and calendar',

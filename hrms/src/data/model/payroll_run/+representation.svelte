@@ -14,10 +14,12 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { moneyKind } from '../../../lib/ui/format/money_kind.js';
+	import { exportRunOvertimeReport } from './service/exports/overtime_report_download.js';
 	import { exportSalaryListing } from './service/exports/salary_listing_download.js';
 	let { view, ctx }: { view: RecordView<'payroll_run'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	let downloading = $state(false);
+	let downloadingOvertime = $state(false);
 	let paying = $state(false);
 	const markPaid = () => {
 		if (record === null) return;
@@ -54,6 +56,20 @@
 			)
 		);
 	};
+	const downloadOvertime = () => {
+		if (record === null) return;
+		downloadingOvertime = true;
+		fork(
+			exportRunOvertimeReport(ctx, [record.id]).pipe(
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (downloadingOvertime = false)))
+			)
+		);
+	};
 	// the run's company pays in its law's currency
 	const paidIn = $derived(
 		record === null
@@ -81,6 +97,9 @@
 		>{/if}{/snippet}
 {#snippet summary()}<Stack size="fill" gap="sm"
 		>{#if record !== null}<Cluster gap="sm" justify="end">
+				<Button variant="secondary" disabled={downloadingOvertime} onclick={downloadOvertime}
+					>{ctx.t('app.payroll.export_overtime')}</Button
+				>
 				<Button variant="secondary" disabled={downloading} onclick={download}
 					>{ctx.t('app.payroll.export_listing')}</Button
 				>
