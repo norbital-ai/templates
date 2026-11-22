@@ -827,9 +827,14 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 	/** What else an order held for review could be waiting on, beyond an order moving; read only if the window is not quiet. */
 	local: Effect.Effect<string, SourceRowInvalid | FacilityFailure | ReadFailed> = Effect.succeed('')
 ) {
-	const window = yield* orderWindow(ctx, cursor, 200, documentWindow(directions));
+	const window = yield* orderWindow(ctx, cursor, 200, (poHasUuid) =>
+		documentWindow(poHasUuid ? directions : directions.filter((d) => d !== 'purchasing'))
+	);
 	if (unchanged && window.quiet) return null;
-	const sides = yield* Effect.forEach(directions, (direction) =>
+	const activeDirections = window.poHasUuid
+		? directions
+		: directions.filter((d) => d !== 'purchasing');
+	const sides = yield* Effect.forEach(activeDirections, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
 		)
@@ -1017,23 +1022,27 @@ export const orderWindow = Effect.fnUntraced(function* (
 	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
 	cursor: Json | null,
 	size: number,
-	moved: string
+	moved: string | ((poHasUuid: boolean) => string)
 ) {
 	const [current] = yield* nativeSql(
 		ctx,
 		`SELECT database_guid,recovery_fork_guid,
 CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at,
-CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS upper
+CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS upper,
+CASE WHEN COL_LENGTH('dbo.POOrder','FUUID') IS NOT NULL THEN 1 ELSE 0 END AS po_has_uuid
 FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	);
 	const observed = yield* checked(() => {
 		const upper = text(current ?? {}, 'upper').toLowerCase();
 		if (!/^0x[0-9a-f]{16}$/.test(upper)) invalid('upper', 'The rowversion ceiling is unavailable');
+		const rawPoUuid = current?.['po_has_uuid'];
+		const poHasUuid = rawPoUuid !== 0 && rawPoUuid !== false && rawPoUuid !== '0';
 		return {
 			database: text(current ?? {}, 'database_guid'),
 			fork: text(current ?? {}, 'recovery_fork_guid'),
 			at: Instant(text(current ?? {}, 'observed_at')),
-			upper
+			upper,
+			poHasUuid
 		};
 	});
 	const scope = `${yield* sha256Hex(JSON.stringify({ database: observed.database, fork: observed.fork }))}:${yield* sha256Hex(ctx.configuration.branchNo)}`;
@@ -1044,9 +1053,10 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	const after = open?.after ?? '';
 	if (to < from)
 		return yield* invalidCursor('The source rowversion moved behind the saved bookmark');
+	const movedSql = typeof moved === 'function' ? moved(observed.poHasUuid) : moved;
 	const page = yield* nativeSql(
 		ctx,
-		`SELECT TOP ${size + 1} * FROM (${moved}) AS source WHERE __key COLLATE Latin1_General_BIN2 > @after COLLATE Latin1_General_BIN2 ORDER BY __key COLLATE Latin1_General_BIN2`,
+		`SELECT TOP ${size + 1} * FROM (${movedSql}) AS source WHERE __key COLLATE Latin1_General_BIN2 > @after COLLATE Latin1_General_BIN2 ORDER BY __key COLLATE Latin1_General_BIN2`,
 		{ branch: ctx.configuration.branchNo, after, from, to }
 	);
 	const headers = page.slice(0, size);
@@ -1055,6 +1065,7 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	const kept = previous?.waiting ?? [];
 	return {
 		account: `${observed.database}/${observed.fork}`.toLowerCase(),
+		poHasUuid: observed.poHasUuid,
 		observedAt: observed.at,
 		/** The token the last completed read left, `null` before any. */
 		before: previous?.token ?? null,

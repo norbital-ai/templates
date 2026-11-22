@@ -1,5 +1,10 @@
 import { sync } from '@norbital-ai/bolt';
-import { columns, readSource, fromSource } from '../../../integration/kingdee/polling.js';
+import {
+	columns,
+	readSource,
+	fromSource,
+	sanitizePhone
+} from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
 
@@ -23,7 +28,7 @@ export default sync('parties', 'kingdee', {
 						currency: r.currency('currency'),
 						active: r.bool('active', true),
 						address: r.text('address', null),
-						phone: r.text('phone', null),
+						phone: sanitizePhone(r.text('phone', null)),
 						source_updated_at: r.instant('source_updated_at')
 					};
 				},

@@ -45,6 +45,14 @@ const within = (column: string) =>
 	`${column}>=CONVERT(binary(8),@from,1) AND ${column}<CONVERT(binary(8),@to,1)`;
 /** Open items fall in 64 buckets by id: a bucket whose sums disagree with what was published is read again. */
 const BUCKETS = 64;
+/** Large ledgers (>5,000 open/settled contacts) shard the 64 buckets across 8 rows to stay inside atomic bounds. */
+const SHARDS = 8;
+const BUCKETS_PER_SHARD = BUCKETS / SHARDS;
+const SHARD_THRESHOLD = 5000;
+const shardOf = (bucket: number) => Math.floor(bucket / BUCKETS_PER_SHARD);
+const shardBuckets = (shard: number) =>
+	Array.from({ length: BUCKETS_PER_SHARD }, (_, i) => shard * BUCKETS_PER_SHARD + i);
+const shardId = (shard: number) => (shard === 0 ? 'receivables' : `receivables:${shard}`);
 /**
  * The account's position in one request: its ceiling, the guards, and per bucket the count, id and due-date sums and
  * remaining balance of the kept open items and the count, date sum and amount of their dated settlements. Nothing
@@ -220,6 +228,7 @@ const sourceCheckpoint = Effect.fnUntraced(function* (
 			observed_at: r.instant('observed_at'),
 			unclassified: exactId(row, 'unclassified'),
 			undated: exactId(row, 'undated'),
+			total: contacts.reduce((sum, c) => sum + c.n, 0),
 			digests: Array.from({ length: BUCKETS }, (_, bucket) => {
 				const c = contacts.find((sum) => sum.bucket === bucket);
 				const k = settled.find((sum) => sum.bucket === bucket);
@@ -301,7 +310,9 @@ const Cursor = Schema.Struct({
 	// the ceiling every published entry has been read to, and each bucket's sums as published
 	bookmark: Schema.String,
 	buckets: Schema.Array(Schema.String),
-	observed_at: Schema.String
+	observed_at: Schema.String,
+	sharded: Schema.optionalKey(Schema.Boolean),
+	next_shard: Schema.optionalKey(Schema.Int)
 });
 // a ledger published whole before reads became incremental: read in full once more
 const Whole = Schema.Struct({ protocol: Schema.Literal('kingdee-ar-v1'), account: Schema.String });
@@ -377,6 +388,7 @@ export const readReceivables = Effect.fnUntraced(function* (
 				rows: [
 					{
 						$id: 'receivables',
+						shard: 0,
 						currency: denomination,
 						observed_at: Instant(before.observed_at),
 						entries: sorted
@@ -393,7 +405,64 @@ export const readReceivables = Effect.fnUntraced(function* (
 				more: false
 			};
 		});
+	const publishShard = (shard: number, rows: readonly SqlRow[], priorBuckets: readonly string[]) =>
+		Effect.gen(function* () {
+			const idsForShard = shardBuckets(shard);
+			const position = (yield* checked(() => rows.map((row) => mapEntry(row, rules)))).filter(
+				(entry) => !excludedContacts.includes(entry.contact_id)
+			);
+			const sorted = [...position].sort((a, b) => Number(a.contact_id) - Number(b.contact_id));
+			if (new TextEncoder().encode(JSON.stringify(sorted)).byteLength > 5 * 1024 * 1024)
+				return yield* invalid(
+					't_RP_Contact',
+					'The receivables snapshot shard exceeds its atomic publish bound'
+				);
+			const shardDigests = digestsOf(sorted);
+			for (const b of idsForShard)
+				if (shardDigests[b] !== before.digests[b])
+					return yield* invalid(
+						't_RP_Contact',
+						'The receivables listing does not add up to its checkpoint. The previous snapshot is retained.'
+					);
+			const mergedBuckets = [...priorBuckets];
+			for (const b of idsForShard) {
+				const digest = shardDigests[b];
+				if (digest !== undefined) mergedBuckets[b] = digest;
+			}
+			const nextShard = shard + 1 < SHARDS ? shard + 1 : undefined;
+			return {
+				rows: [
+					{
+						$id: shardId(shard),
+						shard,
+						currency: denomination,
+						observed_at: Instant(before.observed_at),
+						entries: sorted
+					}
+				],
+				cursor: {
+					protocol: 'kingdee-ar-v2' as const,
+					account,
+					scope,
+					bookmark: before.upper,
+					buckets: mergedBuckets,
+					observed_at: before.observed_at,
+					sharded: true,
+					...(nextShard !== undefined ? { next_shard: nextShard } : {})
+				},
+				more: nextShard !== undefined
+			};
+		});
 	const whole = Effect.gen(function* () {
+		if (before.total > SHARD_THRESHOLD) {
+			const buckets = shardBuckets(0).map(String);
+			const rows = yield* selectByIds(ctx, entriesByBucket, buckets, '', account);
+			return yield* publishShard(
+				0,
+				rows,
+				Array.from({ length: BUCKETS }, () => '')
+			);
+		}
 		const rows = yield* readNativeRows(ctx, entries, { account, ids });
 		const after = yield* sourceCheckpoint(ctx, account, ids);
 		if (after.digests.some((digest, bucket) => digest !== before.digests[bucket]))
@@ -412,6 +481,17 @@ export const readReceivables = Effect.fnUntraced(function* (
 	});
 	if (prior === null || prior.protocol !== 'kingdee-ar-v2' || prior.scope !== scope)
 		return yield* whole;
+	if (prior.sharded && prior.next_shard !== undefined) {
+		const shard = prior.next_shard;
+		const rows = yield* selectByIds(
+			ctx,
+			entriesByBucket,
+			shardBuckets(shard).map(String),
+			'',
+			account
+		);
+		return yield* publishShard(shard, rows, prior.buckets);
+	}
 	const changed = (yield* readNativeRows(ctx, moved, {
 		account,
 		from: prior.bookmark,
@@ -426,6 +506,36 @@ export const readReceivables = Effect.fnUntraced(function* (
 		before.digests.every((digest, bucket) => digest === prior.buckets[bucket])
 	)
 		return { rows: [], cursor, more: false };
+	if (prior.sharded || before.total > SHARD_THRESHOLD) {
+		const dirtyShards = new Set<number>();
+		for (const id of changed) dirtyShards.add(shardOf(Number(id) % BUCKETS));
+		for (let b = 0; b < BUCKETS; b++)
+			if (before.digests[b] !== prior.buckets[b]) dirtyShards.add(shardOf(b));
+		const nextDirty = [...dirtyShards].sort((a, b) => a - b)[0];
+		if (nextDirty === undefined)
+			return {
+				rows: [],
+				cursor: { ...prior, bookmark: before.upper, observed_at: before.observed_at },
+				more: false
+			};
+		const rows = yield* selectByIds(
+			ctx,
+			entriesByBucket,
+			shardBuckets(nextDirty).map(String),
+			'',
+			account
+		);
+		const res = yield* publishShard(nextDirty, rows, prior.buckets);
+		const remainingDirty = [...dirtyShards].filter((s) => s > nextDirty);
+		return {
+			rows: res.rows,
+			cursor: {
+				...res.cursor,
+				...(remainingDirty.length ? { next_shard: undefined } : {})
+			},
+			more: remainingDirty.length > 0
+		};
+	}
 	const { source_receivables: local } = yield* ctx.query({
 		source_receivables: { where: { source: { eq: instance } }, fields: ['entries'], limit: 1 }
 	});

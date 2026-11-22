@@ -10,7 +10,7 @@ import {
 	kingdeeStockLotCostAccount,
 	kingdeeWriteAccount
 } from './configuration.js';
-import { kingdeeCreditAccount, kingdeeCreditPolicy } from './configuration.js';
+import { kingdeeCreditAccount, kingdeeCreditPolicyOf } from './configuration.js';
 import { testCreditSource } from './credit-source.js';
 import { invoiceAnalysisProjection } from './invoice-analysis.js';
 import { testPurchases } from './purchases.js';
@@ -32,16 +32,13 @@ export default integration('kingdee', {
 	test: function* (ctx) {
 		if (ctx.configuration.creditPolicy || ctx.configuration.creditAccount?.trim()) {
 			const account = kingdeeCreditAccount(ctx.configuration);
-			if (
-				ctx.configuration.creditPolicy !== kingdeeCreditPolicy ||
-				account === null ||
-				ctx.configuration.baseCurrency !== 'CNY'
-			)
+			const policy = kingdeeCreditPolicyOf(ctx.configuration.creditPolicy);
+			if (policy === null || account === null || ctx.configuration.baseCurrency !== 'CNY')
 				return yield* new SourceUnavailable({
 					reason:
-						'Credit requires the native KIS sales-out policy, CNY and a verified account identity'
+						'Credit requires a supported KIS credit policy, CNY and a verified account identity'
 				});
-			yield* testCreditSource(ctx, account);
+			yield* testCreditSource(ctx, account, policy);
 		}
 		for (const source of Object.values(bindings)) {
 			const state = yield* sourceState(ctx, source);

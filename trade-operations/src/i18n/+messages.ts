@@ -1,8 +1,13 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
 	'component.order_domestic': 'Domestic order',
+	'component.order_domestic_description':
+		'Local delivery and domestic tax-inclusive or tax-exclusive pricing.',
 	'component.order_foreign': 'Foreign order',
+	'component.order_foreign_description':
+		'Export / import terms with incoterms, ports, shipment window and shipping mark.',
 	'component.choose_order_type': 'Which type of order are you creating?',
+	'component.change_order_type': 'Change order type',
 	'models.orders.fields.trade': 'Order type',
 	'models.orders.fields.delivery_place': 'Delivery place',
 	'models.orders.fields.delivery_date': 'Delivery date',

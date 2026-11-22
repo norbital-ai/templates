@@ -1,8 +1,11 @@
 import { messages } from '@norbital-ai/bolt';
 export default messages({
 	'component.order_domestic': '国内订单',
+	'component.order_domestic_description': '国内交付与人民币含税或未税定价条款。',
 	'component.order_foreign': '外贸订单',
+	'component.order_foreign_description': '含贸易条款、起运/目的港、装运期与唛头的进出口订单。',
 	'component.choose_order_type': '要创建哪种订单？',
+	'component.change_order_type': '更换订单类型',
 	'models.orders.fields.trade': '订单类型',
 	'models.orders.fields.delivery_place': '交货地点',
 	'models.orders.fields.delivery_date': '送货日期',

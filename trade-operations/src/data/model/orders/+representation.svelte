@@ -2,18 +2,15 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { BigDecimal, DateTime, Effect, Schema } from 'effect';
 	import type { Id } from '@norbital-ai/bolt';
-	import { observe_once, run } from '@norbital-ai/ui/effect';
+	import { run } from '@norbital-ai/ui/effect';
 	import { orderTrade, type OrderTrade } from '../../../lib/order-trade.js';
 	import { translated } from '../../../lib/ui/message.js';
-	import { deliveredByLine, orderDeliveries } from '../../../lib/order-delivery.js';
-	import { reportPages } from '../../../lib/reports.js';
 	import {
 		belowInventoryCost,
 		quotationCostRead,
 		quotationScopeRead,
 		quotationFifoCosts
 	} from '../../../lib/quotation.js';
-	import { quoteBelowFloor } from '../../../lib/commercial.js';
 	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
 	import {
 		Form,
@@ -21,13 +18,13 @@
 		RecordShell,
 		type Value,
 		Table,
+		ChildGrid,
 		Button,
 		format,
 		Show,
 		Picker,
 		Combobox,
 		Badge,
-		Progress,
 		Tooltip,
 		Icon,
 		TimeRangeInput,
@@ -35,8 +32,7 @@
 		use_act,
 		type FieldEditor,
 		type FormState,
-		type RecordView,
-		type RowOf
+		type RecordView
 	} from '@norbital-ai/ui';
 	import { Bound, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
@@ -44,7 +40,6 @@
 	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
-	const moneyKind = { kind: 'money', currency: 'currency' } as const;
 
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -130,34 +125,6 @@
 			: []
 	);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);
-	const deliveryRequest = $derived(
-		id &&
-			!draft &&
-			commercial &&
-			ctx.catalog?.transactions &&
-			ctx.catalog.transactions.output === undefined
-			? orderDeliveries(id)
-			: null
-	);
-	const deliveryRead = $derived(deliveryRequest ? ctx.query(deliveryRequest) : null);
-	const deliveryPage = $derived(deliveryRead?.current?.transactions);
-	const remainingDeliveries = observe_once(() => {
-		const request = deliveryRequest;
-		const first = deliveryPage;
-		return request && first?.next
-			? reportPages(first, (after) =>
-					ctx
-						.query({
-							transactions: { ...request.transactions, after }
-						})
-						.pipe(Effect.map((answer) => answer.transactions))
-				)
-			: null;
-	});
-	const deliveryTotals = $derived.by(() => {
-		const rows = deliveryPage?.next === null ? deliveryPage.rows : remainingDeliveries.current;
-		return rows ? deliveredByLine(rows) : undefined;
-	});
 	const save = use_act(ctx);
 	const disabled = $derived(
 		Boolean(
@@ -552,114 +519,15 @@
 		{/if}
 	{/if}
 {/snippet}
-{#snippet lineUnitPrice({
-	row,
-	value
-}: {
-	row: RowOf<'order_lines'>;
-	value: RowOf<'order_lines'>['unit_price'] | undefined;
-})}
-	{@const floor =
-		view.mode !== 'create' &&
-		row.floor_net != null &&
-		row.unit_price != null &&
-		row.discount_pct != null &&
-		row.tax_rate != null
-			? {
-					net: row.floor_net,
-					effective_on: row.floor_on,
-					below: quoteBelowFloor(
-						{
-							unit_price: row.unit_price,
-							discount_pct: row.discount_pct,
-							tax_rate: row.tax_rate,
-							floor_net: row.floor_net
-						},
-						view.record.tax_inclusive
-					)
-				}
-			: undefined}
-	{#if floor && value != null}
-		{@const status = ctx.t(floor.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-		{@const minimum = `${row.currency} ${format({ kind: 'decimal', scale: 8 }, floor.net, { locale: ctx.locale })}/${row.unit}`}
-		{@const hint = `${status} ${ctx.t('component.quote_floor_minimum')}: ${minimum} · ${floor.effective_on ?? ''}`}
-		<Tooltip text={hint}>
-			{#snippet trigger({ props })}
-				<button
-					{...props}
-					type="button"
-					aria-label={`${row.currency} ${format({ kind: 'decimal', scale: 4 }, value, { locale: ctx.locale })}. ${hint}`}
-					class="inline-flex items-center gap-1 rounded-sm font-medium focus-visible:outline-2 focus-visible:outline-ring"
-					class:text-destructive={floor.below}
-					class:text-success={!floor.below}
-				>
-					<Show {ctx} kind={moneyKind} {value} {row} />
-					<Icon name={floor.below ? 'lucide:arrow-down' : 'lucide:check'} class="size-3 shrink-0" />
-				</button>
-			{/snippet}
-		</Tooltip>
-	{:else}
-		<Show {ctx} kind={moneyKind} {value} {row} />
-	{/if}
+{#snippet lines()}
+	<ChildGrid
+		{ctx}
+		of="orders"
+		relation="lines"
+		{...id ? { id } : {}}
+		columns={['product', 'quantity', 'unit', 'unit_price', 'discount_pct', 'tax_rate', 'total']}
+	/>
 {/snippet}
-{#snippet lineQuantity({
-	row,
-	value
-}: {
-	row: RowOf<'order_lines'>;
-	value: RowOf<'order_lines'>['quantity'] | undefined;
-})}
-	{@const delivered = deliveryTotals?.get(`${row.id}/${row.unit}`)}
-	{#if value != null}{format({ kind: 'decimal', scale: 3 }, value, { locale: ctx.locale })}{/if}
-	{#if delivered && value != null && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value))}
-		{@const label = ctx.t('component.line_delivery_progress', {
-			quantity: format({ kind: 'decimal', scale: 3 }, BigDecimal.format(delivered), {
-				locale: ctx.locale
-			}),
-			unit: row.unit
-		})}
-		<Progress
-			class="mt-1 h-1"
-			value={Math.max(
-				0,
-				Math.min(
-					100,
-					BigDecimal.toNumberUnsafe(
-						BigDecimal.round(
-							BigDecimal.divideUnsafe(
-								BigDecimal.multiply(delivered, BigDecimal.fromBigInt(100n)),
-								BigDecimal.fromStringUnsafe(value)
-							),
-							{ scale: 2 }
-						)
-					)
-				)
-			)}
-			aria-label={label}
-		/>
-		<span class="mt-1 block text-xs text-muted-foreground">{label}</span>
-	{/if}
-{/snippet}
-{#snippet lines()}{#if id}<Table
-			{ctx}
-			of="order_lines"
-			where={{ order: { eq: id } }}
-			columns={[
-				'product_name',
-				{ field: 'quantity', cell: lineQuantity },
-				'unit',
-				{ field: 'unit_price', cell: lineUnitPrice },
-				'discount_pct',
-				'tax_rate',
-				'total'
-			]}
-			toolbar={{
-				new:
-					ctx.catalog?.order_lines?.create && view.mode !== 'create' && !archived
-						? () => openCreate('order_lines', { order: id })
-						: false
-			}}
-		/>{/if}{/snippet}
 {#snippet fulfillment()}{#if id}<Table
 			{ctx}
 			of="transactions"
@@ -708,7 +576,12 @@
 		<Bound size="viewport">{@render lines()}</Bound>
 	</Stack>{/snippet}
 {#snippet orderState()}
-	{#if view.mode !== 'create'}
+	{#if view.mode === 'create' && choice !== null}
+		<Button variant="ghost" type="button" onclick={() => (choice = null)}>
+			<Icon name="lucide:arrow-left" />
+			{ctx.t('component.change_order_type')}
+		</Button>
+	{:else if view.mode !== 'create'}
 		<Combobox
 			options={[
 				{ value: 'active', label: ctx.t('component.order_active') },
@@ -729,22 +602,43 @@
 	<RecordShell {ctx} of="orders" mode="create" values={{ ...preset, ...view.values }}>
 		<Form {ctx} of="orders" mode="create" readonly values={{ ...preset, ...view.values }}>
 			{#snippet children(form)}
-				<Stack gap="md">
+				<Stack gap="lg">
 					<p class="text-sm text-muted-foreground">{ctx.t('component.choose_order_type')}</p>
-					{#each kinds as kind (kind)}
-						<Button
-							variant="outline"
-							class="justify-start"
-							type="button"
-							onclick={() => {
-								if (tradeValue(form.get('trade')).kind !== kind) form.set('trade', { kind });
-								choice = kind;
-							}}
-						>
-							<Icon name={kind === 'domestic' ? 'lucide:truck' : 'lucide:globe'} />
-							{ctx.t(`component.order_${kind}`)}
-						</Button>
-					{/each}
+					<div
+						class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+						role="tablist"
+						aria-label={ctx.t('component.choose_order_type')}
+					>
+						{#each kinds as kind (kind)}
+							<button
+								type="button"
+								role="tab"
+								aria-selected={false}
+								class="group flex min-h-36 flex-col items-start justify-between gap-4 rounded-xl border border-border bg-card p-6 text-left transition-colors hover:border-primary/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								onclick={() => {
+									if (tradeValue(form.get('trade')).kind !== kind) form.set('trade', { kind });
+									choice = kind;
+								}}
+							>
+								<span
+									class="flex size-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors group-hover:bg-primary/15 group-hover:text-primary"
+								>
+									<Icon
+										name={kind === 'domestic' ? 'lucide:truck' : 'lucide:globe'}
+										class="size-5"
+									/>
+								</span>
+								<span class="space-y-1">
+									<span class="block text-base font-medium text-foreground">
+										{ctx.t(`component.order_${kind}`)}
+									</span>
+									<span class="block text-sm leading-relaxed text-muted-foreground">
+										{ctx.t(`component.order_${kind}_description`)}
+									</span>
+								</span>
+							</button>
+						{/each}
+					</div>
 				</Stack>
 			{/snippet}
 		</Form>

@@ -915,10 +915,7 @@ export const readAgingAt = <E>(reader: ReportReader<E>, as_of: PlainDate, receiv
 			? (yield* reader.query(receivablesHeadRead)).source_receivables.rows
 			: [];
 		if (heads.length > 0 && as_of < earliestReceivablesCutoff) return { heads, rows: null };
-		const request = agingRead(
-			as_of,
-			heads.flatMap((head) => head.source?.id ?? [])
-		);
+		const request = agingRead(as_of, [...new Set(heads.flatMap((head) => head.source?.id ?? []))]);
 		const [first, snapshots] = yield* Effect.all(
 			[
 				reader.query(request),

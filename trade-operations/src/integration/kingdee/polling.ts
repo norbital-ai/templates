@@ -28,6 +28,38 @@ import {
 	sourceMarkers
 } from './sql.js';
 import { bindings, normalizeSourceRow } from './source-bindings.js';
+const PHONE_RE = /^\+?[0-9][0-9 ()\-.]{2,}$/;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Normalize a raw ERP phone string to Bolt's `phone` format, or `null` when unrecoverable. */
+export function sanitizePhone(raw: string | null): string | null {
+	if (raw === null) return null;
+	const ascii = raw
+		.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+		.replace(/[－—–]/g, '-')
+		.replace(/（/g, '(')
+		.replace(/）/g, ')')
+		.trim();
+	const primary = ascii.split(/[/、;,*]|转|分机|ext\.?/i)[0]?.trim() ?? '';
+	if (PHONE_RE.test(primary)) return primary;
+	const stripped = primary
+		.replace(/[^+0-9 ()\-.]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+	return PHONE_RE.test(stripped) ? stripped : null;
+}
+
+/** Normalize a raw ERP email string to Bolt's `email` format, or `null` when unrecoverable. */
+export function sanitizeEmail(raw: string | null): string | null {
+	if (raw === null) return null;
+	const first =
+		raw
+			.trim()
+			.split(/[;,/\s]+/)[0]
+			?.trim() ?? '';
+	return EMAIL_RE.test(first) ? first : null;
+}
+
 /** An ISO 4217 code the runtime knows; anything else throws. */
 export function currency(code: string): CurrencyCode {
 	if (!isCurrency(code)) throw new RangeError(`'${code}' is not an ISO 4217 currency`);

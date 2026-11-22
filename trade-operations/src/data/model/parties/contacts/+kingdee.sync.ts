@@ -1,5 +1,11 @@
 import { sync } from '@norbital-ai/bolt';
-import { columns, readSource, SourceRowInvalid } from '../../../../integration/kingdee/polling.js';
+import {
+	columns,
+	readSource,
+	sanitizeEmail,
+	sanitizePhone,
+	SourceRowInvalid
+} from '../../../../integration/kingdee/polling.js';
 import { checked } from '../../../../integration/kingdee/order-source.js';
 import { projections } from '../../../../integration/kingdee/projections.js';
 
@@ -38,8 +44,8 @@ export default sync('contacts', 'kingdee', {
 					$id: row.$id,
 					party: party.id,
 					name,
-					phone: r.text('phone', null),
-					email: r.text('email', null),
+					phone: sanitizePhone(r.text('phone', null)),
+					email: sanitizeEmail(r.text('email', null)),
 					primary: true
 				};
 			})

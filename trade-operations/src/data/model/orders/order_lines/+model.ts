@@ -96,7 +96,8 @@ const priced = Effect.fnUntraced(function* (
 			ctx.actor.kind !== 'system'
 		)
 			return yield* ctx.refuse('errors.evidence_sealed');
-		if (!product?.active) return yield* ctx.refuse('errors.product_inactive');
+		if (!product || (!product.active && ctx.actor.kind !== 'system'))
+			return yield* ctx.refuse('errors.product_inactive');
 		if (product.source !== order.ledger)
 			return yield* ctx.refuse('errors.ledger_mismatch', { field: 'product' });
 		if (order.currency !== product.currency && input.unit_price == null && !old)
@@ -121,10 +122,12 @@ const priced = Effect.fnUntraced(function* (
 		if (tax_rate == null) return yield* ctx.refuse('errors.percentage', { field: 'tax_rate' });
 		if (
 			quantity == null ||
-			BigDecimal.isLessThanOrEqualTo(
-				BigDecimal.fromStringUnsafe(quantity),
-				BigDecimal.fromBigInt(0n)
-			)
+			(ctx.actor.kind === 'system'
+				? BigDecimal.isNegative(BigDecimal.fromStringUnsafe(quantity))
+				: BigDecimal.isLessThanOrEqualTo(
+						BigDecimal.fromStringUnsafe(quantity),
+						BigDecimal.fromBigInt(0n)
+					))
 		)
 			return yield* ctx.refuse('errors.quantity_positive', { field: 'quantity' });
 		if (

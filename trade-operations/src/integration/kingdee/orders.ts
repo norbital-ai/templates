@@ -59,6 +59,15 @@ const effective = (line: Pick<Terms, 'unit_price' | 'discount_pct'>) =>
 		),
 		{ scale: 12 }
 	);
+const fitScale = (value: BigDecimal.BigDecimal | string, maxScale: number) => {
+	const d = typeof value === 'string' ? BigDecimal.fromStringUnsafe(value) : value;
+	const rounded = d.scale > maxScale ? BigDecimal.round(d, { scale: maxScale }) : d;
+	return new Intl.NumberFormat('en', {
+		useGrouping: false,
+		minimumFractionDigits: rounded.scale,
+		maximumFractionDigits: rounded.scale
+	}).format(numeric(BigDecimal.format(rounded)));
+};
 const kingdeePrice = (line: KingdeeLine, inclusive: boolean) =>
 	BigDecimal.fromStringUnsafe(inclusive ? line.inclusive : line.exclusive);
 const sameLine = (line: Terms, entry: KingdeeLine, inclusive: boolean) =>
@@ -112,9 +121,14 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 ) {
 	const directions = directionsOf(ctx.configuration);
 	// Kingdee first: a quiet window, with nothing changed here, asks the workspace nothing
-	const window = yield* orderWindow(ctx, cursor, 500, headerWindow(directions));
+	const window = yield* orderWindow(ctx, cursor, 500, (poHasUuid) =>
+		headerWindow(poHasUuid ? directions : directions.filter((d) => d !== 'purchasing'))
+	);
 	if (unchanged && window.quiet) return { rows: [], cursor, more: false };
-	const sides = yield* Effect.forEach(directions, (direction) =>
+	const activeDirections = window.poHasUuid
+		? directions
+		: directions.filter((d) => d !== 'purchasing');
+	const sides = yield* Effect.forEach(activeDirections, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
 		)
@@ -339,9 +353,14 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 ) {
 	const directions = directionsOf(ctx.configuration);
 	// Kingdee first: a quiet window, with nothing changed here, asks the workspace nothing
-	const window = yield* orderWindow(ctx, cursor, 100, headerWindow(directions));
+	const window = yield* orderWindow(ctx, cursor, 100, (poHasUuid) =>
+		headerWindow(poHasUuid ? directions : directions.filter((d) => d !== 'purchasing'))
+	);
 	if (unchanged && window.quiet) return { rows: [], cursor, more: false };
-	const sides = yield* Effect.forEach(directions, (direction) =>
+	const activeDirections = window.poHasUuid
+		? directions
+		: directions.filter((d) => d !== 'purchasing');
+	const sides = yield* Effect.forEach(activeDirections, (direction) =>
 		ownedOrders(direction, instance, ctx).pipe(
 			Effect.map((side) => ({ bill: bills[direction], ...side }))
 		)
@@ -443,16 +462,10 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 					line_key: line?.line_key ?? `kingdee:${entry.entry}`,
 					product: productId,
 					source_entry_id: entry.entry,
-					quantity: entry.quantity,
-					unit_price: kept
-						? line.unit_price
-						: new Intl.NumberFormat('en', {
-								useGrouping: false,
-								minimumFractionDigits: price.scale,
-								maximumFractionDigits: price.scale
-							}).format(numeric(BigDecimal.format(price))),
+					quantity: fitScale(entry.quantity, 3),
+					unit_price: kept ? line.unit_price : fitScale(price, 4),
 					discount_pct: kept ? line.discount_pct : '0',
-					tax_rate: entry.tax_rate,
+					tax_rate: fitScale(entry.tax_rate, 2),
 					product_code: entry.item,
 					product_name:
 						(changedItem ? product?.name : line?.product_name) ?? product?.name ?? entry.item,
@@ -463,9 +476,9 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 							: (product?.spec ?? null),
 					unit: entry.unit,
 					currency: order.currency,
-					net: entry.net,
-					tax: entry.tax,
-					total: entry.total,
+					net: fitScale(entry.net, 2),
+					tax: fitScale(entry.tax, 2),
+					total: fitScale(entry.total, 2),
 					floor_net: changedItem ? null : (line?.floor_net ?? null),
 					floor_on: changedItem ? null : (line?.floor_on ?? null),
 					commission_basis_unit: changedItem

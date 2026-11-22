@@ -1,6 +1,11 @@
 import { Option, Schema } from 'effect';
 
 export const kingdeeCreditPolicy = 'kis-sales-out-v1';
+export const kingdeeOrgCreditPolicy = 'kis-org-credit-v1';
+export const kingdeeCreditPolicies = [kingdeeCreditPolicy, kingdeeOrgCreditPolicy] as const;
+export type KingdeeCreditPolicy = (typeof kingdeeCreditPolicies)[number];
+export const kingdeeCreditPolicyOf = (value: unknown): KingdeeCreditPolicy | null =>
+	value === kingdeeCreditPolicy || value === kingdeeOrgCreditPolicy ? value : null;
 export const kingdeeConfiguration = {
 	baseCurrency: { kind: 'text', default: 'CNY' },
 	branchNo: { kind: 'text', default: '0' },
@@ -34,7 +39,7 @@ export const kingdeeConfiguration = {
 		optional: true
 	},
 	creditAccount: { kind: 'text', optional: true },
-	creditPolicy: { kind: 'enum', values: [kingdeeCreditPolicy], optional: true },
+	creditPolicy: { kind: 'enum', values: [...kingdeeCreditPolicies], optional: true },
 	billerId: { kind: 'text', optional: true },
 	packagingId: { kind: 'text', optional: true },
 	salespersonBindings: {
