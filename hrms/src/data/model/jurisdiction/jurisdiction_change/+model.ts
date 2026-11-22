@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { refusing } from '../../../../lib/amendments.js';
-import { lawWrite, syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
-import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+import { refusing } from '../../payroll_run/service/amendments.js';
+import { lawWrite, syncLedgerOn } from '../service/configuration.js';
+import { jsonObject } from '../../../../lib/foundation.js';
 
 export default model('jurisdiction_change', {
 	description:

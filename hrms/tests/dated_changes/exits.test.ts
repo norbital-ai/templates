@@ -6,9 +6,9 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { verify } from '../integrity_oracle.ts';
-import { isExit } from '../../src/lib/person.ts';
-import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { isExit } from '../../src/data/model/employee_profile/service/person.ts';
+import { evaluate } from '../../src/data/model/jurisdiction/service/expressions.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	EMPLOYMENT,
 	ENTITY,

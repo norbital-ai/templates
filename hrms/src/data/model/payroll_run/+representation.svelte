@@ -14,7 +14,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { moneyKind } from '../../../lib/ui/format/money_kind.js';
-	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
+	import { exportSalaryListing } from './service/exports/salary_listing_download.js';
 	let { view, ctx }: { view: RecordView<'payroll_run'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	let downloading = $state(false);

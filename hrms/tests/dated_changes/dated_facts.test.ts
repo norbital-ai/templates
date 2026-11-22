@@ -1,5 +1,5 @@
 import { assert, describe, it } from '@effect/vitest';
-import { companyOn } from '../../src/lib/company.js';
+import { companyOn } from '../../src/data/model/entity/service/company.js';
 import { factWrites, factsOf } from '../../src/lib/dated_facts.js';
 
 const shape = { fields: ['rate', 'job_title'], record: 'parameters' };

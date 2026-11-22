@@ -1,8 +1,8 @@
 // The data-request sheets: flat columns for every jurisdiction, and filled rows back into the models.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { WorkbookRowsError } from '../../src/lib/payroll_engine/workbook_rows.ts';
+import { isJsonObject } from '../../src/lib/foundation.ts';
+import { WorkbookRowsError } from '../../src/lib/workbook_rows.ts';
 import {
 	contractColumns,
 	entityColumns,

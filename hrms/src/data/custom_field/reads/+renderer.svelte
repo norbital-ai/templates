@@ -16,7 +16,7 @@
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Schema } from 'effect';
-	import { JsonObject } from '../../../lib/payroll_engine/contracts.js';
+	import { JsonObject } from '../../../lib/contracts.js';
 	import ReadsView from '../../../lib/ui/settings/reads_view.svelte';
 
 	type Layer = {

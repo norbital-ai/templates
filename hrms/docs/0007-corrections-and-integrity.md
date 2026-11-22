@@ -78,7 +78,7 @@ What follows:
 ## 5. The constraints
 
 1. **A paid payslip is never rewritten.**
-2. **No write reaches a paid period's inputs without its row in the same write.** One helper does it (`src/lib/amendments.ts`). `RUN_INPUTS` there lists every model a run reads with its rule: its write carries rows, it refuses a change paid periods were worked out on, or it prices nothing. A test fails when a run reads a model with no rule.
+2. **No write reaches a paid period's inputs without its row in the same write.** One helper does it (`src/data/model/payroll_run/service/amendments.ts`). `RUN_INPUTS` there lists every model a run reads with its rule: its write carries rows, it refuses a change paid periods were worked out on, or it prices nothing. A test fails when a run reads a model with no rule.
 3. **Nothing of a person moves while an unpaid run holds them.** The run holds what it priced and everything dated before it; a record dated after its window is free. Delete the run first.
 4. **A row is carried by one run.** A run takes a row only while no run holds it; deleting an unpaid run frees its rows.
 5. **Net pay never goes below zero.**
@@ -157,7 +157,7 @@ The balance a period saw is rebuilt, not stored: pay and contribution totals fro
 
 Every ledger row is written with the record that caused it, and only once that record stands. If the ledger cannot move, the write does not pass.
 
-- **One writer.** Only `src/lib/ledger/service.ts` writes `ledger_entry` and `employee_balance`. An administrator's direct write is refused too.
+- **One writer.** Only `src/data/model/employee_profile/employee_balance/service/` writes `ledger_entry` and `employee_balance`. An administrator's direct write is refused too.
 - **A record carries its postings.** A leave, claim or ad hoc entry, a payroll run and HR's manual adjustment each carry their ledger rows in their own write. The rows commit in the same statement as the record. A correction's amendment row rides the same way.
 - **An edit posts the difference; a delete posts the inverse.** The ledger keeps every row.
 - **Held for approval, nothing posts.** While a request waits, nothing is on the ledger. On the final approving decision the request's state change, the postings and any amendment row commit as one statement. A refusal, a conflict or a failure leaves the request waiting and the ledger untouched.
@@ -178,7 +178,7 @@ An exit's tasks name its stint and last day in their `occurrence_key`: `…:<emp
 
 The leave is not a dependant: the last payslip settles it ([section 0](0001-hrms-calculation-architecture.md#exits)). Changing `encash_leave`, moving the last day or cancelling the exit after that run is paid amends the period, and the next run's posting moves the days back. Under an unpaid run nothing moves; delete the run first.
 
-The rest follows in the same write. The stint's effect, for every exit raised, moved or cancelled, runs the routine in `src/lib/dependants.ts`: a cancelled exit's loan back on its instalments, then the exit's tasks. It is safe to repeat; it schedules `ledger` for the people's entitlements.
+The rest follows in the same write. The stint's effect, for every exit raised, moved or cancelled, runs the routine in `src/data/model/employee_profile/service/dependants.ts`: a cancelled exit's loan back on its instalments, then the exit's tasks. It is safe to repeat; it schedules `ledger` for the people's entitlements.
 
 What the routine does to each dependant of an exit that no longer stands:
 

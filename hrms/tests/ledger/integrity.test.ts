@@ -7,8 +7,11 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Cause, Effect, Exit } from 'effect';
 import { verify } from '../integrity_oracle.ts';
-import { leftIn, type Accounts } from '../../src/lib/ledger/core.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import {
+	leftIn,
+	type Accounts
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	PAY_GROUP,

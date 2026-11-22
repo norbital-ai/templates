@@ -1,6 +1,7 @@
-// Generate params.ts from the seed rows. Run after a seed/model vocabulary change:
+// Generate per-family param schemas under src/data/model/jurisdiction/service/params/ from the seed rows.
+// Run after a seed/model vocabulary change:
 //   node scripts/generate-registries.mjs
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = 'seed/public/jurisdiction';
@@ -101,14 +102,15 @@ for (const family of families) {
 			for (const [key, value] of Object.entries(lookup)) (held.values[key] ??= []).push(value);
 		}
 }
-const paramLines = [
-	"import { Schema } from 'effect';",
-	'',
-	'/** One typed param schema per family and code: required keys are required, not hidden in a side map. */',
-	'export const ROW_PARAMS = {'
-];
+const outDir = 'src/data/model/jurisdiction/service/params';
+mkdirSync(outDir, { recursive: true });
 for (const [family, codes] of Object.entries(perCode)) {
-	paramLines.push(`\t${family}: {`);
+	const familyLines = [
+		"import { Schema } from 'effect';",
+		'',
+		`/** Typed param schemas for ${family}: required keys are required, not hidden in a side map. */`,
+		`export const ${family} = {`
+	];
 	for (const [code, held] of Object.entries(codes).toSorted(([left], [right]) =>
 		left.localeCompare(right)
 	)) {
@@ -116,23 +118,30 @@ for (const [family, codes] of Object.entries(perCode)) {
 		const optional = [...new Set(held.sets.flatMap((set) => [...set]))].filter(
 			(key) => !required.includes(key)
 		);
-		paramLines.push(`\t\t${JSON.stringify(code)}: Schema.Struct({`);
+		familyLines.push(`\t${JSON.stringify(code)}: Schema.Struct({`);
 		for (const key of required.toSorted())
-			paramLines.push(`\t\t\t${JSON.stringify(key)}: ${schema(held.values[key])},`);
+			familyLines.push(`\t\t${JSON.stringify(key)}: ${schema(held.values[key])},`);
 		for (const key of optional.toSorted())
-			paramLines.push(
-				`\t\t\t${JSON.stringify(key)}: Schema.optional(${schema(held.values[key])}),`
-			);
-		paramLines.push('\t\t}),');
+			familyLines.push(`\t\t${JSON.stringify(key)}: Schema.optional(${schema(held.values[key])}),`);
+		familyLines.push('\t}),');
 	}
-	paramLines.push('\t},');
+	familyLines.push('} as const;', '');
+	writeFileSync(join(outDir, `${family}.ts`), familyLines.join('\n'));
 }
-paramLines.push(
+const indexLines = [
+	"import type { Schema } from 'effect';",
+	...families.map((family) => `import { ${family} } from './${family}.js';`),
+	'',
+	'/** One typed param schema per family and code: required keys are required, not hidden in a side map. */',
+	'export const ROW_PARAMS = {',
+	...families.map((family) => `\t${family},`),
 	'} as const;',
 	'',
-	'export const paramsFor = (family: string, code: string) =>',
-	'\t(ROW_PARAMS as Record<string, Record<string, Schema.ConstraintDecoder<unknown>>>)[family]?.[code];',
+	'const BY_ROW: Readonly<',
+	'\tRecord<string, Readonly<Record<string, Schema.ConstraintDecoder<unknown>>>>',
+	'> = ROW_PARAMS;',
+	'export const paramsFor = (family: string, code: string) => BY_ROW[family]?.[code];',
 	''
-);
-writeFileSync('src/lib/payroll_engine/params.ts', paramLines.join('\n'));
-console.log('generated params.ts');
+];
+writeFileSync(join(outDir, 'index.ts'), indexLines.join('\n'));
+console.log(`generated ${families.length} family param modules under ${outDir}/`);

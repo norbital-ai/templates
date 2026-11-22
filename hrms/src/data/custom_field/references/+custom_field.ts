@@ -1,5 +1,5 @@
 import { custom_field } from '@norbital-ai/bolt';
-import { REFERENCES_SHAPE } from '../../../lib/payroll_engine/references.js';
+import { REFERENCES_SHAPE } from './references.js';
 
 export default custom_field({
 	description:

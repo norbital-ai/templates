@@ -10,8 +10,12 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import { DateTime, Effect } from 'effect';
-	import { jsonObject } from '../../payroll_engine/foundation.js';
-	import { cycleOn, cycleStarted, cyclesIn } from '../../payroll_engine/pay_cycle.js';
+	import { jsonObject } from '../../foundation.js';
+	import {
+		cycleOn,
+		cycleStarted,
+		cyclesIn
+	} from '../../../data/model/payroll_run/service/pay_cycle.js';
 	import { periodLabel } from '../format/period_label.js';
 	import { pageLaws } from '../law.svelte.js';
 

@@ -17,7 +17,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+	import { jsonObject } from '../../../../lib/foundation.js';
 	import { scheduleSummary } from '../../../../lib/ui/payroll/schedule_summary.js';
 
 	let { view, ctx }: { view: RecordView<'pay_group'>; ctx: PageContext } = $props();

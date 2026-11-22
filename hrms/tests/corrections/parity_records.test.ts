@@ -3,7 +3,7 @@
 import { describe, it } from '@effect/vitest';
 import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { rostered } from '../amendment_kit.ts';
 import { ENTITY, current, stintOf, uuid } from '../kit.ts';
 import {

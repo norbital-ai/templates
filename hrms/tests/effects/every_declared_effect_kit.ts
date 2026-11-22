@@ -1,8 +1,11 @@
 // Shared helpers for sweeping every declared effect across every jurisdiction pack.
 import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Option, Schema } from 'effect';
-import { periodKey, windowOf } from '../../src/lib/ledger/core.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import {
+	periodKey,
+	windowOf
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import { lawAt, pack, packTerms, uuid } from '../kit.ts';
 
 export const NOW = '2026-11-06T02:00:00.000Z';

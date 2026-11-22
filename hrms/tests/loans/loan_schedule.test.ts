@@ -7,7 +7,7 @@ import {
 	loanScheduleProblems,
 	loanScheduleState,
 	monthlyEquivalent
-} from '../../src/lib/payroll_engine/loan_schedule.ts';
+} from '../../src/data/model/entry/loan_catalog_entry/service/loan_schedule.ts';
 
 const base = { principal: 1000, from: '2026-01-01', to: '2026-03-01', repayments: [] };
 

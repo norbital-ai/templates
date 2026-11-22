@@ -6,9 +6,9 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import type { Instant } from '@norbital-ai/bolt';
 import { DateTime, Duration, Effect, Schema } from 'effect';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import type { JsonObject } from '../../src/lib/contracts.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,

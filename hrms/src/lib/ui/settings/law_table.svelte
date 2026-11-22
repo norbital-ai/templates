@@ -2,7 +2,7 @@
 	/** One family's rows of a law, as the law holds them on the chosen day. A row opens its own editor. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, highlighted_line, Table, use_record_controller } from '@norbital-ai/ui';
-	import type { JsonObject } from '../../payroll_engine/foundation.js';
+	import type { JsonObject } from '../../foundation.js';
 
 	let {
 		ctx,

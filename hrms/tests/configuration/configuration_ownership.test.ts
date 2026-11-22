@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { Schema } from 'effect';
 import { describe, it } from 'vitest';
-import { LAW_ROWS } from '../../src/lib/law.ts';
-import { settingsConstants } from '../../src/lib/payroll_engine/contracts.ts';
-import { paramsFor } from '../../src/lib/payroll_engine/params.ts';
+import { LAW_ROWS } from '../../src/data/model/jurisdiction/service/law.ts';
+import { settingsConstants } from '../../src/lib/contracts.ts';
+import { paramsFor } from '../../src/data/model/jurisdiction/service/params/index.ts';
 import { isObject } from '../kit.ts';
 import { SEEDED } from './seeded.ts';
 

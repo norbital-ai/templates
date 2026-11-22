@@ -1,11 +1,11 @@
 import { model } from '@norbital-ai/bolt';
-import { sealOnly } from '../../../../../lib/entries.js';
-import { validateRegistered } from '../../../../../lib/payroll_engine/registrations.js';
-import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
-import { tap } from '../../../../../lib/payroll_engine/taps.js';
-import { repaymentProblem } from '../../../../../lib/payroll_engine/loan_schedule.js';
+import { sealOnly } from '../../service/entries.js';
+import { validateRegistered } from '../../../jurisdiction/service/registrations.js';
+import { jsonObject } from '../../../../../lib/foundation.js';
+import { tap } from '../../../jurisdiction/service/taps.js';
+import { repaymentProblem } from '../service/loan_schedule.js';
 import type { Id, WriteCtx } from '@norbital-ai/bolt';
-import { amendmentsFor, refusing } from '../../../../../lib/amendments.js';
+import { amendmentsFor, refusing } from '../../../payroll_run/service/amendments.js';
 
 /** An instalment is deducted by the run whose attendance holds its date: a paid period holding it is worked out again. */
 const touched = (

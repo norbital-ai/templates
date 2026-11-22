@@ -1,4 +1,4 @@
-import { lawsOf } from '../../src/lib/law.ts';
+import { lawsOf } from '../../src/data/model/jurisdiction/service/law.ts';
 import { seedLaw, seededLaws } from '../kit.ts';
 
 /** Every seeded law: its changes, oldest first, and the law as it stands on each change's date (`law.on`). */

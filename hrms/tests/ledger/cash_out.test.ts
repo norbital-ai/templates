@@ -8,9 +8,9 @@ import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { verify } from '../integrity_oracle.ts';
-import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { jsonObject } from '../../src/lib/foundation.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
 import {
 	ENTITY,

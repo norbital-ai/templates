@@ -1,7 +1,11 @@
 import type { Id } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
-import { PARAMETER_FIELDS, TERM_FIELDS, type Parts } from '../../person.js';
-import { jsonObject } from '../../payroll_engine/foundation.js';
+import {
+	PARAMETER_FIELDS,
+	TERM_FIELDS,
+	type Parts
+} from '../../../data/model/employee_profile/service/person.js';
+import { jsonObject } from '../../foundation.js';
 
 /**
  * A person's stints with their dated rows, and their dependants, live: what the profile's tabs show. Call during

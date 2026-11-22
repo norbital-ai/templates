@@ -1,4 +1,4 @@
-import { checkExpression } from '../../src/lib/payroll_engine/expressions.ts';
+import { checkExpression } from '../../src/data/model/jurisdiction/service/expressions.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import {
@@ -6,7 +6,7 @@ import {
 	subtotalChain,
 	statutoryOrder,
 	type PayrollInput
-} from '../../src/lib/payroll_engine/engine.ts';
+} from '../../src/data/model/payroll_run/service/engine.ts';
 
 const subtotal = (code: string, previous: string | null) => ({ code, name: code, previous });
 const catalog = (code: string, extra: Record<string, unknown> = {}) => ({

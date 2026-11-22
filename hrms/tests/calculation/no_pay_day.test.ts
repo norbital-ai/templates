@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
 import { ENTITY, leaveCreate, pack, storedQuery, uuid, workspace, packTerms } from '../kit.ts';
 

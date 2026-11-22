@@ -2,9 +2,9 @@
 // The law holds together on every one of those dates, and every row it names by code exists on that date.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { LAW_ROWS, type Law } from '../../src/lib/law.ts';
-import { checkLaw } from '../../src/lib/payroll_engine/configuration.ts';
-import { isJsonObject, stableJson } from '../../src/lib/payroll_engine/foundation.ts';
+import { LAW_ROWS, type Law } from '../../src/data/model/jurisdiction/service/law.ts';
+import { checkLaw } from '../../src/data/model/jurisdiction/service/configuration.ts';
+import { isJsonObject, stableJson } from '../../src/lib/foundation.ts';
 import { SEEDED } from './seeded.ts';
 
 /** What a law says: its settings and rows, without the citations and wording any two dates may differ by anyway. */

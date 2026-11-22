@@ -1,7 +1,7 @@
 <script lang="ts" module>
 	import type { MessageKey } from '@norbital-ai/bolt';
 	import type { Kind } from '@norbital-ai/ui';
-	import type { LawFamily } from '../../law.js';
+	import type { LawFamily } from '../../../data/model/jurisdiction/service/law.js';
 
 	/** How a field is edited: by its kind, as an expression, or as the code of a subtotal of the same law. */
 	type FieldSpec = readonly [name: string, kind: Kind | 'code' | 'subtotal'];
@@ -267,8 +267,8 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
-	import { LAW_DEPTH, type Law } from '../../law.js';
-	import type { Json, JsonObject } from '../../payroll_engine/foundation.js';
+	import { LAW_DEPTH, type Law } from '../../../data/model/jurisdiction/service/law.js';
+	import type { Json, JsonObject } from '../../foundation.js';
 	import { patchOf } from '../../dated.js';
 	import LawSave from './law_save.svelte';
 	import { lawWrites, type LawChange } from './law_save.js';

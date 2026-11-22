@@ -7,7 +7,7 @@
 	import type { CustomFieldView } from '@norbital-ai/bolt';
 	import { Badge, Editor, Icon, Tooltip, format, type UiContext } from '@norbital-ai/ui';
 	import { Bound, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { REFERENCES_SHAPE } from '../../../lib/payroll_engine/references.js';
+	import { REFERENCES_SHAPE } from './references.js';
 
 	let { view, ctx }: { view: CustomFieldView<'references'>; ctx: UiContext } = $props();
 	/** Outside a page (no view client) a text is named by its message key. */

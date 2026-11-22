@@ -1,5 +1,5 @@
-import { isJsonObject } from '../../payroll_engine/foundation.js';
-import type { Law } from '../../law.js';
+import { isJsonObject } from '../../foundation.js';
+import type { Law } from '../../../data/model/jurisdiction/service/law.js';
 
 const list = (value: unknown): readonly string[] | undefined =>
 	Array.isArray(value) && value.every((item): item is string => typeof item === 'string')

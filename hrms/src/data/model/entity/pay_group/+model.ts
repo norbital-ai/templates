@@ -1,7 +1,7 @@
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 import { model } from '@norbital-ai/bolt';
-import { paidUnder } from '../../../../lib/amendments.js';
-import { jsonObject, stableJson } from '../../../../lib/payroll_engine/foundation.js';
+import { paidUnder } from '../../payroll_run/service/amendments.js';
+import { jsonObject, stableJson } from '../../../../lib/foundation.js';
 
 /** What of a schedule decides a paid period's days: its pay day and its name may still change. */
 const paces = (schedule: unknown) => {

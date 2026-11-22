@@ -8,8 +8,8 @@
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import ClaimRequest from '../../../lib/ui/person/claim_request.svelte';
-	import { numberOf } from '../../../lib/payroll_engine/foundation.js';
-	import { parseClaimSheet } from '../../../lib/payroll_engine/entry_workbook.js';
+	import { numberOf } from '../../../lib/foundation.js';
+	import { parseClaimSheet } from '../../../data/model/entry/service/entry_workbook.js';
 	import { entryImport, plain } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);

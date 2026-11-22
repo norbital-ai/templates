@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { leftIn } from '../../src/lib/ledger/core.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { leftIn } from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	accountsIn,

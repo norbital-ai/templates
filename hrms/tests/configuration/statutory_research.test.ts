@@ -6,10 +6,10 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { lawOn } from '../../src/lib/law.ts';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { FAMILIES, WHOLE_ROW } from '../../src/lib/payroll_engine/statutory_research.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { lawOn } from '../../src/data/model/jurisdiction/service/law.ts';
+import { isJsonObject } from '../../src/lib/foundation.ts';
+import { FAMILIES, WHOLE_ROW } from '../../src/data/model/statutory_finding/service/research.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { lawAt, refusal, seedLaw, storedQuery, storedReader, workspace } from '../kit.ts';
 
 const NOW = '2026-11-05T02:00:00.000Z';

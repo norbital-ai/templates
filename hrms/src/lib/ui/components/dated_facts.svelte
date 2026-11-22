@@ -27,7 +27,7 @@
 	import { Cluster, Column, Columns, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { onDestroy, type Snippet } from 'svelte';
 	import type { Fact } from '../../dated_facts.js';
-	import { jsonObject, type Json } from '../../payroll_engine/foundation.js';
+	import { jsonObject, type Json } from '../../foundation.js';
 
 	type Relation = { targets: readonly string[] };
 	/** Something else dated on the same line of time (the day a stint began, its last day, a life event). */

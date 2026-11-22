@@ -1,6 +1,6 @@
-import { tap } from '../../../lib/payroll_engine/taps.js';
+import { tap } from '../jurisdiction/service/taps.js';
 import { model } from '@norbital-ai/bolt';
-import { LATE_NOTICE_POLICIES } from '../../../lib/company.js';
+import { LATE_NOTICE_POLICIES } from './service/company.js';
 
 /** The company's fields a writer sets. */
 const columns = [

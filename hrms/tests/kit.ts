@@ -21,12 +21,15 @@ import {
 } from '@norbital-ai/bolt';
 import type { EngineManifest } from '@norbital-ai/bolt/engine';
 import { ActRefused } from '@norbital-ai/bolt/errors';
-import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
-import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
-import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
-import { idOf, type Reader } from '../src/lib/payroll_engine/reads.ts';
+import {
+	accountsOf,
+	type Accounts
+} from '../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { JsonObject } from '../src/lib/contracts.ts';
+import { isJsonObject } from '../src/lib/foundation.ts';
+import { idOf, type Reader } from '../src/lib/reads.ts';
 import { inForce } from '../src/lib/dated.ts';
-import { lawsOf, type Law } from '../src/lib/law.ts';
+import { lawsOf, type Law } from '../src/data/model/jurisdiction/service/law.ts';
 import { verify } from './integrity_oracle.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { rostered, rosteredNeutral } from '../amendment_kit.ts';
 import {
 	ENTITY,

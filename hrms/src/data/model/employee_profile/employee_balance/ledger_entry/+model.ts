@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
-import { manualAdjustments, syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
-import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
+import { manualAdjustments, syncLate, writesLedger } from '../service/service.js';
+import { jsonObject } from '../../../../../lib/foundation.js';
 
 export default model('ledger_entry', {
 	description:

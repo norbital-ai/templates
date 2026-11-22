@@ -4,11 +4,18 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
-import { lawsOf } from '../../src/lib/law.ts';
-import { knownOf, leaveShort, leaveTaken } from '../../src/lib/ledger/service.ts';
-import { leaveOffDay, type LeaveDays } from '../../src/lib/payroll_engine/attendance.ts';
-import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { idOf, queryRows } from '../../src/lib/payroll_engine/reads.ts';
+import { lawsOf } from '../../src/data/model/jurisdiction/service/law.ts';
+import {
+	knownOf,
+	leaveShort,
+	leaveTaken
+} from '../../src/data/model/employee_profile/employee_balance/service/service.ts';
+import {
+	leaveOffDay,
+	type LeaveDays
+} from '../../src/data/model/roster_entry/service/attendance.ts';
+import { jsonObject } from '../../src/lib/foundation.ts';
+import { idOf, queryRows } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	leaveCreate,

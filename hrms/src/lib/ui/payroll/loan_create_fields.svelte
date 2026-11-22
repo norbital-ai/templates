@@ -4,12 +4,12 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { watch } from 'runed';
 	import { onDestroy } from 'svelte';
-	import { numberOf } from '../../payroll_engine/foundation.js';
+	import { numberOf } from '../../foundation.js';
 	import {
 		loanScheduleProblems,
 		loanScheduleState,
 		newLoanRepayments
-	} from '../../payroll_engine/loan_schedule.js';
+	} from '../../../data/model/entry/loan_catalog_entry/service/loan_schedule.js';
 	import CatalogField from '../settings/catalog_field.svelte';
 
 	let { ctx, form }: { ctx: PageContext; form: FormState } = $props();

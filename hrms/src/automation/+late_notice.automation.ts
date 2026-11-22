@@ -1,9 +1,9 @@
 import { automation } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import { LATE_NOTICE_POLICIES } from '../lib/company.js';
-import { scheduled } from '../lib/payroll_engine/attendance.js';
-import { isJsonObject, type Json, type JsonObject } from '../lib/payroll_engine/foundation.js';
-import { idOf, idsOf, queryRows, valueText } from '../lib/payroll_engine/reads.js';
+import { LATE_NOTICE_POLICIES } from '../data/model/entity/service/company.js';
+import { scheduled } from '../data/model/roster_entry/service/attendance.js';
+import { isJsonObject, type Json, type JsonObject } from '../lib/foundation.js';
+import { idOf, idsOf, queryRows, valueText } from '../lib/reads.js';
 
 const notifiable = (value: Json): value is (typeof LATE_NOTICE_POLICIES)[number] =>
 	LATE_NOTICE_POLICIES.some((policy) => policy === value);

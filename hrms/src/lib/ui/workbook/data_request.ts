@@ -12,8 +12,13 @@ import {
 	stableJson,
 	type Json,
 	type JsonObject
-} from '../../payroll_engine/foundation.js';
-import { PARAMETER_FIELDS, TERM_FIELDS, parametersChange, termsChange } from '../../person.js';
+} from '../../foundation.js';
+import {
+	PARAMETER_FIELDS,
+	TERM_FIELDS,
+	parametersChange,
+	termsChange
+} from '../../../data/model/employee_profile/service/person.js';
 import {
 	type Cell,
 	cellDay,
@@ -22,7 +27,7 @@ import {
 	normalToken,
 	WorkbookRowsError,
 	type WorkbookSheetGrids
-} from '../../payroll_engine/workbook_rows.js';
+} from '../../workbook_rows.js';
 import { contractCategories } from '../person/contract_categories.js';
 
 export const SHEETS = {

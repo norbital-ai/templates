@@ -6,8 +6,8 @@ import Papa from 'papaparse';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { notify_outcome, toast } from '@norbital-ai/ui';
-import { getErrorMessage } from '../../payroll_engine/foundation.js';
-import { WorkbookRowsError, type Cell } from '../../payroll_engine/workbook_rows.js';
+import { getErrorMessage } from '../../foundation.js';
+import { WorkbookRowsError, type Cell } from '../../workbook_rows.js';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv';
 const FAILURE_TOAST_MS = 20_000;

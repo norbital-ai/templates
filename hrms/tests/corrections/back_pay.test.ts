@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import { amendments, carriedFor, dates, ownLines, pay, run } from '../amendment_kit.ts';
 import {
 	EMPLOYMENT,

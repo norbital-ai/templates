@@ -1,20 +1,19 @@
 import { model } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
-import {
-	attendanceOf,
-	cycleOf,
-	cycleStarted,
-	payDateOf
-} from '../../../lib/payroll_engine/pay_cycle.js';
-import { idOf } from '../../../lib/payroll_engine/reads.js';
+import { jsonObject } from '../../../lib/foundation.js';
+import { attendanceOf, cycleOf, cycleStarted, payDateOf } from './service/pay_cycle.js';
+import { idOf } from '../../../lib/reads.js';
 
-import { runPostings, syncLatePosted, undone } from '../../../lib/ledger/service.js';
-import { amendedRun, RECOVERY } from '../../../lib/payroll_engine/amended.js';
-import { loadRun } from '../../../lib/payroll_engine/run_calculation.js';
-import { lawsAt } from '../../../lib/law.js';
-import { tap } from '../../../lib/payroll_engine/taps.js';
-import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
+import {
+	runPostings,
+	syncLatePosted,
+	undone
+} from '../employee_profile/employee_balance/service/service.js';
+import { amendedRun, RECOVERY } from './service/amended.js';
+import { loadRun } from './service/run_calculation.js';
+import { lawsAt } from '../jurisdiction/service/law.js';
+import { tap } from '../jurisdiction/service/taps.js';
+import { validateRegistered } from '../jurisdiction/service/registrations.js';
 
 export default model('payroll_run', {
 	description: 'One payroll execution over a company and covered period.',

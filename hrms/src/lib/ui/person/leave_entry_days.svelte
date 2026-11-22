@@ -5,11 +5,21 @@
 	import { onDestroy } from 'svelte';
 	import { Button, Combobox, confirm_action, Field, Picker, use_form } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { accountsOf, eventsOf, leftOn, unlimited } from '../../ledger/core.js';
-	import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import {
+		accountsOf,
+		eventsOf,
+		leftOn,
+		unlimited
+	} from '../../../data/model/employee_profile/employee_balance/service/core.js';
+	import { isJsonObject, jsonObject, type JsonObject } from '../../foundation.js';
 	import { inForce } from '../../dated.js';
-	import { leaveOffDay } from '../../payroll_engine/attendance.js';
-	import { knownOf, leaveOff, leaveShort, leaveTaken } from '../../ledger/service.js';
+	import { leaveOffDay } from '../../../data/model/roster_entry/service/attendance.js';
+	import {
+		knownOf,
+		leaveOff,
+		leaveShort,
+		leaveTaken
+	} from '../../../data/model/employee_profile/employee_balance/service/service.js';
 	import {
 		PARAMETER_FIELDS,
 		PROFILE_FIELDS,
@@ -19,7 +29,7 @@
 		leaveDaysOf,
 		startsOf,
 		termsChange
-	} from '../../person.js';
+	} from '../../../data/model/employee_profile/service/person.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_NOTE, paidPeriods } from '../payroll/paid_period.svelte.js';
 

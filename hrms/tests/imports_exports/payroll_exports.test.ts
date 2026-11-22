@@ -6,18 +6,21 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { metroBank, ocbcFast } from '../../src/lib/export_format_configuration/bank_files.ts';
-import { exportRows } from '../../src/lib/export_format_configuration/export_rows.ts';
-import { listingRead } from '../../src/lib/export_format_configuration/salary_listing_download.ts';
+import {
+	metroBank,
+	ocbcFast
+} from '../../src/data/model/payroll_run/service/exports/bank_files.ts';
+import { exportRows } from '../../src/data/model/payroll_run/service/exports/export_rows.ts';
+import { listingRead } from '../../src/data/model/payroll_run/service/exports/salary_listing_download.ts';
 import {
 	sheetsOf,
 	workbookOf
-} from '../../src/lib/export_format_configuration/salary_listing_export.ts';
+} from '../../src/data/model/payroll_run/service/exports/salary_listing_export.ts';
 import { inForce } from '../../src/lib/dated.ts';
-import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { termsChange } from '../../src/lib/person.ts';
+import { jsonObject } from '../../src/lib/foundation.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
+import { termsChange } from '../../src/data/model/employee_profile/service/person.ts';
 import {
 	ENTITY,
 	pack,

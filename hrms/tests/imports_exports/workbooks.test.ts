@@ -3,15 +3,15 @@
 import { DateTime } from 'effect';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { lawsOf } from '../../src/lib/law.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { WorkbookRowsError } from '../../src/lib/payroll_engine/workbook_rows.ts';
+import { lawsOf } from '../../src/data/model/jurisdiction/service/law.ts';
+import { idOf } from '../../src/lib/reads.ts';
+import { WorkbookRowsError } from '../../src/lib/workbook_rows.ts';
 import {
 	planRosterUpload,
 	rosterMonth,
 	rosterSheets,
 	type RosterKnown
-} from '../../src/lib/payroll_engine/roster_workbook.ts';
+} from '../../src/data/model/roster_entry/service/roster_workbook.ts';
 import {
 	parseAdhocSheet,
 	parseCaseSheet,
@@ -19,7 +19,7 @@ import {
 	parseLeaveSheet,
 	parseLoanSheet,
 	parseRepaymentSheet
-} from '../../src/lib/payroll_engine/entry_workbook.ts';
+} from '../../src/data/model/entry/service/entry_workbook.ts';
 import {
 	parseEntityHolidaySheets,
 	skipHeldHolidays

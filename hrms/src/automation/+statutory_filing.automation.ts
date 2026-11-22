@@ -1,15 +1,15 @@
 import { automation } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
-import type { JsonObject } from '../lib/payroll_engine/contracts.js';
-import { lawRead, lawsOf, standing } from '../lib/law.js';
-import { idsOf, objectValue, queryRows, valueText } from '../lib/payroll_engine/reads.js';
-import { isJsonObject, jsonObject, Refusal, type Json } from '../lib/payroll_engine/foundation.js';
+import type { JsonObject } from '../lib/contracts.js';
+import { lawRead, lawsOf, standing } from '../data/model/jurisdiction/service/law.js';
+import { idsOf, objectValue, queryRows, valueText } from '../lib/reads.js';
+import { isJsonObject, jsonObject, Refusal, type Json } from '../lib/foundation.js';
 import {
 	FAMILIES,
 	planChanges,
 	referenceSources,
 	sortFindings
-} from '../lib/payroll_engine/statutory_research.js';
+} from '../data/model/statutory_finding/service/research.js';
 
 const Text = Schema.optionalKey(Schema.NullOr(Schema.String));
 /** What a research agent answers, as `statutory_research` hands it on. */

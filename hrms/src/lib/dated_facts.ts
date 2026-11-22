@@ -1,9 +1,4 @@
-import {
-	isJsonObject,
-	stableJson,
-	type Json,
-	type JsonObject
-} from './payroll_engine/foundation.js';
+import { isJsonObject, stableJson, type Json, type JsonObject } from './foundation.js';
 
 /** One dated fact as a profile lists it: from `from`, `name` is `value`. An empty value takes the fact away. */
 export interface Fact {

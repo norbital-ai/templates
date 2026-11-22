@@ -5,10 +5,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Duration, Effect, Schema } from 'effect';
-import { attendanceOf, cycleOf, payDateOf } from '../../src/lib/payroll_engine/pay_cycle.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
-import { loadRun } from '../../src/lib/payroll_engine/run_calculation.ts';
+import {
+	attendanceOf,
+	cycleOf,
+	payDateOf
+} from '../../src/data/model/payroll_run/service/pay_cycle.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
+import { loadRun } from '../../src/data/model/payroll_run/service/run_calculation.ts';
 import {
 	EMPLOYMENT,
 	ENTITY,

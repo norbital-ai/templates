@@ -1,5 +1,9 @@
 import type { Id } from '@norbital-ai/bolt';
-import { HOLIDAY_KINDS, isHolidayKind, type HolidayKind } from '../../holiday_kind.js';
+import {
+	HOLIDAY_KINDS,
+	isHolidayKind,
+	type HolidayKind
+} from '../../../data/model/entity/service/holiday_kind.js';
 
 /**
  * Spreadsheet holidays land unpublished; a day the entity already has is skipped.

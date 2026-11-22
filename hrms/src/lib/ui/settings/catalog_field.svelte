@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Combobox, Field, use_form, type FieldEditor } from '@norbital-ai/ui';
-	import { idOf } from '../../payroll_engine/reads.js';
+	import { idOf } from '../../reads.js';
 	import { pageLaws } from '../law.svelte.js';
 
 	/** An entry's catalogue field: the codes of its company's law, as in force on the entry's date. */

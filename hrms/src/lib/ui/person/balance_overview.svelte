@@ -7,8 +7,11 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button, Icon, Table } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { accountsOf, leftIn } from '../../ledger/core.js';
-	import { isJsonObject } from '../../payroll_engine/foundation.js';
+	import {
+		accountsOf,
+		leftIn
+	} from '../../../data/model/employee_profile/employee_balance/service/core.js';
+	import { isJsonObject } from '../../foundation.js';
 	import { pageLaws } from '../law.svelte.js';
 
 	let { ctx, account }: { ctx: PageContext; account: unknown } = $props();

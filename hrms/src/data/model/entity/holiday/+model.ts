@@ -1,6 +1,6 @@
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 import { model } from '@norbital-ai/bolt';
-import { amendmentsOf } from '../../../../lib/amendments.js';
+import { amendmentsOf } from '../../payroll_run/service/amendments.js';
 
 /** The day a published holiday prices, for everyone the company paid or the one person it names. */
 const spans = (

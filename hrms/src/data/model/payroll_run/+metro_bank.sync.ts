@@ -1,6 +1,6 @@
 import { sync } from '@norbital-ai/bolt';
-import { metroBank } from '../../../lib/export_format_configuration/bank_files.js';
-import { exportRows } from '../../../lib/export_format_configuration/export_rows.js';
+import { metroBank } from './service/exports/bank_files.js';
+import { exportRows } from './service/exports/export_rows.js';
 
 /** One run's net pay as a Metrobank file. */
 export default sync('payroll_run', 'metro_bank', {

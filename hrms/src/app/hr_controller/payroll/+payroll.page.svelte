@@ -5,7 +5,7 @@
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
-	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
+	import { exportSalaryListing } from '../../../data/model/payroll_run/service/exports/salary_listing_download.js';
 	import { periodLabel } from '../../../lib/ui/format/period_label.js';
 	let { ctx }: { ctx: PageContext } = $props();
 

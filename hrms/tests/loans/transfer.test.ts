@@ -8,10 +8,10 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { lawsOf } from '../../src/lib/law.ts';
-import { isJsonObject, type JsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { buildLoanSchedule } from '../../src/lib/payroll_engine/loan_schedule.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { lawsOf } from '../../src/data/model/jurisdiction/service/law.ts';
+import { isJsonObject, type JsonObject } from '../../src/lib/foundation.ts';
+import { buildLoanSchedule } from '../../src/data/model/entry/loan_catalog_entry/service/loan_schedule.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { loansRead, transferActs, type Writes } from '../../src/lib/ui/person/stint_loans.ts';
 import {
 	EMPLOYMENT,

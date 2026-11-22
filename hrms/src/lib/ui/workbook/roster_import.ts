@@ -10,7 +10,7 @@ import {
 	type RosterEmployee,
 	type RosterShift,
 	type RosterStored
-} from '../../payroll_engine/roster_workbook.js';
+} from '../../../data/model/roster_entry/service/roster_workbook.js';
 import {
 	WorkbookImportError,
 	runWorkbookImportSteps,

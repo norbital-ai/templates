@@ -23,9 +23,15 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { DateTime, Effect } from 'effect';
 	import { inForce } from '../../dated.js';
-	import { accountsOf, latestLeft } from '../../ledger/core.js';
-	import { parametersChange, termsChange } from '../../person.js';
-	import { jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import {
+		accountsOf,
+		latestLeft
+	} from '../../../data/model/employee_profile/employee_balance/service/core.js';
+	import {
+		parametersChange,
+		termsChange
+	} from '../../../data/model/employee_profile/service/person.js';
+	import { jsonObject, type JsonObject } from '../../foundation.js';
 	import { pageLaws } from '../law.svelte.js';
 	import { PAID_QUESTION, paidPeriods } from '../payroll/paid_period.svelte.js';
 	import { categoryValues } from './contract_categories.js';

@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { RUN_STINT } from '../../../lib/payroll_engine/run_output.js';
-import { amendmentsFor } from '../../../lib/amendments.js';
-import { tap } from '../../../lib/payroll_engine/taps.js';
+import { RUN_STINT } from '../../../lib/run_output.js';
+import { amendmentsFor } from '../payroll_run/service/amendments.js';
+import { tap } from '../jurisdiction/service/taps.js';
 
 /** The s.113 register particulars the template owns on the profile: name and address. */
 export const registerChanged = <

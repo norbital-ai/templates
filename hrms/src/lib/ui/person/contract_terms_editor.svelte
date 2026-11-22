@@ -1,7 +1,10 @@
 <script lang="ts" module>
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { label, type Kind } from '@norbital-ai/ui';
-	import { PARAMETER_FIELDS, TERM_FIELDS } from '../../person.js';
+	import {
+		PARAMETER_FIELDS,
+		TERM_FIELDS
+	} from '../../../data/model/employee_profile/service/person.js';
 
 	/** A family's dated fields as one value's kind, as the viewer's catalog declares them. */
 	export const datedKind = (
@@ -44,7 +47,7 @@
 		value_object
 	} from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import type { Law } from '../../law.js';
+	import type { Law } from '../../../data/model/jurisdiction/service/law.js';
 	import { categoryValues } from './contract_categories.js';
 	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
 

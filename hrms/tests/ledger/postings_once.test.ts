@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Exit } from 'effect';
-import type { Accounts } from '../../src/lib/ledger/core.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import type { Accounts } from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import { run } from '../amendment_kit.ts';
 import {
 	ENTITY,

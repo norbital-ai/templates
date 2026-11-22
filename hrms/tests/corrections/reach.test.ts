@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
 import {
 	EMPLOYMENT,
 	amendments,

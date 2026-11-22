@@ -1,9 +1,12 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Combobox, use_form, type FieldEditor } from '@norbital-ai/ui';
-	import { isJsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
-	import { accountsOf, latestLeft } from '../../ledger/core.js';
-	import { idOf } from '../../payroll_engine/reads.js';
+	import { isJsonObject, type JsonObject } from '../../foundation.js';
+	import {
+		accountsOf,
+		latestLeft
+	} from '../../../data/model/employee_profile/employee_balance/service/core.js';
+	import { idOf } from '../../reads.js';
 	import { pageLaws } from '../law.svelte.js';
 	let {
 		ctx,

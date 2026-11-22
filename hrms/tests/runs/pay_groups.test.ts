@@ -5,9 +5,9 @@ import { describe, it } from '@effect/vitest';
 import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { cycleOf, payDateOf } from '../../src/lib/payroll_engine/pay_cycle.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { cycleOf, payDateOf } from '../../src/data/model/payroll_run/service/pay_cycle.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	PAY_GROUP,

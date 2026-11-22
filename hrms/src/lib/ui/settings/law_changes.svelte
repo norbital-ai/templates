@@ -6,8 +6,8 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { format, open_record } from '@norbital-ai/ui';
 	import { leaves } from '../../dated.js';
-	import { LAW_DEPTH, LAW_ROWS } from '../../law.js';
-	import type { JsonObject } from '../../payroll_engine/foundation.js';
+	import { LAW_DEPTH, LAW_ROWS } from '../../../data/model/jurisdiction/service/law.js';
+	import type { JsonObject } from '../../foundation.js';
 	import VersionTimeline from '../components/version_timeline.svelte';
 	import { changeOf, type LawChange } from './law_save.js';
 

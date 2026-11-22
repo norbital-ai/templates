@@ -12,8 +12,8 @@
 		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Cluster } from '@norbital-ai/ui/layout';
-	import type { Law } from '../../../lib/law.js';
-	import type { JsonObject } from '../../../lib/payroll_engine/foundation.js';
+	import type { Law } from '../../../data/model/jurisdiction/service/law.js';
+	import type { JsonObject } from '../../../lib/foundation.js';
 	import type { LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
 
 	let {

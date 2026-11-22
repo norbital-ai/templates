@@ -6,10 +6,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect } from 'effect';
-import { employerOn } from '../../src/lib/company.ts';
-import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
-import { isJsonObject, type JsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { employerOn } from '../../src/data/model/entity/service/company.ts';
+import { evaluate } from '../../src/data/model/jurisdiction/service/expressions.ts';
+import { isJsonObject, type JsonObject } from '../../src/lib/foundation.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { amendments, carriedFor, dropped, ownLines, pay, run, working } from '../amendment_kit.ts';
 import { ENTITY, WORK, lawAt, pack, refusal, storedQuery, uuid, workspace } from '../kit.ts';
 

@@ -1,8 +1,8 @@
 import { model, type Id } from '@norbital-ai/bolt';
-import { RUN_STINT } from '../../../../lib/payroll_engine/run_output.js';
+import { RUN_STINT } from '../../../../lib/run_output.js';
 import { Effect } from 'effect';
-import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
-import { assertFactsHold } from '../../../../lib/ledger/service.js';
+import { amendmentsFor, refusing } from '../../payroll_run/service/amendments.js';
+import { assertFactsHold } from '../employee_balance/service/service.js';
 import {
 	PARAMETER_FIELDS,
 	PROFILE_FIELDS,
@@ -11,13 +11,9 @@ import {
 	employmentOn,
 	partsIn,
 	segmentsOf
-} from '../../../../lib/person.js';
-import {
-	jsonObject,
-	stableJson,
-	type JsonObject
-} from '../../../../lib/payroll_engine/foundation.js';
-import { idOf, idsOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+} from '../service/person.js';
+import { jsonObject, stableJson, type JsonObject } from '../../../../lib/foundation.js';
+import { idOf, idsOf, queryRows, type Reader } from '../../../../lib/reads.js';
 
 /** What a formula or a leave row reads of a dependant; the name is for people. */
 const READ = [

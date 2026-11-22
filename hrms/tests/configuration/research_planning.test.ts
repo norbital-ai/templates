@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import type { Change } from '../../src/lib/dated.ts';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
+import type { JsonObject } from '../../src/lib/contracts.ts';
 import {
 	instrumentKey,
 	officialSource,
@@ -13,7 +13,7 @@ import {
 	WHOLE_ROW,
 	type DatedPatch,
 	type ReportedChange
-} from '../../src/lib/payroll_engine/statutory_research.ts';
+} from '../../src/data/model/statutory_finding/service/research.ts';
 
 const FAMILY = 'statutory_contribution_catalog';
 const scheme = (lookup: JsonObject): JsonObject => ({ [FAMILY]: { EPF: { lookup } } });

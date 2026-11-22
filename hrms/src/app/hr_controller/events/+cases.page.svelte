@@ -8,7 +8,7 @@
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
-	import { parseCaseSheet } from '../../../lib/payroll_engine/entry_workbook.js';
+	import { parseCaseSheet } from '../../../data/model/entry/service/entry_workbook.js';
 	import { entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 

@@ -1,10 +1,10 @@
-import { refusing } from '../../../lib/amendments.js';
+import { refusing } from '../payroll_run/service/amendments.js';
 import { model, type CarriedWrites } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { lawWrite, syncLedgerOn } from '../../../lib/payroll_engine/configuration.js';
-import { isJsonObject } from '../../../lib/payroll_engine/foundation.js';
-import { queryRows } from '../../../lib/payroll_engine/reads.js';
-import { hostOf, officialSource } from '../../../lib/payroll_engine/statutory_research.js';
+import { lawWrite, syncLedgerOn } from '../jurisdiction/service/configuration.js';
+import { isJsonObject } from '../../../lib/foundation.js';
+import { queryRows } from '../../../lib/reads.js';
+import { hostOf, officialSource } from './service/research.js';
 
 /** Whether a write moves a finding into or out of force: its changes of law move with it. */
 const decided = (change: {

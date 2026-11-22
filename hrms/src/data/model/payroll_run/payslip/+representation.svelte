@@ -3,10 +3,7 @@
 	import { Schema } from 'effect';
 	import { format, Icon, RecordShell, Section, Tooltip, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import {
-		emptyPayslipBreakdown,
-		PayslipBreakdown
-	} from '../../../../lib/payroll_engine/payslip_breakdown.js';
+	import { emptyPayslipBreakdown, PayslipBreakdown } from '../service/payslip_breakdown.js';
 	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
 
 	const FAMILIES = [

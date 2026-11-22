@@ -7,7 +7,7 @@
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
-	import { parseLeaveSheet } from '../../../lib/payroll_engine/entry_workbook.js';
+	import { parseLeaveSheet } from '../../../data/model/entry/service/entry_workbook.js';
 	import { entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);

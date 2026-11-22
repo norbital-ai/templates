@@ -21,9 +21,9 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
-	import { COMPANY_FIELDS } from '../../../lib/company.js';
+	import { COMPANY_FIELDS } from './service/company.js';
 	import { factWrites, factsOf, type Fact } from '../../../lib/dated_facts.js';
-	import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
+	import { jsonObject } from '../../../lib/foundation.js';
 	import DatedFacts from '../../../lib/ui/components/dated_facts.svelte';
 	import { declaredParameters } from '../../../lib/ui/components/parameter_facts.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';

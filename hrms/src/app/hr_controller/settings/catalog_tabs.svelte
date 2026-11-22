@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Tabs } from '@norbital-ai/ui';
-	import type { Law } from '../../../lib/law.js';
+	import type { Law } from '../../../data/model/jurisdiction/service/law.js';
 	import type { LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';
 	import LawTable from '../../../lib/ui/settings/law_table.svelte';
 

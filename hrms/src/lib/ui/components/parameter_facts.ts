@@ -1,5 +1,5 @@
 import { enum_text, is_json_schema, json_schema_kind, type Kind } from '@norbital-ai/ui';
-import { isJsonObject } from '../../payroll_engine/foundation.js';
+import { isJsonObject } from '../../foundation.js';
 
 /** The statutory parameters a law declares (`employee_statutory_parameters`, `entity_statutory_parameters`), by name. */
 export const declaredParameters = (

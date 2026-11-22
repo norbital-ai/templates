@@ -2,7 +2,11 @@ import type { ActInput, Callable } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { fork } from '@norbital-ai/ui/effect';
 import { Effect } from 'effect';
-import type { EntryEmployee, EntryEntity, EntryLaws } from '../../payroll_engine/entry_workbook.js';
+import type {
+	EntryEmployee,
+	EntryEntity,
+	EntryLaws
+} from '../../../data/model/entry/service/entry_workbook.js';
 import type { pageLaws } from '../law.svelte.js';
 import type { CompanyScope } from '../scopes/company_scope.svelte.js';
 import { runWorkbookImport, type WorkbookGrids } from './workbook_import.js';

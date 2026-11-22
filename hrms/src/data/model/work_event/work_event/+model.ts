@@ -1,10 +1,15 @@
-import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
-import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor, amendmentsIn, amendmentsOf, refusing } from '../../../../lib/amendments.js';
+import { jsonObject } from '../../../../lib/foundation.js';
+import { validateRegistered } from '../../jurisdiction/service/registrations.js';
+import { syncLedgerOn } from '../../jurisdiction/service/configuration.js';
+import { tap } from '../../jurisdiction/service/taps.js';
+import {
+	amendmentsFor,
+	amendmentsIn,
+	amendmentsOf,
+	refusing
+} from '../../payroll_run/service/amendments.js';
 import { model, type WriteCtx } from '@norbital-ai/bolt';
-import type { Reader } from '../../../../lib/payroll_engine/reads.js';
+import type { Reader } from '../../../../lib/reads.js';
 import { Effect } from 'effect';
 
 type Dated = {

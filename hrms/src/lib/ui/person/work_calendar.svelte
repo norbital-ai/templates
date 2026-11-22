@@ -9,12 +9,15 @@
 	} from '@norbital-ai/ui';
 	import { Cover } from '@norbital-ai/ui/layout';
 	import { DateTime, Duration, Schema } from 'effect';
-	import { JsonObject } from '../../payroll_engine/contracts.js';
-	import { scheduled, holidaysForDay } from '../../payroll_engine/attendance.js';
+	import { JsonObject } from '../../contracts.js';
+	import {
+		scheduled,
+		holidaysForDay
+	} from '../../../data/model/roster_entry/service/attendance.js';
 	import { cycleShiftId } from '../roster/month_board.js';
 	import { inForce } from '../../dated.js';
-	import { termsChange } from '../../person.js';
-	import { getErrorMessage, jsonObject, jsonValues } from '../../payroll_engine/foundation.js';
+	import { termsChange } from '../../../data/model/employee_profile/service/person.js';
+	import { getErrorMessage, jsonObject, jsonValues } from '../../foundation.js';
 	let {
 		ctx,
 		employment,

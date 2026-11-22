@@ -1,5 +1,5 @@
 import { model } from '@norbital-ai/bolt';
-import { paidUnder } from '../../../lib/amendments.js';
+import { paidUnder } from '../payroll_run/service/amendments.js';
 
 export default model('jurisdiction', {
 	description:

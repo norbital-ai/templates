@@ -4,11 +4,15 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { expired, totalsScope, viewOf } from '../../src/lib/ledger/core.ts';
-import { entitlementPlans } from '../../src/lib/ledger/service.ts';
-import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import {
+	expired,
+	totalsScope,
+	viewOf
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { entitlementPlans } from '../../src/data/model/employee_profile/employee_balance/service/service.ts';
+import { jsonObject } from '../../src/lib/foundation.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	accountsIn,

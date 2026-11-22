@@ -1,6 +1,6 @@
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { enum_text, label } from '@norbital-ai/ui';
-import { jsonObject } from '../../payroll_engine/foundation.js';
+import { jsonObject } from '../../foundation.js';
 
 /** A pay group's schedule in one line: how often, the days it pays, its cut-off and what a non-business pay day does. */
 export const scheduleSummary = (ctx: PageContext, value: unknown): string => {

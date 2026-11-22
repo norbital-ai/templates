@@ -1,12 +1,12 @@
 import { model } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { RUN_STINT } from '../../../lib/payroll_engine/run_output.js';
-import { sealOnly } from '../../../lib/entries.js';
-import { jsonObject } from '../../../lib/payroll_engine/foundation.js';
-import { validateRegistered } from '../../../lib/payroll_engine/registrations.js';
-import { tap } from '../../../lib/payroll_engine/taps.js';
-import { rosterFindings } from '../../../lib/payroll_engine/roster_warnings.js';
-import { amendmentsFor, refusing } from '../../../lib/amendments.js';
+import { RUN_STINT } from '../../../lib/run_output.js';
+import { sealOnly } from '../entry/service/entries.js';
+import { jsonObject } from '../../../lib/foundation.js';
+import { validateRegistered } from '../jurisdiction/service/registrations.js';
+import { tap } from '../jurisdiction/service/taps.js';
+import { rosterFindings } from './service/roster_warnings.js';
+import { amendmentsFor, refusing } from '../payroll_run/service/amendments.js';
 
 /** The day a roster entry prices, and the run that priced it: a paid period holding it is worked out again. */
 const touched = (

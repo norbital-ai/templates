@@ -1,14 +1,11 @@
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
-import { sealOnly } from '../../../../lib/entries.js';
-import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
-import {
-	refuseIneligible,
-	validateRegistered
-} from '../../../../lib/payroll_engine/registrations.js';
-import { jsonObject } from '../../../../lib/payroll_engine/foundation.js';
+import { sealOnly } from '../service/entries.js';
+import { amendmentsFor, refusing } from '../../payroll_run/service/amendments.js';
+import { refuseIneligible, validateRegistered } from '../../jurisdiction/service/registrations.js';
+import { jsonObject } from '../../../../lib/foundation.js';
 import type { Id, WriteCtx } from '@norbital-ai/bolt';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 
 /** The amendment rows of the paid periods these loans' dated instalments fall in. */
 const instalmentAmendments = Effect.fnUntraced(function* (

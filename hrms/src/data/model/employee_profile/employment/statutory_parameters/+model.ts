@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
-import { RUN_STINT } from '../../../../../lib/payroll_engine/run_output.js';
-import { PARAMETER_FIELDS } from '../../../../../lib/person.js';
+import { RUN_STINT } from '../../../../../lib/run_output.js';
+import { PARAMETER_FIELDS } from '../../service/person.js';
 import { afterDated, datedWrite } from '../+model.js';
 
 export default model('statutory_parameters', {

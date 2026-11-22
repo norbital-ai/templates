@@ -13,9 +13,9 @@ import { describe, it } from '@effect/vitest';
 import { JobResult, TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test';
 import { DateTime, Effect, Schema } from 'effect';
 import { verify } from '../integrity_oracle.ts';
-import { stableJson } from '../../src/lib/payroll_engine/foundation.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { stableJson } from '../../src/lib/foundation.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	accountsIn,

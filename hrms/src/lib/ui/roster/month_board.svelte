@@ -9,9 +9,9 @@
 	import { Scroll } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { DateTime, Effect } from 'effect';
-	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
-	import { idOf } from '../../payroll_engine/reads.js';
-	import { employmentOn, segmentsOf } from '../../person.js';
+	import { isJsonObject, jsonObject } from '../../foundation.js';
+	import { idOf } from '../../reads.js';
+	import { employmentOn, segmentsOf } from '../../../data/model/employee_profile/service/person.js';
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {

@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { RUN_STINT } from '../../../../../lib/payroll_engine/run_output.js';
-import { TERM_FIELDS } from '../../../../../lib/person.js';
-import { idOf } from '../../../../../lib/payroll_engine/reads.js';
+import { RUN_STINT } from '../../../../../lib/run_output.js';
+import { TERM_FIELDS } from '../../service/person.js';
+import { idOf } from '../../../../../lib/reads.js';
 import { afterDated, datedWrite } from '../+model.js';
 
 const named = (clears: readonly string[] | null | undefined) =>

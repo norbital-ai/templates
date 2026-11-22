@@ -1,6 +1,6 @@
 import type { MessageKey } from '@norbital-ai/bolt';
 import { DateTime, Duration } from 'effect';
-import { isJsonObject } from '../../payroll_engine/foundation.js';
+import { isJsonObject } from '../../foundation.js';
 
 /** One worked interval as `roster_entry.actual_worked_intervals` stores it. */
 export type Interval = {

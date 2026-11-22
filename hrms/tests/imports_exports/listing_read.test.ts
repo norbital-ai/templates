@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { listingRead } from '../../src/lib/export_format_configuration/salary_listing_download.ts';
+import { listingRead } from '../../src/data/model/payroll_run/service/exports/salary_listing_download.ts';
 import {
 	sheetsOf,
 	workbookOf
-} from '../../src/lib/export_format_configuration/salary_listing_export.ts';
+} from '../../src/data/model/payroll_run/service/exports/salary_listing_export.ts';
 import { ENTITY, pack, packTerms, storedQuery, storedReader, uuid, workspace } from '../kit.ts';
 
 const original = pack('ZZ', 'UTC', packTerms(2800), {}, [], []);

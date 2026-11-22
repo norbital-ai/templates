@@ -16,14 +16,9 @@
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { LAW_DEPTH, lawsOf } from '../../../lib/law.js';
+	import { LAW_DEPTH, lawsOf } from '../../../data/model/jurisdiction/service/law.js';
 	import { patchOf } from '../../../lib/dated.js';
-	import {
-		isJsonObject,
-		jsonObject,
-		type Json,
-		type JsonObject
-	} from '../../../lib/payroll_engine/foundation.js';
+	import { isJsonObject, jsonObject, type Json, type JsonObject } from '../../../lib/foundation.js';
 	import LawBlock from '../../../lib/ui/settings/law_block.svelte';
 	import LawChanges from '../../../lib/ui/settings/law_changes.svelte';
 	import LawRow, { type LawRowTarget } from '../../../lib/ui/settings/law_row.svelte';

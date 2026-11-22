@@ -11,9 +11,9 @@ import {
 	FINAL_SETTLEMENT,
 	loanRecovery,
 	newLoanRepayments
-} from '../../src/lib/payroll_engine/loan_schedule.ts';
-import { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+} from '../../src/data/model/entry/loan_catalog_entry/service/loan_schedule.ts';
+import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { pay, run } from '../amendment_kit.ts';
 import {
 	ENTITY,

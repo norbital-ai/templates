@@ -8,9 +8,9 @@ import {
 	entitlementOf,
 	type LeavePerson,
 	type LeaveRow
-} from '../../src/lib/ledger/entitlement.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
-import { startsOf } from '../../src/lib/person.ts';
+} from '../../src/data/model/employee_profile/employee_balance/service/entitlement.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
+import { startsOf } from '../../src/data/model/employee_profile/service/person.ts';
 import { accountsIn, lawAt, pack, seedLaw, storedQuery, syncAll, uuid, workspace } from '../kit.ts';
 
 const annual = (code: string): LeaveRow => {

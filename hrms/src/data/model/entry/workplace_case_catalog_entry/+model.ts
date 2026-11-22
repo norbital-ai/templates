@@ -1,15 +1,11 @@
 import { model } from '@norbital-ai/bolt';
-import { sealOnly } from '../../../../lib/entries.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
-import {
-	isJsonObject,
-	jsonObject,
-	type JsonObject
-} from '../../../../lib/payroll_engine/foundation.js';
-import type { Reader } from '../../../../lib/payroll_engine/reads.js';
-import { lawOn } from '../../../../lib/law.js';
+import { sealOnly } from '../service/entries.js';
+import { tap } from '../../jurisdiction/service/taps.js';
+import { isJsonObject, jsonObject, type JsonObject } from '../../../../lib/foundation.js';
+import type { Reader } from '../../../../lib/reads.js';
+import { lawOn } from '../../jurisdiction/service/law.js';
 import { Effect } from 'effect';
-import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
+import { validateRegistered } from '../../jurisdiction/service/registrations.js';
 
 /**
  * A case carries the inputs its catalogue row marks as required: one rule for every jurisdiction. The row is the one

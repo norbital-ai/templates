@@ -17,7 +17,7 @@ import {
 	workspace
 } from '../kit.ts';
 import { pay, run } from '../amendment_kit.ts';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/reads.ts';
 
 const PEOPLE = 80;
 const working = (month: string) =>

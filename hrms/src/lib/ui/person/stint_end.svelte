@@ -8,17 +8,18 @@
 	import { Button, Editor, Label, notify_outcome, Sheet, toast, type Kind } from '@norbital-ai/ui';
 	import { run } from '@norbital-ai/ui/effect';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import { companyOn } from '../../company.js';
+	import { companyOn } from '../../../data/model/entity/service/company.js';
 	import { inForce } from '../../dated.js';
-	import { accountsOf, latestLeft } from '../../ledger/core.js';
-	import { termsChange } from '../../person.js';
 	import {
-		isJsonObject,
-		jsonObject,
-		numberOf,
-		type Json
-	} from '../../payroll_engine/foundation.js';
-	import { loanRecovery, monthlyEquivalent } from '../../payroll_engine/loan_schedule.js';
+		accountsOf,
+		latestLeft
+	} from '../../../data/model/employee_profile/employee_balance/service/core.js';
+	import { termsChange } from '../../../data/model/employee_profile/service/person.js';
+	import { isJsonObject, jsonObject, numberOf, type Json } from '../../foundation.js';
+	import {
+		loanRecovery,
+		monthlyEquivalent
+	} from '../../../data/model/entry/loan_catalog_entry/service/loan_schedule.js';
 	import { pageLaws } from '../law.svelte.js';
 	import type { PersonRead, StintRow } from './person_read.svelte.js';
 	import { loansRead, outstandingOf, recoverLoans } from './stint_loans.js';

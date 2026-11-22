@@ -1,10 +1,5 @@
 import { DateTime } from 'effect';
-import {
-	isJsonObject,
-	stableJson,
-	type Json,
-	type JsonObject
-} from './payroll_engine/foundation.js';
+import { isJsonObject, stableJson, type Json, type JsonObject } from './foundation.js';
 
 /**
  * A dated change: from `effective_from`, the values in `patch` are now these. A patch holds only what it changes;

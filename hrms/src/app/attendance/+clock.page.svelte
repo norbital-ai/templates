@@ -47,7 +47,7 @@
 	} from './silhouette.ts';
 	import { loadAntiSpoof, scoreAntiSpoof } from './anti_spoof.ts';
 	import { observeKioskHold, kioskSecondsLeft, sameKioskPerson, type KioskHold } from './hold.ts';
-	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
+	import { getErrorMessage } from '../../lib/foundation.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	type Tab = 'scan' | 'manual';
 	type Phase = Data.TaggedEnum<{

@@ -1,7 +1,11 @@
 import { automation } from '@norbital-ai/bolt';
 import { Cause, DateTime, Effect } from 'effect';
-import { getErrorMessage, isJsonObject } from '../lib/payroll_engine/foundation.js';
-import { raiseFailure, retire, syncEntitlements } from '../lib/ledger/service.js';
+import { getErrorMessage, isJsonObject } from '../lib/foundation.js';
+import {
+	raiseFailure,
+	retire,
+	syncEntitlements
+} from '../data/model/employee_profile/employee_balance/service/service.js';
 
 const ATTEMPTS = 8;
 

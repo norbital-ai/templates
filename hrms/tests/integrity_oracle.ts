@@ -1,7 +1,7 @@
 import { DateTime, Effect } from 'effect';
-import type { Json, JsonObject } from '../src/lib/payroll_engine/foundation.ts';
-import { queryRows, type Reader } from '../src/lib/payroll_engine/reads.ts';
-import { exitsIn, isExitDuty } from '../src/lib/dependants.ts';
+import type { Json, JsonObject } from '../src/lib/foundation.ts';
+import { queryRows, type Reader } from '../src/lib/reads.ts';
+import { exitsIn, isExitDuty } from '../src/data/model/employee_profile/service/dependants.ts';
 import {
 	accountsOf,
 	apply,
@@ -10,7 +10,7 @@ import {
 	leftIn,
 	type Accounts,
 	type Movement
-} from '../src/lib/ledger/core.ts';
+} from '../src/data/model/employee_profile/employee_balance/service/core.ts';
 
 /**
  * What the ledger must always be, checked from outside its service. Hard findings: a balance figure that is not the sum

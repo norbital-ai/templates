@@ -1,12 +1,8 @@
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
-import { sealOnly } from '../../../../lib/entries.js';
-import {
-	isJsonObject,
-	jsonObject,
-	type JsonObject
-} from '../../../../lib/payroll_engine/foundation.js';
-import { amendmentsFor, refusing } from '../../../../lib/amendments.js';
+import { sealOnly } from '../service/entries.js';
+import { isJsonObject, jsonObject, type JsonObject } from '../../../../lib/foundation.js';
+import { amendmentsFor, refusing } from '../../payroll_run/service/amendments.js';
 import {
 	assertLeft,
 	assertCashable,
@@ -15,8 +11,8 @@ import {
 	entryRead,
 	assertWorked,
 	syncLatePosted
-} from '../../../../lib/ledger/service.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+} from '../../employee_profile/employee_balance/service/service.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 
 /** The days a leave prices, and the run that priced each: a paid period holding one is worked out again. */
 const touched = (employment: unknown, days: readonly unknown[], cashOut: unknown = false) =>

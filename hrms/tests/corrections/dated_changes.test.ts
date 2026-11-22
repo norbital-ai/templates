@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { corrected, inForce, patchOf, reachOf, type Change } from '../../src/lib/dated.ts';
-import { LAW_DEPTH } from '../../src/lib/law.ts';
+import { LAW_DEPTH } from '../../src/data/model/jurisdiction/service/law.ts';
 
 const row = (id: string, effective_from: string, patch: Change['patch']): Change => ({
 	id,

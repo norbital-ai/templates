@@ -1,8 +1,8 @@
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { enum_text } from '@norbital-ai/ui';
-import { isJsonObject } from '../../payroll_engine/foundation.js';
+import { isJsonObject } from '../../foundation.js';
 import { pageLaws } from '../law.svelte.js';
-import { kindsOf } from '../../payroll_engine/listed_kinds.js';
+import { kindsOf } from './listed_kinds.js';
 
 /**
  * A stored kind code as the name the law's typed catalogue lists it under (`case_kinds`), across these jurisdictions'

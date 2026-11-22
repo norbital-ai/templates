@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
-import { LAW_ROWS } from '../../src/lib/law.ts';
+import { LAW_ROWS } from '../../src/data/model/jurisdiction/service/law.ts';
 import { isObject } from '../kit.ts';
 import { SEEDED } from './seeded.ts';
 

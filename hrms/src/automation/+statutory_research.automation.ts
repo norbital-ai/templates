@@ -1,15 +1,15 @@
 import { automation } from '@norbital-ai/bolt';
-import type { JsonObject } from '../lib/payroll_engine/contracts.js';
-import { LAW_ROWS, lawRead, lawsOf, standing } from '../lib/law.js';
-import { queryRows, valueText } from '../lib/payroll_engine/reads.js';
-import { jsonObject, type Json } from '../lib/payroll_engine/foundation.js';
+import type { JsonObject } from '../lib/contracts.js';
+import { LAW_ROWS, lawRead, lawsOf, standing } from '../data/model/jurisdiction/service/law.js';
+import { queryRows, valueText } from '../lib/reads.js';
+import { jsonObject, type Json } from '../lib/foundation.js';
 import {
 	FAMILIES,
 	FAMILY_NOTES,
 	referenceSources,
 	SETTINGS_FAMILY,
 	WHOLE_ROW
-} from '../lib/payroll_engine/statutory_research.js';
+} from '../data/model/statutory_finding/service/research.js';
 
 const byCode = (rows: readonly JsonObject[]): readonly JsonObject[] =>
 	[...rows].toSorted((left, right) =>

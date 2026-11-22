@@ -2,11 +2,14 @@
 // line on that run and its balance falls by the refund; any other stops at zero and the next run nets it.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { diff } from '../../src/lib/ledger/core.ts';
-import { payslipWanted } from '../../src/lib/ledger/service.ts';
-import { calculatePayroll, type PayrollInput } from '../../src/lib/payroll_engine/engine.ts';
-import { jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { breakdownOf } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
+import { diff } from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { payslipWanted } from '../../src/data/model/employee_profile/employee_balance/service/service.ts';
+import {
+	calculatePayroll,
+	type PayrollInput
+} from '../../src/data/model/payroll_run/service/engine.ts';
+import { jsonObject } from '../../src/lib/foundation.ts';
+import { breakdownOf } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
 
 const subtotal = (code: string, previous: string | null) => ({ code, name: code, previous });
 const owing = (amount: number, lookup: object = {}): PayrollInput => ({

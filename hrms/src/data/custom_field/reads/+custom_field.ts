@@ -1,5 +1,5 @@
 import { custom_field } from '@norbital-ai/bolt';
-import { READS_SHAPE } from '../../../lib/payroll_engine/reads.js';
+import { READS_SHAPE } from '../../../lib/reads.js';
 
 export default custom_field({
 	description:

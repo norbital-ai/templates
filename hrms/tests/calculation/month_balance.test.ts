@@ -1,8 +1,8 @@
 // Figures a formula needs by month live in the balance, keyed by pay month, and leave by dated entries.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { viewOf } from '../../src/lib/ledger/core.ts';
-import { payslipWanted } from '../../src/lib/ledger/service.ts';
+import { viewOf } from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import { payslipWanted } from '../../src/data/model/employee_profile/employee_balance/service/service.ts';
 
 describe('a month balance', () => {
 	const slip = { checkpoints: [{ code: 'BASE', value: 1000 }], statutory: [] };

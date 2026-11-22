@@ -2,8 +2,8 @@
 	/** One keyed block of a law (its lookup, conversions, ledger, work regions or a statutory parameter declaration), edited as folded. Its view's one Save commits the draft. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { is_json_schema, StructuredData, use_form } from '@norbital-ai/ui';
-	import type { Law } from '../../law.js';
-	import { isJsonObject, type Json, type JsonObject } from '../../payroll_engine/foundation.js';
+	import type { Law } from '../../../data/model/jurisdiction/service/law.js';
+	import { isJsonObject, type Json, type JsonObject } from '../../foundation.js';
 	import LookupSections from './lookup_sections.svelte';
 
 	let {

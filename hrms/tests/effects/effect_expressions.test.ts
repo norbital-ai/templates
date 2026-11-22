@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { registerChanged } from '../../src/data/model/employee_profile/+model.ts';
-import { evaluate } from '../../src/lib/payroll_engine/expressions.ts';
-import { resolveRead } from '../../src/lib/payroll_engine/registrations.ts';
+import { evaluate } from '../../src/data/model/jurisdiction/service/expressions.ts';
+import { resolveRead } from '../../src/data/model/jurisdiction/service/registrations.ts';
 import { lawAt } from '../kit.ts';
 
 describe('an effect expression', () => {

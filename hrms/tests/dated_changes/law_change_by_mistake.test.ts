@@ -6,12 +6,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import type { Json } from '../../src/lib/payroll_engine/foundation.ts';
-import { objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import type { JsonObject } from '../../src/lib/contracts.ts';
+import type { Json } from '../../src/lib/foundation.ts';
+import { objectValue } from '../../src/lib/reads.ts';
 import { amendments, carriedFor, dropped, ownLines, pay, run } from '../amendment_kit.ts';
 import { lawAt, pack, refusal, storedQuery, workspace, packTerms } from '../kit.ts';
-import { FAMILIES } from '../../src/lib/payroll_engine/statutory_research.ts';
+import { FAMILIES } from '../../src/data/model/statutory_finding/service/research.ts';
 
 const CODE = 'MY';
 const NOW = '2027-02-05T02:00:00.000Z';

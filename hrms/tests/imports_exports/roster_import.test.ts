@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import {
 	planRosterUpload,
 	type RosterKnown,
 	type RosterPlan
-} from '../../src/lib/payroll_engine/roster_workbook.ts';
+} from '../../src/data/model/roster_entry/service/roster_workbook.ts';
 import { ENTITY, WORK, pack, uuid, workspace, storedQuery } from '../kit.ts';
 
 const seed = pack('MY', 'Asia/Kuala_Lumpur', {}, {}, [], []);

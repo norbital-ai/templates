@@ -5,10 +5,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { companyOn } from '../../src/lib/company.ts';
-import { employmentOn, partsIn } from '../../src/lib/person.ts';
-import { isJsonObject, jsonObject } from '../../src/lib/payroll_engine/foundation.ts';
-import { idOf, queryRows } from '../../src/lib/payroll_engine/reads.ts';
+import { companyOn } from '../../src/data/model/entity/service/company.ts';
+import { employmentOn, partsIn } from '../../src/data/model/employee_profile/service/person.ts';
+import { isJsonObject, jsonObject } from '../../src/lib/foundation.ts';
+import { idOf, queryRows } from '../../src/lib/reads.ts';
 import { run, slip } from '../amendment_kit.ts';
 import {
 	EMPLOYMENT,

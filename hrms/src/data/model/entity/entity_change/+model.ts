@@ -1,22 +1,13 @@
 import { model, type CarriedWrites, type EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import { amendmentsOf, refusing } from '../../../../lib/amendments.js';
-import {
-	COMPANY_DEPTH,
-	COMPANY_FIELDS,
-	companyChange,
-	employerOn
-} from '../../../../lib/company.js';
+import { amendmentsOf, refusing } from '../../payroll_run/service/amendments.js';
+import { COMPANY_DEPTH, COMPANY_FIELDS, companyChange, employerOn } from '../service/company.js';
 import { reachOf } from '../../../../lib/dated.js';
-import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
-import {
-	jsonObject,
-	stableJson,
-	type JsonObject
-} from '../../../../lib/payroll_engine/foundation.js';
-import { idsOf, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
-import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { syncLedgerOn } from '../../jurisdiction/service/configuration.js';
+import { jsonObject, stableJson, type JsonObject } from '../../../../lib/foundation.js';
+import { idsOf, queryRows, type Reader } from '../../../../lib/reads.js';
+import { validateRegistered } from '../../jurisdiction/service/registrations.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 
 type Verb = 'create' | 'update' | 'delete';
 

@@ -10,18 +10,18 @@ import {
 	unlimited,
 	type Event,
 	type Movement
-} from '../../src/lib/ledger/core.ts';
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
 import {
 	entitlementOf,
 	type LeavePerson,
 	type LeaveRow
-} from '../../src/lib/ledger/entitlement.ts';
+} from '../../src/data/model/employee_profile/employee_balance/service/entitlement.ts';
 import {
 	entitlementPlans,
 	leaveWanted,
 	type ClosingRule,
 	type Plan
-} from '../../src/lib/ledger/service.ts';
+} from '../../src/data/model/employee_profile/employee_balance/service/service.ts';
 
 type Held = {
 	readonly accounts: Accounts;

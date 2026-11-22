@@ -5,10 +5,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
-import { RUN_INPUTS } from '../../src/lib/amendments.ts';
-import { loadRun } from '../../src/lib/payroll_engine/run_calculation.ts';
+import { RUN_INPUTS } from '../../src/data/model/payroll_run/service/amendments.ts';
+import { loadRun } from '../../src/data/model/payroll_run/service/run_calculation.ts';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
-import type { Reader } from '../../src/lib/payroll_engine/reads.ts';
+import type { Reader } from '../../src/lib/reads.ts';
 import { ENTITY, PAY_GROUP, pack, packTerms, storedReader, workspace } from '../kit.ts';
 
 const models = (root: string): readonly string[] =>

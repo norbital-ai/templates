@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { leftOn, type Accounts } from '../../src/lib/ledger/core.ts';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { idOf, objectValue } from '../../src/lib/payroll_engine/reads.ts';
+import {
+	leftOn,
+	type Accounts
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
+import type { JsonObject } from '../../src/lib/contracts.ts';
+import { idOf, objectValue } from '../../src/lib/reads.ts';
 import {
 	ENTITY,
 	PAY_GROUP,

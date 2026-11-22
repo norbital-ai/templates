@@ -1,6 +1,6 @@
 import { automation } from '@norbital-ai/bolt';
-import { idsOf, queryRows } from '../lib/payroll_engine/reads.js';
-import { applyRegisteredEffects } from '../lib/payroll_engine/registrations.js';
+import { idsOf, queryRows } from '../lib/reads.js';
+import { applyRegisteredEffects } from '../data/model/jurisdiction/service/registrations.js';
 
 const COLLECTIONS = ['leave_catalog_entry', 'claim_catalog_entry', 'employee_profile'] as const;
 type Collection = (typeof COLLECTIONS)[number];

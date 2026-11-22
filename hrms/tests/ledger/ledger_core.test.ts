@@ -15,7 +15,7 @@ import {
 	windowOf,
 	windowStart,
 	type Wanted
-} from '../../src/lib/ledger/core.ts';
+} from '../../src/data/model/employee_profile/employee_balance/service/core.ts';
 
 const USED = {
 	account: 'leave',

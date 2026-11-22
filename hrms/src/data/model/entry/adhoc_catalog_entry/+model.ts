@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { amendmentsFor } from '../../../../lib/amendments.js';
-import { entryCreate, entryDelete, entryUpdate } from '../../../../lib/entries.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+import { amendmentsFor } from '../../payroll_run/service/amendments.js';
+import { entryCreate, entryDelete, entryUpdate } from '../service/entries.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 
 export default model('adhoc_catalog_entry', {
 	description: 'One ad-hoc payment or deduction for an employment.',

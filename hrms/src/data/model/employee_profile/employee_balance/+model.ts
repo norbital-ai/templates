@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
-import { RUN_STINT } from '../../../../lib/payroll_engine/run_output.js';
-import { writesLedger } from '../../../../lib/ledger/service.js';
+import { RUN_STINT } from '../../../../lib/run_output.js';
+import { writesLedger } from './service/service.js';
 
 export default model('employee_balance', {
 	description:

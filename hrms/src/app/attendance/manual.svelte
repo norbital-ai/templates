@@ -12,7 +12,7 @@
 	import { DescriptionHint, Button, Input } from '@norbital-ai/ui';
 	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { punchTime, punchWork, rangeCovers, type PunchResult } from './punch.js';
-	import { getErrorMessage } from '../../lib/payroll_engine/foundation.js';
+	import { getErrorMessage } from '../../lib/foundation.js';
 
 	let {
 		ctx,

@@ -33,7 +33,7 @@
 	import type { KioskSample } from '../../../app/attendance/sample.js';
 	import { readKioskSettings } from '../../../app/attendance/settings.js';
 	import { browserNarratorPlatform, createKioskNarrator } from '../../../app/attendance/voice.js';
-	import { getErrorMessage } from '../../payroll_engine/foundation.js';
+	import { getErrorMessage } from '../../foundation.js';
 	/**
 	 * Guided face enrollment for one known person, opened from their profile.
 	 *

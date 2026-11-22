@@ -1,5 +1,5 @@
 import { model } from '@norbital-ai/bolt';
-import { tap } from '../../../lib/payroll_engine/taps.js';
+import { tap } from '../jurisdiction/service/taps.js';
 
 export default model('obligation', {
 	description: 'A free-form task or reminder raised by an event.',

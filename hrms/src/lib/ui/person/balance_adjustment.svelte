@@ -18,7 +18,7 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
-	import { isJsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+	import { isJsonObject, type JsonObject } from '../../foundation.js';
 	import { pageLaws } from '../law.svelte.js';
 
 	let {

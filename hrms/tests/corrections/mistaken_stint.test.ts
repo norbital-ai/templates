@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { idOf } from '../../src/lib/payroll_engine/reads.ts';
+import { idOf } from '../../src/lib/reads.ts';
 import { TERMS, current, refusal, storedQuery, workspace } from '../kit.ts';
 import { EMPLOYMENT, amendments, pay, rosteredNeutral as rostered, run } from '../amendment_kit.ts';
 

@@ -1,4 +1,4 @@
-import { RUN_STINT } from '../../../../lib/payroll_engine/run_output.js';
+import { RUN_STINT } from '../../../../lib/run_output.js';
 import {
 	model,
 	type CarriedWrites,
@@ -7,11 +7,11 @@ import {
 	type WriteCtx
 } from '@norbital-ai/bolt';
 import { DateTime, Effect } from 'effect';
-import { amendmentsFor, refusing, type Touched } from '../../../../lib/amendments.js';
+import { amendmentsFor, refusing, type Touched } from '../../payroll_run/service/amendments.js';
 import { reachOf } from '../../../../lib/dated.js';
-import { reconcile } from '../../../../lib/dependants.js';
-import { lawRead, lawsOf, type Law } from '../../../../lib/law.js';
-import { assertFactsHold } from '../../../../lib/ledger/service.js';
+import { reconcile } from '../service/dependants.js';
+import { lawRead, lawsOf, type Law } from '../../jurisdiction/service/law.js';
+import { assertFactsHold } from '../employee_balance/service/service.js';
 import {
 	PARAMETER_FIELDS,
 	PROFILE_FIELDS,
@@ -24,18 +24,18 @@ import {
 	segmentsOf,
 	termsChange,
 	type Parts
-} from '../../../../lib/person.js';
-import { syncLedgerOn } from '../../../../lib/payroll_engine/configuration.js';
+} from '../service/person.js';
+import { syncLedgerOn } from '../../jurisdiction/service/configuration.js';
 import {
 	isJsonObject,
 	jsonObject,
 	numberOf,
 	stableJson,
 	type JsonObject
-} from '../../../../lib/payroll_engine/foundation.js';
-import { rangeObject, validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { type Reader, idOf, idsOf, queryRows } from '../../../../lib/payroll_engine/reads.js';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
+} from '../../../../lib/foundation.js';
+import { rangeObject, validateRegistered } from '../../jurisdiction/service/registrations.js';
+import { type Reader, idOf, idsOf, queryRows } from '../../../../lib/reads.js';
+import { tap } from '../../jurisdiction/service/taps.js';
 
 type Verb = 'create' | 'update' | 'delete';
 type Family = 'contract_terms' | 'statutory_parameters';

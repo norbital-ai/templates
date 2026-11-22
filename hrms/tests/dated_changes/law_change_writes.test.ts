@@ -7,9 +7,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
-import { lawOn } from '../../src/lib/law.ts';
-import type { JsonObject } from '../../src/lib/payroll_engine/contracts.ts';
-import { isJsonObject } from '../../src/lib/payroll_engine/foundation.ts';
+import { lawOn } from '../../src/data/model/jurisdiction/service/law.ts';
+import type { JsonObject } from '../../src/lib/contracts.ts';
+import { isJsonObject } from '../../src/lib/foundation.ts';
 import { claimed } from '../amendment_kit.ts';
 import { ENTITY, lawAt, pack, storedQuery, storedReader, workspace, packTerms } from '../kit.ts';
 

@@ -2,10 +2,13 @@ import { Effect } from 'effect';
 import type { ActInput, Callable } from '@norbital-ai/bolt';
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { notify_outcome } from '@norbital-ai/ui';
-import { lawsOf } from '../../law.js';
-import { jsonObject } from '../../payroll_engine/foundation.js';
-import { idOf } from '../../payroll_engine/reads.js';
-import { PARAMETER_FIELDS, TERM_FIELDS } from '../../person.js';
+import { lawsOf } from '../../../data/model/jurisdiction/service/law.js';
+import { jsonObject } from '../../foundation.js';
+import { idOf } from '../../reads.js';
+import {
+	PARAMETER_FIELDS,
+	TERM_FIELDS
+} from '../../../data/model/employee_profile/service/person.js';
 import {
 	jurisdictionOf,
 	planDataRequest,

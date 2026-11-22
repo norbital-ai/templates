@@ -66,7 +66,7 @@ Silent carry is unsafe across jurisdictions: the new jurisdiction's payroll read
 
 Service for leave bands is a property of the person's stints, not of the latest one. A change of terms or a transfer must not reset annual-leave service.
 
-- Service is worked out from the person's stints, never stored as a second date (`startsOf` in `src/lib/person.ts`).
+- Service is worked out from the person's stints, never stored as a second date (`startsOf` in `src/data/model/employee_profile/service/person.ts`).
 - A stint that starts the day after another ended under the same jurisdiction code continues its employment; a gap starts a new one.
 - With `employee_profile.cumulative_service` on, every stint under the same jurisdiction code counts, rehires included (an employer's practice, giving at least the statutory continuous service); off (the default), only the current unbroken employment counts.
 - A cross-jurisdiction transfer starts new statutory service.
@@ -75,7 +75,7 @@ Service for leave bands is a property of the person's stints, not of the latest 
 
 ### 3.4 Exit
 
-- An exit is read from the person's stints: a stint with a last day and no later stint under the same jurisdiction code (`isExit` in `src/lib/person.ts`). No separate record holds it.
+- An exit is read from the person's stints: a stint with a last day and no later stint under the same jurisdiction code (`isExit` in `src/data/model/employee_profile/service/person.ts`). No separate record holds it.
 - The stint's write raises the `exit` event when a save makes it true, moves it or cancels it. The law's exit duties are effects on that event; their entry is the employment on the last day. The write's own effect keeps the exit's other tasks and loan in step.
 - Each task names the stint and its last day (`…:<employment id>:exit:<last day>`), so a repeat is a no-op.
 - A moved or cancelled exit is followed by one routine for every jurisdiction ([corrections and integrity](0007-corrections-and-integrity.md#11-when-an-exit-is-cancelled-or-its-date-moves)).

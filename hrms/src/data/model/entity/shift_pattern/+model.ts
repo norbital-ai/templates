@@ -1,7 +1,12 @@
 import { model } from '@norbital-ai/bolt';
-import { tap } from '../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor, followers, paidUnder, refusing } from '../../../../lib/amendments.js';
-import { stableJson } from '../../../../lib/payroll_engine/foundation.js';
+import { tap } from '../../jurisdiction/service/taps.js';
+import {
+	amendmentsFor,
+	followers,
+	paidUnder,
+	refusing
+} from '../../payroll_run/service/amendments.js';
+import { stableJson } from '../../../../lib/foundation.js';
 
 const onePatternShape = (pattern: unknown) => {
 	if (typeof pattern !== 'object' || pattern === null) return false;

@@ -1,7 +1,7 @@
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { corrected, opens, type Change, type Depth } from '../../dated.js';
-import { LAW_DEPTH, standing, type Law } from '../../law.js';
-import { isJsonObject, jsonObject, type JsonObject } from '../../payroll_engine/foundation.js';
+import { LAW_DEPTH, standing, type Law } from '../../../data/model/jurisdiction/service/law.js';
+import { isJsonObject, jsonObject, type JsonObject } from '../../foundation.js';
 
 /** One law's changes, live: every row, whether or not its finding stands. */
 export const lawChain = (ctx: PageContext, code: string) =>

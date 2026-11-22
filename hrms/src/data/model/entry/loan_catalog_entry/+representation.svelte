@@ -25,7 +25,7 @@
 		loanScheduleProblems,
 		loanScheduleState,
 		type LoanScheduleProblem
-	} from '../../../../lib/payroll_engine/loan_schedule.js';
+	} from './service/loan_schedule.js';
 
 	let { view, ctx }: { view: RecordView<'loan_catalog_entry'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);

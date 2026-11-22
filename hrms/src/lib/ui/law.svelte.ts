@@ -1,6 +1,6 @@
 import type { PageContext } from '@norbital-ai/bolt/page';
-import { lawsOf, type Law } from '../law.js';
-import { jsonObject } from '../payroll_engine/foundation.js';
+import { lawsOf, type Law } from '../../data/model/jurisdiction/service/law.js';
+import { jsonObject } from '../foundation.js';
 
 /**
  * The laws of these jurisdictions, live: `on(code, day)` is the law in force on a day. A law is megabytes: a screen

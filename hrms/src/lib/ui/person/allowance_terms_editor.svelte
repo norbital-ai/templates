@@ -13,8 +13,8 @@
 	} from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import type { Law } from '../../law.js';
-	import { isJsonObject } from '../../payroll_engine/foundation.js';
+	import type { Law } from '../../../data/model/jurisdiction/service/law.js';
+	import { isJsonObject } from '../../foundation.js';
 
 	let {
 		ctx,

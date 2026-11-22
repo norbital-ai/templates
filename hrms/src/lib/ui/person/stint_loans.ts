@@ -1,14 +1,14 @@
 import { new_id, type Id, type PlainDate, type ReadAnswer } from '@norbital-ai/bolt';
 import { DateTime } from 'effect';
-import type { Law } from '../../law.js';
-import type { Json, JsonObject } from '../../payroll_engine/foundation.js';
+import type { Law } from '../../../data/model/jurisdiction/service/law.js';
+import type { Json, JsonObject } from '../../foundation.js';
 import {
 	buildLoanSchedule,
 	FINAL_SETTLEMENT,
 	loanDisposition,
 	loanRecovery,
 	newLoanRepayments
-} from '../../payroll_engine/loan_schedule.js';
+} from '../../../data/model/entry/loan_catalog_entry/service/loan_schedule.js';
 
 /** The stint a person leaves, as its loans name it. */
 export type Leaving = {

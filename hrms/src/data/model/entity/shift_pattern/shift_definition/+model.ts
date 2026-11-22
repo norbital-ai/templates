@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { tap } from '../../../../../lib/payroll_engine/taps.js';
-import { amendmentsFor, followers, refusing } from '../../../../../lib/amendments.js';
-import { stableJson } from '../../../../../lib/payroll_engine/foundation.js';
+import { tap } from '../../../jurisdiction/service/taps.js';
+import { amendmentsFor, followers, refusing } from '../../../payroll_run/service/amendments.js';
+import { stableJson } from '../../../../../lib/foundation.js';
 
 const columns = ['entity_id', 'code', 'name', 'effective_range', 'variant'] as const;
 export default model('shift_definition', {

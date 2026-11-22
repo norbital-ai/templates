@@ -7,8 +7,8 @@ import {
 	workbookOf,
 	type ListingRead,
 	type Sheet
-} from '../../src/lib/export_format_configuration/salary_listing_export.ts';
-import type { PayslipBreakdown } from '../../src/lib/payroll_engine/payslip_breakdown.ts';
+} from '../../src/data/model/payroll_run/service/exports/salary_listing_export.ts';
+import type { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
 
 type Line = PayslipBreakdown['lines'][number];
 const line = (over: Partial<Line>): Line => ({

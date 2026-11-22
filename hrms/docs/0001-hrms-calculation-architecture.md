@@ -271,7 +271,7 @@ A law is one `jurisdiction` row (`code` such as `MY` or `SG`, name, currency, ti
 
 - The first change holds the whole law: `conversions`, `ledger`, `lookup`, `work_regions`, the two statutory parameter declarations, the subtotal chain, the nine catalogue families, registered rules and registered effects.
 - Each later change is a patch: only what changes from its date. A field or a row set to `null` is removed. A row's `lookup` is patched key by key: a change names only the keys it changes, and a key set to `null` is removed. Anything else, a table inside a lookup key, a list of citations or an expression, is replaced whole.
-- The law on a day is the fold: the changes dated on or before it, applied oldest first (`src/lib/dated.ts`, `src/lib/law.ts`). A day before the first change answers to the first change.
+- The law on a day is the fold: the changes dated on or before it, applied oldest first (`src/lib/dated.ts`, `src/data/model/jurisdiction/service/law.ts`). A day before the first change answers to the first change.
 - Nothing in a law has an id. A catalogue row names its subtotal by code (`subtotal`), a subtotal its predecessor (`previous`), and an entry its catalogue row (`catalog_code`).
 - The seed starts on 1 December 2025. Each later change is dated the day a change in law took effect.
 - A change already enacted with a later date is seeded in advance, as its own change from that date. It is not in force until its day.
@@ -405,7 +405,7 @@ Where a statute fixes an amount on the month's total, a month's runs are one mon
 
 ## 6. Ledger and balance
 
-`src/lib/ledger/` is the only writer of `ledger_entry` and `employee_balance`.
+`src/data/model/employee_profile/employee_balance/service/` is the only writer of `ledger_entry` and `employee_balance`.
 
 Every value has a four-part key, `<family>/<code>/<period>/<measure>`:
 
@@ -509,8 +509,8 @@ Sync takes old periods off the balance through dated movements: a month total mo
 ## 7. Rules, effects and tasks
 
 - A **registered rule** validates a write. It names a target model, the events (`create`, `update`, `delete`), its declared reads and a validation expression. It runs inside the target model's write and refuses with the rule's own message.
-- A declared read (`reads`) names a model a rule may read and a key to find its rows by (`src/lib/payroll_engine/rule_reads.ts` lists both): a stint, a person, a company, a run or an occurrence key, by `eq` or `in`. A law that declares a read with no key is refused when it is written. Every declared read of a batch is one typed request, and each rule's own `where` then picks its rows from the answer.
-- Every read in the source is a typed literal with a `limit` (Bolt 0.0.45): none is built at run time, none pages through a table, and none filters through a relation its output does not declare. The payroll run reads through the named `run` output (`src/lib/payroll_engine/run_output.ts`). The entitlement sync runs per company, in batches of people.
+- A declared read (`reads`) names a model a rule may read and a key to find its rows by (`src/data/model/jurisdiction/service/rule_reads.ts` lists both): a stint, a person, a company, a run or an occurrence key, by `eq` or `in`. A law that declares a read with no key is refused when it is written. Every declared read of a batch is one typed request, and each rule's own `where` then picks its rows from the answer.
+- Every read in the source is a typed literal with a `limit` (Bolt 0.0.45): none is built at run time, none pages through a table, and none filters through a relation its output does not declare. The payroll run reads through the named `run` output (`src/lib/run_output.ts`). The entitlement sync runs per company, in batches of people.
 - For now a registered rule warns and never refuses (owner, 2026-11-15): the write stands, a roster day keeps the rule's code in its `findings` (the month board shows it), and any other model's warning is logged by the server only. An on-cycle run before its cycle begins, a hire with no law in force and the ledger's own checks still refuse.
 - A **registered effect** runs after a commit. It names a source model, the events (`create`, `update`, `delete`, `exit`), its reads, a condition and an expression that returns the records to write. Every seeded effect creates an `obligation`.
 - An **obligation** is a task or reminder: entity, optional person and employment, title, optional due date, an `occurrence_key` that keeps it to one, and a state. `OPEN → FULFILLED` or `OPEN → WAIVED`; a waived task can be reopened; a fulfilled one keeps its record. It holds no money and posts nothing.
