@@ -4,11 +4,26 @@
 	 * fill the form as they land; check it, add the pay-by date, and print it with its attachments for signature.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Table } from '@norbital-ai/ui';
+	import { Table, format } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 </script>
+
+{#snippet moneyCell({
+	row,
+	value
+}: {
+	row: { readonly currency: string | null };
+	value: string | null | undefined;
+})}
+	{value == null
+		? '—'
+		: format({ kind: 'money' }, value, {
+				locale: ctx.locale,
+				...(row.currency ? { currency: row.currency } : {})
+			})}
+{/snippet}
 
 <AppShell
 	icon="lucide:file-signature"
@@ -23,8 +38,12 @@
 			'po_number',
 			'vendor',
 			'facility_required',
-			'currency',
-			'amount',
+			{
+				field: 'amount',
+				kind: { kind: 'money', currency: 'currency' },
+				align: 'end',
+				cell: moneyCell
+			},
 			'pay_by_date',
 			'purchase_order'
 		]}

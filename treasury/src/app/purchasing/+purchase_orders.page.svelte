@@ -1,10 +1,25 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Table } from '@norbital-ai/ui';
+	import { Table, format } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 </script>
+
+{#snippet moneyCell({
+	row,
+	value
+}: {
+	row: { readonly currency: string | null };
+	value: string | null | undefined;
+})}
+	{value == null
+		? '—'
+		: format({ kind: 'money' }, value, {
+				locale: ctx.locale,
+				...(row.currency ? { currency: row.currency } : {})
+			})}
+{/snippet}
 
 <AppShell
 	icon="lucide:file-text"
@@ -20,10 +35,19 @@
 			'po_number',
 			'po_date',
 			'supplier',
-			'currency',
-			'amount',
+			{
+				field: 'amount',
+				kind: { kind: 'money', currency: 'currency' },
+				align: 'end',
+				cell: moneyCell
+			},
 			'quantity',
-			'invoiced_amount',
+			{
+				field: 'invoiced_amount',
+				kind: { kind: 'money', currency: 'currency' },
+				align: 'end',
+				cell: moneyCell
+			},
 			'payment_date',
 			'lc_requested',
 			'is_cancelled'

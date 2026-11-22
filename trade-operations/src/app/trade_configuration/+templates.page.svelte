@@ -2,8 +2,8 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Row } from '@norbital-ai/bolt';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Badge, Button, Table, open_record } from '@norbital-ai/ui';
-	import { AppShell } from '@norbital-ai/ui/layout';
+	import { Badge, Table, open_record } from '@norbital-ai/ui';
+	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import { newestFirst } from '../../lib/order-document.js';
 
@@ -24,14 +24,20 @@
 			draft: newest(rows.filter((row) => row.status === 'draft'))
 		};
 	};
-	// one row per case; each language column shows the title orders print now
+	// one row per document and language: what orders print now and any unpublished draft
 	const cases = $derived(
-		kinds.map((kind) => ({
-			id: kind,
-			kind,
-			en: slot(kind, 'en').current?.title ?? '',
-			zh: slot(kind, 'zh').current?.title ?? ''
-		}))
+		kinds.flatMap((kind) =>
+			locales.map((locale) => {
+				const { current, draft } = slot(kind, locale);
+				return {
+					id: `${kind}:${locale}`,
+					kind,
+					locale,
+					current: current?.title ?? '',
+					draft: draft?.version ?? null
+				};
+			})
+		)
 	);
 	type Case = (typeof cases)[number];
 	// a revision starts from what orders print now; publishing it makes it current for orders not yet confirmed
@@ -54,32 +60,30 @@
 </script>
 
 {#snippet caseName({ row }: { row: Case })}
-	<span class="flex min-w-0 flex-col"
-		><span class="font-medium">{ctx.t(`models.document_templates.fields.kind.${row.kind}`)}</span
-		><span class="text-xs text-muted-foreground"
-			>{ctx.t(`settings.documents.when.${row.kind}`)}</span
-		></span
-	>
+	<Stack as="span" gap="none">
+		<span class="font-medium">{ctx.t(`models.document_templates.fields.kind.${row.kind}`)}</span>
+		<span class="text-meta">{ctx.t(`settings.documents.when.${row.kind}`)}</span>
+	</Stack>
 {/snippet}
-{#snippet layout(row: Case, locale: Locale)}
-	{@const { current, draft } = slot(row.kind, locale)}
-	<span class="flex flex-wrap items-center gap-2">
-		{#if current}<Button
-				variant="ghost"
-				onclick={() => open_record('document_templates', current.id)}
-				>{current.title} · {ctx.t('settings.documents.version', {
-					version: current.version
-				})}</Button
-			>{:else}<Badge variant="warning">{ctx.t('settings.documents.missing')}</Badge>{/if}
-		{#if draft}<Button variant="outline" onclick={() => open_record('document_templates', draft.id)}
-				>{ctx.t('settings.documents.draft', { version: draft.version })}</Button
-			>{:else}<Button variant="outline" onclick={() => revise(row.kind, locale, current)}
-				>{ctx.t(current ? 'settings.documents.revise' : 'settings.documents.add')}</Button
-			>{/if}
-	</span>
+{#snippet localeCell({ row }: { row: Case })}
+	{ctx.t(`models.document_templates.fields.locale.${row.locale}`)}
 {/snippet}
-{#snippet english({ row }: { row: Case })}{@render layout(row, 'en')}{/snippet}
-{#snippet chinese({ row }: { row: Case })}{@render layout(row, 'zh')}{/snippet}
+{#snippet publishedCell({ row }: { row: Case })}
+	{@const { current } = slot(row.kind, row.locale)}
+	{#if current}
+		{current.title} · {ctx.t('settings.documents.version', { version: current.version })}
+	{:else}
+		<Badge variant="warning">{ctx.t('settings.documents.missing')}</Badge>
+	{/if}
+{/snippet}
+{#snippet draftCell({ row }: { row: Case })}
+	{@const { draft } = slot(row.kind, row.locale)}
+	{#if draft}
+		<Badge variant="outline">{ctx.t('settings.documents.draft', { version: draft.version })}</Badge>
+	{:else}
+		—
+	{/if}
+{/snippet}
 
 <AppShell
 	description={ctx.t('settings.documents.description')}
@@ -92,8 +96,37 @@
 		key="document_cases"
 		columns={[
 			{ field: 'kind', label: ctx.t('models.document_templates.fields.kind'), cell: caseName },
-			{ field: 'en', label: ctx.t('models.document_templates.fields.locale.en'), cell: english },
-			{ field: 'zh', label: ctx.t('models.document_templates.fields.locale.zh'), cell: chinese }
+			{
+				field: 'locale',
+				label: ctx.t('models.document_templates.fields.locale'),
+				cell: localeCell
+			},
+			{
+				field: 'current',
+				label: ctx.t('models.document_templates.fields.status.published'),
+				cell: publishedCell
+			},
+			{
+				field: 'draft',
+				label: ctx.t('models.document_templates.fields.status.draft'),
+				cell: draftCell
+			}
+		]}
+		on_open={(row) => {
+			const { current, draft } = slot(row.kind, row.locale);
+			if (current) open_record('document_templates', current.id);
+			else if (draft) open_record('document_templates', draft.id);
+			else revise(row.kind, row.locale, undefined);
+		}}
+		actions={[
+			{
+				label: ctx.t('settings.documents.revise'),
+				run: (row) => {
+					const { current, draft } = slot(row.kind, row.locale);
+					if (draft) open_record('document_templates', draft.id);
+					else revise(row.kind, row.locale, current);
+				}
+			}
 		]}
 		toolbar={{ title: false, description: ctx.t('settings.documents.help'), new: false }}
 	/>

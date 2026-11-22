@@ -568,6 +568,7 @@ export default messages({
 	'reports.sales.margin_rate': '毛利率 %',
 	'reports.aging.owed': '应收',
 	'reports.aging.in_credit': '贷方余额',
+	'reports.aging.overdue': '逾期',
 	'reports.aging.oldest_overdue': '最长逾期（天）',
 	'reports.aging.days_overdue': '逾期天数',
 	'reports.commission.basis_quantity': '计提数量',

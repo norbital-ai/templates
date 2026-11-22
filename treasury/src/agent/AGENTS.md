@@ -65,7 +65,7 @@ Long forms use native `RecordShell sections` in create, edit and read modes. Gro
 ## Invariants
 
 - A line's status only moves forward; a settled or cancelled line is sealed (`sealed_line`).
-- Every figure comes from `src/lib/calculations.ts`, `treasury.ts` and `purchasing.ts`; pages,
+- Every figure comes from `src/lib/calculations.ts`, `treasury.ts`, `purchasing.ts` and `fx.ts`; pages,
   automations and write callbacks share them. Estimated charges are computed, never stored.
 - Advice extraction schedules a uniquely matched financing proposal under `bank_advices`; the line, charges
   and evidence share one native Treasury approval. Never add a direct allow to that automation policy.
@@ -77,4 +77,4 @@ Long forms use native `RecordShell sections` in create, edit and read modes. Gro
 - [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
 - `README.md` and `docs/` — operator walkthrough and design detail.
 
-Every titled form section uses a meaningful native section icon. Preserve the overview’s grouped total facilities, horizontal bank usage, funding-cost period, maturity, due-date and Attention hierarchy. Reuse the existing financial helpers. The Attention page and daily notification share `src/lib/attention.ts`; change their rules together there, never duplicate a reminder model. Use the native `settings` tool for personal display names and administrator workspace display names, not source edits.
+Every titled form section uses a meaningful native section icon. Preserve the overview’s grouped total facilities, horizontal bank usage, funding-cost period, maturity, due-date and Attention hierarchy. Reuse the existing financial helpers. The Attention page and daily notification share `src/lib/attention.ts`; change their rules together there, never duplicate a reminder model. Use `read` on `sys_workspace` / `sys_user` and `act` for personal display names and administrator workspace display names, not source edits.

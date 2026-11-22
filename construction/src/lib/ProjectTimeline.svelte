@@ -335,7 +335,7 @@
 								<button
 									type="button"
 									title={`${vo.change_number ?? ''} ${vo.title} (${vo.effective_date})`}
-									class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-[10px] font-medium transition-opacity {vo.passed
+									class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-tiny font-medium transition-opacity {vo.passed
 										? 'border-amber-500/80 bg-amber-500/20 text-foreground'
 										: 'border-border bg-muted text-muted-foreground opacity-70'}"
 									style={`left: ${vo.pct}%`}

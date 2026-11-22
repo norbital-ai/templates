@@ -15,7 +15,7 @@
 		type Kind,
 		type ShowProps
 	} from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { marginSeries } from '../../../lib/financial-series.js';
 	import {
 		purchaseChain,
@@ -142,16 +142,6 @@
 	const dateKind: Kind = { kind: 'date', optional: true };
 </script>
 
-{#snippet orderCell({ row }: { row: NonNullable<typeof rows>[number] })}
-	{#if row.order}
-		{@const order = row.order}
-		<button
-			type="button"
-			class="underline-offset-4 hover:underline focus-visible:underline"
-			onclick={() => open_record('orders', order)}>{row.order_number}</button
-		>
-	{/if}
-{/snippet}
 {#snippet badge({ value }: { value: ShowProps['value'] })}{#if value}<Badge variant="outline"
 			>{String(value)}</Badge
 		>{/if}{/snippet}
@@ -163,39 +153,48 @@
 		{#each totals as total (total.currency)}
 			<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
 				<div>
-					<dt class="text-xs text-muted-foreground">{ctx.t('reports.sales.lines')}</dt>
-					<dd class="text-base font-semibold tabular-nums">{total.lines}</dd>
+					<dt class="text-meta">{ctx.t('reports.sales.lines')}</dt>
+					<dd class="text-heading tabular-nums">{total.lines}</dd>
 				</div>
 				{#each total.figures as figure (figure.field)}
 					<div>
-						<dt class="text-xs text-muted-foreground">{ctx.t(`reports.sales.${figure.field}`)}</dt>
-						<dd class="text-base font-semibold tabular-nums">
+						<dt class="text-meta">{ctx.t(`reports.sales.${figure.field}`)}</dt>
+						<dd class="text-heading tabular-nums">
 							<Show {ctx} kind={moneyKind} value={figure.value} row={total} />
 						</dd>
 					</div>
 				{/each}
 				{#if total.margin_rate !== null}
 					<div>
-						<dt class="text-xs text-muted-foreground">{ctx.t('reports.sales.margin_rate')}</dt>
-						<dd class="text-base font-semibold tabular-nums">{total.margin_rate}%</dd>
+						<dt class="text-meta">{ctx.t('reports.sales.margin_rate')}</dt>
+						<dd class="text-heading tabular-nums">{total.margin_rate}%</dd>
 					</div>
 				{/if}
 			</Grid>
 		{/each}
 		{#if chart}
 			{@const series = marginSeries(rows).filter((row) => row.margin !== null)}
-			{#each [...new Set(series.map((row) => row.currency))] as currency (currency)}
-				<Chart
-					{ctx}
-					of={series.filter((row) => row.currency === currency)}
-					x="salesperson"
-					y="margin"
-					orientation="horizontal"
-					title={`${ctx.t('component.actual_margins')} · ${currency}`}
-				/>
-			{:else}<p class="text-sm text-muted-foreground">
+			{@const currencies = [...new Set(series.map((row) => row.currency))]}
+			{#if currencies.length > 0}
+				<Grid minimum="panel" gap="sm">
+					{#each currencies as currency (currency)}
+						<Bound height="18rem">
+							<Chart
+								{ctx}
+								of={series.filter((row) => row.currency === currency)}
+								x="salesperson"
+								y="margin"
+								orientation="horizontal"
+								title={`${ctx.t('component.actual_margins')} · ${currency}`}
+							/>
+						</Bound>
+					{/each}
+				</Grid>
+			{:else}
+				<p class="text-sm text-muted-foreground">
 					{ctx.t('component.unpriced_margin')}
-				</p>{/each}
+				</p>
+			{/if}
 		{/if}
 		{@const columns: readonly Col<(typeof rows)[number]>[] = [
 			...(purchased
@@ -234,7 +233,7 @@
 			...(purchased
 				? [{ field: 'first_received_on' as const, label: ctx.t('reports.sales.first_received_on'), kind: dateKind }]
 				: []),
-			{ field: 'order_number', label: ctx.t('models.orders.singular'), cell: orderCell },
+			{ field: 'order_number', label: ctx.t('models.orders.singular') },
 			{ field: 'ordered_on', label: label(ctx, 'orders', 'ordered_on'), kind: dateKind },
 			{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
 			{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
@@ -295,6 +294,9 @@
 			of={rows}
 			key="sales_analysis"
 			{columns}
+			on_open={(row) => {
+				if (row.order) open_record('orders', row.order);
+			}}
 			toolbar={{
 				// a period past one read says so in the title, where it shifts nothing
 				title: truncated

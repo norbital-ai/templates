@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { Badge, EmptyState, format, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
+	import { Badge, EmptyState, format, Label, PhoneVerify } from '@norbital-ai/ui';
 	/**
 	 * A customer's bookings (the policy scopes every read to their own record): the next visits with who is coming and how
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
 	 */
-	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Center, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import type { PublicPageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PublicPageContext } = $props();
 	const zone = ctx.tz;
@@ -51,14 +51,8 @@
 >
 	<Scroll name="my-visits" size="fill" inset>
 		<Center measure="reading">
-			<Stack gap="lg" class="py-6">
-				<Stack gap="xs">
-					<p class="text-caption" data-portal-org>{ctx.org.name}</p>
-					<Inline gap="sm" align="center">
-						<Icon name="lucide:calendar-heart" class="size-6 text-brand" />
-						<h1 class="text-title">{t('app.portal.my_bookings')}</h1>
-					</Inline>
-				</Stack>
+			<Stack gap="lg">
+				<p class="text-caption" data-portal-org>{ctx.org.name}</p>
 				{#if !me}
 					<p class="text-sm text-muted-foreground">{t('app.portal.verify_to_see')}</p>
 					<PhoneVerify {ctx} session={ctx.session} />
@@ -66,7 +60,14 @@
 					<Stack gap="sm">
 						<Label>{t('app.portal.visits_upcoming')}</Label>
 						{#if answer?.visits == null}
-							<p class="text-caption">{t('component.loading')}</p>
+							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
+								<div
+									class="h-24 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+								></div>
+								<div
+									class="h-24 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+								></div>
+							</Stack>
 						{:else if upcoming.length === 0}
 							<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
 						{:else}
@@ -74,7 +75,7 @@
 								<div class="rounded-xl border bg-card p-5">
 									<Stack gap="xs">
 										<Cluster gap="xs" justify="between" align="center">
-											<p class="font-semibold">
+											<p class="text-heading">
 												{format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })}
 											</p>
 											{#if v.status === 'in_progress'}

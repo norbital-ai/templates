@@ -230,7 +230,7 @@
 					<thead>
 						<tr>
 							<th></th>
-							{#each columns as c (c.id)}<th class="px-2 py-1 text-left font-semibold">{c.name}</th
+							{#each columns as c (c.id)}<th class="px-2 py-1 text-left text-label">{c.name}</th
 								>{/each}
 						</tr>
 					</thead>

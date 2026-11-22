@@ -87,7 +87,7 @@
 	description={ctx.t('app.trade.description')}
 	icon="lucide:clipboard-list"
 	title={ctx.t('component.orders')}
-	variant="full"
+	variant={showPurchase ? 'full' : 'page'}
 >
 	{#if showPurchase}
 		<Tabs

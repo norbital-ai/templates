@@ -9,12 +9,13 @@
 		EmptyState,
 		Show,
 		Table,
+		Tabs,
 		label,
 		open_record,
 		type Col,
 		type Kind
 	} from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { run } from '@norbital-ai/ui/effect';
 	import { creditExceptions, creditRead, creditTotals, readAgingAt } from '../../../lib/reports.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
@@ -66,138 +67,137 @@
 </script>
 
 {#snippet reasons({ row }: { row: NonNullable<typeof rows>[number] })}
-	<span class="flex flex-nowrap gap-1"
-		>{#each row.reasons as reason (reason)}<Badge variant="outline">{reason}</Badge>{/each}</span
+	<Inline as="span" gap="xs"
+		>{#each row.reasons as reason (reason)}<Badge variant="outline">{reason}</Badge>{/each}</Inline
 	>
 {/snippet}
-{#snippet reference({ row }: { row: (typeof invoices)[number] })}
-	{#if row.invoice || row.order}
-		<button
-			type="button"
-			class="underline-offset-4 hover:underline focus-visible:underline"
-			onclick={() => {
-				if (row.invoice) open_record('transactions', row.invoice);
-				else if (row.order) open_record('orders', row.order);
-			}}>{row.reference}</button
-		>
-	{:else}{row.reference}{/if}
+{#snippet backToCustomers()}
+	<Button
+		variant="outline"
+		onclick={() => {
+			customer = null;
+			view = 'customers';
+		}}>{ctx.t('reports.aging.all_customers')}</Button
+	>
 {/snippet}
-{#snippet controls()}
-	<div class="flex flex-wrap items-center gap-2">
-		<select
-			aria-label={ctx.t('reports.aging.view')}
-			bind:value={view}
-			onchange={() => (customer = null)}
-			class="h-8 rounded-md border border-input bg-background px-2 text-sm"
-		>
-			<option value="customers">{ctx.t('reports.aging.customers')}</option>
-			<option value="invoices">{ctx.t('reports.credit.invoices')}</option>
-		</select>
-		{#if customer}
-			<Button
-				variant="outline"
-				onclick={() => {
-					customer = null;
-					view = 'customers';
-				}}>{ctx.t('reports.aging.all_customers')}</Button
-			>
-		{/if}
-	</div>
+{#snippet summary()}
+	<Stack gap="sm">
+		{#each totals as total (total.currency)}
+			<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
+				<div>
+					<dt class="text-meta">{ctx.t('reports.aging.customers')}</dt>
+					<dd class="text-heading tabular-nums">{total.customers}</dd>
+				</div>
+				{#each total.figures as figure (figure.field)}
+					<div>
+						<dt class="text-meta">{ctx.t(`reports.credit.${figure.field}`)}</dt>
+						<dd class="text-heading tabular-nums">
+							<Show {ctx} kind={moneyKind} value={figure.value} row={total} />
+						</dd>
+					</div>
+				{/each}
+			</Grid>
+		{/each}
+	</Stack>
+{/snippet}
+{#snippet customersTab()}
+	{@const list = rows ?? []}
+	{@const columns: readonly Col<(typeof list)[number]>[] = [
+		{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
+		{ field: 'reasons', label: ctx.t('reports.credit.reasons'), cell: reasons },
+		{ field: 'credit_limit', label: label(ctx, 'credit_snapshots', 'credit_limit'), kind: moneyKind, align: 'end' },
+		{ field: 'credit_used', label: label(ctx, 'credit_snapshots', 'credit_used'), kind: moneyKind, align: 'end' },
+		{ field: 'over_limit', label: ctx.t('reports.credit.over_limit'), kind: moneyKind, align: 'end' },
+		{ field: 'overdue', label: ctx.t('reports.credit.overdue'), kind: moneyKind, align: 'end' },
+		{ field: 'oldest_overdue', label: ctx.t('reports.aging.oldest_overdue'), kind: daysKind, align: 'end' }
+	]}
+	<Table
+		{ctx}
+		layout="grid"
+		of={list}
+		key="credit_exceptions"
+		{columns}
+		on_open={(row) => {
+			customer = { keys: row.keys, name: [row.party_name, row.currency].join(' · ') };
+			view = 'invoices';
+		}}
+		toolbar={{
+			title: ctx.t('component.credit_exceptions'),
+			description: ctx.t('reports.credit.scope'),
+			new: false,
+			...(customer ? { controls: backToCustomers } : {}),
+			actions: [
+				{
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('component.export_xlsx'),
+					run: () =>
+						downloadXlsx(
+							'credit-exceptions',
+							day.today,
+							columns,
+							list.map((row) => ({ ...row, reasons: row.reasons.join(', ') }))
+						)
+				}
+			]
+		}}
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
+	</Table>
+{/snippet}
+{#snippet invoicesTab()}
+	{@const columns: readonly Col<(typeof invoices)[number]>[] = [
+		{ field: 'reference', label: ctx.t('reports.aging.reference') },
+		...(customer ? [] : [{ field: 'party_name' as const, label: label(ctx, 'orders', 'party_name') }]),
+		{ field: 'order_number', label: ctx.t('models.orders.singular') },
+		{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), kind: { kind: 'date', optional: true } },
+		{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), kind: { kind: 'date', optional: true } },
+		{ field: 'days_overdue', label: ctx.t('reports.aging.days_overdue'), kind: daysKind, align: 'end' },
+		{ field: 'balance', label: ctx.t('reports.aging.balance'), kind: moneyKind, align: 'end' }
+	]}
+	<Table
+		{ctx}
+		layout="grid"
+		of={invoices}
+		key="credit_overdue"
+		{columns}
+		on_open={(row) => {
+			if (row.invoice) open_record('transactions', row.invoice);
+			else if (row.order) open_record('orders', row.order);
+		}}
+		toolbar={{
+			title: [ctx.t('reports.credit.invoices'), customer?.name].filter(Boolean).join(' · '),
+			description: ctx.t('reports.credit.scope'),
+			new: false,
+			...(customer ? { controls: backToCustomers } : {}),
+			actions: [
+				{
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('component.export_xlsx'),
+					run: () => downloadXlsx('credit-overdue', day.today, columns, invoices)
+				}
+			]
+		}}
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
+	</Table>
 {/snippet}
 
-<Stack size="fill" min_height="18rem" gap="sm">
-	{#each totals as total (total.currency)}
-		<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
-			<div>
-				<dt class="text-xs text-muted-foreground">{ctx.t('reports.aging.customers')}</dt>
-				<dd class="text-base font-semibold tabular-nums">{total.customers}</dd>
-			</div>
-			{#each total.figures as figure (figure.field)}
-				<div>
-					<dt class="text-xs text-muted-foreground">{ctx.t(`reports.credit.${figure.field}`)}</dt>
-					<dd class="text-base font-semibold tabular-nums">
-						<Show {ctx} kind={moneyKind} value={figure.value} row={total} />
-					</dd>
-				</div>
-			{/each}
-		</Grid>
-	{/each}
+<Cover size="fill" min_height="18rem" gap="sm" {...totals.length > 0 ? { top: summary } : {}}>
 	{#if credit.error}<EmptyState tone="danger" title={credit.error.message} />
 	{:else if failed}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
 	{:else if !rows}<EmptyState title={ctx.t('component.reports_loading')} />
-	{:else if view === 'customers'}
-		{@const columns: readonly Col<(typeof rows)[number]>[] = [
-			{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
-			{ field: 'reasons', label: ctx.t('reports.credit.reasons'), cell: reasons },
-			{ field: 'credit_limit', label: label(ctx, 'credit_snapshots', 'credit_limit'), kind: moneyKind, align: 'end' },
-			{ field: 'credit_used', label: label(ctx, 'credit_snapshots', 'credit_used'), kind: moneyKind, align: 'end' },
-			{ field: 'over_limit', label: ctx.t('reports.credit.over_limit'), kind: moneyKind, align: 'end' },
-			{ field: 'overdue', label: ctx.t('reports.credit.overdue'), kind: moneyKind, align: 'end' },
-			{ field: 'oldest_overdue', label: ctx.t('reports.aging.oldest_overdue'), kind: daysKind, align: 'end' }
-		]}
-		<Table
-			{ctx}
-			layout="grid"
-			of={rows}
-			key="credit_exceptions"
-			{columns}
-			on_open={(row) => {
-				customer = { keys: row.keys, name: [row.party_name, row.currency].join(' · ') };
-				view = 'invoices';
-			}}
-			toolbar={{
-				title: ctx.t('component.credit_exceptions'),
-				description: ctx.t('reports.credit.scope'),
-				new: false,
-				controls,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () =>
-							downloadXlsx(
-								'credit-exceptions',
-								day.today,
-								columns,
-								rows.map((row) => ({ ...row, reasons: row.reasons.join(', ') }))
-							)
-					}
-				]
-			}}
-		>
-			{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
-		</Table>
 	{:else}
-		{@const columns: readonly Col<(typeof invoices)[number]>[] = [
-			{ field: 'reference', label: ctx.t('reports.aging.reference'), cell: reference },
-			...(customer ? [] : [{ field: 'party_name' as const, label: label(ctx, 'orders', 'party_name') }]),
-			{ field: 'order_number', label: ctx.t('models.orders.singular') },
-			{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), kind: { kind: 'date', optional: true } },
-			{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), kind: { kind: 'date', optional: true } },
-			{ field: 'days_overdue', label: ctx.t('reports.aging.days_overdue'), kind: daysKind, align: 'end' },
-			{ field: 'balance', label: ctx.t('reports.aging.balance'), kind: moneyKind, align: 'end' }
-		]}
-		<Table
-			{ctx}
-			layout="grid"
-			of={invoices}
-			key="credit_overdue"
-			{columns}
-			toolbar={{
-				title: [ctx.t('reports.credit.invoices'), customer?.name].filter(Boolean).join(' · '),
-				description: ctx.t('reports.credit.scope'),
-				new: false,
-				controls,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('credit-overdue', day.today, columns, invoices)
-					}
-				]
+		<Tabs
+			level={2}
+			value={view}
+			on_value_change={(next) => {
+				view = next === 'invoices' ? 'invoices' : 'customers';
+				customer = null;
 			}}
-		>
-			{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
-		</Table>
+			tabs={[
+				{ name: 'customers', title: ctx.t('reports.aging.customers'), body: customersTab },
+				{ name: 'invoices', title: ctx.t('reports.credit.invoices'), body: invoicesTab }
+			]}
+		/>
 	{/if}
-</Stack>
+</Cover>

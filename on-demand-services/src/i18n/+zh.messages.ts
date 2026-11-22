@@ -55,6 +55,7 @@ export default messages({
 	'app.schedule.board_title': '排班表',
 	'app.schedule.board_description':
 		'将上门拖到另一位帮手即可改派；系统会校验技能、工作时间与车程。',
+	'app.schedule.date': '排班日期',
 	'app.schedule.by_helper': '按帮手',
 	'app.schedule.list': '列表',
 	'app.schedule.unassigned': '未分配',

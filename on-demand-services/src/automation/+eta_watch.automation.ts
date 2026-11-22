@@ -8,7 +8,8 @@ import { settingsOf } from '../lib/dispatch.js';
 export default automation({
 	description:
 		'Until each visit starts, re-estimates the helper’s drive from their last GPS position every five minutes, flagging the visit for dispatch while it exceeds the ETA limit or the position is missing or stale.',
-	on: [{ cron: '*/5 * * * *' }],
+	// rests a day after an idle slot with no due visits; any workspace activity wakes the database and resumes the watch
+	on: [{ cron: '*/5 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {

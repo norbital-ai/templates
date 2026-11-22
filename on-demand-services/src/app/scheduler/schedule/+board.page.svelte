@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Badge, Board, StateBadge, TimeInput, Table, Tabs } from '@norbital-ai/ui';
+	import { Badge, Board, Label, StateBadge, TimeInput, Table, Tabs } from '@norbital-ai/ui';
 	/**
 	 * The day's schedule. By helper: one lane per helper, and dragging a visit to another lane reassigns it (the same
 	 * guard as every write: skill, hours, time off and the drive between visits). As a list: row actions to hand a visit
@@ -9,7 +9,7 @@
 	 */
 	import type { ListRow, Row } from '@norbital-ai/bolt';
 	import { DateTime } from 'effect';
-	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	const zone = ctx.tz;
 	const t = ctx.t;
 	/** A visit enum value in the catalog's words. */
@@ -79,9 +79,15 @@
 </script>
 
 {#snippet dayPicker()}
-	<div class="w-40">
-		<TimeInput {ctx} value={day} on_change={(next: string | null) => (day = next ?? clock.today)} />
-	</div>
+	<Inline gap="sm" align="center">
+		<Label for="schedule-day">{t('app.schedule.date')}</Label>
+		<TimeInput
+			id="schedule-day"
+			{ctx}
+			value={day}
+			on_change={(next: string | null) => (day = next ?? clock.today)}
+		/>
+	</Inline>
 {/snippet}
 
 {#snippet card({ row }: { row: ListRow<'visits'> })}
@@ -94,7 +100,7 @@
 			</p>
 		</Cluster>
 		<p class="line-clamp-1 text-sm">{forWhom.get(row.id) ?? '—'}</p>
-		<p class="line-clamp-1 text-meta leading-snug">{row.address}</p>
+		<p class="line-clamp-1 text-meta">{row.address}</p>
 		<Cluster gap="xs">
 			{#if row.status !== 'scheduled'}
 				<StateBadge {ctx} state={row.status} label={word(`status.${row.status}`)} />

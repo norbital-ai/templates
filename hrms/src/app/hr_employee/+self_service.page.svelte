@@ -136,16 +136,17 @@
 							: ctx.t('app.hr_employee.switch_employment')}</Label
 					><DescriptionHint text={ctx.t('app.hr_employee.choose_employment_description')} />
 				</div>
-				<Combobox
-					class="w-64"
-					options={choices}
-					aria-label={needsChoice
-						? ctx.t('app.hr_employee.working_as')
-						: ctx.t('app.hr_employee.switch_employment')}
-					value={employmentId}
-					placeholder={ctx.t('app.hr_employee.choose_employment')}
-					on_change={(id) => id != null && (chosen = id)}
-				/>
+				<div class="w-64">
+					<Combobox
+						options={choices}
+						aria-label={needsChoice
+							? ctx.t('app.hr_employee.working_as')
+							: ctx.t('app.hr_employee.switch_employment')}
+						value={employmentId}
+						placeholder={ctx.t('app.hr_employee.choose_employment')}
+						on_change={(id) => id != null && (chosen = id)}
+					/>
+				</div>
 			</Stack>
 		</Cluster>
 	{/if}
@@ -301,7 +302,7 @@
 				aria-label={ctx.t('app.hr_employee.my_profile')}
 			>
 				<Stack gap="none" class="min-w-0">
-					<span class="text-sm font-semibold">{me.name}</span>
+					<span class="text-sm font-medium">{me.name}</span>
 					{#if employment}<span class="text-xs text-muted-foreground"
 							>{employment.employee_number} · {format(
 								{ kind: 'period', of: 'date' },

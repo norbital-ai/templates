@@ -7,6 +7,7 @@ import { workspace } from '@norbital-ai/bolt';
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-US',
+	languages: ['en', 'zh'],
 	currency: 'USD',
 	apps: ['portfolio'],
 	/** The daily report's record view is rendered to PDF and sent with its summary. */

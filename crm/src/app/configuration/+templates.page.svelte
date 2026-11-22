@@ -13,7 +13,6 @@
 	icon="lucide:files"
 	title={t('crm.section.templates')}
 	description={ctx.t('templates.description')}
-	variant="full"
 >
 	<Table
 		{ctx}

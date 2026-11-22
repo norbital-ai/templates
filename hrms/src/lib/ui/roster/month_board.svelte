@@ -377,7 +377,7 @@
 						scope="col"
 						class="sticky top-0 left-0 z-30 border-r border-b bg-card px-3 py-1.5 text-left"
 					>
-						<span class="block font-semibold">{ctx.t('roster.person')}</span>
+						<span class="block font-medium">{ctx.t('roster.person')}</span>
 						<span class="block text-micro text-muted-foreground">
 							{ctx.t('roster.plan_recorded')} · {ctx.t('component.work_day_actual')}
 						</span>

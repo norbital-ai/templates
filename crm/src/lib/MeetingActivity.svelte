@@ -15,6 +15,7 @@
 	import {
 		Badge,
 		Button,
+		Combobox,
 		EmptyState,
 		Icon,
 		ReadonlyMarkdown,
@@ -660,7 +661,7 @@
 								<Cluster align="center" justify="between" gap="sm">
 									<Cluster align="center" gap="sm">
 										<Icon name="lucide:audio-lines" class="size-4 text-muted-foreground" />
-										<span class="text-sm font-semibold">{item.title}</span>
+										<span class="text-label">{item.title}</span>
 										<Badge
 											variant={item.transcription === 'done'
 												? 'success'
@@ -737,19 +738,19 @@
 															<span class="font-medium text-muted-foreground">
 																{labelMap.get(sp.label) ?? sp.label}
 															</span>
-															<select
+															<Combobox
+																variant="ghost"
+																clearable
 																aria-label={labelMap.get(sp.label) ?? sp.label}
-																class="bg-transparent text-xs font-medium text-foreground focus:outline-none"
-																value={sp.contact?.id ?? ''}
+																placeholder={sp.name ?? t('meetings.pick_speaker')}
+																value={sp.contact?.id ?? null}
 																disabled={act.pending}
-																onchange={(event) =>
-																	assignSpeakerContact(sp, event.currentTarget.value)}
-															>
-																<option value="">{sp.name ?? t('meetings.pick_speaker')}</option>
-																{#each contacts as c (c.id)}
-																	<option value={c.id}>{c.full_name}</option>
-																{/each}
-															</select>
+																options={contacts.map((c) => ({
+																	value: c.id,
+																	label: c.full_name
+																}))}
+																on_change={(value) => assignSpeakerContact(sp, value ?? '')}
+															/>
 														</div>
 													{/each}
 												</div>

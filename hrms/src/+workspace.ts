@@ -8,6 +8,7 @@ import { AUTOMATION_LIMITS, MEMBER_LIMITS } from './access_control/policy/grants
 export default workspace({
 	tz: 'UTC',
 	locale: 'en',
+	languages: ['en', 'zh'],
 	// statutory drift researches on the strong class; the host maps each class to a model
 	ai: { embeddings: ['default'] },
 	limits: {

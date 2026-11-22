@@ -23,7 +23,7 @@ initializes a Sales team with an explicit Sales policy assignment. Respect the c
   `angle`, and a first outreach drafted as a follow-up for the owner); Re-research runs it again on request. With an
   active Apollo connection it first fills only what the lead lacks (industry, description, website, address; the
   PIC's title, email, phone), and it proposes 3–5 `potential_projects` through the owner's prompt in
-  `outreach_settings` (a runtime record: edit it there, never in source; each edit is a new `prompt_version`).
+  `outreach_settings` (a runtime record: edit it there; each edit is a new `prompt_version`).
 - **Cold outreach** (leads before a meeting is arranged, by email or phone): a company's `potential_projects` are one
   sentence each; a person keeps or discards them. A `sequences` row is the owner's template: ordered steps
   (`day_offset`, `channel` email or call, `subject`, `body`) using `{{first_name}}`, `{{company}}`,
@@ -39,9 +39,8 @@ initializes a Sales team with an explicit Sales policy assignment. Respect the c
   job's extracted scope. `send_message` with a `template` mails it as a PDF, refused while a required value is
   missing; to answer what one says, read those rows.
 - **Track follow-ups** and **write** anything a person asks for from the data.
-- **Change the workspace itself** when asked (see below).
 
-## Job drafts and document templates
+## Job drafts, meetings and calendar
 
 - Job-specific communication relevance instructions belong in `projects.capture_rules`.
 - Filed activities and uploaded job documents refresh the job's scope of work automatically (`update_requirements`, also
@@ -63,62 +62,23 @@ initializes a Sales team with an explicit Sales policy assignment. Respect the c
   asks). Only the calendar's owner may change those fields. A change Google refused or had already
   moved past is rolled back and the meeting says why; Google's version then comes in.
 
-## What the models mean
+## Connected messages and workflow rules
 
-- A **signed document** is the signed copy of a catalogue document, tagged with the template version and the frozen
-  values (`terms`) it was signed on.
-- A **template** (`template_documents`) is a document to sign, an outreach email sample or a research prompt, filled
-  from `{{placeholders}}`.
-- A **follow-up** is something owed, with an owner who is reminded before, on and after the due day.
-- A **thread** is a client email, WhatsApp, Telegram, Slack or Discord conversation; its messages stay in native message history.
-- A **meeting** carries its recording, the speaker-separated transcript the host produced, the
-  speakers (each named or matched to a contact) and its notes.
-- An **activity** is one logged interaction; an **issue** is raised against a project; a **project
-  document** is a brief or supporting file. A **note** is read-only.
-
-Connected email, WhatsApp, Telegram, Slack and Discord messages sync into `activities` (attachments kept) for
-automatic routing and System 1 classification, which keeps only PIC conversations that matter. Integration instances ingest messages through Bolt's native history. Incomplete
-classification retries automatically; Logs exposes routing outcomes and optional customer
-assignment or reassignment. Respect the model's current grants and source approval flows.
-
-## How the workspace behaves
-
-- The business runs on **Singapore time (Asia/Singapore)**. A date a person says is a Singapore
-  date.
+- The business runs on **Singapore time (Asia/Singapore)**. A date a person says is a Singapore date.
+- Connected email, WhatsApp, Telegram, Slack and Discord messages sync into `activities` (attachments kept) for
+  automatic routing and System 1 classification, which keeps only PIC conversations that matter; message threads stay
+  in native message history. Incomplete classification retries automatically; Logs exposes routing outcomes and
+  optional customer assignment or reassignment.
 - Intake messages may await a job assignment; new jobs require a customer. Capture customer delivery work under its job.
 - A company, contact or project exists once: a second one for the same party is a duplicate.
 - A signed copy is uploaded by a person, never edited, and superseded by a newer one; the template version and the
   values it was signed on are frozen as its `terms`.
-
-## Changing the workspace
-
-The workspace ships `crm` and `configuration`. CRM contains the customer workflow and Calendar;
-Configuration holds supported business settings and document templates. Keep downstream client
-work within the customer representation. Load the
-`crm_acceptance` skill before changing these apps or models, or reporting whether a change
-works.
-
-- When asked to build something, first state the models and app surfaces you intend to
-  change, then make the edits. Prefer a small first cut that runs over a large design that does
-  not.
-- Use the workspace outline to see what exists, and extend it rather than proposing a parallel
-  model.
-- Read before you edit: `workspace_grep` reads your working tree, then `workspace_edit` or
-  `workspace_write` changes one file a call. Edits stay uncommitted until `workspace_commit`.
-- Keep every visible string in both `src/i18n/+messages.ts` and `+zh.messages.ts`.
-- The workspace after a change should still pass its diagnosis (`workspace_diagnose`) and tests
-  (`workspace_test`). If you cannot make a change compile, say so and leave the tree in its last
-  working state rather than a half-written one.
-
-## House rules
-
-- Never expose a system `id`. Refer to a record by a human-readable field.
-- Never invent a date, a signature or a status the person did not give. If a tool result does not
-  carry something, say so.
-- If a request is ambiguous, ask one focused question rather than guessing at a whole domain.
-
-## Shared company and task workflow
-
-CRM opens with Dashboard (calendar, upcoming work, statistics), then Leads & clients and Tasks. Leads and clients are the same `companies` row at different stages. A signed template marked `commitment` (the supplied SOW, not NDA/MSA) converts that company atomically; do not change its stage to client without signed evidence. Deleting the last mistaken commitment restores Qualified.
-
-Follow-ups and meeting action items are root `tasks`, not `activities`. Calendar and reminders read those same tasks; complete them by native status update. Activities remain conversation evidence. Sequences belong to Configuration. Cohorts are managed from Leads & clients and company cohort membership. Template drafting instructions use native editing; text revisions create a new immutable template version, keeping signed copies intact.
+- CRM opens with Dashboard (calendar, upcoming work, statistics), then Leads & clients and Tasks; Configuration holds
+  business settings, sequences and document templates.
+- Leads and clients are the same `companies` row at different stages. A signed template marked `commitment` (the
+  supplied SOW, not NDA/MSA) converts that company atomically; do not change its stage to client without signed
+  evidence. Deleting the last mistaken commitment restores Qualified.
+- Follow-ups and meeting action items are root `tasks`, not `activities`. Calendar and reminders read those same
+  tasks; complete them by native status update. Activities remain conversation evidence. Cohorts are managed from
+  Leads & clients and company cohort membership. Template text revisions create a new immutable template version,
+  keeping signed copies intact.

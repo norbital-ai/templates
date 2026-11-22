@@ -163,11 +163,11 @@
 		<article class="flex max-w-4xl flex-col gap-6">
 			<ReadonlyMarkdown value={`**${report.headline}**`} />
 			<section>
-				<h2 class="font-semibold">{t('component.report_contents')}</h2>
+				<h2 class="text-heading">{t('component.report_contents')}</h2>
 				<ReadonlyMarkdown value={report.summary} />
 			</section>
 			<section class="flex flex-col gap-4">
-				<h2 class="font-semibold">{t('component.report_book')}</h2>
+				<h2 class="text-heading">{t('component.report_book')}</h2>
 				{#if past?.current === undefined}
 					<div aria-busy="true"></div>
 				{:else if trend.length > 1}
@@ -210,14 +210,14 @@
 			</section>
 			{#if (report.exposure ?? []).length > 0}
 				<section>
-					<h2 class="font-semibold">{t('component.report_currencies')}</h2>
+					<h2 class="text-heading">{t('component.report_currencies')}</h2>
 					<ReadonlyMarkdown
 						value={currencyTable(report.base_currency, report.exposure ?? [], report.fx_used ?? [])}
 					/>
 				</section>
 			{/if}
 			<section>
-				<h2 class="font-semibold">{t('component.report_markets')}</h2>
+				<h2 class="text-heading">{t('component.report_markets')}</h2>
 				{#if (report.markets ?? []).length > 0}<ReadonlyMarkdown
 						value={marketTable(report.markets ?? [])}
 					/>{/if}
@@ -225,7 +225,7 @@
 			</section>
 			{#if (report.positions ?? []).length > 0}
 				<section>
-					<h2 class="font-semibold">{t('component.report_positions')}</h2>
+					<h2 class="text-heading">{t('component.report_positions')}</h2>
 					<ReadonlyMarkdown value={positionTable(report.base_currency, report.positions ?? [])} />
 				</section>
 			{/if}
@@ -235,7 +235,7 @@
 						<p class="text-muted-foreground text-xs uppercase">
 							{item.symbol ?? item.instrument} · {item.call}
 						</p>
-						<h2 class="font-semibold">{item.headline}</h2>
+						<h2 class="text-heading">{item.headline}</h2>
 						<ReadonlyMarkdown value={item.analysis} />
 					</section>
 				{/if}

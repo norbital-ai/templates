@@ -1140,5 +1140,21 @@ export default messages({
 	'models.po_line.label': '订单明细',
 	'models.po_line.fields.item': '货品',
 	'models.po_line.fields.amount': '金额',
-	'models.po_line.fields.invoiced_quantity': '已开票数量'
+	'models.po_line.fields.invoiced_quantity': '已开票数量',
+	'fx.deals.tab_deals': '交易',
+	'fx.deals.tab_documents': '文件',
+	'fx.tile.ko_near': '临近敲出',
+	'fx.overview.live_deals': '存续交易',
+	'fx.overview.reference_rates': '参考汇率（每美元）',
+	'app.costs.eligibility': '适用性',
+	'app.costs.eligible': '适用',
+	'app.costs.ineligible': '不适用',
+	'app.costs.best_option': '综合成本最低：{bank}（{facility}），年化 {rate}%（{total}）',
+	'app.costs.no_eligible': '当前条件下暂无适用的银行额度。',
+	'app.month_end.status_locked': '已锁定',
+	'app.month_end.status_live': '实时',
+	'app.month_end.utilised_hint': '总额 {limit} · 可用 {available}',
+	'app.month_end.accrued_hint': '借款 {borrowings} · 信用证 {lc}',
+	'app.month_end.rate_hint': '区间 {low} – {high} · 简单平均 {simple}',
+	'app.month_end.tenor_hint': '未结融资平均天数'
 });

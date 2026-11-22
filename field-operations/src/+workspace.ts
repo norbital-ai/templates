@@ -6,6 +6,7 @@ import { workspace } from '@norbital-ai/bolt';
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
+	languages: ['en', 'zh'],
 	currency: 'SGD',
 	apps: ['field_ops_controller', 'field_ops_contractor'],
 	ai: { embeddings: ['scene', 'default'] },

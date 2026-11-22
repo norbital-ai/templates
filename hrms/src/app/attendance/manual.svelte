@@ -195,7 +195,7 @@
 											<Icon icon="lucide:user-round" class="size-4" />
 										</Frame>
 										<span class="min-w-0 flex-1">
-											<strong class="block truncate text-sm font-medium">{person.name}</strong>
+											<span class="block truncate text-sm font-medium">{person.name}</span>
 											{#if person.email}
 												<span class="block truncate text-meta">{person.email}</span>
 											{/if}

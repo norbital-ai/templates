@@ -287,15 +287,14 @@
 >
 	<Scroll name="portal-book" size="fill" inset>
 		<Center measure="reading">
-			<Stack gap="lg" class="py-6 sm:py-8">
+			<Stack gap="lg">
 				<Stack as="header" gap="md">
-					<h1 class="text-title">{t('app.portal.title')}</h1>
 					<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
 					<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
 						{#each STEPS as s, i (s)}
 							<li
 								aria-current={step === s ? 'step' : undefined}
-								class={step === s ? 'font-semibold' : 'text-muted-foreground'}
+								class={step === s ? 'text-label' : 'text-muted-foreground'}
 							>
 								{i + 1}. {t(`app.portal.step_${s}`)}
 							</li>
@@ -368,7 +367,7 @@
 							<Grid minimum="compact" gap="md">
 								<Stack gap="sm">
 									<Label for="portal-name">{t('app.portal.name')}</Label>
-									<Input id="portal-name" class="min-h-11" autocomplete="name" bind:value={name} />
+									<Input id="portal-name" autocomplete="name" bind:value={name} />
 								</Stack>
 								<Stack gap="sm">
 									<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
@@ -419,7 +418,17 @@
 					<Stack gap="lg">
 						<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
 						{#if quoted == null || quoted.status === 'pending'}
-							<Spinner class="h-4 w-4" />
+							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
+								<div
+									class="h-10 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+								></div>
+								<div
+									class="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+								></div>
+								<div
+									class="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+								></div>
+							</Stack>
 						{:else if quoted.status === 'failed'}
 							<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
 						{:else if days.length === 0}
@@ -483,17 +492,22 @@
 								<h2 class="text-title">
 									{booked ? t('app.portal.booked_title') : t('app.portal.follow_up_title')}
 								</h2>
-								<p class="max-w-[40ch] text-sm text-muted-foreground">
+								<p class="max-w-prose text-sm text-muted-foreground">
 									{booked ? t('app.portal.booked_body') : t('app.portal.follow_up_body')}
 								</p>
 							</Stack>
 							<Stack as="dl" gap="none" divided class="rounded-xl border bg-card text-sm">
 								{#each summary as row (row.label)}
-									<Inline gap="sm" align="start" class="px-4 py-3">
+									<Grid
+										tracks="auto minmax(6rem,8rem) minmax(0,1fr)"
+										gap="sm"
+										align="start"
+										class="px-4 py-3"
+									>
 										<Icon name={row.icon} class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-										<dt class="w-24 shrink-0 text-muted-foreground">{row.label}</dt>
+										<dt class="text-muted-foreground">{row.label}</dt>
 										<dd class="min-w-0 font-medium">{row.value}</dd>
-									</Inline>
+									</Grid>
 								{/each}
 							</Stack>
 							<Stack gap="sm">

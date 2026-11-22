@@ -34,8 +34,8 @@ const MAX_CALLS = 25;
 export default automation({
 	description:
 		'Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match; then movable visits are rebalanced to a local optimum of workload and driving.',
-	// also scheduled by the bookings, visits and helpers effects
-	on: [{ cron: '*/15 * * * *' }],
+	// also scheduled by the bookings, visits and helpers effects; rests a day after an idle slot so quiet workspaces sleep
+	on: [{ cron: '*/15 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {

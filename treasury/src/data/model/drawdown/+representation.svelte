@@ -241,8 +241,10 @@
 		<Grid minimum="compact">
 			{#each [[t('app.line.tenor'), calculated?.tenor_days == null ? '—' : t( 'app.line.days', { days: calculated.tenor_days } )], [t('app.line.interest_to_maturity'), money(calculated?.interest_to_maturity ?? null)], [t('app.line.accrued_today'), money(accrued)], [t('app.line.latest_due'), calculated?.latest_due_date == null ? '—' : format( { kind: 'date' }, calculated.latest_due_date, { locale: ctx.locale } )]] as const as [title, value] (title)}
 				<div class="rounded-xl border border-border bg-card p-4">
-					<p class="text-meta">{title}</p>
-					<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+					<Stack gap="xs">
+						<p class="text-meta">{title}</p>
+						<p class="text-heading tabular-nums">{value}</p>
+					</Stack>
 				</div>
 			{/each}
 		</Grid>
@@ -259,31 +261,44 @@
 				{ field: 'basis', label: t('app.line.basis') }
 			]}
 		/>
-		{#if room.length > 0}
-			<Table
-				{ctx}
-				of={room}
-				controlled
-				embedded
-				columns={[
-					{ field: 'bank', label: t('app.line.bank') },
-					{ field: 'name', label: t('app.line.facility') },
-					{ field: 'limit', label: t('app.line.limit'), kind: { kind: 'decimal', scale: 2 } },
-					{ field: 'used', label: t('app.line.used'), kind: { kind: 'decimal', scale: 2 } },
-					{
-						field: 'earmarked',
-						label: t('app.line.earmarked'),
-						kind: { kind: 'decimal', scale: 2 }
-					},
-					{
-						field: 'available',
-						label: t('app.line.available'),
-						kind: { kind: 'decimal', scale: 2 }
-					}
-				]}
-			/>
-		{/if}
 	</Stack>
+{/snippet}
+
+{#snippet headroomTab()}
+	<Table
+		{ctx}
+		of={room}
+		controlled
+		embedded
+		columns={[
+			{ field: 'bank', label: t('app.line.bank') },
+			{ field: 'name', label: t('app.line.facility') },
+			{
+				field: 'limit',
+				label: t('app.line.limit'),
+				kind: { kind: 'money', currency: 'USD' },
+				align: 'end'
+			},
+			{
+				field: 'used',
+				label: t('app.line.used'),
+				kind: { kind: 'money', currency: 'USD' },
+				align: 'end'
+			},
+			{
+				field: 'earmarked',
+				label: t('app.line.earmarked'),
+				kind: { kind: 'money', currency: 'USD' },
+				align: 'end'
+			},
+			{
+				field: 'available',
+				label: t('app.line.available'),
+				kind: { kind: 'money', currency: 'USD' },
+				align: 'end'
+			}
+		]}
+	/>
 {/snippet}
 
 {#snippet orders()}
@@ -350,6 +365,16 @@
 				icon: 'lucide:calculator',
 				body: figures
 			},
+			...(room.length > 0
+				? [
+						{
+							name: 'headroom',
+							title: t('app.limits.headroom'),
+							icon: 'lucide:gauge',
+							body: headroomTab
+						}
+					]
+				: []),
 			{ name: 'orders', title: t('app.line.orders'), icon: 'lucide:file-text', body: orders }
 		]}
 	/>

@@ -13,7 +13,6 @@
 	icon="lucide:list-ordered"
 	title={t('sequences.title')}
 	description={t('sequences.description')}
-	variant="full"
 >
 	<Table
 		{ctx}

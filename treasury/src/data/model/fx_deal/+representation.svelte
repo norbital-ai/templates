@@ -9,6 +9,7 @@
 	import {
 		Alert,
 		Button,
+		Icon,
 		RecordShell,
 		Table,
 		format,
@@ -16,7 +17,7 @@
 		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
 		dealView,
 		gainUsd,
@@ -246,16 +247,22 @@
 			<p class="text-meta">{t('fx.no_rate')}</p>
 		{:else if deal !== null}
 			{#each watch(deal, v, day.today) as w (w.key)}
-				<Alert.Root variant={w.warn ? 'warning' : 'default'}
-					><Alert.Description>{w.warn ? '▲' : 'ℹ'} {t(w.key, w.values)}</Alert.Description
-					></Alert.Root
-				>
+				<Alert.Root variant={w.warn ? 'warning' : 'default'}>
+					<Alert.Description>
+						<Inline gap="xs" align="center">
+							<Icon name={w.warn ? 'lucide:triangle-alert' : 'lucide:info'} class="size-4" />
+							<span>{t(w.key, w.values)}</span>
+						</Inline>
+					</Alert.Description>
+				</Alert.Root>
 			{/each}
 			<Grid minimum="compact">
 				{#each [[t('fx.spot'), v.spot.toFixed(4)], [t('fx.state'), t(`fx.state.${v.state}`)], [t('fx.value_today'), v.position?.total_usd == null ? '—' : `USD ${num(v.position.total_usd)}`], [t('fx.ko_distance'), v.position?.ko_distance_pct == null ? '—' : `${v.position.ko_distance_pct.toFixed(2)}%`], [t('fx.target_used'), v.target_used_pct === null ? '—' : `${v.target_used_pct.toFixed(0)}%`], [t('fx.open_fixings'), String(v.open.length)]] as const as [title, value] (title)}
 					<div class="rounded-xl border border-border bg-card p-4">
-						<p class="text-meta">{title}</p>
-						<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+						<Stack gap="xs">
+							<p class="text-meta">{title}</p>
+							<p class="text-heading tabular-nums">{value}</p>
+						</Stack>
 					</div>
 				{/each}
 			</Grid>
@@ -335,17 +342,23 @@
 			<Grid minimum="compact">
 				{#each [[t('fx.p_knock_out'), range((o) => o.p_knock_out)], [t('fx.p_target'), range((o) => o.p_target)], [t('fx.p_pays'), range((o) => o.p_pays)], [t('fx.typical'), range((o) => o.typical, true)], [t('fx.bad_case'), range((o) => o.bad, true)], [t('fx.p_convert'), range((o) => o.p_convert)]] as const as [title, value] (title)}
 					{#if value !== '—'}<div class="rounded-xl border border-border bg-card p-4">
-							<p class="text-meta">{title}</p>
-							<p class="mt-1 text-lg font-semibold tabular-nums">{value}</p>
+							<Stack gap="xs">
+								<p class="text-meta">{title}</p>
+								<p class="text-heading tabular-nums">{value}</p>
+							</Stack>
 						</div>{/if}
 				{/each}
 			</Grid>
 			<p class="text-meta">{t('fx.odds_basis')}</p>
 			{#each pointsToWeigh(deal, v.open, v.spot, likely.plain, v.position?.total_usd == null ? null : Math.abs(v.position.total_usd), day.today) as p (p.key)}
-				<Alert.Root variant={p.warn ? 'warning' : 'default'}
-					><Alert.Description>{p.warn ? '▲' : '✓'} {t(p.key, p.values)}</Alert.Description
-					></Alert.Root
-				>
+				<Alert.Root variant={p.warn ? 'warning' : 'default'}>
+					<Alert.Description>
+						<Inline gap="xs" align="center">
+							<Icon name={p.warn ? 'lucide:triangle-alert' : 'lucide:check'} class="size-4" />
+							<span>{t(p.key, p.values)}</span>
+						</Inline>
+					</Alert.Description>
+				</Alert.Root>
 			{/each}
 			{#if likely.view !== null && likely.view[0] !== undefined}
 				{@const o = likely.view[0]}

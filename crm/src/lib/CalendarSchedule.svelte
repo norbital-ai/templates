@@ -9,8 +9,7 @@
 		open_record,
 		type CalendarEvent
 	} from '@norbital-ai/ui';
-	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { DateTime } from 'effect';
+	import { Bound, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
@@ -177,7 +176,21 @@
 
 <Scroll name={t('dashboard.title')} size="fill" inset>
 	{#if read.error}<EmptyState title={t('dashboard.error')} hint={read.error.message} />
-	{:else if read.current === undefined}<EmptyState title={t('dashboard.loading')} />
+	{:else if read.current === undefined}
+		<Stack gap="lg" role="status" aria-busy="true" aria-label={t('dashboard.loading')}>
+			<Grid minimum="compact" gap="md">
+				{#each [0, 1, 2, 3] as index (index)}
+					<div
+						class="h-20 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+					></div>
+				{/each}
+			</Grid>
+			<Bound size="viewport">
+				<div
+					class="h-full w-full animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+				></div>
+			</Bound>
+		</Stack>
 	{:else if incomplete}<EmptyState title={t('dashboard.error')} hint={t('reports.incomplete')} />
 	{:else}
 		<Stack gap="lg">
@@ -189,57 +202,65 @@
 					>
 						<Popover.Trigger>
 							{#snippet child({ props })}
-								<button
+								<Bound
 									{...props}
+									as="button"
 									type="button"
-									class="flex w-full cursor-pointer flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-left transition-colors hover:border-foreground/20 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
+									pad="md"
+									class="w-full cursor-pointer rounded-xl border bg-card text-left transition-colors hover:border-foreground/20 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
 								>
-									<dt class="text-meta flex items-center justify-between gap-2">
-										<span>{stat.label}</span>
-										<Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
-									</dt>
-									<dd class="text-2xl font-semibold tracking-tight tabular-nums">{stat.value}</dd>
-								</button>
+									<Stack gap="xs">
+										<dt>
+											<Inline justify="between" align="center" gap="sm" class="text-meta">
+												<span>{stat.label}</span>
+												<Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
+											</Inline>
+										</dt>
+										<dd class="text-section tabular-nums">{stat.value}</dd>
+									</Stack>
+								</Bound>
 							{/snippet}
 						</Popover.Trigger>
-						<Popover.Content align="start" class="max-h-72 w-80 overflow-y-auto p-2">
-							<div class="mb-1.5 flex items-center justify-between border-b px-2 pb-1.5">
-								<span class="text-xs font-semibold text-foreground">{stat.label}</span>
-								<span class="text-xs tabular-nums text-muted-foreground">{stat.value}</span>
-							</div>
-							{#if stat.items.length === 0}
-								<p class="px-2 py-2 text-xs text-muted-foreground">{t('dashboard.none')}</p>
-							{:else}
-								<div class="flex flex-col gap-0.5">
-									{#each stat.items as item (item.id)}
-										<button
-											type="button"
-											class="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-muted"
-											onclick={() => {
-												openMetric = null;
-												open_record(item.model, item.id);
-											}}
-										>
-											<div class="min-w-0 flex-1">
-												<p class="truncate font-medium">{item.title}</p>
-												{#if item.meta}<p class="truncate text-xs text-muted-foreground">
-														{item.meta}
-													</p>{/if}
-											</div>
-											{#if item.date}
-												<span class="shrink-0 text-xs tabular-nums text-muted-foreground">
-													<Show {ctx} kind={{ kind: 'date' }} value={item.date} />
-												</span>
-											{/if}
-										</button>
-									{/each}
-								</div>
-							{/if}
+						<Popover.Content align="start" class="min-w-72 p-2">
+							<Stack gap="xs">
+								<Inline justify="between" align="center" class="border-b px-2 pb-1.5">
+									<span class="text-label">{stat.label}</span>
+									<span class="text-meta tabular-nums">{stat.value}</span>
+								</Inline>
+								{#if stat.items.length === 0}
+									<p class="px-2 py-2 text-meta">{t('dashboard.none')}</p>
+								{:else}
+									<Scroll name="metric-items" max="compact" layout="stack" gap="none">
+										{#each stat.items as item (item.id)}
+											<button
+												type="button"
+												class="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-muted"
+												onclick={() => {
+													openMetric = null;
+													open_record(item.model, item.id);
+												}}
+											>
+												<div class="min-w-0 flex-1">
+													<p class="truncate font-medium">{item.title}</p>
+													{#if item.meta}<p class="truncate text-meta">
+															{item.meta}
+														</p>{/if}
+												</div>
+												{#if item.date}
+													<span class="shrink-0 text-meta tabular-nums">
+														<Show {ctx} kind={{ kind: 'date' }} value={item.date} />
+													</span>
+												{/if}
+											</button>
+										{/each}
+									</Scroll>
+								{/if}
+							</Stack>
 						</Popover.Content>
 					</Popover.Root>
 				{/each}
 			</Grid>
-			<Bound class="h-[42rem]">
+			<Bound size="viewport">
 				<EventCalendar
 					{ctx}
 					{events}

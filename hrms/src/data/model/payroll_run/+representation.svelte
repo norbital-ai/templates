@@ -108,24 +108,28 @@
 				{ field: 'employer_cost', kind: MONEY }
 			]}
 		/>{/if}{/snippet}
-{#snippet amended()}{#if record}<Stack size="fill" gap="lg">
-			<Table
-				{ctx}
-				of="pay_amendment"
-				key="run-amendments"
-				where={{ payroll_run_id: { eq: record.id } }}
-				toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_carried') }}
-				columns={['employee_id', 'pay_group_id', 'period']}
-			/>
-			<Table
-				{ctx}
-				of="pay_amendment"
-				key="run-amendments-waiting"
-				where={{ pay_group_id: { eq: record.pay_group_id }, payroll_run_id: { is_null: true } }}
-				toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_waiting') }}
-				columns={['employee_id', 'pay_group_id', 'period']}
-			/>
-		</Stack>{/if}{/snippet}
+{#snippet amendedCarried()}{#if record}<Table
+			{ctx}
+			of="pay_amendment"
+			key="run-amendments"
+			where={{ payroll_run_id: { eq: record.id } }}
+			toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_carried') }}
+			columns={['employee_id', 'pay_group_id', 'period']}
+		/>{/if}{/snippet}
+{#snippet amendedWaiting()}{#if record}<Table
+			{ctx}
+			of="pay_amendment"
+			key="run-amendments-waiting"
+			where={{ pay_group_id: { eq: record.pay_group_id }, payroll_run_id: { is_null: true } }}
+			toolbar={{ new: false, delete: false, title: ctx.t('app.payroll.amended_waiting') }}
+			columns={['employee_id', 'pay_group_id', 'period']}
+		/>{/if}{/snippet}
+{#snippet amended()}{#if record}<Tabs
+			tabs={[
+				{ name: 'carried', title: ctx.t('app.payroll.amended_carried'), body: amendedCarried },
+				{ name: 'waiting', title: ctx.t('app.payroll.amended_waiting'), body: amendedWaiting }
+			]}
+		/>{/if}{/snippet}
 <RecordShell
 	{ctx}
 	of="payroll_run"

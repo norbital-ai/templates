@@ -10,12 +10,7 @@
 	const seller = $derived(settings?.current?.offering_settings.rows[0] ?? null);
 </script>
 
-<AppShell
-	icon="lucide:package"
-	title={t('products.title')}
-	description={t('products.description')}
-	variant="full"
->
+<AppShell icon="lucide:package" title={t('products.title')} description={t('products.description')}>
 	<Table
 		{ctx}
 		of="products"

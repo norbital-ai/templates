@@ -113,7 +113,7 @@
 		><Stack gap="lg">
 			{#if id}
 				{#each groups as group}
-					<Bound size="viewport">
+					<Bound height="20rem">
 						<Chart
 							{ctx}
 							of={rows
@@ -153,7 +153,7 @@
 						(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
 					)}
 					{@const first = points[0]}
-					<Bound size="viewport">
+					<Bound height="20rem">
 						<Chart
 							{ctx}
 							of={points.map((r) => ({

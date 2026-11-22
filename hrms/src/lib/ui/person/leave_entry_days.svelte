@@ -542,7 +542,7 @@
 				on_change={(value) => form.set('catalog_code', value)}
 			/>
 			{#if chosenCatalog !== null && !isNoCap(chosenCatalog)}<span
-					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
+					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-micro font-medium tabular-nums text-muted-foreground"
 					>{ctx.t('component.days_left', { count: availableDays })}</span
 				>{/if}
 		</Stack>
@@ -558,7 +558,7 @@
 			<Button variant="ghost" onclick={() => shiftMonth(1)}>›</Button>
 		</Cluster>
 		<div
-			class="grid grid-cols-7 border-b bg-muted/40 text-center text-[10px] font-medium text-muted-foreground"
+			class="grid grid-cols-7 border-b bg-muted/40 text-center text-micro font-medium text-muted-foreground"
 		>
 			{#each weekday as day, index (index)}<span class="py-1">{day}</span>{/each}
 		</div>
@@ -574,7 +574,7 @@
 					class:opacity-40={blocked(date)}
 					title={holiday}
 				>
-					<span class="block text-[10px] tabular-nums text-muted-foreground"
+					<span class="block text-micro tabular-nums text-muted-foreground"
 						>{Number(date.slice(8))}</span
 					>
 					<div class="mt-1 flex flex-1 gap-0.5">
@@ -584,7 +584,7 @@
 								aria-label={`${date} ${part}`}
 								aria-pressed={selected(date, part)}
 								disabled={!editable || catalog === null || blocked(date) || occupied(date, part)}
-								class="min-h-10 flex-1 rounded-md border px-0.5 py-1 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-30 {selected(
+								class="min-h-10 flex-1 rounded-md border px-0.5 py-1 text-micro transition-colors disabled:cursor-not-allowed disabled:opacity-30 {selected(
 									date,
 									part
 								)

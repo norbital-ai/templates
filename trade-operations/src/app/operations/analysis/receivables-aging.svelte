@@ -5,9 +5,12 @@
 	import {
 		Badge,
 		Button,
+		Combobox,
 		EmptyState,
+		Label,
 		Show,
 		Table,
+		Tabs,
 		format,
 		label,
 		open_record,
@@ -15,7 +18,7 @@
 		type Kind,
 		type ShowProps
 	} from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { run } from '@norbital-ai/ui/effect';
 	import {
 		agingBuckets,
@@ -95,16 +98,34 @@
 	const shownCustomers = $derived(
 		customers?.filter((row) => !customer || row.group === customer.key) ?? []
 	);
-	const figures = ['owed', 'in_credit', ...agingBuckets] as const;
+	const overdueBuckets = ['1_30', '31_60', '61_90', 'over_90'] as const;
 	const totals = $derived(
 		[...Map.groupBy(shownCustomers, (row) => row.currency)].map(([currency, rows]) => ({
 			currency,
-			figures: figures.map((field) => ({
-				field,
-				value: BigDecimal.format(
-					BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row[field])))
-				)
-			}))
+			figures: [
+				{
+					field: 'owed' as const,
+					value: BigDecimal.format(
+						BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row.owed)))
+					)
+				},
+				{
+					field: 'in_credit' as const,
+					value: BigDecimal.format(
+						BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row.in_credit)))
+					)
+				},
+				{
+					field: 'overdue' as const,
+					value: BigDecimal.format(
+						BigDecimal.sumAll(
+							rows.flatMap((row) =>
+								overdueBuckets.map((bucket) => BigDecimal.fromStringUnsafe(row[bucket]))
+							)
+						)
+					)
+				}
+			]
 		}))
 	);
 	const entryRows = $derived(
@@ -170,25 +191,22 @@
 </script>
 
 {#snippet controls()}
-	<div class="flex flex-wrap items-center gap-2">
-		<select
-			aria-label={ctx.t('reports.aging.view')}
-			bind:value={view}
-			onchange={() => (customer = null)}
-			class="h-8 rounded-md border border-input bg-background px-2 text-sm"
-		>
-			<option value="customers">{ctx.t('reports.aging.customers')}</option>
-			<option value="entries">{ctx.t('reports.aging.entries')}</option>
-		</select>
+	<Cluster gap="sm" align="center">
 		{#if heads.length}
-			<select
-				aria-label={ctx.t('reports.aging.basis')}
-				bind:value={basis}
-				class="h-8 rounded-md border border-input bg-background px-2 text-sm"
-			>
-				<option value="estimated">{ctx.t('reports.aging.basis_estimated')}</option>
-				<option value="gross">{ctx.t('reports.aging.basis_gross')}</option>
-			</select>
+			<Inline gap="sm" align="center">
+				<Label for="ar-aging-basis">{ctx.t('reports.aging.basis')}</Label>
+				<Combobox
+					id="ar-aging-basis"
+					value={basis}
+					options={[
+						{ value: 'estimated', label: ctx.t('reports.aging.basis_estimated') },
+						{ value: 'gross', label: ctx.t('reports.aging.basis_gross') }
+					]}
+					on_change={(value) => {
+						if (value !== null) basis = value;
+					}}
+				/>
+			</Inline>
 		{/if}
 		{#if customer}
 			<Button
@@ -199,37 +217,131 @@
 				}}>{ctx.t('reports.aging.all_customers')}</Button
 			>
 		{/if}
-	</div>
-{/snippet}
-{#snippet reference({ row }: { row: (typeof entryRows)[number] })}
-	{#if row.invoice || row.order}
-		<button
-			type="button"
-			class="underline-offset-4 hover:underline focus-visible:underline"
-			onclick={() => {
-				if (row.invoice) open_record('transactions', row.invoice);
-				else if (row.order) open_record('orders', row.order);
-			}}>{row.reference}</button
-		>
-	{:else}{row.reference}{/if}
+	</Cluster>
 {/snippet}
 {#snippet badge({ value }: { value: ShowProps['value'] })}<Badge variant="outline"
 		>{String(value ?? '—')}</Badge
 	>{/snippet}
+{#snippet summary()}
+	<Stack gap="sm">
+		{#each totals as total (total.currency)}
+			<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
+				{#each total.figures as figure (figure.field)}
+					<div>
+						<dt class="text-meta">{ctx.t(`reports.aging.${figure.field}`)}</dt>
+						<dd class="text-heading tabular-nums">
+							<Show {ctx} kind={moneyKind} value={figure.value} row={total} />
+						</dd>
+					</div>
+				{/each}
+			</Grid>
+		{/each}
+	</Stack>
+{/snippet}
+{#snippet customersTab()}
+	{@const columns: readonly Col<(typeof shownCustomers)[number]>[] = [
+		{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
+		money('owed'),
+		money('in_credit'),
+		...(estimated ? [money('estimated_balance')] : []),
+		...agingBuckets.map((field) => money(field)),
+		{
+			field: 'oldest_overdue',
+			label: ctx.t('reports.aging.oldest_overdue'),
+			kind: daysKind,
+			align: 'end'
+		},
+		...(['unapplied', 'credit', 'overpaid'] as const).flatMap((field) =>
+			nonZero(shownCustomers, (row) => row[field]) ? [money(field)] : []
+		),
+		...(manyLedgers ? [{ field: 'ledger_name' as const, label: ctx.t('reports.aging.ledger') }] : [])
+	]}
+	<Table
+		{ctx}
+		layout="grid"
+		of={shownCustomers}
+		key="ar_customers"
+		{columns}
+		on_open={(row) => {
+			customer = {
+				key: row.group,
+				name: [row.party_name, manyLedgers ? row.ledger_name : '', row.currency]
+					.filter(Boolean)
+					.join(' · ')
+			};
+			view = 'entries';
+		}}
+		toolbar={{
+			title,
+			description: about,
+			new: false,
+			...(heads.length || customer ? { controls } : {}),
+			actions: [
+				{
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('component.export_xlsx'),
+					run: () => downloadXlsx('ar-aging-customers', day.today, columns, shownCustomers)
+				}
+			]
+		}}
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}
+	</Table>
+{/snippet}
+{#snippet entriesTab()}
+	{@const columns: readonly Col<(typeof entryRows)[number]>[] = [
+		{ field: 'reference', label: ctx.t('reports.aging.reference') },
+		...(customer ? [] : [{ field: 'party_name' as const, label: label(ctx, 'orders', 'party_name') }]),
+		{ field: 'order_number', label: ctx.t('models.orders.singular') },
+		{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), kind: dateKind },
+		...(entryRows.some((row) => row.delivered_on)
+			? [{ field: 'delivered_on' as const, label: ctx.t('reports.aging.delivered_on'), kind: dateKind }]
+			: []),
+		{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), kind: dateKind },
+		{ field: 'days_overdue', label: ctx.t('reports.aging.days_overdue'), kind: daysKind, align: 'end' },
+		{ field: 'bucket_label', label: ctx.t('reports.aging.bucket'), cell: badge },
+		...(entryRows.some((row) => row.settlement)
+			? [{ field: 'settlement' as const, label: ctx.t('reports.aging.settlement') }]
+			: []),
+		money('balance'),
+		...(estimated ? [money('estimated_applied'), money('estimated_balance')] : []),
+		...(['unapplied', 'credit', 'overpaid'] as const).flatMap((field) =>
+			nonZero(entryRows, (row) => row[field]) ? [money(field)] : []
+		),
+		...(entryRows.some((row) => row.settled_on)
+			? [{ field: 'settled_on' as const, label: ctx.t('reports.aging.receipt_date'), kind: dateKind }]
+			: []),
+		...(manyLedgers ? [{ field: 'ledger_name' as const, label: ctx.t('reports.aging.ledger') }] : [])
+	]}
+	<Table
+		{ctx}
+		layout="grid"
+		of={entryRows}
+		key="ar_aging"
+		{columns}
+		on_open={(row) => {
+			if (row.invoice) open_record('transactions', row.invoice);
+			else if (row.order) open_record('orders', row.order);
+		}}
+		toolbar={{
+			title,
+			description: about,
+			new: false,
+			...(heads.length || customer ? { controls } : {}),
+			actions: [
+				{
+					icon: 'lucide:file-spreadsheet',
+					name: ctx.t('component.export_xlsx'),
+					run: () => downloadXlsx('ar-aging-entries', day.today, columns, entryRows)
+				}
+			]
+		}}
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}
+	</Table>
+{/snippet}
 
-<Stack size="fill" min_height="18rem" gap="sm">
-	{#each totals as total (total.currency)}
-		<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
-			{#each total.figures as figure (figure.field)}
-				<div>
-					<dt class="text-xs text-muted-foreground">{ctx.t(`reports.aging.${figure.field}`)}</dt>
-					<dd class="text-base font-semibold tabular-nums">
-						<Show {ctx} kind={moneyKind} value={figure.value} row={total} />
-					</dd>
-				</div>
-			{/each}
-		</Grid>
-	{/each}
+<Cover size="fill" min_height="18rem" gap="sm" {...totals.length > 0 ? { top: summary } : {}}>
 	{#if future}<EmptyState tone="danger" title={ctx.t('errors.report_future')} />
 	{:else if failed}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
 	{:else if aging && aging.rows === null}<EmptyState
@@ -237,101 +349,18 @@
 			title={ctx.t('reports.aging.early_cutoff')}
 		/>
 	{:else if !entries}<EmptyState title={ctx.t('component.reports_loading')} />
-	{:else if view === 'customers'}
-		{@const columns: readonly Col<(typeof shownCustomers)[number]>[] = [
-			{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
-			money('owed'),
-			money('in_credit'),
-			...(estimated ? [money('estimated_balance')] : []),
-			...agingBuckets.map((field) => money(field)),
-			{
-				field: 'oldest_overdue',
-				label: ctx.t('reports.aging.oldest_overdue'),
-				kind: daysKind,
-				align: 'end'
-			},
-			...(['unapplied', 'credit', 'overpaid'] as const).flatMap((field) =>
-				nonZero(shownCustomers, (row) => row[field]) ? [money(field)] : []
-			),
-			...(manyLedgers ? [{ field: 'ledger_name' as const, label: ctx.t('reports.aging.ledger') }] : [])
-		]}
-		<Table
-			{ctx}
-			layout="grid"
-			of={shownCustomers}
-			key="ar_customers"
-			{columns}
-			on_open={(row) => {
-				customer = {
-					key: row.group,
-					name: [row.party_name, manyLedgers ? row.ledger_name : '', row.currency]
-						.filter(Boolean)
-						.join(' · ')
-				};
-				view = 'entries';
-			}}
-			toolbar={{
-				title,
-				description: about,
-				new: false,
-				controls,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('ar-aging-customers', day.today, columns, shownCustomers)
-					}
-				]
-			}}
-		>
-			{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}
-		</Table>
 	{:else}
-		{@const columns: readonly Col<(typeof entryRows)[number]>[] = [
-			{ field: 'reference', label: ctx.t('reports.aging.reference'), cell: reference },
-			...(customer ? [] : [{ field: 'party_name' as const, label: label(ctx, 'orders', 'party_name') }]),
-			{ field: 'order_number', label: ctx.t('models.orders.singular') },
-			{ field: 'issued_on', label: ctx.t('models.transactions.fields.issued_on'), kind: dateKind },
-			...(entryRows.some((row) => row.delivered_on)
-				? [{ field: 'delivered_on' as const, label: ctx.t('reports.aging.delivered_on'), kind: dateKind }]
-				: []),
-			{ field: 'due_on', label: label(ctx, 'orders', 'due_on'), kind: dateKind },
-			{ field: 'days_overdue', label: ctx.t('reports.aging.days_overdue'), kind: daysKind, align: 'end' },
-			{ field: 'bucket_label', label: ctx.t('reports.aging.bucket'), cell: badge },
-			...(entryRows.some((row) => row.settlement)
-				? [{ field: 'settlement' as const, label: ctx.t('reports.aging.settlement') }]
-				: []),
-			money('balance'),
-			...(estimated ? [money('estimated_applied'), money('estimated_balance')] : []),
-			...(['unapplied', 'credit', 'overpaid'] as const).flatMap((field) =>
-				nonZero(entryRows, (row) => row[field]) ? [money(field)] : []
-			),
-			...(entryRows.some((row) => row.settled_on)
-				? [{ field: 'settled_on' as const, label: ctx.t('reports.aging.receipt_date'), kind: dateKind }]
-				: []),
-			...(manyLedgers ? [{ field: 'ledger_name' as const, label: ctx.t('reports.aging.ledger') }] : [])
-		]}
-		<Table
-			{ctx}
-			layout="grid"
-			of={entryRows}
-			key="ar_aging"
-			{columns}
-			toolbar={{
-				title,
-				description: about,
-				new: false,
-				controls,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('ar-aging-entries', day.today, columns, entryRows)
-					}
-				]
+		<Tabs
+			level={2}
+			value={view}
+			on_value_change={(next) => {
+				view = next === 'entries' ? 'entries' : 'customers';
+				customer = null;
 			}}
-		>
-			{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}
-		</Table>
+			tabs={[
+				{ name: 'customers', title: ctx.t('reports.aging.customers'), body: customersTab },
+				{ name: 'entries', title: ctx.t('reports.aging.entries'), body: entriesTab }
+			]}
+		/>
 	{/if}
-</Stack>
+</Cover>

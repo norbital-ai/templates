@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Badge, Table, Tabs, type Col } from '@norbital-ai/ui';
+	import { Badge, Show, Table, Tabs, type Col } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { downloadXlsx, xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
 	import {
@@ -175,7 +175,7 @@
 		}}
 	/>{/snippet}
 {#snippet projectedCell({ row }: { row: NonNullable<typeof rows>[number] })}<span
-		class="tabular-nums">{row.projected ?? '—'}</span
+		class="tabular-nums"><Show {ctx} kind={quantityKind} value={row.projected} /></span
 	>{#if row.short}
 		<Badge variant="destructive">{ctx.t('stock.availability.short')}</Badge>{/if}{/snippet}
 {#snippet stock()}<Table

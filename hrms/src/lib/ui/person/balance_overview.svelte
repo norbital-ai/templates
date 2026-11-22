@@ -5,8 +5,7 @@
 	 * History. Read-only: HR adjusts a balance from the ledger.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, Icon, Table } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Table, Tabs } from '@norbital-ai/ui';
 	import {
 		accountsOf,
 		leftIn
@@ -17,7 +16,6 @@
 	let { ctx, account }: { ctx: PageContext; account: unknown } = $props();
 	const t = ctx.t;
 	const today = String(ctx.clock('day').today);
-	let history = $state(false);
 
 	const COUNTED = ['leave', 'claim'] as const;
 	const PAID = ['statutory', 'pay'] as const;
@@ -132,7 +130,7 @@
 		title={row.about === '' ? undefined : row.about}>{row.item}</span
 	>{/snippet}
 
-<Stack size="fill" gap="lg">
+{#snippet currentBalances()}
 	<Table
 		{ctx}
 		of={counted.filter((line) => line.current)}
@@ -140,8 +138,7 @@
 		toolbar={{
 			new: false,
 			title: t('balance.overview'),
-			description: t('balance.overview_help'),
-			trailing: historyToggle
+			description: t('balance.overview_help')
 		}}
 		columns={[
 			{ field: 'item', label: t('balance.item'), cell: itemCell },
@@ -153,33 +150,42 @@
 			{ field: 'unit', label: t('balance.unit') }
 		]}
 	/>
-	{#if history}<Table
-			{ctx}
-			of={counted.filter((line) => !line.current)}
-			key="person-balance-history"
-			toolbar={{ new: false, title: t('balance.history') }}
-			columns={[
-				{ field: 'item', label: t('balance.item'), cell: itemCell },
-				{ field: 'window', label: t('balance.window') },
-				{ field: 'entitled', label: t('balance.entitled'), kind: number, align: 'end' },
-				{ field: 'carried', label: t('balance.carried'), kind: number, align: 'end' },
-				{ field: 'used', label: t('balance.used'), kind: number, align: 'end' },
-				{ field: 'left', label: t('balance.left'), kind: number, align: 'end' },
-				{ field: 'unit', label: t('balance.unit') }
-			]}
-		/>{/if}
-	{#if paid.length > 0}<Table
-			{ctx}
-			of={paid}
-			key="person-balance-paid"
-			toolbar={{ new: false, title: t('balance.paid'), description: t('balance.paid_help') }}
-			columns={[
-				{ field: 'item', label: t('balance.item'), cell: itemCell },
-				{ field: 'window', label: t('balance.window') },
-				{ field: 'paid', label: t('balance.paid_amount'), kind: number, align: 'end' }
-			]}
-		/>{/if}
-</Stack>
-{#snippet historyToggle()}<Button variant="outline" onclick={() => (history = !history)}
-		><Icon name="lucide:history" class="size-4" />{t('balance.history')}</Button
-	>{/snippet}
+{/snippet}
+{#snippet historyBalances()}
+	<Table
+		{ctx}
+		of={counted.filter((line) => !line.current)}
+		key="person-balance-history"
+		toolbar={{ new: false, title: t('balance.history') }}
+		columns={[
+			{ field: 'item', label: t('balance.item'), cell: itemCell },
+			{ field: 'window', label: t('balance.window') },
+			{ field: 'entitled', label: t('balance.entitled'), kind: number, align: 'end' },
+			{ field: 'carried', label: t('balance.carried'), kind: number, align: 'end' },
+			{ field: 'used', label: t('balance.used'), kind: number, align: 'end' },
+			{ field: 'left', label: t('balance.left'), kind: number, align: 'end' },
+			{ field: 'unit', label: t('balance.unit') }
+		]}
+	/>
+{/snippet}
+{#snippet paidBalances()}
+	<Table
+		{ctx}
+		of={paid}
+		key="person-balance-paid"
+		toolbar={{ new: false, title: t('balance.paid'), description: t('balance.paid_help') }}
+		columns={[
+			{ field: 'item', label: t('balance.item'), cell: itemCell },
+			{ field: 'window', label: t('balance.window') },
+			{ field: 'paid', label: t('balance.paid_amount'), kind: number, align: 'end' }
+		]}
+	/>
+{/snippet}
+
+<Tabs
+	tabs={[
+		{ name: 'overview', title: t('balance.overview'), body: currentBalances },
+		...(paid.length > 0 ? [{ name: 'paid', title: t('balance.paid'), body: paidBalances }] : []),
+		{ name: 'history', title: t('balance.history'), body: historyBalances }
+	]}
+/>

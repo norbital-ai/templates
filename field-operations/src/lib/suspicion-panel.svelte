@@ -94,7 +94,7 @@
 		</p>{/if}
 	<Grid minimum="compact" gap="md">
 		<section class="rounded-md border p-3" aria-label={t('component.evidence_facts')}>
-			<h4 class="text-sm font-semibold">{t('component.evidence_facts')}</h4>
+			<h4 class="text-label">{t('component.evidence_facts')}</h4>
 			<p class="text-tiny text-muted-foreground">{t('component.evidence_facts_description')}</p>
 			{#if flagged.length === 0}<EmptyState
 					variant="inset"
@@ -136,7 +136,7 @@
 			class="rounded-md border p-3"
 			aria-label={t('component.similar_photos_other_assignments')}
 		>
-			<h4 class="text-sm font-semibold">{t('component.similar_photos_other_assignments')}</h4>
+			<h4 class="text-label">{t('component.similar_photos_other_assignments')}</h4>
 			<p class="text-tiny text-muted-foreground">
 				{t('component.similar_photos_other_assignments_description')}
 			</p>
@@ -179,7 +179,7 @@
 		</section>
 	</Grid>
 	{#if findings}<section aria-label={t('component.suspicion_judgements')}>
-			<h4 class="text-sm font-semibold">{t('component.suspicion_judgements')}</h4>
+			<h4 class="text-label">{t('component.suspicion_judgements')}</h4>
 			{#if logs?.error}<p class="text-tiny text-destructive" role="alert">
 					{t('component.suspicion_load_failed')}
 				</p>{/if}
@@ -195,7 +195,7 @@
 							? 'rounded-md border border-warning/40 bg-warning/5 p-3'
 							: 'rounded-md border p-3'}
 					>
-						<p class="text-tiny font-semibold">
+						<p class="text-tiny font-medium">
 							<Icon
 								icon={log.resolved_at == null ? 'lucide:shield-alert' : 'lucide:shield-check'}
 								class="inline size-4"

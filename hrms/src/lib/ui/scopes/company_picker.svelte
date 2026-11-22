@@ -7,11 +7,12 @@
 	let { ctx, scope }: { ctx: PageContext; scope: CompanyScope } = $props();
 </script>
 
-<Combobox
-	class="w-56"
-	aria-label={ctx.t('component.legal_entity')}
-	options={scope.entities.map((company) => ({ value: company.id, label: company.name }))}
-	value={scope.id}
-	disabled={scope.entities.length === 0}
-	on_change={(next) => next != null && scope.select(next)}
-/>
+<div class="w-56">
+	<Combobox
+		aria-label={ctx.t('component.legal_entity')}
+		options={scope.entities.map((company) => ({ value: company.id, label: company.name }))}
+		value={scope.id}
+		disabled={scope.entities.length === 0}
+		on_change={(next) => next != null && scope.select(next)}
+	/>
+</div>

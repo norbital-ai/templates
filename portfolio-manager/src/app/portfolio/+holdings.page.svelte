@@ -4,6 +4,12 @@
 	import { Table } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
+	const settings = ctx.query({
+		portfolio_settings: { fields: ['base_currency'], limit: 1 }
+	});
+	const baseCurrency = $derived(
+		settings.current?.portfolio_settings.rows[0]?.base_currency ?? 'USD'
+	);
 </script>
 
 <AppShell
@@ -19,10 +25,13 @@
 			'instrument',
 			'symbol',
 			'asset_class',
-			'currency',
 			'quantity',
-			'value_base',
-			'live_value_base',
+			{ field: 'value_base', kind: { kind: 'money', currency: baseCurrency }, align: 'end' },
+			{
+				field: 'live_value_base',
+				kind: { kind: 'money', currency: baseCurrency, optional: true },
+				align: 'end'
+			},
 			'live_change_pct',
 			'change_1m_pct',
 			'trend',

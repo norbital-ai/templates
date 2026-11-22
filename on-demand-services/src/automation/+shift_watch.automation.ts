@@ -20,8 +20,8 @@ export default automation({
 	description:
 		'Asks each helper to confirm their day two hours before its first visit, and proposes replacements for controller approval when they decline or do not answer, issuing a warning letter when there is no medical certificate.',
 	// not `*/5`: a cron run is keyed by its expression alone, so two automations on one expression run once between them;
-	// a decline also schedules it (the visits effect)
-	on: [{ cron: '*/10 * * * *' }],
+	// a decline also schedules it (the visits effect); rests a day after an idle slot so quiet workspaces sleep
+	on: [{ cron: '*/10 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {

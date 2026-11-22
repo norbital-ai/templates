@@ -80,7 +80,7 @@
 				<div class="flex items-start justify-between gap-2">
 					<div class="min-w-0 flex-1 space-y-1">
 						{#if uc.title}
-							<h4 class="text-sm font-semibold text-foreground">{uc.title}</h4>
+							<h4 class="text-label">{uc.title}</h4>
 						{/if}
 						<ReadonlyMarkdown value={linkCitations(uc.body, parsed.byNumber)} />
 					</div>
@@ -108,10 +108,10 @@
 		{#if activeRef}
 			<Stack gap="xs">
 				<Cluster align="center" justify="between" gap="xs">
-					<span class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold">
+					<span class="rounded bg-muted px-1.5 py-0.5 font-mono text-micro font-medium">
 						[{activeRef.n}]
 					</span>
-					<span class="text-[11px] text-muted-foreground">{activeRef.host}</span>
+					<span class="text-micro text-muted-foreground">{activeRef.host}</span>
 				</Cluster>
 				<p class="text-sm font-medium leading-snug">{activeRef.title}</p>
 				<Cluster align="center" justify="start" gap="sm" class="pt-1">

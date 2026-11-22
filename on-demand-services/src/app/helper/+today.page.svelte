@@ -255,22 +255,30 @@
 	icon="lucide:sun"
 	title={helper ? t('app.helper.greeting', { name: helper.name }) : t('app.helper.today_title')}
 	description={t('app.helper.today_description')}
+	variant="full"
 >
 	{#snippet actions()}
 		<Label for="route-date" class="sr-only">{t('app.helper.date')}</Label>
-		<div class="w-40">
-			<TimeInput
-				{ctx}
-				id="route-date"
-				value={selectedDay}
-				on_change={(day: string | null) => (selectedDay = day ?? today)}
-			/>
-		</div>
+		<TimeInput
+			{ctx}
+			id="route-date"
+			value={selectedDay}
+			on_change={(day: string | null) => (selectedDay = day ?? today)}
+		/>
 	{/snippet}
 	<Scroll name="today" size="fill" inset>
 		<Center measure="reading">
-			<Stack gap="lg" class="py-6">
-				{#if actor?.kind === 'member' && me?.current !== undefined && helper === undefined}<EmptyState
+			<Stack gap="lg">
+				{#if actor?.kind === 'member' && me?.current === undefined}
+					<Stack gap="md" role="status" aria-busy="true" aria-label={t('component.loading')}>
+						<div
+							class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+						></div>
+						<div
+							class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+						></div>
+					</Stack>
+				{:else if actor?.kind === 'member' && helper === undefined}<EmptyState
 						title={t('app.helper.not_a_helper')}
 					/>{/if}
 				{#if helper !== undefined}
@@ -281,7 +289,7 @@
 						<p role="status" class="border-b pb-5 font-medium">{t('app.helper.declined')}</p>
 					{:else if asked && Date.parse(asked.slot.end!) > Date.now()}
 						<Stack gap="sm" class="border-b pb-5">
-							<p class="font-semibold">
+							<p class="text-heading">
 								{t(
 									asked.shift_check === 'confirmed'
 										? 'app.helper.day_confirmed'
@@ -332,7 +340,15 @@
 								>{/if}
 						</Cluster>
 						<p class="text-sm text-muted-foreground">{t('app.helper.route_description')}</p>
-						{#if open?.current === undefined}<p>{t('component.loading')}</p>
+						{#if open?.current === undefined}
+							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
+								<div
+									class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+								></div>
+								<div
+									class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+								></div>
+							</Stack>
 						{:else if route.length === 0}<EmptyState
 								variant="inset"
 								title={t('app.helper.route_empty')}

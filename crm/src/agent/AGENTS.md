@@ -51,6 +51,8 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 - Never invent a signature, a signing date or a commercial term.
 - Cold outreach is authored only here: a `sequences` row is the template `launch_cohort` pushes to Apollo; the potential-project prompt is the runtime `outreach_settings` row, never source. A lead (contact and company) holds at most one active `cohort_members` row (partial unique constraints); a cohort's `done` releases it.
 - Apollo is reached only through the `apollo` integration and its one active account; tests answer through a fake link, never a real key.
+- Keep every visible string in both `src/i18n/+messages.ts` and `src/i18n/+zh.messages.ts`.
+- Keep downstream client work within the customer representation; load the `crm_acceptance` skill (`src/agent/skill/crm_acceptance/`) before changing apps or models or reporting whether a change works.
 
 ## Read next
 

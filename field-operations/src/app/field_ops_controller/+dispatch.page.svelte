@@ -79,14 +79,12 @@
 		<label class="sr-only" for="dispatch-day"
 			>{t('app.field_ops_controller.select_dispatch_date')}</label
 		>
-		<div class="w-40">
-			<TimeInput
-				id="dispatch-day"
-				{ctx}
-				value={day}
-				on_change={(next: string | null) => (day = next ?? clock.today)}
-			/>
-		</div>
+		<TimeInput
+			id="dispatch-day"
+			{ctx}
+			value={day}
+			on_change={(next: string | null) => (day = next ?? clock.today)}
+		/>
 		<Button variant="ghost" onclick={() => (day = clock.today)}
 			>{t('app.field_ops_controller.today')}</Button
 		>
@@ -105,9 +103,9 @@
 			{/if}
 			{row.nature ?? row.title}
 		</p>
-		<p class="line-clamp-2 text-meta leading-snug">{siteName.get(row.site_id) ?? '—'}</p>
+		<p class="line-clamp-2 text-meta">{siteName.get(row.site_id) ?? '—'}</p>
 		{#if row.assignee_user_id == null}
-			<p class="text-meta leading-snug text-warning">
+			<p class="text-meta text-warning">
 				<Icon icon="lucide:user-x" class="inline size-3.5" aria-hidden="true" />
 				{t('component.no_contractor')}
 			</p>
@@ -163,20 +161,18 @@
 				/>
 			{/snippet}
 			{#snippet end()}
-				<Stack gap="sm" size="fill">
-					{#if mappedSites.length > 0}
-						<Map
-							{ctx}
-							of="sites"
-							at="location"
-							label="name"
-							where={{ id: { in: mappedSites } }}
-							toolbar={{ new: false }}
-						/>
-					{:else}
-						<EmptyState variant="inset" title={t('app.field_ops_controller.map_empty', { date })} />
-					{/if}
-				</Stack>
+				{#if mappedSites.length > 0}
+					<Map
+						{ctx}
+						of="sites"
+						at="location"
+						label="name"
+						where={{ id: { in: mappedSites } }}
+						toolbar={{ new: false }}
+					/>
+				{:else}
+					<EmptyState variant="inset" title={t('app.field_ops_controller.map_empty', { date })} />
+				{/if}
 			{/snippet}
 		</Split>
 	</Stack>

@@ -2,7 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
 	/** The dispatch thresholds the watches and the change rules read. */
-	import { AppShell, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Bound, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { Field, Form, RecordShell, Section } from '@norbital-ai/ui';
 	const t = ctx.t;
 	const settings = $derived(ctx.query({ dispatch_settings: { limit: 1 } }));
@@ -14,9 +14,26 @@
 	icon="lucide:sliders-horizontal"
 	title={t('app.configurations.dispatch_title')}
 	description={t('app.configurations.dispatch_description')}
+	variant="full"
 >
 	{#if settings.current === undefined}
-		<p class="text-caption">{t('component.loading')}</p>
+		<Bound inset>
+			<Stack gap="lg" role="status" aria-busy="true" aria-label={t('component.loading')}>
+				{#each [0, 1] as section (section)}
+					<Stack gap="sm">
+						<div class="h-5 w-1/3 animate-pulse rounded bg-muted motion-reduce:animate-none"></div>
+						<Grid minimum="compact">
+							<div
+								class="h-16 animate-pulse rounded-lg border bg-card motion-reduce:animate-none"
+							></div>
+							<div
+								class="h-16 animate-pulse rounded-lg border bg-card motion-reduce:animate-none"
+							></div>
+						</Grid>
+					</Stack>
+				{/each}
+			</Stack>
+		</Bound>
 	{:else}{#key row?.id}<RecordShell
 				{ctx}
 				of="dispatch_settings"

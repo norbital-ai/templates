@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { EmptyState, Tabs, TimeInput, TimeRangeInput } from '@norbital-ai/ui';
-	import { AppShell } from '@norbital-ai/ui/layout';
+	import { Combobox, EmptyState, Label, Tabs, TimeInput, TimeRangeInput } from '@norbital-ai/ui';
+	import { AppShell, Cluster, Inline } from '@norbital-ai/ui/layout';
 	import { DateTime, Schema } from 'effect';
 	import type { SalesBasis } from '../../../lib/reports.js';
 	import SalesAnalysis from './sales-analysis.svelte';
@@ -67,15 +67,21 @@
 >
 	{#snippet actions()}
 		{#if tab === 'sales'}
-			<div class="flex max-w-full flex-wrap items-center gap-2">
-				<select
-					aria-label={ctx.t('reports.sales.date_basis')}
-					bind:value={salesBasis}
-					class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-				>
-					<option value="invoice">{ctx.t('reports.sales.date_invoice')}</option>
-					<option value="delivery">{ctx.t('reports.sales.date_delivery')}</option>
-				</select>
+			<Cluster gap="sm" align="center">
+				<Inline gap="sm" align="center">
+					<Label for="sales-date-basis">{ctx.t('reports.sales.date_basis')}</Label>
+					<Combobox
+						id="sales-date-basis"
+						value={salesBasis}
+						options={[
+							{ value: 'invoice', label: ctx.t('reports.sales.date_invoice') },
+							{ value: 'delivery', label: ctx.t('reports.sales.date_delivery') }
+						]}
+						on_change={(value) => {
+							if (value !== null) salesBasis = value;
+						}}
+					/>
+				</Inline>
 				<TimeRangeInput
 					{ctx}
 					id="sales-range"
@@ -88,21 +94,21 @@
 						salesTo = bounds.to;
 					}}
 				/>
-			</div>
+			</Cluster>
 		{:else if tab === 'aging'}
-			<label class="flex w-44 flex-col gap-1 text-sm" for="ar-aging-date">
-				{ctx.t('component.aging_as_of')}
+			<Inline gap="sm" align="center">
+				<Label for="ar-aging-date">{ctx.t('component.aging_as_of')}</Label>
 				<TimeInput
 					{ctx}
 					id="ar-aging-date"
 					value={as_of}
 					on_change={(value: string | null) => (as_of = value)}
 				/>
-			</label>
+			</Inline>
 		{:else if tab === 'commission'}
-			<label class="w-40"
-				><span class="sr-only">{ctx.t('models.commission_statements.fields.period')}</span
-				><TimeInput
+			<Inline gap="sm" align="center">
+				<Label for="commission-month">{ctx.t('models.commission_statements.fields.period')}</Label>
+				<TimeInput
 					{ctx}
 					id="commission-month"
 					of="date"
@@ -110,8 +116,8 @@
 					value={commissionMonth}
 					on_change={(value: string | null) =>
 						(commissionMonth = value ? value.slice(0, 7) + '-01' : null)}
-				/></label
-			>
+				/>
+			</Inline>
 		{/if}
 	{/snippet}
 	{#if tab !== null}<Tabs

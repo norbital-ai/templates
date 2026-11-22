@@ -90,7 +90,7 @@
 		justify="between"
 		align="start"
 		gap="md"
-		class={total ? 'border-t py-2 text-sm font-semibold' : 'py-1.5 text-sm'}
+		class={total ? 'border-t py-2 text-sm font-medium' : 'py-1.5 text-sm'}
 	>
 		<Stack gap="none">
 			<Inline gap="xs">
@@ -120,7 +120,7 @@
 )}
 	<Stack as="section" gap="xs" justify="between">
 		<Stack gap="xs">
-			<h3 class="border-b pb-2 text-sm font-semibold">{title}</h3>
+			<h3 class="border-b pb-2 text-sm font-medium">{title}</h3>
 			<Stack as="ul" gap="none">
 				{#each lines as line}
 					{@render row(
@@ -161,7 +161,7 @@
 			{#if adjusted}<p class="text-xs text-muted-foreground">
 					{ctx.t('app.payroll.adjustments_help')}
 				</p>{/if}
-			<Inline justify="between" gap="md" class="border-y-2 py-3 text-base font-semibold">
+			<Inline justify="between" gap="md" class="border-y-2 py-3 text-base font-medium">
 				<span>{ctx.t('app.payroll.net_pay')}</span>
 				<span class="shrink-0 tabular-nums">{money(record.net_pay)}</span>
 			</Inline>

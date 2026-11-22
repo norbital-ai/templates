@@ -55,7 +55,7 @@
 		footer_actions={resolve}
 	>
 		<Stack gap="md">
-			<p class="text-sm font-semibold">
+			<p class="text-label">
 				<Icon
 					icon={open ? 'lucide:shield-alert' : 'lucide:shield-check'}
 					class={open ? 'inline size-4 text-warning' : 'inline size-4'}

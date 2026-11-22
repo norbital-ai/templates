@@ -192,7 +192,7 @@
 								event.currentTarget.open ? expanded.add(slice.id) : expanded.delete(slice.id)}
 						>
 							<summary
-								><strong>{slice.messages[0]?.subject}</strong>
+								><span class="font-medium text-foreground">{slice.messages[0]?.subject}</span>
 								{#if slice.messages[0]?.project_name}<span class="project"
 										>{slice.messages[0].project_name}</span
 									>{/if}<span>{t('timeline.message_count', { count: slice.messages.length })}</span

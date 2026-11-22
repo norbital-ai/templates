@@ -74,6 +74,7 @@ export default messages({
 	'app.schedule.board_title': 'Schedule',
 	'app.schedule.board_description':
 		'Drag a visit to another helper to reassign it; skills, hours and travel are checked.',
+	'app.schedule.date': 'Schedule date',
 	'app.schedule.by_helper': 'By helper',
 	'app.schedule.list': 'List',
 	'app.schedule.unassigned': 'Unassigned',

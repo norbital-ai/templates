@@ -226,18 +226,19 @@
 				value={day}
 				on_change={(next) => (picked = next == null ? null : String(next))}
 			/>
-			<Combobox
-				aria-label={ctx.t('app.settings.jurisdiction')}
-				class="min-w-72"
-				options={heads.map((row) => ({
-					value: row.code,
-					label: row.name,
-					description: row.code,
-					keywords: `${row.code} ${row.name}`
-				}))}
-				value={head?.code ?? null}
-				on_change={(next) => (chosen = next)}
-			/>
+			<div class="min-w-72">
+				<Combobox
+					aria-label={ctx.t('app.settings.jurisdiction')}
+					options={heads.map((row) => ({
+						value: row.code,
+						label: row.name,
+						description: row.code,
+						keywords: `${row.code} ${row.name}`
+					}))}
+					value={head?.code ?? null}
+					on_change={(next) => (chosen = next)}
+				/>
+			</div>
 		</div>
 	{/snippet}
 	{#if head}{#key head.code}<RecordShell

@@ -3374,12 +3374,9 @@
 								]
 							},
 							"locale": {
-								"kind": "enum",
-								"optional": true,
-								"values": [
-									"en",
-									"zh"
-								]
+								"kind": "text",
+								"max": 35,
+								"optional": true
 							},
 							"sounds": {
 								"kind": "bool",

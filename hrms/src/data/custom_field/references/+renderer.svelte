@@ -66,7 +66,7 @@
 		{#snippet content()}
 			<Scroll name={t('references.details')} max="compact" class="max-w-96 text-xs">
 				<Stack gap="xs">
-					<span class="font-semibold">{reference.title}</span>
+					<span class="font-medium">{reference.title}</span>
 					{#if reference.locator}<span>{reference.locator}</span>{/if}
 					{@render details(reference)}
 				</Stack>

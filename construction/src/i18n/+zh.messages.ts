@@ -261,5 +261,31 @@ export default messages({
 	'errors.project_not_found': '未找到对应项目。',
 	'errors.claim_create_failed': '无法创建进度请款草稿。',
 	'errors.invalid_zone': '区域「{zone}」未在当前项目的空间区域中定义。',
-	'errors.vo_cost_managed_by_lines': '变更费用由报价明细行自动汇总，请直接修改明细行。'
+	'errors.vo_cost_managed_by_lines': '变更费用由报价明细行自动汇总，请直接修改明细行。',
+
+	// Model captions
+	'models.projects.label': '项目',
+	'models.projects.singular': '项目',
+	'models.contacts.label': '联系人',
+	'models.contacts.singular': '联系人',
+	'models.project_messages.label': '项目消息',
+	'models.project_messages.singular': '项目消息',
+	'models.communication_settings.label': '通讯设置',
+	'models.communication_settings.singular': '通讯设置',
+	'models.tasks.label': '任务',
+	'models.tasks.singular': '任务',
+	'models.issues.label': '问题与 RFI',
+	'models.issues.singular': '问题',
+	'models.change_orders.label': '工程变更单',
+	'models.change_orders.singular': '变更单',
+	'models.cost_items.label': '成本明细项',
+	'models.cost_items.singular': '成本项',
+	'models.payment_claims.label': '进度请款',
+	'models.payment_claims.singular': '请款',
+	'models.progress_updates.label': '进度汇报',
+	'models.progress_updates.singular': '进度汇报',
+	'models.project_files.label': '项目文件',
+	'models.project_files.singular': '项目文件',
+	'models.quotes.label': '报价单',
+	'models.quotes.singular': '报价单'
 });

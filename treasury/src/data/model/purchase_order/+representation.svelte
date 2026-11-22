@@ -142,7 +142,7 @@
 
 {#snippet checks()}
 	<Stack gap="sm">
-		{#if status !== null}<p class="text-sm font-semibold">
+		{#if status !== null}<p class="text-label">
 				{t(`app.orders.status_${status}`)}
 			</p>{/if}
 		{#if findings.length === 0}

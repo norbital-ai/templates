@@ -3,16 +3,17 @@
 Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a standalone,
 filesystem-first Bolt project that can be installed, checked, built and tested with the public Bolt CLI — and forked into a tenant.
 
-| Template                                        | Directory             | Template handle             | Purpose                                                                                                        |
-| ----------------------------------------------- | --------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [**blank**](./blank/)                           | `blank/`              | `norbital_blank`            | Minimal starter with no authored business application                                                          |
-| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`               | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar |
-| [**construction**](./construction/)             | `construction/`       | `norbital_construction`     | Project-centered construction ops with BIM and workforce compliance                                            |
-| [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations` | Site operations: dispatch, linked-contractor WhatsApp, photo integrity                                         |
-| [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`               | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances  |
-| [**trade-operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations` | Order-centered trading and manufacturing with sealed contracts, pricing and ERP handoff                        |
-| [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`        | Home-service bookings with helper matching, shift checks and ETA alerts                                        |
-| [**treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`         | Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends                                 |
+| Template                                        | Directory             | Template handle              | Purpose                                                                                                        |
+| ----------------------------------------------- | --------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [**blank**](./blank/)                           | `blank/`              | `norbital_blank`             | Minimal starter with no authored business application                                                          |
+| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`                | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar |
+| [**construction**](./construction/)             | `construction/`       | `norbital_construction`      | Project-centered construction ops with BIM and workforce compliance                                            |
+| [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations`  | Site operations: dispatch, linked-contractor WhatsApp, photo integrity                                         |
+| [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`                | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances  |
+| [**trade-operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations`  | Order-centered trading and manufacturing with sealed contracts, pricing and ERP handoff                        |
+| [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`         | Home-service bookings with helper matching, shift checks and ETA alerts                                        |
+| [**portfolio-manager**](./portfolio-manager/)   | `portfolio-manager/`  | `norbital_portfolio_manager` | Family office book with per-holding research and a daily agent report                                          |
+| [**treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`          | Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends                                 |
 
 **Directory and handle are two different names.** The directory is a path in this repository: it is
 what the website serves `norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
@@ -46,6 +47,8 @@ every respect except website discovery and its `visibility` setting.
   availability-matched visits with travel buffers, preferred-helper scheduling, recurring visits,
   pre-shift confirmation with controller-approved replacements and warning letters, and GPS ETA
   alerts.
+- **Portfolio Manager** tracks a family office's holdings, thesis and research notes, and produces
+  a daily agent-written report with portfolio totals, allocation and one call per position.
 - **Treasury** keeps bank facilities, fee rules and the lines drawn on them from earmark to
   settlement, with purchase orders, supplier invoices, FX rates and month-end figures beside them.
 - **HRMS** covers employment records, attendance, leave, claims, loans, payroll and statutory
@@ -93,7 +96,7 @@ not a catalogue:
 
 ```json
 {
-	"schemaVersion": 1,
+	"schema_version": 1,
 	"key": "norbital_example",
 	"name": "My Template",
 	"industry": "Operations",
@@ -150,7 +153,9 @@ The source inventories list every authored model, application/page, automation p
 | blank              | [Reference](blank/docs/source-reference.md) · [Overview](blank/docs/screenshots/workspace-overview.webp)                                                                                                 |
 | construction       | [Reference](construction/docs/source-reference.md) · [Overview](construction/docs/screenshots/workspace-overview.webp) · [Application](construction/docs/screenshots/application.webp)                   |
 | field-operations   | [Reference](field-operations/docs/source-reference.md) · [Overview](field-operations/docs/screenshots/workspace-overview.webp) · [Application](field-operations/docs/screenshots/application.webp)       |
-| hrms               | [Documentation hub](hrms/docs/README.md)                                                                                                                                                                 | No captures yet | No captures yet |
+| hrms               | [Documentation hub](hrms/docs/README.md) · [Overview](hrms/docs/screenshots/workspace-overview.webp) · [Application](hrms/docs/screenshots/application.webp)                                             |
 | on-demand-services | [Reference](on-demand-services/docs/source-reference.md) · [Overview](on-demand-services/docs/screenshots/workspace-overview.webp) · [Application](on-demand-services/docs/screenshots/application.webp) |
+| portfolio-manager  | [Overview](portfolio-manager/docs/screenshots/workspace-overview.webp) · [Application](portfolio-manager/docs/screenshots/application.webp)                                                              |
 | crm                | [Reference](crm/docs/source-reference.md) · [Overview](crm/docs/screenshots/workspace-overview.webp) · [Application](crm/docs/screenshots/application.webp)                                              |
 | trade-operations   | [Reference](trade-operations/docs/source-reference.md) · [Overview](trade-operations/docs/screenshots/workspace-overview.webp) · [Application](trade-operations/docs/screenshots/application.webp)       |
+| treasury           | [Reference](treasury/docs/source-reference.md) · [Overview](treasury/docs/screenshots/workspace-overview.webp) · [Application](treasury/docs/screenshots/application.webp)                               |

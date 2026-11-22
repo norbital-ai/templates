@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** One report per day, written by the agent; open a row for the full report. A reader subscribes here. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, Table, format, use_act, type ShowProps } from '@norbital-ai/ui';
+	import { Button, Table, use_act } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 
@@ -18,9 +18,6 @@
 			: save.run(ctx.act({ 'report_subscription.delete': [{ target: subscription }] }));
 </script>
 
-{#snippet date({ value }: { value: ShowProps['value'] })}
-	{#if typeof value === 'string'}{format({ kind: 'date' }, value, { locale: ctx.locale })}{/if}
-{/snippet}
 {#snippet subscribe()}
 	{#if mine.current}
 		<Button variant="outline" disabled={save.pending} onclick={toggle}>
@@ -39,13 +36,7 @@
 		{ctx}
 		of="report"
 		order_by={{ for_date: 'desc' }}
-		columns={[
-			{ field: 'for_date', cell: date },
-			'headline',
-			'net_assets',
-			'day_change',
-			'market_view'
-		]}
+		columns={['for_date', 'headline', 'net_assets', 'day_change', 'market_view']}
 		toolbar={{ title: ctx.t('component.reports.title'), new: false }}
 	/>
 </AppShell>

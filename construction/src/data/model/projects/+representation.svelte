@@ -502,7 +502,7 @@
 						</Stack>
 						<Stack gap="xs">
 							<span class="text-meta">{t('cashflow.net_realized')}</span>
-							<span class="font-semibold tabular-nums">
+							<span class="font-medium tabular-nums">
 								<Show
 									{ctx}
 									kind={money}
@@ -513,7 +513,7 @@
 						</Stack>
 						<Stack gap="xs">
 							<span class="text-meta">{t('cashflow.net_projected')}</span>
-							<span class="font-semibold tabular-nums text-primary">
+							<span class="font-medium tabular-nums text-primary">
 								<Show
 									{ctx}
 									kind={money}

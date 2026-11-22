@@ -1,23 +1,26 @@
 <script lang="ts">
 	/**
 	 * Where the group stands: limit, used, available and earmarked across the banks, usage per bank, what falls due,
-	 * the cost of funds now, over a chosen period and month by month, the FX exposure, the month-end and the alerts.
+	 * the cost of funds now, over a chosen period and month by month, and the latest month-end status.
 	 * Every figure is USD and comes from one read of the facilities and lines plus the shared treasury helpers.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
+		Badge,
 		Chart,
-		Icon,
 		Combobox,
 		EmptyState,
+		Icon,
+		Label,
+		Table,
+		TableSkeleton,
 		TimeInput,
 		TimeRangeInput,
-		Table,
 		format,
 		value_object,
 		type Value
 	} from '@norbital-ai/ui';
-	import { AppShell, Bound, Scroll } from '@norbital-ai/ui/layout';
+	import { AppShell, Bound, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { addDays, addMonths, monthEnd, monthStart } from '../../lib/calculations.js';
 	import {
 		FACILITY_FIELDS,
@@ -26,8 +29,8 @@
 		maturities,
 		maturityLadder,
 		periodCost,
-		utilisation,
 		simpleRate,
+		utilisation,
 		weightedRate
 	} from '../../lib/treasury.js';
 	let { ctx }: { ctx: PageContext } = $props();
@@ -86,9 +89,12 @@
 					: axisMonth(r.month, r.month === as_of.slice(0, 7))
 		}))
 	);
-	const trend = $derived(costOfFundsTrend(lines, as_of));
-	let showLadder = $state(false),
-		showTrend = $state(false);
+	const trend = $derived(
+		costOfFundsTrend(lines, as_of).map((point, index) => ({
+			...point,
+			month: axisMonth(point.month, index === 0)
+		}))
+	);
 	const latest = $derived(read.current?.month_end.rows[0]);
 
 	// the cost-of-funds period: quick picks counted from the as-of day; the financial year starts 1 April
@@ -137,13 +143,13 @@
 	const costAll = $derived(cost.find((c) => c.bank === 'all'));
 
 	const usd = (value: string | null | undefined) =>
-		value == null ? '—' : format({ kind: 'decimal', scale: 2 }, value, { locale: ctx.locale });
+		value == null ? '—' : format({ kind: 'money' }, value, { locale: ctx.locale, currency: 'USD' });
 	const rate = (value: string | null) => (value === null ? '—' : `${Number(value).toFixed(2)}%`);
 	const tiles = $derived([
-		[t('app.dashboard.used'), usd(usage.total.used)],
-		[t('app.dashboard.available'), usd(usage.total.available)],
-		[t('app.dashboard.earmarked'), usd(usage.total.earmarked)],
-		[t('app.dashboard.free_after_earmarks'), usd(usage.total.free_after_earmarks)]
+		{ title: t('app.dashboard.used'), value: usd(usage.total.used) },
+		{ title: t('app.dashboard.available'), value: usd(usage.total.available) },
+		{ title: t('app.dashboard.earmarked'), value: usd(usage.total.earmarked) },
+		{ title: t('app.dashboard.free_after_earmarks'), value: usd(usage.total.free_after_earmarks) }
 	]);
 	const highBanks = $derived(usage.banks.filter((bank) => bank.high));
 	const lcsToOpen = $derived(
@@ -164,21 +170,43 @@
 </script>
 
 {#snippet asOf()}
-	<label
+	<Inline
+		as="label"
 		for="treasury-analysis-date"
-		class="flex items-center gap-2 rounded-md bg-card p-2 text-meta"
+		gap="xs"
+		align="center"
+		class="rounded-md border border-border bg-card px-2.5 py-1.5 text-meta"
 	>
-		{t('app.dashboard.as_of')}
-		<div class="w-44">
-			<TimeInput
-				{ctx}
-				id="treasury-analysis-date"
-				of="date"
-				value={as_of}
-				on_change={(value: string | null) => (picked = value)}
-			/>
-		</div>
-	</label>
+		<span>{t('app.dashboard.as_of')}</span>
+		<TimeInput
+			{ctx}
+			id="treasury-analysis-date"
+			of="date"
+			value={as_of}
+			on_change={(value: string | null) => (picked = value)}
+		/>
+	</Inline>
+{/snippet}
+
+{#snippet usageBar(bank: { bank: string; limit: string; used: string; earmarked: string })}
+	<Bound clip class="rounded">
+		<Inline
+			gap="none"
+			align="stretch"
+			role="img"
+			aria-label={`${bank.bank}: ${t('app.dashboard.used')} ${usd(bank.used)}, ${t('app.dashboard.earmarked')} ${usd(bank.earmarked)}, ${t('app.dashboard.limit')} ${usd(bank.limit)}`}
+			style="height:0.625rem;background:var(--chart-3)"
+		>
+			<span
+				class="min-w-0"
+				style={`flex-basis:${barPart(bank.used, bank.limit)}%;background:var(--chart-1)`}
+			></span>
+			<span
+				class="min-w-0"
+				style={`flex-basis:${barPart(bank.earmarked, bank.limit)}%;background:var(--chart-2)`}
+			></span>
+		</Inline>
+	</Bound>
 {/snippet}
 
 <AppShell
@@ -192,378 +220,281 @@
 		{#if read.error}
 			<EmptyState title={t('app.dashboard.error')} hint={String(read.error)} />
 		{:else if read.current === undefined}
-			<EmptyState title={t('app.dashboard.loading')} />
+			<Stack gap="lg" aria-busy="true">
+				<Grid minimum="panel" gap="md">
+					{#each [0, 1] as i (i)}
+						<div class="rounded-xl border border-border bg-card p-5">
+							<Stack gap="sm">
+								<div
+									class="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none"
+									style="width:40%"
+								></div>
+								<div
+									class="h-8 animate-pulse rounded bg-muted motion-reduce:animate-none"
+									style="width:55%"
+								></div>
+								<div
+									class="h-3 animate-pulse rounded bg-muted motion-reduce:animate-none"
+									style="width:85%"
+								></div>
+							</Stack>
+						</div>
+					{/each}
+				</Grid>
+				<TableSkeleton />
+			</Stack>
 		{:else if incomplete}
 			<EmptyState title={t('app.dashboard.error')} hint={t('reports.incomplete')} />
 		{:else if facilities.length === 0}
 			<EmptyState title={t('app.dashboard.empty')} hint={t('app.dashboard.empty_hint')} />
 		{:else}
-			<div class="dashboard-grid">
-				<section class="panel summary">
-					<div class="panel-heading">
-						<h2>{t('app.dashboard.total_facilities')}</h2>
-						<span class:usage-warning={usage.total.high} class="text-meta"
-							>{usage.total.used_pct?.toFixed(0) ?? '—'}% {t('app.dashboard.used')}</span
-						>
+			<Stack gap="md">
+				{#if highBanks.length > 0 || lcsToOpen > 0}
+					<div class="rounded-xl border border-border bg-card px-4 py-3">
+						<Cluster justify="between" align="center" gap="sm">
+							<Cluster gap="sm" align="center">
+								{#each highBanks as bank (bank.bank)}
+									<Badge variant="warning">
+										{bank.bank} · {bank.used_pct?.toFixed(0)}%
+									</Badge>
+								{/each}
+								{#if lcsToOpen > 0}
+									<Badge variant="info">{lcsToOpen} {t('app.alerts.lcs')}</Badge>
+								{/if}
+								<span class="text-meta">{t('app.dashboard.alerts_hint')}</span>
+							</Cluster>
+							<Inline
+								as="a"
+								href={ctx.href('treasury', 'alerts')}
+								gap="xs"
+								align="center"
+								class="text-sm text-brand-text"
+							>
+								<span>{t('app.alerts.title')}</span>
+								<Icon name="lucide:arrow-up-right" class="size-4" />
+							</Inline>
+						</Cluster>
 					</div>
-					<p class="hero tabular-nums">{usd(usage.total.limit)}</p>
-					{@render usageBar(usage.total)}
-					<div class="usage-legend text-meta">
-						<span><i class="used"></i>{t('app.dashboard.used')}</span><span
-							><i class="earmark"></i>{t('app.dashboard.earmarked')}</span
-						><span><i class="free"></i>{t('app.dashboard.free_after_earmarks')}</span>
-					</div>
-					<div class="metric-grid">
-						{#each tiles as [title, value] (title)}<div>
-								<p class="text-meta">{title}</p>
-								<p class="metric tabular-nums">{value}</p>
-							</div>{/each}
-					</div>
-				</section>
-				<section class="panel banks">
-					<div class="panel-heading">
-						<h2>{t('app.dashboard.usage_by_bank')}</h2>
-						<Icon name="lucide:landmark" class="size-4 text-muted-foreground" />
-					</div>
-					<div class="bank-rows">
-						{#each usage.banks as bank (bank.bank)}
-							<div class="bank-row">
-								<span class="font-medium">{bank.bank}</span>{@render usageBar(bank)}<span
-									class="text-meta tabular-nums"
-									class:usage-warning={bank.high}>{bank.used_pct?.toFixed(0) ?? '—'}%</span
+				{/if}
+
+				<Grid minimum="panel" gap="md">
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="md">
+							<Inline justify="between" align="center">
+								<h2 class="text-heading">{t('app.dashboard.total_facilities')}</h2>
+								<Badge variant={usage.total.high ? 'destructive' : 'outline'}>
+									{usage.total.used_pct?.toFixed(0) ?? '—'}% {t('app.dashboard.used')}
+								</Badge>
+							</Inline>
+							<p class="text-title tabular-nums">{usd(usage.total.limit)}</p>
+							<Stack gap="xs">
+								{@render usageBar(usage.total)}
+								<Cluster gap="sm" align="center" class="text-meta">
+									<Inline gap="xs" align="center">
+										<span class="inline-block size-2 rounded-xs" style="background:var(--chart-1)"
+										></span>
+										<span>{t('app.dashboard.used')}</span>
+									</Inline>
+									<Inline gap="xs" align="center">
+										<span class="inline-block size-2 rounded-xs" style="background:var(--chart-2)"
+										></span>
+										<span>{t('app.dashboard.earmarked')}</span>
+									</Inline>
+									<Inline gap="xs" align="center">
+										<span class="inline-block size-2 rounded-xs" style="background:var(--chart-3)"
+										></span>
+										<span>{t('app.dashboard.free_after_earmarks')}</span>
+									</Inline>
+								</Cluster>
+							</Stack>
+							<Grid minimum="compact" gap="sm">
+								{#each tiles as tile (tile.title)}
+									<Stack gap="xs">
+										<p class="text-meta">{tile.title}</p>
+										<p class="text-heading tabular-nums">{tile.value}</p>
+									</Stack>
+								{/each}
+							</Grid>
+						</Stack>
+					</section>
+
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="md">
+							<Inline justify="between" align="center">
+								<h2 class="text-heading">{t('app.dashboard.usage_by_bank')}</h2>
+								<Icon name="lucide:landmark" class="size-4 text-muted-foreground" />
+							</Inline>
+							<Stack gap="sm">
+								{#each usage.banks as bank (bank.bank)}
+									<Grid tracks="4rem minmax(0,1fr) 3rem" align="center" gap="sm">
+										<span class="text-sm">{bank.bank}</span>
+										{@render usageBar(bank)}
+										<span
+											class={['text-right text-meta tabular-nums', bank.high && 'text-destructive']}
+										>
+											{bank.used_pct?.toFixed(0) ?? '—'}%
+										</span>
+									</Grid>
+								{/each}
+							</Stack>
+						</Stack>
+					</section>
+				</Grid>
+
+				<Grid minimum="panel" gap="md">
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="md">
+							<Inline justify="between" align="center">
+								<h2 class="text-heading">{t('app.dashboard.coming_due')}</h2>
+								<Icon name="lucide:calendar-clock" class="size-4 text-muted-foreground" />
+							</Inline>
+							<Grid minimum="compact" gap="sm">
+								{#each due as bucket (bucket.key)}
+									<Stack gap="xs">
+										<p class="text-meta">{t(BUCKETS[bucket.key])}</p>
+										<p class="text-heading tabular-nums">{usd(bucket.amount)}</p>
+										<p class="text-meta">{t('app.dashboard.lines', { count: bucket.count })}</p>
+									</Stack>
+								{/each}
+							</Grid>
+							<Cluster justify="between" align="center" gap="sm">
+								<Inline gap="xs" align="center">
+									<span class="text-meta">{t('app.dashboard.month_end')}:</span>
+									<span class="text-sm">
+										{latest === undefined ? '—' : monthLabel(latest.month.slice(0, 7))}
+									</span>
+									<Badge variant={latest?.is_locked ? 'success' : 'outline'}>
+										{latest?.is_locked ? t('app.dashboard.closed') : t('app.dashboard.unlocked')}
+									</Badge>
+								</Inline>
+								<Inline
+									as="a"
+									href={ctx.href('treasury', 'alerts')}
+									gap="xs"
+									align="center"
+									class="text-meta"
 								>
-							</div>
-						{/each}
-					</div>
-				</section>
-				<section class="panel funding">
-					<div class="panel-heading">
-						<h2>{t('app.dashboard.cost_of_funds')}</h2>
-						<Icon name="lucide:percent" class="size-4 text-muted-foreground" />
-					</div>
-					<p class="hero tabular-nums">{rate(costAll?.rate ?? null)}</p>
-					<div class="grid gap-3">
-						<Combobox
-							aria-label={t('app.dashboard.period')}
-							options={picks.map((p) => ({ value: p.value, label: p.label }))}
-							value={period}
-							on_change={(v) => {
-								period = v ?? 'month';
-								selectedRange = null;
-							}}
-						/>
-						<label for="treasury-cost-period" class="grid gap-2 text-meta"
-							>{t('app.dashboard.month_range')}<TimeRangeInput
-								{ctx}
-								id="treasury-cost-period"
-								of="date"
-								precision="month"
-								value={selectedRange ?? { from: window.from, to: window.to }}
-								on_change={(value) => (selectedRange = value)}
-							/></label
-						>
-						<p class="text-meta">
-							{t('app.dashboard.period_cost', {
-								from: format({ kind: 'date' }, window.from, { locale: ctx.locale }),
-								to: format({ kind: 'date' }, window.to, { locale: ctx.locale }),
-								rate: rate(costAll?.rate ?? null),
-								interest: usd(costAll?.interest),
-								balance: usd(costAll?.average_balance)
-							})}
-						</p>
-						<p class="text-meta">
-							{t('app.dashboard.current_rate')}:
-							<b class="text-foreground">{rate(weightedRate(open))}</b>
-						</p>
-						<p class="text-meta">
-							{t('app.dashboard.simple_average')}:
-							<b class="text-foreground">{rate(simpleRate(open))}</b>
-						</p>
-					</div>
-				</section>
-				<section class="panel ladder">
-					<h2>{t('app.dashboard.ladder')}</h2>
-					<Bound size="fill"><Chart {ctx} of={ladder} x="month" y="amount" kind="bar" /></Bound>
-					<details class="mt-3" bind:open={showLadder}>
-						<summary class="cursor-pointer text-meta">{t('app.dashboard.show_table')}</summary>
-						{#if showLadder}<Table
-								{ctx}
-								of={ladder}
-								controlled
-								embedded
-								columns={[
-									{ field: 'month', label: t('app.dashboard.due_month') },
-									{ field: 'count', label: t('app.dashboard.lines_column') },
-									{
-										field: 'amount',
-										label: t('app.dashboard.amount_usd'),
-										kind: { kind: 'decimal', scale: 2 }
-									}
-								]}
-							/>{/if}
-					</details>
-				</section>
-				<section class="panel due">
-					<div class="panel-heading">
-						<h2>{t('app.dashboard.coming_due')}</h2>
-						<Icon name="lucide:calendar-clock" class="size-4 text-muted-foreground" />
-					</div>
-					<div class="metric-grid">
-						{#each due as bucket (bucket.key)}<div>
-								<p class="text-meta">{t(BUCKETS[bucket.key])}</p>
-								<p class="metric tabular-nums">{usd(bucket.amount)}</p>
-								<p class="text-meta">{t('app.dashboard.lines', { count: bucket.count })}</p>
-							</div>{/each}
-					</div>
-					<p class="mt-5 text-meta">
-						{t('app.dashboard.month_end')}:
-						<b class="text-foreground"
-							>{latest === undefined ? '—' : monthLabel(latest.month.slice(0, 7))}</b
-						>
-						· {latest?.is_locked ? t('app.dashboard.closed') : t('app.dashboard.unlocked')}
-					</p>
-				</section>
-				<section class="panel trend">
-					<h2>{t('app.dashboard.trend')}</h2>
-					<Bound size="fill"
-						><Chart
+									<span>{t('app.alerts.title')}</span>
+									<Icon name="lucide:arrow-up-right" class="size-3.5" />
+								</Inline>
+							</Cluster>
+						</Stack>
+					</section>
+
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="md">
+							<Inline justify="between" align="center">
+								<h2 class="text-heading">{t('app.dashboard.cost_of_funds')}</h2>
+								<Icon name="lucide:percent" class="size-4 text-muted-foreground" />
+							</Inline>
+							<p class="text-title tabular-nums">{rate(costAll?.rate ?? null)}</p>
+							<Grid minimum="compact" gap="sm">
+								<Stack gap="xs">
+									<Label for="treasury-period-preset">{t('app.dashboard.period')}</Label>
+									<Combobox
+										id="treasury-period-preset"
+										options={picks.map((p) => ({ value: p.value, label: p.label }))}
+										value={period}
+										on_change={(v) => {
+											period = v ?? 'month';
+											selectedRange = null;
+										}}
+									/>
+								</Stack>
+								<Stack gap="xs">
+									<Label for="treasury-cost-period">{t('app.dashboard.month_range')}</Label>
+									<TimeRangeInput
+										{ctx}
+										id="treasury-cost-period"
+										of="date"
+										precision="month"
+										value={selectedRange ?? { from: window.from, to: window.to }}
+										on_change={(value) => (selectedRange = value)}
+									/>
+								</Stack>
+							</Grid>
+							<p class="text-meta">
+								{t('app.dashboard.period_cost', {
+									from: format({ kind: 'date' }, window.from, { locale: ctx.locale }),
+									to: format({ kind: 'date' }, window.to, { locale: ctx.locale }),
+									rate: rate(costAll?.rate ?? null),
+									interest: usd(costAll?.interest),
+									balance: usd(costAll?.average_balance)
+								})}
+							</p>
+							<Cluster gap="md" align="center">
+								<Inline gap="xs" align="baseline">
+									<span class="text-meta">{t('app.dashboard.current_rate')}:</span>
+									<span class="text-sm tabular-nums">{rate(weightedRate(open))}</span>
+								</Inline>
+								<Inline gap="xs" align="baseline">
+									<span class="text-meta">{t('app.dashboard.simple_average')}:</span>
+									<span class="text-sm tabular-nums">{rate(simpleRate(open))}</span>
+								</Inline>
+							</Cluster>
+						</Stack>
+					</section>
+				</Grid>
+
+				<Grid minimum="panel" gap="md">
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="sm">
+							<h2 class="text-heading">{t('app.dashboard.ladder')}</h2>
+							<Bound height="18rem">
+								<Chart {ctx} of={ladder} x="month" y="amount" kind="bar" />
+							</Bound>
+						</Stack>
+					</section>
+
+					<section class="rounded-xl border border-border bg-card p-5">
+						<Stack gap="sm">
+							<h2 class="text-heading">{t('app.dashboard.trend')}</h2>
+							<Bound height="18rem">
+								<Chart {ctx} of={trend} x="month" y={['weighted', 'simple']} kind="line" />
+							</Bound>
+						</Stack>
+					</section>
+				</Grid>
+
+				<section class="rounded-xl border border-border bg-card p-5">
+					<Stack gap="sm">
+						<h2 class="text-heading">{t('app.dashboard.cost_by_bank')}</h2>
+						<Table
 							{ctx}
-							of={trend.map((point, index) => ({
-								...point,
-								month: axisMonth(point.month, index === 0)
-							}))}
-							x="month"
-							y={['weighted', 'simple']}
-							kind="line"
-						/></Bound
-					>
-					<details class="mt-3" bind:open={showTrend}>
-						<summary class="cursor-pointer text-meta">{t('app.dashboard.show_table')}</summary>
-						{#if showTrend}<Table
-								{ctx}
-								of={trend}
-								controlled
-								embedded
-								columns={[
-									{
-										field: 'month_end',
-										label: t('app.dashboard.month_end_date'),
-										kind: { kind: 'date' }
-									},
-									{
-										field: 'weighted',
-										label: t('app.dashboard.current_rate'),
-										kind: { kind: 'decimal', scale: 4 }
-									},
-									{
-										field: 'simple',
-										label: t('app.dashboard.simple_average'),
-										kind: { kind: 'decimal', scale: 4 }
-									},
-									{
-										field: 'outstanding',
-										label: t('app.dashboard.outstanding_usd'),
-										kind: { kind: 'decimal', scale: 2 }
-									},
-									{ field: 'lines', label: t('app.dashboard.lines_column') },
-									{
-										field: 'coverage',
-										label: t('app.dashboard.rate_coverage'),
-										kind: { kind: 'decimal', scale: 2 }
-									}
-								]}
-							/>{/if}
-					</details>
+							of={cost.filter((bank) => bank.bank !== 'all')}
+							controlled
+							embedded
+							columns={[
+								{ field: 'bank', label: t('app.dashboard.bank') },
+								{
+									field: 'rate',
+									label: t('app.dashboard.rate'),
+									kind: { kind: 'decimal', scale: 2 },
+									align: 'end'
+								},
+								{
+									field: 'interest',
+									label: t('app.dashboard.interest'),
+									kind: { kind: 'money', currency: 'USD' },
+									align: 'end'
+								},
+								{
+									field: 'average_balance',
+									label: t('app.dashboard.average_balance'),
+									kind: { kind: 'money', currency: 'USD' },
+									align: 'end'
+								},
+								{
+									field: 'lines',
+									label: t('app.dashboard.lines_column'),
+									kind: { kind: 'int' },
+									align: 'end'
+								}
+							]}
+						/>
+					</Stack>
 				</section>
-				<section class="panel attention">
-					<div class="panel-heading">
-						<h2>{t('app.alerts.title')}</h2>
-						<a href="/app/treasury/alerts" aria-label={t('app.alerts.title')}
-							><Icon name="lucide:arrow-up-right" class="size-5" /></a
-						>
-					</div>
-					<div class="grid gap-4">
-						{#each highBanks as bank (bank.bank)}<p class="text-meta">
-								<b class="text-foreground">{bank.bank} · {bank.used_pct?.toFixed(0)}%</b><br />{t(
-									'app.dashboard.available'
-								)}: {usd(bank.available)} USD
-							</p>{/each}
-						<p class="text-meta">
-							<b class="text-foreground">{lcsToOpen}</b>
-							{t('app.alerts.lcs')}
-						</p>
-						<p class="text-meta">{t('app.dashboard.alerts_hint')}</p>
-					</div>
-				</section>
-				<section class="panel cost-table">
-					<h2 class="mb-4">{t('app.dashboard.cost_by_bank')}</h2>
-					<Table
-						{ctx}
-						of={cost.filter((bank) => bank.bank !== 'all')}
-						controlled
-						embedded
-						columns={[
-							{ field: 'bank', label: t('app.dashboard.bank') },
-							{ field: 'rate', label: t('app.dashboard.rate'), align: 'end' },
-							{
-								field: 'interest',
-								label: t('app.dashboard.interest'),
-								kind: { kind: 'decimal', scale: 2 }
-							},
-							{
-								field: 'average_balance',
-								label: t('app.dashboard.average_balance'),
-								kind: { kind: 'decimal', scale: 2 }
-							},
-							{ field: 'lines', label: t('app.dashboard.lines_column') }
-						]}
-					/>
-				</section>
-			</div>
+			</Stack>
 		{/if}
 	</Scroll>
 </AppShell>
-
-{#snippet usageBar(bank: { bank: string; limit: string; used: string; earmarked: string })}
-	<div
-		class="usage-bar"
-		role="img"
-		aria-label={`${bank.bank}: ${t('app.dashboard.used')} ${usd(bank.used)}, ${t('app.dashboard.earmarked')} ${usd(bank.earmarked)}, ${t('app.dashboard.limit')} ${usd(bank.limit)} USD`}
-	>
-		<span class="used" style:flex-basis={`${barPart(bank.used, bank.limit)}%`}></span><span
-			class="earmark"
-			style:flex-basis={`${barPart(bank.earmarked, bank.limit)}%`}
-		></span><span class="free"></span>
-	</div>
-{/snippet}
-
-<style>
-	.dashboard-grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 1rem;
-	}
-	.panel {
-		min-width: 0;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		padding: 1.25rem;
-		background: var(--card);
-		color: var(--card-foreground);
-	}
-	.panel-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		margin-bottom: 1rem;
-	}
-	h2 {
-		font-size: 0.875rem;
-		font-weight: 600;
-	}
-	.hero {
-		font-size: clamp(1.5rem, 2.4vw, 2.25rem);
-		font-weight: 650;
-		margin-block: 0.75rem 1rem;
-		overflow-wrap: anywhere;
-	}
-	.metric-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 1.25rem 1rem;
-		margin-top: 1.25rem;
-	}
-	.metric {
-		font-size: 1.125rem;
-		font-weight: 600;
-		overflow-wrap: anywhere;
-	}
-	.ladder,
-	.trend {
-		display: grid;
-		grid-template-rows: auto 18rem auto;
-		gap: 1rem;
-		align-content: start;
-	}
-	.usage-bar {
-		display: flex;
-		height: 0.625rem;
-		overflow: hidden;
-		background: var(--chart-3);
-		border-radius: 0.25rem;
-	}
-	.usage-bar span {
-		min-width: 0;
-		flex-shrink: 1;
-	}
-	.used {
-		background: var(--chart-1);
-	}
-	.earmark {
-		background: var(--chart-2);
-	}
-	.free {
-		background: var(--chart-3);
-		flex: 1;
-	}
-	.usage-legend {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-		margin-top: 0.75rem;
-	}
-	.usage-legend span {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-	}
-	.usage-legend i {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 0.125rem;
-	}
-	.bank-rows {
-		display: grid;
-		gap: 1rem;
-	}
-	.bank-row {
-		display: grid;
-		grid-template-columns: 4rem minmax(0, 1fr) 3rem;
-		gap: 0.75rem;
-		align-items: center;
-		font-size: 0.8125rem;
-	}
-	.usage-warning {
-		color: var(--destructive);
-	}
-	@container (min-width: 70rem) {
-		.dashboard-grid {
-			grid-template-columns: repeat(12, minmax(0, 1fr));
-		}
-		.summary {
-			grid-column: span 4;
-		}
-		.banks {
-			grid-column: span 5;
-		}
-		.funding {
-			grid-column: span 3;
-		}
-		.ladder {
-			grid-column: span 7;
-		}
-		.due {
-			grid-column: span 5;
-		}
-		.trend {
-			grid-column: span 8;
-		}
-		.attention {
-			grid-column: span 4;
-		}
-		.cost-table {
-			grid-column: 1 / -1;
-		}
-	}
-</style>

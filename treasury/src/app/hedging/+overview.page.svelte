@@ -5,10 +5,20 @@
 	 * live deals; and today's reference rates. Figures are a guide at the official rate, not the banks' valuations.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Alert, Chart, EmptyState, Table, open_record } from '@norbital-ai/ui';
-	import { AppShell, Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import {
+		Alert,
+		Badge,
+		Chart,
+		EmptyState,
+		Icon,
+		Table,
+		TableSkeleton,
+		format,
+		open_record
+	} from '@norbital-ai/ui';
+	import { AppShell, Bound, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { addDays, addMonths } from '../../lib/calculations.js';
-	import { dealView, FX_DEAL_READ, usdOn, watch } from '../../lib/fx.js';
+	import { dealView, FX_DEAL_READ, usdOn, watch, type FxSide } from '../../lib/fx.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 	const day = ctx.clock('day');
@@ -21,7 +31,9 @@
 	);
 	const live = $derived(deals.filter((d) => d.view.state === 'live'));
 	const usd = (n: number | null) =>
-		n === null ? '—' : `USD ${Math.round(n).toLocaleString(ctx.locale)}`;
+		n === null
+			? '—'
+			: format({ kind: 'money' }, String(Math.round(n)), { locale: ctx.locale, currency: 'USD' });
 	/** A fixing's amount in USD at today's rate: amounts printed in the quote currency are units of base at the strike. */
 	const baseUsd = (
 		deal: {
@@ -57,28 +69,33 @@
 		const ko = live
 			.map((d) => d.view.position?.ko_distance_pct ?? null)
 			.filter((x): x is number => x !== null);
+		const closestKo = ko.length === 0 ? null : Math.min(...ko);
 		return [
-			[
-				t('fx.tile.value'),
-				usd(valued.reduce((s, d) => s + (d.view.position?.total_usd ?? 0), 0)),
-				t('fx.tile.value_hint', { live: live.length, valued: valued.length })
-			],
-			[
-				t('fx.tile.needs_rate'),
-				String(needs.length),
-				needs[0] === undefined ? '' : t('fx.tile.oldest', { date: needs[0] })
-			],
-			[
-				t('fx.tile.next_14'),
-				String(soon.length),
-				usd(soon.filter((s) => s.firm).reduce((s, x) => s + x.usd, 0))
-			],
-			[
-				t('fx.tile.closest_ko'),
-				ko.length === 0 ? '—' : `${Math.min(...ko).toFixed(1)}%`,
-				Math.min(...ko) < 3 ? '▲' : ''
-			]
-		] as const;
+			{
+				title: t('fx.tile.value'),
+				value: usd(valued.reduce((s, d) => s + (d.view.position?.total_usd ?? 0), 0)),
+				hint: t('fx.tile.value_hint', { live: live.length, valued: valued.length }),
+				warn: false
+			},
+			{
+				title: t('fx.tile.needs_rate'),
+				value: String(needs.length),
+				hint: needs[0] === undefined ? '' : t('fx.tile.oldest', { date: needs[0] }),
+				warn: false
+			},
+			{
+				title: t('fx.tile.next_14'),
+				value: String(soon.length),
+				hint: usd(soon.filter((s) => s.firm).reduce((s, x) => s + x.usd, 0)),
+				warn: false
+			},
+			{
+				title: t('fx.tile.closest_ko'),
+				value: closestKo === null ? '—' : `${closestKo.toFixed(1)}%`,
+				hint: '',
+				warn: closestKo !== null && closestKo < 3
+			}
+		];
 	});
 	const watching = $derived(
 		live
@@ -114,11 +131,11 @@
 			bank: deal.bank?.code ?? '—',
 			pair: deal.pair,
 			structure: t(`models.fx_deal.fields.structure.${deal.structure}`),
-			side: deal.side ?? '—',
+			side: deal.side,
 			strike: deal.strike,
 			spot: view.spot === null ? null : view.spot.toFixed(4),
 			left: view.open.length,
-			value: view.position?.total_usd == null ? null : view.position.total_usd.toFixed(0)
+			value: view.position?.total_usd == null ? null : view.position.total_usd.toFixed(2)
 		}))
 	);
 	const reference = $derived(
@@ -128,6 +145,14 @@
 			.map((r) => ({ currency: r.currency, per_usd: (1 / Number(r.rate)).toFixed(4) }))
 	);
 </script>
+
+{#snippet sideCell({ value }: { value: FxSide | null | undefined })}
+	{#if value === 'buy' || value === 'sell'}
+		<Badge variant="outline">{t(`models.fx_deal.fields.side.${value}`)}</Badge>
+	{:else}
+		—
+	{/if}
+{/snippet}
 
 <AppShell
 	icon="lucide:layout-dashboard"
@@ -139,70 +164,134 @@
 		{#if read.error}
 			<EmptyState title={t('app.dashboard.error')} hint={String(read.error)} />
 		{:else if read.current === undefined}
-			<EmptyState title={t('app.dashboard.loading')} />
+			<Stack gap="lg" aria-busy="true">
+				<Grid minimum="compact">
+					{#each [0, 1, 2, 3] as i (i)}
+						<div class="rounded-xl border border-border bg-card p-4">
+							<Stack gap="xs">
+								<div
+									class="h-3 animate-pulse rounded bg-muted motion-reduce:animate-none"
+									style="width:55%"
+								></div>
+								<div
+									class="h-6 animate-pulse rounded bg-muted motion-reduce:animate-none"
+									style="width:70%"
+								></div>
+							</Stack>
+						</div>
+					{/each}
+				</Grid>
+				<TableSkeleton />
+			</Stack>
 		{:else if deals.length === 0}
 			<EmptyState title={t('fx.overview.empty')} hint={t('fx.overview.empty_hint')} />
 		{:else}
 			<Stack gap="lg">
 				<Grid minimum="compact">
-					{#each tiles as [title, value, hint] (title)}
+					{#each tiles as tile (tile.title)}
 						<div class="rounded-xl border border-border bg-card p-4">
-							<p class="text-meta">{title}</p>
-							<p class="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-							<p class="text-meta">{hint}</p>
+							<Stack gap="xs">
+								<p class="text-meta">{tile.title}</p>
+								<p class="text-section tabular-nums">{tile.value}</p>
+								{#if tile.warn}
+									<div>
+										<Badge variant="warning">
+											<Inline gap="xs" align="center">
+												<Icon name="lucide:triangle-alert" class="size-3" />
+												<span>{t('fx.tile.ko_near')}</span>
+											</Inline>
+										</Badge>
+									</div>
+								{:else if tile.hint}
+									<p class="text-meta">{tile.hint}</p>
+								{/if}
+							</Stack>
 						</div>
 					{/each}
 				</Grid>
 				{#if watching.length > 0}
 					<Stack gap="sm">
 						{#each watching as w, i (i)}
-							<Alert.Root variant={w.warn ? 'warning' : 'default'}
-								><Alert.Description
-									><button class="text-left" onclick={() => open_record('fx_deal', w.deal)}
-										>{w.warn ? '▲' : 'ℹ'} {w.name}: {t(w.key, w.values)}</button
-									></Alert.Description
-								></Alert.Root
-							>
+							<Alert.Root variant={w.warn ? 'warning' : 'default'}>
+								<Alert.Description>
+									<Inline
+										as="button"
+										type="button"
+										gap="xs"
+										align="center"
+										class="text-left"
+										onclick={() => open_record('fx_deal', w.deal)}
+									>
+										<Icon name={w.warn ? 'lucide:triangle-alert' : 'lucide:info'} class="size-4" />
+										<span>{w.name}: {t(w.key, w.values)}</span>
+									</Inline>
+								</Alert.Description>
+							</Alert.Root>
 						{/each}
 					</Stack>
 				{/if}
-				<Bound size="viewport"
-					><Chart
-						{ctx}
-						of={ladder}
-						x="month"
-						y="usd"
-						kind="bar"
-						title={t('fx.overview.ladder')}
-					/></Bound
-				>
-				<Table
-					{ctx}
-					of={table}
-					controlled
-					embedded
-					columns={[
-						{ field: 'bank', label: t('fx.bank') },
-						{ field: 'pair', label: t('fx.pair') },
-						{ field: 'structure', label: t('fx.structure') },
-						{ field: 'side', label: t('fx.side') },
-						{ field: 'strike', label: t('fx.strike'), kind: { kind: 'decimal', scale: 4 } },
-						{ field: 'spot', label: t('fx.spot'), kind: { kind: 'decimal', scale: 4 } },
-						{ field: 'left', label: t('fx.open_fixings'), kind: { kind: 'int' } },
-						{ field: 'value', label: t('fx.value_today'), kind: { kind: 'decimal', scale: 0 } }
-					]}
-					on_open={(row) => open_record('fx_deal', row.id)}
-				/>
-				<Table
-					{ctx}
-					of={reference}
-					controlled
-					embedded
-					columns={[
-						{ field: 'currency', label: t('fx.currency') },
-						{ field: 'per_usd', label: t('fx.per_usd'), kind: { kind: 'decimal', scale: 4 } }
-					]}
-				/>
+				<div class="rounded-xl border border-border bg-card p-4">
+					<Bound height="20rem">
+						<Chart {ctx} of={ladder} x="month" y="usd" kind="bar" title={t('fx.overview.ladder')} />
+					</Bound>
+				</div>
+				<div class="rounded-xl border border-border bg-card p-4">
+					<Stack gap="sm">
+						<h2 class="text-heading">{t('fx.overview.live_deals')}</h2>
+						<Table
+							{ctx}
+							of={table}
+							controlled
+							embedded
+							columns={[
+								{ field: 'bank', label: t('fx.bank') },
+								{ field: 'pair', label: t('fx.pair') },
+								{ field: 'structure', label: t('fx.structure') },
+								{ field: 'side', label: t('fx.side'), cell: sideCell },
+								{
+									field: 'strike',
+									label: t('fx.strike'),
+									kind: { kind: 'decimal', scale: 4 },
+									align: 'end'
+								},
+								{
+									field: 'spot',
+									label: t('fx.spot'),
+									kind: { kind: 'decimal', scale: 4 },
+									align: 'end'
+								},
+								{
+									field: 'left',
+									label: t('fx.open_fixings'),
+									kind: { kind: 'int' },
+									align: 'end'
+								},
+								{
+									field: 'value',
+									label: t('fx.value_today'),
+									kind: { kind: 'money', currency: 'USD' },
+									align: 'end'
+								}
+							]}
+							on_open={(row) => open_record('fx_deal', row.id)}
+						/>
+					</Stack>
+				</div>
+				{#if reference.length > 0}
+					<div class="rounded-xl border border-border bg-card px-4 py-3">
+						<Cluster gap="md" align="center" justify="between">
+							<span class="text-meta">{t('fx.overview.reference_rates')}</span>
+							<Cluster gap="md" align="center">
+								{#each reference as r (r.currency)}
+									<Inline gap="xs" align="baseline">
+										<span class="text-meta">{r.currency}</span>
+										<span class="text-sm tabular-nums">{r.per_usd}</span>
+									</Inline>
+								{/each}
+							</Cluster>
+						</Cluster>
+					</div>
+				{/if}
 			</Stack>
 		{/if}
 	</Scroll>

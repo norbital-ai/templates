@@ -4,8 +4,8 @@
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal, Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Combobox, CustomView, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
-	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Combobox, CustomView, Label, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
+	import { AppShell, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
 		monthDays,
@@ -200,58 +200,71 @@
 	}
 </script>
 
-{#snippet scope()}
-	<div class="w-44">
+{#snippet scopeControls(prefix: string)}
+	<Inline gap="sm" align="center">
+		<Label for={`${prefix}-group`}>{ctx.t('models.pricing_floors.fields.group_code')}</Label>
 		<Combobox
+			id={`${prefix}-group`}
 			options={groups}
 			value={group}
 			on_change={(value) => (chosenGroup = value)}
 			placeholder={ctx.t('models.pricing_floors.fields.group_code')}
-			aria-label={ctx.t('models.pricing_floors.fields.group_code')}
 		/>
-	</div>
-	<div class="w-18">
+	</Inline>
+	<Inline gap="sm" align="center">
+		<Label for={`${prefix}-currency`}>{ctx.t('models.pricing_floors.fields.currency')}</Label>
 		<Combobox
+			id={`${prefix}-currency`}
 			options={currencies.map((value) => ({ value, label: value }))}
 			value={currency}
 			on_change={(value) => (chosenCurrency = value)}
 			placeholder={ctx.t('models.pricing_floors.fields.currency')}
-			aria-label={ctx.t('models.pricing_floors.fields.currency')}
 		/>
-	</div>
+	</Inline>
+{/snippet}
+
+{#snippet scope()}
+	<Cluster gap="sm" align="center">
+		{@render scopeControls('pricing-history')}
+	</Cluster>
 {/snippet}
 
 {#snippet bookScope()}
-	{@render scope()}
-	{#if rules}
-		<div class="w-44">
-			<Combobox
-				options={(['warn', 'approve', 'refuse'] as const).map((value) => ({
-					value,
-					label: ctx.t(`models.commercial_settings.fields.floor_rule.${value}`)
-				}))}
-				value={rules.floor_rule}
-				disabled={save.pending}
-				on_change={(value) => {
-					if (value) setRule({ floor_rule: value });
+	<Cluster gap="sm" align="center">
+		{@render scopeControls('price-book')}
+		{#if rules}
+			<Inline gap="sm" align="center">
+				<Label for="price-book-floor-rule"
+					>{ctx.t('models.commercial_settings.fields.floor_rule')}</Label
+				>
+				<Combobox
+					id="price-book-floor-rule"
+					options={(['warn', 'approve', 'refuse'] as const).map((value) => ({
+						value,
+						label: ctx.t(`models.commercial_settings.fields.floor_rule.${value}`)
+					}))}
+					value={rules.floor_rule}
+					disabled={save.pending}
+					on_change={(value) => {
+						if (value) setRule({ floor_rule: value });
+					}}
+				/>
+			</Inline>
+		{/if}
+		<Inline gap="sm" align="center">
+			<Label for="price-book-month">{ctx.t('component.price_book_month')}</Label>
+			<TimeInput
+				{ctx}
+				id="price-book-month"
+				of="date"
+				precision="month"
+				value={`${month}-01`}
+				on_change={(date: string | null) => {
+					if (date !== null) chosenMonth = date.slice(0, 7);
 				}}
-				aria-label={ctx.t('models.commercial_settings.fields.floor_rule')}
 			/>
-		</div>
-	{/if}
-	<label class="sr-only" for="price-book-month">{ctx.t('component.price_book_month')}</label>
-	<div class="w-36">
-		<TimeInput
-			{ctx}
-			id="price-book-month"
-			of="date"
-			precision="month"
-			value={`${month}-01`}
-			on_change={(date: string | null) => {
-				if (date !== null) chosenMonth = date.slice(0, 7);
-			}}
-		/>
-	</div>
+		</Inline>
+	</Cluster>
 {/snippet}
 
 {#snippet bookState()}
@@ -314,7 +327,7 @@
 											day === today && 'text-foreground'
 										]}
 									>
-										<span class="block text-[10px] font-normal text-muted-foreground"
+										<span class="block text-tiny text-muted-foreground"
 											>{new Intl.DateTimeFormat(ctx.locale, {
 												weekday: 'narrow',
 												timeZone: 'UTC'
@@ -425,8 +438,12 @@
 
 {#snippet freight()}
 	{#if rules}
-		<div class="w-56">
+		<Inline gap="sm" align="center">
+			<Label for="commission-freight"
+				>{ctx.t('models.commercial_settings.fields.freight_treatment')}</Label
+			>
 			<Combobox
+				id="commission-freight"
 				options={(['deduct', 'include'] as const).map((value) => ({
 					value,
 					label: ctx.t(`models.commercial_settings.fields.freight_treatment.${value}`)
@@ -435,9 +452,8 @@
 				on_change={(value) => {
 					if (value) setRule({ freight_treatment: value });
 				}}
-				aria-label={ctx.t('models.commercial_settings.fields.freight_treatment')}
 			/>
-		</div>
+		</Inline>
 	{/if}
 {/snippet}
 {#snippet commissionRules()}
@@ -460,7 +476,6 @@
 	variant="full"
 >
 	<Tabs
-		class="[&_[data-view-controls]]:contents"
 		tabs={[
 			{
 				name: 'book',

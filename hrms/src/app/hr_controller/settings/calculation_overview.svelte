@@ -118,7 +118,7 @@
 {#snippet line(family: LawRowTarget['family'], row: JsonObject, sign: string, tag: string)}
 	<div class="flex items-start gap-2 rounded border px-2 py-2">
 		<span
-			class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-[11px] {sign ===
+			class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-xs {sign ===
 			'−'
 				? 'border-destructive/30 bg-destructive/10 text-destructive'
 				: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
@@ -131,10 +131,10 @@
 		>
 			<span class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
 				<span class="min-w-0 text-xs">{textOf(row.description) || row.code}</span>
-				<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">{tag}</span>
+				<span class="ml-auto shrink-0 text-micro text-muted-foreground">{tag}</span>
 			</span>
 			{#if textOf(row.description) !== ''}
-				<span class="mt-0.5 block font-mono text-[11px] leading-snug text-muted-foreground">
+				<span class="mt-0.5 block font-mono text-xs leading-snug text-muted-foreground">
 					{row.code}
 				</span>
 			{/if}
@@ -154,7 +154,7 @@
 					>
 					{#if eligibilityOf(row) !== ''}
 						<pre
-							class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+							class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-xs leading-snug"><code
 								>{eligibilityOf(row)}</code
 							></pre>
 					{:else}
@@ -164,7 +164,7 @@
 				<div class="space-y-1">
 					<span class="text-xs font-medium text-muted-foreground">{ctx.t('overview.amount')}</span>
 					<pre
-						class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+						class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-xs leading-snug"><code
 							>{amountOf(row, family)}</code
 						></pre>
 				</div>
@@ -218,10 +218,9 @@
 								<p>{guide(node.code)}</p>
 							</Popover.Content>
 						</Popover.Root>
-						<span class="shrink-0 text-[10px] text-muted-foreground"
-							>{nodeDirection(node.code)}</span
+						<span class="shrink-0 text-micro text-muted-foreground">{nodeDirection(node.code)}</span
 						>
-						<span class="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+						<span class="shrink-0 text-micro tabular-nums text-muted-foreground">
 							{(producers.get(node.code) ?? []).length + (statutories.get(node.code) ?? []).length}
 						</span>
 						<Button

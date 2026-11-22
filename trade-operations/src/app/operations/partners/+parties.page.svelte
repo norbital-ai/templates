@@ -9,7 +9,6 @@
 	description={ctx.t('app.partners.description')}
 	icon="lucide:building-2"
 	title={ctx.t('component.partners')}
-	variant="full"
 >
 	<Table
 		{ctx}

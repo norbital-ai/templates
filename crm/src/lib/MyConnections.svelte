@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { IntegrationSetup, type PageContext } from '@norbital-ai/bolt/page';
 	import { Button, Icon, use_act } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 	/** The personal definitions the sales policy admits: a member's own accounts, synced, never sending. */
@@ -54,9 +54,9 @@
 		);
 </script>
 
-<Stack gap="md" class="py-3" data-my-connections>
+<Stack gap="md" data-my-connections>
 	<p class="text-sm text-muted-foreground">{t('connections.help')}</p>
-	<div class="flex flex-wrap gap-2">
+	<Cluster gap="sm">
 		{#each PERSONAL as kind (kind)}
 			<Button
 				variant="outline"
@@ -66,33 +66,43 @@
 				{t(`connections.kind.${kind}`)}</Button
 			>
 		{/each}
-	</div>
+	</Cluster>
 	{#if accounts?.error}<p role="alert" class="text-sm text-destructive">
 			{accounts.error.message}
 		</p>{/if}
 	{#each mine as account (account.id)}
-		<section class="rounded-lg border p-4" aria-label={account.name}>
-			<h3 class="mb-2 text-sm font-medium">{account.name}</h3>
+		<Stack
+			as="section"
+			gap="sm"
+			class="rounded-lg border border-border bg-card p-4"
+			aria-label={account.name}
+		>
+			<h3 class="text-heading">{account.name}</h3>
 			<IntegrationSetup client={ctx.integration(account.id)} />
-		</section>
+		</Stack>
 	{/each}
 
-	<h3 class="text-sm font-medium">{t('connections.shared')}</h3>
+	<h3 class="text-heading">{t('connections.shared')}</h3>
 	<p class="text-sm text-muted-foreground">{t('connections.shared_help')}</p>
 	{#if admin}
-		<div class="flex flex-wrap gap-2">
+		<Cluster gap="sm">
 			{#each SHARED as kind (kind)}
 				<Button variant="outline" onclick={() => connect(kind, null)}
 					><Icon name={ICONS[kind]} class="size-4" />{t('connections.add')}
 					{t(`connections.kind.${kind}`)}</Button
 				>
 			{/each}
-		</div>
+		</Cluster>
 	{/if}
 	{#each shared as account (account.id)}
-		<section class="rounded-lg border p-4" aria-label={account.name}>
-			<h3 class="mb-2 text-sm font-medium">{account.name}</h3>
+		<Stack
+			as="section"
+			gap="sm"
+			class="rounded-lg border border-border bg-card p-4"
+			aria-label={account.name}
+		>
+			<h3 class="text-heading">{account.name}</h3>
 			<IntegrationSetup client={ctx.integration(account.id)} />
-		</section>
+		</Stack>
 	{/each}
 </Stack>

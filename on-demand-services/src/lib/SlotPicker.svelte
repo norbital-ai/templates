@@ -85,7 +85,7 @@
 
 <Stack gap="lg">
 	<Stack gap="sm">
-		<p class="text-sm font-semibold">{month}</p>
+		<p class="text-label">{month}</p>
 		<!-- the available days as one swipeable strip: each day says how many starts it has; a day nobody can take is greyed -->
 		<Scroll name="slot-days" axis="x" gap="xs" class="pb-1">
 			{#each days as d (d.day)}
@@ -129,7 +129,7 @@
 	</Stack>
 
 	<Stack gap="md">
-		<p class="text-sm font-semibold">
+		<p class="text-label">
 			{new Intl.DateTimeFormat(locale, {
 				weekday: 'long',
 				day: 'numeric',
@@ -151,7 +151,7 @@
 							class="min-h-14 rounded-lg border bg-background px-2 py-1.5 text-center tabular-nums transition-colors hover:border-primary/60 hover:bg-muted aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 						>
 							<Stack as="span" gap="none" align="center">
-								<span class="text-sm font-semibold">{clock.format(new Date(s))}</span>
+								<span class="text-sm font-medium">{clock.format(new Date(s))}</span>
 								<span class="text-xs opacity-70"
 									>– {clock.format(
 										DateTime.toEpochMillis(DateTime.add(DateTime.makeUnsafe(s), { minutes }))
@@ -172,7 +172,7 @@
 			role="status"
 		>
 			<p class="text-caption">{t('app.portal.your_visit')}</p>
-			<p class="text-sm font-semibold">{span}</p>
+			<p class="text-label">{span}</p>
 		</Stack>
 	{/if}
 </Stack>

@@ -13,8 +13,8 @@ const AHEAD = 14;
 export default automation({
 	description:
 		'Publishes, for each active service and each of the next two weeks, the start times at which a helper with its skill is free — the times the booking portal offers.',
-	// also scheduled by the bookings, visits, helper_time_off and helpers effects
-	on: [{ cron: '*/15 * * * *' }],
+	// also scheduled by the bookings, visits, helper_time_off and helpers effects; rests a day after an idle slot so quiet workspaces sleep
+	on: [{ cron: '*/15 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {

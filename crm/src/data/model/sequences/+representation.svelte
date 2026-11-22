@@ -97,10 +97,10 @@
 			{:else}
 				{#each steps as step, index (index)}
 					<Stack gap="xs">
-						<strong
+						<span class="font-medium text-foreground"
 							>{t(step.channel === 'call' ? 'sequences.step_call' : 'sequences.step_email', {
 								day: step.day_offset
-							})}</strong
+							})}</span
 						>
 						{#if step.subject}<p class="text-sm font-medium">{step.subject}</p>{/if}
 						<ReadonlyMarkdown value={step.body} />

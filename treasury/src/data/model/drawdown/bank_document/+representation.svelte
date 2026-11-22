@@ -8,6 +8,7 @@
 		Alert,
 		Button,
 		Form,
+		Icon,
 		RecordShell,
 		RunsFor,
 		Spinner,
@@ -15,7 +16,7 @@
 		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Scroll, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { adviceChecks } from '../../../../lib/treasury.js';
 	let { view, ctx }: { view: RecordView<'bank_document'>; ctx: PageContext } = $props();
 	const t = ctx.t;
@@ -104,7 +105,12 @@
 		{#if checks.length === 0}<p class="text-meta">{t('app.advices.no_checks')}</p>{/if}
 		{#each checks as c (c.key)}
 			<Alert.Root variant={c.ok ? 'default' : 'warning'}>
-				<Alert.Description>{c.ok ? '✓' : '▲'} {t(c.key, c.values)}</Alert.Description>
+				<Alert.Description>
+					<Inline gap="xs" align="center">
+						<Icon name={c.ok ? 'lucide:check' : 'lucide:triangle-alert'} class="size-4" />
+						<span>{t(c.key, c.values)}</span>
+					</Inline>
+				</Alert.Description>
 			</Alert.Root>
 		{/each}
 	</Stack>

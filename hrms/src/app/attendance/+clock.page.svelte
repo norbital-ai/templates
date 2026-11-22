@@ -835,7 +835,7 @@
 	>
 		<Inline gap="sm">
 			<Inline justify="center" class="size-10 overflow-clip rounded-lg border bg-background">
-				<span class="text-sm font-semibold">{organizationInitials}</span>
+				<span class="text-sm font-medium">{organizationInitials}</span>
 			</Inline>
 			<div class="min-w-0">
 				<p class="truncate text-heading">{organizationDisplayName}</p>

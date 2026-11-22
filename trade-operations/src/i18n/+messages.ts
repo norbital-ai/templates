@@ -676,6 +676,7 @@ export default messages({
 	'reports.sales.margin_rate': 'Margin %',
 	'reports.aging.owed': 'Owed',
 	'reports.aging.in_credit': 'In credit',
+	'reports.aging.overdue': 'Overdue',
 	'reports.aging.oldest_overdue': 'Oldest overdue (days)',
 	'reports.aging.days_overdue': 'Days overdue',
 	'reports.commission.basis_quantity': 'Basis quantity',
