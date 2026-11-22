@@ -21,7 +21,7 @@ const Answer = Schema.Struct({
  */
 export default automation({
 	description: 'Fetch the official daily exchange rates.',
-	on: [{ cron: '30 13 * * 1-5' }],
+	on: [{ cron: '30 13 * * 1-5', rest: '7d' }],
 	policies: ['fx_rates'],
 	run: function* (_input, ctx) {
 		const { sys_integration } = yield* ctx.query({

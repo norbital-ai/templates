@@ -256,8 +256,12 @@
 			columns={[
 				{ field: 'stage', label: t('app.line.stage') },
 				{ field: 'charge_type', label: t('app.line.charge') },
-				{ field: 'currency', label: t('app.line.currency') },
-				{ field: 'amount', label: t('app.line.amount'), kind: { kind: 'decimal', scale: 2 } },
+				{
+					field: 'amount',
+					label: t('app.line.amount'),
+					kind: { kind: 'money', currency: 'currency' },
+					align: 'end'
+				},
 				{ field: 'basis', label: t('app.line.basis') }
 			]}
 		/>
@@ -318,8 +322,12 @@
 		columns={[
 			{ field: 'po_number', label: t('app.line.po') },
 			{ field: 'po_date', label: t('app.line.po_date'), kind: { kind: 'date' } },
-			{ field: 'currency', label: t('app.line.currency') },
-			{ field: 'amount', label: t('app.line.amount'), kind: { kind: 'decimal', scale: 2 } }
+			{
+				field: 'amount',
+				label: t('app.line.amount'),
+				kind: { kind: 'money', currency: 'currency' },
+				align: 'end'
+			}
 		]}
 	/>
 {/snippet}

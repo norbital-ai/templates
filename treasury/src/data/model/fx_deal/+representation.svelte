@@ -320,8 +320,8 @@
 			controlled
 			embedded
 			columns={[
-				{ field: 'rate', label: t('fx.rate') },
-				{ field: 'vs_today', label: t('fx.vs_today') },
+				{ field: 'rate', label: t('fx.rate'), align: 'end' },
+				{ field: 'vs_today', label: t('fx.vs_today'), align: 'end' },
 				{ field: 'usd', label: t('fx.usd_result'), kind: { kind: 'decimal', scale: 0 } },
 				{ field: 'settle', label: t('fx.settle') },
 				{ field: 'what', label: t('fx.what_happens') }

@@ -12,7 +12,7 @@ import { DateTime } from 'effect';
 export default automation({
 	description:
 		'Plans each qualified lead’s next follow-up on its cadence, and reminds follow-up owners by direct message the day before, on the due day and when overdue, escalating after three days.',
-	on: [{ cron: '0 9 * * *' }],
+	on: [{ cron: '0 9 * * *', rest: '7d' }],
 	policies: ['hq_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {

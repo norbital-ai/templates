@@ -87,7 +87,7 @@ export default automation({
 	description:
 		'Once a day: prices the book and its benchmarks, files each line’s P&L, researches the market and the largest lines in its browser, writes the day’s report with every claim cited (a section per line with cited news), and sends its record view as a PDF to every subscriber through the accounts an envoy is deployed on.',
 	input: { send: { kind: 'bool', optional: true, default: true } },
-	on: [{ cron: '0 8 * * *' }],
+	on: [{ cron: '0 8 * * *', rest: '7d' }],
 	policies: ['portfolio_automation'],
 	run: function* (input, ctx) {
 		const log: string[] = [];

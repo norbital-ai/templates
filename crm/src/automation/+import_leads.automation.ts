@@ -28,7 +28,7 @@ const APOLLO_PAGES = 5;
 export default automation({
 	description:
 		'Imports leads from a CSV upload or Apollo, deduplicated by company domain and PIC email.',
-	on: [{ cron: '0 7 * * *' }],
+	on: [{ cron: '0 7 * * *', rest: '7d' }],
 	input: {
 		file: {
 			kind: 'file',

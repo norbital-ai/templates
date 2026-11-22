@@ -3,7 +3,7 @@ import { automation } from '@norbital-ai/bolt';
 export default automation({
 	description:
 		'Publishes a 06:00 Singapore morning site-control digest of open critical/high issues, blocked or overdue tasks, pending variation orders, and draft/submitted payment claims.',
-	on: [{ cron: '0 6 * * *', tz: 'Asia/Singapore' }],
+	on: [{ cron: '0 6 * * *', tz: 'Asia/Singapore', rest: '7d' }],
 	policies: ['construction_automation'],
 	output: {
 		kind: 'object',
