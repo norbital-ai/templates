@@ -102,6 +102,27 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				expect(yield* commissionOf(actor, {})).toMatchObject([
 					{ order: personal.order, amount: decimalText('2.10') }
 				]);
+				// Logistics filters orders by archived=false (Orders & Dashboard pages) and resolves owner names
+				const activeLogisticsOrders = (yield* logistics.query({
+					orders: {
+						output: 'logistics',
+						where: { archived: { eq: false }, id: { eq: foreign.order } },
+						limit: 1
+					}
+				})).orders.rows;
+				expect(activeLogisticsOrders).toHaveLength(1);
+				expect(activeLogisticsOrders[0]?.archived).toBe(false);
+				const salesUser = t.member(['sales'], { teams: ['sales'] });
+				const salesUserId = fixtureId('sys_user', salesUser.id);
+				const manager = yield* t.as(t.member(['manager'], { teams: ['commercial_managers'] }));
+				const managerUsers = (yield* manager.query({
+					sys_user: { where: { id: { eq: salesUserId } }, fields: ['name'] }
+				})).sys_user.rows;
+				expect(managerUsers.map((u) => u.id)).toEqual([salesUserId]);
+				const logisticsUsers = (yield* logistics.query({
+					sys_user: { where: { id: { eq: salesUserId } }, fields: ['name'] }
+				})).sys_user.rows;
+				expect(logisticsUsers.map((u) => u.id)).toEqual([salesUserId]);
 			})
 	);
 });

@@ -5,7 +5,7 @@ import { commissionRule } from '../../../lib/commission-expressions.js';
 import { kingdeeWriteTarget } from '../../../integration/kingdee/configuration.js';
 import { model, type Id, type Row, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
-import { floorFor, quoteBelowFloor } from '../../../lib/commercial.js';
+import { floorFor, floorNetInUnit, quoteBelowFloor } from '../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -304,6 +304,7 @@ export default model('orders', {
 		},
 		filled: { fields: ['status', 'ledger'], lines: { fields: ['unit_price', 'tax_rate'] } },
 		transform: function* (changes, ctx) {
+			if (ctx.approving) return changes.map(({ set }) => set);
 			// the Kingdee read brings an SO created there in as it stands
 			if (ctx.actor.kind === 'system' && 'sync' in ctx.actor.by)
 				return changes.map(({ set }) => set);
@@ -401,6 +402,7 @@ export default model('orders', {
 			fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate', 'print_values']
 		},
 		transform: function* (changes, ctx) {
+			if (ctx.approving) return changes.map(({ set }) => set);
 			// the Kingdee read writes what the SO holds
 			if (ctx.actor.kind === 'system' && 'sync' in ctx.actor.by)
 				return changes.map(({ set }) => set);
@@ -591,10 +593,11 @@ export default model('orders', {
 					old.direction === 'sales' &&
 					own.some((l) => {
 						const floor = floorFor(old, warehouse?.group_code, l, floors.rows);
+						const floorNet = floor ? floorNetInUnit(floor, l.unit) : null;
 						return (
 							!floor ||
-							floor.unit !== l.unit ||
-							quoteBelowFloor({ ...l, floor_net: floor.floor_net }, old.tax_inclusive)
+							floorNet === null ||
+							quoteBelowFloor({ ...l, floor_net: floorNet }, old.tax_inclusive)
 						);
 					})
 				)

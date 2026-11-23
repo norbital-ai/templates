@@ -10,7 +10,7 @@ import type {
 	UpdateInput,
 	WorkspaceQuery
 } from '@norbital-ai/bolt';
-import { floorFor, quoteBelowFloor } from './commercial.js';
+import { floorFor, floorNetInUnit, quoteBelowFloor } from './commercial.js';
 type Scope = Pick<Row<'orders'>, 'direction' | 'owner'>;
 /** The writer's member id; a system or visitor writer owns no order. */
 export const memberOf = (ctx: Pick<Clock, 'actor'>) =>
@@ -77,7 +77,7 @@ export const floorReview = Effect.fnUntraced(function* (
 		warehouses
 	} = yield* ctx.query({
 		commercial_settings: { where: { code: { eq: 'default' } }, fields: ['floor_rule'], limit: 1 },
-		products: { where: { id: { in: products } }, fields: ['unit_price', 'tax_rate'] },
+		products: { where: { id: { in: products } }, fields: ['unit', 'unit_price', 'tax_rate'] },
 		pricing_floors: { where: { product: { in: products } } },
 		warehouses: {
 			where: { id: { in: sales.flatMap((line) => line.order.warehouse ?? []) } },
@@ -89,21 +89,25 @@ export const floorReview = Effect.fnUntraced(function* (
 		const product = catalog.rows.find((p) => p.id === line.product);
 		const unit_price = line.unit_price ?? product?.unit_price;
 		const tax_rate = line.tax_rate ?? product?.tax_rate;
+		const lineUnit = product?.unit;
 		if (line.quantity == null || unit_price == null || tax_rate == null) return false;
 		const floor = floorFor(
 			line.order,
 			warehouses.rows.find((w) => w.id === line.order.warehouse)?.group_code,
-			{ product: line.product, quantity: line.quantity },
+			{ product: line.product, quantity: line.quantity, ...(lineUnit ? { unit: lineUnit } : {}) },
 			floors.rows
 		);
+		const floor_net =
+			floor && lineUnit ? floorNetInUnit(floor, lineUnit) : (floor?.floor_net ?? null);
 		return (
 			!floor ||
+			floor_net === null ||
 			quoteBelowFloor(
 				{
 					unit_price,
 					discount_pct: String(line.discount_pct ?? '0'),
 					tax_rate,
-					floor_net: floor.floor_net
+					floor_net
 				},
 				line.order.tax_inclusive
 			)

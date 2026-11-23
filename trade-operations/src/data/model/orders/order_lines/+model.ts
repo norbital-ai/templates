@@ -1,7 +1,13 @@
 import { logisticsLine } from '../../../../lib/logistics.js';
 import { type Id, model, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { BigDecimal, Effect } from 'effect';
-import { floorFor, price, numeric, quoteBelowFloor } from '../../../../lib/commercial.js';
+import {
+	floorFor,
+	floorNetInUnit,
+	price,
+	numeric,
+	quoteBelowFloor
+} from '../../../../lib/commercial.js';
 import {
 	printValueKind,
 	orderedPrintValues,
@@ -154,11 +160,11 @@ const priced = Effect.fnUntraced(function* (
 		const floor = floorFor(
 			order,
 			warehouses.rows.find((v) => v.id === order.warehouse)?.group_code,
-			{ product: product.id, quantity },
+			{ product: product.id, quantity, unit },
 			floors.rows
 		);
-		if (floor && floor.unit !== unit) return yield* ctx.refuse('errors.unit_mismatch');
-		const floor_net = floor ? floor.floor_net : null;
+		const floor_net = floor ? floorNetInUnit(floor, unit) : null;
+		if (floor && floor_net === null) return yield* ctx.refuse('errors.unit_mismatch');
 		if (
 			refuseBelow &&
 			order.direction === 'sales' &&
@@ -324,6 +330,7 @@ export default model('order_lines', {
 		],
 		filled: { fields: ['unit_price', 'tax_rate', ...derived] },
 		transform: function* (changes, ctx) {
+			if (ctx.approving) return changes.map(({ set }) => set);
 			const derived = yield* priced(
 				ctx,
 				changes.map(({ after: row }) => ({
@@ -344,6 +351,7 @@ export default model('order_lines', {
 	update: {
 		fields: ['product', ...cells, 'print_values', 'source_entry_id', ...derived],
 		transform: function* (changes, ctx) {
+			if (ctx.approving) return changes.map(({ set }) => set);
 			if (
 				changes.some(
 					({ before, set }) => set.product !== undefined && set.product !== before.product

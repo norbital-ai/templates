@@ -66,11 +66,11 @@
 		);
 	}
 	const blocks = [
-		['conversions', 'settings_form.conversions'],
-		['ledger', 'settings_form.ledger'],
-		['work_regions', 'settings_form.work_regions'],
-		['employee_statutory_parameters', 'settings_form.employee_schema'],
-		['entity_statutory_parameters', 'settings_form.entity_schema']
+		['conversions', 'settings_form.conversions', 'lucide:arrow-left-right'],
+		['ledger', 'settings_form.ledger', 'lucide:book-open'],
+		['work_regions', 'settings_form.work_regions', 'lucide:map-pin'],
+		['employee_statutory_parameters', 'settings_form.employee_schema', 'lucide:user-cog'],
+		['entity_statutory_parameters', 'settings_form.entity_schema', 'lucide:building-2']
 	] as const;
 	type Family = (typeof blocks)[number][0] | 'lookup';
 	const CALENDAR = ['name', 'currency', 'timezone', 'tax_year_start_month'] as const;
@@ -128,14 +128,19 @@
 			on_reset={reset}
 		>
 			<Stack gap="sm">
-				<Section first name="settings_calendar" title={ctx.t('settings_form.calendar')}>
+				<Section
+					first
+					name="settings_calendar"
+					icon="lucide:calendar-days"
+					title={ctx.t('settings_form.calendar')}
+				>
 					<Grid minimum="card"
 						>{#each CALENDAR as name (name)}<Field {ctx} {name} />{/each}</Grid
 					>
 				</Section>
 				{#if law}
-					{#each blocks as [family, title] (family)}
-						<Section name="settings_{family}" title={ctx.t(title)} default_open={false}>
+					{#each blocks as [family, title, icon] (family)}
+						<Section name="settings_{family}" {icon} title={ctx.t(title)} default_open={false}>
 							<LawBlock {ctx} {law} {family} bind:draft={drafts[family]} />
 						</Section>
 					{/each}

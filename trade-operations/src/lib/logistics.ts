@@ -7,6 +7,7 @@ export const logisticsOrder = [
 	'owner',
 	'warehouse',
 	'status',
+	'archived',
 	'ordered_on',
 	'party_name',
 	'kingdee'

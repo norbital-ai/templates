@@ -97,7 +97,11 @@
 
 <Stack gap="sm">
 	{#each groups as { group, code, single } (group)}
-		<Section name="lookup_{group}" title={ctx.t(`settings_lookup.${group}`)}>
+		<Section
+			name="lookup_{group}"
+			icon="lucide:sliders-horizontal"
+			title={ctx.t(`settings_lookup.${group}`)}
+		>
 			<Stack gap="md">
 				{#if single.length > 0}<StructuredData
 						{ctx}
@@ -131,7 +135,13 @@
 		</Section>
 	{/each}
 	{#each tables as [key, table] (key)}
-		<Section name="lookup_{key}" title={title(key)} summary={size(table)} default_open={false}>
+		<Section
+			name="lookup_{key}"
+			icon="lucide:table-2"
+			title={title(key)}
+			summary={size(table)}
+			default_open={false}
+		>
 			<StructuredData
 				{ctx}
 				name={key}

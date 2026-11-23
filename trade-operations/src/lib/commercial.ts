@@ -205,33 +205,67 @@ export function contract(template: string, seal: Terms, reference: string) {
 		(_, key: keyof typeof values) => values[key]
 	);
 }
+const KILOGRAMS = new Set(['kg', 'kgs', '公斤', '千克']);
+const TONNES = new Set(['t', 'mt', 'tonne', 'tonnes', '吨', '公吨']);
+
+/** How many `to` units equal one `from` unit (exact SI mass conversion), or `null` when incompatible. */
+export function unitRatio(from: string, to: string): BigDecimal.BigDecimal | null {
+	const a = from.trim().toLowerCase();
+	const b = to.trim().toLowerCase();
+	if (a === b) return BigDecimal.fromBigInt(1n);
+	if (KILOGRAMS.has(a) && KILOGRAMS.has(b)) return BigDecimal.fromBigInt(1n);
+	if (TONNES.has(a) && TONNES.has(b)) return BigDecimal.fromBigInt(1n);
+	if (TONNES.has(a) && KILOGRAMS.has(b)) return BigDecimal.fromBigInt(1000n);
+	if (KILOGRAMS.has(a) && TONNES.has(b)) return BigDecimal.make(1n, 3);
+	return null;
+}
+
+/** Converts a floor's net unit price (priced per `floor.unit`) into `lineUnit` (scale 8), or `null` when incompatible. */
+export function floorNetInUnit(
+	floor: Pick<Floor, 'unit' | 'floor_net'>,
+	lineUnit: string
+): string | null {
+	if (floor.floor_net === null) return null;
+	const ratio = unitRatio(floor.unit, lineUnit);
+	if (ratio === null) return null;
+	if (BigDecimal.equals(ratio, BigDecimal.fromBigInt(1n))) return floor.floor_net;
+	const converted = BigDecimal.divideUnsafe(BigDecimal.fromStringUnsafe(floor.floor_net), ratio);
+	return BigDecimal.format(BigDecimal.round(converted, { scale: 8 }));
+}
+
 type Floor = Pick<
 	Row<'pricing_floors'>,
 	'product' | 'currency' | 'group_code' | 'effective_on' | 'minimum_quantity' | 'unit' | 'floor_net'
 >;
 /**
  * The floor a sales line is priced against: the newest row on or before the order date, in the order's currency and
- * warehouse region, whose quantity band the line meets. Its unit must be the line's; a purchase has none.
+ * warehouse region, whose quantity band the line meets (converting compatible mass units such as 吨 ↔ KG). A purchase has none.
  */
 export function floorFor<F extends Floor>(
 	order: Pick<Row<'orders'>, 'direction' | 'currency' | 'ordered_on'>,
 	group: string | null | undefined,
-	line: { readonly product: string; readonly quantity: string },
+	line: { readonly product: string; readonly quantity: string; readonly unit?: string },
 	floors: readonly F[]
 ): F | undefined {
 	if (order.direction !== 'sales' || group == null) return undefined;
 	return floors
-		.filter(
-			(f) =>
-				f.product === line.product &&
-				f.currency === order.currency &&
-				f.group_code === group &&
-				f.effective_on <= order.ordered_on &&
-				BigDecimal.isLessThanOrEqualTo(
-					BigDecimal.fromStringUnsafe(f.minimum_quantity),
-					BigDecimal.fromStringUnsafe(line.quantity)
-				)
-		)
+		.filter((f) => {
+			if (
+				f.product !== line.product ||
+				f.currency !== order.currency ||
+				f.group_code !== group ||
+				f.effective_on > order.ordered_on
+			)
+				return false;
+			const rawQty = BigDecimal.fromStringUnsafe(line.quantity);
+			const ratio = line.unit ? unitRatio(line.unit, f.unit) : BigDecimal.fromBigInt(1n);
+			// Incompatible units keep raw comparison so the caller surfaces `errors.unit_mismatch`.
+			const comparableQty = ratio === null ? rawQty : BigDecimal.multiply(rawQty, ratio);
+			return BigDecimal.isLessThanOrEqualTo(
+				BigDecimal.fromStringUnsafe(f.minimum_quantity),
+				comparableQty
+			);
+		})
 		.sort(
 			(a, b) =>
 				b.effective_on.localeCompare(a.effective_on) ||

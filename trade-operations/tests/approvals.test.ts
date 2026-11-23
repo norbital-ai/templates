@@ -143,4 +143,128 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 				yield* rule('warn');
 			})
 	);
+
+	test.effect(
+		'converts tonne pricing floors to kg products and lets a commercial manager approve a held order create',
+		() =>
+			Effect.gen(function* () {
+				const { t, seller, sales, manager } = yield* people;
+				const admin = yield* t.as(t.admin);
+				const west = fixtureId('warehouses', '019b76dc-6d20-7000-9891-d6e4d7d9cd57');
+				const rule = (floor_rule: 'warn' | 'approve') =>
+					Effect.gen(function* () {
+						committed(
+							'commercial_settings',
+							yield* admin.act({
+								'commercial_settings.update': [
+									{ target: yield* t.at('commercial_settings', SETTINGS), set: { floor_rule } }
+								]
+							})
+						);
+					});
+				// 22,000 CNY/吨 tax-exclusive floor -> 22.00 CNY/kg for kg product
+				committed(
+					'pricing_floors',
+					yield* admin.act({
+						'pricing_floors.create': [
+							{
+								product: PRODUCT,
+								currency: 'CNY',
+								group_code: 'WEST',
+								effective_on: '2026-10-01',
+								minimum_quantity: '0',
+								unit: '吨',
+								floor_price: '22000',
+								tax_inclusive: false
+							}
+						]
+					})
+				);
+				yield* rule('approve');
+				// Above floor (25 CNY/kg > 22 CNY/kg) saves directly without approval
+				const aboveId = committed(
+					'orders',
+					yield* sales.act({
+						'orders.create': [
+							{
+								title: 'Above tonne floor',
+								direction: 'sales',
+								party: CUSTOMER,
+								owner: fixtureId('sys_user', seller.id),
+								warehouse: west,
+								currency: 'CNY',
+								tax_inclusive: false,
+								payment_terms: NET30,
+								lines: [{ product: PRODUCT, quantity: '4000', unit_price: '25', tax_rate: '13' }]
+							}
+						]
+					})
+				);
+				expect(aboveId).toBeTruthy();
+				// Below floor (20 CNY/kg < 22 CNY/kg) holds on create and manager approval succeeds
+				const createRequest = held(
+					yield* sales.act({
+						'orders.create': [
+							{
+								title: 'Below tonne floor create',
+								direction: 'sales',
+								party: CUSTOMER,
+								owner: fixtureId('sys_user', seller.id),
+								warehouse: west,
+								currency: 'CNY',
+								tax_inclusive: false,
+								payment_terms: NET30,
+								lines: [{ product: PRODUCT, quantity: '4000', unit_price: '20', tax_rate: '13' }]
+							}
+						]
+					})
+				);
+				yield* manager.approvals.decide(createRequest, { decision: 'approve' });
+				const approvedOrder = (yield* sales.query({
+					orders: { where: { title: { eq: 'Below tonne floor create' } }, fields: ['id', 'status'] }
+				})).orders.rows[0];
+				expect(approvedOrder?.status).toBe('draft');
+				expect(approvedOrder?.$approval).toBeUndefined();
+
+				// Incompatible floor unit (box vs kg) still refuses with errors.unit_mismatch
+				committed(
+					'pricing_floors',
+					yield* admin.act({
+						'pricing_floors.create': [
+							{
+								product: PRODUCT,
+								currency: 'EUR',
+								group_code: 'WEST',
+								effective_on: '2026-10-01',
+								minimum_quantity: '0',
+								unit: 'box',
+								floor_price: '100',
+								tax_inclusive: false
+							}
+						]
+					})
+				);
+				expect(
+					yield* Effect.flip(
+						sales.act({
+							'orders.create': [
+								{
+									title: 'Incompatible unit floor',
+									direction: 'sales',
+									party: CUSTOMER,
+									owner: fixtureId('sys_user', seller.id),
+									warehouse: west,
+									currency: 'EUR',
+									tax_inclusive: false,
+									payment_terms: NET30,
+									lines: [{ product: PRODUCT, quantity: '10', unit_price: '120', tax_rate: '0' }]
+								}
+							]
+						})
+					)
+				).toMatchObject({ _tag: 'ActRefused', key: 'errors.unit_mismatch' });
+
+				yield* rule('warn');
+			})
+	);
 });

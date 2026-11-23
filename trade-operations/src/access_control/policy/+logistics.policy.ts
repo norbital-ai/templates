@@ -3,6 +3,9 @@ export default policy({
 	description: 'Logistics records delivery and receipt quantities without commercial prices.',
 	capabilities: { apps: ['operations'] },
 	grants: {
+		sys_user: {
+			outputs: { default: {} }
+		},
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},

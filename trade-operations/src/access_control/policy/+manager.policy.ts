@@ -4,8 +4,8 @@ export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
 	capabilities: { apps: ['operations'] },
 	grants: {
-		// the Logistics staff an order's logistics handler names
-		sys_user: { outputs: { default: { where: { team: { eq: 'logistics' } } } } },
+		// order owners, commission salespeople and logistics handlers
+		sys_user: { outputs: { default: {} } },
 		source_lot_costs: {
 			outputs: { default: {} }
 		},

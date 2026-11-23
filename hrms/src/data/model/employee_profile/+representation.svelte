@@ -7,7 +7,6 @@
 	import { Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
 	import {
-		DescriptionHint,
 		EmptyState,
 		Form,
 		Field,
@@ -114,7 +113,12 @@
 		}}
 		>{#snippet children()}
 			<Stack gap="md">
-				<Section name="person_contact" title={t('person.section_contact')} first>
+				<Section
+					name="person_contact"
+					icon="lucide:user-round"
+					title={t('person.section_contact')}
+					first
+				>
 					<Stack gap="md">
 						{#if record}{@render face()}{/if}
 						<Columns count={2}>
@@ -125,7 +129,11 @@
 						</Columns>
 					</Stack>
 				</Section>
-				<Section name="person_particulars" title={t('person.section_particulars')}>
+				<Section
+					name="person_particulars"
+					icon="lucide:id-card"
+					title={t('person.section_particulars')}
+				>
 					<Columns count={2}>
 						{#each ['date_of_birth', 'identity_number', 'gender', 'birth_city', 'bank', 'cumulative_service'] as name (name)}<Field
 								{ctx}
@@ -136,12 +144,13 @@
 				{#if record}
 					<Section
 						name="person_statutory"
+						icon="lucide:landmark"
 						title={t('models.statutory_parameters.label')}
 						hint={t('dated.hint')}
 					>
 						<DatedFamily {ctx} family={parameters} {read} sections={false} />
 					</Section>
-					<Section name="person_family" title={t('person.tab_family')}>
+					<Section name="person_family" icon="lucide:users" title={t('person.tab_family')}>
 						<ProfileFamily {ctx} person={record.id} />
 					</Section>
 				{/if}
@@ -176,17 +185,19 @@
 	>{/snippet}
 {#snippet casesTab()}{#if record}{#if entityIds.length === 0}<EmptyState
 				title={t('app.cases.title')}
-			/>{:else}<Stack size="fill" gap="sm"
-				><DescriptionHint text={t('v2.cases_entity_scope')} /><Table
-					{ctx}
-					of="workplace_case_catalog_entry"
-					key="person-workplace-cases"
-					where={{ entity_id: { in: entityIds } }}
-					order_by={{ opened_on: 'desc' }}
-					toolbar={{ new: false, title: t('app.cases.title') }}
-					columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
-				/></Stack
-			>{/if}{/if}{/snippet}
+			/>{:else}<Table
+				{ctx}
+				of="workplace_case_catalog_entry"
+				key="person-workplace-cases"
+				where={{ entity_id: { in: entityIds } }}
+				order_by={{ opened_on: 'desc' }}
+				toolbar={{
+					new: false,
+					title: t('app.cases.title'),
+					description: t('v2.cases_entity_scope')
+				}}
+				columns={[{ field: 'kind', cell: caseCell }, 'entity_id', 'opened_on', 'closed_on']}
+			/>{/if}{/if}{/snippet}
 {#snippet overviewTab()}{#if held}<BalanceOverview {ctx} account={held.account} />{/if}{/snippet}
 {#snippet ledgerTab()}{#if held}<BalanceLedger
 			{ctx}

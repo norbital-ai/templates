@@ -130,12 +130,12 @@
 			onclick={() => on_open({ family, code: String(row.code) })}
 		>
 			<span class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-				<span class="min-w-0 text-xs">{textOf(row.description) || row.code}</span>
+				<span class="min-w-0 font-mono text-xs font-medium">{row.code}</span>
 				<span class="ml-auto shrink-0 text-micro text-muted-foreground">{tag}</span>
 			</span>
 			{#if textOf(row.description) !== ''}
-				<span class="mt-0.5 block font-mono text-xs leading-snug text-muted-foreground">
-					{row.code}
+				<span class="mt-0.5 block text-xs leading-snug text-muted-foreground">
+					{textOf(row.description)}
 				</span>
 			{/if}
 		</button>

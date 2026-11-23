@@ -142,6 +142,7 @@
 				{#if record}
 					<Section
 						name="entity_dated"
+						icon="lucide:calendar-clock"
 						title={t('dated.title')}
 						hint={t('dated.hint')}
 						collapsible={false}

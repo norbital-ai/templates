@@ -176,6 +176,7 @@
 			{#if breakdown.checkpoints.length > 0}
 				<Section
 					name="calculation_details"
+					icon="lucide:calculator"
 					title={ctx.t('app.payroll.calculation_details')}
 					default_open={false}
 				>

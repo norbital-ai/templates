@@ -110,6 +110,7 @@
 			{#snippet buttons()}{@render stintActions?.(stint)}{/snippet}
 			<Section
 				name="{family.of}_{stint.id}"
+				icon="lucide:calendar-clock"
 				title={heading(stint)}
 				hint={t('dated.hint')}
 				first={index === 0}

@@ -5,8 +5,8 @@ export default policy({
 	description: 'procurement commercial work scoped by order.',
 	capabilities: { apps: ['operations'] },
 	grants: {
-		// the Logistics staff an order's logistics handler names
-		sys_user: { outputs: { default: { where: { team: { eq: 'logistics' } } } } },
+		// order owners and logistics handlers
+		sys_user: { outputs: { default: {} } },
 		source_stock_commitments: {
 			outputs: { default: {} }
 		},

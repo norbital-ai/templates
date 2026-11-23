@@ -14,7 +14,7 @@
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	import { contractKind, currentTemplate, documentLocale } from '../../../../lib/order-document.js';
-	import { floorFor, quoteBelowFloor } from '../../../../lib/commercial.js';
+	import { floorFor, floorNetInUnit, quoteBelowFloor } from '../../../../lib/commercial.js';
 	let {
 		view,
 		ctx
@@ -78,26 +78,30 @@
 		const quantity = form.get('quantity');
 		if (!book || !header || !productId || quantity == null || String(quantity) === '') return null;
 		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
+		const unitValue = view.mode !== 'create' ? view.record.unit : form.get('unit');
+		const lineUnit = typeof unitValue === 'string' && unitValue !== '' ? unitValue : undefined;
 		const floor = floorFor(
 			header,
 			book.warehouses.rows[0]?.group_code,
-			{ product: productId, quantity: String(quantity) },
+			{ product: productId, quantity: String(quantity), ...(lineUnit ? { unit: lineUnit } : {}) },
 			book.pricing_floors.rows
 		);
+		const floorNet =
+			floor && lineUnit ? floorNetInUnit(floor, lineUnit) : (floor?.floor_net ?? null);
 		const price = form.get('unit_price');
 		const below =
-			floor && price != null && String(price) !== ''
+			floor && floorNet !== null && price != null && String(price) !== ''
 				? quoteBelowFloor(
 						{
 							unit_price: String(price),
 							discount_pct: String(form.get('discount_pct') ?? '0'),
 							tax_rate: String(form.get('tax_rate') ?? '0'),
-							floor_net: floor.floor_net
+							floor_net: floorNet
 						},
 						header.tax_inclusive
 					)
 				: false;
-		return { floor, below, rule, flagged: !floor || below };
+		return { floor, below, rule, flagged: !floor || floorNet === null || below };
 	}
 </script>
 
