@@ -167,7 +167,7 @@
 			<Stack gap="lg" aria-busy="true">
 				<Grid minimum="compact">
 					{#each [0, 1, 2, 3] as i (i)}
-						<div class="rounded-xl border border-border bg-card p-4">
+						<div class="rounded-md border border-border bg-card p-4">
 							<Stack gap="xs">
 								<div
 									class="h-3 animate-pulse rounded bg-muted motion-reduce:animate-none"
@@ -189,7 +189,7 @@
 			<Stack gap="lg">
 				<Grid minimum="compact">
 					{#each tiles as tile (tile.title)}
-						<div class="rounded-xl border border-border bg-card p-4">
+						<div class="rounded-md border border-border bg-card p-4">
 							<Stack gap="xs">
 								<p class="text-meta">{tile.title}</p>
 								<p class="text-section tabular-nums">{tile.value}</p>
@@ -230,12 +230,12 @@
 						{/each}
 					</Stack>
 				{/if}
-				<div class="rounded-xl border border-border bg-card p-4">
+				<div class="rounded-md border border-border bg-card p-4">
 					<Bound height="20rem">
 						<Chart {ctx} of={ladder} x="month" y="usd" kind="bar" title={t('fx.overview.ladder')} />
 					</Bound>
 				</div>
-				<div class="rounded-xl border border-border bg-card p-4">
+				<div class="rounded-md border border-border bg-card p-4">
 					<Stack gap="sm">
 						<h2 class="text-heading">{t('fx.overview.live_deals')}</h2>
 						<Table
@@ -278,7 +278,7 @@
 					</Stack>
 				</div>
 				{#if reference.length > 0}
-					<div class="rounded-xl border border-border bg-card px-4 py-3">
+					<div class="rounded-md border border-border bg-card px-4 py-3">
 						<Cluster gap="md" align="center" justify="between">
 							<span class="text-meta">{t('fx.overview.reference_rates')}</span>
 							<Cluster gap="md" align="center">

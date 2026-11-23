@@ -162,10 +162,10 @@ accumulator's mark, keeps its row) -->
 			>
 				<Grid minimum="panel" gap="md">
 					<div
-						class="h-64 animate-pulse rounded-xl border border-border bg-card p-5 motion-reduce:animate-none"
+						class="h-64 animate-pulse rounded-md border border-border bg-card p-5 motion-reduce:animate-none"
 					></div>
 					<div
-						class="h-64 animate-pulse rounded-xl border border-border bg-card p-5 motion-reduce:animate-none"
+						class="h-64 animate-pulse rounded-md border border-border bg-card p-5 motion-reduce:animate-none"
 					></div>
 				</Grid>
 				<TableSkeleton />
@@ -181,7 +181,7 @@ accumulator's mark, keeps its row) -->
 					<Stack
 						as="section"
 						gap="md"
-						class="rounded-xl border border-border bg-card p-5 text-card-foreground"
+						class="rounded-md border border-border bg-card p-5 text-card-foreground"
 					>
 						<Inline justify="between" align="center" gap="sm">
 							<h2 class="text-label">{ctx.t('component.dashboard.net_assets')}</h2>
@@ -214,7 +214,7 @@ accumulator's mark, keeps its row) -->
 					<Stack
 						as="section"
 						gap="md"
-						class="rounded-xl border border-border bg-card p-5 text-card-foreground"
+						class="rounded-md border border-border bg-card p-5 text-card-foreground"
 					>
 						<h2 class="text-label">{ctx.t('component.dashboard.net_assets_over_time')}</h2>
 						{#if trend.length > 1}
@@ -233,14 +233,14 @@ accumulator's mark, keeps its row) -->
 					</Stack>
 				</Grid>
 				<Grid minimum="panel" gap="md">
-					<section class="rounded-xl border border-border bg-card p-5 text-card-foreground">
+					<section class="rounded-md border border-border bg-card p-5 text-card-foreground">
 						{@render shares(
 							ctx.t('component.dashboard.allocation'),
 							latest.allocation ?? [],
 							label
 						)}
 					</section>
-					<section class="rounded-xl border border-border bg-card p-5 text-card-foreground">
+					<section class="rounded-md border border-border bg-card p-5 text-card-foreground">
 						{@render shares(
 							ctx.t('component.dashboard.currencies'),
 							(latest.exposure ?? []).map((one) => ({ ...one, label: one.currency })),
@@ -258,7 +258,7 @@ accumulator's mark, keeps its row) -->
 				<Stack
 					as="section"
 					gap="md"
-					class="rounded-xl border border-border bg-card p-5 text-card-foreground"
+					class="rounded-md border border-border bg-card p-5 text-card-foreground"
 				>
 					<h2 class="text-label">{ctx.t('component.dashboard.pnl_by_position')}</h2>
 					{#if pnl.length > 0}
@@ -279,7 +279,7 @@ accumulator's mark, keeps its row) -->
 				<Stack
 					as="section"
 					gap="md"
-					class="rounded-xl border border-border bg-card p-5 text-card-foreground"
+					class="rounded-md border border-border bg-card p-5 text-card-foreground"
 				>
 					<h2 class="text-label">{ctx.t('component.dashboard.positions_calls')}</h2>
 					<Table

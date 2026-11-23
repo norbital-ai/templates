@@ -193,7 +193,7 @@
 
 {#snippet visitCard(v: (typeof visits)[number], next: boolean)}
 	{@const minutes = eta(v.location)}
-	<div class="rounded-xl border bg-card p-5">
+	<div class="rounded-md border bg-card p-5">
 		<Stack gap="sm">
 			<Cluster gap="xs" justify="between" align="center">
 				<p class="text-heading tabular-nums">
@@ -272,10 +272,10 @@
 				{#if actor?.kind === 'member' && me?.current === undefined}
 					<Stack gap="md" role="status" aria-busy="true" aria-label={t('component.loading')}>
 						<div
-							class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+							class="h-28 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 						></div>
 						<div
-							class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+							class="h-28 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 						></div>
 					</Stack>
 				{:else if actor?.kind === 'member' && helper === undefined}<EmptyState
@@ -343,10 +343,10 @@
 						{#if open?.current === undefined}
 							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
 								<div
-									class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+									class="h-28 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 								></div>
 								<div
-									class="h-28 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+									class="h-28 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 								></div>
 							</Stack>
 						{:else if route.length === 0}<EmptyState

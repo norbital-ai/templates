@@ -104,7 +104,7 @@
 						picked = d.day;
 						if (value !== null && !d.starts.includes(value)) onPick(null);
 					}}
-					class="w-16 shrink-0 rounded-xl border bg-background px-1 py-2 text-center transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground/50 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+					class="w-16 shrink-0 rounded-md border bg-background px-1 py-2 text-center transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground/50 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
 				>
 					<Stack as="span" gap="none" align="center">
 						<span class="text-xs uppercase opacity-80"
@@ -168,7 +168,7 @@
 	{#if span !== null}
 		<Stack
 			gap="xs"
-			class="rounded-xl border border-primary/40 bg-primary/5 px-4 py-3"
+			class="rounded-md border border-primary/40 bg-primary/5 px-4 py-3"
 			role="status"
 		>
 			<p class="text-caption">{t('app.portal.your_visit')}</p>

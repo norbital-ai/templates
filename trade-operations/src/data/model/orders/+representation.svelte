@@ -614,7 +614,7 @@
 								type="button"
 								role="tab"
 								aria-selected={false}
-								class="group flex min-h-36 flex-col items-start justify-between gap-4 rounded-xl border border-border bg-card p-6 text-left transition-colors hover:border-primary/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								class="group flex min-h-36 flex-col items-start justify-between gap-4 rounded-md border border-border bg-card p-6 text-left transition-colors hover:border-primary/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								onclick={() => {
 									if (tradeValue(form.get('trade')).kind !== kind) form.set('trade', { kind });
 									choice = kind;

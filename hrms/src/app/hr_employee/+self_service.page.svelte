@@ -110,14 +110,14 @@
 			{employee.error?.message ?? stints?.error?.message}
 		</p>
 	{:else if noEmployment}
-		<Stack gap="none" class="rounded-xl border bg-card p-4">
+		<Stack gap="none" class="rounded-md border bg-card p-4">
 			<p class="text-sm font-medium">{ctx.t('app.hr_employee.no_active_employment')}</p>
 			<p class="text-sm text-muted-foreground">
 				{ctx.t('app.hr_employee.no_active_employment_description')}
 			</p>
 		</Stack>
 	{:else if active.length > 1}
-		<Cluster class="rounded-xl border bg-card p-4" gap="md" align="end" justify="between">
+		<Cluster class="rounded-md border bg-card p-4" gap="md" align="end" justify="between">
 			<Stack gap="none">
 				<p class="text-sm font-medium">
 					{needsChoice
@@ -163,7 +163,7 @@
 				></div>
 			{:else if me != null}
 				{#if employment != null && company != null}<WorkCalendar {ctx} {employment} {company} />
-				{:else}<Stack gap="none" class="rounded-xl border bg-card p-4">
+				{:else}<Stack gap="none" class="rounded-md border bg-card p-4">
 						<p class="text-sm font-medium">{ctx.t('app.hr_employee.calendar_unavailable')}</p>
 						<p class="text-sm text-muted-foreground">
 							{ctx.t('app.hr_employee.calendar_unavailable_hint')}

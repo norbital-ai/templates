@@ -223,7 +223,7 @@
 			<Stack gap="lg" aria-busy="true">
 				<Grid minimum="panel" gap="md">
 					{#each [0, 1] as i (i)}
-						<div class="rounded-xl border border-border bg-card p-5">
+						<div class="rounded-md border border-border bg-card p-5">
 							<Stack gap="sm">
 								<div
 									class="h-4 animate-pulse rounded bg-muted motion-reduce:animate-none"
@@ -250,7 +250,7 @@
 		{:else}
 			<Stack gap="md">
 				{#if highBanks.length > 0 || lcsToOpen > 0}
-					<div class="rounded-xl border border-border bg-card px-4 py-3">
+					<div class="rounded-md border border-border bg-card px-4 py-3">
 						<Cluster justify="between" align="center" gap="sm">
 							<Cluster gap="sm" align="center">
 								{#each highBanks as bank (bank.bank)}
@@ -278,7 +278,7 @@
 				{/if}
 
 				<Grid minimum="panel" gap="md">
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="md">
 							<Inline justify="between" align="center">
 								<h2 class="text-heading">{t('app.dashboard.total_facilities')}</h2>
@@ -318,7 +318,7 @@
 						</Stack>
 					</section>
 
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="md">
 							<Inline justify="between" align="center">
 								<h2 class="text-heading">{t('app.dashboard.usage_by_bank')}</h2>
@@ -342,7 +342,7 @@
 				</Grid>
 
 				<Grid minimum="panel" gap="md">
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="md">
 							<Inline justify="between" align="center">
 								<h2 class="text-heading">{t('app.dashboard.coming_due')}</h2>
@@ -381,7 +381,7 @@
 						</Stack>
 					</section>
 
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="md">
 							<Inline justify="between" align="center">
 								<h2 class="text-heading">{t('app.dashboard.cost_of_funds')}</h2>
@@ -437,7 +437,7 @@
 				</Grid>
 
 				<Grid minimum="panel" gap="md">
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="sm">
 							<h2 class="text-heading">{t('app.dashboard.ladder')}</h2>
 							<Bound height="18rem">
@@ -446,7 +446,7 @@
 						</Stack>
 					</section>
 
-					<section class="rounded-xl border border-border bg-card p-5">
+					<section class="rounded-md border border-border bg-card p-5">
 						<Stack gap="sm">
 							<h2 class="text-heading">{t('app.dashboard.trend')}</h2>
 							<Bound height="18rem">
@@ -456,7 +456,7 @@
 					</section>
 				</Grid>
 
-				<section class="rounded-xl border border-border bg-card p-5">
+				<section class="rounded-md border border-border bg-card p-5">
 					<Stack gap="sm">
 						<h2 class="text-heading">{t('app.dashboard.cost_by_bank')}</h2>
 						<Table

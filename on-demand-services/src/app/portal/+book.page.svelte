@@ -496,7 +496,7 @@
 									{booked ? t('app.portal.booked_body') : t('app.portal.follow_up_body')}
 								</p>
 							</Stack>
-							<Stack as="dl" gap="none" divided class="rounded-xl border bg-card text-sm">
+							<Stack as="dl" gap="none" divided class="rounded-md border bg-card text-sm">
 								{#each summary as row (row.label)}
 									<Grid
 										tracks="auto minmax(6rem,8rem) minmax(0,1fr)"

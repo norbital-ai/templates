@@ -551,7 +551,7 @@
 	{#if editable}<p class="text-xs text-muted-foreground">
 			{ctx.t('component.half_day_hint')}
 		</p>{/if}
-	<div class="rounded-xl border">
+	<div class="rounded-md border">
 		<Cluster justify="between" class="border-b px-3 py-2">
 			<Button variant="ghost" onclick={() => shiftMonth(-1)}>‹</Button>
 			<span class="text-sm font-medium">{monthLabel}</span>

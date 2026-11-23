@@ -234,7 +234,7 @@
 		{#if figures === undefined}
 			<Grid minimum="compact" gap="sm" aria-busy="true">
 				{#each [0, 1, 2, 3] as i (i)}
-					<div class="rounded-xl border border-border bg-card p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						<Stack gap="xs">
 							<div
 								class="h-3 animate-pulse rounded bg-muted motion-reduce:animate-none"
@@ -255,7 +255,7 @@
 		{:else}
 			<Grid minimum="compact" gap="sm">
 				{#each kpis as kpi (kpi.title)}
-					<div class="rounded-xl border border-border bg-card p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						<Stack gap="xs">
 							<p class="text-meta">{kpi.title}</p>
 							<p class="text-heading tabular-nums">{kpi.value}</p>

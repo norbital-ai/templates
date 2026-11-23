@@ -258,7 +258,7 @@
 			{/each}
 			<Grid minimum="compact">
 				{#each [[t('fx.spot'), v.spot.toFixed(4)], [t('fx.state'), t(`fx.state.${v.state}`)], [t('fx.value_today'), v.position?.total_usd == null ? '—' : `USD ${num(v.position.total_usd)}`], [t('fx.ko_distance'), v.position?.ko_distance_pct == null ? '—' : `${v.position.ko_distance_pct.toFixed(2)}%`], [t('fx.target_used'), v.target_used_pct === null ? '—' : `${v.target_used_pct.toFixed(0)}%`], [t('fx.open_fixings'), String(v.open.length)]] as const as [title, value] (title)}
-					<div class="rounded-xl border border-border bg-card p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						<Stack gap="xs">
 							<p class="text-meta">{title}</p>
 							<p class="text-heading tabular-nums">{value}</p>
@@ -341,7 +341,7 @@
 		{:else if deal !== null && v !== null && v.spot !== null}
 			<Grid minimum="compact">
 				{#each [[t('fx.p_knock_out'), range((o) => o.p_knock_out)], [t('fx.p_target'), range((o) => o.p_target)], [t('fx.p_pays'), range((o) => o.p_pays)], [t('fx.typical'), range((o) => o.typical, true)], [t('fx.bad_case'), range((o) => o.bad, true)], [t('fx.p_convert'), range((o) => o.p_convert)]] as const as [title, value] (title)}
-					{#if value !== '—'}<div class="rounded-xl border border-border bg-card p-4">
+					{#if value !== '—'}<div class="rounded-md border border-border bg-card p-4">
 							<Stack gap="xs">
 								<p class="text-meta">{title}</p>
 								<p class="text-heading tabular-nums">{value}</p>

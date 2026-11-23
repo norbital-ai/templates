@@ -62,17 +62,17 @@
 						{#if answer?.visits == null}
 							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
 								<div
-									class="h-24 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+									class="h-24 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 								></div>
 								<div
-									class="h-24 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+									class="h-24 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 								></div>
 							</Stack>
 						{:else if upcoming.length === 0}
 							<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
 						{:else}
 							{#each upcoming as v (v.id)}
-								<div class="rounded-xl border bg-card p-5">
+								<div class="rounded-md border bg-card p-5">
 									<Stack gap="xs">
 										<Cluster gap="xs" justify="between" align="center">
 											<p class="text-heading">

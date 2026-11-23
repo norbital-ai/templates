@@ -181,13 +181,13 @@
 			<Grid minimum="compact" gap="md">
 				{#each [0, 1, 2, 3] as index (index)}
 					<div
-						class="h-20 animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+						class="h-20 animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 					></div>
 				{/each}
 			</Grid>
 			<Bound size="viewport">
 				<div
-					class="h-full w-full animate-pulse rounded-xl border bg-card motion-reduce:animate-none"
+					class="h-full w-full animate-pulse rounded-md border bg-card motion-reduce:animate-none"
 				></div>
 			</Bound>
 		</Stack>
@@ -207,7 +207,7 @@
 									as="button"
 									type="button"
 									pad="md"
-									class="w-full cursor-pointer rounded-xl border bg-card text-left transition-colors hover:border-foreground/20 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
+									class="w-full cursor-pointer rounded-md border bg-card text-left transition-colors hover:border-foreground/20 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring"
 								>
 									<Stack gap="xs">
 										<dt>

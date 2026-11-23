@@ -142,7 +142,7 @@
 
 {#snippet calculatorTop()}
 	<Stack gap="sm">
-		<div class="rounded-xl border border-border bg-card p-4">
+		<div class="rounded-md border border-border bg-card p-4">
 			<Grid minimum="compact" gap="sm">
 				<Stack gap="xs">
 					<Label for="costs-amount">{t('app.costs.amount')}</Label>
@@ -184,7 +184,7 @@
 			<Cluster
 				gap="sm"
 				align="center"
-				class="rounded-xl border border-border bg-card px-4 py-2.5 text-sm"
+				class="rounded-md border border-border bg-card px-4 py-2.5 text-sm"
 			>
 				{#if best}
 					<Badge variant="success">{t('app.costs.eligible')}</Badge>

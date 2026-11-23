@@ -135,7 +135,7 @@
 
 <div {@attach ownPunches} class="contents">
 	<Center measure="full" class="max-w-3xl py-6">
-		<Stack as="section" gap="lg" class="rounded-xl border bg-card p-5 sm:p-7">
+		<Stack as="section" gap="lg" class="rounded-md border bg-card p-5 sm:p-7">
 			<Inline as="header" align="start" gap="md" class="border-b pb-5">
 				<Frame ratio="square" class="size-11 rounded-lg bg-muted">
 					<Icon icon="lucide:keyboard" class="size-5" />

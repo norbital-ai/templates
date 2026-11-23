@@ -408,7 +408,7 @@
 	<!-- Steps hide with the `hidden` attribute rather than an `{#if}`, so the camera loop and
 		the captures survive step changes. -->
 	<Stack hidden={step !== 'capture'} gap="md">
-		<Frame ratio="widescreen" class="relative w-full rounded-xl bg-foreground">
+		<Frame ratio="widescreen" class="relative w-full rounded-md bg-foreground">
 			<video {@attach attachVideo} playsinline autoplay muted class="-scale-x-100"></video>
 			{#if warming}
 				<Imposter placement="fill" class="bg-black/40">
