@@ -743,8 +743,6 @@ export default messages({
 	'meetings.save_recording': 'Save recording',
 	'meetings.discard': 'Discard',
 	'meetings.or_upload': 'or attach an audio file below',
-	'documents.export': 'Export document',
-	'documents.export_templates': 'Export template',
 	'documents.export_named': 'Export {title}',
 	'documents.render_pdf': 'Render PDF preview',
 	'documents.view_wysiwyg': 'View formatted preview',

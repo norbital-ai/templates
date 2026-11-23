@@ -105,6 +105,7 @@ export default messages({
 	'app.customers.nothing_ahead': '暂无后续预约。',
 	'app.customers.cleaner_tbc': '待确认的保洁员',
 	'app.customers.history_summary': '已完成 {done} 次，已取消 {cancelled} 次。',
+	'app.customers.history_empty': '暂无历史服务记录',
 	'app.customers.bookings': '预约',
 	'app.customers.notices': '通知',
 	'app.configurations.title': '配置',

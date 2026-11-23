@@ -299,7 +299,7 @@
 		)}
 		{#if warnings.length > 0}<ul
 				role="status"
-				class="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200"
+				class="rounded-control border border-tone-warning-border bg-tone-warning-bg px-3 py-2 text-sm text-tone-warning-text"
 			>
 				{#each warnings as warning}<li>{warning.message}</li>{/each}
 			</ul>{/if}<EventCalendar

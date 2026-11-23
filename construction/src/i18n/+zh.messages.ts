@@ -72,14 +72,12 @@ export default messages({
 	'project_files.register_title': 'BIM 与图纸文件',
 	'project_files.revision_history': '版本历史',
 	'project_files.revision_count': '{count} 个版本',
-	'project_files.col_version': '版本',
-	'project_files.col_issued_on': '日期',
-	'project_files.col_reference': '文件 / 总额',
-	'project_files.col_notes': '摘要',
 
 	// Programme, Milestones & 4D Timeline scrubber
 	'programme.view_timeline': '时间轴',
 	'programme.view_progress': '现场进度',
+	'programme.new_progress': '新建进度更新',
+	'programme.progress_empty': '暂无现场进度更新',
 	'programme.tasks_title': '工作包与里程碑',
 	'programme.new_task': '新建任务',
 	'tasks.bim_linked_count': '已关联 {count} 个 BIM 构件',

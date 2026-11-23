@@ -1,8 +1,20 @@
 <script lang="ts">
 	/** A site: its details, the jobs still ahead of it (scheduled from today, or overdue and not done), and its history. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { type RecordView, Field, Form, RecordShell, Table } from '@norbital-ai/ui';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import {
+		EmptyState,
+		Field,
+		Form,
+		RecordShell,
+		Table,
+		Timeline,
+		enum_text,
+		format,
+		open_record,
+		type RecordView,
+		type TimelineEntry
+	} from '@norbital-ai/ui';
+	import { Grid, Scroll } from '@norbital-ai/ui/layout';
 	let {
 		ctx,
 		view
@@ -11,9 +23,63 @@
 		view: RecordView<'sites'>;
 	} = $props();
 	const t = ctx.t;
+	const words: { t(key: string): string } = ctx;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	/** Rolls over at midnight in the workspace zone, so "upcoming" follows the day. */
 	const clock = ctx.clock('day');
+	const historyQuery = $derived(
+		record === null
+			? null
+			: ctx.query({
+					job_assignments: {
+						where: { site_id: { eq: record.id }, dispatched_at: { is_null: false } },
+						fields: [
+							'title',
+							'dispatched_at',
+							'status',
+							'completed_at',
+							'amount_charged',
+							'location_address',
+							'summary'
+						],
+						order_by: { dispatched_at: 'desc' }
+					}
+				})
+	);
+	const historyEntries = $derived<TimelineEntry[]>(
+		(historyQuery?.current?.job_assignments.rows ?? []).map((row) => ({
+			key: row.id,
+			icon: row.status === 'completed' ? 'lucide:check-circle-2' : 'lucide:clock',
+			tone: row.status === 'completed' ? 'success' : 'warning',
+			title: row.title,
+			line: [
+				...(row.dispatched_at
+					? [
+							`${t('component.dispatched')} ${format({ kind: 'instant' }, row.dispatched_at, { locale: ctx.locale, ...(ctx.tz == null ? {} : { zone: ctx.tz }) })}`
+						]
+					: []),
+				...(row.completed_at
+					? [
+							`${t('component.completed')} ${format({ kind: 'instant' }, row.completed_at, { locale: ctx.locale, ...(ctx.tz == null ? {} : { zone: ctx.tz }) })}`
+						]
+					: []),
+				...(row.amount_charged != null
+					? [format({ kind: 'money' }, row.amount_charged, { locale: ctx.locale })]
+					: []),
+				...(row.location_address ? [row.location_address] : [])
+			],
+			mark: {
+				text: enum_text(row.status, {
+					t: (k) => words.t(k),
+					model: 'job_assignments',
+					field: 'status'
+				}),
+				variant: row.status === 'completed' ? ('success' as const) : ('outline' as const)
+			},
+			...(row.summary ? { notes: [{ kind: 'summary', text: row.summary }] } : {}),
+			onpick: () => open_record('job_assignments', row.id)
+		}))
+	);
 </script>
 
 {#snippet upcoming()}
@@ -37,23 +103,15 @@
 		/>{/if}
 {/snippet}
 {#snippet history()}
-	{#if record}<Table
-			{ctx}
-			of="job_assignments"
-			key="site-history"
-			toolbar={{ title: t('component.activity_history') }}
-			where={{ site_id: { eq: record.id }, dispatched_at: { is_null: false } }}
-			order_by={{ dispatched_at: 'desc' }}
-			columns={[
-				'title',
-				{ field: 'dispatched_at', label: t('component.dispatched') },
-				'status',
-				{ field: 'completed_at', label: t('component.completed') },
-				{ field: 'amount_charged', label: t('component.value_charged') },
-				{ field: 'location_address', label: t('component.reported_location') },
-				'summary'
-			]}
-		/>{/if}
+	{#if record}
+		<Scroll name={t('component.activity_history')} size="fill" inset>
+			<Timeline entries={historyEntries} label={t('component.activity_history')}>
+				{#snippet empty()}
+					<EmptyState title={t('component.activity_history_empty')} />
+				{/snippet}
+			</Timeline>
+		</Scroll>
+	{/if}
 {/snippet}
 
 {#if record == null}

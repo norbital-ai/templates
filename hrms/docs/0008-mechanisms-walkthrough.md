@@ -212,12 +212,12 @@ A paid run cannot be deleted and its payslips never change. The employee sees th
 
 July is paid. HR finds that two hours of planned overtime on 14 July were never keyed.
 
-| HR does                                                   | The system writes                                                                                                                                      | Where it shows                            |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| Opens the roster day of 14 July, adds the hours and saves | The roster day, and one `pay_amendment` row: the employee, the pay group, July. The July payslip does not change                                       | —                                         |
-| Creates the August run                                    | It works July out again on the records as they stand, takes the difference from what July paid, and puts it on the August payslip as lines tagged July | Payroll → the run's "Earlier periods" tab |
-| Reads the August payslip                                  | Under "Adjustments for earlier periods": the overtime for July, and what it moves in contributions and tax, posted to July's own totals                | The payslip                               |
-| Marks August paid                                         | The amendment row stays, held by the August run: it is done                                                                                            | Payroll                                   |
+| HR does                                                   | The system writes                                                                                                                                      | Where it shows           |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| Opens the roster day of 14 July, adds the hours and saves | The roster day, and one `pay_amendment` row: the employee, the pay group, July. The July payslip does not change                                       | —                        |
+| Creates the August run                                    | It works July out again on the records as they stand, takes the difference from what July paid, and puts it on the August payslip as lines tagged July | Payroll → the August run |
+| Reads the August payslip                                  | Under "Adjustments for earlier periods": the overtime for July, and what it moves in contributions and tax, posted to July's own totals                | The payslip              |
+| Marks August paid                                         | The amendment row stays, held by the August run: it is done                                                                                            | Payroll                  |
 
 HR keys no amount and picks no period: the correction is the record itself, with its real date. The whole rule, with what is carried, what is refused and how approvals fit, is in [corrections and integrity](0007-corrections-and-integrity.md).
 

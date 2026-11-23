@@ -191,5 +191,6 @@ export default messages({
 	'errors.sheet_size': 'The sheet needs 1 to 5,000 rows under its header.',
 	'errors.sheet_invalid': 'The sheet could not be imported:\n{detail}',
 	'automations.job_assignments_import_work_orders.input.fields.file':
-		'Work-order sheet (CSV or xlsx)'
+		'Work-order sheet (CSV or xlsx)',
+	'component.activity_history_empty': 'No dispatched jobs yet'
 });

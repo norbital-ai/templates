@@ -2,7 +2,7 @@
 	import { Field, type FormState } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import { onDestroy } from 'svelte';
 	import { numberOf } from '../../foundation.js';
 	import {

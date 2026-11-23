@@ -5,7 +5,8 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { RecordSection, RecordView } from '@norbital-ai/ui';
-	import { Button, RecordShell, Table, use_act } from '@norbital-ai/ui';
+	import { Button, RecordShell, use_act } from '@norbital-ai/ui';
+	import ActivityTimeline from '../../../../lib/ActivityTimeline.svelte';
 
 	let { view, ctx }: { view: RecordView<'contacts'>; ctx: PageContext } = $props();
 	const t = ctx.t;
@@ -78,13 +79,10 @@
 {/snippet}
 
 {#snippet activities()}
-	{#if record}<Table
+	{#if record}<ActivityTimeline
 			{ctx}
-			of="activities"
-			key="contact-activities"
-			where={{ contact_id: { eq: record.id } }}
-			order_by={{ occurred_at: 'desc' }}
-			columns={['subject', 'kind', 'occurred_at', 'project_id']}
+			contact={record.id}
+			{...record.company_id ? { company: record.company_id } : {}}
 		/>{/if}
 {/snippet}
 

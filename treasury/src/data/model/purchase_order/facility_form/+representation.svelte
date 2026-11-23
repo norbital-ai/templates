@@ -1,17 +1,10 @@
 <script lang="ts">
 	/**
 	 * A facility form: starting one asks only for its attachments, which fill the form as they land; then its fields
-	 * and attachments (the generated form), and the PDF pack in the footer.
+	 * and attachments (the generated form). PDF pack downloads live in the Facility forms toolbar.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import {
-		Button,
-		RecordShell,
-		RunStatus,
-		use_act,
-		type RecordSection,
-		type RecordView
-	} from '@norbital-ai/ui';
+	import { RecordShell, type RecordSection, type RecordView } from '@norbital-ai/ui';
 	let { view, ctx }: { view: RecordView<'facility_form'>; ctx: PageContext } = $props();
 	const t = ctx.t;
 	const evidence: RecordSection = {
@@ -81,22 +74,7 @@
 	const attach: readonly RecordSection[] = [evidence];
 
 	const record = $derived(view.mode === 'create' ? null : view.record);
-	const act = use_act(ctx);
-	let run = $state<string | null>(null);
-	const pack = () => {
-		if (record === null) return;
-		const handle = ctx.run('facility_form_pack', { form: [record.id] });
-		run = handle.id;
-		act.run(handle);
-	};
 </script>
-
-{#snippet fill()}
-	{#if record !== null}<Button variant="outline" disabled={act.pending} onclick={pack}
-			>{t('app.forms.pack')}</Button
-		>{/if}
-	{#if run}<RunStatus {ctx} automation="facility_form_pack" {run} download />{/if}
-{/snippet}
 
 {#if record === null}
 	<RecordShell
@@ -115,6 +93,5 @@
 		id={record.id}
 		subtitle={['vendor', 'pay_by_date']}
 		{...record.read_note === null ? {} : { hint: record.read_note }}
-		footer_actions={fill}
 	/>
 {/if}

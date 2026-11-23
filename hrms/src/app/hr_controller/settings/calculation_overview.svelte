@@ -121,8 +121,7 @@
 			class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border font-mono text-xs {sign ===
 			'−'
 				? 'border-destructive/30 bg-destructive/10 text-destructive'
-				: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'}"
-			>{sign}</span
+				: 'border-tone-success-border bg-tone-success-bg text-tone-success-text'}">{sign}</span
 		>
 		<button
 			type="button"

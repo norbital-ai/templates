@@ -1,7 +1,18 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { type RecordSection, type RecordView, format, RecordShell, Table } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import {
+		EmptyState,
+		RecordShell,
+		Table,
+		Timeline,
+		enum_text,
+		format,
+		open_record,
+		type RecordSection,
+		type RecordView,
+		type TimelineEntry
+	} from '@norbital-ai/ui';
+	import { Scroll, Stack } from '@norbital-ai/ui/layout';
 	/**
 	 * A customer's profile for the desk: their visits still to come (each with the cleaner it is planned with, or the one
 	 * proposed to cover, the shift check and the ETA), their past visits (done or cancelled, with the notes), the bookings
@@ -16,6 +27,7 @@
 	} = $props();
 	const zone = ctx.tz;
 	const t = ctx.t;
+	const words: { t(key: string): string } = ctx;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	/** Their visits through their bookings. */
 	const theirs = $derived(
@@ -44,7 +56,52 @@
 				})
 	);
 	const past = $derived(
-		pastWhere === null ? null : ctx.query({ visits: { where: pastWhere, fields: ['status'] } })
+		pastWhere === null
+			? null
+			: ctx.query({
+					visits: {
+						where: pastWhere,
+						fields: [
+							'number',
+							'slot',
+							'skill',
+							'status',
+							'completed_at',
+							'completion_notes',
+							'late_cancellation'
+						],
+						order_by: { number: 'desc' },
+						helper: { fields: ['name'] }
+					}
+				})
+	);
+	const historyEntries = $derived<TimelineEntry[]>(
+		(past?.current?.visits.rows ?? []).map((v) => ({
+			key: v.id,
+			icon: v.status === 'done' ? 'lucide:check-circle-2' : 'lucide:x-circle',
+			tone: v.status === 'done' ? 'success' : 'danger',
+			title: `${v.number} · ${format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })}`,
+			line: [
+				enum_text(v.skill, { t: (k) => words.t(k), model: 'visits', field: 'skill' }),
+				...(v.helper?.name ? [v.helper.name] : []),
+				...(v.completed_at
+					? [
+							`${t('models.visits.fields.completed_at')} ${format({ kind: 'instant' }, v.completed_at, { locale: ctx.locale, zone })}`
+						]
+					: [])
+			],
+			mark: {
+				text: enum_text(v.status, { t: (k) => words.t(k), model: 'visits', field: 'status' }),
+				variant: v.status === 'done' ? ('success' as const) : ('destructive' as const)
+			},
+			notes: [
+				...(v.late_cancellation
+					? [{ kind: 'late', text: t('models.visits.fields.late_cancellation'), warn: true }]
+					: []),
+				...(v.completion_notes ? [{ kind: 'notes', text: v.completion_notes }] : [])
+			],
+			onpick: () => open_record('visits', v.id)
+		}))
 	);
 	const soonest = $derived(
 		[...(next?.current?.visits.rows ?? [])].sort((a, b) =>
@@ -110,29 +167,20 @@
 		</Stack>{/if}
 {/snippet}
 {#snippet history()}
-	{#if record && pastWhere}<Stack size="fill" gap="sm">
-			<p class="text-sm text-muted-foreground">
-				{t('app.customers.history_summary', { done, cancelled })}
-			</p>
-			<Table
-				{ctx}
-				of="visits"
-				key="customer-history"
-				toolbar={{ title: t('app.customers.history'), new: false }}
-				where={pastWhere}
-				order_by={{ number: 'desc' }}
-				columns={[
-					'number',
-					'slot',
-					'helper',
-					'skill',
-					'status',
-					'completed_at',
-					'completion_notes',
-					'late_cancellation'
-				]}
-			/>
-		</Stack>{/if}
+	{#if record && pastWhere}
+		<Scroll name={t('app.customers.history')} size="fill" inset>
+			<Stack gap="md">
+				<p class="text-sm text-muted-foreground">
+					{t('app.customers.history_summary', { done, cancelled })}
+				</p>
+				<Timeline entries={historyEntries} label={t('app.customers.history')}>
+					{#snippet empty()}
+						<EmptyState title={t('app.customers.history_empty')} />
+					{/snippet}
+				</Timeline>
+			</Stack>
+		</Scroll>
+	{/if}
 {/snippet}
 {#snippet bookings()}
 	{#if record}<Table

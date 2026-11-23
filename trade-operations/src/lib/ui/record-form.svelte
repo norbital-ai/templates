@@ -72,7 +72,7 @@
 		use_enum_text,
 		use_record_controller
 	} from '@norbital-ai/ui';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { createValues } from './create-values.js';
 	let {

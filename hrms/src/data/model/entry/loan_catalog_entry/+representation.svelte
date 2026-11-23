@@ -10,14 +10,17 @@
 		TimeInput,
 		confirm_action,
 		toast,
-		type RecordView
+		type FormState,
+		type RecordView,
+		type Value
 	} from '@norbital-ai/ui';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Bound, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import type { Id, UpdateInput } from '@norbital-ai/bolt';
+	import type { Id } from '@norbital-ai/bolt';
 	import { Effect } from 'effect';
 	import { untrack } from 'svelte';
 	import { fork } from '@norbital-ai/ui/effect';
+	import { isJsonObject } from '../../../../lib/foundation.js';
 	import LoanCreateFields from '../../../../lib/ui/payroll/loan_create_fields.svelte';
 	import CatalogField from '../../../../lib/ui/settings/catalog_field.svelte';
 	import {
@@ -30,23 +33,26 @@
 	let { view, ctx }: { view: RecordView<'loan_catalog_entry'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	type Repayment = {
-		readonly id: Id<'loan_catalog_entry_repayment'>;
-		readonly revision: number;
+		readonly key: string;
+		readonly id: Id<'loan_catalog_entry_repayment'> | null;
+		readonly revision: number | null;
 		readonly amount: string;
 		readonly paid_on: string | null;
 		readonly payroll_run_id: Id<'payroll_run'> | null;
 	};
 	let rows = $state<readonly Repayment[]>([]);
+	let draft = $state<readonly Repayment[] | null>(null);
 	let loaded = $state(false);
-	let busy = $state(false);
 	let reload = $state(0);
+	let nextLocal = 0;
 
-	// One read when the record opens and after each write; a table's live query is not needed here.
+	// One read when the record opens and after each committed save; edits stay in draft until Save.
 	$effect(() => {
 		const id = record?.id ?? null;
 		void reload;
 		if (id === null || view.mode === 'create') {
 			rows = [];
+			draft = null;
 			loaded = true;
 			return;
 		}
@@ -63,12 +69,14 @@
 						}
 					});
 					rows = answer.loan_catalog_entry_repayment.rows.map((row) => ({
+						key: String(row.id),
 						id: row.id,
 						revision: row.revision,
 						amount: row.amount,
 						paid_on: row.paid_on ?? null,
 						payroll_run_id: row.payroll_run_id ?? null
 					}));
+					draft = null;
 				} finally {
 					loaded = true;
 				}
@@ -76,24 +84,24 @@
 		});
 	});
 
-	const schedule = $derived(
-		record === null
-			? null
-			: {
-					principal: Number(record.quantity),
-					from: record.repayment_period.from,
-					to: record.repayment_period.to ?? '',
-					repayments: rows.map((row) => ({
-						id: row.id,
-						amount: Number(row.amount),
-						paid_on: row.paid_on ?? '',
-						payroll_run_id: row.payroll_run_id
-					}))
-				}
-	);
-	const scheduleState = $derived(schedule === null ? 'NO_TERMS' : loanScheduleState(schedule));
-	const problems = $derived(schedule === null ? [] : loanScheduleProblems(schedule));
-	const isLocked = () => record === null || !loaded;
+	const shown = $derived(draft ?? rows);
+	const scheduleFor = (form: FormState) => {
+		if (record === null) return null;
+		const quantityVal = form.get('quantity') ?? record.quantity;
+		const periodVal = form.get('repayment_period') ?? record.repayment_period;
+		const periodObj = isJsonObject(periodVal) ? periodVal : record.repayment_period;
+		return {
+			principal: Number(quantityVal),
+			from: typeof periodObj.from === 'string' ? periodObj.from : record.repayment_period.from,
+			to: typeof periodObj.to === 'string' ? periodObj.to : (record.repayment_period.to ?? ''),
+			repayments: shown.map((row) => ({
+				id: row.key,
+				amount: Number(row.amount),
+				paid_on: row.paid_on ?? '',
+				payroll_run_id: row.payroll_run_id
+			}))
+		};
+	};
 	const label = (problem: LoanScheduleProblem): string =>
 		ctx.t(
 			problem === 'principal'
@@ -112,61 +120,32 @@
 										? 'loan.no_months'
 										: 'loan.invalid_dates'
 		);
-	const refresh = () => reload++;
 
-	const edit = (row: Repayment, set: UpdateInput<'loan_catalog_entry_repayment'>) =>
-		fork(
-			ctx.act({ 'loan_catalog_entry_repayment.update': [{ target: row, set }] }).pipe(
-				Effect.tap(() => Effect.sync(refresh)),
-				Effect.catch((error) =>
-					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-					)
-				)
-			)
-		);
-	const remove = (row: Repayment) =>
-		fork(
-			ctx.act({ 'loan_catalog_entry_repayment.delete': [{ target: row }] }).pipe(
-				Effect.tap(() => Effect.sync(refresh)),
-				Effect.catch((error) =>
-					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-					)
-				)
-			)
-		);
-	const add = () => {
-		if (record === null || isLocked() || schedule === null) return;
-		busy = true;
-		fork(
-			ctx
-				.act({
-					'loan_catalog_entry_repayment.create': [
-						{
-							entity_id: record.entity_id,
-							employment_id: record.employment_id,
-							loan_id: record.id,
-							amount: '0',
-							paid_on: schedule.from
-						}
-					]
-				})
-				.pipe(
-					Effect.tap(() => Effect.sync(refresh)),
-					Effect.catch((error) =>
-						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-						)
-					),
-					Effect.ensuring(Effect.sync(() => (busy = false)))
-				)
-		);
+	const updateRow = (key: string, patch: { amount?: string; paid_on?: string | null }) => {
+		draft = shown.map((row) => (row.key === key ? { ...row, ...patch } : row));
 	};
-
-	const regenerate = () => {
-		if (record === null || busy || isLocked() || schedule === null) return;
-		busy = true;
+	const removeRow = (key: string) => {
+		draft = shown.filter((row) => row.key !== key);
+	};
+	const addRow = (form: FormState) => {
+		const schedule = scheduleFor(form);
+		if (record === null || !loaded || schedule === null) return;
+		nextLocal += 1;
+		draft = [
+			...shown,
+			{
+				key: `new:${nextLocal}`,
+				id: null,
+				revision: null,
+				amount: '0',
+				paid_on: schedule.from,
+				payroll_run_id: null
+			}
+		];
+	};
+	const regenerate = (form: FormState) => {
+		const schedule = scheduleFor(form);
+		if (record === null || !loaded || schedule === null) return;
 		fork(
 			Effect.gen(function* () {
 				const proceed = yield* confirm_action({
@@ -183,89 +162,70 @@
 					toast.error(error instanceof Error ? error.message : ctx.t('component.error'));
 					return;
 				}
-				// one write: the old open instalments go and the new ones arrive together
-				const removing = rows.filter((row) => plan.remove.includes(row.id));
-				if (removing.length > 0 || plan.create.length > 0)
-					yield* ctx.act({
-						...(removing.length === 0
-							? {}
-							: {
-									'loan_catalog_entry_repayment.delete': removing.map((target) => ({ target }))
-								}),
-						...(plan.create.length === 0
-							? {}
-							: {
-									'loan_catalog_entry_repayment.create': plan.create.map((row) => ({
-										entity_id: record.entity_id,
-										employment_id: record.employment_id,
-										loan_id: record.id,
-										amount: new Intl.NumberFormat('en', {
-											useGrouping: false,
-											maximumFractionDigits: 20
-										}).format(row.amount),
-										paid_on: row.paid_on
-									}))
-								})
-					});
-				toast.success(ctx.t('loan.generated'));
-				refresh();
-			}).pipe(
-				Effect.catch((error) =>
-					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : ctx.t('component.error'))
-					)
-				),
-				Effect.ensuring(Effect.sync(() => (busy = false)))
-			)
+				const removed = new Set(plan.remove);
+				const kept = shown.filter((row) => !removed.has(row.key));
+				const added: Repayment[] = plan.create.map((row) => {
+					nextLocal += 1;
+					return {
+						key: `new:${nextLocal}`,
+						id: null,
+						revision: null,
+						amount: new Intl.NumberFormat('en', {
+							useGrouping: false,
+							maximumFractionDigits: 20
+						}).format(row.amount),
+						paid_on: row.paid_on,
+						payroll_run_id: null
+					};
+				});
+				draft = [...kept, ...added];
+			})
 		);
 	};
+
+	// Commit every repayment create/update/delete atomically in the loan Form's single Save.
+	const repaymentActs = (): Readonly<Record<string, readonly Value[]>> => {
+		if (record === null || draft === null) return {};
+		const storedById = new Map(
+			rows.flatMap((row) => (row.id === null ? [] : [[String(row.id), row] as const]))
+		);
+		const keptIds = new Set(draft.flatMap((row) => (row.id === null ? [] : [String(row.id)])));
+		const deletes: Value[] = rows.flatMap((row) =>
+			row.id !== null && row.revision !== null && !keptIds.has(String(row.id))
+				? [{ target: { id: row.id, revision: row.revision } }]
+				: []
+		);
+		const updates: Value[] = draft.flatMap((row) => {
+			if (row.id === null || row.revision === null) return [];
+			const before = storedById.get(String(row.id));
+			if (before === undefined) return [];
+			const set: Record<string, Value> = {};
+			if (row.amount !== before.amount) set['amount'] = row.amount;
+			if (row.paid_on !== before.paid_on) set['paid_on'] = row.paid_on;
+			return Object.keys(set).length === 0
+				? []
+				: [{ target: { id: row.id, revision: row.revision }, set }];
+		});
+		const creates: Value[] = draft.flatMap((row) =>
+			row.id === null
+				? [
+						{
+							entity_id: record.entity_id,
+							employment_id: record.employment_id,
+							loan_id: record.id,
+							amount: row.amount,
+							paid_on: row.paid_on
+						}
+					]
+				: []
+		);
+		return {
+			...(deletes.length === 0 ? {} : { 'loan_catalog_entry_repayment.delete': deletes }),
+			...(updates.length === 0 ? {} : { 'loan_catalog_entry_repayment.update': updates }),
+			...(creates.length === 0 ? {} : { 'loan_catalog_entry_repayment.create': creates })
+		};
+	};
 </script>
-
-{#snippet amountCell({ row }: { row: Repayment })}
-	<div class="py-1.5">
-		<MoneyInput
-			{ctx}
-			scale={2}
-			value={row.amount}
-			readonly={isLocked()}
-			disabled={busy}
-			on_change={(next) => {
-				if (typeof next === 'string') edit(row, { amount: next });
-			}}
-		/>
-	</div>
-{/snippet}
-
-{#snippet dateCell({ row }: { row: Repayment })}
-	<div class="py-1.5">
-		<TimeInput
-			{ctx}
-			of="date"
-			precision="month"
-			value={row.paid_on}
-			readonly={isLocked()}
-			disabled={busy}
-			on_change={(paid_on: string | null) => edit(row, { paid_on })}
-		/>
-	</div>
-{/snippet}
-
-{#snippet removeControl(row: Repayment)}
-	{#if row.payroll_run_id != null}<span
-			role="img"
-			title={ctx.t('loan.repayment_locked')}
-			aria-label={ctx.t('loan.repayment_locked')}
-			><Icon name="lucide:lock-keyhole" class="size-4 text-muted-foreground" /></span
-		>{:else if !isLocked()}<Button
-			size="icon"
-			variant="outline"
-			aria-label={ctx.t('loan.remove_repayment')}
-			hint={ctx.t('loan.remove_repayment')}
-			onclick={() => remove(row)}
-		>
-			<Icon name="lucide:x" class="size-4" />
-		</Button>{/if}
-{/snippet}
 
 {#snippet repaymentsEmpty()}
 	<div class="grid grid-cols-2 gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground">
@@ -280,6 +240,12 @@
 	of="loan_catalog_entry"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
+	on_done={(outcome) => {
+		if (outcome.kind === 'committed') {
+			draft = null;
+			reload += 1;
+		}
+	}}
 >
 	{#if record === null}
 		<Form
@@ -291,65 +257,128 @@
 		>
 			{#snippet children(form)}<LoanCreateFields {ctx} {form} />{/snippet}
 		</Form>
-	{:else}<Stack gap="lg">
-			<Form {ctx} of="loan_catalog_entry" mode="update" id={record.id} {record} size="content">
-				{#snippet children()}<Stack gap="md">
+	{:else}
+		<Form
+			{ctx}
+			of="loan_catalog_entry"
+			mode="update"
+			id={record.id}
+			{record}
+			size="content"
+			acts={repaymentActs}
+			on_reset={() => {
+				draft = null;
+			}}
+		>
+			{#snippet children(form)}
+				{@const viewing = form.mode === 'view'}
+				{@const locked = !loaded || viewing}
+				{@const schedule = scheduleFor(form)}
+				{@const scheduleState = schedule === null ? 'NO_TERMS' : loanScheduleState(schedule)}
+				{@const problems = schedule === null ? [] : loanScheduleProblems(schedule)}
+				{#snippet amountCell({ row }: { row: Repayment })}
+					<div class="py-1.5">
+						<MoneyInput
+							{ctx}
+							scale={2}
+							value={row.amount}
+							readonly={locked}
+							on_change={(next) => {
+								if (typeof next === 'string') updateRow(row.key, { amount: next });
+							}}
+						/>
+					</div>
+				{/snippet}
+				{#snippet dateCell({ row }: { row: Repayment })}
+					<div class="py-1.5">
+						<TimeInput
+							{ctx}
+							of="date"
+							precision="month"
+							value={row.paid_on}
+							readonly={locked}
+							on_change={(paid_on: string | null) => updateRow(row.key, { paid_on })}
+						/>
+					</div>
+				{/snippet}
+				{#snippet removeControl(row: Repayment)}
+					{#if row.payroll_run_id != null}<span
+							role="img"
+							title={ctx.t('loan.repayment_locked')}
+							aria-label={ctx.t('loan.repayment_locked')}
+							><Icon name="lucide:lock-keyhole" class="size-4 text-muted-foreground" /></span
+						>{:else if !locked}<Button
+							size="icon"
+							variant="outline"
+							aria-label={ctx.t('loan.remove_repayment')}
+							hint={ctx.t('loan.remove_repayment')}
+							onclick={() => removeRow(row.key)}
+						>
+							<Icon name="lucide:x" class="size-4" />
+						</Button>{/if}
+				{/snippet}
+				<Stack gap="lg">
+					<Stack gap="md">
 						<CatalogField {ctx} of="loan_catalog" />
 						{#each ['quantity', 'repayment_period', 'evidence_file'] as name (name)}<Field
 								{ctx}
 								{name}
 							/>{/each}
-					</Stack>{/snippet}
-			</Form>
-			<Stack gap="sm" data-loan-repayments>
-				<Cluster gap="sm" align="center" justify="between">
-					<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>
-					<Cluster gap="xs" align="center">
-						{#if !isLocked()}<Button
-								size="icon"
-								variant="outline"
-								aria-label={ctx.t('loan.add_repayment')}
-								hint={ctx.t('loan.add_repayment_hint')}
-								disabled={busy}
-								onclick={add}
-							>
-								<Icon name="lucide:plus" class="size-4" />
-							</Button>{/if}
-						<Button
-							size="icon"
-							variant="outline"
-							aria-label={scheduleState === 'READY'
-								? ctx.t('loan.recalculate')
-								: ctx.t('loan.regenerate')}
-							hint={ctx.t('loan.schedule_hint')}
-							disabled={busy || isLocked() || scheduleState === 'NO_TERMS'}
-							onclick={regenerate}
-						>
-							<Icon name="lucide:refresh-cw" class="size-4" />
-						</Button>
-					</Cluster>
-				</Cluster>
-				<Bound class="rounded-md border">
-					<Table
-						{ctx}
-						of={rows}
-						key="loan-repayments-matrix"
-						layout="grid"
-						embedded
-						controlled
-						row_trailing={removeControl}
-						empty={repaymentsEmpty}
-						columns={[
-							{ field: 'amount', label: ctx.t('loan.repayment_amount'), cell: amountCell },
-							{ field: 'paid_on', label: ctx.t('loan.column_date'), cell: dateCell }
-						]}
-					/>
-				</Bound>
-				<Cluster gap="sm" align="center">
-					{#each problems as problem}<span class="text-xs text-amber-700">{label(problem)}</span
-						>{/each}
-				</Cluster>
-			</Stack>
-		</Stack>
+					</Stack>
+					<Stack gap="sm" data-loan-repayments>
+						<Cluster gap="sm" align="center" justify="between">
+							<h3 class="font-medium">{ctx.t('loan.repayments')}</h3>
+							{#if !viewing}
+								<Cluster gap="xs" align="center">
+									<Button
+										size="icon"
+										variant="outline"
+										aria-label={ctx.t('loan.add_repayment')}
+										hint={ctx.t('loan.add_repayment_hint')}
+										disabled={!loaded}
+										onclick={() => addRow(form)}
+									>
+										<Icon name="lucide:plus" class="size-4" />
+									</Button>
+									<Button
+										size="icon"
+										variant="outline"
+										aria-label={scheduleState === 'READY'
+											? ctx.t('loan.recalculate')
+											: ctx.t('loan.regenerate')}
+										hint={ctx.t('loan.schedule_hint')}
+										disabled={!loaded || scheduleState === 'NO_TERMS'}
+										onclick={() => regenerate(form)}
+									>
+										<Icon name="lucide:refresh-cw" class="size-4" />
+									</Button>
+								</Cluster>
+							{/if}
+						</Cluster>
+						<Bound class="rounded-md border">
+							<Table
+								{ctx}
+								of={shown}
+								key="loan-repayments-matrix"
+								layout="grid"
+								embedded
+								controlled
+								row_trailing={removeControl}
+								empty={repaymentsEmpty}
+								columns={[
+									{ field: 'amount', label: ctx.t('loan.repayment_amount'), cell: amountCell },
+									{ field: 'paid_on', label: ctx.t('loan.column_date'), cell: dateCell }
+								]}
+							/>
+						</Bound>
+						<Cluster gap="sm" align="center">
+							{#each problems as problem}<span class="text-xs text-tone-warning-text"
+									>{label(problem)}</span
+								>{/each}
+						</Cluster>
+					</Stack>
+				</Stack>
+			{/snippet}
+		</Form>
 	{/if}
 </RecordShell>

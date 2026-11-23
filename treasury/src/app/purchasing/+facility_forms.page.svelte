@@ -47,6 +47,17 @@
 			'pay_by_date',
 			'purchase_order'
 		]}
-		toolbar={{ title: false }}
+		toolbar={{
+			title: false,
+			actions: [
+				{
+					icon: 'lucide:file-down',
+					name: t('app.forms.pack'),
+					requires_selection: true,
+					disabled: (ids) => (ids.length === 1 ? null : t('errors.one_form')),
+					run: (ids) => ctx.run('facility_form_pack', { form: [...ids] })
+				}
+			]
+		}}
 	/>
 </AppShell>

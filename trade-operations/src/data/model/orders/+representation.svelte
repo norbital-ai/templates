@@ -25,16 +25,21 @@
 		Picker,
 		Combobox,
 		Badge,
+		EmptyState,
 		Tooltip,
 		Icon,
 		TimeRangeInput,
+		Timeline,
+		enum_text,
+		open_record,
 		use_record_controller,
 		use_act,
 		type FieldEditor,
 		type FormState,
-		type RecordView
+		type RecordView,
+		type TimelineEntry
 	} from '@norbital-ai/ui';
-	import { Bound, Stack, Cluster } from '@norbital-ai/ui/layout';
+	import { Bound, Inline, Scroll, Stack, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
@@ -58,6 +63,56 @@
 	const commercial = $derived(ctx.catalog?.orders?.output === undefined);
 	const recordController = use_record_controller();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
+	const activityWords: { t(key: string): string } = ctx;
+	const orderActivities = $derived(
+		id === null
+			? null
+			: ctx.query({
+					activities: {
+						where: { order: { eq: id } },
+						fields: ['title', 'kind', 'due_on', 'done', 'notes'],
+						order_by: { due_on: 'desc' }
+					}
+				})
+	);
+	const activityIcon = (kind: string): string => {
+		switch (kind) {
+			case 'call':
+				return 'lucide:phone';
+			case 'meeting':
+				return 'lucide:calendar-days';
+			case 'note':
+				return 'lucide:sticky-note';
+			default:
+				return 'lucide:check-square';
+		}
+	};
+	const orderActivityEntries = $derived<TimelineEntry[]>(
+		(orderActivities?.current?.activities.rows ?? []).map((row) => ({
+			key: row.id,
+			icon: activityIcon(row.kind),
+			...(row.done ? { tone: 'success' as const } : {}),
+			title: row.title,
+			line: [
+				format({ kind: 'date' }, row.due_on, { locale: ctx.locale }),
+				enum_text(row.kind, {
+					t: (key) => activityWords.t(key),
+					model: 'activities',
+					field: 'kind'
+				})
+			],
+			...(row.done
+				? {
+						mark: {
+							text: ctx.t('models.activities.fields.done'),
+							variant: 'success' as const
+						}
+					}
+				: {}),
+			...(row.notes ? { notes: [{ kind: 'notes', text: row.notes }] } : {}),
+			onpick: () => open_record('activities', row.id)
+		}))
+	);
 	const preset = createValues<'orders'>();
 	let choice = $state<OrderTrade['kind'] | null>(null);
 	const tradeValue = (value: Value) =>
@@ -548,18 +603,23 @@
 			}}
 		/>{/if}{/snippet}
 {#snippet activity()}{#if id}
-		<Table
-			{ctx}
-			of="activities"
-			where={{ order: { eq: id } }}
-			columns={['title', 'kind', 'owner', 'due_on', 'done']}
-			toolbar={{
-				new:
-					ctx.catalog?.activities?.create && !archived
-						? () => openCreate('activities', { order: id })
-						: false
-			}}
-		/>{/if}{/snippet}
+		<Scroll name={ctx.t('models.activities.label')} size="fill" inset>
+			<Stack gap="md">
+				<Inline align="center" justify="between">
+					<h3 class="text-sm font-medium">{ctx.t('models.activities.label')}</h3>
+					{#if ctx.catalog?.activities?.create && !archived}
+						<Button variant="outline" onclick={() => openCreate('activities', { order: id })}>
+							{ctx.t('component.new_activity')}
+						</Button>
+					{/if}
+				</Inline>
+				<Timeline entries={orderActivityEntries} label={ctx.t('models.activities.label')}>
+					{#snippet empty()}
+						<EmptyState title={ctx.t('component.activities_empty')} />
+					{/snippet}
+				</Timeline>
+			</Stack>
+		</Scroll>{/if}{/snippet}
 {#snippet contractActions(form: FormState | undefined)}
 	<Cluster gap="sm" class="max-w-full">
 		{#if kingdee}

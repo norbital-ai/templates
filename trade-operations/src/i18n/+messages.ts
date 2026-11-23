@@ -822,5 +822,8 @@ export default messages({
 	'dashboard.kingdee': 'Kingdee follow-up',
 	'dashboard.kingdee_failed': 'Sync failed',
 	'dashboard.overdue': 'Overdue receivables',
-	'dashboard.customers_count': '{count} customers'
+	'dashboard.customers_count': '{count} customers',
+	'component.activities_empty': 'No activities yet',
+	'component.new_activity': 'New activity',
+	'component.credit_snapshots_empty': 'No credit snapshots yet'
 });

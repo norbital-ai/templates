@@ -248,7 +248,7 @@
 						})}
 					</p>
 					{#if recovery.remaining > 0}
-						<p class="text-sm text-amber-700 dark:text-amber-300">
+						<p class="text-sm text-tone-warning-text">
 							{t('contract.recovery_notice', { remaining: recovery.remaining })}
 						</p>
 					{/if}

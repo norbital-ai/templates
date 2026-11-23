@@ -9,7 +9,7 @@ import { payslipWanted } from '../../employee_profile/employee_balance/service/s
 import { isJsonObject, type JsonObject } from '../../../../lib/foundation.js';
 import { type PayWindow } from './pay_cycle.js';
 import { type PayslipBreakdown } from './payslip_breakdown.js';
-import { idOf, idsOf, objectValue, queryRows, type Reader } from '../../../../lib/reads.js';
+import { idsOf, objectValue, queryRows, type Reader } from '../../../../lib/reads.js';
 import { type Law } from '../../jurisdiction/service/law.js';
 import {
 	claimsAsPosted,
@@ -167,38 +167,71 @@ export interface Period {
 	readonly year: string;
 }
 
+/** A group of amended people sharing one entry-date span (`from..to`) and paid-run list. */
+export interface EntryBucket {
+	readonly people: readonly string[];
+	readonly window: PayWindow;
+	readonly runs: readonly string[];
+}
+
+/** A group of amended people sharing one balance-unwinding start (`from`, `since`). */
+export interface BalanceBucket {
+	readonly people: readonly string[];
+	/** Earliest recalculated window start: non-payslip ledger entries after this are unwound. */
+	readonly from: string;
+	/** Pay date of the first recalculated period: payslips on or after this are unwound. */
+	readonly since: string;
+}
+
 export const orderOf = (run: JsonObject) =>
 	`${String(run.pay_date)}/${String(run.run_number ?? '').padStart(12, '0')}`;
+
+const scopedOr = <W>(branches: readonly W[]): W | { readonly or: readonly W[] } =>
+	branches.length === 1 && branches[0] !== undefined ? branches[0] : { or: [...branches] };
 
 /**
  * Everything paid periods need to be worked out again, for these people, in one request; claims on a limited row read
  * what they posted in a second, since their ids come from the first.
+ *
+ * Company-wide tables (`work_event`, `shift_definition`, `shift_pattern`, `holiday`) and already-loaded person tables
+ * (`dependant`, `employee_balance`) are reused from the run's own read (`own`), and dated tables are scoped per bucket
+ * so one far-back amendment neither scans un-recalculated years nor widens the read for other amended people.
  */
 export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	read: Reader,
-	entity: string,
 	people: readonly string[],
-	window: PayWindow,
-	/** The pay date of the first paid period the span reaches: the balance holds what was paid before it. */
-	since: string,
-	runs: readonly string[],
-	/** The run's own read: a claim with no posting yet is limited as its law limits it. */
+	entryBuckets: readonly EntryBucket[],
+	balanceBuckets: readonly BalanceBucket[],
+	/** The run's own read: reused for company-wide and already-loaded rows, and for limited-claim rules. */
 	own: RunData
 ) {
-	const company = { entity_id: { eq: idOf('entity', entity) } };
 	const who = idsOf('employee_profile', people);
-	const paidBy = idsOf('payroll_run', runs);
+	const peopleSet = new Set(people);
 	const theirs = { employment_id: { is: { employee_id: { in: who } } } };
-	const dated = { gte: window.from, lte: window.to };
+	// an on-cycle run already loaded every paying person's dependants and balance; off-cycle leavers are read on demand
+	const ownProfiles = new Set((own.employee_profile ?? []).map((row) => String(row.id)));
+	const missing = people.filter((id) => !ownProfiles.has(id));
+	const missingIds = idsOf('employee_profile', missing);
+	const entryScope = entryBuckets.map((bucket) => ({
+		who: idsOf('employee_profile', bucket.people),
+		dated: { gte: bucket.window.from, lte: bucket.window.to },
+		paidBy: idsOf('payroll_run', bucket.runs)
+	}));
+	const balanceScope = balanceBuckets.map((bucket) => ({
+		who: idsOf('employee_profile', bucket.people),
+		from: bucket.from,
+		since: bucket.since
+	}));
 	const data = yield* queryRows(read, {
-		work_event: { where: company, limit: 10000 },
-		shift_definition: { where: company, limit: 10000 },
-		shift_pattern: { where: company, limit: 10000 },
-		holiday: { where: company, limit: 10000 },
 		employment: { where: { employee_id: { in: who } }, limit: 10000 },
 		contract_terms: { where: theirs, limit: 10000 },
 		statutory_parameters: { where: theirs, limit: 10000 },
-		dependant: { where: { employee_id: { in: who } }, limit: 10000 },
+		...(missingIds.length === 0
+			? {}
+			: {
+					dependant: { where: { employee_id: { in: missingIds } }, limit: 10000 },
+					employee_balance: { where: { employee_id: { in: missingIds } }, limit: 10000 }
+				}),
 		employee_profile: {
 			where: { id: { in: who } },
 			limit: 10000,
@@ -208,33 +241,57 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 				entity_id: { fields: ['settings_code'] }
 			}
 		},
-		employee_balance: { where: { employee_id: { in: who } }, limit: 10000 },
 		leave_catalog_entry: {
-			where: {
-				...theirs,
-				leave_catalog_entry_day: {
-					some: { or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] }
-				}
-			},
+			where: scopedOr(
+				entryScope.map(({ who: bucketWho, dated, paidBy }) => ({
+					employment_id: { is: { employee_id: { in: bucketWho } } },
+					leave_catalog_entry_day: {
+						some: { or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] }
+					}
+				}))
+			),
 			limit: 10000,
 			leave_catalog_entry_day: {
 				fields: ['id', 'leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
 				limit: 10000
 			}
 		},
-		// what is dated in the span, and what a run of the span priced whatever its date
+		// what is dated in each bucket's span, and what a run of the span priced whatever its date
 		claim_catalog_entry: {
-			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] },
+			where: scopedOr(
+				entryScope.map(({ who: bucketWho, dated, paidBy }) => ({
+					employment_id: { is: { employee_id: { in: bucketWho } } },
+					or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }]
+				}))
+			),
 			limit: 10000
 		},
 		adhoc_catalog_entry: {
-			where: { ...theirs, or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }] },
+			where: scopedOr(
+				entryScope.map(({ who: bucketWho, dated, paidBy }) => ({
+					employment_id: { is: { employee_id: { in: bucketWho } } },
+					or: [{ incurred_on: dated }, { payroll_run_id: { in: paidBy } }]
+				}))
+			),
 			limit: 10000
 		},
 		loan_catalog_entry: { where: theirs, limit: 10000 },
-		loan_catalog_entry_repayment: { where: { ...theirs, paid_on: dated }, limit: 10000 },
+		loan_catalog_entry_repayment: {
+			where: scopedOr(
+				entryScope.map(({ who: bucketWho, dated }) => ({
+					employment_id: { is: { employee_id: { in: bucketWho } } },
+					paid_on: dated
+				}))
+			),
+			limit: 10000
+		},
 		roster_entry: {
-			where: { ...theirs, work_date: dated },
+			where: scopedOr(
+				entryScope.map(({ who: bucketWho, dated }) => ({
+					employment_id: { is: { employee_id: { in: bucketWho } } },
+					work_date: dated
+				}))
+			),
 			fields: [
 				'id',
 				'employment_id',
@@ -247,13 +304,15 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 			],
 			limit: 10000
 		},
-		// what was paid from the first period worked out again, and since, whichever company: with its run and its law, as
+		// what was paid from each person's first recalculated period on, whichever company: with its run and its law, as
 		// a payslip in the same totals took the balance past that period
 		payslip: {
-			where: {
-				employee_id: { in: who },
-				payroll_run_id: { is: { pay_date: { gte: since } } }
-			},
+			where: scopedOr(
+				balanceScope.map(({ who: bucketWho, since }) => ({
+					employee_id: { in: bucketWho },
+					payroll_run_id: { is: { pay_date: { gte: since } } }
+				}))
+			),
 			fields: ['id', 'employee_id', 'employment_id', 'payroll_run_id', 'entity_id', 'breakdown'],
 			limit: 10000,
 			payroll_run_id: { fields: ['pay_date', 'run_number'] },
@@ -265,19 +324,21 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 			fields: ['employee_id', 'pay_group_id', 'period', 'payroll_run_id'],
 			limit: 10000
 		},
-		// what records posted outside any payslip, after the earliest recalculated period closed
+		// what records posted outside any payslip, after each person's earliest recalculated period opened
 		ledger_entry: {
-			where: {
-				balance_id: { is: { employee_id: { in: who } } },
-				or: [
-					{ account: { in: ['leave', 'claim'] }, effective_on: { gt: window.from } },
-					{
-						account: { in: ['pay', 'statutory'] },
-						source: { like: 'adhoc_catalog_entry:%' },
-						effective_on: { gt: window.from }
-					}
-				]
-			},
+			where: scopedOr(
+				balanceScope.map(({ who: bucketWho, from }) => ({
+					balance_id: { is: { employee_id: { in: bucketWho } } },
+					or: [
+						{ account: { in: ['leave', 'claim'] }, effective_on: { gt: from } },
+						{
+							account: { in: ['pay', 'statutory'] },
+							source: { like: 'adhoc_catalog_entry:%' },
+							effective_on: { gt: from }
+						}
+					]
+				}))
+			),
 			fields: [
 				'balance_id',
 				'source',
@@ -293,8 +354,22 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 			limit: 10000
 		}
 	});
+	const ownDependants = (own.dependant ?? []).filter((row) =>
+		peopleSet.has(String(row.employee_id))
+	);
+	const ownBalances = (own.employee_balance ?? []).filter((row) =>
+		peopleSet.has(String(row.employee_id))
+	);
 	return yield* claimsAsPosted(read, {
-		...withStints(data),
+		...withStints({
+			...data,
+			dependant: [...ownDependants, ...(data.dependant ?? [])]
+		}),
+		work_event: own.work_event ?? [],
+		shift_definition: own.shift_definition ?? [],
+		shift_pattern: own.shift_pattern ?? [],
+		holiday: own.holiday ?? [],
+		employee_balance: [...ownBalances, ...(data.employee_balance ?? [])],
 		law_settings: own.law_settings ?? [],
 		claim_catalog: own.claim_catalog ?? [],
 		// the run read its company and every change of it: each period folds them on its own last day
@@ -303,32 +378,84 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 	});
 });
 
+/** Pre-indexed span rows by employee, built once before the per-period recalculation loop. */
+export interface SpanIndex {
+	readonly span: RunData;
+	readonly payGroupById: ReadonlyMap<string, JsonObject>;
+	readonly employmentByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly profileByEmployee: ReadonlyMap<string, JsonObject>;
+	readonly balanceByEmployee: ReadonlyMap<string, JsonObject>;
+	readonly rosterByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly claimByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly adhocByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly repaymentByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly leaveByEmployee: ReadonlyMap<string, readonly JsonObject[]>;
+}
+
+const groupByStintOwner = (
+	rows: readonly JsonObject[] | undefined,
+	ownerOf: ReadonlyMap<string, string>
+): ReadonlyMap<string, readonly JsonObject[]> => {
+	const grouped = new Map<string, JsonObject[]>();
+	for (const row of rows ?? []) {
+		const employee = ownerOf.get(String(row.employment_id));
+		if (employee === undefined) continue;
+		const bucket = grouped.get(employee);
+		if (bucket === undefined) grouped.set(employee, [row]);
+		else bucket.push(row);
+	}
+	return grouped;
+};
+
+/** Pre-index a span's per-employee tables once so each recalculated period slices in O(period rows). */
+export const indexSpan = (span: RunData): SpanIndex => {
+	const ownerOf = new Map<string, string>();
+	const employmentByEmployee = new Map<string, JsonObject[]>();
+	for (const row of span.employment ?? []) {
+		const employee = String(row.employee_id);
+		ownerOf.set(String(row.id), employee);
+		const bucket = employmentByEmployee.get(employee);
+		if (bucket === undefined) employmentByEmployee.set(employee, [row]);
+		else bucket.push(row);
+	}
+	return {
+		span,
+		payGroupById: new Map((span.pay_group ?? []).map((row) => [String(row.id), row])),
+		employmentByEmployee,
+		profileByEmployee: new Map((span.employee_profile ?? []).map((row) => [String(row.id), row])),
+		balanceByEmployee: new Map(
+			(span.employee_balance ?? []).map((row) => [String(row.employee_id), row])
+		),
+		rosterByEmployee: groupByStintOwner(span.roster_entry, ownerOf),
+		claimByEmployee: groupByStintOwner(span.claim_catalog_entry, ownerOf),
+		adhocByEmployee: groupByStintOwner(span.adhoc_catalog_entry, ownerOf),
+		repaymentByEmployee: groupByStintOwner(span.loan_catalog_entry_repayment, ownerOf),
+		leaveByEmployee: groupByStintOwner(span.leave_catalog_entry, ownerOf)
+	};
+};
+
 /** One paid period's own rows out of the span: its window, the law of its pay date, and the seals that belong to it. */
 export const sliceOf = (
-	span: RunData,
+	indexed: SpanIndex,
 	law: Law | undefined,
 	period: Period,
-	people: ReadonlySet<string>,
-	carriers: (employee: string) => ReadonlySet<string>,
+	who: readonly string[],
+	carriers: (employee: string) => ReadonlySet<string> | undefined,
 	/** Whether this period's run carried, for this person, the earlier period holding this date. */
 	carriedBack: (employee: string, date: string) => boolean,
 	accounts: ReadonlyMap<string, Accounts>
 ): RunData => {
-	const contracts = (span.employment ?? []).filter((row) => people.has(String(row.employee_id)));
-	const employeeOf = new Map(contracts.map((row) => [String(row.id), String(row.employee_id)]));
 	const { from } = period.frame.attendance;
 	const inside = (date: unknown) =>
 		typeof date === 'string' && date >= from && date <= period.closes;
 	// a row belongs to this period when nothing sealed it, its own run did, or a run that carried for it did
-	const belongs = (row: JsonObject, employee: string | undefined) =>
-		employee !== undefined &&
-		(row.payroll_run_id == null ||
-			String(row.payroll_run_id) === period.id ||
-			carriers(employee).has(String(row.payroll_run_id)));
+	const belongs = (row: JsonObject, carrierSet: ReadonlySet<string> | undefined) =>
+		row.payroll_run_id == null ||
+		String(row.payroll_run_id) === period.id ||
+		(carrierSet?.has(String(row.payroll_run_id)) ?? false);
 	// an entry this period's own run priced though it is dated before its window was paid here as a late entry: it is
 	// this period's, unless the run priced it for the earlier period it carried
-	const lateHere = (row: JsonObject, employee: string | undefined, date: unknown) =>
-		employee !== undefined &&
+	const lateHere = (row: JsonObject, employee: string, date: unknown) =>
 		String(row.payroll_run_id) === period.id &&
 		typeof date === 'string' &&
 		date < from &&
@@ -338,46 +465,70 @@ export const sliceOf = (
 		payroll_run_id: null,
 		sealed: row.payroll_run_id != null
 	});
-	const own = (model: string, date: string) =>
-		(span[model] ?? []).flatMap((row) => {
-			const employee = employeeOf.get(String(row.employment_id));
-			return (inside(row[date]) && belongs(row, employee)) || lateHere(row, employee, row[date])
-				? [opened(row)]
-				: [];
-		});
-	return {
-		...span,
-		...lawData(law),
-		pay_group: (span.pay_group ?? []).filter(
-			(row) => String(row.id) === String(period.run.pay_group_id)
-		),
-		employment: contracts,
-		employee_profile: (span.employee_profile ?? []).filter((row) => people.has(String(row.id))),
-		employee_balance: (span.employee_balance ?? []).flatMap((row) => {
-			const held = accounts.get(String(row.employee_id));
-			return held === undefined ? [] : [{ ...row, account: held }];
-		}),
-		roster_entry: own('roster_entry', 'work_date'),
-		claim_catalog_entry: own('claim_catalog_entry', 'incurred_on'),
-		adhoc_catalog_entry: own('adhoc_catalog_entry', 'incurred_on'),
-		loan_catalog_entry_repayment: own('loan_catalog_entry_repayment', 'paid_on'),
-		leave_catalog_entry: (span.leave_catalog_entry ?? []).flatMap((row) => {
-			const employee = employeeOf.get(String(row.employment_id));
+	const contracts: JsonObject[] = [];
+	const profiles: JsonObject[] = [];
+	const balances: JsonObject[] = [];
+	const rosters: JsonObject[] = [];
+	const claims: JsonObject[] = [];
+	const adhocs: JsonObject[] = [];
+	const repayments: JsonObject[] = [];
+	const leaves: JsonObject[] = [];
+	const pick = (
+		rows: readonly JsonObject[] | undefined,
+		dateField: string,
+		employee: string,
+		carrierSet: ReadonlySet<string> | undefined,
+		out: JsonObject[]
+	) => {
+		if (rows === undefined) return;
+		for (const row of rows) {
+			const date = row[dateField];
+			if ((inside(date) && belongs(row, carrierSet)) || lateHere(row, employee, date))
+				out.push(opened(row));
+		}
+	};
+	for (const employee of who) {
+		const carrierSet = carriers(employee);
+		const stints = indexed.employmentByEmployee.get(employee);
+		if (stints !== undefined) contracts.push(...stints);
+		const profile = indexed.profileByEmployee.get(employee);
+		if (profile !== undefined) profiles.push(profile);
+		const balance = indexed.balanceByEmployee.get(employee);
+		const held = accounts.get(employee);
+		if (balance !== undefined && held !== undefined) balances.push({ ...balance, account: held });
+		pick(indexed.rosterByEmployee.get(employee), 'work_date', employee, carrierSet, rosters);
+		pick(indexed.claimByEmployee.get(employee), 'incurred_on', employee, carrierSet, claims);
+		pick(indexed.adhocByEmployee.get(employee), 'incurred_on', employee, carrierSet, adhocs);
+		pick(indexed.repaymentByEmployee.get(employee), 'paid_on', employee, carrierSet, repayments);
+		for (const row of indexed.leaveByEmployee.get(employee) ?? []) {
 			const days = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
 				.filter(isJsonObject)
 				.map((child) =>
 					// a cash-out's dates are placeholders: one no run has taken is the next run's own, and one this period's
 					// run took is this period's
-					belongs(child, employee) &&
+					belongs(child, carrierSet) &&
 					(row.encashment === true ? child.payroll_run_id != null : inside(child.incurred_on))
 						? opened(child)
 						: // a slot another period priced stays sealed: this one neither prices nor reads it
 							{ ...child, payroll_run_id: child.payroll_run_id ?? 'other' }
 				);
-			return days.some((child) => child.payroll_run_id === null)
-				? [{ ...opened(row), leave_catalog_entry_day: days }]
-				: [];
-		}),
+			if (days.some((child) => child.payroll_run_id === null))
+				leaves.push({ ...opened(row), leave_catalog_entry_day: days });
+		}
+	}
+	const group = indexed.payGroupById.get(String(period.run.pay_group_id));
+	return {
+		...indexed.span,
+		...lawData(law),
+		pay_group: group === undefined ? [] : [group],
+		employment: contracts,
+		employee_profile: profiles,
+		employee_balance: balances,
+		roster_entry: rosters,
+		claim_catalog_entry: claims,
+		adhoc_catalog_entry: adhocs,
+		loan_catalog_entry_repayment: repayments,
+		leave_catalog_entry: leaves,
 		workplace_case_catalog_entry: []
 	};
 };

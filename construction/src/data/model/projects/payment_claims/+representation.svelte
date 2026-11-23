@@ -55,7 +55,7 @@
 						>
 							<Stack gap="xs">
 								<Inline gap="xs" align="center">
-									<Icon name="lucide:arrow-down-left" class="size-4 text-emerald-600" />
+									<Icon name="lucide:arrow-down-left" class="size-4 text-tone-success-text" />
 									<span class="font-medium text-foreground">{ctx.t('claims.variant_inflow')}</span>
 								</Inline>
 								<span class="text-xs text-muted-foreground">
@@ -74,7 +74,7 @@
 						>
 							<Stack gap="xs">
 								<Inline gap="xs" align="center">
-									<Icon name="lucide:arrow-up-right" class="size-4 text-amber-600" />
+									<Icon name="lucide:arrow-up-right" class="size-4 text-tone-warning-text" />
 									<span class="font-medium text-foreground">{ctx.t('claims.variant_outflow')}</span>
 								</Inline>
 								<span class="text-xs text-muted-foreground">

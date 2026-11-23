@@ -5,7 +5,7 @@
 	 * the reader scrolls away.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, EmptyState } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';

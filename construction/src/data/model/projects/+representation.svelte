@@ -28,10 +28,15 @@
 		Show,
 		Table,
 		Tabs,
+		Timeline,
+		enum_text,
+		format,
 		open_record,
-		type RecordView
+		type RecordView,
+		type TimelineEntry,
+		type TimelineTone
 	} from '@norbital-ai/ui';
-	import { Bound, Column, Grid, Inline, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Column, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import {
 		computeProjectCashflow,
 		computeProjectValuation,
@@ -47,6 +52,7 @@
 
 	let { view, ctx }: { view: RecordView<'projects'>; ctx: PageContext } = $props();
 	const t = ctx.t;
+	const words: { t(key: string): string } = ctx;
 	const day = ctx.clock('day');
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const id = $derived(record?.id);
@@ -110,10 +116,82 @@
 				},
 				progress_updates: {
 					where: { project_id: { eq: record.id } },
-					fields: ['title', 'update_date', 'category', 'reported_progress_pct'],
+					fields: [
+						'title',
+						'update_date',
+						'category',
+						'zone',
+						'reported_progress_pct',
+						'headcount',
+						'reported_by',
+						'summary'
+					],
+					task_id: { fields: ['task_code', 'title'] },
 					order_by: { update_date: 'desc' }
 				}
 			})
+	);
+
+	const progressCategoryIcon = (category: string): string => {
+		switch (category) {
+			case 'milestone':
+				return 'lucide:flag';
+			case 'delay':
+				return 'lucide:clock-alert';
+			case 'safety':
+				return 'lucide:shield-alert';
+			case 'inspection':
+				return 'lucide:clipboard-check';
+			case 'delivery':
+				return 'lucide:truck';
+			case 'site_diary':
+				return 'lucide:notebook-pen';
+			default:
+				return 'lucide:trending-up';
+		}
+	};
+	const progressCategoryTone = (category: string): TimelineTone => {
+		switch (category) {
+			case 'milestone':
+				return 'brand';
+			case 'delay':
+				return 'warning';
+			case 'safety':
+				return 'danger';
+			case 'inspection':
+				return 'info';
+			default:
+				return 'default';
+		}
+	};
+	const progressEntries = $derived<TimelineEntry[]>(
+		(programmeQuery?.current?.progress_updates.rows ?? []).map((row) => ({
+			key: row.id,
+			icon: progressCategoryIcon(row.category),
+			tone: progressCategoryTone(row.category),
+			title: row.title,
+			line: [
+				format({ kind: 'date' }, row.update_date, { locale: ctx.locale }),
+				enum_text(row.category, {
+					t: (k) => words.t(k),
+					model: 'progress_updates',
+					field: 'category'
+				}),
+				...(row.zone ? [row.zone] : []),
+				...(row.task_id ? [`${row.task_id.task_code} · ${row.task_id.title}`] : []),
+				...(row.reported_by ? [row.reported_by] : [])
+			],
+			...(row.reported_progress_pct != null
+				? {
+						mark: {
+							text: `${row.reported_progress_pct}%`,
+							variant: 'outline' as const
+						}
+					}
+				: {}),
+			...(row.summary ? { notes: [{ kind: 'summary', text: row.summary }] } : {}),
+			onpick: () => open_record('progress_updates', row.id)
+		}))
 	);
 
 	const commercialQuery = $derived(
@@ -773,27 +851,23 @@
 
 {#snippet progressTab()}
 	{#if id}
-		<Table
-			{ctx}
-			of="progress_updates"
-			key={`project:progress:${id}`}
-			where={{ project_id: { eq: id } }}
-			order_by={{ update_date: 'desc' }}
-			toolbar={{
-				title: t('programme.view_progress'),
-				new: () => (createSheet = { kind: 'update' })
-			}}
-			columns={[
-				'update_date',
-				'title',
-				'category',
-				'zone',
-				'task_id',
-				'reported_progress_pct',
-				'headcount',
-				'reported_by'
-			]}
-		/>
+		<Scroll name={t('programme.view_progress')} size="fill" inset>
+			<Stack gap="md">
+				<Inline align="center" justify="between">
+					<h3 class="text-sm font-medium">{t('programme.view_progress')}</h3>
+					{#if ctx.catalog?.progress_updates?.create}
+						<Button variant="outline" onclick={() => (createSheet = { kind: 'update' })}>
+							{t('programme.new_progress')}
+						</Button>
+					{/if}
+				</Inline>
+				<Timeline entries={progressEntries} label={t('programme.view_progress')}>
+					{#snippet empty()}
+						<EmptyState title={t('programme.progress_empty')} />
+					{/snippet}
+				</Timeline>
+			</Stack>
+		</Scroll>
 	{/if}
 {/snippet}
 

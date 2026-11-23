@@ -59,9 +59,6 @@ export default messages({
 	'app.payroll.calculation_details': 'Calculation details',
 	'app.payroll.adjustments_help':
 		'A record of a paid period was corrected. That payslip stands; this one carries the difference.',
-	'app.payroll.amended': 'Earlier periods',
-	'app.payroll.amended_carried': 'Carried by this run',
-	'app.payroll.amended_waiting': 'Waiting for the next run',
 	'app.payroll.amended_carry': 'Earlier periods to carry',
 	'app.payroll.create_run': 'Create run',
 	'app.people.chart_description': 'Monthly leavers and joiners against average headcount.',
@@ -520,7 +517,6 @@ export default messages({
 	'loan.generate_title': 'Regenerate repayments?',
 	'loan.generate_body':
 		'Open repayments are replaced with an even monthly schedule. Repayments already included in payroll stay as they are.',
-	'loan.generated': 'Repayments generated.',
 	'loan.must_equal_principal': 'Repayments must add up to the principal.',
 	'loan.sealed_exceeds': 'Repayments already included in payroll exceed the principal.',
 	'loan.no_months': 'The repayment period has no month left to schedule.',
@@ -564,7 +560,6 @@ export default messages({
 	'v2.settings_help':
 		'Manage effective legal versions, rates, benefits, statutory schemes and source-event rules.',
 	'v2.payslips': 'Payslips',
-	'v2.run_details': 'Run details',
 	'v2.create_run': 'Create payroll',
 	'v2.create_duty': 'Create task',
 	'v2.cases_entity_scope': 'Workplace cases are recorded per legal entity.',

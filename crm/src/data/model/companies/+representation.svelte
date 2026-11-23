@@ -2,7 +2,7 @@
 	/**
 	 * A company — a lead in the pipeline or a converted client: its general view (customer details, contacts,
 	 * root documents, cited Markdown research & formatted use cases, profile, and notes), its Activities
-	 * (recording, manual notes, scheduled meetings), Cohorts, Contacts, and dynamic template export under the bolt menu.
+	 * (recording, manual notes, scheduled meetings), Cohorts, and Contacts.
 	 */
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -13,7 +13,6 @@
 		Field,
 		Form,
 		Icon,
-		Popover,
 		RecordShell,
 		Section,
 		Sheet,
@@ -22,16 +21,11 @@
 	} from '@norbital-ai/ui';
 	import { Grid } from '@norbital-ai/ui/layout';
 	import ActivityTimeline from '../../../lib/ActivityTimeline.svelte';
-	import DocumentPreviewSheet from '../../../lib/DocumentPreviewSheet.svelte';
 	import ResearchView from '../../../lib/ResearchView.svelte';
-	import { latestByKey } from '../../../lib/documents.js';
 
 	let { view, ctx }: { view: RecordView<'companies'>; ctx: PageContext } = $props();
 	const t = ctx.t;
 	let creating = $state<'contact' | null>(null);
-	let exportMenuOpen = $state(false);
-	let exportingKey = $state<string | null>(null);
-	let exportingOpen = $state(false);
 
 	const customerFields = [
 		'name',
@@ -57,81 +51,19 @@
 	] as const;
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 
-	const catalogue = $derived(
-		record === null
-			? null
-			: ctx.query({
-					template_documents: {
-						where: { kind: { eq: 'document' }, scope: { eq: 'company' } },
-						fields: ['title', 'key', 'version']
-					}
-				})
-	);
-	const exportTemplates = $derived(latestByKey(catalogue?.current?.template_documents.rows ?? []));
-
 	const act = use_act(ctx);
 	const research = () => {
 		if (record === null || act.pending) return;
-		exportMenuOpen = false;
 		act.run(ctx.run('research_lead', { company: record.id, force: true }));
 	};
 </script>
 
-{#snippet boltActions()}
+{#snippet headerActions()}
 	{#if record !== null}
-		<Popover.Root bind:open={exportMenuOpen}>
-			<Popover.Trigger>
-				{#snippet child({ props })}
-					<Button
-						{...props}
-						variant="ghost"
-						size="icon"
-						aria-label={t('documents.export')}
-						title={t('documents.export')}
-						data-company-export-bolt
-					>
-						<Icon name="lucide:zap" class="size-4" />
-					</Button>
-				{/snippet}
-			</Popover.Trigger>
-			<Popover.Content align="end" class="w-60 p-1.5">
-				<div class="flex flex-col gap-0.5">
-					<button
-						type="button"
-						disabled={act.pending}
-						class="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted disabled:opacity-50"
-						onclick={research}
-					>
-						<span class="truncate"
-							>{t(
-								record.researched_at == null ? 'lead.research_action' : 'lead.research_again'
-							)}</span
-						>
-						<Icon name="lucide:sparkles" class="size-3.5 shrink-0 text-muted-foreground" />
-					</button>
-					{#if exportTemplates.length > 0}
-						<div class="my-1 border-t"></div>
-						<p class="px-2 py-1 text-xs font-medium text-muted-foreground">
-							{t('documents.export_templates')}
-						</p>
-						{#each exportTemplates as template (template.key)}
-							<button
-								type="button"
-								class="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted"
-								onclick={() => {
-									exportMenuOpen = false;
-									exportingKey = template.key;
-									exportingOpen = true;
-								}}
-							>
-								<span class="truncate">{template.title}</span>
-								<Icon name="lucide:play" class="size-3.5 shrink-0 text-muted-foreground" />
-							</button>
-						{/each}
-					{/if}
-				</div>
-			</Popover.Content>
-		</Popover.Root>
+		<Button variant="outline" disabled={act.pending} onclick={research}>
+			<Icon name="lucide:sparkles" class="size-3.5" />
+			{t(record.researched_at == null ? 'lead.research_action' : 'lead.research_again')}
+		</Button>
 	{/if}
 {/snippet}
 
@@ -276,7 +208,7 @@
 		of="companies"
 		id={record.id}
 		{fields}
-		actions={boltActions}
+		actions={headerActions}
 		tabs={[
 			{
 				name: 'activities',
@@ -288,15 +220,6 @@
 	>
 		{#snippet children(shown)}{@render body(shown)}{/snippet}
 	</RecordShell>
-{/if}
-
-{#if record !== null}
-	<DocumentPreviewSheet
-		{ctx}
-		company={record.id}
-		templateKey={exportingKey}
-		bind:open={exportingOpen}
-	/>
 {/if}
 
 <Sheet

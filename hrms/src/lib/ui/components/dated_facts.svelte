@@ -8,19 +8,19 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
-		Accordion,
-		Badge,
 		Button,
 		Combobox,
 		Editor,
 		FieldControl,
 		Show,
+		Timeline,
 		confirm_action,
 		enum_text,
 		format,
 		label,
 		use_form,
 		type Kind,
+		type TimelineEntry,
 		type Value
 	} from '@norbital-ai/ui';
 	import { Effect } from 'effect';
@@ -230,11 +230,52 @@
 			...entries.map((entry) => ({ ...entry, change: false as const }))
 		].toSorted((a, b) => b.on.localeCompare(a.on))
 	);
-	const dot = (on: string) =>
-		[
-			'absolute top-2.5 -left-[5px] size-2.5 rounded-full border bg-background',
-			on === current ? 'border-brand' : on > clock.today ? 'border-dashed' : 'border-border'
-		].join(' ');
+	type FactTimelineEntry = TimelineEntry & {
+		readonly source: (typeof timeline)[number];
+	};
+	const timelineEntries = $derived<readonly FactTimelineEntry[]>(
+		timeline.map((entry) => {
+			if (entry.change) {
+				return {
+					key: entry.key,
+					icon: 'lucide:calendar',
+					...(entry.on === current ? { tone: 'brand' as const } : {}),
+					...(entry.on > clock.today ? { status: 'future' as const } : {}),
+					current: entry.on === current,
+					title: day(entry.on),
+					line: entry.line,
+					...(entry.on === current
+						? { mark: { text: t('dated.current'), variant: 'outline' as const } }
+						: {}),
+					expanded: opened === entry.on,
+					ontoggle: () => {
+						picked = opened === entry.on ? null : entry.on;
+					},
+					source: entry
+				};
+			}
+			if (entry.expands && entryBody !== undefined) {
+				return {
+					key: entry.key,
+					icon: 'lucide:bookmark',
+					title: day(entry.on),
+					line: entry.line,
+					expanded: opened === entry.key,
+					ontoggle: () => {
+						picked = opened === entry.key ? null : entry.key;
+					},
+					source: entry
+				};
+			}
+			return {
+				key: entry.key,
+				icon: 'lucide:circle-dot',
+				title: day(entry.on),
+				line: entry.line,
+				source: entry
+			};
+		})
+	);
 	// one fact has one value on one day: two changes moved onto one day are refused, not guessed between
 	const twice = $derived(
 		facts.filter(
@@ -348,104 +389,52 @@
 	{#if timeline.length === 0}
 		<span class="text-meta">—</span>
 	{:else}
-		<Accordion.Root
-			type="single"
-			bind:value={() => opened, (next) => (picked = next === '' ? null : next)}
-			class="ml-1.5 border-l border-border"
-			aria-label={t('dated.changes')}
-		>
-			{#each timeline as entry (entry.key)}
-				{#if entry.change}
+		<Timeline entries={timelineEntries} label={t('dated.changes')}>
+			{#snippet item({ source: entry })}
+				{#if entry.change && entry.on === shown}
 					{@const first = entry.on === days.at(-1)}
-					<Accordion.Item value={entry.on} class="relative border-b-0 pl-5">
-						<span class={dot(entry.on)} aria-hidden="true"></span>
-						<Accordion.Trigger class="py-1.5">
-							<span class="flex min-w-0 flex-1 items-center gap-2">
-								<span class="shrink-0 text-sm font-medium">{day(entry.on)}</span>
-								<span class="text-meta min-w-0 flex-1 truncate font-normal"
-									>{entry.line.join(' · ')}</span
-								>
-								{#if entry.on === current}<Badge variant="outline">{t('dated.current')}</Badge>{/if}
-							</span>
-						</Accordion.Trigger>
-						<Accordion.Content>
-							{#if entry.on === shown}
-								<Stack gap="md" class="pt-1 pb-3">
-									{#if !viewing}
-										<!-- the change's day is on its row: only an edit shows it again, to move it -->
-										<Cluster gap="md" align="end" justify="between">
-											<Cluster gap="md" align="end">
-												{#if !(fixedFirst && first)}
-													<FieldControl id="{id}-from" label={t('dated.from')}>
-														<Editor
-															{ctx}
-															id="{id}-from"
-															name="from"
-															kind={{ kind: 'date' }}
-															value={entry.on}
-															on_change={(next) =>
-																move(next == null ? '' : String(next).slice(0, 10))}
-														/>
-													</FieldControl>
-												{/if}
-												{#each lines.filter( (line) => attributes.includes(line.name) ) as line (line.name)}
-													{@render field(line, entry.on)}
-												{/each}
-											</Cluster>
-											{#if !(fixedFirst && first) && (days.length > 1 || drafted !== null)}
-												<Button variant="ghost" onclick={drop}>{t('dated.remove_change')}</Button>
-											{/if}
-										</Cluster>
+					<Stack gap="md" class="pb-2">
+						{#if !viewing}
+							<!-- the change's day is on its row: only an edit shows it again, to move it -->
+							<Cluster gap="md" align="end" justify="between">
+								<Cluster gap="md" align="end">
+									{#if !(fixedFirst && first)}
+										<FieldControl id="{id}-from" label={t('dated.from')}>
+											<Editor
+												{ctx}
+												id="{id}-from"
+												name="from"
+												kind={{ kind: 'date' }}
+												value={entry.on}
+												on_change={(next) => move(next == null ? '' : String(next).slice(0, 10))}
+											/>
+										</FieldControl>
 									{/if}
-									{@render extra?.({ on: entry.on, first, viewing })}
-									<Columns count={3} collapse="compact">
-										{#each lines.filter((line) => viewing || !attributes.includes(line.name)) as line (line.name)}
-											{#if wide(line.name, line.value, entry.on)}
-												<Column span="all">{@render field(line, entry.on)}</Column>
-											{:else}
-												{@render field(line, entry.on)}
-											{/if}
-										{/each}
-									</Columns>
-								</Stack>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
-				{:else if entry.expands && entryBody !== undefined}
-					<Accordion.Item value={entry.key} class="relative border-b-0 pl-5">
-						<span
-							class="absolute top-3 -left-[3px] size-1.5 rounded-full bg-border"
-							aria-hidden="true"
-						></span>
-						<Accordion.Trigger class="py-1.5">
-							<span class="flex min-w-0 flex-1 items-center gap-2">
-								<span class="shrink-0 text-sm font-medium">{day(entry.on)}</span>
-								<span class="text-meta min-w-0 flex-1 truncate font-normal"
-									>{entry.line.join(' · ')}</span
-								>
-							</span>
-						</Accordion.Trigger>
-						<Accordion.Content>
-							{#if entry.key === opened}
-								<div class="pt-1 pb-3">{@render entryBody(entry, viewing)}</div>
-							{/if}
-						</Accordion.Content>
-					</Accordion.Item>
-				{:else}
-					<div class="relative py-1.5 pl-5">
-						<span
-							class="absolute top-3 -left-[3px] size-1.5 rounded-full bg-border"
-							aria-hidden="true"
-						></span>
-						<span class="text-meta block truncate"
-							><span class="font-medium text-foreground">{day(entry.on)}</span> · {entry.line.join(
-								' · '
-							)}</span
-						>
-					</div>
+									{#each lines.filter((line) => attributes.includes(line.name)) as line (line.name)}
+										{@render field(line, entry.on)}
+									{/each}
+								</Cluster>
+								{#if !(fixedFirst && first) && (days.length > 1 || drafted !== null)}
+									<Button variant="ghost" onclick={drop}>{t('dated.remove_change')}</Button>
+								{/if}
+							</Cluster>
+						{/if}
+						{@render extra?.({ on: entry.on, first, viewing })}
+						<Columns count={3} collapse="compact">
+							{#each lines.filter((line) => viewing || !attributes.includes(line.name)) as line (line.name)}
+								{#if wide(line.name, line.value, entry.on)}
+									<Column span="all">{@render field(line, entry.on)}</Column>
+								{:else}
+									{@render field(line, entry.on)}
+								{/if}
+							{/each}
+						</Columns>
+					</Stack>
+				{:else if !entry.change && entry.expands && entryBody !== undefined && entry.key === opened}
+					<div class="pb-2">{@render entryBody(entry, viewing)}</div>
 				{/if}
-			{/each}
-		</Accordion.Root>
+			{/snippet}
+		</Timeline>
 	{/if}
 	{#each twice as fact (`${fact.name}/${fact.from}`)}
 		<p class="text-sm text-destructive" role="alert">{t('dated.twice', { fact: dated(fact) })}</p>

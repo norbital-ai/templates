@@ -36,7 +36,7 @@ export default model('pay_amendment', {
 			fields: 'all',
 			// a person's amendment rows are found by any of their stints
 			employee_id: { fields: ['name'], employment: { fields: ['id'] } },
-			pay_group_id: { fields: ['name'] },
+			pay_group_id: { fields: ['name', 'entity_id'] },
 			payroll_run_id: { fields: ['run_number', 'period', 'state'] }
 		}
 	},

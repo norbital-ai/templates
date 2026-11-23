@@ -120,9 +120,12 @@ export default model('payroll_run', {
 					],
 					limit: 10000
 				},
-				// every paid period still to be worked out again: a run takes those of the people it pays
+				// every paid period of these companies still to be worked out again: a run takes those of the people it pays
 				pay_amendment: {
-					where: { payroll_run_id: { is_null: true } },
+					where: {
+						payroll_run_id: { is_null: true },
+						pay_group_id: { is: { entity_id: { in: entityIds } } }
+					},
 					fields: ['employee_id', 'pay_group_id', 'period', 'payroll_run_id'],
 					limit: 10000
 				},

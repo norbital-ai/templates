@@ -379,7 +379,7 @@
 								<span class="text-sm font-medium">{option.title}</span>
 								{#if option.type === 'recording' && savedDraft !== null}
 									<span
-										class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+										class="rounded-full bg-tone-warning-bg px-2 py-0.5 text-xs font-medium text-tone-warning-text"
 									>
 										{t('activities.draft_saved', {
 											duration: formatDuration(savedDraft.elapsedSeconds)

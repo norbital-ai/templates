@@ -2,7 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { createKioskSession } from './kiosk_session.svelte.js';
 	import { Clock, Data, DateTime, Duration, Effect, Match, Result } from 'effect';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	/**
 	 * The attendance kiosk: a full-screen time clock for one legal entity. A live face held in the outline for two
 	 * seconds is matched on the device against the enrolled descriptors and punched on the person's day
@@ -171,8 +171,7 @@
 	const STATUS_TONE_CLASSES: Readonly<Record<StatusTone, string>> = {
 		neutral: 'border-border bg-card text-foreground',
 		success: 'border-success/30 bg-success/10 text-success',
-		warning:
-			'border-warning/40 bg-warning/10 text-warning-foreground dark:border-warning/30 dark:text-warning',
+		warning: 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text',
 		error: 'border-destructive/30 bg-destructive/10 text-destructive'
 	};
 	const companies = $derived.by(() =>

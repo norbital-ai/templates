@@ -5,6 +5,6 @@
 </script>
 
 {#if sealed}<span
-		class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-micro font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300"
+		class="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2 py-0.5 text-micro font-medium uppercase tracking-wide text-tone-success-text"
 		>{t('component.sealed')}</span
 	>{:else}<span class="text-xs text-muted-foreground">{t('component.open')}</span>{/if}

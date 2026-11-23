@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import { input_schema, type ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Board, Button, TimeInput, EmptyState, Form, Map, Sheet } from '@norbital-ai/ui';

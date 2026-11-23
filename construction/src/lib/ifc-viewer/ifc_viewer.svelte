@@ -4,7 +4,7 @@
 	import { Badge, Button, cn } from '@norbital-ai/ui';
 	import { attach, fork, run } from '@norbital-ai/ui/effect';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import { convertIfcToFragments } from './ifc_viewer.converter.js';
 	import {
 		type IFCSelectedElement,

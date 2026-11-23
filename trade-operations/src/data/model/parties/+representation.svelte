@@ -1,7 +1,15 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Table, format, type RecordView } from '@norbital-ai/ui';
-	import { Bound } from '@norbital-ai/ui/layout';
+	import {
+		EmptyState,
+		Section,
+		Table,
+		Timeline,
+		format,
+		open_record,
+		type RecordView,
+		type TimelineEntry
+	} from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
@@ -14,6 +22,62 @@
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const supplier = $derived(
 		view.mode !== 'create' && ['supplier', 'both'].includes(view.record.kind)
+	);
+	const creditQuery = $derived(
+		id && !supplier
+			? ctx.query({
+					credit_snapshots: {
+						where: { party: { eq: id } },
+						fields: [
+							'currency',
+							'credit_limit',
+							'credit_used',
+							'credit_available',
+							'credit_hold',
+							'as_of'
+						],
+						order_by: { as_of: 'desc' }
+					}
+				})
+			: null
+	);
+	const creditEntries = $derived<TimelineEntry[]>(
+		(creditQuery?.current?.credit_snapshots.rows ?? []).map((row, idx) => ({
+			key: row.id,
+			icon: row.credit_hold ? 'lucide:shield-alert' : 'lucide:landmark',
+			tone: row.credit_hold ? 'danger' : idx === 0 ? 'brand' : 'default',
+			title: format({ kind: 'instant' }, row.as_of, {
+				locale: ctx.locale,
+				...(ctx.tz == null ? {} : { zone: ctx.tz })
+			}),
+			line: [
+				row.currency,
+				...(row.credit_limit != null
+					? [
+							`${ctx.t('models.credit_snapshots.fields.credit_limit')}: ${format({ kind: 'money' }, row.credit_limit, { locale: ctx.locale, currency: row.currency })}`
+						]
+					: []),
+				...(row.credit_used != null
+					? [
+							`${ctx.t('models.credit_snapshots.fields.credit_used')}: ${format({ kind: 'money' }, row.credit_used, { locale: ctx.locale, currency: row.currency })}`
+						]
+					: []),
+				...(row.credit_available != null
+					? [
+							`${ctx.t('models.credit_snapshots.fields.credit_available')}: ${format({ kind: 'money' }, row.credit_available, { locale: ctx.locale, currency: row.currency })}`
+						]
+					: [])
+			],
+			...(row.credit_hold
+				? {
+						mark: {
+							text: ctx.t('models.credit_snapshots.fields.credit_hold'),
+							variant: 'destructive' as const
+						}
+					}
+				: {}),
+			onpick: () => open_record('credit_snapshots', row.id)
+		}))
 	);
 </script>
 
@@ -35,22 +99,15 @@
 			toolbar={{ new: false }}
 		/>{/if}{/snippet}
 
-{#snippet credit()}{#if id && !supplier}<Bound size="viewport"
-			><Table
-				{ctx}
-				of="credit_snapshots"
-				where={{ party: { eq: id } }}
-				columns={[
-					'currency',
-					'credit_limit',
-					'credit_used',
-					'credit_available',
-					'credit_hold',
-					'as_of'
-				]}
-				toolbar={{ new: false }}
-			/></Bound
-		>{/if}{/snippet}
+{#snippet credit()}{#if id && !supplier}
+		<Section title={ctx.t('models.credit_snapshots.label')} icon="lucide:landmark">
+			<Timeline entries={creditEntries} label={ctx.t('models.credit_snapshots.label')}>
+				{#snippet empty()}
+					<EmptyState title={ctx.t('component.credit_snapshots_empty')} />
+				{/snippet}
+			</Timeline>
+		</Section>
+	{/if}{/snippet}
 <RecordForm
 	{ctx}
 	after_form={credit}

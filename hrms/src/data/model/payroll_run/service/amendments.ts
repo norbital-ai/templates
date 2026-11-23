@@ -78,10 +78,10 @@ const carried = (
 	open: readonly JsonObject[]
 ) =>
 	Effect.gen(function* () {
+		const touchedByEmployee = Map.groupBy(touched, (touch) => touch.employee);
 		const reached = (window: ReturnType<typeof windowsOf>[number]) =>
-			touched.some(
+			(touchedByEmployee.get(window.employee) ?? []).some(
 				(touch) =>
-					touch.employee === window.employee &&
 					(touch.entity === undefined || touch.entity === window.entity) &&
 					((touch.undated !== true &&
 						touch.from <= window.to &&
@@ -92,10 +92,9 @@ const carried = (
 		const holding = windows.find(
 			(window) =>
 				window.run.state !== 'PAID' &&
-				touched.some(
+				(touchedByEmployee.get(window.employee) ?? []).some(
 					(touch) =>
 						touch.soft !== true &&
-						touch.employee === window.employee &&
 						(touch.entity === undefined || touch.entity === window.entity) &&
 						(touch.undated === true
 							? touch.run != null && String(touch.run) === String(window.run.id)
@@ -332,13 +331,42 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 		'entity',
 		spans.map((span) => span.entity)
 	);
+	const named = spans.every((span) => span.employee !== undefined)
+		? idsOf(
+				'employee_profile',
+				spans.flatMap((span) => (span.employee === undefined ? [] : [span.employee]))
+			)
+		: null;
+	const first = since(spans);
+	const last = until(spans);
 	const known = yield* queryRows(read, {
 		payslip: {
 			where: {
 				entity_id: { in: entities },
-				payroll_run_id: {
-					is: { salary_coverage: { overlaps: { from: since(spans), to: null } } }
-				}
+				...(named === null ? {} : { employee_id: { in: named } }),
+				...(last === null
+					? {
+							payroll_run_id: {
+								is: { salary_coverage: { overlaps: { from: first, to: null } } }
+							}
+						}
+					: {
+							or: [
+								{
+									payroll_run_id: {
+										is: { salary_coverage: { overlaps: { from: first, to: last } } }
+									}
+								},
+								{
+									payroll_run_id: {
+										is: {
+											state: { eq: 'UNPAID' },
+											salary_coverage: { overlaps: { from: first, to: null } }
+										}
+									}
+								}
+							]
+						})
 			},
 			fields: ['employee_id', 'entity_id', 'payroll_run_id'],
 			limit: REACH,
@@ -350,7 +378,11 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 			limit: 10000
 		},
 		pay_amendment: {
-			where: { payroll_run_id: { is_null: true } },
+			where: {
+				payroll_run_id: { is_null: true },
+				pay_group_id: { is: { entity_id: { in: entities } } },
+				...(named === null ? {} : { employee_id: { in: named } })
+			},
 			fields: ['employee_id', 'pay_group_id', 'period'],
 			limit: 10000
 		}

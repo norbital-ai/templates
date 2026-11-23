@@ -2,13 +2,14 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
+		ChildGrid,
 		Combobox,
+		Form,
 		TimeInput,
 		Label,
 		Picker,
 		RecordShell,
 		Section,
-		Table,
 		RunStatus,
 		type RecordSection,
 		type RecordView,
@@ -145,18 +146,6 @@
 		);
 	}
 </script>
-
-{#snippet preferred()}
-	{#if view.mode !== 'create'}<Table
-			{ctx}
-			of="booking_helpers"
-			key="booking-helpers"
-			where={{ booking: { eq: view.record.id } }}
-			order_by={{ rank: 'asc' }}
-			columns={['rank', 'helper']}
-			toolbar={{ title: t('app.schedule.preferred_helpers'), new: false }}
-		/>{/if}
-{/snippet}
 
 {#if view.mode === 'create'}
 	<RecordShell
@@ -343,26 +332,45 @@
 		</Stack>
 	</RecordShell>
 {:else}
-	<RecordShell
-		{ctx}
-		of="bookings"
-		fields={[
-			'number',
-			'customer',
-			'service',
-			'status',
-			'preference',
-			'repeat',
-			'visit_count',
-			'address',
-			'area',
-			'location',
-			'notes'
-		]}
-		id={view.record.id}
-		{sections}
-		tabs={view.record.preference === 'preferred'
-			? [{ name: 'helpers', title: t('app.schedule.preferred_helpers'), body: preferred }]
-			: []}
-	/>
+	<RecordShell {ctx} of="bookings" id={view.record.id}>
+		<Stack gap="lg">
+			<Form
+				{ctx}
+				of="bookings"
+				mode="update"
+				id={view.record.id}
+				record={view.record}
+				fields={[
+					'number',
+					'customer',
+					'service',
+					'status',
+					'preference',
+					'repeat',
+					'visit_count',
+					'address',
+					'area',
+					'location',
+					'notes'
+				]}
+				{sections}
+				size="content"
+			/>
+			{#if view.record.preference === 'preferred'}
+				<Section
+					icon="lucide:heart-handshake"
+					name="preferred_helpers"
+					title={t('app.schedule.preferred_helpers')}
+				>
+					<ChildGrid
+						{ctx}
+						of="bookings"
+						relation="preferred_helpers"
+						id={view.record.id}
+						columns={['rank', 'helper']}
+					/>
+				</Section>
+			{/if}
+		</Stack>
+	</RecordShell>
 {/if}

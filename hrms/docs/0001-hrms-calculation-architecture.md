@@ -169,7 +169,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - All top-level settings sections are tabs (general, lookup, calculation overview, catalog, registered rules, registered behaviour, change log) with `More` only for overflow. The sidebar highlights the active child, never the group.
 - The calculation overview leads with the description; code, expression, eligibility and references sit behind its info control.
 - The profile is one screen with vertical sections. Face enrolment sits inside Profile; two columns where width allows; a nested vertical tab rail.
-- Selection is visible. A leave half-day is filled when selected, dimmed and blocked when unavailable. The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and a change to a person's terms, parameters, dependants or stint, ask before a save that reaches a paid period; the server writes the amendment row whatever a form asked. The payslip groups carried lines under "Adjustments for earlier periods", and the run lists the periods it carried and those waiting under "Earlier periods".
+- Selection is visible. A leave half-day is filled when selected, dimmed and blocked when unavailable. The leave, claim, ad hoc, loan repayment, roster day and holiday forms, and a change to a person's terms, parameters, dependants or stint, ask before a save that reaches a paid period; the server writes the amendment row whatever a form asked. The payslip groups carried lines under "Adjustments for earlier periods".
 
 ### Simplicity
 

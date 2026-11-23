@@ -824,5 +824,8 @@ export default messages({
 	'dashboard.kingdee': '金蝶跟进',
 	'dashboard.kingdee_failed': '同步失败',
 	'dashboard.overdue': '逾期应收款',
-	'dashboard.customers_count': '{count} 位客户'
+	'dashboard.customers_count': '{count} 位客户',
+	'component.activities_empty': '暂无跟进记录',
+	'component.new_activity': '新建跟进',
+	'component.credit_snapshots_empty': '暂无信用快照'
 });

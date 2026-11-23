@@ -189,16 +189,16 @@
 
 	const barTone = (status: string) =>
 		status === 'done'
-			? 'bg-emerald-500/20 border-emerald-500/60'
+			? 'bg-tone-success-bg border-tone-success-border'
 			: status === 'blocked'
-				? 'bg-destructive/15 border-destructive/60'
+				? 'bg-tone-destructive-bg border-tone-destructive-border'
 				: status === 'in_progress'
 					? 'bg-primary/15 border-primary/60'
 					: 'bg-muted border-border';
 
 	const fillTone = (status: string) =>
 		status === 'done'
-			? 'bg-emerald-500/50'
+			? 'bg-success/50'
 			: status === 'blocked'
 				? 'bg-destructive/40'
 				: 'bg-primary/45';
@@ -336,7 +336,7 @@
 									type="button"
 									title={`${vo.change_number ?? ''} ${vo.title} (${vo.effective_date})`}
 									class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-tiny font-medium transition-opacity {vo.passed
-										? 'border-amber-500/80 bg-amber-500/20 text-foreground'
+										? 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text'
 										: 'border-border bg-muted text-muted-foreground opacity-70'}"
 									style={`left: ${vo.pct}%`}
 									onclick={() => open_record('change_orders', vo.id)}
@@ -365,15 +365,13 @@
 							>
 								<span class="block truncate text-sm font-medium text-foreground">
 									{#if task.is_milestone}
-										<Icon name="lucide:diamond" class="mr-1 inline size-3 text-amber-500" />
+										<Icon name="lucide:diamond" class="mr-1 inline size-3 text-tone-warning-text" />
 									{/if}
 									{#if task.task_code}{`${task.task_code} · `}{/if}{task.title}
 								</span>
 								<Inline gap="xs" class="text-micro text-muted-foreground">
 									{#if task.is_milestone}
-										<span class="text-amber-600 dark:text-amber-400"
-											>{t('timeline.milestone_badge')}</span
-										>
+										<span class="text-tone-warning-text">{t('timeline.milestone_badge')}</span>
 										<span aria-hidden="true">·</span>
 									{/if}
 									{#if task.trade}<span>{task.trade}</span><span aria-hidden="true">·</span>{/if}
@@ -412,8 +410,8 @@
 											title={`${task.title} (${task.schedule_range?.from ?? ''})`}
 											class="absolute top-1/2 z-20 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-2 transition-transform hover:scale-125 {task.status ===
 											'done'
-												? 'border-emerald-600 bg-emerald-500'
-												: 'border-amber-600 bg-amber-400'}"
+												? 'border-tone-success-border bg-success'
+												: 'border-tone-warning-border bg-warning'}"
 											style={`left: ${pos.left}%`}
 											onclick={() => open_record('tasks', task.id)}
 										></button>

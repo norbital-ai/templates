@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	/**
 	 * The legal entities this workspace operates, their holiday calendar, and the one-file holiday import:
 	 * a workbook with one sheet per entity. Existing days are skipped; imported days land unpublished.

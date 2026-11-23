@@ -215,5 +215,6 @@ export default messages({
 	'models.suspicious_activity_logs.fields.origin.human': '人工',
 	'models.suspicious_activity_logs.fields.basis': '依据',
 	'models.suspicious_activity_logs.fields.resolution': '处理结论',
-	'models.suspicious_activity_logs.fields.resolved_at': '处理时间'
+	'models.suspicious_activity_logs.fields.resolved_at': '处理时间',
+	'component.activity_history_empty': '暂无已派工记录'
 });

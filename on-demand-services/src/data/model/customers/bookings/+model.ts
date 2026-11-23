@@ -62,5 +62,8 @@ export default model('bookings', {
 			yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 		}
 	},
-	update: { fields: ['notes', 'status'] }
+	update: {
+		fields: ['notes', 'status'],
+		preferred_helpers: { fields: ['helper', 'rank'] }
+	}
 });

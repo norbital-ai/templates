@@ -75,14 +75,12 @@ export default messages({
 	'project_files.register_title': 'BIM & Drawings',
 	'project_files.revision_history': 'Revision history',
 	'project_files.revision_count': '{count} revision(s)',
-	'project_files.col_version': 'Version',
-	'project_files.col_issued_on': 'Date',
-	'project_files.col_reference': 'File / total',
-	'project_files.col_notes': 'Summary',
 
 	// Programme, Milestones & 4D Timeline scrubber
 	'programme.view_timeline': 'Timeline',
 	'programme.view_progress': 'Site Progress',
+	'programme.new_progress': 'New update',
+	'programme.progress_empty': 'No site progress updates yet',
 	'programme.tasks_title': 'Work packages & milestones',
 	'programme.new_task': 'New task',
 	'tasks.bim_linked_count': '{count} BIM element(s) linked',

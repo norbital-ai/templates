@@ -7,7 +7,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { attach, fork } from '@norbital-ai/ui/effect';
 	import { Effect, Option, Scope, Stream } from 'effect';
-	import { watch } from 'runed';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
 	import { Button, RunStatus, use_act } from '@norbital-ai/ui';
 	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';

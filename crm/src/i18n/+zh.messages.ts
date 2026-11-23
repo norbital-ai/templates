@@ -558,8 +558,6 @@ export default messages({
 	'meetings.save_recording': '保存录音',
 	'meetings.discard': '丢弃',
 	'meetings.or_upload': '或在下方上传音频文件',
-	'documents.export': '导出文档',
-	'documents.export_templates': '导出模板',
 	'documents.export_named': '导出 {title}',
 	'documents.render_pdf': '生成 PDF 预览',
 	'documents.view_wysiwyg': '查看排版预览',
