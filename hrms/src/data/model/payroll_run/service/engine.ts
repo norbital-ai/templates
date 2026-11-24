@@ -335,7 +335,7 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			...base(previousValue, settingsLookup),
 			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value]))
 		};
-		const computed =
+		const rawComputed =
 			chain.indexOf(subtotal) === 0 && subtotal.calculation == null
 				? openingPay
 				: evaluateNumber(
@@ -343,6 +343,11 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 						chain.indexOf(subtotal) === 0 ? { ...baseContext, base_pay: openingPay } : baseContext,
 						`${code}.calculation`
 					);
+		// round each subtotal delta to the law's minor unit so lines and checkpoints agree to the cent
+		const computed = round(
+			input.settings,
+			round(input.settings, previousValue + rawComputed) - previousValue
+		);
 		computedBy.set(code, computed);
 		if (computed !== 0)
 			lines.push(

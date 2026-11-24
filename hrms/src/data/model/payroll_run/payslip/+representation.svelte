@@ -1,10 +1,20 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { format, Icon, RecordShell, Section, Tooltip, type RecordView } from '@norbital-ai/ui';
+	import {
+		enum_text,
+		format,
+		Icon,
+		RecordShell,
+		Section,
+		Tooltip,
+		type RecordView
+	} from '@norbital-ai/ui';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { emptyPayslipBreakdown, PayslipBreakdown } from '../service/payslip_breakdown.js';
+	import { RECOVERY } from '../service/history_slice.js';
 	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
+	import { moneyKind } from '../../../../lib/ui/format/money_kind.js';
 
 	const FAMILIES = [
 		'allowance_catalog',
@@ -15,6 +25,22 @@
 		'overtime_catalog',
 		'statutory_contribution_catalog'
 	] as const;
+
+	const GUIDED_CHECKPOINTS = [
+		'BASIC',
+		'PRORATED',
+		'PAID_BASIC',
+		'ORDINARY_WAGES',
+		'ADDITIONAL_WAGES',
+		'GROSS',
+		'FINAL_PAY',
+		'RETIREMENT',
+		'NET'
+	] as const;
+
+	const CORE_CHECKPOINTS = new Set(['ORDINARY_WAGES', 'GROSS']);
+
+	type Line = PayslipBreakdown['lines'][number];
 
 	let { view, ctx }: { view: RecordView<'payslip'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -27,13 +53,38 @@
 		}
 	});
 	const earnings = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'ADD')
+		breakdown.lines.filter(
+			(line) =>
+				line.party === 'EMPLOYEE' &&
+				line.period === undefined &&
+				line.direction === 'ADD' &&
+				line.code !== RECOVERY
+		)
 	);
 	const deductions = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
+		breakdown.lines.filter(
+			(line) =>
+				line.party === 'EMPLOYEE' && line.period === undefined && line.direction === 'DEDUCT'
+		)
+	);
+	const recovery = $derived(
+		breakdown.lines.filter(
+			(line) => line.party === 'EMPLOYEE' && line.period === undefined && line.code === RECOVERY
+		)
+	);
+	const adjustments = $derived(
+		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.period !== undefined)
 	);
 	const employer = $derived(breakdown.lines.filter((line) => line.party === 'EMPLOYER'));
-	const adjusted = $derived(breakdown.lines.some((line) => line.period !== undefined));
+
+	const earningsTotal = $derived(earnings.reduce((total, line) => total + line.amount, 0));
+	const deductionsTotal = $derived(deductions.reduce((total, line) => total + line.amount, 0));
+	const adjustmentsTotal = $derived(
+		adjustments.reduce(
+			(total, line) => total + (line.direction === 'DEDUCT' ? -line.amount : line.amount),
+			0
+		)
+	);
 
 	// What each line is, in the words of the catalogue row that posted it, under the law of the payslip's company on
 	// its run's pay date.
@@ -46,7 +97,7 @@
 						fields: ['entity_id', 'payroll_run_id'],
 						limit: 1,
 						entity_id: { fields: ['settings_code'] },
-						payroll_run_id: { fields: ['pay_date'] }
+						payroll_run_id: { fields: ['kind', 'pay_date', 'salary_coverage'] }
 					}
 				})
 	);
@@ -57,6 +108,12 @@
 			? undefined
 			: laws.on(slip.entity_id.settings_code, String(slip.payroll_run_id.pay_date))
 	);
+	const currency = $derived(
+		typeof law?.settings.currency === 'string' && law.settings.currency.trim() !== ''
+			? law.settings.currency
+			: undefined
+	);
+	const scale = $derived(moneyKind(currency).scale);
 	const descriptions = $derived(
 		new Map<string, string>(
 			FAMILIES.flatMap((family) =>
@@ -68,20 +125,127 @@
 			)
 		)
 	);
+	const cashOutByCode = $derived(
+		new Map<string, number>(
+			(breakdown.cash_out ?? []).map((item) => [item.code, item.amount] as const)
+		)
+	);
+
+	const contextLine = $derived.by(() => {
+		const run = slip?.payroll_run_id;
+		if (run == null) return '';
+		const parts: string[] = [];
+		const coverage = format({ kind: 'period', of: 'date' }, run.salary_coverage, {
+			locale: ctx.locale
+		});
+		if (coverage !== '') parts.push(coverage);
+		const payDate = format({ kind: 'date' }, run.pay_date, { locale: ctx.locale });
+		if (payDate !== '') parts.push(ctx.t('app.payroll.pay_date', { date: payDate }));
+		if (run.kind === 'OFF_CYCLE') parts.push(ctx.t('app.payroll.off_cycle'));
+		return parts.join(' · ');
+	});
+
+	const money = (value: Parameters<typeof format>[1]) => {
+		const numeric =
+			typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+		const clean = Number.isFinite(numeric)
+			? (Math.abs(numeric) < 1e-12 ? 0 : numeric).toFixed(scale)
+			: value;
+		return format(
+			{ kind: 'money' },
+			clean,
+			currency === undefined ? { locale: ctx.locale } : { locale: ctx.locale, currency }
+		);
+	};
+	const signedMoney = (value: number) =>
+		value < -1e-12 ? `− ${money(Math.abs(value))}` : value > 1e-12 ? `+ ${money(value)}` : money(0);
+
 	/**
 	 * A line's catalogue family: an entry (or a loan repayment) belongs to the catalogue it was raised on; a scheme's
 	 * employer share is `<code>_EMPLOYER`.
 	 */
-	const describe = (line: (typeof breakdown.lines)[number]) =>
+	const describe = (line: Line) =>
 		descriptions.get(
 			`${line.source.replace(/_entry(_repayment)?$/, '')}:${line.party === 'EMPLOYER' ? line.code.replace(/_EMPLOYER$/, '') : line.code}`
 		);
-	const money = (value: Parameters<typeof format>[1]) =>
-		format({ kind: 'money' }, value, { locale: ctx.locale });
-	const measure = (line: (typeof breakdown.lines)[number]) =>
-		line.quantity === undefined || line.unit === undefined || line.unit === 'MONEY'
-			? ''
-			: `${new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 4 }).format(line.quantity)} ${line.unit.toLowerCase()}`;
+
+	const lineLabel = (line: Line): string => {
+		if (line.code === 'PRORATED' && line.source === 'employment')
+			return ctx.t('app.payroll.line.proration');
+		if (line.code === RECOVERY) return ctx.t('app.payroll.line.recovery_carried');
+		if (line.source === 'leave_catalog_entry' && line.code === 'NPL')
+			return ctx.t('app.payroll.line.npl');
+		if (line.source === 'statutory_contribution_catalog')
+			return line.code.replace(/_EMPLOYER$/, '');
+		if (line.label !== '' && line.label !== line.code) return line.label;
+		if (/^[A-Z0-9]{1,4}$/.test(line.code)) return line.code;
+		return enum_text(line.code);
+	};
+
+	const lineHint = (line: Line): string | undefined => {
+		if (line.code === 'PRORATED' && line.source === 'employment')
+			return ctx.t('app.payroll.line.proration_hint');
+		if (line.code === RECOVERY) return ctx.t('app.payroll.line.recovery_carried_hint');
+		return describe(line);
+	};
+
+	const measure = (line: Line) => {
+		if (line.quantity === undefined || line.unit === undefined || line.unit === 'MONEY') return '';
+		const count = new Intl.NumberFormat(ctx.locale, { maximumFractionDigits: 4 }).format(
+			line.quantity
+		);
+		if (line.unit === 'DAY')
+			return ctx.t(
+				line.quantity === 1 ? 'app.payroll.unit.day_one' : 'app.payroll.unit.day_other',
+				{
+					count
+				}
+			);
+		if (line.unit === 'HOUR')
+			return ctx.t(
+				line.quantity === 1 ? 'app.payroll.unit.hour_one' : 'app.payroll.unit.hour_other',
+				{ count }
+			);
+		return `${count} ${line.unit.toLowerCase()}`;
+	};
+
+	const leaveContext = (line: Line): string => {
+		if (line.source !== 'leave_catalog_entry' || line.period !== undefined) return '';
+		const settled = cashOutByCode.get(line.code);
+		if (line.direction === 'ADD')
+			return settled !== undefined && settled > 0
+				? ctx.t('app.payroll.line.exit_encashment')
+				: ctx.t('app.payroll.line.leave_encashment');
+		if (settled !== undefined && settled < 0) return ctx.t('app.payroll.line.overtaken_leave');
+		return '';
+	};
+
+	const lineNote = (line: Line) =>
+		[measure(line), leaveContext(line), line.period].filter(Boolean).join(' · ');
+
+	const checkpointGuide = (code: string) =>
+		ctx.t(`checkpoint.${GUIDED_CHECKPOINTS.find((known) => known === code) ?? 'other'}`);
+
+	const checkpoints = $derived.by(() => {
+		const touched = new Set(
+			breakdown.lines.filter((line) => line.period === undefined).map((line) => line.subtotal)
+		);
+		const all = breakdown.checkpoints;
+		return all.flatMap((point, index) => {
+			const previous = index === 0 ? point.value : (all[index - 1]?.value ?? point.value);
+			const delta = point.value - previous;
+			const moved = index > 0 && Math.abs(delta) > 1e-9;
+			if (
+				index === 0 ||
+				index === all.length - 1 ||
+				moved ||
+				touched.has(point.code) ||
+				CORE_CHECKPOINTS.has(point.code)
+			)
+				return [{ point, delta: moved ? delta : 0 }];
+			return [];
+		});
+	});
 </script>
 
 {#snippet row(label: string, hint: string | undefined, value: string, note = '', total = false)}
@@ -124,10 +288,10 @@
 			<Stack as="ul" gap="none">
 				{#each lines as line}
 					{@render row(
-						line.label || line.code,
-						describe(line),
+						lineLabel(line),
+						lineHint(line),
 						`${line.party === 'EMPLOYER' && line.direction === 'DEDUCT' ? '− ' : ''}${money(line.amount)}`,
-						[measure(line), line.period].filter(Boolean).join(' · ')
+						lineNote(line)
 					)}
 				{/each}
 			</Stack>
@@ -144,23 +308,57 @@
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
 	{#if record !== null}<Stack gap="md">
-			<Grid minimum="compact" gap="lg">
-				{@render list(
-					ctx.t('app.payroll.earnings'),
-					earnings,
-					ctx.t('app.payroll.gross_earnings'),
-					record.gross_earnings ?? 0
-				)}
-				{@render list(
-					ctx.t('app.payroll.deductions'),
-					deductions,
-					ctx.t('app.payroll.total_deductions'),
-					record.total_deductions
-				)}
-			</Grid>
-			{#if adjusted}<p class="text-xs text-muted-foreground">
-					{ctx.t('app.payroll.adjustments_help')}
-				</p>{/if}
+			{#if contextLine !== ''}
+				<p class="text-xs text-muted-foreground">{contextLine}</p>
+			{/if}
+			{#if earnings.length > 0 || deductions.length > 0}
+				<Grid minimum="compact" gap="lg">
+					{@render list(
+						ctx.t('app.payroll.earnings'),
+						earnings,
+						ctx.t('app.payroll.total_earnings'),
+						earningsTotal
+					)}
+					{@render list(
+						ctx.t('app.payroll.deductions'),
+						deductions,
+						ctx.t('app.payroll.total_deductions'),
+						deductionsTotal
+					)}
+				</Grid>
+			{/if}
+			{#if adjustments.length > 0}
+				<Stack as="section" gap="xs">
+					<h3 class="border-b pb-2 text-sm font-medium">
+						{ctx.t('app.payroll.adjustments_for_earlier_periods')}
+					</h3>
+					<p class="text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
+					<Stack as="ul" gap="none">
+						{#each adjustments as line}
+							{@render row(
+								lineLabel(line),
+								lineHint(line),
+								signedMoney(line.direction === 'DEDUCT' ? -line.amount : line.amount),
+								lineNote(line)
+							)}
+						{/each}
+						{@render row(
+							ctx.t('app.payroll.adjustments_total'),
+							undefined,
+							signedMoney(adjustmentsTotal),
+							'',
+							true
+						)}
+					</Stack>
+				</Stack>
+			{/if}
+			{#if recovery.length > 0}
+				<Stack as="ul" gap="none" class="border-t pt-1">
+					{#each recovery as line}
+						{@render row(lineLabel(line), lineHint(line), signedMoney(line.amount), lineNote(line))}
+					{/each}
+				</Stack>
+			{/if}
 			<Inline justify="between" gap="md" class="border-y-2 py-3 text-base font-medium">
 				<span>{ctx.t('app.payroll.net_pay')}</span>
 				<span class="shrink-0 tabular-nums">{money(record.net_pay)}</span>
@@ -173,7 +371,7 @@
 					record.employer_cost
 				)}
 			{/if}
-			{#if breakdown.checkpoints.length > 0}
+			{#if checkpoints.length > 0}
 				<Section
 					name="calculation_details"
 					icon="lucide:calculator"
@@ -181,11 +379,12 @@
 					default_open={false}
 				>
 					<Stack as="ul" gap="none">
-						{#each breakdown.checkpoints as checkpoint (checkpoint.code)}
+						{#each checkpoints as { point, delta } (point.code)}
 							{@render row(
-								checkpoint.name.trim() || checkpoint.code,
-								checkpoint.code,
-								money(checkpoint.value)
+								point.name.trim() || point.code,
+								checkpointGuide(point.code),
+								money(point.value),
+								delta === 0 ? '' : signedMoney(delta)
 							)}
 						{/each}
 					</Stack>

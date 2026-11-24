@@ -1,4 +1,4 @@
-import { BigDecimal, DateTime, Duration, Effect } from 'effect';
+import { DateTime, Duration, Effect } from 'effect';
 import {
 	awardedMinutes,
 	holidaysForDay,
@@ -9,6 +9,7 @@ import {
 } from '../../roster_entry/service/attendance.js';
 import { dateWeekday, intervalSpans } from '../../roster_entry/service/time_evidence.js';
 import { calculatePayroll, isWorkingDay, offDaysFor, type ProjectedDay } from './engine.js';
+import { round } from './rates.js';
 import type { JsonObject } from '../../../../lib/contracts.js';
 import { idOf, objectValue } from '../../../../lib/reads.js';
 import { Refusal, daysIn, isJsonObject } from '../../../../lib/foundation.js';
@@ -712,57 +713,17 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			employee_id: employeeId,
 			employment_id: employmentId,
 			entity_id: companyId,
-			basic_earnings: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.subtotals[0]?.value ?? 0), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			gross_earnings: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.net_pay + deductions), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			net_pay: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(result.net_pay), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			total_deductions: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, deductions)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
+			basic_earnings: round(settings, result.subtotals[0]?.value ?? 0),
+			gross_earnings: round(settings, result.net_pay + deductions),
+			net_pay: round(settings, result.net_pay),
+			total_deductions: round(settings, Math.max(0, deductions)),
 			// a run that settles an earlier over-charge can owe the employer back; the reported totals stop at zero
-			employer_cost: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, result.employer_cost)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
+			employer_cost: round(settings, Math.max(0, result.employer_cost)),
 			period: String(run.period ?? coverage.from.slice(0, 7)),
 			// a deduction entry can exceed the period's pay; reported wages stop at zero
-			ordinary_wages: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, ordinary)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			employee_statutory: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, employeeStatutory)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			tax_withheld: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, taxWithheld)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
+			ordinary_wages: round(settings, Math.max(0, ordinary)),
+			employee_statutory: round(settings, Math.max(0, employeeStatutory)),
+			tax_withheld: round(settings, Math.max(0, taxWithheld)),
 			breakdown: {
 				...breakdownOf(result),
 				// only what the payslip priced posts: a row whose payout did not apply leaves the balance as it is

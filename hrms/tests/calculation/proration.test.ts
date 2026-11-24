@@ -239,6 +239,66 @@ describe('a day rate’s rounding', () => {
 		assert.equal(rated({ day_rate: 'AMOUNT' }), cents(amount - absent.length * day));
 		assert.notEqual(rated({ day_rate: 'AMOUNT' }), rated({}));
 	});
+	it('rounds the PRORATED deduction line to the law’s minor unit so lines match checkpoints and net pay', () => {
+		// 8 unworked weekdays of 21 in November 2026 at 4,000: raw 1,523.8095238095239 must store as 1,523.81
+		const november = Array.from({ length: 30 }, (_, index) => {
+			const dayOfMonth = index + 1;
+			const date = `2026-11-${String(dayOfMonth).padStart(2, '0')}`;
+			const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+			return { date, work: weekday !== 0 && weekday !== 6 };
+		});
+		const result = calculatePayroll({
+			run: {
+				id: 'run',
+				entity_id: 'entity',
+				pay_date: '2026-11-25',
+				salary_coverage: { from: '2026-11-01', to: '2026-11-30' }
+			},
+			settings: working,
+			subtotals: [
+				{ code: 'BASIC', name: 'Basic pay', previous: null },
+				{
+					code: 'PRORATED',
+					name: 'Prorated basic',
+					previous: 'BASIC',
+					calculation: 'return -(ctx.proration_amount + ctx.abs_amount);'
+				}
+			],
+			allowance: [],
+			overtime: [],
+			statutory: [],
+			leave_catalog: [],
+			claim_catalog: [],
+			adhoc_catalog: [],
+			loan_catalog: [],
+			employee: {},
+			employment: {
+				id: 'contract',
+				terms: {
+					rate: { amount: 4000, unit: 'MONTHLY' },
+					normal_hours_per_day: 8,
+					normal_hours_per_week: 40,
+					normal_days_per_week: 5
+				}
+			},
+			employer: {},
+			balance: { account: {} },
+			entries: {},
+			employed: [{ from: '2026-08-18', to: '2026-11-18' }],
+			projected_days: november
+		});
+		const proratedLine = result.lines.find((row) => row.code === 'PRORATED');
+		assert.equal(proratedLine?.amount, 1523.81);
+		assert.equal(proratedLine?.direction, 'DEDUCT');
+		assert.equal(result.subtotals.find((row) => row.code === 'PRORATED')?.value, 2476.19);
+		const additions = result.lines
+			.filter((row) => row.party === 'EMPLOYEE' && row.direction === 'ADD')
+			.reduce((total, row) => total + row.amount, 0);
+		const deductions = result.lines
+			.filter((row) => row.party === 'EMPLOYEE' && row.direction === 'DEDUCT')
+			.reduce((total, row) => total + row.amount, 0);
+		assert.equal(cents(additions - deductions), result.net_pay);
+	});
 });
 
 describe('a leaver on a shift pattern', () => {

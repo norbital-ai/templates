@@ -25,6 +25,7 @@ import {
 	type RunData,
 	type RunFrame
 } from './run_calculation.js';
+import { round } from './rates.js';
 import {
 	RECALCULATED_A_RUN,
 	RECOVERY,
@@ -87,6 +88,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	}
 ) {
 	const offCycle = own.frame.pays !== undefined;
+	const settings = (own.data.law_settings ?? [])[0];
+	const roundMoney = (value: number) => round(settings ?? {}, value);
 	// off-cycle, a payslip below zero is refused: only an on-cycle run carries the rest
 	const plain = () =>
 		Effect.map(calculateRun(own.data, own.row, own.frame), (result): Amended => {
@@ -99,7 +102,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 							net_pay: 0,
 							breakdown: {
 								...slip.breakdown,
-								lines: [...slip.breakdown.lines, recoveryOf(slip, -slip.net_pay)]
+								lines: [...slip.breakdown.lines, recoveryOf(slip, roundMoney(-slip.net_pay))]
 							}
 						}
 			);
@@ -186,7 +189,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			row.payroll_run_id == null && typeof row.incurred_on === 'string' && row.incurred_on < ownFrom
 	);
 	// terms signed since the last pay date that began before this period: they may owe back pay
-	const settings = (own.data.law_settings ?? [])[0];
 	const paysBack = typeof objectValue(settings?.conversions).back_pay === 'string';
 	const ownGroupPeriods = periodsByGroup.get(ownGroupId) ?? [];
 	const lastPayDate =
@@ -943,13 +945,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			mine
 				.filter((line) => line.direction === direction)
 				.reduce((total, line) => total + line.amount, 0);
-		const net = BigDecimal.toNumberUnsafe(
-			BigDecimal.round(BigDecimal.fromNumberUnsafe(slip.net_pay + sum('ADD') - sum('DEDUCT')), {
-				scale: 12,
-				mode: 'half-ceil'
-			})
-		);
-		const recovery: Line[] = net < 0 ? [recoveryOf(slip, -net)] : [];
+		const net = roundMoney(slip.net_pay + sum('ADD') - sum('DEDUCT'));
+		const recovery: Line[] = net < 0 ? [recoveryOf(slip, roundMoney(-net))] : [];
 		if (recovery.length > 0) deferred.push(slip.employee_id);
 		const statutoryOf = (kind: string) =>
 			mine
@@ -973,40 +970,15 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		return {
 			...slip,
 			net_pay: Math.max(0, net),
-			total_deductions: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(
-					BigDecimal.fromNumberUnsafe(Math.max(0, slip.total_deductions + sum('DEDUCT'))),
-					{ scale: 12, mode: 'half-ceil' }
-				)
+			total_deductions: roundMoney(Math.max(0, slip.total_deductions + sum('DEDUCT'))),
+			gross_earnings: roundMoney(
+				Math.max(0, net) + Math.max(0, slip.total_deductions + sum('DEDUCT'))
 			),
-			gross_earnings: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(
-					BigDecimal.fromNumberUnsafe(
-						Math.max(0, net) + Math.max(0, slip.total_deductions + sum('DEDUCT'))
-					),
-					{ scale: 12, mode: 'half-ceil' }
-				)
+			employer_cost: roundMoney(Math.max(0, slip.employer_cost + employer)),
+			employee_statutory: roundMoney(
+				Math.max(0, slip.employee_statutory + statutoryOf('CONTRIBUTION'))
 			),
-			employer_cost: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(BigDecimal.fromNumberUnsafe(Math.max(0, slip.employer_cost + employer)), {
-					scale: 12,
-					mode: 'half-ceil'
-				})
-			),
-			employee_statutory: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(
-					BigDecimal.fromNumberUnsafe(
-						Math.max(0, slip.employee_statutory + statutoryOf('CONTRIBUTION'))
-					),
-					{ scale: 12, mode: 'half-ceil' }
-				)
-			),
-			tax_withheld: BigDecimal.toNumberUnsafe(
-				BigDecimal.round(
-					BigDecimal.fromNumberUnsafe(Math.max(0, slip.tax_withheld + statutoryOf('TAX'))),
-					{ scale: 12, mode: 'half-ceil' }
-				)
-			),
+			tax_withheld: roundMoney(Math.max(0, slip.tax_withheld + statutoryOf('TAX'))),
 			breakdown: {
 				...slip.breakdown,
 				lines: [...slip.breakdown.lines, ...recovery, ...extra],
