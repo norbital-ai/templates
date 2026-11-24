@@ -142,24 +142,35 @@
 					right.change.id.localeCompare(left.change.id)
 			);
 		const first = ordered.at(-1)?.change.id;
+		const latestActiveId = ordered.find(
+			({ row, change }) =>
+				(row.finding_id?.status === undefined || row.finding_id?.status === 'CONFIRMED') &&
+				change.effective_from <= today
+		)?.change.id;
 		return ordered.map(({ row, change }) => {
 			const finding = row.finding_id?.status;
 			const isBaseline = change.id === first;
 			const what = isBaseline ? ctx.t('law_changes.whole') : summary(change.patch);
 			const active =
 				(finding === undefined || finding === 'CONFIRMED') && change.effective_from <= today;
+			const isLatest = active && change.id === latestActiveId;
 			return {
 				id: change.id,
 				change,
 				isBaseline,
 				active,
+				isLatest,
 				period: format({ kind: 'date' }, change.effective_from, { locale: ctx.locale }),
 				status:
 					finding !== undefined && finding !== 'CONFIRMED'
 						? ctx.t('law_changes.not_confirmed')
 						: change.effective_from > today
 							? ctx.t('law_changes.upcoming')
-							: ctx.t('app.settings.version_in_force'),
+							: isLatest
+								? ctx.t('app.settings.version_in_force')
+								: isBaseline
+									? ctx.t('law_changes.baseline_status')
+									: ctx.t('law_changes.applied'),
 				detail:
 					finding === undefined
 						? what
@@ -177,12 +188,15 @@
 		items.map((item) => ({
 			key: item.id,
 			icon: item.isBaseline ? 'lucide:landmark' : 'lucide:file-diff',
-			...(item.active ? { tone: 'brand' as const } : {}),
+			...(item.isLatest ? { tone: 'brand' as const } : {}),
 			...(item.change.effective_from > today ? { status: 'future' as const } : {}),
-			current: item.active,
+			current: item.isLatest,
 			title: item.period,
 			line: item.detail === '' ? [] : [item.detail],
-			mark: { text: item.status, variant: item.active ? ('brand' as const) : ('outline' as const) },
+			mark: {
+				text: item.status,
+				variant: item.isLatest ? ('brand' as const) : ('outline' as const)
+			},
 			expanded: opened === item.id,
 			ontoggle: () => {
 				opened = opened === item.id ? '' : item.id;

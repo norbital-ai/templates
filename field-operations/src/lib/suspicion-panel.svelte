@@ -6,7 +6,7 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { FileRef, Id } from '@norbital-ai/bolt';
-	import { EmptyState, enum_text, Form, format } from '@norbital-ai/ui';
+	import { EmptyState, enum_text, Form, format, Image } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import { reviewCandidatesFrom } from './suspicion-evidence.js';
@@ -108,10 +108,11 @@
 							class="w-full text-left"
 							onclick={() => on_open(view(photo.photo))}
 						>
-							<img
+							<Image
 								src={ctx.file_url(photo.photo, { preview: 1024 })}
 								alt={photo.photo.name}
-								class="size-14 rounded-md object-cover"
+								class="size-14 shrink-0 rounded-md"
+								image_class="size-full object-cover"
 								loading="lazy"
 							/>
 							<span class="min-w-0">
@@ -154,18 +155,20 @@
 							</p>
 							<Cluster gap="xs" align="center">
 								<button type="button" onclick={() => on_open(view(pair.mine.photo))}>
-									<img
+									<Image
 										src={ctx.file_url(pair.mine.photo, { preview: 1024 })}
 										alt={pair.mine.photo.name}
-										class="h-14 w-20 rounded object-cover"
+										class="h-14 w-20 rounded"
+										image_class="size-full object-cover"
 									/>
 								</button>
 								<Icon icon="lucide:arrow-left-right" class="size-3.5 text-muted-foreground" />
 								<button type="button" onclick={() => on_open(view(pair.other.photo))}>
-									<img
+									<Image
 										src={ctx.file_url(pair.other.photo, { preview: 1024 })}
 										alt={pair.other.photo.name}
-										class="h-14 w-20 rounded object-cover"
+										class="h-14 w-20 rounded"
+										image_class="size-full object-cover"
 									/>
 								</button>
 								<span class="text-micro text-muted-foreground">

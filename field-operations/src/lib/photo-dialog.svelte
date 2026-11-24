@@ -1,6 +1,6 @@
 <script lang="ts">
 	/** A filed photo at full size; closing it clears `photo`. */
-	import { Dialog } from '@norbital-ai/ui';
+	import { Dialog, Image } from '@norbital-ai/ui';
 	let { photo = $bindable() }: { photo: { name: string; url: string } | null } = $props();
 </script>
 
@@ -8,10 +8,11 @@
 	<Dialog.Content class="max-w-5xl">
 		{#if photo}
 			<Dialog.Header><Dialog.Title>{photo.name}</Dialog.Title></Dialog.Header>
-			<img
+			<Image
 				src={photo.url}
 				alt={photo.name}
-				class="max-h-[75dvh] w-full rounded-md object-contain"
+				class="min-h-48 w-full rounded-md"
+				image_class="max-h-[75dvh] w-full object-contain"
 			/>
 		{/if}
 	</Dialog.Content>

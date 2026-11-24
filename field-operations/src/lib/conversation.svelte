@@ -7,7 +7,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { watch } from '@norbital-ai/ui/behaviors';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Button, EmptyState } from '@norbital-ai/ui';
+	import { Button, EmptyState, Image } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { DateTime, Duration } from 'effect';
 	import { senderName } from './dispatch.js';
@@ -257,7 +257,13 @@
 										onclick={() => on_open(photo)}
 									>
 										<Frame ratio="square" class="rounded-md"
-											><img src={photo.url} alt={photo.name} loading="lazy" /></Frame
+											><Image
+												src={photo.url}
+												alt={photo.name}
+												loading="lazy"
+												class="size-full"
+												image_class="size-full object-cover"
+											/></Frame
 										>
 									</button>
 								{/each}

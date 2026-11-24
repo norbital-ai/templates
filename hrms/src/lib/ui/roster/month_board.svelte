@@ -490,14 +490,6 @@
 			{ctx}
 			of="roster_entry"
 			mode="create"
-			fields={[
-				'work_date',
-				'shift_definition_id',
-				'planned_overtime_intervals',
-				'overtime_as_time_off',
-				'actual_worked_intervals',
-				'consent'
-			]}
 			values={{
 				employment_id: creating.employmentId,
 				work_date: creating.date

@@ -22,6 +22,12 @@
 
 	let { view, ctx }: { view: RecordView<'pay_group'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
+	const fixedEntity = $derived(
+		record?.entity_id ??
+			(view.mode === 'create' && typeof view.values.entity_id === 'string'
+				? view.values.entity_id
+				: null)
+	);
 	/** A schedule's fields, in the order they are read; a frequency shows those it has. */
 	const FIELDS = [
 		'pay_days',
@@ -103,7 +109,7 @@
 	>
 		{#snippet children()}
 			<Stack gap="md">
-				{#if record === null}<Field {ctx} name="entity_id" />{/if}
+				{#if record === null && fixedEntity === null}<Field {ctx} name="entity_id" />{/if}
 				<Field {ctx} name="name" />
 				<Field {ctx} name="payment_schedule" editor={schedule} view={summary} />
 			</Stack>

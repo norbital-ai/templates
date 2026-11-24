@@ -123,7 +123,6 @@ export default model('roster_entry', {
 			'planned_overtime_intervals',
 			'overtime_as_time_off',
 			'actual_worked_intervals',
-			'findings',
 			'consent'
 		],
 		transform: function* (changes, ctx) {
@@ -167,7 +166,6 @@ export default model('roster_entry', {
 			'planned_overtime_intervals',
 			'overtime_as_time_off',
 			'actual_worked_intervals',
-			'findings',
 			'consent'
 		],
 		transform: function* (changes, ctx) {
