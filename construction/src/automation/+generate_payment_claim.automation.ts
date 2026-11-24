@@ -1,28 +1,23 @@
 import { automation, type CreateInput } from '@norbital-ai/bolt';
-import { computeProjectValuation } from '../lib/claims.js';
+import { computeProjectCommercial } from '../lib/commercial.js';
 
 export default automation({
 	description:
-		'Calculates a project’s exact BigDecimal net claimable progress valuation from BOQ cost items, approved variation orders, retention rules, and previous client claims, and drafts a client payment claim (inflow).',
+		'Calculates exact BigDecimal net claimable valuation from active contracts, approved variations, task progression, retention cap, and prior certified claims, and drafts an inflow progress claim in commercial_documents.',
 	mode: 'call',
 	input: {
 		project_id: { kind: 'ref', to: 'projects' },
-		claim_type: {
-			kind: 'enum',
-			values: ['progress', 'variation', 'milestone', 'final', 'retention_release'],
-			optional: true
-		},
-		valuation_date: { kind: 'date', optional: true },
+		issue_date: { kind: 'date', optional: true },
 		description: { kind: 'text', optional: true }
 	},
 	output: {
 		kind: 'object',
 		fields: {
-			claim_id: { kind: 'ref', to: 'payment_claims' },
-			claim_number: { kind: 'text' },
+			document_id: { kind: 'ref', to: 'commercial_documents' },
+			document_number: { kind: 'text' },
 			currency: { kind: 'currency' },
 			gross_work_done: { kind: 'text' },
-			approved_variations: { kind: 'text' },
+			upstream_variations: { kind: 'text' },
 			retention_held: { kind: 'text' },
 			previous_certified: { kind: 'text' },
 			net_claimable: { kind: 'text' }
@@ -44,93 +39,91 @@ export default automation({
 				],
 				limit: 1
 			},
-			cost_items: {
+			contracts: {
+				where: { project_id: { eq: input.project_id } },
+				fields: ['direction', 'contract_type', 'status', 'contract_value'],
+				limit: 500
+			},
+			tasks: {
+				where: { project_id: { eq: input.project_id } },
+				fields: ['progress_pct', 'status'],
+				limit: 2000
+			},
+			commercial_documents: {
 				where: { project_id: { eq: input.project_id } },
 				fields: [
-					'item_code',
-					'description',
-					'cost_group',
-					'contract_amount',
-					'progress_pct',
-					'claimable_amount',
-					'retention_exempt'
+					'doc_type',
+					'direction',
+					'status',
+					'total_amount',
+					'certified_amount',
+					'net_amount'
 				],
-				order_by: { item_code: 'asc' }
-			},
-			change_orders: {
-				where: { project_id: { eq: input.project_id } },
-				fields: ['status', 'cost_impact']
-			},
-			payment_claims: {
-				where: { project_id: { eq: input.project_id } },
-				fields: ['claim_number', 'direction', 'status', 'claimed_amount', 'certified_amount']
+				limit: 2000
 			}
 		});
 
 		const project = data.projects.rows[0];
 		if (project === undefined) return yield* ctx.refuse('errors.project_not_found');
 
-		const valuation = computeProjectValuation({
+		const summary = computeProjectCommercial({
 			contract_value: project.contract_value,
 			retention_rate: project.retention_rate,
 			retention_cap_rate: project.retention_cap_rate,
 			tax_rate: project.tax_rate,
-			cost_items: data.cost_items.rows,
-			change_orders: data.change_orders.rows,
-			payment_claims: data.payment_claims.rows
+			contracts: data.contracts.rows,
+			tasks: data.tasks.rows,
+			documents: data.commercial_documents.rows
 		});
 
-		const valuationDate = input.valuation_date ?? ctx.today;
-		const monthStart = `${valuationDate.slice(0, 7)}-01`;
+		const issueDate = input.issue_date ?? ctx.today;
+		const upstreamContract = data.contracts.rows.find(
+			(c) =>
+				c.direction === 'upstream' && c.contract_type !== 'variation_order' && c.status === 'active'
+		);
 
-		const draft: CreateInput<'payment_claims'> = {
+		const draft: CreateInput<'commercial_documents'> = {
 			project_id: input.project_id,
+			doc_type: 'progress_claim',
 			direction: 'inflow',
-			claim_type: input.claim_type ?? 'progress',
+			contract_id: upstreamContract?.id ?? null,
 			currency: project.currency,
-			valuation_date: valuationDate,
-			claim_period: { from: monthStart, to: valuationDate },
-			valuation: {
-				gross_work_done: valuation.gross_work_done,
-				approved_variations_amount: valuation.approved_variations,
-				retention_held: valuation.retention_held,
-				previous_certified_amount: valuation.previous_certified,
-				lines: valuation.lines.map((l) => ({ ...l }))
-			},
-			claimed_amount: valuation.net_claimable_now,
+			tax_rate: project.tax_rate,
+			subtotal: summary.net_claimable_now,
+			retention_amount: '0.00',
+			issue_date: issueDate,
 			description:
 				input.description ??
-				`Progress valuation as of ${valuationDate} (${valuation.overall_progress_pct}% overall progress).`
+				`Progress claim as of ${issueDate}: ${summary.overall_progress_pct}% physical progress; gross work done ${project.currency} ${summary.gross_work_done}, retention held ${project.currency} ${summary.retention_held}, previously certified ${project.currency} ${summary.previous_certified}.`
 		};
 
 		const committed = yield* ctx.act({
-			'payment_claims.create': [draft]
+			'commercial_documents.create': [draft]
 		});
-
 		if (committed.kind !== 'committed') {
 			return yield* ctx.refuse('errors.claim_create_failed');
 		}
-		const created = committed.records.find((r) => r.model === 'payment_claims');
+		const created = committed.records.find((r) => r.model === 'commercial_documents');
 		if (created === undefined) {
 			return yield* ctx.refuse('errors.claim_create_failed');
 		}
 		const stored = (yield* ctx.query({
-			payment_claims: {
+			commercial_documents: {
 				where: { id: { eq: created.id } },
-				fields: ['claim_number'],
+				fields: ['document_number'],
 				limit: 1
 			}
-		})).payment_claims.rows[0];
+		})).commercial_documents.rows[0];
 
 		return {
-			claim_id: created.id,
-			claim_number: stored?.claim_number ?? '',
+			document_id: created.id,
+			document_number: stored?.document_number ?? '',
 			currency: project.currency,
-			gross_work_done: valuation.gross_work_done,
-			approved_variations: valuation.approved_variations,
-			retention_held: valuation.retention_held,
-			previous_certified: valuation.previous_certified,
-			net_claimable: valuation.net_claimable_now
+			gross_work_done: summary.gross_work_done,
+			upstream_variations: summary.upstream_variations,
+			retention_held: summary.retention_held,
+			previous_certified: summary.previous_certified,
+			net_claimable: summary.net_claimable_now
 		};
 	}
 });

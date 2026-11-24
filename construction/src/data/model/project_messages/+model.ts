@@ -64,7 +64,9 @@ const derived = Effect.fnUntraced(function* (
 			: (yield* ctx.query({
 					sys_message: {
 						where: { id: { in: sourceIds } },
-						fields: ['integration', 'thread', 'conversation', 'source_at', 'sent_at', 'created_at']
+						fields: ['integration', 'thread', 'conversation', 'source_at', 'sent_at', 'created_at'],
+						limit: sourceIds.length,
+						as_of: 'act'
 					}
 				})).sys_message.rows;
 	const integrationIds = ids(sourceMessages.map((m) => m.integration));
@@ -74,7 +76,9 @@ const derived = Effect.fnUntraced(function* (
 			: (yield* ctx.query({
 					sys_integration: {
 						where: { id: { in: integrationIds } },
-						fields: ['owner', 'import_start']
+						fields: ['owner', 'import_start'],
+						limit: integrationIds.length,
+						as_of: 'act'
 					}
 				})).sys_integration.rows;
 
@@ -117,14 +121,14 @@ const derived = Effect.fnUntraced(function* (
 
 export default model('project_messages', {
 	description:
-		'Synced WhatsApp, Telegram, email, Slack, and Discord site coordination messages routed into projects for automatic updates.',
+		'Synced WhatsApp and email messages routed into projects for automatic extraction into cashflow documents, contracts/VOs, progression tasks, and BIM issues.',
 	icon: 'lucide:message-square-text',
 	record_label: 'record.subject',
 	fields: {
 		subject: { kind: 'text' },
 		transport: {
 			kind: 'enum',
-			values: ['whatsapp', 'telegram', 'email', 'slack', 'discord', 'manual'],
+			values: ['whatsapp', 'email', 'manual'],
 			default: 'whatsapp'
 		},
 		direction: { kind: 'enum', values: ['inbound', 'outbound'], default: 'inbound' },
@@ -197,7 +201,7 @@ export default model('project_messages', {
 		default: {
 			fields: 'all',
 			project_id: { fields: ['project_name', 'project_number'] },
-			contact_id: { fields: ['full_name', 'company_name', 'role'] },
+			contact_id: { fields: ['full_name', 'company_name', 'role', 'trade_specialty'] },
 			source_message: {
 				fields: ['conversation', 'integration', 'source_at', 'sent_at', 'deleted_at']
 			}

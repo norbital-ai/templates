@@ -1,39 +1,26 @@
 # Construction Operations — Template Authoring Guide
 
-Main-contractor construction PMS (`norbital_construction`) built around co-located typed values, append-only commercial ledgers, exact `BigDecimal` math, and native Bolt views.
+Generic contractor workspace (`norbital_construction`) for both main contractors managing trade subcontractors and subcontractors running their own projects. Structures WhatsApp, email, Autodesk ACC, and BIM IFC files into cashflow, progression, and documentation.
 
 ## Structure
 
-- **Models (12)** under `src/data/model/`:
-  - `projects/` — root project with inline `zones` (`project_zones`), `payment_terms_days`, retention/tax terms, `capture_rules`, and `address`
-    - `project_files/` (`owned: true`) — IFC models, drawings, specs, method statements with `revision_trail`
-    - `issues/` (`owned: true`) — `seq`-numbered defects, RFIs, clashes, safety, snags with `photos` and `bim_pin`
-    - `tasks/` (`owned: true`) — WBS work packages & milestones (`is_milestone`) with `schedule_range`, `actual_range`, and 4D `bim_express_ids`
-    - `progress_updates/` (`owned: true`) — append-only site diary propagating max batch progress to `tasks` & `cost_items`
-    - `cost_items/` (`owned: true`) — configurable BOQ lines (`percentage` | `measured_qty` | `milestone`)
-    - `quotes/` (`owned: true`) — `seq`-numbered client & subcon quotes with `priced_lines`, `revision_trail`, `sent_locked` & `accepted_locked`
-    - `change_orders/` (`owned: true`) — `seq`-numbered VOs/EOTs with `priced_lines`, `bim_pin`, `submitted_locked` & `approved_locked`
-    - `payment_claims/` (`owned: true`) — `seq`-numbered polymorphic cashflow ledger (`inflow` with `claim_valuation`, `outflow` subcon/supplier bills, `adjustment` offsetting entries), `submitted_locked` & `settled_locked`
-  - `project_messages/` — global WhatsApp/Telegram/email/Slack/Discord inbox routed to projects
-  - `contacts/` — subcontractor, supplier, consultant & client directory (`format: 'phone'`, `format: 'email'`)
-  - `communication_settings/` — per-member intake / auto-extraction rules
-- **Custom Fields (6)** under `src/data/custom_field/`: `project_zones`, `bim_pin`, `priced_lines`, `revision_trail`, `claim_valuation`, `project_address`.
-- **Apps (2)** under `src/app/`:
-  - `operations` — `projects`, `messages` (each model has one primary home; `tasks` lives in the Project Hub)
-  - `configuration` — `connections` (`Channels` + `Intake & auto-extraction` tabs), `contacts`
-- **Automations (6)** under `src/automation/`:
-  - `sync_messages`, `classify_messages`, `reclassify_messages`, `extract_project_updates`, `generate_payment_claim`, `daily_project_digest`
-- **Libraries** under `src/lib/`:
-  - `claims.ts` — pure Effect `BigDecimal` BOQ, quote, VO, valuation, margin & cashflow math
-  - `zones.ts` — shared batched validator checking child `zone` codes against `projects.zones`
-  - `ProjectTimeline.svelte` — 4D timeline with date scrubber, milestone diamonds, VO markers & BIM highlights
-  - `ifc-viewer/` — browser 3D IFC viewer with X/Y/Z axis section scrubbers & click-to-tag issues
-  - `ai.ts`, `conversations.ts`, `message-import.ts`, `MyConnections.svelte`
+- **Models (11)** under `src/data/model/`:
+  - `projects/` — root project (`project_role`, `autodesk_project_id`, `zones`, commercial terms, `capture_rules`)
+    - `contracts/` (`owned: true`) — upstream/downstream contracts & variation orders (`trade_specialty`, `priced_lines`, `revision_trail`, execution locks)
+    - `commercial_documents/` (`owned: true`) — unified PO, DO, Invoice, Progress Claim, Credit Note ledger with 3-way `parent_document_id` matching & locks
+    - `tasks/` (`owned: true`) — large-scale WBS tasks & milestones with `+schedule_file.sync.ts` (XLSX/CSV/P6 `.xer`/MS Project `.xml`) and `+autodesk_schedule.sync.ts`
+    - `issues/` (`owned: true`) — BIM-pinned defects, clashes, RFIs, safety & snags tied to tasks, contracts & trade subcontractors
+    - `project_files/` (`owned: true`) — IFC models, Autodesk sheets/models, drawings & specs with `+autodesk_files.sync.ts` and automatic `analyze_bim_file` trigger
+    - `cost_estimates/` (`owned: true`) — BIM classified asset takeoff (`bim_takeoff`) + editable non-BIM `additional_costs` (`priced_lines`) + `baselined_locked`
+  - `project_messages/` — WhatsApp & email intake inbox routed into projects
+  - `cost_matrix/` (Configuration) — quantifiable IFC asset & additional-cost rate matrix with `+matrix.sync.ts`
+  - `contacts/` (Configuration) — subcontractors by `trade_specialty`, suppliers, clients & consultants (WhatsApp phone & email)
+  - `communication_settings/` (Configuration) — personal WhatsApp/email intake & extraction rules
+- **Integration (1):** `src/integration/autodesk_acc/+integration.ts` (OAuth 2.0 to Autodesk Platform Services / ACC).
+- **Apps (2):** `operations` (`projects`, `messages`) and `configuration` (`connections`, `contacts`, `cost_matrix`).
+- **Automations (7):** `sync_messages`, `classify_messages`, `reclassify_messages`, `extract_project_updates`, `analyze_bim_file`, `generate_payment_claim`, `daily_project_digest`.
+- **Libraries:** `commercial.ts`, `bim-pipeline.ts`, `schedule-parsers.ts`, `trades.ts`, `zones.ts`, `ProjectTimeline.svelte`, `ifc-viewer/`, `conversations.ts`, `message-import.ts`, `MyConnections.svelte`.
 
-## Key invariants
+## Verification gates
 
-1. **Exact `BigDecimal` arithmetic.** Zero floating-point money math; store all line/valuation money values as exact decimal strings.
-2. **Co-located typed values.** Reuse built-in kinds (`period`, `money`, `seq`, `state`) and shared custom fields (`priced_lines`, `revision_trail`, `bim_pin`, `claim_valuation`, `project_zones`). Validate child `zone` strings via `validateProjectZones`.
-3. **Immutable ledgers & documents.** `progress_updates` locks numeric progress after post; `quotes` locks `sent` & `accepted`; `change_orders` locks `submitted`/`under_review`/`approved`; `payment_claims` locks on leaving `draft`.
-4. **Polymorphic step UI & single scroll owner.** `payment_claims` uses a 2-step create flow (`inflow` vs `outflow`); every Project Hub tab owns one concern and one scroll container.
-5. **Verification gates.** From `templates/construction`, run `bolt build`, `bolt check`, `bolt test`, and `bolt seed --bank=../../seed_bank`. From the realm root, run `bun run privacy` before pushing.
+From `templates/construction`, run `bolt check`, `bolt build`, `bolt test`, and `bolt seed --bank=../../seed_bank`. From the realm root, run `bun run privacy` before pushing.

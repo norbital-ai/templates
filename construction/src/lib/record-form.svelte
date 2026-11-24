@@ -1,14 +1,13 @@
 <script lang="ts">
 	/**
-	 * A record view that is one form: the record frame, and the model's form laid out by the page's `Section`s. A
-	 * create opens the new record, as the generated view does.
+	 * A record view that is one form: the record frame, and the model's form laid out by the page's `Section`s.
+	 * Create completion delegates to `RecordShell`'s own `on_done` / default navigation.
 	 */
 	import type { Snippet } from 'svelte';
 	import type { ModelName } from '@norbital-ai/bolt';
 	import {
 		Form,
 		RecordShell,
-		open_record,
 		type FormState,
 		type RecordView,
 		type RunsForProps,
@@ -49,13 +48,10 @@
 		{ctx}
 		{of}
 		mode={view.mode}
+		size="content"
 		{...record == null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
-		on_outcome={(outcome) => {
-			const created = outcome.kind === 'committed' ? outcome.records[0] : undefined;
-			if (view.mode === 'create' && created !== undefined) open_record(of, created.id);
-		}}
 	>
 		{#snippet children(form)}
 			{@render body(form)}

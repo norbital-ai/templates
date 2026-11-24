@@ -1,8 +1,8 @@
 /** Bounded prompt helpers so AI routing and extraction never exceed token ceilings. */
 
 export const PROMPT_MAX = 48_000;
-export const ITEM_MAX = 2_000;
-export const ITEMS_MAX = 60;
+const ITEM_MAX = 2_000;
+const ITEMS_MAX = 60;
 
 export const cap = (text: string, max: number): string =>
 	text.length <= max ? text : `${text.slice(0, Math.max(0, max - 12)).trimEnd()} …[cut]`;

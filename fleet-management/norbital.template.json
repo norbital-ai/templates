@@ -1,0 +1,17 @@
+{
+	"schema_version": 1,
+	"key": "norbital_fleet_management",
+	"name": "Fleet Management",
+	"industry": "Logistics & Fleet",
+	"description": "Real-time GPS transponder tracking, live vehicle map, route dispatch and ETAs, geofence boundaries, and overspeed or offline alerting with isolated configuration.",
+	"visibility": "public",
+	"counts": {
+		"models": 6,
+		"apps": 2,
+		"automations": 2
+	},
+	"tags": ["Fleet", "GPS", "Telemetry", "Routing", "Logistics"],
+	"name_zh": "车队管理",
+	"description_zh": "实时 GPS 应答器定位追踪、在线车辆地图、路线调度与预计到达时间（ETA）、电子围栏以及超速/离线告警，配置独立隔离。",
+	"tags_zh": ["车队", "GPS", "遥测", "路线", "物流"]
+}

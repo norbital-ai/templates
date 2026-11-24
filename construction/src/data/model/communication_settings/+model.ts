@@ -17,7 +17,7 @@ const replayOwners = Effect.fnUntraced(function* (
 });
 
 export default model('communication_settings', {
-	description: 'Per-member WhatsApp/Telegram intake rules and AI extraction preferences.',
+	description: 'Per-member WhatsApp and email intake rules and AI extraction preferences.',
 	icon: 'lucide:list-filter',
 	record_label: 'record.owner.name',
 	fields: {

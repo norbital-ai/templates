@@ -58,6 +58,7 @@ export type IFCViewerIssueSummary = {
 
 export type IFCViewerProps = {
 	t: Translator;
+	translateKey?: (key: string) => string;
 	src: string;
 	alt?: string;
 	markers?: number[];

@@ -1,7 +1,7 @@
 import { custom_field } from '@norbital-ai/bolt';
 
 /**
- * Co-located revision trail automatically snapshotted by server transforms on project files and quotes.
+ * Co-located revision trail automatically snapshotted by server transforms on project files and contracts.
  */
 export default custom_field({
 	description:

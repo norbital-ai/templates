@@ -7,23 +7,23 @@
 	let { view, ctx }: { view: RecordView<'contacts'>; ctx: PageContext } = $props();
 </script>
 
-<RecordForm {ctx} {view} subtitle={['company_name', 'role', 'trade']}>
+<RecordForm {ctx} {view} subtitle={['role', 'trade_specialty', 'status']}>
 	<Section icon="lucide:contact-round" first name="contact" title={ctx.t('section.contact')}>
-		<Grid minimum="compact">
+		<Grid minimum="card">
 			<Field {ctx} name="full_name" />
 			<Field {ctx} name="company_name" />
 			<Field {ctx} name="role" />
-			<Field {ctx} name="trade" />
+			<Field {ctx} name="trade_specialty" />
 			<Field {ctx} name="project_id" />
+			<Field {ctx} name="status" />
+			<Field {ctx} name="registration_no" />
+			<Field {ctx} name="payment_terms_days" />
 		</Grid>
 	</Section>
 	<Section icon="lucide:message-circle" name="channels" title={ctx.t('section.messaging_handles')}>
-		<Grid minimum="compact">
+		<Grid minimum="card">
 			<Field {ctx} name="phone" />
-			<Field {ctx} name="telegram" />
 			<Field {ctx} name="email" />
-			<Field {ctx} name="slack" />
-			<Field {ctx} name="discord" />
 			<Column span="all"><Field {ctx} name="notes" /></Column>
 		</Grid>
 	</Section>

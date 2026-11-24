@@ -2,7 +2,7 @@ import { custom_field } from '@norbital-ai/bolt';
 import { BigDecimal, Option } from 'effect';
 
 /**
- * Reusable co-located priced line items for quotes and variation orders.
+ * Reusable co-located priced line items for contracts, commercial documents, and additional costings.
  * Quantities, unit rates, and amounts are stored as exact decimal strings (BigDecimal).
  */
 export default custom_field({

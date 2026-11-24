@@ -1,19 +1,18 @@
 import { policy } from '@norbital-ai/bolt';
 
-/** System background authority for message syncing, AI routing, structured extraction, claim valuation, and daily digests. */
+/** Background system authority for WhatsApp/email sync, AI routing/extraction, BIM takeoff pipeline, Autodesk syncs, claim drafting, and daily digests. */
 export default policy({
 	description:
-		'Background automation authority for messaging sync, AI extraction, payment claim drafting, and digests.',
+		'Background automation authority for messaging sync, AI extraction, BIM takeoff pipeline, Autodesk syncs, claim drafting, and digests.',
 	grants: {
 		projects: { outputs: { default: {} } },
-		project_files: { outputs: { default: {} } },
-		tasks: { outputs: { default: {} }, create: {}, update: {} },
-		issues: { outputs: { default: {} }, create: {}, update: {} },
-		change_orders: { outputs: { default: {} }, create: {}, update: {} },
-		progress_updates: { outputs: { default: {} }, create: {}, update: {} },
-		cost_items: { outputs: { default: {} }, update: {} },
-		quotes: { outputs: { default: {} } },
-		payment_claims: { outputs: { default: {} }, create: {}, update: {} },
+		contracts: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		commercial_documents: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		tasks: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		issues: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		project_files: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		cost_estimates: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		cost_matrix: { outputs: { default: {} } },
 		contacts: { outputs: { default: {} } },
 		communication_settings: { outputs: { default: {} } },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} },

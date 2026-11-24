@@ -4,6 +4,7 @@
 	import { Table } from '@norbital-ai/ui';
 
 	let { ctx }: { ctx: PageContext } = $props();
+	const canRunPipeline = $derived(ctx.catalog?.project_messages?.update !== undefined);
 </script>
 
 <AppShell
@@ -18,26 +19,30 @@
 		page_size={50}
 		toolbar={{
 			title: false,
-			actions: [
-				{
-					icon: 'lucide:refresh-cw',
-					name: ctx.t('messages.action_sync'),
-					description: ctx.t('messages.action_sync_desc'),
-					run: () => ctx.run('sync_messages', {})
-				},
-				{
-					icon: 'lucide:sparkles',
-					name: ctx.t('messages.action_classify'),
-					description: ctx.t('messages.action_classify_desc'),
-					run: () => ctx.run('classify_messages', {})
-				},
-				{
-					icon: 'lucide:wand-sparkles',
-					name: ctx.t('messages.action_extract'),
-					description: ctx.t('messages.action_extract_desc'),
-					run: () => ctx.run('extract_project_updates', {})
-				}
-			]
+			...(canRunPipeline
+				? {
+						actions: [
+							{
+								icon: 'lucide:refresh-cw',
+								name: ctx.t('messages.action_sync'),
+								description: ctx.t('messages.action_sync_desc'),
+								run: () => ctx.run('sync_messages', {})
+							},
+							{
+								icon: 'lucide:sparkles',
+								name: ctx.t('messages.action_classify'),
+								description: ctx.t('messages.action_classify_desc'),
+								run: () => ctx.run('classify_messages', {})
+							},
+							{
+								icon: 'lucide:wand-sparkles',
+								name: ctx.t('messages.action_extract'),
+								description: ctx.t('messages.action_extract_desc'),
+								run: () => ctx.run('extract_project_updates', {})
+							}
+						]
+					}
+				: {})
 		}}
 		columns={[
 			'occurred_at',

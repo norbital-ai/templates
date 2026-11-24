@@ -6,7 +6,7 @@
 	export type Part = {
 		key: string;
 		label: string;
-		type?: 'text' | 'tel' | 'date' | 'number';
+		type?: 'text' | 'tel' | 'number';
 		autocomplete?: 'name' | 'tel';
 		/** An empty optional part is `null`; an empty required part is `''`. */
 		optional?: true;
@@ -26,7 +26,7 @@
 	 * One structured value edited part by part. A value whose every part is empty is `null`, so clearing the last
 	 * filled cell clears the field rather than storing a record of empty strings.
 	 */
-	import { Input } from '@norbital-ai/ui';
+	import { Input, Label, Surface } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import * as Predicate from 'effect/Predicate';
 	let {
@@ -40,6 +40,7 @@
 		disabled: boolean;
 		on_change: (next: Value | null) => void;
 	} = $props();
+	const uid = $props.id();
 	function update(part: Part, raw: string): void {
 		const empty = Object.fromEntries(parts.map((p) => [p.key, p.optional ? null : '']));
 		const parsed =
@@ -54,12 +55,13 @@
 	}
 </script>
 
-<Grid class="rounded-md border border-border bg-muted/20 p-3" gap="sm" minimum="compact">
-	{#each parts as part (part.key)}
-		<label class="text-sm font-medium">
+<Surface tone="subtle" padding="sm" radius="control">
+	<Grid gap="sm" minimum="card">
+		{#each parts as part (part.key)}
 			<Stack gap="xs">
-				{part.label}
+				<Label for={`${uid}-${part.key}`}>{part.label}</Label>
 				<Input
+					id={`${uid}-${part.key}`}
 					type={part.type ?? 'text'}
 					step={part.type === 'number' ? 'any' : undefined}
 					autocomplete={part.autocomplete}
@@ -68,6 +70,6 @@
 					oninput={(event) => update(part, event.currentTarget.value)}
 				/>
 			</Stack>
-		</label>
-	{/each}
-</Grid>
+		{/each}
+	</Grid>
+</Surface>

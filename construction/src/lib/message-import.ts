@@ -1,6 +1,12 @@
-import { DateTime, Effect, Schema } from 'effect';
+import { DateTime, Effect, Option, Schema } from 'effect';
 import type { AutomationCtx, Id, LayerWhere } from '@norbital-ai/bolt';
 import { ActConflict, ActRefused } from '@norbital-ai/bolt/errors';
+
+const instantEpoch = (raw: string): number =>
+	Option.match(DateTime.make(raw), {
+		onNone: () => 0,
+		onSome: (dt) => DateTime.toEpochMillis(dt)
+	});
 
 const Zoned = Schema.String.check(Schema.isPattern(/(?:Z|[+-]\d{2}:?\d{2})$/i));
 const ImportStart = Schema.Union([
@@ -26,10 +32,10 @@ export const messageImportAllows = Effect.fnUntraced(function* (
 ) {
 	const start = yield* messageImportStart(account.import_start, ctx);
 	if (start?.kind === 'native')
-		return Date.parse(source.created_at) >= Date.parse(start.selectedAt);
+		return instantEpoch(source.created_at) >= instantEpoch(start.selectedAt);
 	if (start?.kind !== 'since') return true;
 	const at = source.source_at;
-	return at != null && Date.parse(at) >= Date.parse(start.at);
+	return at != null && instantEpoch(at) >= instantEpoch(start.at);
 });
 
 export type MessageImportWhere = LayerWhere<'project_messages', 'project_messages.source_message'>;
@@ -73,7 +79,7 @@ type Lane = {
 };
 
 export const newestOf = <R extends Lane>(rows: readonly R[], take: number) => {
-	const at = (row: R) => Date.parse(row.source_at ?? row.created_at);
+	const at = (row: R) => instantEpoch(row.source_at ?? row.created_at);
 	return [...rows].sort((a, b) => at(b) - at(a) || b.seq - a.seq).slice(0, take);
 };
 

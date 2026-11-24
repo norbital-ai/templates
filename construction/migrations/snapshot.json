@@ -99,13 +99,36 @@
 				}
 			]
 		},
-		"change_orders": {
+		"commercial_documents": {
 			"audit": true,
-			"fields": {
-				"approved_date": {
-					"kind": "date",
-					"optional": true
+			"check": {
+				"non_negative_retention": {
+					"retention_amount": {
+						"gte": 0
+					}
 				},
+				"non_negative_subtotal": {
+					"or": [
+						{
+							"doc_type": {
+								"eq": "credit_note"
+							}
+						},
+						{
+							"subtotal": {
+								"gte": 0
+							}
+						}
+					]
+				},
+				"valid_tax_rate": {
+					"tax_rate": {
+						"gte": 0,
+						"lte": 100
+					}
+				}
+			},
+			"fields": {
 				"attachments": {
 					"accept": [
 						"*/*"
@@ -115,65 +138,77 @@
 					"max": "20MiB",
 					"optional": true
 				},
-				"bim_file_id": {
-					"inverse": "change_orders",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "project_files"
-				},
-				"bim_pin": {
-					"kind": "custom",
-					"of": "bim_pin",
+				"certified_amount": {
+					"currency": "currency",
+					"kind": "money",
 					"optional": true
 				},
-				"change_number": {
-					"kind": "seq",
-					"pattern": "VO-{yyyy}-{000}",
-					"per": [
-						"project_id"
-					]
-				},
-				"change_type": {
-					"default": "variation_order",
-					"kind": "enum",
-					"values": [
-						"variation_order",
-						"architect_instruction",
-						"site_instruction",
-						"design_change",
-						"eot",
-						"omission"
-					]
-				},
-				"cost_impact": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"cost_item_id": {
-					"inverse": "change_orders",
+				"contact_id": {
+					"inverse": "commercial_documents",
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
-					"to": "cost_items"
+					"to": "contacts"
+				},
+				"contract_id": {
+					"inverse": "commercial_documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contracts"
 				},
 				"currency": {
 					"default": "SGD",
 					"kind": "currency"
+				},
+				"delivery_date": {
+					"kind": "date",
+					"optional": true
 				},
 				"description": {
 					"format": "markdown",
 					"kind": "text",
 					"optional": true
 				},
-				"effective_date": {
+				"direction": {
+					"default": "outflow",
+					"kind": "enum",
+					"values": [
+						"inflow",
+						"outflow"
+					]
+				},
+				"doc_type": {
+					"default": "invoice",
+					"kind": "enum",
+					"values": [
+						"purchase_order",
+						"delivery_order",
+						"invoice",
+						"progress_claim",
+						"credit_note"
+					]
+				},
+				"document_number": {
+					"kind": "seq",
+					"pattern": "DOC-{yyyy}-{000}",
+					"per": [
+						"project_id"
+					]
+				},
+				"due_date": {
 					"kind": "date",
 					"optional": true
 				},
-				"justification": {
-					"format": "markdown",
+				"external_reference": {
 					"kind": "text",
+					"optional": true
+				},
+				"issue_date": {
+					"default": {
+						"var": "today"
+					},
+					"kind": "date",
 					"optional": true
 				},
 				"lines": {
@@ -181,22 +216,49 @@
 					"of": "priced_lines",
 					"optional": true
 				},
+				"match_notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"match_status": {
+					"default": "unmatched",
+					"kind": "enum",
+					"values": [
+						"unmatched",
+						"partial",
+						"matched",
+						"variance"
+					]
+				},
+				"net_amount": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"paid_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"parent_document_id": {
+					"inverse": "linked_documents",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "commercial_documents"
+				},
 				"project_id": {
-					"inverse": "change_orders",
+					"inverse": "commercial_documents",
 					"kind": "ref",
 					"owned": true,
 					"to": "projects"
 				},
-				"requested_by": {
-					"kind": "text",
-					"optional": true
-				},
-				"schedule_impact_days": {
+				"retention_amount": {
+					"currency": "currency",
 					"default": 0,
-					"kind": "int"
+					"kind": "money"
 				},
 				"source_message_id": {
-					"inverse": "change_orders",
+					"inverse": "commercial_documents",
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
@@ -206,93 +268,133 @@
 					"initial": "draft",
 					"kind": "state",
 					"states": {
-						"approved": {
+						"cancelled": {
 							"to": []
+						},
+						"certified": {
+							"to": [
+								"paid",
+								"disputed"
+							]
+						},
+						"disputed": {
+							"to": [
+								"draft",
+								"issued",
+								"verified",
+								"cancelled"
+							]
 						},
 						"draft": {
 							"to": [
-								"submitted",
-								"withdrawn"
+								"issued",
+								"cancelled"
 							]
 						},
-						"rejected": {
+						"issued": {
 							"to": [
-								"draft"
+								"verified",
+								"certified",
+								"paid",
+								"disputed",
+								"cancelled"
 							]
 						},
-						"submitted": {
-							"to": [
-								"under_review",
-								"approved",
-								"rejected",
-								"draft"
-							]
+						"paid": {
+							"to": []
 						},
-						"under_review": {
+						"verified": {
 							"to": [
-								"approved",
-								"rejected",
-								"draft"
-							]
-						},
-						"withdrawn": {
-							"to": [
-								"draft"
+								"certified",
+								"paid",
+								"disputed"
 							]
 						}
 					}
 				},
-				"title": {
-					"kind": "text"
+				"subtotal": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
 				},
-				"zone": {
-					"kind": "text",
-					"optional": true
+				"tax_amount": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"tax_rate": {
+					"default": 9,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"total_amount": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
 				}
 			},
 			"indexes": [
 				{
 					"on": [
 						"project_id",
+						"doc_type",
+						"direction",
 						"status"
 					]
 				}
 			],
 			"locks": {
-				"approved_locked": {
+				"certified_locked": {
 					"except": [
-						"attachments",
-						"justification"
+						"status",
+						"paid_date",
+						"attachments"
 					],
 					"where": {
 						"status": {
-							"eq": "approved"
+							"eq": "certified"
 						}
 					}
 				},
-				"submitted_locked": {
+				"issued_locked": {
 					"except": [
 						"status",
-						"approved_date",
-						"attachments",
-						"justification"
+						"certified_amount",
+						"net_amount",
+						"delivery_date",
+						"paid_date",
+						"match_status",
+						"match_notes",
+						"attachments"
 					],
 					"where": {
 						"status": {
 							"in": [
-								"submitted",
-								"under_review"
+								"issued",
+								"verified"
+							]
+						}
+					}
+				},
+				"settled_locked": {
+					"except": [
+						"attachments"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"paid",
+								"cancelled"
 							]
 						}
 					}
 				}
 			},
-			"record_label": "record.change_number != null ? record.change_number + ' · ' + record.title : record.title",
+			"record_label": "record.external_reference != null ? record.document_number + ' · ' + record.external_reference : record.document_number",
 			"search": {
 				"text": [
-					"change_number",
-					"title",
-					"zone",
+					"document_number",
+					"external_reference",
 					"description"
 				]
 			}
@@ -335,22 +437,6 @@
 		"contacts": {
 			"audit": true,
 			"computed": {
-				"discord_key": {
-					"expr": {
-						"lower": {
-							"regex_replace": [
-								{
-									"trim": {
-										"field": "discord"
-									}
-								},
-								"^(discord:)?@?",
-								"discord:"
-							]
-						}
-					},
-					"kind": "text"
-				},
 				"email_key": {
 					"expr": {
 						"lower": {
@@ -370,46 +456,10 @@
 						]
 					},
 					"kind": "text"
-				},
-				"slack_key": {
-					"expr": {
-						"lower": {
-							"regex_replace": [
-								{
-									"trim": {
-										"field": "slack"
-									}
-								},
-								"^(slack:)?@?",
-								"slack:"
-							]
-						}
-					},
-					"kind": "text"
-				},
-				"telegram_key": {
-					"expr": {
-						"lower": {
-							"regex_replace": [
-								{
-									"trim": {
-										"field": "telegram"
-									}
-								},
-								"^@?",
-								"@"
-							]
-						}
-					},
-					"kind": "text"
 				}
 			},
 			"fields": {
 				"company_name": {
-					"kind": "text",
-					"optional": true
-				},
-				"discord": {
 					"kind": "text",
 					"optional": true
 				},
@@ -425,6 +475,12 @@
 					"kind": "text",
 					"optional": true
 				},
+				"payment_terms_days": {
+					"kind": "int",
+					"max": 180,
+					"min": 0,
+					"optional": true
+				},
 				"phone": {
 					"format": "phone",
 					"kind": "text",
@@ -437,32 +493,54 @@
 					"optional": true,
 					"to": "projects"
 				},
+				"registration_no": {
+					"kind": "text",
+					"optional": true
+				},
 				"role": {
 					"default": "subcontractor",
 					"kind": "enum",
 					"values": [
 						"subcontractor",
-						"site_engineer",
-						"qs",
-						"architect",
-						"consultant",
-						"client",
 						"supplier",
-						"safety_officer",
+						"main_contractor",
+						"client",
+						"consultant",
+						"architect",
+						"qs",
+						"site_engineer",
 						"project_manager"
 					]
 				},
-				"slack": {
-					"kind": "text",
-					"optional": true
+				"status": {
+					"default": "active",
+					"kind": "enum",
+					"values": [
+						"active",
+						"inactive"
+					]
 				},
-				"telegram": {
-					"kind": "text",
-					"optional": true
-				},
-				"trade": {
-					"kind": "text",
-					"optional": true
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
 				}
 			},
 			"indexes": [
@@ -478,17 +556,8 @@
 				},
 				{
 					"on": [
-						"telegram_key"
-					]
-				},
-				{
-					"on": [
-						"slack_key"
-					]
-				},
-				{
-					"on": [
-						"discord_key"
+						"trade_specialty",
+						"role"
 					]
 				}
 			],
@@ -497,128 +566,634 @@
 				"text": [
 					"full_name",
 					"company_name",
-					"trade",
 					"phone",
-					"email"
+					"email",
+					"registration_no"
 				]
 			}
 		},
-		"cost_items": {
+		"contracts": {
 			"audit": true,
 			"check": {
-				"valid_completed_qty": {
-					"completed_qty": {
-						"gte": 0
+				"valid_retention_cap": {
+					"retention_cap_rate": {
+						"gte": 0,
+						"lte": 100
 					}
 				},
-				"valid_contract_qty": {
-					"contract_qty": {
-						"gte": 0
+				"valid_retention_rate": {
+					"retention_rate": {
+						"gte": 0,
+						"lte": 100
 					}
 				},
-				"valid_progress": {
-					"progress_pct": {
+				"valid_tax_rate": {
+					"tax_rate": {
 						"gte": 0,
 						"lte": 100
 					}
 				}
 			},
 			"fields": {
-				"claim_basis": {
-					"default": "percentage",
-					"kind": "enum",
-					"values": [
-						"percentage",
-						"measured_qty",
-						"milestone"
+				"attachments": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"bim_pin": {
+					"kind": "custom",
+					"of": "bim_pin",
+					"optional": true
+				},
+				"bond_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"contact_id": {
+					"inverse": "contracts",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contacts"
+				},
+				"contract_number": {
+					"kind": "seq",
+					"pattern": "CTR-{yyyy}-{000}",
+					"per": [
+						"project_id"
 					]
 				},
-				"claimable_amount": {
+				"contract_period": {
+					"kind": "period",
+					"of": "date",
+					"optional": true
+				},
+				"contract_type": {
+					"default": "subcontract",
+					"kind": "enum",
+					"values": [
+						"main_contract",
+						"subcontract",
+						"supply_agreement",
+						"consultancy",
+						"variation_order"
+					]
+				},
+				"contract_value": {
 					"currency": "currency",
 					"default": 0,
 					"kind": "money"
-				},
-				"completed_qty": {
-					"default": 0,
-					"kind": "decimal",
-					"scale": 3
-				},
-				"contract_amount": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"contract_qty": {
-					"default": 1,
-					"kind": "decimal",
-					"scale": 3
-				},
-				"cost_group": {
-					"default": "superstructure",
-					"kind": "enum",
-					"values": [
-						"preliminaries",
-						"substructure",
-						"superstructure",
-						"architecture",
-						"mep",
-						"external_works",
-						"provisional_sum",
-						"variation"
-					]
 				},
 				"currency": {
 					"default": "SGD",
 					"kind": "currency"
 				},
-				"description": {
-					"kind": "text"
+				"current_revision": {
+					"default": 1,
+					"kind": "int",
+					"min": 1
 				},
-				"item_code": {
+				"direction": {
+					"default": "downstream",
+					"kind": "enum",
+					"values": [
+						"upstream",
+						"downstream"
+					]
+				},
+				"dlp_months": {
+					"default": 12,
+					"kind": "int",
+					"max": 60,
+					"min": 0
+				},
+				"insurance_expiry": {
+					"kind": "date",
+					"optional": true
+				},
+				"lines": {
+					"kind": "custom",
+					"of": "priced_lines",
+					"optional": true
+				},
+				"parent_contract_id": {
+					"inverse": "variations",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contracts"
+				},
+				"payment_terms_days": {
+					"default": 30,
+					"kind": "int",
+					"max": 180,
+					"min": 0
+				},
+				"project_id": {
+					"inverse": "contracts",
+					"kind": "ref",
+					"owned": true,
+					"to": "projects"
+				},
+				"retention_cap_rate": {
+					"default": 5,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"retention_rate": {
+					"default": 10,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"revisions": {
+					"kind": "custom",
+					"of": "revision_trail",
+					"optional": true
+				},
+				"schedule_impact_days": {
+					"default": 0,
+					"kind": "int"
+				},
+				"scope_notes": {
+					"format": "markdown",
 					"kind": "text",
 					"optional": true
+				},
+				"signed_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"source_message_id": {
+					"inverse": "contracts",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "project_messages"
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"active": {
+							"to": [
+								"completed",
+								"terminated"
+							]
+						},
+						"completed": {
+							"to": []
+						},
+						"draft": {
+							"to": [
+								"under_review",
+								"active",
+								"rejected"
+							]
+						},
+						"rejected": {
+							"to": [
+								"draft"
+							]
+						},
+						"terminated": {
+							"to": []
+						},
+						"under_review": {
+							"to": [
+								"active",
+								"draft",
+								"rejected"
+							]
+						}
+					}
+				},
+				"tax_rate": {
+					"default": 9,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"title": {
+					"kind": "text"
+				},
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"project_id",
+						"direction",
+						"status"
+					]
+				}
+			],
+			"locks": {
+				"active_locked": {
+					"except": [
+						"status",
+						"insurance_expiry",
+						"attachments",
+						"scope_notes"
+					],
+					"where": {
+						"status": {
+							"eq": "active"
+						}
+					}
+				},
+				"review_locked": {
+					"except": [
+						"status",
+						"current_revision",
+						"revisions",
+						"signed_date",
+						"attachments",
+						"scope_notes"
+					],
+					"where": {
+						"status": {
+							"eq": "under_review"
+						}
+					}
+				},
+				"settled_locked": {
+					"except": [
+						"attachments"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"completed",
+								"terminated"
+							]
+						}
+					}
+				}
+			},
+			"record_label": "record.contract_number != null ? record.contract_number + ' · ' + record.title : record.title",
+			"search": {
+				"text": [
+					"contract_number",
+					"title",
+					"scope_notes"
+				]
+			}
+		},
+		"cost_estimates": {
+			"audit": true,
+			"check": {
+				"valid_contingency": {
+					"contingency_pct": {
+						"gte": 0,
+						"lte": 100
+					}
+				}
+			},
+			"fields": {
+				"additional_costs": {
+					"kind": "custom",
+					"of": "priced_lines",
+					"optional": true
+				},
+				"additional_subtotal": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"analyzed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"bim_asset_count": {
+					"default": 0,
+					"kind": "int",
+					"min": 0
+				},
+				"bim_assets": {
+					"kind": "custom",
+					"of": "bim_takeoff",
+					"optional": true
+				},
+				"bim_file_id": {
+					"inverse": "cost_estimates",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "project_files"
+				},
+				"bim_subtotal": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"classified_asset_count": {
+					"default": 0,
+					"kind": "int",
+					"min": 0
+				},
+				"contingency_amount": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"contingency_pct": {
+					"default": 5,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"contract_id": {
+					"inverse": "cost_estimates",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contracts"
+				},
+				"currency": {
+					"default": "SGD",
+					"kind": "currency"
+				},
+				"estimate_number": {
+					"kind": "seq",
+					"pattern": "EST-{yyyy}-{000}",
+					"per": [
+						"project_id"
+					]
+				},
+				"notes": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"project_id": {
+					"inverse": "cost_estimates",
+					"kind": "ref",
+					"owned": true,
+					"to": "projects"
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"baselined": {
+							"to": [
+								"superseded"
+							]
+						},
+						"draft": {
+							"to": [
+								"reviewed",
+								"baselined",
+								"superseded"
+							]
+						},
+						"reviewed": {
+							"to": [
+								"baselined",
+								"draft",
+								"superseded"
+							]
+						},
+						"superseded": {
+							"to": []
+						}
+					}
+				},
+				"title": {
+					"kind": "text"
+				},
+				"total_estimate": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"unmatched_asset_count": {
+					"default": 0,
+					"kind": "int",
+					"min": 0
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"project_id",
+						"status"
+					]
+				}
+			],
+			"locks": {
+				"baselined_locked": {
+					"except": [
+						"status",
+						"notes"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"baselined",
+								"superseded"
+							]
+						}
+					}
+				}
+			},
+			"record_label": "record.estimate_number != null ? record.estimate_number + ' · ' + record.title : record.title",
+			"search": {
+				"text": [
+					"estimate_number",
+					"title",
+					"notes"
+				]
+			}
+		},
+		"cost_matrix": {
+			"audit": true,
+			"check": {
+				"valid_rate": {
+					"unit_rate": {
+						"gte": 0
+					}
+				},
+				"valid_waste": {
+					"waste_factor_pct": {
+						"gte": 0,
+						"lte": 100
+					}
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"category": {
+					"default": "bim_asset",
+					"kind": "enum",
+					"values": [
+						"bim_asset",
+						"additional_cost"
+					]
+				},
+				"code": {
+					"kind": "text"
+				},
+				"currency": {
+					"default": "SGD",
+					"kind": "currency"
+				},
+				"discipline": {
+					"default": "mep",
+					"kind": "enum",
+					"values": [
+						"architecture",
+						"structural",
+						"mep",
+						"civil",
+						"preliminaries",
+						"general"
+					]
+				},
+				"ifc_classes": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"match_keywords": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
 				},
 				"notes": {
 					"kind": "text",
 					"optional": true
 				},
-				"progress_pct": {
-					"default": 0,
-					"kind": "decimal",
-					"scale": 1
+				"quantity_basis": {
+					"default": "count",
+					"kind": "enum",
+					"values": [
+						"count",
+						"length",
+						"area",
+						"volume",
+						"weight",
+						"lump_sum",
+						"pct_of_bim"
+					]
 				},
-				"project_id": {
-					"inverse": "cost_items",
-					"kind": "ref",
-					"owned": true,
-					"to": "projects"
+				"rate_basis": {
+					"default": "benchmark",
+					"kind": "enum",
+					"values": [
+						"tender",
+						"benchmark",
+						"subcon_quote",
+						"assumption"
+					]
 				},
-				"retention_exempt": {
-					"default": false,
-					"kind": "bool"
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
 				},
 				"unit": {
-					"kind": "text",
-					"optional": true
+					"default": "ea",
+					"kind": "enum",
+					"values": [
+						"ea",
+						"m",
+						"m2",
+						"m3",
+						"kg",
+						"ls",
+						"month",
+						"pct"
+					]
 				},
 				"unit_rate": {
 					"currency": "currency",
 					"default": 0,
 					"kind": "money"
 				},
-				"zone": {
-					"kind": "text",
+				"validity": {
+					"kind": "period",
+					"of": "date",
 					"optional": true
+				},
+				"waste_factor_pct": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 1
 				}
 			},
-			"record_label": "record.item_code != null ? record.item_code + ' · ' + record.description : record.description",
+			"indexes": [
+				{
+					"on": [
+						"category",
+						"active"
+					]
+				}
+			],
+			"record_label": "record.code + ' · ' + record.name",
 			"search": {
 				"text": [
-					"item_code",
-					"description",
-					"zone"
+					"code",
+					"name",
+					"notes"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"code"
+					],
+					"import_key": true,
+					"name": "code"
+				}
+			]
 		},
 		"issues": {
 			"audit": true,
@@ -652,6 +1227,13 @@
 				"closed_date": {
 					"kind": "date",
 					"optional": true
+				},
+				"contract_id": {
+					"inverse": "issues",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contracts"
 				},
 				"description": {
 					"format": "markdown",
@@ -778,6 +1360,28 @@
 				"title": {
 					"kind": "text"
 				},
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
+				},
 				"zone": {
 					"kind": "text",
 					"optional": true
@@ -801,449 +1405,38 @@
 				]
 			}
 		},
-		"payment_claims": {
-			"audit": true,
-			"check": {
-				"direction_matches_type": {
-					"or": [
-						{
-							"claim_type": {
-								"eq": "adjustment"
-							}
-						},
-						{
-							"and": [
-								{
-									"direction": {
-										"eq": "inflow"
-									}
-								},
-								{
-									"claim_type": {
-										"in": [
-											"progress",
-											"variation",
-											"milestone",
-											"final",
-											"retention_release"
-										]
-									}
-								}
-							]
-						},
-						{
-							"and": [
-								{
-									"direction": {
-										"eq": "outflow"
-									}
-								},
-								{
-									"claim_type": {
-										"in": [
-											"subcon_claim",
-											"supplier_invoice"
-										]
-									}
-								}
-							]
-						}
-					]
-				},
-				"non_negative_certified": {
-					"or": [
-						{
-							"claim_type": {
-								"eq": "adjustment"
-							}
-						},
-						{
-							"certified_amount": {
-								"is_null": true
-							}
-						},
-						{
-							"certified_amount": {
-								"gte": 0
-							}
-						}
-					]
-				},
-				"non_negative_claimed": {
-					"or": [
-						{
-							"claim_type": {
-								"eq": "adjustment"
-							}
-						},
-						{
-							"claimed_amount": {
-								"is_null": true
-							}
-						},
-						{
-							"claimed_amount": {
-								"gte": 0
-							}
-						}
-					]
-				}
-			},
-			"fields": {
-				"certified_amount": {
-					"currency": "currency",
-					"kind": "money",
-					"optional": true
-				},
-				"claim_number": {
-					"kind": "seq",
-					"pattern": "CLM-{yyyy}-{000}",
-					"per": [
-						"project_id"
-					]
-				},
-				"claim_period": {
-					"kind": "period",
-					"of": "date",
-					"optional": true
-				},
-				"claim_type": {
-					"default": "progress",
-					"kind": "enum",
-					"values": [
-						"progress",
-						"variation",
-						"milestone",
-						"final",
-						"retention_release",
-						"subcon_claim",
-						"supplier_invoice",
-						"adjustment"
-					]
-				},
-				"claimed_amount": {
-					"currency": "currency",
-					"kind": "money",
-					"optional": true
-				},
-				"contact_id": {
-					"inverse": "payment_claims",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "contacts"
-				},
-				"cost_item_id": {
-					"inverse": "payment_claims",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "cost_items"
-				},
-				"currency": {
-					"default": "SGD",
-					"kind": "currency"
-				},
-				"description": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"direction": {
-					"default": "inflow",
-					"kind": "enum",
-					"values": [
-						"inflow",
-						"outflow"
-					]
-				},
-				"due_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"paid_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"project_id": {
-					"inverse": "payment_claims",
-					"kind": "ref",
-					"owned": true,
-					"to": "projects"
-				},
-				"quote_id": {
-					"inverse": "payment_claims",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "quotes"
-				},
-				"status": {
-					"initial": "draft",
-					"kind": "state",
-					"states": {
-						"certified": {
-							"to": [
-								"paid",
-								"rejected"
-							]
-						},
-						"draft": {
-							"to": [
-								"submitted",
-								"rejected"
-							]
-						},
-						"paid": {
-							"to": []
-						},
-						"rejected": {
-							"to": []
-						},
-						"submitted": {
-							"to": [
-								"certified",
-								"rejected"
-							]
-						}
-					}
-				},
-				"submitted_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"supporting_documents": {
-					"accept": [
-						"*/*"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
-				},
-				"valuation": {
-					"kind": "custom",
-					"of": "claim_valuation",
-					"optional": true
-				},
-				"valuation_date": {
-					"default": {
-						"var": "today"
-					},
-					"kind": "date",
-					"optional": true
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"project_id",
-						"direction",
-						"status"
-					]
-				}
-			],
-			"locks": {
-				"certified_locked": {
-					"except": [
-						"status",
-						"paid_date",
-						"supporting_documents"
-					],
-					"where": {
-						"status": {
-							"eq": "certified"
-						}
-					}
-				},
-				"settled_locked": {
-					"except": [
-						"supporting_documents"
-					],
-					"where": {
-						"status": {
-							"in": [
-								"paid",
-								"rejected"
-							]
-						}
-					}
-				},
-				"submitted_locked": {
-					"except": [
-						"status",
-						"certified_amount",
-						"supporting_documents"
-					],
-					"where": {
-						"status": {
-							"eq": "submitted"
-						}
-					}
-				}
-			},
-			"record_label": "record.claim_number",
-			"search": {
-				"text": [
-					"claim_number",
-					"description"
-				]
-			}
-		},
-		"progress_updates": {
-			"audit": true,
-			"check": {
-				"valid_progress": {
-					"or": [
-						{
-							"reported_progress_pct": {
-								"is_null": true
-							}
-						},
-						{
-							"reported_progress_pct": {
-								"gte": 0,
-								"lte": 100
-							}
-						}
-					]
-				}
-			},
-			"fields": {
-				"category": {
-					"default": "progress",
-					"kind": "enum",
-					"values": [
-						"progress",
-						"milestone",
-						"site_diary",
-						"delivery",
-						"inspection",
-						"delay",
-						"safety"
-					]
-				},
-				"cost_item_id": {
-					"inverse": "progress_updates",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "cost_items"
-				},
-				"headcount": {
-					"kind": "int",
-					"min": 0,
-					"optional": true
-				},
-				"measured_quantity": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 3
-				},
-				"photos": {
-					"accept": [
-						"image/jpeg",
-						"image/png",
-						"image/webp"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
-				},
-				"project_id": {
-					"inverse": "progress_updates",
-					"kind": "ref",
-					"owned": true,
-					"to": "projects"
-				},
-				"reported_by": {
-					"kind": "text",
-					"optional": true
-				},
-				"reported_progress_pct": {
-					"kind": "decimal",
-					"optional": true,
-					"scale": 1
-				},
-				"source_message_id": {
-					"inverse": "progress_updates",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "project_messages"
-				},
-				"summary": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"task_id": {
-					"inverse": "progress_updates",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "tasks"
-				},
-				"title": {
-					"kind": "text"
-				},
-				"update_date": {
-					"default": {
-						"var": "today"
-					},
-					"kind": "date"
-				},
-				"weather": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"clear",
-						"rain",
-						"heavy_rain",
-						"storm",
-						"windy"
-					]
-				},
-				"zone": {
-					"kind": "text",
-					"optional": true
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"project_id",
-						"update_date"
-					]
-				}
-			],
-			"locks": {
-				"posted_diary_locked": {
-					"except": [
-						"summary",
-						"photos"
-					],
-					"where": {
-						"project_id": {
-							"is_null": false
-						}
-					}
-				}
-			},
-			"record_label": "record.title",
-			"search": {
-				"text": [
-					"title",
-					"summary",
-					"zone",
-					"reported_by"
-				]
-			}
-		},
 		"project_files": {
 			"audit": true,
 			"fields": {
+				"autodesk_urn": {
+					"kind": "text",
+					"optional": true
+				},
+				"bim_summary": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"analyzed_at": {
+								"kind": "text"
+							},
+							"asset_count": {
+								"kind": "int"
+							},
+							"schema": {
+								"kind": "text"
+							},
+							"storey_count": {
+								"kind": "int"
+							},
+							"storeys": {
+								"kind": "text",
+								"many": true
+							}
+						},
+						"kind": "object"
+					}
+				},
 				"current_version": {
 					"default": "P01",
 					"kind": "text"
@@ -1261,15 +1454,14 @@
 					]
 				},
 				"document_number": {
-					"kind": "text",
-					"optional": true
+					"kind": "text"
 				},
 				"file": {
 					"accept": [
 						"*/*"
 					],
 					"kind": "file",
-					"max": "50MiB",
+					"max": "20MiB",
 					"optional": true
 				},
 				"kind": {
@@ -1277,9 +1469,11 @@
 					"kind": "enum",
 					"values": [
 						"ifc_model",
+						"autodesk_model",
 						"drawing",
 						"spec",
-						"method_statement",
+						"schedule",
+						"contract_doc",
 						"handover"
 					]
 				},
@@ -1355,8 +1549,10 @@
 			"unique": [
 				{
 					"fields": [
+						"project_id",
 						"document_number"
 					],
+					"import_key": true,
 					"name": "document_number"
 				}
 			]
@@ -1517,10 +1713,7 @@
 					"kind": "enum",
 					"values": [
 						"whatsapp",
-						"telegram",
 						"email",
-						"slack",
-						"discord",
 						"manual"
 					]
 				}
@@ -1586,9 +1779,25 @@
 				}
 			},
 			"fields": {
+				"active_contract_count": {
+					"kind": "count",
+					"of": "contracts",
+					"where": {
+						"status": {
+							"in": [
+								"under_review",
+								"active"
+							]
+						}
+					}
+				},
 				"address": {
 					"kind": "custom",
 					"of": "project_address",
+					"optional": true
+				},
+				"autodesk_project_id": {
+					"kind": "text",
 					"optional": true
 				},
 				"capture_rules": {
@@ -1617,6 +1826,20 @@
 				"main_contractor": {
 					"kind": "text",
 					"optional": true
+				},
+				"open_document_count": {
+					"kind": "count",
+					"of": "commercial_documents",
+					"where": {
+						"status": {
+							"in": [
+								"issued",
+								"verified",
+								"certified",
+								"disputed"
+							]
+						}
+					}
 				},
 				"open_issue_count": {
 					"kind": "count",
@@ -1650,19 +1873,6 @@
 					"max": 180,
 					"min": 0
 				},
-				"pending_change_count": {
-					"kind": "count",
-					"of": "change_orders",
-					"where": {
-						"status": {
-							"in": [
-								"draft",
-								"submitted",
-								"under_review"
-							]
-						}
-					}
-				},
 				"project_manager": {
 					"kind": "text",
 					"optional": true
@@ -1673,6 +1883,15 @@
 				"project_number": {
 					"kind": "text",
 					"optional": true
+				},
+				"project_role": {
+					"default": "main_contractor",
+					"kind": "enum",
+					"values": [
+						"main_contractor",
+						"subcontractor",
+						"specialist_contractor"
+					]
 				},
 				"project_type": {
 					"kind": "text",
@@ -1753,7 +1972,8 @@
 				"text": [
 					"project_name",
 					"project_number",
-					"client"
+					"client",
+					"main_contractor"
 				]
 			},
 			"unique": [
@@ -1764,208 +1984,6 @@
 					"name": "project_number"
 				}
 			]
-		},
-		"quotes": {
-			"audit": true,
-			"check": {
-				"valid_tax_rate": {
-					"tax_rate": {
-						"gte": 0,
-						"lte": 100
-					}
-				}
-			},
-			"fields": {
-				"attachments": {
-					"accept": [
-						"*/*"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
-				},
-				"contact_id": {
-					"inverse": "quotes",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "contacts"
-				},
-				"cost_item_id": {
-					"inverse": "quotes",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "cost_items"
-				},
-				"currency": {
-					"default": "SGD",
-					"kind": "currency"
-				},
-				"current_revision": {
-					"default": 1,
-					"kind": "int",
-					"min": 1
-				},
-				"direction": {
-					"default": "subcontractor_quote",
-					"kind": "enum",
-					"values": [
-						"client_quote",
-						"subcontractor_quote"
-					]
-				},
-				"issued_date": {
-					"default": {
-						"var": "today"
-					},
-					"kind": "date",
-					"optional": true
-				},
-				"lines": {
-					"kind": "custom",
-					"of": "priced_lines",
-					"optional": true
-				},
-				"notes": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"project_id": {
-					"inverse": "quotes",
-					"kind": "ref",
-					"owned": true,
-					"to": "projects"
-				},
-				"quote_number": {
-					"kind": "seq",
-					"pattern": "QT-{yyyy}-{000}",
-					"per": [
-						"project_id"
-					]
-				},
-				"revisions": {
-					"kind": "custom",
-					"of": "revision_trail",
-					"optional": true
-				},
-				"status": {
-					"initial": "draft",
-					"kind": "state",
-					"states": {
-						"accepted": {
-							"to": []
-						},
-						"draft": {
-							"to": [
-								"sent",
-								"accepted",
-								"rejected"
-							]
-						},
-						"expired": {
-							"to": [
-								"revised",
-								"draft"
-							]
-						},
-						"rejected": {
-							"to": [
-								"draft"
-							]
-						},
-						"revised": {
-							"to": [
-								"sent",
-								"accepted",
-								"rejected",
-								"expired"
-							]
-						},
-						"sent": {
-							"to": [
-								"revised",
-								"accepted",
-								"rejected",
-								"expired"
-							]
-						}
-					}
-				},
-				"subtotal": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"tax_amount": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"tax_rate": {
-					"default": 9,
-					"kind": "decimal",
-					"scale": 2
-				},
-				"title": {
-					"kind": "text"
-				},
-				"total_amount": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"valid_until": {
-					"kind": "date",
-					"optional": true
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"project_id",
-						"direction",
-						"status"
-					]
-				}
-			],
-			"locks": {
-				"accepted_locked": {
-					"except": [
-						"attachments",
-						"notes"
-					],
-					"where": {
-						"status": {
-							"eq": "accepted"
-						}
-					}
-				},
-				"sent_locked": {
-					"except": [
-						"status",
-						"current_revision",
-						"revisions",
-						"attachments",
-						"notes"
-					],
-					"where": {
-						"status": {
-							"eq": "sent"
-						}
-					}
-				}
-			},
-			"record_label": "record.quote_number != null ? record.quote_number + ' · ' + record.title : record.title",
-			"search": {
-				"text": [
-					"quote_number",
-					"title",
-					"notes"
-				]
-			}
 		},
 		"requestor": {
 			"fields": {
@@ -3489,26 +3507,43 @@
 					"max": "20MiB",
 					"optional": true
 				},
+				"baseline_range": {
+					"kind": "period",
+					"of": "date",
+					"optional": true
+				},
 				"bim_express_ids": {
 					"kind": "int",
 					"many": true,
 					"optional": true
 				},
-				"cost_item_id": {
+				"contract_id": {
 					"inverse": "tasks",
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
-					"to": "cost_items"
+					"to": "contracts"
 				},
 				"description": {
 					"format": "markdown",
 					"kind": "text",
 					"optional": true
 				},
+				"external_id": {
+					"kind": "text",
+					"optional": true
+				},
 				"is_milestone": {
 					"default": false,
 					"kind": "bool"
+				},
+				"last_updated_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"latest_update": {
+					"kind": "text",
+					"optional": true
 				},
 				"parent_task_id": {
 					"inverse": "subtasks",
@@ -3597,13 +3632,34 @@
 					"to": "contacts"
 				},
 				"task_code": {
-					"kind": "text",
-					"optional": true
+					"kind": "text"
 				},
 				"title": {
 					"kind": "text"
 				},
-				"trade": {
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
+				},
+				"wbs_path": {
 					"kind": "text",
 					"optional": true
 				},
@@ -3624,16 +3680,19 @@
 			"search": {
 				"text": [
 					"task_code",
+					"wbs_path",
 					"title",
-					"trade",
-					"zone"
+					"zone",
+					"latest_update"
 				]
 			},
 			"unique": [
 				{
 					"fields": [
+						"project_id",
 						"task_code"
 					],
+					"import_key": true,
 					"name": "task_code"
 				}
 			]

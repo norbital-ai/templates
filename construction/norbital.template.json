@@ -3,15 +3,15 @@
 	"key": "norbital_construction",
 	"name": "Construction Operations",
 	"industry": "Construction",
-	"description": "Main-contractor PMS under one roof: 3D BIM IFC issue & photo tagging, 4D timeline with milestones & axis scrubbers, WhatsApp/Telegram auto-sync, BOQ costings, quotes & revisions, variations, and project cashflow.",
+	"description": "Contractor workspace for main contractors and subcontractors: WhatsApp & email sync, Autodesk ACC & P6/MSP large-scale planning, contracts & PO/DO/Invoice cashflow, 3D BIM IFC issue tagging, and automated BIM-to-Costing-Matrix estimation with non-BIM costings.",
 	"visibility": "public",
 	"counts": {
-		"models": 12,
+		"models": 11,
 		"apps": 2,
-		"automations": 6
+		"automations": 7
 	},
-	"tags": ["Construction", "BIM", "Projects", "Cashflow"],
+	"tags": ["Construction", "BIM", "Cashflow", "Contracts", "Autodesk"],
 	"name_zh": "施工管理",
-	"description_zh": "面向总承包商的一体化工程项目管理系统：3D BIM IFC 问题与照片标注、含里程碑与剖切滑块的 4D 进度轴、WhatsApp/Telegram 自动同步、工程量清单计价、报价与修订、变更管理及项目现金流。",
-	"tags_zh": ["施工", "BIM", "项目", "现金流"]
+	"description_zh": "面向总承包商与分包商的一体化工程工作区：WhatsApp 与邮件自动同步、Autodesk ACC 与 P6/MSP 大型进度计划、合同与 PO/DO/发票现金流、3D BIM IFC 问题标注及基于计价矩阵的 BIM 自动算量估价。",
+	"tags_zh": ["施工", "BIM", "现金流", "合同", "Autodesk"]
 }

@@ -17,7 +17,7 @@ import {
 
 const OLDEST_PAGE = 50;
 const BATCH = 25;
-const TRANSPORTS = ['whatsapp', 'telegram', 'email', 'slack', 'discord'] as const;
+const TRANSPORTS = ['whatsapp', 'email'] as const;
 
 type SyncTransport = (typeof TRANSPORTS)[number];
 const isSyncTransport = (value: string | undefined): value is SyncTransport =>
@@ -25,8 +25,11 @@ const isSyncTransport = (value: string | undefined): value is SyncTransport =>
 
 export default automation({
 	description:
-		'Mirrors members’ WhatsApp and email accounts and the workspace’s WhatsApp, Telegram, Slack, Discord and email channels into project_messages; voice notes are transcribed and site photos attached.',
-	on: [{ cron: '* * * * *', rest: '1d' }],
+		'Mirrors personal and workspace WhatsApp and email channels into project_messages; voice notes are transcribed and attachments (site photos, PO/DO/invoice PDFs) carried through.',
+	on: [
+		{ model: 'sys_message', verbs: ['create'] },
+		{ cron: '*/15 * * * *', rest: '1d' }
+	],
 	input: { batch: { kind: 'int', optional: true } },
 	policies: ['construction_automation'],
 	concurrency: { max: 1 },
@@ -35,7 +38,8 @@ export default automation({
 		const connections = (yield* ctx.query({
 			sys_integration: {
 				where: { integration: { in: [...TRANSPORTS] } },
-				fields: ['integration', 'import_start']
+				fields: ['integration', 'import_start'],
+				limit: 200
 			}
 		})).sys_integration;
 		const owned = connections.rows;
@@ -155,25 +159,43 @@ export default automation({
 		const messages = selectBatch(oldest.rows, recent, taken, batch);
 		if (messages.length === 0) return;
 
+		// Batch-fetch message contents and conversations once instead of N+1 queries inside the loop.
+		const messageIds = messages.map((m) => m.id);
+		const contentRows = (yield* ctx.query({
+			sys_message: {
+				where: { id: { in: messageIds } },
+				fields: ['text', 'email', 'conversation'],
+				limit: messageIds.length
+			}
+		})).sys_message.rows;
+		const contentById = new Map(contentRows.map((row) => [row.id, row]));
+
+		const convIds = [
+			...new Set(
+				contentRows.flatMap((row) =>
+					row.conversation === null ? [] : [conversationId(row.conversation)]
+				)
+			)
+		];
+		const convRows =
+			convIds.length === 0
+				? []
+				: (yield* ctx.query({
+						sys_conversation: {
+							where: { id: { in: convIds } },
+							fields: ['inputs'],
+							limit: convIds.length
+						}
+					})).sys_conversation.rows;
+		const convById = new Map(convRows.map((row) => [row.id, row]));
+
 		for (const metadata of messages) {
-			const content = (yield* ctx.query({
-				sys_message: {
-					where: { id: { eq: metadata.id } },
-					fields: ['text', 'email', 'conversation'],
-					limit: 1
-				}
-			})).sys_message.rows[0];
+			const content = contentById.get(metadata.id);
 			if (content === undefined) continue;
 			const conversation =
 				content.conversation === null
 					? undefined
-					: (yield* ctx.query({
-							sys_conversation: {
-								where: { id: { eq: conversationId(content.conversation) } },
-								fields: ['inputs'],
-								limit: 1
-							}
-						})).sys_conversation.rows[0];
+					: convById.get(conversationId(content.conversation));
 			const m = { ...metadata, ...content };
 			const rawTransport = m.integration === null ? undefined : transportOf.get(m.integration);
 			const transport: SyncTransport = isSyncTransport(rawTransport) ? rawTransport : 'whatsapp';
@@ -186,36 +208,37 @@ export default automation({
 			const handle =
 				transport === 'email' && m.direction === 'outbound'
 					? sentMailHandle(m.email)
-					: (transport === 'telegram' || transport === 'slack' || transport === 'discord') &&
-						  m.sender != null
-						? `${transport}:${m.sender}`
-						: (m.sender ?? '');
+					: (m.sender ?? '');
 			const outcome = yield* skipRacedWrite(
-				ctx.act({
-					'project_messages.create': [
-						{
-							source_message: m.id,
-							source_seq: m.seq,
-							transport,
-							direction: m.direction === 'outbound' ? ('outbound' as const) : ('inbound' as const),
-							subject: String(
-								jsonField(m.email, 'subject') ?? m.sender_name ?? m.sender ?? 'Site message'
-							),
-							sender_name: m.sender_name ?? m.sender ?? null,
-							handle,
-							detail: m.text ?? '',
-							occurred_at: m.source_at ?? m.sent_at ?? m.created_at,
-							...(attachments.length > 0 ? { attachments: attachments.map(file_ref) } : {}),
-							...(note === null
-								? { classification: 'pending' as const, transcription: 'none' as const }
-								: {
-										recording: file_ref(note),
-										classification: 'pending' as const,
-										transcription: 'pending' as const
-									})
-						}
-					]
-				})
+				ctx.act(
+					{
+						'project_messages.create': [
+							{
+								source_message: m.id,
+								source_seq: m.seq,
+								transport,
+								direction:
+									m.direction === 'outbound' ? ('outbound' as const) : ('inbound' as const),
+								subject: String(
+									jsonField(m.email, 'subject') ?? m.sender_name ?? m.sender ?? 'Site message'
+								),
+								sender_name: m.sender_name ?? m.sender ?? null,
+								handle,
+								detail: m.text ?? '',
+								occurred_at: m.source_at ?? m.sent_at ?? m.created_at,
+								...(attachments.length > 0 ? { attachments: attachments.map(file_ref) } : {}),
+								...(note === null
+									? { classification: 'pending' as const, transcription: 'none' as const }
+									: {
+											recording: file_ref(note),
+											classification: 'pending' as const,
+											transcription: 'pending' as const
+										})
+							}
+						]
+					},
+					{ key: `sync-msg:${m.id}` }
+				)
 			);
 			if (outcome === null) continue;
 			if (outcome.kind !== 'committed') {
@@ -245,14 +268,17 @@ export default automation({
 						})
 				})
 			);
-			yield* ctx.act({
-				'project_messages.update': [
-					{
-						target: { id: created.id, revision: created.revision },
-						set: { ...heard, classification: 'pending' }
-					}
-				]
-			});
+			yield* ctx.act(
+				{
+					'project_messages.update': [
+						{
+							target: { id: created.id, revision: created.revision },
+							set: { ...heard, classification: 'pending' }
+						}
+					]
+				},
+				{ key: `transcribe-msg:${created.id}:${created.revision}` }
+			);
 		}
 
 		yield* ctx.schedule(
@@ -260,7 +286,7 @@ export default automation({
 			{},
 			{ at: ctx.now, key: 'construction-classify-backlog' }
 		);
-		yield* ctx.progress({ text: `${messages.length} coordination messages synced` });
+		yield* ctx.progress({ text: `${messages.length} WhatsApp/email messages synced` });
 		if (messages.length === batch || oldest.rows.length === OLDEST_PAGE) {
 			yield* ctx.schedule('sync_messages', input, {
 				at: ctx.now,

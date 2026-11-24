@@ -1,15 +1,17 @@
 import { workspace } from '@norbital-ai/bolt';
 
 /**
- * Main-contractor construction project management workspace: BIM IFC coordination with 3D issue & photo pinning,
- * 4D programme timeline and axis scrubbers, WhatsApp/Telegram/email coordination sync with AI extraction,
- * structured WBS tasks, variation orders, progress logs, and configurable BOQ claimable valuation.
+ * Contractor workspace for both main contractors managing subcontractors and subcontractors managing
+ * their own projects: structures WhatsApp, email, Autodesk ACC, and BIM IFC inputs into cashflow
+ * (contracts, PO/DO/invoices/claims), progression (large-scale WBS schedules & BIM issues), and
+ * quantifiable BIM + non-BIM cost estimations.
  */
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
 	languages: ['en', 'zh'],
 	currency: 'SGD',
+	theme: { palette: 'warm', accent: 'amber', radius: 'default' },
 	apps: ['operations', 'configuration'],
 	ai: {},
 	convert: { to: ['pdf'] },

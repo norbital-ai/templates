@@ -1,25 +1,24 @@
-<!-- @component Connect personal WhatsApp/email accounts and workspace WhatsApp, Telegram, Slack, Discord, and email channels so site messages automatically funnel into projects. -->
+<!-- @component Connect personal WhatsApp/email accounts and workspace WhatsApp, email, and Autodesk ACC integrations. -->
 <script lang="ts">
 	import { IntegrationSetup, type PageContext } from '@norbital-ai/bolt/page';
-	import { Button, Icon, use_act } from '@norbital-ai/ui';
-	import { Cluster, Stack } from '@norbital-ai/ui/layout';
+	import { Alert, Button, Icon, Spinner, Surface, use_act } from '@norbital-ai/ui';
+	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 
 	let { ctx }: { ctx: PageContext } = $props();
-	const t = ctx.t;
+	const t: PageContext['t'] = (...args) => ctx.t(...args);
 
 	const ICONS = {
 		whatsapp: 'simple-icons:whatsapp',
-		telegram: 'simple-icons:telegram',
 		email: 'lucide:mail',
-		slack: 'simple-icons:slack',
-		discord: 'simple-icons:discord'
+		autodesk_acc: 'lucide:blocks'
 	} as const;
 
 	const PERSONAL = ['whatsapp', 'email'] as const;
-	const SHARED = ['whatsapp', 'telegram', 'slack', 'discord', 'email'] as const;
+	const SHARED = ['whatsapp', 'email', 'autodesk_acc'] as const;
 
 	const me = $derived(ctx.actor?.kind === 'member' ? ctx.actor.id : null);
 	const admin = $derived(ctx.actor?.kind === 'member' && ctx.actor.admin);
+	const canConnect = $derived(ctx.catalog?.sys_integration?.create !== undefined);
 	const accounts = $derived(
 		me === null
 			? null
@@ -27,7 +26,8 @@
 					sys_integration: {
 						where: { or: [{ owner: { eq: me } }, { owner: { is_null: true } }] },
 						fields: ['name', 'integration', 'owner'],
-						order_by: 'name'
+						order_by: 'name',
+						limit: 100
 					}
 				})
 	);
@@ -53,56 +53,61 @@
 
 <Stack gap="md" data-my-connections>
 	<p class="text-sm text-muted-foreground">{t('connections.help')}</p>
-	<Cluster gap="sm">
-		{#each PERSONAL as kind (kind)}
-			<Button
-				variant="outline"
-				disabled={me === null || act.pending}
-				onclick={() => connect(kind, me)}
-			>
-				<Icon name={ICONS[kind]} class="size-4" />{t('connections.add')}
-				{t(`connections.kind.${kind}`)}
-			</Button>
-		{/each}
-	</Cluster>
-	{#if accounts?.error}
-		<p role="alert" class="text-sm text-destructive">{accounts.error.message}</p>
-	{/if}
-	{#each mine as account (account.id)}
-		<Stack
-			as="section"
-			gap="sm"
-			class="rounded-lg border border-border bg-card p-4"
-			aria-label={account.name}
-		>
-			<h3 class="text-heading">{account.name}</h3>
-			<IntegrationSetup client={ctx.integration(account.id)} />
-		</Stack>
-	{/each}
-
-	<Stack gap="sm">
-		<h3 class="text-overline">{t('connections.shared')}</h3>
-		<p class="text-sm text-muted-foreground">{t('connections.shared_help')}</p>
-	</Stack>
-	{#if admin}
+	{#if canConnect}
 		<Cluster gap="sm">
-			{#each SHARED as kind (kind)}
-				<Button variant="outline" disabled={act.pending} onclick={() => connect(kind, null)}>
+			{#each PERSONAL as kind (kind)}
+				<Button
+					variant="outline"
+					disabled={me === null || act.pending}
+					onclick={() => connect(kind, me)}
+				>
 					<Icon name={ICONS[kind]} class="size-4" />{t('connections.add')}
 					{t(`connections.kind.${kind}`)}
 				</Button>
 			{/each}
 		</Cluster>
 	{/if}
-	{#each shared as account (account.id)}
-		<Stack
-			as="section"
-			gap="sm"
-			class="rounded-lg border border-border bg-card p-4"
-			aria-label={account.name}
-		>
-			<h3 class="text-heading">{account.name}</h3>
-			<IntegrationSetup client={ctx.integration(account.id)} />
-		</Stack>
+	{#if accounts?.loading && !accounts.current}
+		<Inline gap="sm" align="center" aria-busy="true">
+			<Spinner />
+			<span class="text-sm text-muted-foreground">{t('connections.loading')}</span>
+		</Inline>
+	{:else if accounts?.error}
+		<Alert.Root variant="destructive">
+			<Alert.Title>{accounts.error.message}</Alert.Title>
+		</Alert.Root>
+	{/if}
+	{#each mine as account (account.id)}
+		<Surface as="section" tone="card" padding="md" radius="control" aria-label={account.name}>
+			<Stack gap="sm">
+				<h3 class="text-heading">{account.name}</h3>
+				<IntegrationSetup client={ctx.integration(account.id)} />
+			</Stack>
+		</Surface>
 	{/each}
+
+	{#if (admin && canConnect) || shared.length > 0}
+		<Stack gap="sm">
+			<h3 class="text-overline">{t('connections.shared')}</h3>
+			<p class="text-sm text-muted-foreground">{t('connections.shared_help')}</p>
+		</Stack>
+		{#if admin && canConnect}
+			<Cluster gap="sm">
+				{#each SHARED as kind (kind)}
+					<Button variant="outline" disabled={act.pending} onclick={() => connect(kind, null)}>
+						<Icon name={ICONS[kind]} class="size-4" />{t('connections.add')}
+						{t(`connections.kind.${kind}`)}
+					</Button>
+				{/each}
+			</Cluster>
+		{/if}
+		{#each shared as account (account.id)}
+			<Surface as="section" tone="card" padding="md" radius="control" aria-label={account.name}>
+				<Stack gap="sm">
+					<h3 class="text-heading">{account.name}</h3>
+					<IntegrationSetup client={ctx.integration(account.id)} />
+				</Stack>
+			</Surface>
+		{/each}
+	{/if}
 </Stack>

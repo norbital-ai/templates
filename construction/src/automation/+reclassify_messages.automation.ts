@@ -1,4 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
+import { skipRacedWrite } from '../lib/message-import.js';
 
 export default automation({
 	description:
@@ -23,17 +24,25 @@ export default automation({
 		})).project_messages.rows;
 		if (rows.length === 0) return;
 
-		yield* ctx.act({
-			'project_messages.update': rows.map((row) => ({
-				target: { id: row.id, revision: row.revision },
-				set: {
-					classification: 'pending' as const,
-					classified_by: null,
-					classified_at: null,
-					reason: 'Queued for reclassification.'
-				}
-			}))
-		});
+		const first = rows[0];
+		const last = rows[rows.length - 1];
+		const key = `reclassify:${rows.length}:${first?.id ?? ''}:${first?.revision ?? 0}:${last?.id ?? ''}:${last?.revision ?? 0}`;
+		yield* skipRacedWrite(
+			ctx.act(
+				{
+					'project_messages.update': rows.map((row) => ({
+						target: { id: row.id, revision: row.revision },
+						set: {
+							classification: 'pending' as const,
+							classified_by: null,
+							classified_at: null,
+							reason: 'Queued for reclassification.'
+						}
+					}))
+				},
+				{ key }
+			)
+		);
 		yield* ctx.schedule(
 			'classify_messages',
 			{},

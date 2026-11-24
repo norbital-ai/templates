@@ -1,7 +1,8 @@
-import type { Id } from '@norbital-ai/bolt';
-import { input_schema } from '@norbital-ai/bolt';
+import { id_of, type Id } from '@norbital-ai/bolt';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { TestWorkspace, type TestOptions } from '@norbital-ai/bolt-cli/test';
+
+type ModelTarget = Parameters<typeof id_of>[0];
 
 /** Each caller owns this workspace's scope. */
 export const workspace = Effect.fnUntraced(function* (options: TestOptions) {
@@ -11,18 +12,13 @@ export const workspace = Effect.fnUntraced(function* (options: TestOptions) {
 
 export type T = Effect.Success<ReturnType<typeof workspace>>;
 
-/** A declared fixture or returned record ID passes the same UUID boundary as a host record reference. */
-export function fixtureId<const C extends string>(model: C, value: string): Id<C> {
-	const codec = input_schema({ kind: 'ref', to: model });
-	const decoded = Schema.decodeUnknownSync(codec)(value);
-	const branded = Schema.declare<Id<C>>(
-		(input): input is Id<C> => typeof input === 'string' && Schema.is(Schema.toType(codec))(input)
-	);
-	return Schema.decodeUnknownSync(branded)(decoded);
+/** Validates a fixture or returned record ID through the workspace's own `id_of` codec. */
+export function fixtureId<const C extends ModelTarget>(model: C, value: string): Id<C> {
+	return Schema.decodeUnknownSync(id_of(model))(value);
 }
 
 /** Finds a committed record by model name and returns its branded ID and revision. */
-export function recordOf<const C extends string>(
+export function recordOf<const C extends ModelTarget>(
 	records: readonly { readonly model: string; readonly id: string; readonly revision: number }[],
 	model: C,
 	index = 0

@@ -15,6 +15,15 @@
 		{ctx}
 		of="contacts"
 		toolbar={{ title: false }}
-		columns={['full_name', 'company_name', 'role', 'trade', 'project_id', 'phone', 'telegram']}
+		columns={[
+			'full_name',
+			'company_name',
+			'role',
+			'trade_specialty',
+			'project_id',
+			'phone',
+			'email',
+			'status'
+		]}
 	/>
 </AppShell>

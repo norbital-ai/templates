@@ -1,10 +1,9 @@
 <script lang="ts">
-	import Icon from '@iconify/svelte';
 	import { Effect, Schema } from 'effect';
-	import { Badge, Button, cn } from '@norbital-ai/ui';
+	import { Badge, Button, Icon, Image, Surface, cn, enum_text } from '@norbital-ai/ui';
 	import { attach, fork, run } from '@norbital-ai/ui/effect';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { watch } from '@norbital-ai/ui/behaviors';
+	import { create_slider, register_control, watch } from '@norbital-ai/ui/behaviors';
 	import { convertIfcToFragments } from './ifc_viewer.converter.js';
 	import {
 		type IFCSelectedElement,
@@ -121,15 +120,27 @@
 	const FOCUS_STYLE_ID = 'ui-ifc-issue-focus';
 
 	function resolveCssColor(css: string): string {
-		if (!css.startsWith('var(')) return css;
-		const name = css.slice(4, -1).trim();
-		const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-		return value || '#f2f1ed';
+		const computed = getComputedStyle(document.documentElement);
+		const raw = css.startsWith('var(')
+			? computed.getPropertyValue(css.slice(4, -1).trim()).trim()
+			: css;
+		const resolved = raw || computed.color;
+		if (!resolved) return 'currentColor';
+		const canvas = document.createElement('canvas');
+		canvas.width = 1;
+		canvas.height = 1;
+		const c2d = canvas.getContext('2d');
+		if (!c2d) return resolved;
+		c2d.fillStyle = resolved;
+		c2d.fillRect(0, 0, 1, 1);
+		const [r, g, b] = c2d.getImageData(0, 0, 1, 1).data;
+		return `rgb(${r}, ${g}, ${b})`;
 	}
 
 	interface Props extends IFCViewerProps {}
 	let {
 		t,
+		translateKey,
 		src,
 		alt,
 		markers = [],
@@ -236,9 +247,10 @@
 		timeoutMs: number,
 		label?: string
 	): Effect.Effect<T, E | Error> {
-		const message = label
-			? `${label} exceeded ${timeoutMs}ms`
-			: `Operation exceeded ${timeoutMs}ms`;
+		const message = t('component.ifc_operation_timed_out', {
+			label: label ?? t('component.ifc_element'),
+			ms: timeoutMs
+		});
 		return effect.pipe(
 			Effect.timeoutOrElse({
 				duration: timeoutMs,
@@ -639,7 +651,7 @@
 			const highlighter = ensureInteractionSystems(runtime);
 			yield* Effect.sync(() => {
 				highlighter.styles.set(FOCUS_STYLE_ID, {
-					color: new runtime.THREE.Color('#ef4444'),
+					color: new runtime.THREE.Color(resolveCssColor('var(--color-destructive)')),
 					opacity: 1,
 					transparent: false,
 					renderedFaces: runtime.FRAGS.RenderedFaces.TWO
@@ -758,6 +770,61 @@
 			applyClippingPlanes(viewer);
 		}
 	);
+	const words = (key: string): string => (translateKey ? translateKey(key) : key);
+
+	const sliderY = $derived(
+		create_slider({
+			min: 0,
+			max: 100,
+			step: 1,
+			value: () => cutY,
+			on_change: (v) => (cutY = v),
+			label: t('component.axis_y_elevation')
+		})
+	);
+	const sliderX = $derived(
+		create_slider({
+			min: 0,
+			max: 100,
+			step: 1,
+			value: () => cutX,
+			on_change: (v) => (cutX = v),
+			label: t('component.axis_x_section')
+		})
+	);
+	const sliderZ = $derived(
+		create_slider({
+			min: 0,
+			max: 100,
+			step: 1,
+			value: () => cutZ,
+			on_change: (v) => (cutZ = v),
+			label: t('component.axis_z_section')
+		})
+	);
+
+	$effect(() =>
+		register_control({
+			id: 'construction:ifc-viewer',
+			kind: 'viewer',
+			label: alt ?? t('component.ifc_model_preview'),
+			state: () => ({
+				selected_express_id: selectedItem?.expressId ?? null,
+				section_panel_open: sectionPanelOpen,
+				cut_x: cutX,
+				cut_y: cutY,
+				cut_z: cutZ,
+				interaction_locked: interactionLocked
+			}),
+			actions: {
+				reset_view: refitModel,
+				reset_axes: resetAxes,
+				clear_selection: clearSelection,
+				toggle_lock: toggleInteractionLock
+			}
+		})
+	);
+
 	watch(
 		() => focusIssue,
 		(issue) => {
@@ -771,12 +838,12 @@
 	size="fill"
 	min_height="30rem"
 	clip
-	class="relative rounded-lg border border-border/80 bg-muted/20"
+	class="relative rounded-control border border-border bg-muted"
 >
 	<Imposter placement="fill">
 		<div
 			class={cn(
-				'size-full overscroll-contain border-0 bg-transparent p-0 text-left',
+				'size-full overscroll-contain border-0 bg-transparent text-left',
 				interactionLocked ? 'touch-pan-y' : 'touch-none'
 			)}
 			role="button"
@@ -792,142 +859,154 @@
 	</Imposter>
 
 	{#if loadBanner === 'loading'}
-		<Imposter placement="fill" class="pointer-events-auto bg-background/80 p-4">
-			<Inline align="center" justify="center" size="fill">
-				<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
-			</Inline>
+		<Imposter placement="fill" class="pointer-events-auto">
+			<Surface tone="muted" padding="md" radius="none" class="size-full">
+				<Inline align="center" justify="center" size="fill">
+					<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
+				</Inline>
+			</Surface>
 		</Imposter>
 	{:else if typeof loadBanner === 'object'}
-		<Imposter placement="fill" class="pointer-events-auto bg-background/85 p-4">
-			<Inline align="center" justify="center" size="fill">
-				<p class="max-w-sm text-center text-sm text-destructive">{loadBanner.error}</p>
-			</Inline>
+		<Imposter placement="fill" class="pointer-events-auto">
+			<Surface tone="muted" padding="md" radius="none" class="size-full">
+				<Inline align="center" justify="center" size="fill">
+					<p class="max-w-sm text-center text-sm text-destructive">{loadBanner.error}</p>
+				</Inline>
+			</Surface>
 		</Imposter>
 	{:else if !trimmedSrc}
-		<Imposter placement="fill" class="p-4">
-			<Inline align="center" justify="center" size="fill">
-				<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
-			</Inline>
+		<Imposter placement="fill">
+			<Surface tone="muted" padding="md" radius="none" class="size-full">
+				<Inline align="center" justify="center" size="fill">
+					<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
+				</Inline>
+			</Surface>
 		</Imposter>
 	{/if}
 
-	<Imposter placement="top" class="pointer-events-none p-3">
+	<Imposter placement="top" offset="sm" class="pointer-events-none">
 		<Inline align="start" justify="between" gap="sm">
-			<div class="w-full max-w-[min(28rem,100%)] min-w-0">
+			<div class="w-full max-w-md min-w-0">
 				{#if selectedItem}
 					{@const item = selectedItem}
-					<Stack
-						gap="xs"
-						class="pointer-events-auto rounded-md border border-border/80 bg-background/95 p-2.5 shadow-sm"
-					>
-						<Inline align="start" justify="between" gap="xs">
-							<button
-								type="button"
-								class="min-w-0 flex-1 rounded-sm px-1 py-0.5 text-left transition-colors hover:bg-muted/60"
-								onclick={() => (propertiesOpen = !propertiesOpen)}
-							>
-								<Inline align="center" justify="between" gap="xs">
-									<div class="min-w-0">
-										<span class="block truncate text-sm font-medium text-foreground">
-											{item.title}
-										</span>
-										<span class="block truncate text-micro text-muted-foreground">
-											{#if item.subtitle}{item.subtitle} ·
-											{/if}#{item.expressId}
-										</span>
-									</div>
-									<Icon
-										icon="lucide:chevron-down"
-										class="h-4 w-4 shrink-0 text-muted-foreground transition-transform {propertiesOpen
-											? 'rotate-180'
-											: ''}"
-									/>
-								</Inline>
-							</button>
-							<Button
-								size="icon"
-								variant="ghost"
-								hint={t('component.clear_selected_element')}
-								class="shrink-0"
-								onclick={clearSelection}
-							>
-								<Icon icon="lucide:x" />
-							</Button>
-						</Inline>
-
-						{#if onTagIssue}
-							<Inline
-								align="center"
-								justify="between"
-								gap="xs"
-								class="border-t border-border/60 pt-2"
-							>
-								<span class="text-micro text-muted-foreground">
-									{#if selectedElementIssues.length > 0}
-										{t('component.element_tagged_issues_count', {
-											count: selectedElementIssues.length
-										})}
-									{:else}
-										{t('component.click_to_tag_issue')}
-									{/if}
-								</span>
-								<Button variant="brand" onclick={() => onTagIssue?.(item)}>
-									<Icon icon="lucide:pin" class="size-3.5" />
-									{t('component.tag_issue_and_photos')}
+					<Surface tone="popover" padding="sm" radius="control" class="pointer-events-auto">
+						<Stack gap="sm" divided>
+							<Inline align="start" justify="between" gap="xs">
+								<button
+									type="button"
+									class="min-w-0 grow rounded-inset text-left transition-colors hover:bg-muted"
+									onclick={() => (propertiesOpen = !propertiesOpen)}
+								>
+									<Inline align="center" justify="between" gap="xs">
+										<div class="min-w-0">
+											<span class="block truncate text-label">
+												{item.title}
+											</span>
+											<span class="block truncate text-micro text-muted-foreground">
+												{#if item.subtitle}{item.subtitle} ·
+												{/if}#{item.expressId}
+											</span>
+										</div>
+										<Icon
+											name="lucide:chevron-down"
+											class="size-4 text-muted-foreground transition-transform {propertiesOpen
+												? 'rotate-180'
+												: ''}"
+										/>
+									</Inline>
+								</button>
+								<Button
+									size="icon"
+									variant="ghost"
+									hint={t('component.clear_selected_element')}
+									onclick={clearSelection}
+								>
+									<Icon name="lucide:x" class="size-4" />
 								</Button>
 							</Inline>
-						{/if}
 
-						{#if selectedElementIssues.length > 0}
-							<Stack gap="xs" class="border-t border-border/60 pt-2">
-								{#each selectedElementIssues as issue (issue.id)}
-									<button
-										type="button"
-										class="w-full rounded-md border border-border/70 bg-muted/30 p-2 text-left transition-colors hover:bg-muted/60"
-										onclick={() => onOpenIssue?.(issue.id)}
-									>
-										<Inline align="center" justify="between" gap="xs">
-											<span class="min-w-0 truncate text-xs font-medium text-foreground">
-												{#if issue.issue_number}{issue.issue_number} ·
-												{/if}{issue.title}
-											</span>
-											<Badge variant="outline">{issue.severity}</Badge>
-										</Inline>
-										{#if issue.photoUrls.length > 0}
-											<Inline gap="xs" class="mt-1.5">
-												{#each issue.photoUrls.slice(0, 3) as url (url)}
-													<img
-														src={url}
-														alt={issue.title}
-														class="size-10 rounded border border-border/70 object-cover"
-													/>
-												{/each}
-											</Inline>
+							{#if onTagIssue}
+								<Inline align="center" justify="between" gap="xs">
+									<span class="text-micro text-muted-foreground">
+										{#if selectedElementIssues.length > 0}
+											{t('component.element_tagged_issues_count', {
+												count: selectedElementIssues.length
+											})}
+										{:else}
+											{t('component.click_to_tag_issue')}
 										{/if}
-									</button>
-								{/each}
-							</Stack>
-						{/if}
+									</span>
+									<Button variant="brand" onclick={() => onTagIssue?.(item)}>
+										<Icon name="lucide:pin" class="size-3.5" />
+										{t('component.tag_issue_and_photos')}
+									</Button>
+								</Inline>
+							{/if}
 
-						{#if propertiesOpen}
-							<div class="rounded-md border border-border/80 bg-background/95 p-2.5">
-								<p class="text-overline pb-1.5">{t('component.selected_element_properties')}</p>
-								<Scroll
-									axis="both"
-									name={t('component.selected_element_properties')}
-									max="compact"
-									class="rounded-md bg-muted/50 p-2 text-micro wrap-break-word text-muted-foreground"
-								>
-									<Grid as="dl" tracks="minmax(5.5rem, 10rem) 1fr" gap="sm" row_gap="xs">
-										{#each item.properties as property (property.name)}
-											<dt>{property.name}</dt>
-											<dd class="text-foreground">{property.value}</dd>
-										{/each}
-									</Grid>
-								</Scroll>
-							</div>
-						{/if}
-					</Stack>
+							{#if selectedElementIssues.length > 0}
+								<Stack gap="xs">
+									{#each selectedElementIssues as issue (issue.id)}
+										<Surface tone="subtle" padding="xs" radius="control">
+											<button
+												type="button"
+												class="w-full text-left"
+												onclick={() => onOpenIssue?.(issue.id)}
+											>
+												<Stack gap="xs">
+													<Inline align="center" justify="between" gap="xs">
+														<span class="min-w-0 truncate text-label">
+															{#if issue.issue_number}{issue.issue_number} ·
+															{/if}{issue.title}
+														</span>
+														<Badge variant="outline">
+															{enum_text(issue.severity, {
+																t: words,
+																model: 'issues',
+																field: 'severity'
+															})}
+														</Badge>
+													</Inline>
+													{#if issue.photoUrls.length > 0}
+														<Inline gap="xs">
+															{#each issue.photoUrls.slice(0, 3) as url (url)}
+																<Image
+																	src={url}
+																	alt={issue.title}
+																	class="size-10 rounded-inset border border-border"
+																	image_class="object-cover"
+																/>
+															{/each}
+														</Inline>
+													{/if}
+												</Stack>
+											</button>
+										</Surface>
+									{/each}
+								</Stack>
+							{/if}
+
+							{#if propertiesOpen}
+								<Stack gap="xs">
+									<p class="text-overline">{t('component.selected_element_properties')}</p>
+									<Surface tone="subtle" padding="xs" radius="control">
+										<Scroll
+											axis="both"
+											name={t('component.selected_element_properties')}
+											max="compact"
+											class="text-micro wrap-break-word text-muted-foreground"
+										>
+											<Grid as="dl" tracks="minmax(5.5rem, 10rem) 1fr" gap="sm" row_gap="xs">
+												{#each item.properties as property (property.name)}
+													<dt>{property.name}</dt>
+													<dd class="text-foreground">{property.value}</dd>
+												{/each}
+											</Grid>
+										</Scroll>
+									</Surface>
+								</Stack>
+							{/if}
+						</Stack>
+					</Surface>
 				{/if}
 			</div>
 
@@ -940,7 +1019,7 @@
 						hint={t('component.axis_section_scrubbers')}
 						onclick={() => (sectionPanelOpen = !sectionPanelOpen)}
 					>
-						<Icon icon="lucide:sliders-horizontal" />
+						<Icon name="lucide:sliders-horizontal" class="size-4" />
 					</Button>
 					<Button
 						size="icon"
@@ -948,7 +1027,7 @@
 						hint={t('component.reset_camera_view')}
 						onclick={refitModel}
 					>
-						<Icon icon="lucide:maximize-2" />
+						<Icon name="lucide:maximize-2" class="size-4" />
 					</Button>
 					<Button
 						size="icon"
@@ -959,70 +1038,91 @@
 							: t('component.lock_model_navigation')}
 						onclick={toggleInteractionLock}
 					>
-						<Icon icon={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} />
+						<Icon name={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} class="size-4" />
 					</Button>
 				</Inline>
 
 				{#if sectionPanelOpen && modelBounds}
-					<Stack
-						gap="xs"
-						class="w-56 rounded-md border border-border/80 bg-background/95 p-3 shadow-sm"
-					>
-						<Inline align="center" justify="between">
-							<p class="text-overline">{t('component.axis_section_scrubbers')}</p>
-							{#if sectionActive}
-								<button
-									type="button"
-									class="text-micro text-muted-foreground underline hover:text-foreground"
-									onclick={resetAxes}
-								>
-									{t('component.reset_axes')}
-								</button>
-							{/if}
-						</Inline>
-						<label class="grid gap-1 text-micro text-muted-foreground">
-							<Inline justify="between">
-								<span>{t('component.axis_y_elevation')}</span>
-								<span class="tabular-nums text-foreground">{cutY}%</span>
-							</Inline>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								step="1"
-								bind:value={cutY}
-								class="accent-primary h-1.5 w-full cursor-pointer"
-							/>
-						</label>
-						<label class="grid gap-1 text-micro text-muted-foreground">
-							<Inline justify="between">
-								<span>{t('component.axis_x_section')}</span>
-								<span class="tabular-nums text-foreground">{cutX}%</span>
-							</Inline>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								step="1"
-								bind:value={cutX}
-								class="accent-primary h-1.5 w-full cursor-pointer"
-							/>
-						</label>
-						<label class="grid gap-1 text-micro text-muted-foreground">
-							<Inline justify="between">
-								<span>{t('component.axis_z_section')}</span>
-								<span class="tabular-nums text-foreground">{cutZ}%</span>
-							</Inline>
-							<input
-								type="range"
-								min="0"
-								max="100"
-								step="1"
-								bind:value={cutZ}
-								class="accent-primary h-1.5 w-full cursor-pointer"
-							/>
-						</label>
-					</Stack>
+					<div class="min-w-52">
+						<Surface tone="popover" padding="sm" radius="control">
+							<Stack gap="sm">
+								<Inline align="center" justify="between">
+									<p class="text-overline">{t('component.axis_section_scrubbers')}</p>
+									{#if sectionActive}
+										<Button variant="ghost" onclick={resetAxes}>
+											{t('component.reset_axes')}
+										</Button>
+									{/if}
+								</Inline>
+								<Stack gap="xs" class="text-micro text-muted-foreground">
+									<Inline justify="between">
+										<span>{t('component.axis_y_elevation')}</span>
+										<span class="tabular-nums text-foreground">{cutY}%</span>
+									</Inline>
+									<div
+										class="relative flex h-5 w-full cursor-pointer items-center"
+										{@attach sliderY.track}
+									>
+										<div class="h-1.5 w-full rounded-full bg-muted">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderY.percent}%`}
+											></div>
+										</div>
+										<div
+											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											style={`left: ${sliderY.percent}%`}
+											{...sliderY.thumb_attrs()}
+										></div>
+									</div>
+								</Stack>
+								<Stack gap="xs" class="text-micro text-muted-foreground">
+									<Inline justify="between">
+										<span>{t('component.axis_x_section')}</span>
+										<span class="tabular-nums text-foreground">{cutX}%</span>
+									</Inline>
+									<div
+										class="relative flex h-5 w-full cursor-pointer items-center"
+										{@attach sliderX.track}
+									>
+										<div class="h-1.5 w-full rounded-full bg-muted">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderX.percent}%`}
+											></div>
+										</div>
+										<div
+											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											style={`left: ${sliderX.percent}%`}
+											{...sliderX.thumb_attrs()}
+										></div>
+									</div>
+								</Stack>
+								<Stack gap="xs" class="text-micro text-muted-foreground">
+									<Inline justify="between">
+										<span>{t('component.axis_z_section')}</span>
+										<span class="tabular-nums text-foreground">{cutZ}%</span>
+									</Inline>
+									<div
+										class="relative flex h-5 w-full cursor-pointer items-center"
+										{@attach sliderZ.track}
+									>
+										<div class="h-1.5 w-full rounded-full bg-muted">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderZ.percent}%`}
+											></div>
+										</div>
+										<div
+											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											style={`left: ${sliderZ.percent}%`}
+											{...sliderZ.thumb_attrs()}
+										></div>
+									</div>
+								</Stack>
+							</Stack>
+						</Surface>
+					</div>
 				{/if}
 			</Stack>
 		</Inline>
@@ -1031,26 +1131,29 @@
 	{#if normalizedMarkerGroups.length > 0}
 		<Imposter
 			placement="bottom-start"
-			class="pointer-events-none max-w-[min(16rem,85%)] rounded-md border border-border/80 bg-background/90 p-2 shadow-sm"
+			offset="sm"
+			class="pointer-events-none max-w-xs"
 			aria-label={t('component.marker_legend')}
 		>
-			<Stack gap="xs">
-				<p class="text-overline">{t('component.highlights')}</p>
-				<Stack as="ul" gap="xs">
-					{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
-						<li>
-							<Inline gap="xs" class="text-micro text-foreground">
-								<span
-									class="size-2.5 shrink-0 rounded-sm border border-border/60"
-									style={`background-color: ${group.color}`}
-									aria-hidden="true"
-								></span>
-								<span class="min-w-0 truncate">{group.label}</span>
-							</Inline>
-						</li>
-					{/each}
+			<Surface tone="popover" padding="xs" radius="control">
+				<Stack gap="xs">
+					<p class="text-overline">{t('component.highlights')}</p>
+					<Stack as="ul" gap="xs">
+						{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
+							<li>
+								<Inline gap="xs" align="center" class="text-micro text-foreground">
+									<span
+										class="size-2.5 rounded-inset border border-border"
+										style={`background-color: ${group.color}`}
+										aria-hidden="true"
+									></span>
+									<span class="min-w-0 truncate">{group.label}</span>
+								</Inline>
+							</li>
+						{/each}
+					</Stack>
 				</Stack>
-			</Stack>
+			</Surface>
 		</Imposter>
 	{/if}
 </Bound>

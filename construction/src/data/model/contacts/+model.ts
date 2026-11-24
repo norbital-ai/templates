@@ -1,16 +1,17 @@
 import { model, type EffectCtx } from '@norbital-ai/bolt';
+import { TRADE_SPECIALTIES } from '../../../lib/trades.js';
 
 const columns = [
 	'full_name',
 	'company_name',
 	'role',
-	'trade',
+	'trade_specialty',
 	'project_id',
 	'phone',
 	'email',
-	'telegram',
-	'slack',
-	'discord',
+	'payment_terms_days',
+	'registration_no',
+	'status',
 	'notes'
 ] as const;
 
@@ -18,12 +19,12 @@ const replayMessages = (ctx: Pick<EffectCtx, 'schedule' | 'now'>) =>
 	ctx.schedule('reclassify_messages', {}, { at: ctx.now, key: 'construction-reclassify-all' });
 
 /**
- * Project stakeholders, subcontractors, site engineers, QS, consultants and clients.
- * Computed handle keys match incoming WhatsApp, Telegram, email, Slack and Discord senders directly.
+ * Subcontractors (specialized by trade: roofing, flooring, MnE, structural, etc.), suppliers,
+ * main contractors, consultants, and clients. Computed WhatsApp phone & email keys route incoming messages.
  */
 export default model('contacts', {
 	description:
-		'Subcontractors, site engineers, QS, consultants, and client contacts for messaging routing.',
+		'Trade subcontractors, suppliers, clients, main contractors, and consultants for contract management and WhatsApp/email routing.',
 	icon: 'lucide:contact-round',
 	record_label:
 		"record.company_name != null ? record.full_name + ' · ' + record.company_name : record.full_name",
@@ -34,18 +35,22 @@ export default model('contacts', {
 			kind: 'enum',
 			values: [
 				'subcontractor',
-				'site_engineer',
-				'qs',
-				'architect',
-				'consultant',
-				'client',
 				'supplier',
-				'safety_officer',
+				'main_contractor',
+				'client',
+				'consultant',
+				'architect',
+				'qs',
+				'site_engineer',
 				'project_manager'
 			],
 			default: 'subcontractor'
 		},
-		trade: { kind: 'text', optional: true },
+		trade_specialty: {
+			kind: 'enum',
+			values: [...TRADE_SPECIALTIES],
+			default: 'general'
+		},
 		project_id: {
 			kind: 'ref',
 			to: 'projects',
@@ -55,32 +60,22 @@ export default model('contacts', {
 		},
 		phone: { kind: 'text', format: 'phone', optional: true },
 		email: { kind: 'text', format: 'email', optional: true },
-		telegram: { kind: 'text', optional: true },
-		slack: { kind: 'text', optional: true },
-		discord: { kind: 'text', optional: true },
+		payment_terms_days: { kind: 'int', min: 0, max: 180, optional: true },
+		registration_no: { kind: 'text', optional: true },
+		status: {
+			kind: 'enum',
+			values: ['active', 'inactive'],
+			default: 'active'
+		},
 		notes: { kind: 'text', optional: true },
 		email_key: { kind: 'text', computed: 'lower(email)' },
-		phone_key: { kind: 'text', computed: "regex_replace(phone, r'\\D', '')" },
-		telegram_key: {
-			kind: 'text',
-			computed: "lower(regex_replace(trim(telegram), '^@?', '@'))"
-		},
-		slack_key: {
-			kind: 'text',
-			computed: "lower(regex_replace(trim(slack), '^(slack:)?@?', 'slack:'))"
-		},
-		discord_key: {
-			kind: 'text',
-			computed: "lower(regex_replace(trim(discord), '^(discord:)?@?', 'discord:'))"
-		}
+		phone_key: { kind: 'text', computed: "regex_replace(phone, r'\\D', '')" }
 	},
 	indexes: {
 		by_email_key: { on: ['email_key'] },
 		by_phone_key: { on: ['phone_key'] },
-		by_telegram_key: { on: ['telegram_key'] },
-		by_slack_key: { on: ['slack_key'] },
-		by_discord_key: { on: ['discord_key'] },
-		find: { text: ['full_name', 'company_name', 'trade', 'phone', 'email'] }
+		by_trade: { on: ['trade_specialty', 'role'] },
+		find: { text: ['full_name', 'company_name', 'phone', 'email', 'registration_no'] }
 	},
 	outputs: {
 		default: {
@@ -97,11 +92,7 @@ export default model('contacts', {
 	update: {
 		fields: columns,
 		effect: function* (changes, ctx) {
-			if (
-				changes.some((c) =>
-					c.changed('phone', 'email', 'telegram', 'slack', 'discord', 'project_id')
-				)
-			) {
+			if (changes.some((c) => c.changed('phone', 'email', 'project_id'))) {
 				yield* replayMessages(ctx);
 			}
 		}

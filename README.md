@@ -3,17 +3,18 @@
 Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a standalone,
 filesystem-first Bolt project that can be installed, checked, built and tested with the public Bolt CLI — and forked into a tenant.
 
-| Template                                        | Directory             | Template handle              | Purpose                                                                                                        |
-| ----------------------------------------------- | --------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [**blank**](./blank/)                           | `blank/`              | `norbital_blank`             | Minimal starter with no authored business application                                                          |
-| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`                | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar |
-| [**construction**](./construction/)             | `construction/`       | `norbital_construction`      | Project-centered construction ops with BIM and workforce compliance                                            |
-| [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations`  | Site operations: dispatch, linked-contractor WhatsApp, photo integrity                                         |
-| [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`                | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances  |
-| [**trade-operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations`  | Order-centered trading and manufacturing with sealed contracts, pricing and ERP handoff                        |
-| [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`         | Home-service bookings with helper matching, shift checks and ETA alerts                                        |
-| [**portfolio-manager**](./portfolio-manager/)   | `portfolio-manager/`  | `norbital_portfolio_manager` | Family office book with per-holding research and a daily agent report                                          |
-| [**treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`          | Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends                                 |
+| Template                                        | Directory             | Template handle              | Purpose                                                                                                                              |
+| ----------------------------------------------- | --------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [**blank**](./blank/)                           | `blank/`              | `norbital_blank`             | Minimal starter with no authored business application                                                                                |
+| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`                | Leads to clients in one company table, multi-channel activity timeline, document templates, meetings, calendar                       |
+| [**construction**](./construction/)             | `construction/`       | `norbital_construction`      | Generic main/subcontractor ops: BIM IFC takeoff & costing, Autodesk/P6/MSP planning, contracts, PO/DO/invoices & WhatsApp/email sync |
+| [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations`  | Site operations: dispatch, linked-contractor WhatsApp, photo integrity                                                               |
+| [**fleet-management**](./fleet-management/)     | `fleet-management/`   | `norbital_fleet_management`  | Real-time GPS transponder tracking, live vehicle map, route dispatch and ETAs, geofences, and speed/offline alerts                   |
+| [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`                | Multi-country human resources, attendance and payroll with sealed jurisdiction data and ledger-first balances                        |
+| [**trade-operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations`  | Order-centered trading and manufacturing with sealed contracts, pricing and ERP handoff                                              |
+| [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`         | Home-service bookings with helper matching, shift checks and ETA alerts                                                              |
+| [**portfolio-manager**](./portfolio-manager/)   | `portfolio-manager/`  | `norbital_portfolio_manager` | Family office book with per-holding research and a daily agent report                                                                |
+| [**treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`          | Bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends                                                       |
 
 **Directory and handle are two different names.** The directory is a path in this repository: it is
 what the website serves `norbital.ai/templates/<directory>` from. The handle is `norbital.template.json`'s `key`: the
@@ -39,8 +40,14 @@ every respect except website discovery and its `visibility` setting.
   site evidence, and variation requests. Contractors reach the private WhatsApp envoy through a
   linked account; under its `field_ops_whatsapp` policy it updates status, completion and summary on
   any assignment and files photos and messages, and never exposes integrity flags.
-- **Construction Operations** covers wider project delivery: workforce permits, quality, RFIs,
-  BIM references, payment claims, and scheduled operational watches.
+- **Construction Operations** serves both main contractors managing trade subcontractors and
+  subcontractors managing their own projects: automated BIM IFC asset classification and cost
+  estimation, Autodesk ACC / Primavera P6 / MS Project schedules, BIM-pinned issues, unified
+  contracts and PO/DO/Invoice 3-way matching, and WhatsApp/email auto-extraction with isolated
+  configuration.
+- **Fleet Management** tracks GPS transponder locations, speeds, headings, fuel, routes,
+  destinations, and ETAs on a live map with circular geofences, speed-limit and offline alerting,
+  and isolated telematics configuration.
 - **Trade Operations** keeps sales and purchasing documents inside each order. Confirmation seals
   contract content and pricing; billing, deliveries, payments and ERP handoff remain separate evidence.
 - **On-Demand Services** books helpers to customers' homes (cleaning, laundry, handyman): skill- and
@@ -151,8 +158,9 @@ The source inventories list every authored model, application/page, automation p
 | Template           | Source reference and screenshots                                                                                                                                                                         |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | blank              | [Reference](blank/docs/source-reference.md) · [Overview](blank/docs/screenshots/workspace-overview.webp)                                                                                                 |
-| construction       | [Reference](construction/docs/source-reference.md) · [Overview](construction/docs/screenshots/workspace-overview.webp) · [Application](construction/docs/screenshots/application.webp)                   |
+| construction       | [Documentation hub](construction/docs/README.md) · [Reference](construction/docs/source-reference.md) · [Application](construction/docs/screenshots/application.webp)                                    |
 | field-operations   | [Reference](field-operations/docs/source-reference.md) · [Overview](field-operations/docs/screenshots/workspace-overview.webp) · [Application](field-operations/docs/screenshots/application.webp)       |
+| fleet-management   | [Documentation hub](fleet-management/docs/README.md) · [Reference](fleet-management/docs/source-reference.md) · [Application](fleet-management/docs/screenshots/application.webp)                        |
 | hrms               | [Documentation hub](hrms/docs/README.md) · [Overview](hrms/docs/screenshots/workspace-overview.webp) · [Application](hrms/docs/screenshots/application.webp)                                             |
 | on-demand-services | [Reference](on-demand-services/docs/source-reference.md) · [Overview](on-demand-services/docs/screenshots/workspace-overview.webp) · [Application](on-demand-services/docs/screenshots/application.webp) |
 | portfolio-manager  | [Overview](portfolio-manager/docs/screenshots/workspace-overview.webp) · [Application](portfolio-manager/docs/screenshots/application.webp)                                                              |

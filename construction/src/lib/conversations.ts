@@ -7,16 +7,12 @@ import { id_of } from '@norbital-ai/bolt';
 export const conversationId = Schema.decodeUnknownSync(id_of('sys_conversation'));
 
 /**
- * The comparable key of a handle: `Avery <AVERY@Example.test>` -> `avery@example.test`; `whatsapp:+65 8123 4501`,
- * `6581234501@s.whatsapp.net` and `6581234501:14@s.whatsapp.net` -> `6581234501`;
- * `telegram:@Avery`, `telegram:avery` and `@Avery` -> `@avery`; `slack:U012AB` -> `slack:u012ab`;
- * `discord:@1234` -> `discord:1234`. `null` when it is none.
+ * Comparable handle key for WhatsApp and email senders:
+ * - `Avery <AVERY@Example.test>` -> `avery@example.test`
+ * - `whatsapp:+65 8123 4501`, `6581234501@s.whatsapp.net`, `6581234501:14@s.whatsapp.net` -> `6581234501`
+ * Returns `null` for group JIDs (`@g.us`, `@lid`) or unmatchable values.
  */
 export function handleKey(handle: string): string | null {
-	const platform = handle.match(/^(slack|discord):\s*@?(\S+)$/);
-	if (platform !== null) return `${platform[1]}:${platform[2]?.toLowerCase()}`;
-	const telegram = handle.match(/^(?:telegram:\s*@?|@)([^\s@]+)$/)?.[1];
-	if (telegram !== undefined) return `@${telegram.toLowerCase()}`;
 	if (handle.endsWith('@lid') || handle.endsWith('@g.us')) return null;
 	const mail = handle.match(/[^\s<>"]+@[^\s<>"]+\.[^\s<>"]+/)?.[0];
 	if (mail !== undefined && !mail.endsWith('.whatsapp.net')) return mail.toLowerCase();
@@ -30,23 +26,12 @@ export function handleKey(handle: string): string | null {
 type Keyed = {
 	email_key: string | null;
 	phone_key: string | null;
-	telegram_key: string | null;
-	slack_key: string | null;
-	discord_key: string | null;
 };
 
 export const holdsKey = (contact: Keyed, key: string) =>
-	key.startsWith('slack:')
-		? contact.slack_key === key
-		: key.startsWith('discord:')
-			? contact.discord_key === key
-			: key.startsWith('@')
-				? contact.telegram_key === key
-				: key.includes('@')
-					? contact.email_key === key
-					: contact.phone_key === key;
+	key.includes('@') ? contact.email_key === key : contact.phone_key === key;
 
-/** The contact a handle belongs to: exactly one match, else `null`. */
+/** The contact a WhatsApp or email handle belongs to: exactly one match, else `null`. */
 export function matchContact<C extends Keyed>(handle: string, contacts: readonly C[]): C | null {
 	const key = handleKey(handle);
 	if (key === null) return null;

@@ -1,6 +1,6 @@
 {
 	"name": "@template/construction",
-	"description": "Main-contractor construction PMS covering 3D BIM IFC issue & photo tagging, 4D timeline with milestones & axis scrubbers, WhatsApp/Telegram message sync & extraction, WBS tasks, BOQ costings, quotes & revisions, variation orders, and project cashflow.",
+	"description": "Generic contractor PMS (main & subcontractors) with WhatsApp/Email intake, Autodesk/P6/MSP planning, 3D BIM IFC takeoff & costing, contracts, PO/DO/Invoice 3-way matching, and cashflow.",
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
@@ -11,9 +11,8 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.7",
-		"@norbital-ai/ui": "0.0.7",
+		"@norbital-ai/bolt": "0.0.8",
+		"@norbital-ai/ui": "0.0.8",
 		"effect": "4.0.6",
 		"svelte": "5.57.3",
 		"vite": "8.3.5"
@@ -29,7 +28,7 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"svelte2tsx": "0.7.61",
 		"typescript": "6.0.3",
-		"@norbital-ai/bolt-cli": "0.0.7"
+		"@norbital-ai/bolt-cli": "0.0.8"
 	},
 	"trustedDependencies": [
 		"esbuild",

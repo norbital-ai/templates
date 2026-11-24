@@ -7,6 +7,7 @@
 		Icon,
 		RunStatus,
 		Section,
+		enum_text,
 		use_act,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -14,12 +15,41 @@
 
 	let { view, ctx }: { view: RecordView<'project_messages'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
+	const canExtract = $derived(ctx.catalog?.project_messages?.update !== undefined);
 	const extract = use_act(ctx);
 	let lastRunId = $state<string | null>(null);
+
+	const rawT = (key: string): string => {
+		const words: { t(k: string): string } = ctx;
+		return words.t(key);
+	};
+
+	const transcriptionLabel = $derived(
+		record?.transcription && record.transcription !== 'none'
+			? enum_text(record.transcription, {
+					t: rawT,
+					model: 'project_messages',
+					field: 'transcription'
+				})
+			: undefined
+	);
+	const routingSummary = $derived(
+		record
+			? `${enum_text(record.classification, {
+					t: rawT,
+					model: 'project_messages',
+					field: 'classification'
+				})} · ${enum_text(record.extraction_status, {
+					t: rawT,
+					model: 'project_messages',
+					field: 'extraction_status'
+				})}`
+			: undefined
+	);
 </script>
 
 {#snippet headerActions()}
-	{#if record && record.project_id != null}
+	{#if canExtract && record && record.project_id != null}
 		<Button
 			variant="outline"
 			disabled={extract.pending}
@@ -48,7 +78,7 @@
 	{/if}
 
 	<Section icon="lucide:message-square-text" first name="message" title={ctx.t('section.message')}>
-		<Grid minimum="compact">
+		<Grid minimum="card">
 			<Field {ctx} name="subject" />
 			<Field {ctx} name="transport" />
 			<Field {ctx} name="direction" />
@@ -66,13 +96,11 @@
 		name="media"
 		title={ctx.t('section.attachments_and_voice')}
 		default_open={false}
-		{...record?.transcription && record.transcription !== 'none'
-			? { summary: record.transcription }
-			: {}}
+		{...transcriptionLabel ? { summary: transcriptionLabel } : {}}
 	>
 		<Stack gap="sm">
 			<Field {ctx} name="attachments" />
-			<Grid minimum="compact">
+			<Grid minimum="card">
 				<Field {ctx} name="recording" />
 				<Field {ctx} name="transcription" />
 				{#if record?.transcription_error}
@@ -87,15 +115,21 @@
 		name="routing"
 		title={ctx.t('section.routing_and_extraction')}
 		default_open={false}
-		{...record ? { summary: `${record.classification} · ${record.extraction_status}` } : {}}
+		{...routingSummary ? { summary: routingSummary } : {}}
 	>
-		<Grid minimum="compact">
+		<Grid minimum="card">
 			<Field {ctx} name="classification" />
-			<Field {ctx} name="classified_by" readonly />
+			{#if record?.classified_by != null}
+				<Field {ctx} name="classified_by" readonly />
+			{/if}
 			<Field {ctx} name="extraction_status" />
-			<Field {ctx} name="extracted_at" readonly />
+			{#if record?.extracted_at != null}
+				<Field {ctx} name="extracted_at" readonly />
+			{/if}
 			<Column span="all"><Field {ctx} name="reason" /></Column>
-			<Column span="all"><Field {ctx} name="extraction_summary" readonly /></Column>
+			{#if record?.extraction_summary}
+				<Column span="all"><Field {ctx} name="extraction_summary" readonly /></Column>
+			{/if}
 		</Grid>
 	</Section>
 </RecordForm>

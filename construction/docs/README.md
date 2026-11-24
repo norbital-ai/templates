@@ -1,36 +1,42 @@
 # Construction Operations — Workflows & Architecture
 
-![Construction Operations application](docs/screenshots/application.webp)
+![Construction Operations application](screenshots/application.webp)
 
-## Daily main-contractor workflows
+## Generic contractor design (Main Contractor, Subcontractor & Specialist Contractor)
+
+Each project declares `project_role` (`main_contractor`, `subcontractor`, or `specialist_contractor`). Contracts (`contracts`) and commercial documents (`commercial_documents`) distinguish `upstream` (client / main contractor revenue) from `downstream` (subcontractor / supplier cost), while `trade_specialty` classifies 16 trade packages (`roofing`, `flooring`, `mne`, `electrical`, `plumbing`, `hvac`, `structural`, `facade`, `piling`, `civil_earthworks`, `waterproofing`, `fire_protection`, `elv_security`, `finishing`, `landscaping`, `general`) across contacts, contracts, schedule tasks, issues, and the Costing Matrix.
+
+## Core workflows
 
 ### 1. Project Overview & Cashflow (`Overview`)
 
-- Read full project scope, commercial retention/tax/payment terms, spatial `zones`, site `address`, and WhatsApp `capture_rules`.
-- Inspect committed subcontractor cost, projected margin %, realized vs projected cashflow, overdue alerts, and the native monthly **Inflow vs Outflow** `<Chart>`.
+- Review project role, commercial retention/tax/payment terms, Autodesk ACC project ID, spatial `zones`, site `address`, and message `capture_rules`.
+- Track revised upstream contract sum, downstream committed cost, projected margin %, net projected cashflow, overdue payables/receivables, and the SQL-aggregated commercial `<Chart>`.
 
-### 2. BIM coordination & site snagging (`BIM & Issues`, `BIM & Drawings`)
+### 2. Large-Scale Progression & BIM Issues (`Programme & Tasks` & `BIM & Issues`)
 
-- Upload `.ifc` models, drawings, and method statements under **BIM & Drawings** (`project_files`); updating a file or version appends to its `revision_trail`.
-- Orbit the 3D IFC model, scrub **X / Y / Z axis section planes**, click any element to tag an issue (`issues`, `seq`-numbered) with `bim_pin` and site `photos`, or trigger **Focus in 3D** from any row in the Issues table.
+- Manage WBS work packages and milestones (`tasks`) across **Timeline** (4D date scrubber + variation markers), **Table**, and **Board** views.
+- Pull and push large programmes via **Autodesk ACC/APS** (`tasks.syncs.autodesk_schedule`), or upload **Primavera P6 (`.xer`)**, **MS Project (`.xml`)**, CSV, and XLSX schedules (`tasks.syncs.schedule_file`).
+- Inspect the live 3D IFC model with X/Y/Z axis section planes, severity/4D highlights, and click-to-tag **Issues & Snags** (`issues`) right beside the single project issues register.
 
-### 3. 4D schedule, milestones & site progress (`Schedule & Tasks`, `Site Progress`)
+### 3. Automated BIM Cost Estimation & Documents (`Cost Estimations` & `BIM & Documents`)
 
-- Switch views of `tasks` via toolbar controls (**Timeline**, **Table**, **Board**), tracking work packages and **milestones** (`is_milestone: true`).
-- Drag the **Programme time axis** scrubber to inspect active work, milestones achieved, approved EOT days, and highlight scheduled IFC elements in 3D.
-- Post append-only entries under **Site Progress** (`progress_updates`) — or let WhatsApp extraction create them — to atomically advance `tasks` (`actual_range`, `progress_pct`) and recalculate BOQ `cost_items`.
+- Upload `.ifc` models and drawings into `project_files` (with automatic `revision_trail` and optional Autodesk ACC sheet/model sync via `project_files.syncs.autodesk_files`).
+- Uploading an `.ifc` model automatically schedules `analyze_bim_file`:
+  1. Parses the ISO-10303-21 IFC STEP geometry/property hierarchy (`src/lib/bim-pipeline.ts`).
+  2. Matches each physical asset by IFC class and keywords against active currency-matched rules in `cost_matrix` (applying area/length/volume/count quantity basis and waste factors).
+  3. Surfaces unmatched assets explicitly so commercial teams can extend the Costing Matrix or price them manually.
+  4. Combines quantified BIM costs with editable **Additional Non-BIM Costings** (`additional_costs`: preliminaries, hoisting, permits, testing, contingency) inside `cost_estimates`. Baselined estimates lock rates and totals permanently.
 
-### 4. Commercial control, quotes, variations & cashflow (`Commercial`)
+### 4. Contracts, PO / DO / Invoice 3-Way Match & Claims (`Contracts & VOs` & `PO / DO / Invoices`)
 
-- **BOQ & Costings (`cost_items`)**: `percentage`, `measured_qty`, or `milestone` lines computed with exact Effect `BigDecimal`.
-- **Quotes & Revisions (`quotes`)**: client & subcontractor quotes using co-located `priced_lines`. `sent` quotes lock pricing; transitioning `sent -> revised` snapshots the prior revision into `revision_trail`; `accepted` locks permanently.
-- **Changes / VOs (`change_orders`)**: itemized `priced_lines` auto-sum `cost_impact`; locks upon submission and permanently upon approval.
-- **Claims & Cashflow (`payment_claims`)**: unified append-only ledger with a 2-step create flow (**Client Inflow** with `claim_valuation` vs **Subcontractor/Supplier Outflow**), or run **Draft progress claim** from the toolbar menu (`generate_payment_claim`). Locks upon leaving `draft`.
+- **Contracts & Variations (`contracts`)**: upstream & downstream agreements plus variation orders (`variation_order`) with itemized `priced_lines`, EOT days, revision history (`revision_trail`), and lock upon activation.
+- **Commercial Ledger (`commercial_documents`)**: `purchase_order`, `delivery_order`, `invoice`, `progress_claim`, and `credit_note` rows with exact Effect `BigDecimal` totals, automatic **3-way PO → DO → Invoice match evaluation** (`match_status`), lock upon issuance, and one-click **Draft progress claim** (`generate_payment_claim`).
 
-### 5. WhatsApp & multi-channel site sync (`Site Comms` & `Configuration → Connections`)
+### 5. WhatsApp & Email Intake (`Messages` & isolated `Configuration`)
 
-- Connect channels under **Configuration → Connections → Channels** and configure personal intake rules under **Intake & auto-extraction**.
-- `sync_messages` mirrors messages, transcribes voice notes, `classify_messages` routes to projects, `extract_project_updates` creates structured records, and `daily_project_digest` notifies teams at 06:00 SGT with critical/high issues and blocked/overdue tasks.
+- All external integrations (`whatsapp`, `email`, `autodesk_acc`), subcontractor `contacts`, quantifiable `cost_matrix` rules, and personal intake rules (`communication_settings`) are isolated inside the **Configuration** app.
+- `sync_messages` ingests WhatsApp and email messages on new `sys_message` creation (plus a 15-minute safety net, deduplicated, with voice transcription), `classify_messages` routes them to projects, `extract_project_updates` turns unstructured site chats/emails into structured `tasks`, `issues`, draft variation `contracts`, and `commercial_documents`, and `daily_project_digest` sends 06:00 SGT exception digests.
 
 ## Access control
 

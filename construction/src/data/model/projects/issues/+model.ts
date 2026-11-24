@@ -1,12 +1,15 @@
 import { model } from '@norbital-ai/bolt';
+import { TRADE_SPECIALTIES } from '../../../../lib/trades.js';
 import { validateProjectZones } from '../../../../lib/zones.js';
 
 const columns = [
 	'title',
 	'kind',
+	'trade_specialty',
 	'project_id',
 	'zone',
 	'task_id',
+	'contract_id',
 	'bim_file_id',
 	'bim_pin',
 	'severity',
@@ -26,7 +29,7 @@ const columns = [
 
 export default model('issues', {
 	description:
-		'Unified defects, clashes, RFIs, safety observations, and snags tagged directly onto 3D BIM IFC elements with coordinates and site photos.',
+		'Site defects, clashes, RFIs, safety observations, and snags tied to progression tasks, trade subcontractors, and 3D BIM IFC elements.',
 	icon: 'lucide:triangle-alert',
 	record_label:
 		"record.issue_number != null ? record.issue_number + ' · ' + record.title : record.title",
@@ -37,6 +40,11 @@ export default model('issues', {
 			kind: 'enum',
 			values: ['defect', 'rfi', 'clash', 'safety', 'snag'],
 			default: 'defect'
+		},
+		trade_specialty: {
+			kind: 'enum',
+			values: [...TRADE_SPECIALTIES],
+			default: 'general'
 		},
 		severity: {
 			kind: 'enum',
@@ -54,7 +62,6 @@ export default model('issues', {
 			}
 		},
 		zone: { kind: 'text', optional: true },
-		/** Co-located 3D BIM expressID, element name, GlobalId, coordinates, and camera viewpoint. */
 		bim_pin: { kind: 'custom', of: 'bim_pin', optional: true },
 		reported_by: { kind: 'text', optional: true },
 		reported_date: { kind: 'date', optional: true, default: { var: 'today' } },
@@ -74,6 +81,13 @@ export default model('issues', {
 		task_id: {
 			kind: 'ref',
 			to: 'tasks',
+			inverse: 'issues',
+			optional: true,
+			on_delete: 'set_null'
+		},
+		contract_id: {
+			kind: 'ref',
+			to: 'contracts',
 			inverse: 'issues',
 			optional: true,
 			on_delete: 'set_null'
@@ -110,9 +124,10 @@ export default model('issues', {
 			fields: 'all',
 			project_id: { fields: ['project_name', 'project_number'] },
 			task_id: { fields: ['task_code', 'title'] },
+			contract_id: { fields: ['contract_number', 'title'] },
 			bim_file_id: { fields: ['document_number', 'title'] },
 			assignee: { fields: ['name'] },
-			party: { fields: ['full_name', 'company_name'] },
+			party: { fields: ['full_name', 'company_name', 'trade_specialty'] },
 			source_message_id: { fields: ['subject', 'transport'] }
 		}
 	},

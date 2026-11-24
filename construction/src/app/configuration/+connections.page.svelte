@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { AppShell, Scroll } from '@norbital-ai/ui/layout';
-	import { RecordShell, Tabs } from '@norbital-ai/ui';
+	import { AppShell, Inline, Scroll } from '@norbital-ai/ui/layout';
+	import { Alert, RecordShell, Spinner, Tabs } from '@norbital-ai/ui';
 	import MyConnections from '../../lib/MyConnections.svelte';
 
 	let { ctx }: { ctx: PageContext } = $props();
@@ -16,7 +16,11 @@
 					}
 				})
 	);
-	const settingsReady = $derived(ownSettings !== null && !ownSettings.loading);
+	const settingsReady = $derived(
+		ownSettings !== null &&
+			!ownSettings.error &&
+			(ownSettings.current !== undefined || !ownSettings.loading)
+	);
 	const settingsRow = $derived(ownSettings?.current?.communication_settings.rows[0] ?? null);
 </script>
 
@@ -27,7 +31,20 @@
 {/snippet}
 
 {#snippet intakeTab()}
-	{#if me !== null && settingsReady}
+	{#if ownSettings?.loading && !ownSettings.current}
+		<Scroll name={ctx.t('connections.intake_rules_title')} size="fill" inset>
+			<Inline gap="sm" align="center" aria-busy="true">
+				<Spinner />
+				<span class="text-sm text-muted-foreground">{ctx.t('connections.loading')}</span>
+			</Inline>
+		</Scroll>
+	{:else if ownSettings?.error}
+		<Scroll name={ctx.t('connections.intake_rules_title')} size="fill" inset>
+			<Alert.Root variant="destructive">
+				<Alert.Title>{ownSettings.error.message}</Alert.Title>
+			</Alert.Root>
+		</Scroll>
+	{:else if me !== null && settingsReady}
 		<RecordShell
 			{ctx}
 			of="communication_settings"

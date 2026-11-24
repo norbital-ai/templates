@@ -1,16 +1,26 @@
-<!-- @component Interactive 4D construction programme timeline with date-axis scrubber, Gantt work packages, variation/EOT markers, and progress snapshot. -->
+<!-- @component Interactive 4D construction programme timeline with date-axis scrubber, Gantt work packages, milestone diamonds, EOT/variation markers, and BIM highlights. -->
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Badge, Button, EmptyState, Icon, open_record } from '@norbital-ai/ui';
-	import { Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-
-	import { toNumber, type DecimalLike } from './claims.js';
+	import {
+		Badge,
+		Button,
+		EmptyState,
+		Icon,
+		Surface,
+		enum_text,
+		open_record
+	} from '@norbital-ai/ui';
+	import { create_slider, register_control } from '@norbital-ai/ui/behaviors';
+	import { Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { DateTime, Option } from 'effect';
+	import { toNumber, type DecimalLike } from './commercial.js';
+	import { addCalendarDays, diffCalendarDays, parseIsoDate } from './dates.js';
 
 	type TimelineTask = {
 		readonly id: string;
 		readonly task_code: string | null;
 		readonly title: string;
-		readonly trade: string | null;
+		readonly trade_specialty: string | null;
 		readonly is_milestone?: boolean | null;
 		readonly status: string;
 		readonly priority: string;
@@ -19,120 +29,135 @@
 		readonly bim_express_ids: readonly number[] | null;
 	};
 
-	type TimelineChange = {
+	type TimelineVariation = {
 		readonly id: string;
-		readonly change_number: string | null;
+		readonly contract_number: string | null;
 		readonly title: string;
 		readonly status: string;
 		readonly schedule_impact_days: number | null;
-		readonly effective_date: string | null;
-	};
-
-	type TimelineUpdate = {
-		readonly id: string;
-		readonly title: string;
-		readonly update_date: string;
-		readonly category: string;
-		readonly reported_progress_pct: DecimalLike;
+		readonly signed_date: string | null;
 	};
 
 	let {
 		ctx,
 		projectRange,
 		tasks,
-		changes,
-		updates,
+		variations,
 		today,
 		onInspectBim
 	}: {
 		ctx: PageContext;
 		projectRange: { readonly from: string; readonly to: string | null } | null;
 		tasks: readonly TimelineTask[];
-		changes: readonly TimelineChange[];
-		updates: readonly TimelineUpdate[];
+		variations: readonly TimelineVariation[];
 		today: string;
 		onInspectBim?: (expressIds: readonly number[], label: string) => void;
 	} = $props();
 
-	const t = ctx.t;
-	const DAY_MS = 86_400_000;
-	const toMs = (iso: string): number => Date.parse(`${iso.slice(0, 10)}T00:00:00Z`);
-	const toIso = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
+	const t: PageContext['t'] = (...args) => ctx.t(...args);
+	const rawT = (key: string): string => {
+		const words: { t(k: string): string } = ctx;
+		return words.t(key);
+	};
 
 	const bounds = $derived.by(() => {
-		const dates: number[] = [];
-		if (projectRange?.from) dates.push(toMs(projectRange.from));
-		if (projectRange?.to) dates.push(toMs(projectRange.to));
+		const dates: string[] = [];
+		const pushDate = (raw: string | null | undefined) => {
+			const parsed = parseIsoDate(raw);
+			if (parsed !== null) dates.push(parsed);
+		};
+		pushDate(projectRange?.from);
+		pushDate(projectRange?.to);
 		for (const item of tasks) {
-			if (item.schedule_range?.from) dates.push(toMs(item.schedule_range.from));
-			if (item.schedule_range?.to) dates.push(toMs(item.schedule_range.to));
+			pushDate(item.schedule_range?.from);
+			pushDate(item.schedule_range?.to);
 		}
-		for (const vo of changes) {
-			if (vo.effective_date) dates.push(toMs(vo.effective_date));
-		}
-		for (const u of updates) {
-			if (u.update_date) dates.push(toMs(u.update_date));
+		for (const vo of variations) {
+			pushDate(vo.signed_date);
 		}
 		if (dates.length === 0) {
-			const base = toMs(today);
-			return { start: base - 30 * DAY_MS, end: base + 120 * DAY_MS };
+			return {
+				startIso: addCalendarDays(today, -30),
+				endIso: addCalendarDays(today, 120)
+			};
 		}
-		const min = Math.min(...dates);
-		const max = Math.max(...dates);
-		const span = Math.max(max - min, 30 * DAY_MS);
-		return { start: min, end: min + span };
+		dates.sort();
+		const minIso = dates[0] ?? today;
+		const maxIso = dates[dates.length - 1] ?? today;
+		const spanDays = Math.max(30, diffCalendarDays(minIso, maxIso));
+		return {
+			startIso: minIso,
+			endIso: addCalendarDays(minIso, spanDays)
+		};
 	});
 
-	const totalDays = $derived(Math.max(1, Math.round((bounds.end - bounds.start) / DAY_MS)));
+	const totalDays = $derived(Math.max(1, diffCalendarDays(bounds.startIso, bounds.endIso)));
 	const todayOffset = $derived(
-		Math.min(totalDays, Math.max(0, Math.round((toMs(today) - bounds.start) / DAY_MS)))
+		Math.min(totalDays, Math.max(0, diffCalendarDays(bounds.startIso, today)))
 	);
 
 	let scrubDay = $state<number | null>(null);
-	const currentDay = $derived(scrubDay ?? todayOffset);
-	const currentMs = $derived(bounds.start + currentDay * DAY_MS);
-	const currentIso = $derived(toIso(currentMs));
+	const currentDay = $derived(Math.min(totalDays, Math.max(0, scrubDay ?? todayOffset)));
+	const currentIso = $derived(addCalendarDays(bounds.startIso, currentDay));
 	const scrubPct = $derived((currentDay / totalDays) * 100);
 	const todayPct = $derived((todayOffset / totalDays) * 100);
 
+	const dateSlider = $derived(
+		create_slider({
+			min: 0,
+			max: totalDays,
+			step: 1,
+			value: () => currentDay,
+			on_change: (next) => {
+				scrubDay = next;
+			},
+			label: t('timeline.scrubber_label')
+		})
+	);
+
+	const monthFormatter = $derived(
+		new Intl.DateTimeFormat(ctx.locale, {
+			month: 'short',
+			year: '2-digit',
+			timeZone: 'UTC'
+		})
+	);
+
 	const monthTicks = $derived.by(() => {
 		const ticks: { label: string; pct: number }[] = [];
-		const start = new Date(bounds.start);
-		const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
-		while (cursor.getTime() <= bounds.end) {
-			const ms = cursor.getTime();
-			if (ms >= bounds.start) {
-				const pct = ((ms - bounds.start) / (bounds.end - bounds.start)) * 100;
-				const label = cursor.toLocaleDateString(ctx.locale, {
-					month: 'short',
-					year: '2-digit',
-					timeZone: 'UTC'
-				});
+		const startOpt = DateTime.make(`${bounds.startIso}T00:00:00Z`);
+		const endOpt = DateTime.make(`${bounds.endIso}T00:00:00Z`);
+		if (Option.isNone(startOpt) || Option.isNone(endOpt)) return ticks;
+		const startParts = DateTime.toPartsUtc(startOpt.value);
+		const firstMonthIso = `${String(startParts.year).padStart(4, '0')}-${String(startParts.month).padStart(2, '0')}-01`;
+		const cursorOpt = DateTime.make(`${firstMonthIso}T00:00:00Z`);
+		if (Option.isNone(cursorOpt)) return ticks;
+		let cursor = cursorOpt.value;
+		for (let i = 0; i < 120 && DateTime.isLessThanOrEqualTo(cursor, endOpt.value); i++) {
+			const iso = DateTime.formatIsoDateUtc(cursor);
+			if (iso >= bounds.startIso) {
+				const offset = diffCalendarDays(bounds.startIso, iso);
+				const pct = (offset / totalDays) * 100;
+				const label = monthFormatter.format(DateTime.toEpochMillis(cursor));
 				ticks.push({ label, pct });
 			}
-			cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+			cursor = DateTime.add(cursor, { months: 1 });
 		}
 		return ticks;
 	});
 
 	const positionOf = (from: string, to: string | null) => {
-		const s = toMs(from);
-		const e = to ? Math.max(toMs(to), s + DAY_MS) : s + 14 * DAY_MS;
-		const left = Math.max(
-			0,
-			Math.min(100, ((s - bounds.start) / (bounds.end - bounds.start)) * 100)
-		);
-		const right = Math.max(
-			left + 1.5,
-			Math.min(100, ((e - bounds.start) / (bounds.end - bounds.start)) * 100)
-		);
-		return { left, width: Math.max(1.5, right - left), startMs: s, endMs: e };
+		const sDay = diffCalendarDays(bounds.startIso, from);
+		const eDay = to ? Math.max(diffCalendarDays(bounds.startIso, to), sDay + 1) : sDay + 14;
+		const left = Math.max(0, Math.min(100, (sDay / totalDays) * 100));
+		const right = Math.max(left + 1.5, Math.min(100, (eDay / totalDays) * 100));
+		return { left, width: Math.max(1.5, right - left), startDay: sDay, endDay: eDay };
 	};
 
-	const plannedPctAt = (startMs: number, endMs: number, atMs: number): number => {
-		if (atMs <= startMs) return 0;
-		if (atMs >= endMs) return 100;
-		return Math.round(((atMs - startMs) / Math.max(DAY_MS, endMs - startMs)) * 100);
+	const plannedPctAt = (startDay: number, endDay: number, atDay: number): number => {
+		if (atDay <= startDay) return 0;
+		if (atDay >= endDay) return 100;
+		return Math.round(((atDay - startDay) / Math.max(1, endDay - startDay)) * 100);
 	};
 
 	const snapshot = $derived.by(() => {
@@ -146,44 +171,67 @@
 				totalMilestones += 1;
 				if (task.status === 'done') milestonesHit += 1;
 			}
-			if (!task.schedule_range?.from) continue;
-			const s = toMs(task.schedule_range.from);
-			const e = task.schedule_range.to
-				? toMs(task.schedule_range.to)
-				: s + (task.is_milestone ? 0 : 14 * DAY_MS);
-			if (currentMs >= s && currentMs <= e) {
+			const from = parseIsoDate(task.schedule_range?.from);
+			if (!from) continue;
+			const to =
+				parseIsoDate(task.schedule_range?.to) ?? addCalendarDays(from, task.is_milestone ? 0 : 14);
+			if (currentIso >= from && currentIso <= to) {
 				active += 1;
 				for (const id of task.bim_express_ids ?? []) activeBimIds.add(id);
-			} else if (currentMs > e) {
+			} else if (currentIso > to) {
 				plannedComplete += 1;
 			}
 		}
-		const eotDays = changes
+		const eotDays = variations
 			.filter(
 				(vo) =>
-					vo.status === 'approved' &&
-					(vo.effective_date == null || toMs(vo.effective_date) <= currentMs)
+					(vo.status === 'active' || vo.status === 'completed') &&
+					(vo.signed_date == null || vo.signed_date <= currentIso)
 			)
 			.reduce((sum, vo) => sum + (vo.schedule_impact_days ?? 0), 0);
-		const loggedUpdates = updates.filter((u) => toMs(u.update_date) <= currentMs).length;
 		return {
 			active,
 			plannedComplete,
 			milestonesHit,
 			totalMilestones,
 			eotDays,
-			loggedUpdates,
 			activeBimIds: [...activeBimIds]
 		};
 	});
 
+	$effect(() =>
+		register_control({
+			id: 'construction:programme-timeline',
+			kind: 'slider',
+			label: t('timeline.scrubber_label'),
+			state: () => ({
+				date: currentIso,
+				day: currentDay,
+				total_days: totalDays,
+				active_tasks: snapshot.active,
+				eot_days: snapshot.eotDays
+			}),
+			actions: {
+				set_date: (iso) => {
+					if (typeof iso !== 'string') return;
+					const parsed = parseIsoDate(iso);
+					if (parsed === null) return;
+					scrubDay = Math.min(totalDays, Math.max(0, diffCalendarDays(bounds.startIso, parsed)));
+				},
+				jump_today: () => {
+					scrubDay = null;
+				}
+			}
+		})
+	);
+
 	const changeMarkers = $derived(
-		changes.flatMap((vo) => {
-			if (!vo.effective_date) return [];
-			const ms = toMs(vo.effective_date);
-			if (ms < bounds.start || ms > bounds.end) return [];
-			const pct = ((ms - bounds.start) / (bounds.end - bounds.start)) * 100;
-			return [{ ...vo, pct, passed: ms <= currentMs }];
+		variations.flatMap((vo) => {
+			const signed = parseIsoDate(vo.signed_date);
+			if (!signed || signed < bounds.startIso || signed > bounds.endIso) return [];
+			const offset = diffCalendarDays(bounds.startIso, signed);
+			const pct = (offset / totalDays) * 100;
+			return [{ ...vo, pct, passed: signed <= currentIso }];
 		})
 	);
 
@@ -193,105 +241,114 @@
 			: status === 'blocked'
 				? 'bg-tone-destructive-bg border-tone-destructive-border'
 				: status === 'in_progress'
-					? 'bg-primary/15 border-primary/60'
+					? 'bg-tone-info-bg border-tone-info-border'
 					: 'bg-muted border-border';
 
 	const fillTone = (status: string) =>
 		status === 'done'
-			? 'bg-success/50'
+			? 'bg-tone-success-text'
 			: status === 'blocked'
-				? 'bg-destructive/40'
-				: 'bg-primary/45';
+				? 'bg-tone-destructive-text'
+				: 'bg-primary';
 </script>
 
 <Stack gap="md">
-	<Stack gap="sm" class="rounded-lg border border-border bg-card p-4">
-		<Inline align="center" justify="between" gap="sm" class="flex-wrap">
+	<Surface tone="card" padding="md" radius="control">
+		<Stack gap="md">
+			<Cluster align="center" justify="between" gap="sm">
+				<Stack gap="xs">
+					<p class="text-overline">{t('timeline.scrubber_label')}</p>
+					<Inline align="center" gap="sm">
+						<span class="text-heading tabular-nums">{currentIso}</span>
+						{#if currentIso === today}
+							<Badge variant="info">{t('timeline.today')}</Badge>
+						{/if}
+					</Inline>
+				</Stack>
+				<Cluster align="center" gap="xs">
+					<Button
+						variant="outline"
+						disabled={scrubDay === null || currentDay === todayOffset}
+						onclick={() => (scrubDay = null)}
+					>
+						<Icon name="lucide:calendar-clock" class="size-3.5" />
+						{t('timeline.jump_today')}
+					</Button>
+					{#if onInspectBim && snapshot.activeBimIds.length > 0}
+						<Button
+							variant="secondary"
+							onclick={() => onInspectBim?.(snapshot.activeBimIds, currentIso)}
+						>
+							<Icon name="lucide:box" class="size-3.5" />
+							{t('timeline.highlight_bim_active', { count: snapshot.activeBimIds.length })}
+						</Button>
+					{/if}
+				</Cluster>
+			</Cluster>
+
 			<Stack gap="xs">
-				<p class="text-overline">{t('timeline.scrubber_label')}</p>
-				<Inline align="center" gap="sm">
-					<span class="text-heading tabular-nums">{currentIso}</span>
-					{#if currentIso === today}
-						<Badge variant="info">{t('timeline.today')}</Badge>
+				<div
+					class="relative flex h-6 w-full cursor-pointer items-center"
+					{@attach dateSlider.track}
+				>
+					<div class="h-1.5 w-full rounded-full bg-muted">
+						<div
+							class="h-full rounded-full bg-primary"
+							style={`width: ${dateSlider.percent}%`}
+						></div>
+					</div>
+					<div
+						class="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						style={`left: ${dateSlider.percent}%`}
+						{...dateSlider.thumb_attrs()}
+					></div>
+				</div>
+				<Cluster justify="between" gap="xs" class="text-micro tabular-nums text-muted-foreground">
+					<span>{bounds.startIso}</span>
+					<span>{t('timeline.scrub_hint')}</span>
+					<span>{bounds.endIso}</span>
+				</Cluster>
+			</Stack>
+
+			{#if snapshot.active > 0 || snapshot.plannedComplete > 0 || snapshot.totalMilestones > 0 || snapshot.eotDays !== 0}
+				<Grid minimum="card" gap="md">
+					{#if snapshot.active > 0}
+						<Stack gap="xs">
+							<span class="text-meta">{t('timeline.active_on_date')}</span>
+							<span class="text-label tabular-nums">{snapshot.active}</span>
+						</Stack>
+					{/if}
+					{#if snapshot.plannedComplete > 0}
+						<Stack gap="xs">
+							<span class="text-meta">{t('timeline.planned_complete')}</span>
+							<span class="text-label tabular-nums">
+								{t('timeline.ratio_pair', { done: snapshot.plannedComplete, total: tasks.length })}
+							</span>
+						</Stack>
+					{/if}
+					{#if snapshot.totalMilestones > 0}
+						<Stack gap="xs">
+							<span class="text-meta">{t('timeline.milestones_hit')}</span>
+							<span class="text-label tabular-nums">
+								{t('timeline.ratio_pair', {
+									done: snapshot.milestonesHit,
+									total: snapshot.totalMilestones
+								})}
+							</span>
+						</Stack>
 					{/if}
 					{#if snapshot.eotDays !== 0}
-						<Badge variant="outline">
-							{t('timeline.eot_days', { days: snapshot.eotDays })}
-						</Badge>
+						<Stack gap="xs">
+							<span class="text-meta">{t('timeline.approved_eot')}</span>
+							<span class="text-label tabular-nums">
+								{t('timeline.eot_short', { days: snapshot.eotDays })}
+							</span>
+						</Stack>
 					{/if}
-				</Inline>
-			</Stack>
-			<Inline align="center" gap="xs">
-				<Button
-					variant="outline"
-					disabled={scrubDay === null || currentDay === todayOffset}
-					onclick={() => (scrubDay = null)}
-				>
-					<Icon name="lucide:calendar-clock" class="size-3.5" />
-					{t('timeline.jump_today')}
-				</Button>
-				{#if onInspectBim && snapshot.activeBimIds.length > 0}
-					<Button
-						variant="secondary"
-						onclick={() => onInspectBim?.(snapshot.activeBimIds, currentIso)}
-					>
-						<Icon name="lucide:box" class="size-3.5" />
-						{t('timeline.highlight_bim_active', { count: snapshot.activeBimIds.length })}
-					</Button>
-				{/if}
-			</Inline>
-		</Inline>
-
-		<div class="pt-1">
-			<input
-				type="range"
-				min="0"
-				max={totalDays}
-				step="1"
-				aria-label={t('timeline.scrubber_label')}
-				value={currentDay}
-				oninput={(event) => (scrubDay = Number(event.currentTarget.value))}
-				class="accent-primary h-2 w-full cursor-pointer"
-			/>
-			<Inline justify="between" class="pt-1 text-micro tabular-nums text-muted-foreground">
-				<span>{toIso(bounds.start)}</span>
-				<span>{t('timeline.scrub_hint')}</span>
-				<span>{toIso(bounds.end)}</span>
-			</Inline>
-		</div>
-
-		<Grid minimum="compact" class="border-t border-border pt-3 text-sm">
-			<Stack gap="xs">
-				<span class="text-meta">{t('timeline.active_on_date')}</span>
-				<span class="font-medium tabular-nums">{snapshot.active}</span>
-			</Stack>
-			<Stack gap="xs">
-				<span class="text-meta">{t('timeline.planned_complete')}</span>
-				<span class="font-medium tabular-nums"
-					>{t('timeline.ratio_pair', { done: snapshot.plannedComplete, total: tasks.length })}</span
-				>
-			</Stack>
-			<Stack gap="xs">
-				<span class="text-meta">{t('timeline.milestones_hit')}</span>
-				<span class="font-medium tabular-nums"
-					>{t('timeline.ratio_pair', {
-						done: snapshot.milestonesHit,
-						total: snapshot.totalMilestones
-					})}</span
-				>
-			</Stack>
-			<Stack gap="xs">
-				<span class="text-meta">{t('timeline.updates_logged')}</span>
-				<span class="font-medium tabular-nums">{snapshot.loggedUpdates}</span>
-			</Stack>
-			<Stack gap="xs">
-				<span class="text-meta">{t('timeline.approved_eot')}</span>
-				<span class="font-medium tabular-nums"
-					>{t('timeline.eot_short', { days: snapshot.eotDays })}</span
-				>
-			</Stack>
-		</Grid>
-	</Stack>
+				</Grid>
+			{/if}
+		</Stack>
+	</Surface>
 
 	{#if tasks.length === 0}
 		<EmptyState
@@ -301,103 +358,107 @@
 			hint={t('timeline.empty_hint')}
 		/>
 	{:else}
-		<Scroll
-			axis="x"
-			name={t('timeline.programme_axis')}
-			class="rounded-lg border border-border bg-card"
-		>
-			<div class="min-w-[44rem] p-4">
-				<!-- Month axis header -->
-				<div class="grid grid-cols-[15rem_1fr] items-end gap-4 border-b border-border pb-2">
-					<span class="text-overline">{t('timeline.work_package')}</span>
-					<div class="relative h-6">
-						{#each monthTicks as tick (tick.label + tick.pct)}
-							<span
-								class="absolute bottom-0 -translate-x-1/2 text-micro tabular-nums text-muted-foreground"
-								style={`left: ${tick.pct}%`}
-							>
-								{tick.label}
-							</span>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Change-order / VO markers row -->
-				{#if changeMarkers.length > 0}
-					<div class="grid grid-cols-[15rem_1fr] items-center gap-4 border-b border-border/70 py-2">
-						<span class="text-micro text-muted-foreground">{t('timeline.change_markers')}</span>
+		<Surface tone="card" padding="md" radius="control">
+			<Scroll axis="x" name={t('timeline.programme_axis')}>
+				<Stack gap="sm" divided>
+					<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="end">
+						<span class="text-overline">{t('timeline.work_package')}</span>
 						<div class="relative h-6">
-							<div
-								class="pointer-events-none absolute inset-y-0 w-px bg-primary/80"
-								style={`left: ${scrubPct}%`}
-							></div>
-							{#each changeMarkers as vo (vo.id)}
-								<button
-									type="button"
-									title={`${vo.change_number ?? ''} ${vo.title} (${vo.effective_date})`}
-									class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-tiny font-medium transition-opacity {vo.passed
-										? 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text'
-										: 'border-border bg-muted text-muted-foreground opacity-70'}"
-									style={`left: ${vo.pct}%`}
-									onclick={() => open_record('change_orders', vo.id)}
+							{#each monthTicks as tick (tick.label + tick.pct)}
+								<span
+									class="absolute bottom-0 -translate-x-1/2 text-micro tabular-nums text-muted-foreground"
+									style={`left: ${tick.pct}%`}
 								>
-									{vo.change_number ?? t('timeline.vo_fallback')}
-								</button>
+									{tick.label}
+								</span>
 							{/each}
 						</div>
-					</div>
-				{/if}
+					</Grid>
 
-				<!-- Task Gantt rows -->
-				<Stack gap="none" divided>
+					{#if changeMarkers.length > 0}
+						<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="center">
+							<span class="text-micro text-muted-foreground">{t('timeline.change_markers')}</span>
+							<div class="relative h-6">
+								<div
+									class="pointer-events-none absolute inset-y-0 w-px bg-primary"
+									style={`left: ${scrubPct}%`}
+								></div>
+								{#each changeMarkers as vo (vo.id)}
+									<button
+										type="button"
+										title={`${vo.contract_number ?? ''} ${vo.title} (${vo.signed_date})`}
+										class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-micro {vo.passed
+											? 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text'
+											: 'border-border bg-muted text-muted-foreground'}"
+										style={`left: ${vo.pct}%`}
+										onclick={() => open_record('contracts', vo.id)}
+									>
+										{vo.contract_number ?? t('timeline.vo_fallback')}
+									</button>
+								{/each}
+							</div>
+						</Grid>
+					{/if}
+
 					{#each tasks as task (task.id)}
 						{@const pos = task.schedule_range?.from
 							? positionOf(task.schedule_range.from, task.schedule_range.to)
 							: null}
 						{@const actualPct = Math.round(toNumber(task.progress_pct))}
-						{@const plannedPct = pos ? plannedPctAt(pos.startMs, pos.endMs, currentMs) : 0}
+						{@const plannedPct = pos ? plannedPctAt(pos.startDay, pos.endDay, currentDay) : 0}
 						{@const behind = plannedPct - actualPct >= 15 && task.status !== 'done'}
-						<div class="grid grid-cols-[15rem_1fr] items-center gap-4 py-2.5">
+						{@const barLabel = `${task.task_code ? `${task.task_code} · ` : ''}${task.title} (${actualPct}%)`}
+						<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="center">
 							<button
 								type="button"
 								class="min-w-0 text-left hover:underline"
 								onclick={() => open_record('tasks', task.id)}
 							>
-								<span class="block truncate text-sm font-medium text-foreground">
-									{#if task.is_milestone}
-										<Icon name="lucide:diamond" class="mr-1 inline size-3 text-tone-warning-text" />
-									{/if}
-									{#if task.task_code}{`${task.task_code} · `}{/if}{task.title}
-								</span>
-								<Inline gap="xs" class="text-micro text-muted-foreground">
-									{#if task.is_milestone}
-										<span class="text-tone-warning-text">{t('timeline.milestone_badge')}</span>
-										<span aria-hidden="true">·</span>
-									{/if}
-									{#if task.trade}<span>{task.trade}</span><span aria-hidden="true">·</span>{/if}
-									<span class="tabular-nums">{actualPct}%</span>
-									{#if behind}
-										<span class="text-destructive"
-											>{t('timeline.behind_plan', { planned: plannedPct })}</span
-										>
-									{/if}
-								</Inline>
+								<Stack gap="xs">
+									<Inline gap="xs" align="center">
+										{#if task.is_milestone}
+											<Icon name="lucide:diamond" class="size-3 text-tone-warning-text" />
+										{/if}
+										<span class="truncate text-label">
+											{#if task.task_code}{`${task.task_code} · `}{/if}{task.title}
+										</span>
+									</Inline>
+									<Inline gap="xs" class="text-micro text-muted-foreground">
+										{#if task.is_milestone}
+											<span class="text-tone-warning-text">{t('timeline.milestone_badge')}</span>
+											<span aria-hidden="true">·</span>
+										{/if}
+										{#if task.trade_specialty}
+											<span>
+												{enum_text(task.trade_specialty, {
+													t: rawT,
+													model: 'tasks',
+													field: 'trade_specialty'
+												})}
+											</span>
+											<span aria-hidden="true">·</span>
+										{/if}
+										<span class="tabular-nums">{actualPct}%</span>
+										{#if behind}
+											<span class="text-destructive">
+												{t('timeline.behind_plan', { planned: plannedPct })}
+											</span>
+										{/if}
+									</Inline>
+								</Stack>
 							</button>
 
 							<div class="relative h-7">
-								<!-- Month gridlines -->
 								{#each monthTicks as tick (tick.label + tick.pct)}
 									<div
-										class="pointer-events-none absolute inset-y-0 w-px bg-border/40"
+										class="pointer-events-none absolute inset-y-0 w-px bg-border"
 										style={`left: ${tick.pct}%`}
 									></div>
 								{/each}
-								<!-- Today line -->
 								<div
-									class="pointer-events-none absolute inset-y-0 w-px border-l border-dashed border-muted-foreground/50"
+									class="pointer-events-none absolute inset-y-0 w-px border-l border-dashed border-muted-foreground"
 									style={`left: ${todayPct}%`}
 								></div>
-								<!-- Active scrubber cursor -->
 								<div
 									class="pointer-events-none absolute inset-y-0 z-10 w-0.5 bg-primary"
 									style={`left: ${scrubPct}%`}
@@ -407,25 +468,27 @@
 									{#if task.is_milestone}
 										<button
 											type="button"
+											aria-label={barLabel}
 											title={`${task.title} (${task.schedule_range?.from ?? ''})`}
-											class="absolute top-1/2 z-20 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] border-2 transition-transform hover:scale-125 {task.status ===
+											class="absolute top-1/2 z-20 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-inset border-2 transition-transform hover:scale-125 {task.status ===
 											'done'
-												? 'border-tone-success-border bg-success'
-												: 'border-tone-warning-border bg-warning'}"
+												? 'border-tone-success-border bg-tone-success-text'
+												: 'border-tone-warning-border bg-tone-warning-text'}"
 											style={`left: ${pos.left}%`}
 											onclick={() => open_record('tasks', task.id)}
 										></button>
 									{:else}
 										<button
 											type="button"
-											class="absolute top-1 h-5 overflow-hidden rounded border text-left transition-colors hover:brightness-95 {barTone(
+											aria-label={barLabel}
+											class="absolute top-1 h-5 rounded-control border text-left transition-colors hover:brightness-95 {barTone(
 												task.status
 											)}"
 											style={`left: ${pos.left}%; width: ${pos.width}%`}
 											onclick={() => open_record('tasks', task.id)}
 										>
 											<div
-												class="h-full {fillTone(task.status)}"
+												class="h-full rounded-inset {fillTone(task.status)}"
 												style={`width: ${actualPct}%`}
 											></div>
 										</button>
@@ -434,10 +497,10 @@
 									<span class="text-micro text-muted-foreground">{t('timeline.unscheduled')}</span>
 								{/if}
 							</div>
-						</div>
+						</Grid>
 					{/each}
 				</Stack>
-			</div>
-		</Scroll>
+			</Scroll>
+		</Surface>
 	{/if}
 </Stack>

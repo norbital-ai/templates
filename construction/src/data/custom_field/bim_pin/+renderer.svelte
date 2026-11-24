@@ -2,7 +2,7 @@
 	import type { CustomFieldView } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Badge, type UiContext } from '@norbital-ai/ui';
-	import { Inline } from '@norbital-ai/ui/layout';
+	import { Cluster } from '@norbital-ai/ui/layout';
 	import RecordEditor, {
 		number,
 		optionalText,
@@ -45,15 +45,15 @@
 
 {#if view.mode === 'show'}
 	{#if view.value}
-		<Inline gap="xs" class="flex-wrap text-sm">
+		<Cluster gap="xs" align="center">
 			<Badge variant="outline">{`#${view.value.express_id}`}</Badge>
-			<span class="font-medium">{view.value.element_name}</span>
+			<span class="text-label">{view.value.element_name}</span>
 			{#if view.value.x != null && view.value.y != null && view.value.z != null}
 				<span class="text-micro tabular-nums text-muted-foreground">
 					{t('bim.pin_coords', { x: view.value.x, y: view.value.y, z: view.value.z })}
 				</span>
 			{/if}
-		</Inline>
+		</Cluster>
 	{:else}
 		<span class="text-sm text-muted-foreground">{t('bim.unpinned_issue')}</span>
 	{/if}
