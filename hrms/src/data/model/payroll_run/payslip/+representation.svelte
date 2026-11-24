@@ -1,16 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import {
-		enum_text,
-		format,
-		Icon,
-		RecordShell,
-		Section,
-		Tooltip,
-		type RecordView
-	} from '@norbital-ai/ui';
-	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { enum_text, format, Icon, RecordShell, Tooltip, type RecordView } from '@norbital-ai/ui';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { emptyPayslipBreakdown, PayslipBreakdown } from '../service/payslip_breakdown.js';
 	import { RECOVERY } from '../service/history_slice.js';
 	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
@@ -26,21 +18,15 @@
 		'statutory_contribution_catalog'
 	] as const;
 
-	const GUIDED_CHECKPOINTS = [
-		'BASIC',
-		'PRORATED',
-		'PAID_BASIC',
-		'ORDINARY_WAGES',
-		'ADDITIONAL_WAGES',
-		'GROSS',
-		'FINAL_PAY',
-		'RETIREMENT',
-		'NET'
-	] as const;
-
-	const CORE_CHECKPOINTS = new Set(['ORDINARY_WAGES', 'GROSS']);
-
 	type Line = PayslipBreakdown['lines'][number];
+
+	const isBasic = (line: Line) => line.source === 'employment' && line.code === 'BASIC';
+	const isBaseAdjustment = (line: Line) =>
+		(line.source === 'employment' && line.code === 'PRORATED') ||
+		(line.source === 'leave_catalog_entry' &&
+			line.direction === 'DEDUCT' &&
+			line.subtotal === 'PAID_BASIC');
+	const signedValue = (line: Line) => (line.direction === 'DEDUCT' ? -line.amount : line.amount);
 
 	let { view, ctx }: { view: RecordView<'payslip'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -52,38 +38,46 @@
 			return emptyPayslipBreakdown;
 		}
 	});
-	const earnings = $derived(
+
+	const currentEmployee = $derived(
 		breakdown.lines.filter(
-			(line) =>
-				line.party === 'EMPLOYEE' &&
-				line.period === undefined &&
-				line.direction === 'ADD' &&
-				line.code !== RECOVERY
+			(line) => line.party === 'EMPLOYEE' && line.period === undefined && line.code !== RECOVERY
 		)
 	);
-	const deductions = $derived(
-		breakdown.lines.filter(
-			(line) =>
-				line.party === 'EMPLOYEE' && line.period === undefined && line.direction === 'DEDUCT'
+	const basicLines = $derived(currentEmployee.filter(isBasic));
+	const baseAdjustments = $derived(currentEmployee.filter(isBaseAdjustment));
+	const additionLines = $derived(
+		currentEmployee.filter(
+			(line) => !isBasic(line) && !isBaseAdjustment(line) && line.direction === 'ADD'
 		)
+	);
+	const deductionLines = $derived(
+		currentEmployee.filter(
+			(line) => !isBasic(line) && !isBaseAdjustment(line) && line.direction === 'DEDUCT'
+		)
+	);
+	const adjustments = $derived(
+		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.period !== undefined)
 	);
 	const recovery = $derived(
 		breakdown.lines.filter(
 			(line) => line.party === 'EMPLOYEE' && line.period === undefined && line.code === RECOVERY
 		)
 	);
-	const adjustments = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.period !== undefined)
-	);
 	const employer = $derived(breakdown.lines.filter((line) => line.party === 'EMPLOYER'));
 
-	const earningsTotal = $derived(earnings.reduce((total, line) => total + line.amount, 0));
-	const deductionsTotal = $derived(deductions.reduce((total, line) => total + line.amount, 0));
+	const paidBasic = $derived(
+		[...basicLines, ...baseAdjustments].reduce((total, line) => total + signedValue(line), 0)
+	);
+	const grossPay = $derived(
+		paidBasic + additionLines.reduce((total, line) => total + line.amount, 0)
+	);
+	const deductionsTotal = $derived(deductionLines.reduce((total, line) => total + line.amount, 0));
 	const adjustmentsTotal = $derived(
-		adjustments.reduce(
-			(total, line) => total + (line.direction === 'DEDUCT' ? -line.amount : line.amount),
-			0
-		)
+		adjustments.reduce((total, line) => total + signedValue(line), 0)
+	);
+	const hasEarnings = $derived(
+		basicLines.length > 0 || baseAdjustments.length > 0 || additionLines.length > 0
 	);
 
 	// What each line is, in the words of the catalogue row that posted it, under the law of the payslip's company on
@@ -145,20 +139,25 @@
 		return parts.join(' · ');
 	});
 
-	const money = (value: Parameters<typeof format>[1]) => {
+	const cleanDecimal = (value: Parameters<typeof format>[1]) => {
 		const numeric =
 			typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
-		const clean = Number.isFinite(numeric)
+		return Number.isFinite(numeric)
 			? (Math.abs(numeric) < 1e-12 ? 0 : numeric).toFixed(scale)
 			: value;
-		return format(
+	};
+	/** Plain right-aligned statement figure (currency sits in the header and bottom line). */
+	const figure = (value: Parameters<typeof format>[1]) =>
+		format({ kind: 'money' }, cleanDecimal(value), { locale: ctx.locale });
+	/** Accounting parentheses for deductions and contra-earnings. */
+	const negative = (value: number) => `(${figure(Math.abs(value))})`;
+	const signedFigure = (value: number) => (value < -1e-12 ? negative(value) : figure(value));
+	const totalMoney = (value: Parameters<typeof format>[1]) =>
+		format(
 			{ kind: 'money' },
-			clean,
+			cleanDecimal(value),
 			currency === undefined ? { locale: ctx.locale } : { locale: ctx.locale, currency }
 		);
-	};
-	const signedMoney = (value: number) =>
-		value < -1e-12 ? `− ${money(Math.abs(value))}` : value > 1e-12 ? `+ ${money(value)}` : money(0);
 
 	/**
 	 * A line's catalogue family: an entry (or a loan repayment) belongs to the catalogue it was raised on; a scheme's
@@ -209,56 +208,59 @@
 		return `${count} ${line.unit.toLowerCase()}`;
 	};
 
-	const leaveContext = (line: Line): string => {
-		if (line.source !== 'leave_catalog_entry' || line.period !== undefined) return '';
-		const settled = cashOutByCode.get(line.code);
-		if (line.direction === 'ADD')
-			return settled !== undefined && settled > 0
-				? ctx.t('app.payroll.line.exit_encashment')
-				: ctx.t('app.payroll.line.leave_encashment');
-		if (settled !== undefined && settled < 0) return ctx.t('app.payroll.line.overtaken_leave');
+	const lineContext = (line: Line): string => {
+		if (line.period !== undefined) return '';
+		if (line.source === 'leave_catalog_entry') {
+			const settled = cashOutByCode.get(line.code);
+			if (line.direction === 'ADD')
+				return settled !== undefined && settled > 0
+					? ctx.t('app.payroll.line.exit_encashment')
+					: ctx.t('app.payroll.line.leave_encashment');
+			if (settled !== undefined && settled < 0) return ctx.t('app.payroll.line.overtaken_leave');
+		}
+		if (line.source === 'statutory_contribution_catalog' && line.party === 'EMPLOYEE')
+			if (line.direction === 'ADD') return ctx.t('app.payroll.line.refund');
 		return '';
 	};
 
 	const lineNote = (line: Line) =>
-		[measure(line), leaveContext(line), line.period].filter(Boolean).join(' · ');
-
-	const checkpointGuide = (code: string) =>
-		ctx.t(`checkpoint.${GUIDED_CHECKPOINTS.find((known) => known === code) ?? 'other'}`);
-
-	const checkpoints = $derived.by(() => {
-		const touched = new Set(
-			breakdown.lines.filter((line) => line.period === undefined).map((line) => line.subtotal)
-		);
-		const all = breakdown.checkpoints;
-		return all.flatMap((point, index) => {
-			const previous = index === 0 ? point.value : (all[index - 1]?.value ?? point.value);
-			const delta = point.value - previous;
-			const moved = index > 0 && Math.abs(delta) > 1e-9;
-			if (
-				index === 0 ||
-				index === all.length - 1 ||
-				moved ||
-				touched.has(point.code) ||
-				CORE_CHECKPOINTS.has(point.code)
-			)
-				return [{ point, delta: moved ? delta : 0 }];
-			return [];
-		});
-	});
+		[measure(line), lineContext(line), line.period].filter(Boolean).join(' · ');
 </script>
 
-{#snippet row(label: string, hint: string | undefined, value: string, note = '', total = false)}
+{#snippet row(
+	label: string,
+	hint: string | undefined,
+	value: string,
+	options: {
+		note?: string;
+		indent?: boolean;
+		muted?: boolean;
+		subtotal?: boolean;
+	} = {}
+)}
 	<Inline
 		as="li"
 		justify="between"
 		align="start"
 		gap="md"
-		class={total ? 'border-t py-2 text-sm font-medium' : 'py-1.5 text-sm'}
+		class={[
+			'text-sm',
+			options.subtotal ? 'mt-1 border-t py-2 font-medium' : 'py-1.5',
+			options.indent ? 'pl-4' : ''
+		]
+			.filter(Boolean)
+			.join(' ')}
 	>
 		<Stack gap="none">
 			<Inline gap="xs">
-				<span class="[overflow-wrap:anywhere]">{label}</span>
+				<span
+					class={[
+						'[overflow-wrap:anywhere]',
+						options.muted && !options.subtotal ? 'text-muted-foreground' : ''
+					]
+						.filter(Boolean)
+						.join(' ')}>{label}</span
+				>
 				{#if hint !== undefined}<Tooltip text={hint}>
 						{#snippet trigger({ props })}
 							<button
@@ -271,124 +273,167 @@
 						{/snippet}
 					</Tooltip>{/if}
 			</Inline>
-			{#if note !== ''}<span class="text-xs text-muted-foreground">{note}</span>{/if}
+			{#if options.note}<span class="text-xs text-muted-foreground">{options.note}</span>{/if}
 		</Stack>
-		<span class="shrink-0 tabular-nums">{value}</span>
+		<span
+			class={[
+				'shrink-0 tabular-nums',
+				options.muted && !options.subtotal ? 'text-muted-foreground' : ''
+			]
+				.filter(Boolean)
+				.join(' ')}>{value}</span
+		>
 	</Inline>
 {/snippet}
-{#snippet list(
-	title: string,
-	lines: typeof breakdown.lines,
-	total: string,
-	sum: Parameters<typeof format>[1]
-)}
-	<Stack as="section" gap="xs" justify="between">
-		<Stack gap="xs">
-			<h3 class="border-b pb-2 text-sm font-medium">{title}</h3>
-			<Stack as="ul" gap="none">
-				{#each lines as line}
-					{@render row(
-						lineLabel(line),
-						lineHint(line),
-						`${line.party === 'EMPLOYER' && line.direction === 'DEDUCT' ? '− ' : ''}${money(line.amount)}`,
-						lineNote(line)
-					)}
-				{/each}
-			</Stack>
-		</Stack>
-		<Stack as="ul" gap="none">
-			{@render row(total, undefined, money(sum), '', true)}
-		</Stack>
-	</Stack>
+
+{#snippet heading(title: string)}
+	<h3 class="border-b pb-1.5 text-xs font-medium tracking-wider text-muted-foreground uppercase">
+		{title}
+	</h3>
 {/snippet}
+
 <RecordShell
 	{ctx}
 	of="payslip"
 	mode={view.mode}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
-	{#if record !== null}<Stack gap="md">
-			{#if contextLine !== ''}
-				<p class="text-xs text-muted-foreground">{contextLine}</p>
+	{#if record !== null}
+		<Stack gap="lg">
+			{#if contextLine !== '' || currency !== undefined}
+				<Inline justify="between" align="center" gap="md" class="text-xs text-muted-foreground">
+					<span>{contextLine}</span>
+					{#if currency !== undefined}
+						<span class="shrink-0 font-medium tracking-wider uppercase">{currency}</span>
+					{/if}
+				</Inline>
 			{/if}
-			{#if earnings.length > 0 || deductions.length > 0}
-				<Grid minimum="compact" gap="lg">
-					{@render list(
-						ctx.t('app.payroll.earnings'),
-						earnings,
-						ctx.t('app.payroll.total_earnings'),
-						earningsTotal
-					)}
-					{@render list(
-						ctx.t('app.payroll.deductions'),
-						deductions,
-						ctx.t('app.payroll.total_deductions'),
-						deductionsTotal
-					)}
-				</Grid>
-			{/if}
-			{#if adjustments.length > 0}
-				<Stack as="section" gap="xs">
-					<h3 class="border-b pb-2 text-sm font-medium">
-						{ctx.t('app.payroll.adjustments_for_earlier_periods')}
-					</h3>
-					<p class="text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
+
+			{#if hasEarnings}
+				<Stack as="section" gap="none">
+					{@render heading(ctx.t('app.payroll.earnings'))}
 					<Stack as="ul" gap="none">
-						{#each adjustments as line}
+						{#each basicLines as line}
+							{@render row(lineLabel(line), lineHint(line), figure(line.amount), {
+								note: lineNote(line)
+							})}
+						{/each}
+						{#each baseAdjustments as line}
 							{@render row(
-								lineLabel(line),
+								line.direction === 'DEDUCT'
+									? ctx.t('app.payroll.less', { label: lineLabel(line) })
+									: lineLabel(line),
 								lineHint(line),
-								signedMoney(line.direction === 'DEDUCT' ? -line.amount : line.amount),
-								lineNote(line)
+								signedFigure(signedValue(line)),
+								{
+									note: lineNote(line),
+									indent: basicLines.length > 0,
+									muted: line.direction === 'DEDUCT'
+								}
 							)}
 						{/each}
+						{#if baseAdjustments.length > 0 && additionLines.length > 0}
+							{@render row(
+								ctx.t('app.payroll.paid_basic'),
+								ctx.t('checkpoint.PAID_BASIC'),
+								signedFigure(paidBasic),
+								{ subtotal: true }
+							)}
+						{/if}
+						{#each additionLines as line}
+							{@render row(lineLabel(line), lineHint(line), figure(line.amount), {
+								note: lineNote(line)
+							})}
+						{/each}
 						{@render row(
-							ctx.t('app.payroll.adjustments_total'),
-							undefined,
-							signedMoney(adjustmentsTotal),
-							'',
-							true
+							ctx.t('app.payroll.gross_pay'),
+							ctx.t('checkpoint.GROSS'),
+							signedFigure(grossPay),
+							{ subtotal: true }
 						)}
 					</Stack>
 				</Stack>
 			{/if}
+
+			{#if deductionLines.length > 0}
+				<Stack as="section" gap="none">
+					{@render heading(ctx.t('app.payroll.deductions'))}
+					<Stack as="ul" gap="none">
+						{#each deductionLines as line}
+							{@render row(lineLabel(line), lineHint(line), negative(line.amount), {
+								note: lineNote(line),
+								muted: true
+							})}
+						{/each}
+						{@render row(
+							ctx.t('app.payroll.total_deductions'),
+							undefined,
+							negative(deductionsTotal),
+							{ subtotal: true }
+						)}
+					</Stack>
+				</Stack>
+			{/if}
+
+			{#if adjustments.length > 0}
+				<Stack as="section" gap="xs">
+					{@render heading(ctx.t('app.payroll.adjustments_for_earlier_periods'))}
+					<p class="text-xs text-muted-foreground">{ctx.t('app.payroll.adjustments_help')}</p>
+					<Stack as="ul" gap="none">
+						{#each adjustments as line}
+							{@render row(lineLabel(line), lineHint(line), signedFigure(signedValue(line)), {
+								note: lineNote(line),
+								muted: line.direction === 'DEDUCT'
+							})}
+						{/each}
+						{@render row(
+							ctx.t('app.payroll.adjustments_total'),
+							undefined,
+							signedFigure(adjustmentsTotal),
+							{ subtotal: true }
+						)}
+					</Stack>
+				</Stack>
+			{/if}
+
 			{#if recovery.length > 0}
-				<Stack as="ul" gap="none" class="border-t pt-1">
+				<Stack as="ul" gap="none">
 					{#each recovery as line}
-						{@render row(lineLabel(line), lineHint(line), signedMoney(line.amount), lineNote(line))}
+						{@render row(lineLabel(line), lineHint(line), figure(line.amount), {
+							note: lineNote(line)
+						})}
 					{/each}
 				</Stack>
 			{/if}
-			<Inline justify="between" gap="md" class="border-y-2 py-3 text-base font-medium">
+
+			<Inline
+				justify="between"
+				align="center"
+				gap="md"
+				class="border-t border-b-2 border-foreground/30 py-3 text-base font-medium"
+			>
 				<span>{ctx.t('app.payroll.net_pay')}</span>
-				<span class="shrink-0 tabular-nums">{money(record.net_pay)}</span>
+				<span class="shrink-0 tabular-nums">{totalMoney(record.net_pay)}</span>
 			</Inline>
+
 			{#if employer.length > 0}
-				{@render list(
-					ctx.t('app.payroll.employer_contributions'),
-					employer,
-					ctx.t('app.payroll.total_employer_contributions'),
-					record.employer_cost
-				)}
-			{/if}
-			{#if checkpoints.length > 0}
-				<Section
-					name="calculation_details"
-					icon="lucide:calculator"
-					title={ctx.t('app.payroll.calculation_details')}
-					default_open={false}
-				>
+				<Stack as="section" gap="none" class="pt-2">
+					{@render heading(ctx.t('app.payroll.employer_contributions'))}
 					<Stack as="ul" gap="none">
-						{#each checkpoints as { point, delta } (point.code)}
-							{@render row(
-								point.name.trim() || point.code,
-								checkpointGuide(point.code),
-								money(point.value),
-								delta === 0 ? '' : signedMoney(delta)
-							)}
+						{#each employer as line}
+							{@render row(lineLabel(line), lineHint(line), signedFigure(signedValue(line)), {
+								note: lineNote(line),
+								muted: line.direction === 'DEDUCT'
+							})}
 						{/each}
+						{@render row(
+							ctx.t('app.payroll.total_employer_contributions'),
+							undefined,
+							figure(record.employer_cost),
+							{ subtotal: true }
+						)}
 					</Stack>
-				</Section>
+				</Stack>
 			{/if}
 		</Stack>
 	{/if}
