@@ -32,9 +32,12 @@ export type Synced =
 	| 'source_stock_commitments'
 	| 'source_lot_costs'
 	| 'credit_snapshots'
+	| 'credit_releases'
 	| 'transactions'
 	| 'source_payments'
-	| 'source_sales_lines';
+	| 'source_sales_lines'
+	| 'source_payables'
+	| 'source_purchase_orders';
 export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(
 	over: Extract<TestOptions<P>, { artifact?: never }> & {
 		source?: (op: DatabaseRequest) => Effect.Effect<DatabaseResult, FacilityFailure | BoltError>;

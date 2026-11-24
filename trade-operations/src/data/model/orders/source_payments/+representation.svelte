@@ -26,7 +26,7 @@
 			{#each ['order', 'invoice'] as const as relation}
 				{@const value = shown.record[relation]}
 				{#if value}<div>
-						<dt class="text-sm text-muted-foreground">
+						<dt class="text-label">
 							{ctx.t(`models.source_payments.fields.${relation}`)}
 						</dt>
 						<dd>
@@ -39,7 +39,7 @@
 					</div>{/if}
 			{/each}
 			{#each fields as field (field.name)}<div>
-					<dt class="text-sm text-muted-foreground">
+					<dt class="text-label">
 						{ctx.t(`models.source_payments.fields.${field.name}`)}
 					</dt>
 					<dd>

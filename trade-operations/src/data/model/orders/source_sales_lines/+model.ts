@@ -39,7 +39,10 @@ export default model('source_sales_lines', {
 				kind: 'object',
 				fields: {
 					customer: { kind: 'text', optional: true },
+					customer_id: { kind: 'text', optional: true },
+					customer_region: { kind: 'text', optional: true },
 					product: { kind: 'text', optional: true },
+					product_category: { kind: 'text', optional: true },
 					employee: { kind: 'text', optional: true },
 					employee_id: { kind: 'text', optional: true }
 				}

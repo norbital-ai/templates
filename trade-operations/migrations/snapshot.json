@@ -405,6 +405,217 @@
 				]
 			}
 		},
+		"credit_releases": {
+			"audit": true,
+			"computed": {
+				"status": {
+					"expr": {
+						"when": [
+							{
+								"and": [
+									{
+										"eq": [
+											{
+												"field": "source_status"
+											},
+											"blocked"
+										]
+									},
+									{
+										"eq": [
+											{
+												"field": "approval_status"
+											},
+											"approved"
+										]
+									}
+								]
+							},
+							"approved",
+							{
+								"field": "source_status"
+							}
+						]
+					},
+					"kind": "text"
+				}
+			},
+			"fields": {
+				"approval_status": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"approved"
+					]
+				},
+				"approved_content_hash": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"audit_seen_at": {
+					"hidden": true,
+					"kind": "instant",
+					"optional": true
+				},
+				"bill_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"bill_number": {
+					"kind": "text"
+				},
+				"bill_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"block_reasons": {
+					"kind": "enum",
+					"many": true,
+					"optional": true,
+					"values": [
+						"over_limit",
+						"overdue"
+					]
+				},
+				"content_hash": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"credit_limit": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"credit_used": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"delivery": {
+					"kind": "ref",
+					"optional": true,
+					"to": "transactions"
+				},
+				"delivery_fid": {
+					"kind": "text"
+				},
+				"external_code": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"oldest_overdue_bill": {
+					"kind": "text",
+					"optional": true
+				},
+				"order": {
+					"kind": "ref",
+					"optional": true,
+					"to": "orders"
+				},
+				"over_limit": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"overdue_days": {
+					"kind": "int",
+					"optional": true
+				},
+				"party": {
+					"kind": "ref",
+					"to": "parties"
+				},
+				"proposed_limit": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"reason": {
+					"kind": "text",
+					"optional": true
+				},
+				"release_log_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"released_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"released_by": {
+					"kind": "text",
+					"optional": true
+				},
+				"route": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"one_time",
+						"permanent"
+					]
+				},
+				"settlement_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				},
+				"source_oper_date": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
+				"source_status": {
+					"default": "blocked",
+					"kind": "enum",
+					"values": [
+						"blocked",
+						"released",
+						"cleared",
+						"superseded",
+						"withdrawn",
+						"bypassed"
+					]
+				}
+			},
+			"record_label": "record.bill_number",
+			"search": {
+				"text": [
+					"bill_number",
+					"delivery_fid",
+					"oldest_overdue_bill",
+					"released_by"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"source",
+						"external_code"
+					],
+					"import_key": true,
+					"name": "natural_key"
+				}
+			]
+		},
 		"credit_snapshots": {
 			"audit": true,
 			"computed": {
@@ -1159,6 +1370,14 @@
 					"kind": "text",
 					"optional": true
 				},
+				"region": {
+					"kind": "text",
+					"optional": true
+				},
+				"related_party": {
+					"default": false,
+					"kind": "bool"
+				},
 				"source": {
 					"kind": "ref",
 					"to": "sys_integration",
@@ -1357,6 +1576,10 @@
 					"kind": "text",
 					"optional": true
 				},
+				"category": {
+					"kind": "text",
+					"optional": true
+				},
 				"commission_basis_unit": {
 					"kind": "text",
 					"optional": true
@@ -1547,6 +1770,120 @@
 				{
 					"fields": [
 						"source"
+					],
+					"import_key": true,
+					"name": "one_per_source"
+				}
+			]
+		},
+		"source_payables": {
+			"audit": true,
+			"fields": {
+				"accruals": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"amount": {
+								"kind": "text"
+							},
+							"period": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"currency": {
+					"kind": "currency"
+				},
+				"entries": {
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"business_on": {
+								"kind": "date"
+							},
+							"contact_id": {
+								"kind": "text"
+							},
+							"due_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"kind": {
+								"kind": "enum",
+								"values": [
+									"invoice",
+									"expense",
+									"payment"
+								]
+							},
+							"kingdee_due_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"received_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"reference": {
+								"kind": "text"
+							},
+							"remaining": {
+								"kind": "text"
+							},
+							"settlement": {
+								"kind": "text",
+								"optional": true
+							},
+							"settlements": {
+								"fields": {
+									"amount": {
+										"kind": "text"
+									},
+									"on": {
+										"kind": "date"
+									}
+								},
+								"kind": "object",
+								"many": true
+							},
+							"supplier": {
+								"kind": "text"
+							},
+							"supplier_id": {
+								"kind": "text"
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"shard": {
+					"default": 0,
+					"kind": "int"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"record_label": "record.source.name",
+			"unique": [
+				{
+					"fields": [
+						"source",
+						"shard"
 					],
 					"import_key": true,
 					"name": "one_per_source"
@@ -1752,6 +2089,186 @@
 				}
 			]
 		},
+		"source_purchase_orders": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"entries": {
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"amount": {
+								"kind": "text",
+								"optional": true
+							},
+							"amount_base": {
+								"kind": "text",
+								"optional": true
+							},
+							"currency": {
+								"kind": "text",
+								"optional": true
+							},
+							"due_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"duty": {
+								"kind": "text",
+								"optional": true
+							},
+							"entry_id": {
+								"kind": "text"
+							},
+							"exchange_rate": {
+								"kind": "text",
+								"optional": true
+							},
+							"invoice_amount": {
+								"kind": "text",
+								"optional": true
+							},
+							"invoice_numbers": {
+								"kind": "text",
+								"optional": true
+							},
+							"invoiced_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"invoiced_qty": {
+								"kind": "text",
+								"optional": true
+							},
+							"last_received_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"net_amount": {
+								"kind": "text",
+								"optional": true
+							},
+							"note": {
+								"kind": "text",
+								"optional": true
+							},
+							"order_id": {
+								"kind": "text"
+							},
+							"order_number": {
+								"kind": "text"
+							},
+							"ordered_on": {
+								"kind": "date"
+							},
+							"paid_amount": {
+								"kind": "text",
+								"optional": true
+							},
+							"paid_on": {
+								"kind": "date",
+								"optional": true
+							},
+							"payment_status": {
+								"kind": "enum",
+								"optional": true,
+								"values": [
+									"uninvoiced",
+									"unpaid",
+									"partial",
+									"paid"
+								]
+							},
+							"product_category": {
+								"kind": "text",
+								"optional": true
+							},
+							"product_spec": {
+								"kind": "text",
+								"optional": true
+							},
+							"quantity": {
+								"kind": "text"
+							},
+							"received_qty": {
+								"kind": "text"
+							},
+							"settlement": {
+								"kind": "text",
+								"optional": true
+							},
+							"supplier_id": {
+								"kind": "text",
+								"optional": true
+							},
+							"supplier_name": {
+								"kind": "text",
+								"optional": true
+							},
+							"unit_price": {
+								"kind": "text",
+								"optional": true
+							},
+							"vat_amount": {
+								"kind": "text",
+								"optional": true
+							}
+						},
+						"kind": "object",
+						"many": true
+					}
+				},
+				"expense_notice": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"before_start_amount": {
+								"kind": "text"
+							},
+							"before_start_rows": {
+								"kind": "int"
+							},
+							"unattached_amount": {
+								"kind": "text"
+							},
+							"unattached_rows": {
+								"kind": "int"
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"period": {
+					"kind": "text"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"record_label": "record.source.name + ' · ' + record.period",
+			"unique": [
+				{
+					"fields": [
+						"source",
+						"period"
+					],
+					"import_key": true,
+					"name": "one_per_period"
+				}
+			]
+		},
 		"source_receivables": {
 			"audit": true,
 			"fields": {
@@ -1937,6 +2454,14 @@
 								"kind": "text",
 								"optional": true
 							},
+							"customer_id": {
+								"kind": "text",
+								"optional": true
+							},
+							"customer_region": {
+								"kind": "text",
+								"optional": true
+							},
 							"employee": {
 								"kind": "text",
 								"optional": true
@@ -1946,6 +2471,10 @@
 								"optional": true
 							},
 							"product": {
+								"kind": "text",
+								"optional": true
+							},
+							"product_category": {
 								"kind": "text",
 								"optional": true
 							}
@@ -3697,6 +4226,7 @@
 					"default": "issued",
 					"kind": "enum",
 					"values": [
+						"draft",
 						"issued",
 						"void"
 					]

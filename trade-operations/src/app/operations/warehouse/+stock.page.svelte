@@ -3,7 +3,12 @@
 	let { ctx }: { ctx: PageContext } = $props();
 	import { Badge, Show, Table, Tabs, type Col } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { downloadXlsx, xlsxWorkbook, type XlsxColumn } from '../../../lib/xlsx.js';
+	import {
+		downloadWorkbook,
+		downloadXlsx,
+		xlsxWorkbook,
+		type XlsxColumn
+	} from '../../../lib/xlsx.js';
 	import {
 		logisticsStockAvailabilityRead,
 		stockAvailability,
@@ -62,6 +67,7 @@
 			? [
 					{ field: 'external_code', label: ctx.t('models.products.fields.external_code') },
 					{ field: 'name', label: ctx.t('models.products.fields.name') },
+					{ field: 'category', label: ctx.t('models.products.fields.category') },
 					{ field: 'spec', label: ctx.t('models.products.fields.spec') },
 					{ field: 'producing_area', label: ctx.t('models.products.fields.producing_area') },
 					{ field: 'brand', label: ctx.t('models.products.fields.brand') },
@@ -73,6 +79,7 @@
 					{ field: 'external_code', label: ctx.t('models.products.fields.external_code') },
 					{ field: 'source_number', label: ctx.t('models.products.fields.source_number') },
 					{ field: 'name', label: ctx.t('models.products.fields.name') },
+					{ field: 'category', label: ctx.t('models.products.fields.category') },
 					{ field: 'spec', label: ctx.t('models.products.fields.spec') },
 					{ field: 'producing_area', label: ctx.t('models.products.fields.producing_area') },
 					{ field: 'brand', label: ctx.t('models.products.fields.brand') },
@@ -112,6 +119,7 @@
 						fields: [
 							'external_code',
 							'name',
+							'category',
 							'spec',
 							'producing_area',
 							'brand',
@@ -128,6 +136,7 @@
 							'external_code',
 							'source_number',
 							'name',
+							'category',
 							'spec',
 							'producing_area',
 							'brand',
@@ -144,25 +153,14 @@
 					}
 				});
 		const bytes = xlsxWorkbook('products', productColumns, answer.products.rows);
-		const url = URL.createObjectURL(
-			new Blob([bytes], {
-				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-			})
-		);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = 'products.xlsx';
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 1000);
+		downloadWorkbook('products.xlsx', bytes);
 	}
 </script>
 
 {#snippet products()}<Table
 		{ctx}
 		of="products"
-		columns={['external_code', 'name', 'unit', 'active']}
+		columns={['external_code', 'name', 'category', 'unit', 'active']}
 		toolbar={{
 			new: false,
 			actions: [

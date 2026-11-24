@@ -20,6 +20,7 @@ export default sync('products', 'kingdee', {
 						source_number: r.text('source_number', null),
 						name: r.text('name'),
 						spec: r.text('spec', null),
+						category: r.text('category', null),
 						producing_area: r.text('producing_area', null),
 						brand: r.text('brand', null),
 						brand_en: r.text('brand_en', null),

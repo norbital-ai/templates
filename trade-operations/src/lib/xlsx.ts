@@ -40,6 +40,19 @@ const number = (value: unknown) => {
 	const parsed = Number(String(value).trim());
 	return Number.isFinite(parsed) ? parsed : null;
 };
+const numberFormatters = new Map<number, Intl.NumberFormat>();
+const formatNumber = (value: number, scale: number) => {
+	let formatter = numberFormatters.get(scale);
+	if (!formatter) {
+		formatter = new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: scale,
+			maximumFractionDigits: scale
+		});
+		numberFormatters.set(scale, formatter);
+	}
+	return formatter.format(value);
+};
 const cellXml = (
 	reference: string,
 	value: unknown,
@@ -48,7 +61,7 @@ const cellXml = (
 	if (value === null || value === undefined) return '';
 	const numeric = column?.numeric ? number(value) : null;
 	if (numeric !== null && typeof value !== 'boolean')
-		return `<c r="${reference}"><v>${column?.scale === undefined ? numeric : new Intl.NumberFormat('en', { useGrouping: false, minimumFractionDigits: column.scale, maximumFractionDigits: column.scale }).format(numeric)}</v></c>`;
+		return `<c r="${reference}"><v>${column?.scale === undefined ? numeric : formatNumber(numeric, column.scale)}</v></c>`;
 	const text = typeof value === 'boolean' ? (value ? 'TRUE' : 'FALSE') : String(value);
 	return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xml(text)}</t></is></c>`;
 };
@@ -171,6 +184,18 @@ type ReportColumn = {
 	readonly label?: string;
 	readonly kind?: { readonly kind?: string; readonly scale?: number };
 };
+export function downloadWorkbook(filename: string, bytes: Uint8Array<ArrayBuffer>) {
+	const url = URL.createObjectURL(
+		new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+	);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 /** Downloads `rows` under `columns` as `<name>-<day>.xlsx`. */
 export function downloadXlsx(
 	name: string,
@@ -188,7 +213,7 @@ export function downloadXlsx(
 				label: label ?? field,
 				numeric: kind?.kind === 'money' || kind?.kind === 'decimal' || kind?.kind === 'int',
 				...(kind?.kind === 'money'
-					? { scale: 2 }
+					? { scale: kind.scale ?? 2 }
 					: kind?.scale === undefined
 						? {}
 						: { scale: kind.scale })
@@ -196,14 +221,5 @@ export function downloadXlsx(
 		}),
 		rows
 	);
-	const url = URL.createObjectURL(
-		new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-	);
-	const link = document.createElement('a');
-	link.href = url;
-	link.download = `${name}-${day}.xlsx`;
-	document.body.appendChild(link);
-	link.click();
-	link.remove();
-	setTimeout(() => URL.revokeObjectURL(url), 1000);
+	downloadWorkbook(`${name}-${day}.xlsx`, bytes);
 }

@@ -125,3 +125,111 @@ it.live("Kingdee's settlement methods mirror read-only, and a deleted one goes i
 		expect(yield* read()).toMatchObject([{ code: 'JF17', active: false }, { active: true }]);
 	})
 );
+
+it.live(
+	'Kingdee mirrors customer region and product category while local related_party belongs to finance and survives re-sync',
+	() =>
+		Effect.gen(function* () {
+			let region: string | null = 'South China';
+			let category: string | null = 'Polymers';
+			const fixture = kingdeeFixture(() => {
+				const catalogue = kingdeeCatalogue();
+				return {
+					...catalogue,
+					'/parties': (catalogue['/parties'] ?? []).map((row) =>
+						typeof row === 'object' && row !== null && 'item_class' in row && row.item_class === 1
+							? { ...row, customer_region: region }
+							: row
+					),
+					'/products': (catalogue['/products'] ?? []).map((row) =>
+						typeof row === 'object' && row !== null && 'external_code' in row
+							? { ...row, category }
+							: row
+					)
+				};
+			});
+			const t = yield* workspace({ source: fixture.request });
+			const as = yield* t.as(t.admin);
+			const finance = yield* t.as(t.member(['finance']));
+			const sales = yield* t.as(t.member(['sales']));
+			const procurement = yield* t.as(t.member(['procurement']));
+			const manager = yield* t.as(t.member(['manager']));
+			const instance = fixtureId('sys_integration', 'kingdee');
+			yield* as.act({
+				'sys_integration.update': [
+					{ target: { id: instance }, set: { configuration: fixture.configuration('owner') } }
+				]
+			});
+			yield* t.pull('parties');
+			yield* t.pull('products');
+
+			const readParty = (code: string) =>
+				as
+					.query({
+						parties: {
+							where: { source: { eq: instance }, external_code: { eq: code } },
+							fields: ['name', 'region', 'related_party'],
+							limit: 1
+						}
+					})
+					.pipe(Effect.map(({ parties }) => firstRow(parties.rows)));
+			const readProduct = () =>
+				as
+					.query({
+						products: {
+							where: { source: { eq: instance }, external_code: { eq: '301' } },
+							fields: ['name', 'category'],
+							limit: 1
+						}
+					})
+					.pipe(Effect.map(({ products }) => firstRow(products.rows)));
+
+			const customer = yield* readParty('101');
+			const supplier = yield* readParty('201');
+			expect(customer).toMatchObject({ region: 'South China', related_party: false });
+			expect(supplier).toMatchObject({ region: null, related_party: false });
+			expect(yield* readProduct()).toMatchObject({ category: 'Polymers' });
+
+			// Finance marks supplier as a related party, but cannot touch Kingdee-mirrored fields.
+			committed(
+				'parties',
+				yield* finance.act({
+					'parties.update': [
+						{ target: yield* t.at('parties', supplier.id), set: { related_party: true } }
+					]
+				})
+			);
+			expect(yield* readParty('201')).toMatchObject({ related_party: true });
+			expect(
+				yield* Effect.flip(
+					finance.act({
+						'parties.update': [
+							{ target: yield* t.at('parties', customer.id), set: { region: 'Edited' } }
+						]
+					})
+				)
+			).toMatchObject({ _tag: 'ActRefused' });
+
+			// Non-finance roles cannot change related_party.
+			for (const actor of [sales, procurement, manager]) {
+				expect(
+					yield* Effect.flip(
+						actor.act({
+							'parties.update': [
+								{ target: yield* t.at('parties', customer.id), set: { related_party: true } }
+							]
+						})
+					)
+				).toMatchObject({ _tag: 'ActRefused' });
+			}
+
+			// Re-syncing Kingdee updates region and clears '*' category while preserving local related_party.
+			region = 'East China';
+			category = '*';
+			yield* t.pull('parties');
+			yield* t.pull('products');
+			expect(yield* readParty('101')).toMatchObject({ region: 'East China', related_party: false });
+			expect(yield* readParty('201')).toMatchObject({ related_party: true });
+			expect(yield* readProduct()).toMatchObject({ category: null });
+		})
+);

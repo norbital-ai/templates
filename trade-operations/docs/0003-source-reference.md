@@ -1,9 +1,9 @@
 # Source reference
 
-Checked against this template's source and compiled declaration manifest on 20 November 2026.
+Checked against this template's source and compiled declaration manifest on 24 November 2026.
 This is a local source inventory, not a declaration that a deployed tenant runs these bytes.
 
-23 models, 6 applications, 1 automation.
+26 models, 6 applications, 1 automation.
 
 ## Applications and pages
 
@@ -27,19 +27,22 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | [commission_rules](../src/data/model/commercial_settings/commission_rules/+model.ts)     | 10     | default             | create, update         | sheet                 |
 | [commission_statements](../src/data/model/commission_statements/+model.ts)               | 10     | default             | create                 | none                  |
 | [contacts](../src/data/model/parties/contacts/+model.ts)                                 | 6      | default             | create, update, delete | kingdee               |
+| [credit_releases](../src/data/model/credit_releases/+model.ts)                           | 31     | default, logistics  | create, update         | kingdee               |
 | [credit_snapshots](../src/data/model/parties/credit_snapshots/+model.ts)                 | 8      | default             | create, update         | kingdee               |
 | [document_templates](../src/data/model/commercial_settings/document_templates/+model.ts) | 12     | default             | create, update         | none                  |
 | [order_files](../src/data/model/orders/order_files/+model.ts)                            | 3      | default             | create                 | none                  |
 | [order_lines](../src/data/model/orders/order_lines/+model.ts)                            | 21     | default, logistics  | create, update, delete | kingdee               |
 | [orders](../src/data/model/orders/+model.ts)                                             | 40     | default, logistics  | create, update, delete | lines, sheet, kingdee |
-| [parties](../src/data/model/parties/+model.ts)                                           | 10     | default             | create, update         | kingdee, sheet        |
+| [parties](../src/data/model/parties/+model.ts)                                           | 12     | default             | create, update         | kingdee, sheet        |
 | [pricing_floors](../src/data/model/products/pricing_floors/+model.ts)                    | 10     | default             | create, update         | price_book            |
-| [products](../src/data/model/products/+model.ts)                                         | 16     | default, logistics  | create, update         | kingdee               |
+| [products](../src/data/model/products/+model.ts)                                         | 17     | default, logistics  | create, update         | kingdee               |
 | [settlements](../src/data/model/settlements/+model.ts)                                   | 6      | default             | create, update         | kingdee               |
 | [source_lot_costs](../src/data/model/source_lot_costs/+model.ts)                         | 4      | default             | create, update         | kingdee               |
+| [source_payables](../src/data/model/source_payables/+model.ts)                           | 6      | default             | create, update         | kingdee               |
 | [source_payments](../src/data/model/orders/source_payments/+model.ts)                    | 11     | default             | create, update         | kingdee               |
 | [source_purchase_lines](../src/data/model/source_purchase_lines/+model.ts)               | 24     | default             | create, update         | receipts, invoices    |
-| [source_receivables](../src/data/model/source_receivables/+model.ts)                     | 4      | default             | create, update         | kingdee               |
+| [source_purchase_orders](../src/data/model/source_purchase_orders/+model.ts)             | 6      | default             | create, update         | kingdee               |
+| [source_receivables](../src/data/model/source_receivables/+model.ts)                     | 5      | default             | create, update         | kingdee               |
 | [source_sales_lines](../src/data/model/orders/source_sales_lines/+model.ts)              | 20     | default, commercial | create, update         | kingdee, invoice_only |
 | [source_stock_commitments](../src/data/model/source_stock_commitments/+model.ts)         | 3      | default             | create, update         | kingdee               |
 | [stock_snapshots](../src/data/model/products/stock_snapshots/+model.ts)                  | 10     | default, logistics  | create, update, delete | kingdee               |

@@ -139,12 +139,30 @@ it.live(
 			yield* t.pull('source_sales_lines');
 			const documents = (yield* as.query({ transactions: { where: { order: { eq: order } } } }))
 				.transactions.rows;
-			// the unapproved delivery waits
-			expect(documents.map((row) => row.reference).sort()).toEqual([
-				'DO-20001',
-				'DO-20002',
-				'INV-30001'
+			// the unapproved delivery syncs as draft (visible on the order, excluded from delivered & sales facts)
+			expect(
+				documents
+					.map((row) => ({ reference: row.reference, status: row.status }))
+					.sort((a, b) => a.reference.localeCompare(b.reference))
+			).toEqual([
+				{ reference: 'DO-20001', status: 'issued' },
+				{ reference: 'DO-20002', status: 'issued' },
+				{ reference: 'DO-20003', status: 'draft' },
+				{ reference: 'INV-30001', status: 'issued' }
 			]);
+			// hard-deleting an unaudited draft DO in Kingdee reconciles it to void via the cursor watch-list
+			source.tables.ICStockBill = (source.tables.ICStockBill ?? []).filter(
+				(row) => row.fid !== '20003'
+			);
+			source.tables.ICStockBillEntry = (source.tables.ICStockBillEntry ?? []).filter(
+				(row) => row.fid !== '20003'
+			);
+			clock.at = '2026-11-04T00:00:00.000Z';
+			t.clock.advance('5min');
+			yield* t.pull('transactions');
+			const afterDelete = (yield* as.query({ transactions: { where: { order: { eq: order } } } }))
+				.transactions.rows;
+			expect(afterDelete.find((row) => row.reference === 'DO-20003')?.status).toBe('void');
 			const listed = documents.find((row) => row.kind === 'invoice');
 			if (!listed) throw new Error('Owned invoice missing');
 			const invoice = (yield* as.query({

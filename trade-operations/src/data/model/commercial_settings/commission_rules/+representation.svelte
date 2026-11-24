@@ -3,7 +3,7 @@
 	import { commissionPreview, previewRead } from '../../../../lib/commission-expressions.js';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { BigDecimal, Effect, Schema } from 'effect';
-	import { Input, Button, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
+	import { Input, Button, Label, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 
@@ -95,7 +95,7 @@
 	decimal = true
 )}
 	<Stack gap="xs">
-		<label class="text-xs font-medium text-muted-foreground" for={id}>{label}</label><Input
+		<Label for={id}>{label}</Label><Input
 			{id}
 			{...decimal ? { inputmode: 'decimal' as const } : {}}
 			{value}
@@ -154,8 +154,7 @@
 					false
 				)}
 				<Stack gap="xs">
-					<label class="text-xs font-medium text-muted-foreground" for="commission-preview-date"
-						>{ctx.t('models.orders.fields.ordered_on')}</label
+					<Label for="commission-preview-date">{ctx.t('models.orders.fields.ordered_on')}</Label
 					><TimeInput
 						{ctx}
 						id="commission-preview-date"

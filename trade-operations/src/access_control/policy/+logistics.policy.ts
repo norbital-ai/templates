@@ -12,6 +12,9 @@ export default policy({
 		transactions: {
 			outputs: { logistics: { history: true } }
 		},
+		credit_releases: {
+			outputs: { logistics: { history: true } }
+		},
 		commercial_settings: {
 			outputs: { logistics: {} }
 		},

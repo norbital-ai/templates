@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Receivables aging: what each customer owes on the cutoff, how long past due, and what credit offsets it.
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { BigDecimal, Effect } from 'effect';
+	import { BigDecimal } from 'effect';
 	import {
 		Badge,
 		Button,
@@ -10,6 +10,7 @@
 		Label,
 		Show,
 		Table,
+		TableSkeleton,
 		Tabs,
 		format,
 		label,
@@ -19,7 +20,7 @@
 		type ShowProps
 	} from '@norbital-ai/ui';
 	import { Cluster, Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { run } from '@norbital-ai/ui/effect';
+	import { observe_once } from '@norbital-ai/ui/effect';
 	import {
 		agingBuckets,
 		agingGroup,
@@ -36,31 +37,17 @@
 	let view = $state<'customers' | 'entries'>('customers');
 	let basis = $state<'estimated' | 'gross'>('estimated');
 	let customer = $state<{ key: string; name: string } | null>(null);
-	type Aging = Effect.Success<ReturnType<typeof readAgingAt>>;
-	let aging = $state.raw<Aging | null>(null);
-	let failed = $state(false);
-	$effect(() => {
-		const cutoff = as_of;
-		aging = null;
-		failed = false;
-		if (cutoff > day.today) return;
-		let current = true;
-		void run(readAgingAt(ctx, cutoff, Boolean(ctx.catalog?.source_receivables))).then(
-			(answer) => {
-				if (current) aging = answer;
-			},
-			() => {
-				if (current) failed = true;
-			}
-		);
-		return () => {
-			current = false;
-		};
-	});
-	const heads = $derived(aging?.heads ?? []);
+	const aging = observe_once(() =>
+		as_of > day.today ? null : readAgingAt(ctx, as_of, Boolean(ctx.catalog?.source_receivables))
+	);
+	const heads = $derived(aging.current?.heads ?? []);
 	const estimated = $derived(heads.length > 0 && basis === 'estimated');
 	const entries = $derived(
-		aging?.rows ? (estimated ? estimateAging(aging.rows) : aging.rows) : null
+		aging.current?.rows
+			? estimated
+				? estimateAging(aging.current.rows)
+				: aging.current.rows
+			: null
 	);
 	const manyLedgers = $derived(new Set(entries?.map((row) => row.ledger)).size > 1);
 	const nonZero = <R,>(rows: readonly R[], amount: (row: R) => string | null) =>
@@ -70,63 +57,58 @@
 		});
 	const overdueDays = (due: string | null) => daysOverdue(due, as_of) || null;
 	// each customer: what is owed or held in credit, its buckets, and its oldest overdue invoice; largest owed first
-	const customers = $derived(
-		entries
-			? agingSummary(entries)
-					.map((row) => {
-						const net = BigDecimal.fromStringUnsafe(row.net);
-						const oldest = entries
-							.filter((entry) => agingGroup(entry) === row.group && entry.bucket !== 'unapplied')
-							.reduce<number | null>((max, entry) => {
-								const days = overdueDays(entry.due_on);
-								return days !== null && (max === null || days > max) ? days : max;
-							}, null);
-						return {
-							...row,
-							owed: BigDecimal.format(BigDecimal.isPositive(net) ? net : BigDecimal.fromBigInt(0n)),
-							in_credit: BigDecimal.format(
-								BigDecimal.isNegative(net) ? BigDecimal.negate(net) : BigDecimal.fromBigInt(0n)
-							),
-							oldest_overdue: oldest
-						};
-					})
-					.toSorted((a, b) =>
-						BigDecimal.Order(BigDecimal.fromStringUnsafe(b.net), BigDecimal.fromStringUnsafe(a.net))
-					)
-			: null
-	);
+	const customers = $derived.by(() => {
+		if (!entries) return null;
+		const byGroup = Map.groupBy(entries, agingGroup);
+		return agingSummary(entries)
+			.map((row) => {
+				const net = BigDecimal.fromStringUnsafe(row.net);
+				const oldest = (byGroup.get(row.group) ?? []).reduce<number | null>((max, entry) => {
+					if (entry.bucket === 'unapplied') return max;
+					const days = overdueDays(entry.due_on);
+					return days !== null && (max === null || days > max) ? days : max;
+				}, null);
+				return {
+					...row,
+					owed: BigDecimal.format(BigDecimal.isPositive(net) ? net : BigDecimal.fromBigInt(0n)),
+					in_credit: BigDecimal.format(
+						BigDecimal.isNegative(net) ? BigDecimal.negate(net) : BigDecimal.fromBigInt(0n)
+					),
+					oldest_overdue: oldest
+				};
+			})
+			.toSorted((a, b) =>
+				BigDecimal.Order(BigDecimal.fromStringUnsafe(b.net), BigDecimal.fromStringUnsafe(a.net))
+			);
+	});
 	const shownCustomers = $derived(
 		customers?.filter((row) => !customer || row.group === customer.key) ?? []
 	);
 	const overdueBuckets = ['1_30', '31_60', '61_90', 'over_90'] as const;
 	const totals = $derived(
-		[...Map.groupBy(shownCustomers, (row) => row.currency)].map(([currency, rows]) => ({
-			currency,
-			figures: [
-				{
-					field: 'owed' as const,
-					value: BigDecimal.format(
-						BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row.owed)))
-					)
-				},
-				{
-					field: 'in_credit' as const,
-					value: BigDecimal.format(
-						BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row.in_credit)))
-					)
-				},
-				{
-					field: 'overdue' as const,
-					value: BigDecimal.format(
-						BigDecimal.sumAll(
-							rows.flatMap((row) =>
-								overdueBuckets.map((bucket) => BigDecimal.fromStringUnsafe(row[bucket]))
-							)
-						)
-					)
-				}
-			]
-		}))
+		[...Map.groupBy(shownCustomers, (row) => row.currency)].map(([currency, rows]) => {
+			const owed = BigDecimal.sumAll(rows.map((row) => BigDecimal.fromStringUnsafe(row.owed)));
+			const inCredit = BigDecimal.sumAll(
+				rows.map((row) => BigDecimal.fromStringUnsafe(row.in_credit))
+			);
+			const overdue = BigDecimal.sumAll(
+				rows.flatMap((row) =>
+					overdueBuckets.map((bucket) => BigDecimal.fromStringUnsafe(row[bucket]))
+				)
+			);
+			return {
+				currency,
+				figures: [
+					{ field: 'owed' as const, value: BigDecimal.format(owed) },
+					...(BigDecimal.isPositive(inCredit)
+						? [{ field: 'in_credit' as const, value: BigDecimal.format(inCredit) }]
+						: []),
+					...(BigDecimal.isPositive(overdue)
+						? [{ field: 'overdue' as const, value: BigDecimal.format(overdue) }]
+						: [])
+				]
+			};
+		})
 	);
 	const entryRows = $derived(
 		entries
@@ -343,12 +325,13 @@
 
 <Cover size="fill" min_height="18rem" gap="sm" {...totals.length > 0 ? { top: summary } : {}}>
 	{#if future}<EmptyState tone="danger" title={ctx.t('errors.report_future')} />
-	{:else if failed}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
-	{:else if aging && aging.rows === null}<EmptyState
+	{:else if aging.error}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
+	{:else if aging.current && aging.current.rows === null}<EmptyState
 			tone="danger"
 			title={ctx.t('reports.aging.early_cutoff')}
 		/>
-	{:else if !entries}<EmptyState title={ctx.t('component.reports_loading')} />
+	{:else if !entries}
+		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
 	{:else}
 		<Tabs
 			level={2}

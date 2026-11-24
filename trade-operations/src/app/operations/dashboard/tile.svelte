@@ -30,9 +30,9 @@
 	pad="md"
 	class={href || onclick
 		? selected
-			? 'rounded-lg border border-primary bg-card text-start'
-			: 'rounded-lg border bg-card text-start transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring'
-		: 'rounded-lg border bg-card text-start'}
+			? 'rounded-control border border-primary bg-surface-card text-start'
+			: 'rounded-control border border-border bg-surface-card text-start transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring'
+		: 'rounded-control border border-border bg-surface-card text-start'}
 >
 	<Stack as="span" gap="xs">
 		<Inline as="span" justify="between" gap="sm">

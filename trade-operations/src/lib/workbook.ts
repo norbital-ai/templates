@@ -57,6 +57,8 @@ export const partyWorkbook = {
 	kind: { kind: 'enum', values: ['customer', 'supplier', 'both'] },
 	currency: { kind: 'currency' },
 	active: { kind: 'bool' },
+	region: { kind: 'text', optional: true },
+	related_party: { kind: 'bool', optional: true },
 	address: { kind: 'text', optional: true },
 	phone: { kind: 'text', optional: true }
 } as const satisfies InputFields;

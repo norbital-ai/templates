@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button } from '@norbital-ai/ui';
-	import { Bound, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Center, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { getAbortSignal } from 'svelte';
 	import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 	import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -80,15 +80,17 @@
 			<p role="status">{ctx.t('component.preparing_pdf')}</p>
 		{/if}
 		<Bound size="viewport"
-			><Scroll name="order-pdf" size="fill" class="bg-muted">
+			><Scroll name="order-pdf" size="fill" class="bg-surface-muted">
 				{#key pageNumber}
-					<canvas
-						bind:this={canvas}
-						role="img"
-						aria-label={`${title} · ${pageNumber}`}
-						class="mx-auto block h-auto max-w-full bg-white"
-						class:invisible={renderedPage !== pageNumber}
-					></canvas>
+					<Center>
+						<canvas
+							bind:this={canvas}
+							role="img"
+							aria-label={`${title} · ${pageNumber}`}
+							class="block h-auto max-w-full"
+							class:invisible={renderedPage !== pageNumber}
+						></canvas>
+					</Center>
 				{/key}
 			</Scroll></Bound
 		>

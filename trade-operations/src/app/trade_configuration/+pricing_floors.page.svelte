@@ -4,7 +4,16 @@
 	import type { CurrencyCode } from '@norbital-ai/bolt';
 	import { BigDecimal, Effect } from 'effect';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Combobox, CustomView, Label, Table, Tabs, TimeInput, use_act } from '@norbital-ai/ui';
+	import {
+		Combobox,
+		CustomView,
+		Label,
+		Table,
+		TableSkeleton,
+		Tabs,
+		TimeInput,
+		use_act
+	} from '@norbital-ai/ui';
 	import { AppShell, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -273,9 +282,7 @@
 			{catalog.error?.message ?? book?.error?.message}
 		</p>
 	{:else if catalog.loading || book?.loading}
-		<p role="status" class="text-sm text-muted-foreground">
-			{ctx.t('component.price_book_loading')}
-		</p>
+		<div aria-busy="true" aria-label={ctx.t('component.price_book_loading')}><TableSkeleton /></div>
 	{:else}
 		<p class="p-10 text-center text-sm text-muted-foreground">
 			{ctx.t('component.price_book_empty')}
@@ -304,7 +311,12 @@
 		{#snippet children(shown)}
 			<Stack gap="sm" size="fill">
 				{#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-				<Scroll name="price-book" axis="both" size="fill" class="rounded-md border border-border">
+				<Scroll
+					name="price-book"
+					axis="both"
+					size="fill"
+					class="rounded-control border border-border"
+				>
 					<table class="w-max min-w-full border-separate border-spacing-0 text-sm">
 						<thead>
 							<tr>
@@ -345,7 +357,7 @@
 										class="bg-card sticky left-0 z-10 min-w-56 border-b border-border px-3 py-1.5"
 									>
 										<span class="block truncate font-medium">{row.name}</span>
-										<span class="text-meta block truncate text-muted-foreground"
+										<span class="text-meta block truncate"
 											>{row.code}{row.band ? ` · ${row.band}` : ''}</span
 										>
 									</td>
@@ -361,7 +373,7 @@
 										<td
 											class={[
 												'border-b border-border p-0 text-right',
-												day === today && 'bg-muted/30'
+												day === today && 'bg-surface-muted'
 											]}
 										>
 											{#if editing === key}

@@ -2,13 +2,13 @@
 	// Credit exceptions: the customers that need credit attention today — held in Kingdee, over their limit, or with
 	// overdue invoices — and the overdue invoices behind them. Credit and overdue amounts meet only in one currency.
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import type { Effect } from 'effect';
 	import {
 		Badge,
 		Button,
 		EmptyState,
 		Show,
 		Table,
+		TableSkeleton,
 		Tabs,
 		label,
 		open_record,
@@ -16,39 +16,32 @@
 		type Kind
 	} from '@norbital-ai/ui';
 	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { run } from '@norbital-ai/ui/effect';
+	import { observe_once } from '@norbital-ai/ui/effect';
 	import { creditExceptions, creditRead, creditTotals, readAgingAt } from '../../../lib/reports.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
 
 	let { ctx }: { ctx: PageContext } = $props();
 	const day = ctx.clock('day');
-	const credit = $derived(ctx.query(creditRead));
-	const ages = $derived(Boolean(ctx.catalog?.transactions && ctx.catalog?.source_payments));
-	type Aging = Effect.Success<ReturnType<typeof readAgingAt>>;
-	let aging = $state.raw<Aging | null>(null);
-	let failed = $state(false);
-	$effect(() => {
-		const today = day.today;
-		aging = null;
-		failed = false;
-		if (!ages) return;
-		let current = true;
-		void run(readAgingAt(ctx, today, Boolean(ctx.catalog?.source_receivables))).then(
-			(answer) => {
-				if (current) aging = answer;
-			},
-			() => {
-				if (current) failed = true;
-			}
-		);
-		return () => {
-			current = false;
-		};
-	});
+	const hasSnapshots = $derived(Boolean(ctx.catalog?.credit_snapshots));
+	const hasReleases = $derived(Boolean(ctx.catalog?.credit_releases));
+	const commercialReleases = $derived(ctx.catalog?.credit_releases?.output === undefined);
+	const credit = $derived(hasSnapshots ? ctx.query(creditRead) : null);
+	const ages = $derived(
+		Boolean(hasSnapshots && ctx.catalog?.transactions && ctx.catalog?.source_payments)
+	);
+	const aging = observe_once(() =>
+		ages ? readAgingAt(ctx, day.today, Boolean(ctx.catalog?.source_receivables)) : null
+	);
 	const exceptions = $derived(
-		credit.current && (!ages || aging || failed)
-			? creditExceptions(credit.current.credit_snapshots.rows, aging?.rows ?? [], day.today)
-			: null
+		!hasSnapshots
+			? { customers: [], invoices: [] }
+			: credit?.current && (!ages || aging.current || aging.error)
+				? creditExceptions(
+						credit.current.credit_snapshots.rows,
+						aging.current?.rows ?? [],
+						day.today
+					)
+				: null
 	);
 	const rows = $derived(
 		exceptions?.customers.map((row) => ({
@@ -56,14 +49,50 @@
 			reasons: row.reasons.map((reason) => ctx.t(`reports.credit.${reason}`))
 		})) ?? null
 	);
-	let view = $state<'customers' | 'invoices'>('customers');
+	let chosenView = $state<'releases' | 'customers' | 'invoices' | null>(null);
+	const view = $derived<'releases' | 'customers' | 'invoices'>(
+		chosenView &&
+			((chosenView === 'releases' && hasReleases) || (chosenView !== 'releases' && hasSnapshots))
+			? chosenView
+			: hasSnapshots
+				? 'customers'
+				: 'releases'
+	);
 	let customer = $state<{ keys: readonly string[]; name: string } | null>(null);
 	const invoices = $derived(
 		exceptions?.invoices.filter((row) => !customer || customer.keys.includes(row.customer)) ?? []
 	);
-	const totals = $derived(creditTotals(rows ?? []));
+	const totals = $derived(hasSnapshots ? creditTotals(rows ?? []) : []);
 	const moneyKind: Kind = { kind: 'money', currency: 'currency', optional: true };
 	const daysKind: Kind = { kind: 'int', optional: true };
+	const releaseColumns = $derived(
+		commercialReleases
+			? ([
+					'bill_number',
+					'party',
+					'order',
+					'source_status',
+					'approval_status',
+					'bill_amount',
+					'credit_limit',
+					'credit_used',
+					'over_limit',
+					'overdue_days',
+					'route',
+					'released_by',
+					'observed_at'
+				] as const)
+			: ([
+					'bill_number',
+					'party',
+					'order',
+					'source_status',
+					'approval_status',
+					'route',
+					'released_by',
+					'observed_at'
+				] as const)
+	);
 </script>
 
 {#snippet reasons({ row }: { row: NonNullable<typeof rows>[number] })}
@@ -76,7 +105,7 @@
 		variant="outline"
 		onclick={() => {
 			customer = null;
-			view = 'customers';
+			chosenView = 'customers';
 		}}>{ctx.t('reports.aging.all_customers')}</Button
 	>
 {/snippet}
@@ -119,7 +148,7 @@
 		{columns}
 		on_open={(row) => {
 			customer = { keys: row.keys, name: [row.party_name, row.currency].join(' · ') };
-			view = 'invoices';
+			chosenView = 'invoices';
 		}}
 		toolbar={{
 			title: ctx.t('component.credit_exceptions'),
@@ -182,21 +211,46 @@
 	</Table>
 {/snippet}
 
+{#snippet releasesTab()}
+	<Table
+		{ctx}
+		layout="grid"
+		of="credit_releases"
+		columns={releaseColumns}
+		toolbar={{
+			title: ctx.t('reports.credit.releases'),
+			description: ctx.t('reports.credit.releases_scope'),
+			new: false
+		}}
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.credit.releases_empty')} />{/snippet}
+	</Table>
+{/snippet}
+
 <Cover size="fill" min_height="18rem" gap="sm" {...totals.length > 0 ? { top: summary } : {}}>
-	{#if credit.error}<EmptyState tone="danger" title={credit.error.message} />
-	{:else if failed}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
-	{:else if !rows}<EmptyState title={ctx.t('component.reports_loading')} />
+	{#if credit?.error}<EmptyState tone="danger" title={credit.error.message} />
+	{:else if aging.error}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
+	{:else if hasSnapshots && !rows}
+		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
 	{:else}
 		<Tabs
 			level={2}
 			value={view}
 			on_value_change={(next) => {
-				view = next === 'invoices' ? 'invoices' : 'customers';
+				chosenView =
+					next === 'releases' ? 'releases' : next === 'invoices' ? 'invoices' : 'customers';
 				customer = null;
 			}}
 			tabs={[
-				{ name: 'customers', title: ctx.t('reports.aging.customers'), body: customersTab },
-				{ name: 'invoices', title: ctx.t('reports.credit.invoices'), body: invoicesTab }
+				...(hasSnapshots
+					? [
+							{ name: 'customers', title: ctx.t('reports.aging.customers'), body: customersTab },
+							{ name: 'invoices', title: ctx.t('reports.credit.invoices'), body: invoicesTab }
+						]
+					: []),
+				...(hasReleases
+					? [{ name: 'releases', title: ctx.t('reports.credit.releases'), body: releasesTab }]
+					: [])
 			]}
 		/>
 	{/if}

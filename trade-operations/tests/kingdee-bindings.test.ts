@@ -40,8 +40,10 @@ test('parties bind one stable item identity across the customer and supplier det
 	});
 	expect(bindings.parties.joins.map((join) => join.table.name)).toEqual([
 		't_Organization',
+		't_SubMessage',
 		't_Supplier'
 	]);
+	// t_SubMessage carries no FModifyTime column; customer edits move t_Organization.FModifyTime instead
 	expect(bindings.parties.rowversions).toEqual([
 		{ tableAlias: 'parties', name: 'FModifyTime' },
 		{ tableAlias: 'customer', name: 'FModifyTime' },
@@ -54,7 +56,14 @@ test('parties bind one stable item identity across the customer and supplier det
 });
 
 test('customers use the configured account currency and observation instant, preserving their source marker', () => {
-	expect(normalizeSourceRow('parties', customer, configuration, observedAt)).toMatchObject({
+	expect(
+		normalizeSourceRow(
+			'parties',
+			{ ...customer, customer_region: ' East China ' },
+			configuration,
+			observedAt
+		)
+	).toMatchObject({
 		__key: '123',
 		__rowversion: marker,
 		external_code: '123',
@@ -65,8 +74,17 @@ test('customers use the configured account currency and observation instant, pre
 		active: true,
 		address: 'Shanghai',
 		phone: '12345678',
+		region: 'East China',
 		source_updated_at: observedAt
 	});
+	expect(
+		normalizeSourceRow(
+			'parties',
+			{ ...customer, customer_region: ' * ' },
+			configuration,
+			observedAt
+		)
+	).toMatchObject({ region: null });
 	expect(
 		normalizeSourceRow('parties', { ...customer, customer_deleted: -1 }, configuration, observedAt)
 	).toMatchObject({ active: false });
@@ -95,19 +113,22 @@ test('product dependencies include detail and unit edits, and deleted details re
 		{ tableAlias: 'products', name: 'FModifyTime' },
 		{ tableAlias: 'detail', name: 'FModifyTime' },
 		{ tableAlias: 'unit', name: 'FModifyTime' },
-		{ tableAlias: 'brand', name: 'FModifyTime' }
+		{ tableAlias: 'brand', name: 'FModifyTime' },
+		{ tableAlias: 'category', name: 'FModifyTime' }
 	]);
 	expect(bindings.products.joins[0]).not.toHaveProperty('where');
 	const product = {
 		...identity,
 		name: 'Resin',
 		spec: 'A',
+		category: ' Polymer ',
 		unit: null,
 		detail_deleted: null
 	};
 	expect(normalizeSourceRow('products', product, configuration, observedAt)).toMatchObject({
 		external_code: '123',
 		name: 'Resin',
+		category: 'Polymer',
 		unit: null,
 		unit_price: null,
 		tax_rate: null,
@@ -115,6 +136,9 @@ test('product dependencies include detail and unit edits, and deleted details re
 		currency: 'CNY',
 		source_updated_at: observedAt
 	});
+	expect(
+		normalizeSourceRow('products', { ...product, category: '*' }, configuration, observedAt)
+	).toMatchObject({ category: null });
 	expect(
 		normalizeSourceRow('products', { ...product, detail_deleted: 1 }, configuration, observedAt)
 	).toMatchObject({ active: false });

@@ -13,7 +13,15 @@
 	<Table
 		{ctx}
 		of="parties"
-		columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']}
+		columns={[
+			'name',
+			'kind',
+			'region',
+			'related_party',
+			'external_code',
+			'active',
+			'source_updated_at'
+		]}
 		toolbar={{ new: false }}
 	/>
 </AppShell>

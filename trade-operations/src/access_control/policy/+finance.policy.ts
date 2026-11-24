@@ -1,4 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
+import { creditReleaseManagerReview } from '../../lib/order-review.js';
 export default policy({
 	description: 'Finance manages order-scoped billing and payment evidence.',
 	capabilities: { apps: ['operations'] },
@@ -31,8 +32,16 @@ export default policy({
 		source_receivables: {
 			outputs: { default: { history: true } }
 		},
+		source_payables: {
+			outputs: { default: { history: true } }
+		},
+		source_purchase_orders: {
+			outputs: { default: { history: true } }
+		},
 		parties: {
-			outputs: { default: {} }
+			outputs: { default: { history: true } },
+			// the rest mirrors Kingdee; Finance maintains related-party classification locally
+			update: { fields: ['related_party'] }
 		},
 		settlements: {
 			outputs: { default: {} }
@@ -48,6 +57,23 @@ export default policy({
 		},
 		credit_snapshots: {
 			outputs: { default: {} }
+		},
+		credit_releases: {
+			outputs: { default: { history: true } },
+			update: {
+				fields: ['approval_status', 'route', 'proposed_limit', 'reason'],
+				verdict: function* (changes, ctx) {
+					const invalid = changes.findIndex(
+						({ before, after }) =>
+							before.source_status !== 'blocked' ||
+							before.approval_status !== 'none' ||
+							after.approval_status !== 'approved'
+					);
+					return invalid >= 0
+						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
+						: ctx.approve(creditReleaseManagerReview);
+				}
+			}
 		},
 		commercial_settings: {
 			outputs: { default: {} }

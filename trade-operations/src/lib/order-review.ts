@@ -131,6 +131,21 @@ export const linesOrders = Effect.fnUntraced(function* (
 export const commercialReview = {
 	steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }]
 } as const;
+/** Two-step formal credit-release approval: Commercial Manager followed by Finance. */
+export const creditReleaseReview = {
+	steps: [
+		{ name: 'Commercial review', teams: ['commercial_managers'] },
+		{ name: 'Finance review', teams: ['finance'] }
+	]
+} as const;
+/** Finance sign-off when a Commercial Manager initiates a credit-release request. */
+export const creditReleaseFinanceReview = {
+	steps: [{ name: 'Finance review', teams: ['finance'] }]
+} as const;
+/** Commercial Manager sign-off when Finance initiates a credit-release request. */
+export const creditReleaseManagerReview = {
+	steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }]
+} as const;
 /** Only an unarchived draft order is deleted. */
 export const draftOrders = (orders: readonly Pick<Row<'orders'>, 'status' | 'archived'>[]) =>
 	orders.findIndex((order) => order.status !== 'draft' || order.archived);

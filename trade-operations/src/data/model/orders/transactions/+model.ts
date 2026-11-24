@@ -92,7 +92,7 @@ const settle = Effect.fnUntraced(function* (
 			(value.order !== old.order || value.kind !== old.kind || value.currency !== old.currency)
 		)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
-		if (value.status === 'issued' && !value.items?.length)
+		if ((value.status === 'issued' || value.status === 'draft') && !value.items?.length)
 			yield* ctx.refuse('errors.evidence_sealed', { row: i });
 		const seen = new Set<string>();
 		for (const item of value.items ?? []) {
@@ -130,14 +130,14 @@ const settle = Effect.fnUntraced(function* (
 	}
 });
 export default model('transactions', {
-	description: 'Issued deliveries and invoices against an order.',
+	description: 'Deliveries (unaudited and issued) and issued invoices against an order.',
 	record_label: 'record.reference',
 	fields: {
 		erp_id: { kind: 'text', hidden: true },
 		kind: { kind: 'enum', values: ['invoice', 'delivery'] },
 		reference: { kind: 'text' },
 		currency: { kind: 'currency' },
-		status: { kind: 'enum', values: ['issued', 'void'], default: 'issued' },
+		status: { kind: 'enum', values: ['draft', 'issued', 'void'], default: 'issued' },
 		items: { kind: 'json', shape: transactionItems, optional: true },
 		documents: { kind: 'json', shape: transactionDocuments, optional: true },
 		issued_on: { kind: 'date', optional: true },

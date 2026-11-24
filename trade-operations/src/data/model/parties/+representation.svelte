@@ -79,6 +79,17 @@
 			onpick: () => open_record('credit_snapshots', row.id)
 		}))
 	);
+	const canClassify = $derived(Boolean(ctx.catalog?.parties?.update));
+	const kingdeeFields = [
+		'name',
+		'external_code',
+		'kind',
+		'region',
+		'currency',
+		'active',
+		'address',
+		'phone'
+	] as const;
 </script>
 
 {#snippet contacts()}{#if id}<Table
@@ -112,13 +123,20 @@
 	{ctx}
 	after_form={credit}
 	{view}
-	readonly
+	readonly={!canClassify}
 	readonly_reason={ctx.t('component.kingdee_readonly')}
 	sections={[
 		{
 			name: 'partner',
-			fields: ['name', 'external_code', 'kind', 'currency', 'active', 'address', 'phone'],
+			fields: kingdeeFields,
+			readonlyFields: kingdeeFields,
 			wide: ['address']
+		},
+		{
+			name: 'classification',
+			icon: 'lucide:tag',
+			title: ctx.t('section.classification'),
+			fields: ['related_party']
 		},
 		{
 			name: 'sync',
@@ -131,7 +149,8 @@
 							locale: ctx.locale ?? ctx.locale,
 							...(ctx.tz == null ? {} : { zone: ctx.tz })
 						}),
-			fields: ['source_updated_at']
+			fields: ['source_updated_at'],
+			readonlyFields: ['source_updated_at']
 		}
 	]}
 	tabs={[

@@ -20,6 +20,7 @@ export const bindings = {
 			'customer_deleted',
 			'customer_address',
 			'customer_phone',
+			'customer_region',
 			'customer_currency_id',
 			'supplier_name',
 			'supplier_deleted'
@@ -34,6 +35,7 @@ export const bindings = {
 			customer_deleted: column('customer', 'FDeleted'),
 			customer_address: column('customer', 'FAddress'),
 			customer_phone: column('customer', 'FPhone'),
+			customer_region: column('region', 'FName'),
 			customer_currency_id: column('customer', 'FCurrencyID'),
 			supplier_name: column('supplier', 'FName'),
 			supplier_deleted: column('supplier', 'FDeleted')
@@ -44,6 +46,14 @@ export const bindings = {
 				table: { schema: 'dbo', name: 't_Organization' },
 				alias: 'customer',
 				on: [{ left: ref('parties', 'FItemID'), right: ref('customer', 'FItemID') }]
+			},
+			// KIS auxiliary list 26 (区域): re-tagging a customer moves t_Organization.FModifyTime; t_SubMessage has no rowversion
+			{
+				kind: 'left',
+				table: { schema: 'dbo', name: 't_SubMessage' },
+				alias: 'region',
+				on: [{ left: ref('customer', 'FRegionID'), right: ref('region', 'FInterID') }],
+				where: { FTypeID: 26 }
 			},
 			{
 				kind: 'left',
@@ -72,6 +82,7 @@ export const bindings = {
 			'source_number',
 			'name',
 			'spec',
+			'category',
 			'producing_area',
 			'brand',
 			'brand_en',
@@ -85,6 +96,7 @@ export const bindings = {
 			source_number: column('products', 'FNumber'),
 			name: column('products', 'FName'),
 			spec: column('detail', 'FModel'),
+			category: column('category', 'FName'),
 			producing_area: column('detail', 'FProducingArea'),
 			brand: column('brand', 'FName'),
 			brand_en: column('detail', 'F_102'),
@@ -113,6 +125,14 @@ export const bindings = {
 				alias: 'brand',
 				on: [{ left: ref('detail', 'FComBrandID'), right: ref('brand', 'FItemID') }],
 				where: { FItemClassID: 2038 }
+			},
+			// KIS item class 2037 (商品类别): uncategorised rows point at '*'
+			{
+				kind: 'left',
+				table: { schema: 'dbo', name: 't_Item' },
+				alias: 'category',
+				on: [{ left: ref('detail', 'FComCategoryID'), right: ref('category', 'FItemID') }],
+				where: { FItemClassID: 2037 }
 			}
 		],
 		filters: [
@@ -124,7 +144,8 @@ export const bindings = {
 			ref('products', 'FModifyTime'),
 			ref('detail', 'FModifyTime'),
 			ref('unit', 'FModifyTime'),
-			ref('brand', 'FModifyTime')
+			ref('brand', 'FModifyTime'),
+			ref('category', 'FModifyTime')
 		],
 		texts: ['external_code']
 	},
@@ -371,6 +392,7 @@ export function normalizeSourceRow(
 		if (itemClass !== 1n && itemClass !== 8n)
 			return invalid('item_class', 'Expected a Kingdee customer or supplier class');
 		const customer = itemClass === 1n;
+		const rawRegion = customer ? text('customer_region', true) : null;
 		return {
 			...row,
 			...common,
@@ -378,22 +400,26 @@ export function normalizeSourceRow(
 			kind: customer ? 'customer' : 'supplier',
 			currency: baseCurrency,
 			active: common.active && !flag(customer ? 'customer_deleted' : 'supplier_deleted'),
+			region: rawRegion === '*' ? null : rawRegion,
 			address: customer ? text('customer_address', true) : null,
 			phone: customer ? text('customer_phone', true) : null
 		};
 	}
-	if (alias === 'products')
+	if (alias === 'products') {
+		const rawCategory = text('category', true);
 		return {
 			...row,
 			...common,
 			name: text('name'),
 			spec: text('spec', true),
+			category: rawCategory === '*' ? null : rawCategory,
 			unit: text('unit', true),
 			currency: baseCurrency,
 			unit_price: null,
 			tax_rate: null,
 			active: common.active && !flag('detail_deleted', true)
 		};
+	}
 	return {
 		...row,
 		...common,

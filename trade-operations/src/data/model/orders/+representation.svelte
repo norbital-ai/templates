@@ -39,7 +39,7 @@
 		type RecordView,
 		type TimelineEntry
 	} from '@norbital-ai/ui';
-	import { Bound, Inline, Scroll, Stack, Cluster } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Inline, Scroll, Stack, Surface, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
@@ -498,42 +498,46 @@
 				{#if !quote?.warehouse}
 					<p class="text-sm text-muted-foreground">{ctx.t('stock.fifo.choose_warehouse')}</p>
 				{:else if fifoCosts.length}
-					<details class="rounded-md border border-input px-3 py-2 text-sm">
-						<summary class="cursor-pointer font-medium">{ctx.t('stock.fifo.title')}</summary>
-						<p class="mt-2 text-muted-foreground">{ctx.t('stock.fifo.scope')}</p>
-						<ul class="mt-2 space-y-2">
-							{#each fifoCosts as row (row.key)}
-								<li>
-									<span class="font-medium">{row.product}</span> · {format(
-										{ kind: 'decimal', scale: 3 },
-										BigDecimal.format(row.quantity),
-										{ locale: ctx.locale }
-									)}
-									{row.unit}
-									{#if row.estimate}
-										· {purchaseCosts.currency}
-										{format(
-											{ kind: 'decimal', scale: 4 },
-											BigDecimal.format(BigDecimal.round(row.estimate.unit_cost, { scale: 4 })),
-											{ locale: ctx.locale }
-										)}
-										/ {row.unit}
-										{#if row.below}
-											· {ctx.t('stock.fifo.below_quote')}{/if}
-										<div class="text-muted-foreground">
-											{row.estimate.lots
-												.map(
-													(lot) =>
-														`${lot.lot_number} × ${format({ kind: 'decimal', scale: 3 }, BigDecimal.format(lot.quantity), { locale: ctx.locale })}`
-												)
-												.join(' · ')}
-										</div>
-									{:else}
-										· {ctx.t('component.inventory_cost_unavailable')}{/if}
-								</li>
-							{/each}
-						</ul>
-					</details>
+					<Surface tone="subtle" padding="sm" radius="control">
+						<details class="text-sm">
+							<summary class="cursor-pointer font-medium">{ctx.t('stock.fifo.title')}</summary>
+							<Stack gap="sm">
+								<p class="text-meta">{ctx.t('stock.fifo.scope')}</p>
+								<Stack as="ul" gap="xs">
+									{#each fifoCosts as row (row.key)}
+										<li>
+											<span class="font-medium">{row.product}</span> · {format(
+												{ kind: 'decimal', scale: 3 },
+												BigDecimal.format(row.quantity),
+												{ locale: ctx.locale }
+											)}
+											{row.unit}
+											{#if row.estimate}
+												· {purchaseCosts.currency}
+												{format(
+													{ kind: 'decimal', scale: 4 },
+													BigDecimal.format(BigDecimal.round(row.estimate.unit_cost, { scale: 4 })),
+													{ locale: ctx.locale }
+												)}
+												/ {row.unit}
+												{#if row.below}
+													· {ctx.t('stock.fifo.below_quote')}{/if}
+												<div class="text-meta">
+													{row.estimate.lots
+														.map(
+															(lot) =>
+																`${lot.lot_number} × ${format({ kind: 'decimal', scale: 3 }, BigDecimal.format(lot.quantity), { locale: ctx.locale })}`
+														)
+														.join(' · ')}
+												</div>
+											{:else}
+												· {ctx.t('component.inventory_cost_unavailable')}{/if}
+										</li>
+									{/each}
+								</Stack>
+							</Stack>
+						</details>
+					</Surface>
 				{/if}
 			{/if}
 		{/if}
@@ -587,7 +591,7 @@
 			{ctx}
 			of="transactions"
 			where={{ order: { eq: id }, kind: { in: ['delivery', 'invoice'] } }}
-			columns={['reference', 'kind', 'status', 'source_updated_at']}
+			columns={['reference', 'kind', 'status', 'issued_on', 'source_updated_at']}
 			toolbar={{ new: false }}
 		/>{/if}{/snippet}
 {#snippet filed()}{#if id}<Table
@@ -664,41 +668,35 @@
 			{#snippet children(form)}
 				<Stack gap="lg">
 					<p class="text-sm text-muted-foreground">{ctx.t('component.choose_order_type')}</p>
-					<div
-						class="grid grid-cols-1 gap-4 sm:grid-cols-2"
-						role="tablist"
-						aria-label={ctx.t('component.choose_order_type')}
-					>
+					<Grid minimum="card" gap="md">
 						{#each kinds as kind (kind)}
-							<button
+							<Bound
+								as="button"
 								type="button"
-								role="tab"
-								aria-selected={false}
-								class="group flex min-h-36 flex-col items-start justify-between gap-4 rounded-md border border-border bg-card p-6 text-left transition-colors hover:border-primary/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								pad="lg"
+								class="rounded-control border border-border bg-surface-card text-start transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring"
 								onclick={() => {
 									if (tradeValue(form.get('trade')).kind !== kind) form.set('trade', { kind });
 									choice = kind;
 								}}
 							>
-								<span
-									class="flex size-11 items-center justify-center rounded-lg bg-muted text-foreground transition-colors group-hover:bg-primary/15 group-hover:text-primary"
-								>
-									<Icon
-										name={kind === 'domestic' ? 'lucide:truck' : 'lucide:globe'}
-										class="size-5"
-									/>
-								</span>
-								<span class="space-y-1">
-									<span class="block text-base font-medium text-foreground">
-										{ctx.t(`component.order_${kind}`)}
-									</span>
-									<span class="block text-sm leading-relaxed text-muted-foreground">
-										{ctx.t(`component.order_${kind}_description`)}
-									</span>
-								</span>
-							</button>
+								<Stack as="span" gap="md">
+									<Inline as="span" align="center">
+										<span class="rounded-control bg-surface-muted p-2">
+											<Icon
+												name={kind === 'domestic' ? 'lucide:truck' : 'lucide:globe'}
+												class="size-5"
+											/>
+										</span>
+									</Inline>
+									<Stack as="span" gap="xs">
+										<span class="text-heading">{ctx.t(`component.order_${kind}`)}</span>
+										<span class="text-meta">{ctx.t(`component.order_${kind}_description`)}</span>
+									</Stack>
+								</Stack>
+							</Bound>
 						{/each}
-					</div>
+					</Grid>
 				</Stack>
 			{/snippet}
 		</Form>

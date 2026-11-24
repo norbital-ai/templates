@@ -15,6 +15,7 @@ export default model('products', {
 			kind: 'text',
 			optional: true
 		},
+		category: { kind: 'text', optional: true },
 		producing_area: { kind: 'text', optional: true },
 		brand: { kind: 'text', optional: true },
 		brand_en: { kind: 'text', optional: true },
@@ -93,6 +94,7 @@ export default model('products', {
 			'source_number',
 			'name',
 			'spec',
+			'category',
 			'producing_area',
 			'brand',
 			'brand_en',
@@ -113,6 +115,7 @@ export default model('products', {
 			'source_number',
 			'name',
 			'spec',
+			'category',
 			'producing_area',
 			'brand',
 			'brand_en',

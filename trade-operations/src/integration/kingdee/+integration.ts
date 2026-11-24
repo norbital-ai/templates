@@ -4,15 +4,24 @@ import {
 	kingdeeConfiguration,
 	kingdeeDeliveryCostAccount,
 	kingdeeInvoiceAnalysisAccount,
+	kingdeePayablesAccount,
 	kingdeePurchaseAccount,
+	kingdeePurchaseListingAccount,
 	kingdeeReceivablesAccount,
 	kingdeeStockAvailabilityAccount,
 	kingdeeStockLotCostAccount,
 	kingdeeWriteAccount
 } from './configuration.js';
-import { kingdeeCreditAccount, kingdeeCreditPolicyOf } from './configuration.js';
+import {
+	kingdeeCreditAccount,
+	kingdeeCreditPolicy,
+	kingdeeCreditPolicyOf
+} from './configuration.js';
+import { testCreditReleaseSource } from './credit-release-source.js';
 import { testCreditSource } from './credit-source.js';
 import { invoiceAnalysisProjection } from './invoice-analysis.js';
+import { testPayables } from './payables.js';
+import { testPurchaseListing } from './purchase-listing.js';
 import { testPurchases } from './purchases.js';
 import { testReceivables } from './receivables.js';
 import { bindings } from './source-bindings.js';
@@ -39,6 +48,7 @@ export default integration('kingdee', {
 						'Credit requires a supported KIS credit policy, CNY and a verified account identity'
 				});
 			yield* testCreditSource(ctx, account, policy);
+			if (policy === kingdeeCreditPolicy) yield* testCreditReleaseSource(ctx, account);
 		}
 		for (const source of Object.values(bindings)) {
 			const state = yield* sourceState(ctx, source);
@@ -71,6 +81,14 @@ export default integration('kingdee', {
 				});
 			yield* testPurchases(ctx, account);
 		}
+		if (ctx.configuration.purchaseListingAccount?.trim()) {
+			const account = kingdeePurchaseListingAccount(ctx.configuration);
+			if (account === null)
+				return yield* new SourceUnavailable({
+					reason: 'Purchase listing requires a verified account identity'
+				});
+			yield* testPurchaseListing(ctx, account);
+		}
 		if (ctx.configuration.receivablesAccount?.trim()) {
 			const account = kingdeeReceivablesAccount(ctx.configuration);
 			if (account === null)
@@ -78,6 +96,14 @@ export default integration('kingdee', {
 					reason: 'Receivables aging requires a verified account identity'
 				});
 			yield* testReceivables(ctx, account);
+		}
+		if (ctx.configuration.payablesAccount?.trim()) {
+			const account = kingdeePayablesAccount(ctx.configuration);
+			if (account === null)
+				return yield* new SourceUnavailable({
+					reason: 'Payables aging requires a verified account identity'
+				});
+			yield* testPayables(ctx, account, ctx.configuration.baseCurrency);
 		}
 		if (ctx.configuration.stockAvailabilityAccount?.trim()) {
 			const account = kingdeeStockAvailabilityAccount(ctx.configuration);

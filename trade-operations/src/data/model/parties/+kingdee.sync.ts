@@ -27,6 +27,7 @@ export default sync('parties', 'kingdee', {
 						kind: r.one('kind', ['customer', 'supplier', 'both']),
 						currency: r.currency('currency'),
 						active: r.bool('active', true),
+						region: r.text('region', null),
 						address: r.text('address', null),
 						phone: sanitizePhone(r.text('phone', null)),
 						source_updated_at: r.instant('source_updated_at')

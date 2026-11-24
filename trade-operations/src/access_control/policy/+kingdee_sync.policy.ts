@@ -46,6 +46,39 @@ export default policy({
 			create: {},
 			update: {}
 		},
+		credit_releases: {
+			outputs: { default: {} },
+			create: {},
+			update: {
+				fields: [
+					'external_code',
+					'source',
+					'delivery_fid',
+					'bill_number',
+					'bill_on',
+					'party',
+					'order',
+					'delivery',
+					'settlement_name',
+					'currency',
+					'source_status',
+					'bill_amount',
+					'credit_limit',
+					'credit_used',
+					'over_limit',
+					'overdue_days',
+					'oldest_overdue_bill',
+					'block_reasons',
+					'source_oper_date',
+					'content_hash',
+					'audit_seen_at',
+					'released_by',
+					'released_at',
+					'release_log_key',
+					'observed_at'
+				]
+			}
+		},
 		source_lot_costs: {
 			outputs: { default: {} },
 			create: {},
@@ -57,6 +90,16 @@ export default policy({
 			update: {}
 		},
 		source_receivables: {
+			outputs: { default: {} },
+			create: {},
+			update: {}
+		},
+		source_payables: {
+			outputs: { default: {} },
+			create: {},
+			update: {}
+		},
+		source_purchase_orders: {
 			outputs: { default: {} },
 			create: {},
 			update: {}

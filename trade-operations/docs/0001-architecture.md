@@ -34,7 +34,7 @@ at the read mirrors and the two-way order sync (SO and PO).
 | Operations → Orders    | Sales orders; Purchase orders    | Draft, sync to Kingdee, change, approve exceptions, print, archive and read one agreement                                                                                         |
 | Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                                               |
 | Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse regions                                                                                                            |
-| Operations → Analysis  | Reports                          | Sales chain and margin, AR aging, commission board and statements, credit exceptions                                                                                              |
+| Operations → Analysis  | Reports                          | Sales chain and margin, purchase listing, AR and AP aging, commission board and statements, credit exceptions and credit releases                                                 |
 | Trade configuration    | Documents, Prices and commission | Each document case's layout per language; dated price book with its floor rule, floor list, CEL commission rules with freight treatment                                           |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
@@ -85,7 +85,7 @@ draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee
 
 ### Parties, products and warehouses
 
-- `parties` holds customers and suppliers (`customer`, `supplier`, `both`) and source evidence.
+- `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their Kingdee region (`t_SubMessage` list 26), local `related_party` classification (Finance/Admin-editable) and source evidence.
 - `contacts` are many per party. The `contacts` `kingdee` sync keeps the one contact on the party's Kingdee
   customer or supplier master as its `primary` contact, listed first and read-only to members
   (`errors.kingdee_contact`); members add, edit and delete the others directly. An order's `buyer_contact` is
@@ -97,7 +97,13 @@ draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee
   reads native credit, invoice, receipt and DO tables; it writes limit, used and derived available credit
   only when the position changes, and its freshness is the feed's health on the ledger. Unsupported native
   settings preserve last-good evidence.
-- `products` holds the SKU, code, base unit, tax rate, optional price and commission settings.
+- `credit_releases` tracks unaudited blue Kingdee deliveries blocked by `kis-sales-out-v1` credit control
+  (evaluating exposure including `当前单据金额`). Its `kingdee` sync owns `source_status` (`blocked`,
+  `released`, `cleared`, `superseded`, `withdrawn`, `bypassed`) and confirms password releases from `t_Log`
+  (`XS100016`, incremental `FLogID` seek); members own only the local approval columns (`approval_status`,
+  `route`, `proposed_limit`, `reason`), gated by formal two-step approval (`commercial_managers` → `finance`)
+  and bound to the DO's SHA-256 `content_hash`. Logistics reads it through the price-free `logistics` output.
+- `products` holds the SKU, code, category (`FComCategoryID`, class 2037), base unit, tax rate, optional price and commission settings.
 - `warehouses` holds warehouse rows and their `group_code`; a price floor is keyed by the group, not a single
   warehouse.
 - `stock_snapshots` is the remaining-lot mirror. `source_stock_commitments` holds open source sales and purchase
@@ -194,7 +200,10 @@ Kingdee header and the floor rule are enforced by the model and policies, not by
 | --------------- | ------------------------- | --------------- | -------------------------------------------------------------------------- |
 | `source_health` | `sys_integration` updates | `source_health` | Notifies workspace administrators when a ledger connection needs attention |
 
-Models declare no post-commit effects. Ordinary writes, approvals and syncs own their own follow-up.
+`credit_releases` declares `create.effect` and `update.effect` to emit deduped native `ctx.notify` alerts when
+a blocked delivery is detected, approved for KIS release (to Finance, Logistics and the order owner),
+superseded after an edit in KIS, or bypassed with an unapproved `XS100016` release. Other models declare no
+post-commit effects; ordinary writes, approvals and syncs own their own follow-up.
 
 ## 8. Storage and runtime
 
@@ -215,13 +224,16 @@ The model folder mirrors the owner. A child sits under its parent; only the leaf
 ```text
 commercial_settings/          commission_rules, document_templates
 commission_statements/
+credit_releases/
 orders/                       activities, order_files, order_lines, source_payments,
                               source_sales_lines, transactions
 parties/                      contacts, credit_snapshots
 products/                     pricing_floors, stock_snapshots
 settlements/
 source_lot_costs/
+source_payables/
 source_purchase_lines/
+source_purchase_orders/
 source_receivables/
 source_stock_commitments/
 warehouses/

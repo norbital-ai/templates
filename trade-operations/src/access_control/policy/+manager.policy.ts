@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { draftOrders, lineDeletes } from '../../lib/order-review.js';
+import { creditReleaseFinanceReview, draftOrders, lineDeletes } from '../../lib/order-review.js';
 export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
 	capabilities: { apps: ['operations'] },
@@ -44,6 +44,23 @@ export default policy({
 		},
 		credit_snapshots: {
 			outputs: { default: {} }
+		},
+		credit_releases: {
+			outputs: { default: { history: true } },
+			update: {
+				fields: ['approval_status', 'route', 'proposed_limit', 'reason'],
+				verdict: function* (changes, ctx) {
+					const invalid = changes.findIndex(
+						({ before, after }) =>
+							before.source_status !== 'blocked' ||
+							before.approval_status !== 'none' ||
+							after.approval_status !== 'approved'
+					);
+					return invalid >= 0
+						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
+						: ctx.approve(creditReleaseFinanceReview);
+				}
+			}
 		},
 		commercial_settings: {
 			outputs: { default: {} }
@@ -112,6 +129,12 @@ export default policy({
 			outputs: { default: { history: true } }
 		},
 		source_receivables: {
+			outputs: { default: { history: true } }
+		},
+		source_payables: {
+			outputs: { default: { history: true } }
+		},
+		source_purchase_orders: {
 			outputs: { default: { history: true } }
 		},
 		source_sales_lines: {

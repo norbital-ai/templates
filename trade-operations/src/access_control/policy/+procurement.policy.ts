@@ -13,6 +13,9 @@ export default policy({
 		source_purchase_lines: {
 			outputs: { default: {} }
 		},
+		source_purchase_orders: {
+			outputs: { default: { history: true } }
+		},
 		document_templates: {
 			outputs: { default: { where: { status: { eq: 'published' } } } }
 		},

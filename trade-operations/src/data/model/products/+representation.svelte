@@ -96,10 +96,10 @@
 {#snippet productDetails()}
 	{#if view.mode !== 'create'}
 		<Grid as="dl" gap="md">
-			{#each ['external_code', 'name', 'spec', 'unit', 'currency', 'unit_price', 'tax_rate', 'active'] as const as name}
+			{#each ['external_code', 'name', 'category', 'spec', 'unit', 'currency', 'unit_price', 'tax_rate', 'active'] as const as name}
 				{@const kind = ctx.catalog?.products?.fields[name]}
 				{#if kind}<div data-field={name}>
-						<dt class="text-xs font-medium text-muted-foreground">
+						<dt class="text-label">
 							{ctx.t(`models.products.fields.${name}`)}
 						</dt>
 						<dd><Show {ctx} {kind} value={view.record[name]} {name} row={view.record} /></dd>

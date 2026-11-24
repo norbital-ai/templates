@@ -29,12 +29,30 @@ export const logisticsDocument = [
 	'status',
 	'source_updated_at'
 ] as const;
+export const logisticsCreditRelease = [
+	'delivery_fid',
+	'bill_number',
+	'bill_on',
+	'party',
+	'order',
+	'delivery',
+	'settlement_name',
+	'source_status',
+	'approval_status',
+	'status',
+	'block_reasons',
+	'route',
+	'released_by',
+	'released_at',
+	'observed_at'
+] as const;
 export const logisticsProduct = [
 	'external_code',
 	'source_number',
 	'source',
 	'name',
 	'spec',
+	'category',
 	'producing_area',
 	'brand',
 	'brand_en',

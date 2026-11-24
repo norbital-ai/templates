@@ -9,6 +9,7 @@
 		EmptyState,
 		Show,
 		Table,
+		TableSkeleton,
 		label,
 		open_record,
 		type Col,
@@ -36,10 +37,14 @@
 	}: { ctx: PageContext; basis: SalesBasis; from: string | null; to: string | null } = $props();
 	const day = ctx.clock('day');
 	const commercial = $derived(ctx.catalog?.source_sales_lines?.output === 'commercial');
-	// the period in one read of up to 10,000 lines, without the product catalogue the lines already name
+	// the period in one read of up to 10,000 lines, alongside product categories and party classifications
 	const facts = $derived.by(() => {
-		const { products: _, ...request } = salesReadDuring({ basis, from, to }, commercial);
-		return ctx.query(request);
+		const request = salesReadDuring({ basis, from, to }, commercial);
+		return ctx.query({
+			...request,
+			products: { ...request.products, limit: 10_000 },
+			parties: { fields: ['source', 'external_code', 'region', 'related_party'], limit: 10_000 }
+		});
 	});
 	const detail = $derived(facts.current ? salesDetail(facts.current, { basis }) : null);
 	const orders = $derived([...new Set(detail?.flatMap((row) => row.order ?? []))]);
@@ -77,6 +82,9 @@
 					? ctx.t(`reports.sales.supplier_payment.${row.supplier_payment}`)
 					: '',
 				kind_label: ctx.t(`reports.sales.kind.${row.kind}`),
+				party_relation: ctx.t(
+					row.related_party ? 'reports.party.related' : 'reports.party.third_party'
+				),
 				collection_label: row.collection ? ctx.t(`reports.sales.collection.${row.collection}`) : ''
 			})
 		);
@@ -108,18 +116,20 @@
 			const margin = sum(priced.map((line) => line.margin));
 			// the net the margin was taken from, in the cost's currency
 			const costedNet = BigDecimal.sum(cost, margin);
+			const netTotal = sum(lines.map((line) => line.net));
+			const taxTotal = sum(lines.map((line) => line.tax));
+			// Cap summary strip at 5 KPIs (lines + net + non-zero tax + margin + margin_rate)
 			return {
 				currency,
 				lines: lines.length,
 				figures: [
 					...(lines.length
 						? [
-								figure('net', sum(lines.map((line) => line.net))),
-								figure('tax', sum(lines.map((line) => line.tax))),
-								figure('freight', sum(lines.map((line) => line.freight)))
+								figure('net', netTotal),
+								...(!BigDecimal.isZero(taxTotal) ? [figure('tax', taxTotal)] : [])
 							]
 						: []),
-					...(hasCost && priced.length ? [figure('cost', cost), figure('margin', margin)] : [])
+					...(hasCost && priced.length ? [figure('margin', margin)] : [])
 				],
 				margin_rate:
 					hasCost && priced.length && !BigDecimal.isZero(costedNet)
@@ -236,6 +246,8 @@
 			{ field: 'order_number', label: ctx.t('models.orders.singular') },
 			{ field: 'ordered_on', label: label(ctx, 'orders', 'ordered_on'), kind: dateKind },
 			{ field: 'party_name', label: label(ctx, 'orders', 'party_name') },
+			{ field: 'party_region', label: ctx.t('models.parties.fields.region') },
+			{ field: 'party_relation', label: ctx.t('reports.party.relation'), cell: badge },
 			{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
 			{ field: 'kind_label', label: ctx.t('reports.sales.kind'), cell: badge },
 			{ field: 'reference', label: ctx.t('reports.sales.reference') },
@@ -244,6 +256,7 @@
 				label: ctx.t(basis === 'invoice' ? 'reports.sales.date_invoice' : 'reports.sales.date_delivery'),
 				kind: { kind: 'date' }
 			},
+			{ field: 'product_category', label: ctx.t('models.products.fields.category') },
 			{ field: 'product_name', label: ctx.t('reports.sales.product') },
 			{
 				field: 'quantity',
@@ -326,5 +339,7 @@
 					)}
 				/>{/snippet}
 		</Table>
-	{:else}<EmptyState title={ctx.t('component.reports_loading')} />{/if}
+	{:else}
+		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
+	{/if}
 </Stack>

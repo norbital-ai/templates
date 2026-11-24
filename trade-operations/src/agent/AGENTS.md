@@ -11,7 +11,13 @@ commercial_settings/
   commission_rules/
   document_templates/
 commission_statements/
+credit_releases/
+source_lot_costs/
+source_payables/
+source_purchase_lines/
+source_purchase_orders/
 source_receivables/
+source_stock_commitments/
 orders/
   activities/
   order_lines/
@@ -46,9 +52,9 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 ## Invariants
 
 - An order holds its own terms; there are no contract versions. Syncing it to Kingdee (`status: confirmed`) happens once; from then on it syncs both ways with its Kingdee SO or PO (`orders` and `order_lines` `kingdee` syncs), and record history is its audit trail.
-- A synced order never returns to draft. Kingdee keeps its header (party, currency, date, salesperson, payment terms); everything else stays editable. Approval is for exceptions only: the floor rule's `approve` mode.
+- A synced order never returns to draft. Kingdee keeps its header (party, currency, date, salesperson, payment terms); everything else stays editable. Approval is for exceptions only: the floor rule's `approve` mode, sales draft deletes, and credit-release requests (`credit_releases`: `commercial_managers` → `finance`).
 - Settlement methods and each party's primary contact are Kingdee's (`settlements`, `contacts` `kingdee` syncs); members add other contacts.
-- Source confirmations, transactions, payments, receivables snapshots and stock facts are read-only.
+- Source confirmations, transactions (`draft` unaudited DOs + `issued`/`void`), payments, receivables/payables snapshots, stock facts and `credit_releases.source_status` are read-only to members (written only by sync).
 - There is one delivery/invoice ledger and one payment ledger; do not create a parallel one.
 - Money is a value and a currency together; never add or convert across currencies.
 

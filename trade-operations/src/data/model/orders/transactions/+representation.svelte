@@ -13,7 +13,7 @@
 	const fields = [
 		{ name: 'reference', kind: { kind: 'text' } },
 		{ name: 'kind', kind: { kind: 'enum', values: ['invoice', 'delivery'] } },
-		{ name: 'status', kind: { kind: 'enum', values: ['issued', 'void'] } },
+		{ name: 'status', kind: { kind: 'enum', values: ['draft', 'issued', 'void'] } },
 		{ name: 'currency', kind: { kind: 'currency' } },
 		{ name: 'issued_on', kind: { kind: 'date', optional: true } },
 		{ name: 'due_on', kind: { kind: 'date', optional: true } },
@@ -27,13 +27,13 @@
 		<Stack gap="md">
 			<Grid as="dl" gap="md">
 				{#if shown.record.order}<div>
-						<dt class="text-xs font-medium text-muted-foreground">
+						<dt class="text-label">
 							{ctx.t('models.transactions.fields.order')}
 						</dt>
 						<dd><RecordLink {ctx} of="orders" id={String(shown.record.order)} /></dd>
 					</div>{/if}
 				{#each fields as field (field.name)}<div>
-						<dt class="text-xs font-medium text-muted-foreground">
+						<dt class="text-label">
 							{ctx.t(`models.transactions.fields.${field.name}`)}
 						</dt>
 						<dd>
@@ -61,14 +61,26 @@
 										}
 									]
 								: []),
-							{ field: 'quantity', label: ctx.t('models.orders.fields.quantity') },
+							{
+								field: 'quantity',
+								label: ctx.t('models.orders.fields.quantity'),
+								kind: { kind: 'decimal', scale: 3 },
+								align: 'end'
+							},
 							{ field: 'unit', label: ctx.t('models.order_lines.fields.unit') },
-							{ field: 'unit_price', label: ctx.t('models.order_lines.fields.unit_price') },
+							{
+								field: 'unit_price',
+								label: ctx.t('models.order_lines.fields.unit_price'),
+								kind: { kind: 'decimal', scale: 4, optional: true },
+								align: 'end'
+							},
 							...(shown.record.items.some((item) => item.unit_cost != null)
 								? [
 										{
 											field: 'unit_cost' as const,
-											label: ctx.t('models.stock_snapshots.fields.unit_cost')
+											label: ctx.t('models.stock_snapshots.fields.unit_cost'),
+											kind: { kind: 'decimal', scale: 8, optional: true } as const,
+											align: 'end' as const
 										}
 									]
 								: [])

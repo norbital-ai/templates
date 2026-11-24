@@ -368,3 +368,139 @@ it.live(
 			});
 		})
 );
+
+it.live(
+	'sales analysis exposes customer region, related-party flag, product category and VAT on linked and invoice-only lines',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const as = yield* t.as(t.admin);
+			const finance = yield* t.as(t.member(['finance']));
+			const own = yield* draft(t);
+			yield* confirm(t, own.order);
+
+			const orderRow = (yield* as.query({
+				orders: {
+					where: { id: { eq: own.order } },
+					fields: ['party'],
+					lines: { fields: ['product'] },
+					limit: 1
+				}
+			})).orders.rows[0];
+			if (!orderRow || !orderRow.lines[0]) throw new Error('Expected confirmed order and line');
+			const partyId = orderRow.party;
+			const productId = orderRow.lines[0].product;
+			const party = (yield* as.query({
+				parties: { where: { id: { eq: partyId } }, limit: 1 }
+			})).parties.rows[0];
+			const product = (yield* as.query({
+				products: { where: { id: { eq: productId } }, limit: 1 }
+			})).products.rows[0];
+			if (!party || !product) throw new Error('Expected party and product rows');
+			yield* t.syncs.write('parties.sync.kingdee', [
+				{
+					source: 'kingdee',
+					external_code: party.external_code,
+					name: party.name,
+					kind: party.kind,
+					currency: party.currency,
+					active: party.active,
+					region: 'East China',
+					source_updated_at: stamp
+				}
+			]);
+			committed(
+				'parties',
+				yield* finance.act({
+					'parties.update': [
+						{ target: yield* t.at('parties', partyId), set: { related_party: true } }
+					]
+				})
+			);
+			yield* t.syncs.write('products.sync.kingdee', [
+				{
+					source: 'kingdee',
+					external_code: product.external_code,
+					name: product.name,
+					currency: product.currency,
+					active: product.active,
+					category: 'Resins',
+					source_updated_at: stamp
+				}
+			]);
+
+			const linked = yield* fact(t, own, 'SHIP-DIM-1');
+			const standalone = {
+				external_code: 'INV-ONLY-1',
+				kind: 'invoice_only',
+				reference: 'INV-900/1',
+				business_on: '2026-09-20',
+				source_updated_at: stamp,
+				unit: 'kg',
+				quantity: '5',
+				currency: 'SGD',
+				net_amount: '100',
+				tax_amount: '13.00',
+				freight: '0',
+				active: true,
+				source_dimensions: {
+					customer: 'Standalone Co',
+					customer_id: 'C-101',
+					customer_region: 'North China',
+					product: 'Compound X',
+					product_category: 'Additives',
+					employee: 'Alex'
+				}
+			};
+			const standaloneUnmatched = {
+				...standalone,
+				external_code: 'INV-ONLY-2',
+				reference: 'INV-901/1',
+				source_dimensions: {
+					customer: 'External Co',
+					customer_id: 'UNLISTED-999',
+					customer_region: 'North China',
+					product: 'Compound Y',
+					product_category: 'Solvents',
+					employee: 'Sam'
+				}
+			};
+			yield* pull(t, [linked]);
+			yield* t.syncs.write('source_sales_lines.sync.kingdee', [
+				{ source: 'kingdee', ...standalone },
+				{ source: 'kingdee', ...standaloneUnmatched }
+			]);
+
+			const deliveryRows = salesDetail(
+				yield* finance.query(
+					salesReadDuring({ from: '2026-09-01', to: '2026-09-30', basis: 'delivery' })
+				),
+				{ basis: 'delivery' }
+			);
+			expect(deliveryRows.find((r) => r.external_code === 'SHIP-DIM-1')).toMatchObject({
+				party_region: 'East China',
+				related_party: true,
+				product_category: 'Resins',
+				tax: decimalText('1.80')
+			});
+
+			const invoiceRows = salesDetail(
+				yield* finance.query(
+					salesReadDuring({ from: '2026-09-01', to: '2026-09-30', basis: 'invoice' })
+				),
+				{ basis: 'invoice' }
+			);
+			expect(invoiceRows.find((r) => r.external_code === 'INV-ONLY-1')).toMatchObject({
+				party_region: 'East China',
+				related_party: true,
+				product_category: 'Additives',
+				tax: decimalText('13.00')
+			});
+			expect(invoiceRows.find((r) => r.external_code === 'INV-ONLY-2')).toMatchObject({
+				party_region: 'North China',
+				related_party: false,
+				product_category: 'Solvents',
+				tax: decimalText('13.00')
+			});
+		})
+);

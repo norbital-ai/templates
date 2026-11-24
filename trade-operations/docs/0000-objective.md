@@ -20,14 +20,14 @@ with its Kingdee PO, as a sales order does with its SO.
 
 ## Who it serves
 
-| Team                | What they own                                                                |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Sales               | Customer quotations, agreements, activities, own financial facts             |
-| Procurement         | Supplier purchase orders and their changes                                   |
-| Commercial Managers | Below-floor and draft-delete approvals; both sales and purchasing directions |
-| Finance             | Payments, invoices, credit evidence, commission statements and reports       |
-| Logistics           | Operational quantities and delivery evidence, with commercial values masked  |
-| Configurators       | Pricing floors, commission rules, document layouts and commercial settings   |
+| Team                | What they own                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| Sales               | Customer quotations, agreements, activities, own financial facts                                   |
+| Procurement         | Supplier purchase orders and their changes                                                         |
+| Commercial Managers | Below-floor, draft-delete and credit-release approvals; both sales and purchasing directions       |
+| Finance             | Payments, invoices, credit evidence, credit-release approvals, commission statements and reports   |
+| Logistics           | Operational quantities, delivery evidence and credit-release status, with commercial values masked |
+| Configurators       | Pricing floors, commission rules, document layouts and commercial settings                         |
 
 ## What the product must do
 
@@ -59,13 +59,13 @@ with its Kingdee PO, as a sales order does with its SO.
 
 In scope:
 
-- customer and supplier masters, contacts and credit evidence;
+- customer and supplier masters, contacts, credit evidence and credit-release approvals/audit trail;
 - quotations, sales agreements and supplier purchase orders;
 - native approval, archive and history;
 - price floors, commission rules and commission statements;
 - document layouts per case and language, previews and PDFs;
 - Kingdee SQL Server read mirrors and the verified sales- and purchase-order write path;
-- stock, AR aging, sales analysis and order/commission reports;
+- stock, AR/AP aging, sales analysis, purchase listing and order/commission reports;
 - English and Chinese workspace copy.
 
 Out of scope for the starter:

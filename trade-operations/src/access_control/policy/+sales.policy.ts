@@ -1,6 +1,7 @@
 import { policy } from '@norbital-ai/bolt';
 import {
 	commercialReview,
+	creditReleaseReview,
 	draftOrders,
 	floorReview,
 	lineDeletes,
@@ -55,6 +56,29 @@ export default policy({
 		},
 		credit_snapshots: {
 			outputs: { default: {} }
+		},
+		credit_releases: {
+			outputs: { default: { where: own, history: true } },
+			update: {
+				fields: ['approval_status', 'route', 'proposed_limit', 'reason'],
+				verdict: function* (changes, ctx) {
+					const orderIds = changes.flatMap(({ before }) => (before.order ? [before.order] : []));
+					if (
+						orderIds.length !== changes.length ||
+						!(yield* ordersIn(ctx, orderIds, ownSales(ctx)))
+					)
+						return yield* ctx.refuse('errors.sales_scope');
+					const invalid = changes.findIndex(
+						({ before, after }) =>
+							before.source_status !== 'blocked' ||
+							before.approval_status !== 'none' ||
+							after.approval_status !== 'approved'
+					);
+					return invalid >= 0
+						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
+						: ctx.approve(creditReleaseReview);
+				}
+			}
 		},
 		commercial_settings: {
 			outputs: { default: {} }

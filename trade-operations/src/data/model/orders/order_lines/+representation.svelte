@@ -10,6 +10,7 @@
 		type FormState,
 		type FieldEditor
 	} from '@norbital-ai/ui';
+	import { Stack } from '@norbital-ai/ui/layout';
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
@@ -131,38 +132,40 @@
 {/snippet}
 {#snippet unitPrice(form: FormState, field: FieldEditor)}
 	{@const state = floorState(form)}
-	<MoneyInput
-		{ctx}
-		id={field.id}
-		value={field.value}
-		on_change={field.on_change}
-		{...currency ? { currency } : {}}
-		scale={4}
-		disabled={field.disabled}
-		invalid={Boolean(field.error) || Boolean(state?.flagged && state.rule === 'refuse')}
-	/>
-	{#if state}
-		<p
-			id={`${field.id}-floor`}
-			class="mt-1 text-xs"
-			class:text-destructive={state.flagged && state.rule !== 'warn'}
-			class:text-warning={state.flagged && state.rule === 'warn'}
-			class:text-muted-foreground={!state.flagged}
-		>
-			{#if state.floor}
-				{ctx.t('component.quote_floor_minimum')}: {header?.currency}
-				{format({ kind: 'decimal', scale: 8 }, state.floor.floor_net, {
-					locale: ctx.locale
-				})}/{state.floor.unit} · {state.floor.effective_on}
-				· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-			{:else}
-				{ctx.t('component.floor_none')}
-			{/if}
-			{#if state.flagged && state.rule !== 'warn'}
-				· {ctx.t(`component.floor_rule_${state.rule}`)}
-			{/if}
-		</p>
-	{/if}
+	<Stack gap="xs">
+		<MoneyInput
+			{ctx}
+			id={field.id}
+			value={field.value}
+			on_change={field.on_change}
+			{...currency ? { currency } : {}}
+			scale={4}
+			disabled={field.disabled}
+			invalid={Boolean(field.error) || Boolean(state?.flagged && state.rule === 'refuse')}
+		/>
+		{#if state}
+			<p
+				id={`${field.id}-floor`}
+				class="text-xs"
+				class:text-destructive={state.flagged && state.rule !== 'warn'}
+				class:text-warning={state.flagged && state.rule === 'warn'}
+				class:text-muted-foreground={!state.flagged}
+			>
+				{#if state.floor}
+					{ctx.t('component.quote_floor_minimum')}: {header?.currency}
+					{format({ kind: 'decimal', scale: 8 }, state.floor.floor_net, {
+						locale: ctx.locale
+					})}/{state.floor.unit} · {state.floor.effective_on}
+					· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
+				{:else}
+					{ctx.t('component.floor_none')}
+				{/if}
+				{#if state.flagged && state.rule !== 'warn'}
+					· {ctx.t(`component.floor_rule_${state.rule}`)}
+				{/if}
+			</p>
+		{/if}
+	</Stack>
 {/snippet}
 {#snippet printDetails(_form: FormState, field: FieldEditor)}
 	<PrintDetails

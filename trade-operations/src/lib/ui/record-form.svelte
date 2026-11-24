@@ -149,9 +149,7 @@
 		{@const stored = form.spec.fields.find((field) => field.name === name)}
 		{#if stored && form.readable(name) && !stored.kind.hidden}
 			<Stack gap="xs" class={wide ? 'col-span-full' : undefined} data-field={name}>
-				<span class="text-xs font-medium text-muted-foreground"
-					>{translated(ctx, `models.${view.model}.fields.${name}`)}</span
-				>
+				<span class="text-label">{translated(ctx, `models.${view.model}.fields.${name}`)}</span>
 				{#if viewers[name]}{@render viewers[name]!(form)}{:else}<Show
 						{ctx}
 						readonly

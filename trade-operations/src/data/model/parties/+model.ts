@@ -21,6 +21,15 @@ export default model('parties', {
 			kind: 'bool',
 			default: true
 		},
+		region: {
+			kind: 'text',
+			optional: true
+		},
+		// workspace-owned classification (never written by Kingdee): related party vs third party
+		related_party: {
+			kind: 'bool',
+			default: false
+		},
 		address: {
 			kind: 'text',
 			optional: true
@@ -46,6 +55,7 @@ export default model('parties', {
 			'kind',
 			'currency',
 			'active',
+			'region',
 			'address',
 			'phone',
 			'source_updated_at',
@@ -60,6 +70,8 @@ export default model('parties', {
 			'kind',
 			'currency',
 			'active',
+			'region',
+			'related_party',
 			'address',
 			'phone',
 			'source_updated_at',

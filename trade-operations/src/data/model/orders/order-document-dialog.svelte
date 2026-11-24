@@ -2,8 +2,8 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { attach } from '@norbital-ai/ui/effect';
 	import { type Id } from '@norbital-ai/bolt';
-	import { Button, Dialog } from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Button, Dialog, Label } from '@norbital-ai/ui';
+	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import OrderPdfViewer from './order-pdf-viewer.svelte';
 	import { DocumentUnavailable } from '../../../lib/order-document.js';
@@ -57,27 +57,27 @@
 		if (!open) on_close();
 	}}
 >
-	<Dialog.Content class="sm:max-w-4xl">
+	<Dialog.Content class="max-w-4xl">
 		<Dialog.Title>{ctx.t('component.preview_document')}</Dialog.Title>
 		<div {@attach loadPdf}>
-			{#if stampAvailable}
-				<div class="mb-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-					<label class="flex items-center gap-2">
-						<input type="checkbox" bind:checked={includeStamp} />
-						{ctx.t('component.include_company_stamp')}
-					</label>
-				</div>
-			{/if}
-			{#if file}
-				<Stack gap="md">
-					<OrderPdfViewer {ctx} url={file.url} title={file.title} />
-					<Button href={file.url} download={file.name}>{ctx.t('component.export_pdf')}</Button>
-				</Stack>
-			{:else if error}
-				<p role="alert">{error}</p>
-			{:else}
-				<p role="status">{ctx.t('component.preparing_pdf')}</p>
-			{/if}
+			<Stack gap="md">
+				{#if stampAvailable}
+					<Inline gap="sm" align="center">
+						<input id="include-company-stamp" type="checkbox" bind:checked={includeStamp} />
+						<Label for="include-company-stamp">{ctx.t('component.include_company_stamp')}</Label>
+					</Inline>
+				{/if}
+				{#if file}
+					<Stack gap="md">
+						<OrderPdfViewer {ctx} url={file.url} title={file.title} />
+						<Button href={file.url} download={file.name}>{ctx.t('component.export_pdf')}</Button>
+					</Stack>
+				{:else if error}
+					<p role="alert">{error}</p>
+				{:else}
+					<p role="status">{ctx.t('component.preparing_pdf')}</p>
+				{/if}
+			</Stack>
 		</div>
 	</Dialog.Content>
 </Dialog.Root>

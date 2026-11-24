@@ -34,7 +34,10 @@ const fields = {
 	sign: field('invoice', 'FROB'),
 	currency: field('denomination', 'FNumber'),
 	customer: field('customer', 'FName'),
+	customer_id: field('invoice', 'FCustID'),
+	customer_region: field('region', 'FName'),
 	product: field('product', 'FName'),
+	product_category: field('category', 'FName'),
 	employee: field('employee', 'FName'),
 	employee_id: field('invoice', 'FEmpID'),
 	unit: field('unit', 'FName'),
@@ -56,7 +59,16 @@ export const invoiceAnalysisProjection: SourceProjection = {
 		join('inner', 'ICSaleEntry', 'line', ref('invoice', 'FInterID'), 'FInterID'),
 		join('left', 't_Currency', 'denomination', ref('invoice', 'FCurrencyID'), 'FCurrencyID'),
 		join('left', 't_Organization', 'customer', ref('invoice', 'FCustID'), 'FItemID'),
+		{
+			...join('left', 't_SubMessage', 'region', ref('customer', 'FRegionID'), 'FInterID'),
+			where: { FTypeID: 26 }
+		},
 		join('left', 't_Item', 'product', ref('line', 'FItemID'), 'FItemID'),
+		join('left', 't_ICItem', 'product_detail', ref('line', 'FItemID'), 'FItemID'),
+		{
+			...join('left', 't_Item', 'category', ref('product_detail', 'FComCategoryID'), 'FItemID'),
+			where: { FItemClassID: 2037 }
+		},
 		join('left', 't_Item', 'unit', ref('line', 'FUnitID'), 'FItemID'),
 		join('left', 't_Emp', 'employee', ref('invoice', 'FEmpID'), 'FItemID'),
 		{
@@ -72,7 +84,7 @@ export const invoiceAnalysisProjection: SourceProjection = {
 	],
 	dates: ['invoiced_on', 'checked_on'],
 	decimals: ['quantity', 'net', 'gross', 'tax'],
-	texts: ['detail_id', 'entry_id', 'employee_id', 'sign']
+	texts: ['detail_id', 'entry_id', 'customer_id', 'employee_id', 'sign']
 };
 
 function invoiceFact(row: SqlRow, observedAt: string) {
@@ -123,7 +135,13 @@ function invoiceFact(row: SqlRow, observedAt: string) {
 					}).format(numeric(BigDecimal.format(tax))),
 		source_dimensions: {
 			customer: nullableText(row, 'customer'),
+			customer_id: nullableText(row, 'customer_id'),
+			customer_region: nullableText(row, 'customer_region'),
 			product: nullableText(row, 'product'),
+			product_category:
+				nullableText(row, 'product_category') === '*'
+					? null
+					: nullableText(row, 'product_category'),
 			employee: nullableText(row, 'employee'),
 			employee_id: nullableText(row, 'employee_id')
 		},

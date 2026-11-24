@@ -190,6 +190,25 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		const statement = string(args.stmt, 'static SQL');
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
+				if (statement.includes('kingdee-credit-release-test')) return { rows: [] };
+				if (statement.includes('kingdee-credit-release-log-'))
+					return { rows: [{ max_log_id: '0', entries: '[]' }] };
+				if (statement.includes('kingdee-credit-release-bills')) return { rows: [{ bills: '[]' }] };
+				if (statement.includes('kingdee-credit-release')) {
+					const empty =
+						'{"today":"2026-10-10","options":[],"fields":[],"unaudited":[],"customers":[],"watched":[]}';
+					const fingerprint = '0'.repeat(64);
+					return {
+						rows: [
+							{
+								fingerprint,
+								oversized: false,
+								entries: args.prior === fingerprint ? null : empty,
+								observed_at: '2026-10-10T00:00:00.000Z'
+							}
+						]
+					};
+				}
 				if (statement.includes('MIN_ACTIVE_ROWVERSION') && statement.includes('AS upper'))
 					return {
 						rows: [
@@ -203,20 +222,33 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					};
 				if (statement.includes('kingdee-document-window')) {
 					const version = hex(documents.version);
+					const movedOrders =
+						version >= string(args.from, 'window start') && version < string(args.to, 'window end')
+							? (tables.SEOrder ?? []).map((row) => ({
+									direction: 'sales',
+									__key: String(row.__key),
+									fid: String(row.fid)
+								}))
+							: [];
+					// Watch-list arm: a watched draft DO that vanished (deleted or cancelled) wakes its order.
+					const watchedXml = typeof args.ids === 'string' ? args.ids : '';
+					const missingWatched = [...watchedXml.matchAll(/<r\s+([^>]*)\/>/g)].flatMap((match) => {
+						const attrs = attributes(match[1] ?? '');
+						const live = (tables.ICStockBill ?? []).some(
+							(row) => String(row.fid) === attrs.f && !row.cancelled
+						);
+						return !live && attrs.d && attrs.o
+							? [{ direction: attrs.d, __key: padded(attrs.o), fid: attrs.o }]
+							: [];
+					});
+					const combined = new Map<string, SqlRow>();
+					for (const row of [...movedOrders, ...missingWatched])
+						combined.set(`${row.direction}:${row.fid}`, row);
 					return {
-						rows:
-							version >= string(args.from, 'window start') &&
-							version < string(args.to, 'window end')
-								? (tables.SEOrder ?? [])
-										.filter((row) => String(row.__key) > string(args.after, 'window continuation'))
-										.map((row): SqlRow => ({
-											direction: 'sales',
-											__key: String(row.__key),
-											fid: String(row.fid)
-										}))
-										.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
-										.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
-								: []
+						rows: [...combined.values()]
+							.filter((row) => String(row.__key) > string(args.after, 'window continuation'))
+							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
+							.slice(0, Number(/TOP (\d+)/.exec(statement)?.[1] ?? 1000))
 					};
 				}
 				if (statement.includes('kingdee-order-window')) {

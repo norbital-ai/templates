@@ -260,7 +260,7 @@ export default model('orders', {
 		default: {
 			fields: 'all',
 			party: { fields: 'all' },
-			ledger: { fields: ['active', 'status'] },
+			ledger: { fields: ['name', 'active', 'status'] },
 			payment_terms: { fields: ['code', 'name'] },
 			buyer_contact: { fields: ['name', 'phone', 'email'] },
 			// documents print each product's brand and origin

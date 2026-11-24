@@ -51,7 +51,7 @@ type SalesDocument = {
 	/** A sales invoice's settlement method (number and name), which dates it due from delivery. */
 	readonly terms: { readonly code: string; readonly name: string | null } | null;
 	readonly currency: string;
-	readonly status: 'issued' | 'void';
+	readonly status: 'draft' | 'issued' | 'void';
 	readonly owner: OwnedSales;
 	readonly lines: readonly SalesLine[];
 	readonly total: BigDecimal.BigDecimal | null;
@@ -577,8 +577,10 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 		readonly order: Id<'orders'>;
 	}[] = [],
 	costAccount?: string,
-	review?: DocumentReview
+	review?: DocumentReview,
+	includeDraftDeliveries = false
 ) {
+	const includeDrafts = kind === 'delivery' && includeDraftDeliveries;
 	const lineProjection =
 		kind === 'delivery'
 			? deliveryLineProjection(costAccount !== undefined)
@@ -601,9 +603,11 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				'FInterID',
 				'A discovered Kingdee document is missing its header; retry the observation'
 			);
-		return headers
-			.filter((header) => sourceDate(header, 'checked_on') === null)
-			.map((header) => exactId(header, 'fid'));
+		return includeDrafts
+			? []
+			: headers
+					.filter((header) => sourceDate(header, 'checked_on') === null)
+					.map((header) => exactId(header, 'fid'));
 	});
 	const pending = new Set(pendingIds);
 	// Read all lines of issued documents, including lines that did not match discovery.
@@ -782,7 +786,8 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 				if (docCurrency !== owner.currency)
 					return invalid('FCurrencyID', 'Invoice currency differs from its order');
 				const issuedOn = sourceDate(header, 'date');
-				if (!issuedOn || !sourceDate(header, 'checked_on'))
+				const checkedOn = sourceDate(header, 'checked_on');
+				if (!issuedOn || (!includeDrafts && !checkedOn))
 					return invalid('FCheckDate', 'Owned document is not an issued, dated transaction');
 				resolved.set(fid, {
 					fid,
@@ -797,7 +802,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 								}
 							: null,
 					currency: docCurrency,
-					status: flag(header, 'cancelled') ? 'void' : 'issued',
+					status: flag(header, 'cancelled') ? 'void' : checkedOn ? 'issued' : 'draft',
 					owner,
 					lines,
 					total:
@@ -825,7 +830,10 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 	unchanged: boolean,
 	costAccount?: string,
 	/** What else an order held for review could be waiting on, beyond an order moving; read only if the window is not quiet. */
-	local: Effect.Effect<string, SourceRowInvalid | FacilityFailure | ReadFailed> = Effect.succeed('')
+	local: Effect.Effect<string, SourceRowInvalid | FacilityFailure | ReadFailed> = Effect.succeed(
+		''
+	),
+	includeDraftDeliveries = false
 ) {
 	const window = yield* orderWindow(ctx, cursor, 200, (poHasUuid) =>
 		documentWindow(poHasUuid ? directions : directions.filter((d) => d !== 'purchasing'))
@@ -859,7 +867,10 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 		)
 	);
 	const { transactions: retained } = yield* ctx.query({
-		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] }
+		transactions: {
+			where: { source: { eq: instance }, status: { eq: 'issued' } },
+			fields: ['erp_id', 'order']
+		}
 	});
 	const review: DocumentReview = { held: new Set(), issues: [] };
 	const deliveries: SalesDocument[] = [];
@@ -904,14 +915,15 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 			[],
 			pins,
 			costAccount,
-			review
+			review,
+			includeDraftDeliveries
 		);
 		const invoice = yield* readSalesDocuments(
 			bill,
 			orders,
 			ctx,
 			'invoice',
-			delivery.documents,
+			delivery.documents.filter((doc) => doc.status !== 'draft'),
 			pins,
 			undefined,
 			review
@@ -927,8 +939,14 @@ export const readOrderGraph = Effect.fnUntraced(function* (
 		/** The orders this read covered: only their rows can be found missing. */
 		affected,
 		/** The page these rows make: an order held for review is read again when an order next moves. */
-		page: Effect.fnUntraced(function* <R>(rows: readonly (R & { readonly $id: string })[]) {
-			const closed = yield* close([...review.held].flatMap((order) => uuid(order) ?? []));
+		page: Effect.fnUntraced(function* <R>(
+			rows: readonly (R & { readonly $id: string })[],
+			drafts?: readonly string[]
+		) {
+			const closed = yield* close(
+				[...review.held].flatMap((order) => uuid(order) ?? []),
+				drafts
+			);
 			return reviewedPage<R>({ rows, cursor: closed.cursor, more: window.more }, review);
 		})
 	};
@@ -939,11 +957,12 @@ const Cursor = Schema.Struct({
 	after: Schema.String.check(Schema.isPattern(/^(?:[\x21-\x7e]{1,512})?$/)),
 	finish: Schema.Boolean,
 	// the order reads: the rowversion every header below has been read to, the ceiling of a window still being paged,
-	// the SOs whose read is waiting on something local, and what they were waiting against
+	// the SOs whose read is waiting on something local, what they were waiting against, and active draft DOs to watch
 	bookmark: Schema.optionalKey(Schema.String),
 	upper: Schema.optionalKey(Schema.String),
 	waiting: Schema.optionalKey(Schema.Array(Schema.String)),
-	token: Schema.optionalKey(Schema.String)
+	token: Schema.optionalKey(Schema.String),
+	drafts: Schema.optionalKey(Schema.Array(Schema.String))
 });
 const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, source: string) {
 	const previous =
@@ -1007,6 +1026,8 @@ ${directions
  WHERE contact.FRP=${settlement.rp} AND contact.FType=${settlement.type} AND delivery.FSourceTranType=${type} AND ${within('contact.FModifyTime')}`;
 	})
 	.join('\n UNION\n')}
+ UNION SELECT n.value('@d','varchar(20)'),n.value('@o','int') FROM @ids.nodes('/ids/r') AS watched(n)
+ WHERE NOT EXISTS (SELECT 1 FROM dbo.ICStockBill head WHERE head.FInterID=n.value('@f','int') AND head.FCancellation=0)
 ) moved WHERE moved.fid IS NOT NULL GROUP BY moved.direction,moved.fid`;
 
 const invalidCursor = (reason: string) => new SourceRowInvalid({ column: '$cursor', reason });
@@ -1054,10 +1075,28 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	if (to < from)
 		return yield* invalidCursor('The source rowversion moved behind the saved bookmark');
 	const movedSql = typeof moved === 'function' ? moved(observed.poHasUuid) : moved;
+	const watchedDrafts = previous?.drafts ?? [];
+	const draftsXml = watchedDrafts.length
+		? yield* checked(
+				() =>
+					`<ids>${watchedDrafts
+						.map((entry) => {
+							const [direction, orderFid, deliveryFid] = entry.split(':');
+							if (
+								(direction !== 'sales' && direction !== 'purchasing') ||
+								!/^\d+$/.test(orderFid ?? '') ||
+								!/^\d+$/.test(deliveryFid ?? '')
+							)
+								return invalid('$cursor', 'Malformed watched draft delivery entry');
+							return `<r d="${direction}" o="${orderFid}" f="${deliveryFid}"/>`;
+						})
+						.join('')}</ids>`
+			)
+		: '<ids/>';
 	const page = yield* nativeSql(
 		ctx,
 		`SELECT TOP ${size + 1} * FROM (${movedSql}) AS source WHERE __key COLLATE Latin1_General_BIN2 > @after COLLATE Latin1_General_BIN2 ORDER BY __key COLLATE Latin1_General_BIN2`,
-		{ branch: ctx.configuration.branchNo, after, from, to }
+		{ ids: draftsXml, branch: ctx.configuration.branchNo, after, from, to }
 	);
 	const headers = page.slice(0, size);
 	const more = page.length > size;
@@ -1082,12 +1121,16 @@ FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 			const retry = first && previous?.token !== token ? kept : [];
 			return {
 				retry,
-				close: Effect.fnUntraced(function* (waiting: readonly string[]) {
+				close: Effect.fnUntraced(function* (
+					waiting: readonly string[],
+					drafts?: readonly string[]
+				) {
 					const next = [...new Set([...kept.filter((uuid) => !retry.includes(uuid)), ...waiting])];
 					const base = {
 						protocol: 'kingdee-owned-v1' as const,
 						source: scope,
 						...(next.length ? { waiting: next.slice(0, WAITING) } : {}),
+						...(drafts?.length ? { drafts: drafts.slice(0, 200) } : {}),
 						token
 					};
 					const last = headers.at(-1);
@@ -1124,13 +1167,25 @@ export const readTransactions = Effect.fnUntraced(function* (
 	unchanged: boolean
 ) {
 	const directions = directionsOf(ctx.configuration);
-	const graph = yield* readOrderGraph(directions, instance, cursor, ctx, unchanged);
+	const graph = yield* readOrderGraph(
+		directions,
+		instance,
+		cursor,
+		ctx,
+		unchanged,
+		undefined,
+		undefined,
+		true
+	);
 	if (graph === null) return { rows: [], cursor, more: false };
 	const { transactions: existing, orders } = yield* ctx.query({
-		transactions: { where: { source: { eq: instance } }, fields: ['erp_id', 'order'] },
+		transactions: {
+			where: { source: { eq: instance } },
+			fields: ['erp_id', 'order', 'kind', 'status']
+		},
 		orders: {
 			where: { ledger: { eq: instance }, direction: { in: [...directions] } },
-			fields: ['kingdee']
+			fields: ['kingdee', 'direction']
 		}
 	});
 	const known = existing.rows.map((row) => row.erp_id);
@@ -1254,7 +1309,35 @@ export const readTransactions = Effect.fnUntraced(function* (
 				graph.affected.has(row.order) && !present.has(row.erp_id) && !graph.held.has(row.order)
 		)
 		.map((row) => ({ $id: row.erp_id, erp_id: row.erp_id, status: 'void' as const }));
-	return yield* graph.page([...rows, ...missing]);
+	const orderById = new Map(orders.rows.map((order) => [order.id, order]));
+	const txState = new Map<
+		string,
+		{ readonly order: Id<'orders'>; readonly kind: string; readonly status: string }
+	>(
+		existing.rows.map((row) => [
+			row.erp_id,
+			{ order: row.order, kind: row.kind, status: row.status }
+		])
+	);
+	for (const row of rows)
+		txState.set(row.erp_id, { order: row.order, kind: row.kind, status: row.status });
+	for (const row of missing) {
+		const prior = txState.get(row.erp_id);
+		if (prior) txState.set(row.erp_id, { ...prior, status: 'void' });
+	}
+	const nextDrafts = [
+		...new Set(
+			[...txState.entries()].flatMap(([key, state]) => {
+				if (state.kind !== 'delivery' || state.status !== 'draft') return [];
+				const order = orderById.get(state.order);
+				const deliveryFid = /^[^:]+:(\d+)(?::|$)/.exec(key)?.[1];
+				return order?.kingdee?.fid && deliveryFid
+					? [`${order.direction}:${order.kingdee.fid}:${deliveryFid}`]
+					: [];
+			})
+		)
+	].sort();
+	return yield* graph.page([...rows, ...missing], nextDrafts);
 });
 
 export const reviewedPage = <R>(page: SourcePage<R>, review: DocumentReview): SourcePage<R> =>

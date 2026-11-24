@@ -4,6 +4,7 @@ export default workspace({
 	locale: 'en-SG',
 	languages: ['en', 'zh'],
 	currency: 'SGD',
+	theme: { palette: 'crisp', accent: 'blue', radius: 'default' },
 	apps: [
 		'operations/trade',
 		'operations/partners',

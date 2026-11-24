@@ -52,15 +52,17 @@ purchase documents are verified, syncing writes a purchase order to Kingdee as a
 replaces the PO's lines until it is audited, and its receipts, purchase invoices and payments attach to it.
 Approval is for exceptions: under the floor rule's **Manager approves**, a sales rep's line below its floor
 waits for a Commercial Manager, and the order cannot sync while it waits. Deleting an own sales draft also
-waits for one. Credit limits and
-balances are read-only source facts, with credit enforcement owned by the source system.
+waits for one. Credit enforcement stays in Kingdee at delivery audit (`销售出库`); credit limits and balances
+are read-only source facts (`credit_snapshots`), while unaudited DOs blocked by KIS credit control open
+`credit_releases` rows for formal two-step release approval (`commercial_managers` → `finance`, one-time
+special release or permanent limit increase) and post-audit `t_Log` `XS100016` release / bypass confirmation.
 
 Stock rows represent remaining lots with their lot number; a lot's audited purchase cost comes from the lot-cost feed when its account is set. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
 
 Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sales** (`sales` →
 `sales`), **Procurement** (`procurement` → `procurement`), **Commercial Managers**
 (`commercial_managers` → `manager`), **Finance** (`finance` → `finance`), **Logistics**
-(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Below-floor sales lines (under **Manager approves**) and sales draft deletes go to a `commercial_managers` approval step.
+(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Below-floor sales lines (under **Manager approves**) and sales draft deletes go to a `commercial_managers` approval step; credit-release requests go through `commercial_managers` → `finance`.
 
 Sales reads its own customer agreements and financial facts; procurement reads its own supplier
 agreements. Logistics sees operational quantities with commercial fields masked. Finance and
@@ -81,8 +83,17 @@ history, permissions, approvals, Actions, kinds and runs are reused.
   or supplier master and changes in Kingdee; members add the others. An order's buyer contact is one of them.
 - `settlements`: a read-only mirror of Kingdee's settlement methods (`t_Settle`). An order's payment terms
   name one; its documents print the name.
-- `transactions`: read-only deliveries (receipts, for a purchase) and invoices linked to their order.
-  Issued invoices retain their actual issue date, due date and total; AR does not invent these values.
+- `transactions`: read-only deliveries (unaudited `draft` and audited `issued`; receipts, for a purchase) and
+  issued invoices linked to their order. Delivered quantities, sales analysis and aging count `issued` rows
+  only; hard-deleted unaudited drafts reconcile to `void` via a cursor watch-list. Issued invoices retain their
+  actual issue date, due date and total; AR does not invent these values.
+- `credit_releases`: credit-blocked unaudited Kingdee deliveries (`source_status` owned by sync; local
+  `approval_status`, `route`, `proposed_limit` and `reason` owned by formal approval). Tracks one-time
+  special-release vs permanent limit-increase approvals, binds each approval to the DO's content hash,
+  notifies Finance and Logistics on approval/supersession/bypass, and confirms KIS release from `t_Log`
+  (`XS100016`) without writing to Kingdee.
+- `source_payables` / `source_purchase_orders`: opt-in account-wide AP aging snapshots (with GL 2202.03
+  accrued-not-invoiced disclosure and related-party splits) and period purchase-order listing snapshots.
 - `source_payments`: one read-only receipt/payment/refund ledger, optionally applied to an invoice transaction.
   Deposits remain separate, refunds reduce payments, withdrawn receipts remain inspectable and replay
   converges by source identity. There is no parallel manual payment ledger.
@@ -145,10 +156,13 @@ and base currency to CNY. The same SQL reads native `ICCreditOption`, `ICCreditF
 `t_RP_Contact`, `ICSale`, `t_RP_NewReceiveBill`, `ICStockBill` and `ICStockBillEntry` on a simulator
 or a matching KIS account; it requires no simulator schema, custom view or database name.
 The selected catalogue terms determine exposure. Kingdee's amount/term controls determine the
-**Credit blocked** indicator; `FIsCreditMgr` is not a hold flag. The minute feed reflects invoice audit,
-allocated payments and DO matching. Unknown formula items, unsupported currencies/control modes,
-missing mappings or failed reads preserve last-good evidence. Native audit/receipt predicates still
-require verification against the target account's Kingdee version before production use.
+**Credit blocked** indicator; `FIsCreditMgr` is not a hold flag. The minute `credit_snapshots` feed reflects
+invoice audit, allocated payments and DO matching, while `credit_releases` evaluates unaudited blue DOs
+including `当前单据金额` and reads `t_Log` (`XS100016`) incrementally by primary key `FLogID` to confirm
+password releases and flag unapproved bypasses. Unknown formula items, unsupported control modes or failed
+reads preserve last-good evidence; non-CNY customers are refused individually in `credit_releases`. Native
+audit/receipt predicates still require verification against the target account's Kingdee version before
+production use.
 
 ## Two-way Kingdee sync
 
@@ -188,16 +202,17 @@ local change still waiting to be written wins: it is applied on top of what King
 
 ### What is read, and how often
 
-| Feed                                         | Cadence      | How                                                                      |
-| -------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
-| Parties, contacts, products, warehouses      | 1 min        | Master rowversions (`FModifyTime`), joined rows included                 |
-| Settlement methods (`t_Settle`)              | 1 min        | Complete listing when its fingerprint moved: the table has no rowversion |
-| Orders and their lines                       | 1 min        | `SEOrder` / `POOrder.FOperDate` window                                   |
-| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions, followed to the order their lines name      |
-| Sales and purchase analysis lines, lot costs | 5–15 min     | Header rowversions; opt-in accounts                                      |
-| Stock (`ICInventory`)                        | 15 min       | Complete listing of lots with stock: the table has no rowversion         |
-| Open SO commitments, credit                  | 5 min, 1 min | One fingerprinted snapshot; the payload is sent only when it changed     |
-| AR aging                                     | 1 h          | Open items that moved, by rowversion; bucket sums catch the rest         |
+| Feed                                         | Cadence      | How                                                                                               |
+| -------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------- |
+| Parties, contacts, products, warehouses      | 1 min        | Master rowversions (`FModifyTime`), joined rows included                                          |
+| Settlement methods (`t_Settle`)              | 1 min        | Complete listing when its fingerprint moved: the table has no rowversion                          |
+| Orders and their lines                       | 1 min        | `SEOrder` / `POOrder.FOperDate` window                                                            |
+| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions, followed to the order their lines name; active `draft` DO watch-list |
+| Sales and purchase analysis lines, lot costs | 5–15 min     | Header rowversions; opt-in accounts                                                               |
+| Stock (`ICInventory`)                        | 15 min       | Complete listing of lots with stock: the table has no rowversion                                  |
+| Open SO commitments, credit & credit release | 5 min, 1 min | Fingerprinted SQL snapshot + incremental `t_Log.FLogID` seek; sent only when changed              |
+| AR aging, AP aging                           | 1 h          | Open items that moved, by rowversion; bucket sums catch the rest                                  |
+| Purchase listing                             | 1 h          | Fingerprinted PO, receipt, invoice, payment and expense periods                                   |
 
 A window reads `[bookmark, MIN_ACTIVE_ROWVERSION())`, so a row committed late is never skipped, and no feed
 lists its table again after it begins: the link is metered. KIS stamps document headers, not lines, and saves
@@ -217,6 +232,11 @@ when it moves; their freshness limits count from when a feed began failing (the 
 - `tests/kingdee-order-sync.test.ts`, `tests/kingdee-import.test.ts`: the two SO paths, outages, lost replies,
   races and refusals against a scripted SQL link.
 - `tests/kingdee-purchase-sync.test.ts`: the two PO paths, the same failures.
+- `tests/credit-release.test.ts`, `tests/kingdee-credit.test.ts`, `tests/kingdee-documents-sync.test.ts`:
+  native KIS credit formula, unaudited `draft` DO sync & deletion watch-list, two-step release approvals,
+  `XS100016` confirmation with 1-tick grace, edit supersession and unapproved bypass tracking.
+- `tests/payables-aging.test.ts`, `tests/purchase-listing.test.ts`, `tests/source-sales.test.ts`: AP/AR aging,
+  purchase listing and sales analysis reporting contracts.
 - `tests/kingdee-live-polling.test.ts`: the same SQL on SQL Server 2017 at compatibility level 100, in scratch
   databases (`TRADE_SQL2017_PROBE_PASSWORD`, port 11434).
 - `tests/kingdee-simulator.test.ts`: the whole flow against the Kingdee simulator (`TRADE_SIMULATOR_ACCESS`).

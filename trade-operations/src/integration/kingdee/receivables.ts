@@ -1,6 +1,7 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json, Row } from '@norbital-ai/bolt';
 import { sha256Hex, numeric } from '../../lib/commercial.js';
+import { safeDueDate } from '../../lib/payables.js';
 import {
 	kingdeeReceivablesAccount,
 	kingdeeSettlementRules,
@@ -35,12 +36,14 @@ const requested = `(SELECT n.value('.', 'int') FROM @ids.nodes('/ids/id') AS req
 const arCheck = `k.FRP=1 AND k.FCheckDate>=CONVERT(datetime,'${from}',112)`;
 /** An open item the report keeps: open, or settled since the history starts. */
 const kept = `(c.FRemainAmount<>0 OR EXISTS (SELECT 1 FROM dbo.t_RP_NewCheckInfo k WHERE k.FContactID=c.FID AND ${arCheck}))`;
+const validDate = (expr: string) =>
+	`CASE WHEN ${expr}>=CONVERT(datetime,'19000101',112) AND ${expr}<CONVERT(datetime,'30000101',112) THEN ${expr} END`;
 const plans = `(
- SELECT FInterID, MIN(CASE WHEN FRemainAmount<>0 OR FRemainAmountFor<>0 THEN FDate END) AS open_due,
-  MAX(FDate) AS last_due
+ SELECT FInterID, MIN(CASE WHEN FRemainAmount<>0 OR FRemainAmountFor<>0 THEN ${validDate('FDate')} END) AS open_due,
+  MAX(${validDate('FDate')}) AS last_due
  FROM dbo.t_RP_Plan_Ar WHERE FRP=1 GROUP BY FInterID
 )`;
-const dueOn = `CASE WHEN c.FType=3 THEN COALESCE(p.open_due,p.last_due,c.FRPDate) END`;
+const dueOn = `CASE WHEN c.FType=3 THEN COALESCE(p.open_due,p.last_due,${validDate('c.FRPDate')}) END`;
 const within = (column: string) =>
 	`${column}>=CONVERT(binary(8),@from,1) AND ${column}<CONVERT(binary(8),@to,1)`;
 /** Open items fall in 64 buckets by id: a bucket whose sums disagree with what was published is read again. */
@@ -266,7 +269,7 @@ function mapEntry(row: SqlRow, rules: typeof SettlementRules.Type) {
 		[clean(nullableText(row, 'settlement') ?? '')].find((name) => name && name !== '*') ?? null;
 	const code = kind === 'invoice' ? nullableText(row, 'settlement_code') : null;
 	const rule = code ? rules[code] : undefined;
-	const kingdee_due_on = sourceDate(row, 'due_on');
+	const kingdee_due_on = safeDueDate(sourceDate(row, 'due_on'));
 	const delivered_on = sourceDate(row, 'delivered_on');
 	const remainingAmount = r.decimal('remaining');
 	const remaining = new Intl.NumberFormat('en', {

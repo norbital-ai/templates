@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Schema } from 'effect';
-	import { Combobox, Input, Textarea } from '@norbital-ai/ui';
+	import { Combobox, Input, Label, Textarea } from '@norbital-ai/ui';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import {
 		PrintValues,
@@ -61,15 +62,13 @@
 </script>
 
 {#if fields.length}
-	<div class="grid gap-3 sm:grid-cols-2">
+	<Grid minimum="compact" gap="sm">
 		{#each fields as field (field.key)}
 			{@const fieldId = `${id ?? fallbackId}-${field.key}`}
 			{@const text = saved.get(field.key) ?? field.default_value ?? ''}
-			<div class="min-w-0 space-y-1">
+			<Stack gap="xs">
 				{#if on_change}
-					<label for={fieldId} class="block text-xs font-medium text-muted-foreground"
-						>{label(field)}</label
-					>
+					<Label for={fieldId}>{label(field)}</Label>
 					{#if printChoices(field).length}
 						<Combobox
 							id={fieldId}
@@ -100,12 +99,12 @@
 						/>
 					{/if}
 				{:else}
-					<div class="text-xs font-medium text-muted-foreground">{label(field)}</div>
+					<div class="text-label">{label(field)}</div>
 					<p class="whitespace-pre-wrap break-words text-sm">{shown(field, text) || '—'}</p>
 				{/if}
-			</div>
+			</Stack>
 		{/each}
-	</div>
+	</Grid>
 {:else if on_change}
 	<p class="text-sm text-muted-foreground">{ctx.t('component.no_print_details')}</p>
 {:else}

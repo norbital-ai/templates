@@ -307,6 +307,23 @@ test.effect(
 				pendingIds: ['64599']
 			});
 			expect(unaudited.calls).toHaveLength(1);
+			const draftRead = yield* readSalesDocuments(
+				bills.sales,
+				sales,
+				fixture({
+					ICStockBillEntry: [deliveryLine],
+					ICStockBill: [{ ...deliveryHeader, checked_on: null }]
+				}),
+				'delivery',
+				[],
+				[],
+				undefined,
+				undefined,
+				true
+			);
+			expect(draftRead.pendingIds).toEqual([]);
+			expect(draftRead.documents).toHaveLength(1);
+			expect(draftRead.documents[0]?.status).toBe('draft');
 			expect(deliveries[0]?.lines[0]).toMatchObject({
 				localLine: { id: 'line-owned' },
 				upstream: { fid: '34135', entryId: '1' },

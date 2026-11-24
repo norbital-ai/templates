@@ -34,6 +34,9 @@ export default policy({
 		credit_snapshots: {
 			outputs: { default: {} }
 		},
+		credit_releases: {
+			outputs: { default: { history: true } }
+		},
 		commercial_settings: {
 			outputs: { default: { history: true } },
 			update: {

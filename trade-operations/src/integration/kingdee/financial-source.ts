@@ -509,7 +509,10 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 	const { transactions: invoices } = yield* known;
 	const facts: { readonly bill: Bill; readonly fact: PaymentFact }[] = [];
 	for (const bill of Object.values(bills)) {
-		const owned = graph.invoices.filter((invoice) => invoice.owner.direction === bill.direction);
+		const owned = graph.invoices.filter(
+			(invoice): invoice is typeof invoice & { readonly status: 'issued' | 'void' } =>
+				invoice.owner.direction === bill.direction && invoice.status !== 'draft'
+		);
 		const complete = yield* selectByIds(
 			ctx,
 			paymentProjection(bill),
@@ -616,7 +619,16 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	);
 	if (graph === null) return { rows: [], cursor, more: false };
 	const facts = yield* checked(() =>
-		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt, costCurrency)
+		mapSalesFacts(
+			graph.deliveries.filter(
+				(doc): doc is typeof doc & { readonly status: 'issued' | 'void' } => doc.status !== 'draft'
+			),
+			graph.invoices.filter(
+				(doc): doc is typeof doc & { readonly status: 'issued' | 'void' } => doc.status !== 'draft'
+			),
+			graph.observedAt,
+			costCurrency
+		)
 	);
 	const { source_sales_lines: previous } = yield* ctx.query({
 		source_sales_lines: {

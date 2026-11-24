@@ -16,6 +16,8 @@ export default sync('parties', 'sheet', {
 					'kind',
 					'currency',
 					'active',
+					'region',
+					'related_party',
 					'address',
 					'phone'
 				],
@@ -31,6 +33,8 @@ export default sync('parties', 'sheet', {
 			kind: party.kind,
 			currency: party.currency,
 			active: party.active,
+			region: party.region ?? '',
+			related_party: party.related_party,
 			address: party.address ?? '',
 			phone: party.phone ?? ''
 		}));

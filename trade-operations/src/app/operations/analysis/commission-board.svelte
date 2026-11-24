@@ -11,6 +11,7 @@
 		RowMenu,
 		Show,
 		Table,
+		TableSkeleton,
 		Tabs,
 		label,
 		open_record,
@@ -19,7 +20,7 @@
 		type ShowProps
 	} from '@norbital-ai/ui';
 	import { Bound } from '@norbital-ai/ui/layout';
-	import { run } from '@norbital-ai/ui/effect';
+	import { observe_once } from '@norbital-ai/ui/effect';
 	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
 
@@ -31,28 +32,18 @@
 	);
 	const first = $derived(ctx.query(request));
 	type Board = Effect.Success<ReturnType<typeof completeCommissionBoard>>;
-	let board = $state.raw<Board | null>(null);
-	let failed = $state<string | null>(null);
-	$effect(() => {
+	const boardState = observe_once(() => {
 		const answer = first.current;
-		const read = request;
-		const at = period;
-		board = null;
-		failed = null;
-		if (!answer) return;
-		let current = true;
-		void run(completeCommissionBoard(ctx, read, answer, at)).then(
-			(rows) => {
-				if (current) board = rows;
-			},
-			(failure: unknown) => {
-				if (current) failed = failure instanceof Error ? failure.message : String(failure);
-			}
-		);
-		return () => {
-			current = false;
-		};
+		return answer ? completeCommissionBoard(ctx, request, answer, period) : null;
 	});
+	const board = $derived(boardState.current ?? null);
+	const failed = $derived(
+		boardState.error === undefined
+			? null
+			: boardState.error instanceof Error
+				? boardState.error.message
+				: String(boardState.error)
+	);
 	let view = $state<'salespeople' | 'lines'>('salespeople');
 	let selection = $state<Board[number] | null>(null);
 	const people = $derived(
@@ -211,7 +202,8 @@
 			tone="danger"
 			title={failed ?? first.error?.message ?? ''}
 		/>
-	{:else if !board}<EmptyState title={ctx.t('component.reports_loading')} />
+	{:else if !board}
+		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
 	{:else}
 		<Tabs
 			level={2}
