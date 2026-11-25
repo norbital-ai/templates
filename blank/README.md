@@ -2,59 +2,49 @@
 
 ![Blank application](docs/screenshots/application.webp)
 
-An empty Norbital workspace: one read-only starter model (`notes`), no apps and no automations.
-It is the starting point for building a workspace from scratch with the workspace agent.
+A minimal Norbital Bolt starter with one read-only example model (`notes`), no apps and no automations —
+designed as a clean foundation for building a custom workspace from scratch or with the workspace agent.
 
 ## Apps and roles
 
-None. `src/+workspace.ts` declares only the time zone and locale, and no teams or policies are
-authored. The starter includes Bolt, Svelte and Effect; the workspace shell owns theme behavior.
-Add other dependencies when your source uses them.
+None. `src/+workspace.ts` declares only the time zone and locale, with no authored teams or policies. The
+workspace shell provides default theming and navigation once you add your first app.
 
 ## Data model
 
-| Model   | Purpose                                                                   |
-| ------- | ------------------------------------------------------------------------- |
-| `notes` | A free-form note (`title`, optional `body`); read-only, no write contract |
+| Model   | Purpose                                                                  |
+| ------- | ------------------------------------------------------------------------ |
+| `notes` | Free-form starter note (`title`, optional `body`); read-only placeholder |
 
-Replace or delete `notes` once the first real model exists.
+Replace or delete `notes` once you author your first domain model.
 
 ## Automations and integrations
 
-None. To build on the starter:
+None. Extend this starter using standard Bolt filesystem conventions:
 
-- Models under `src/data/model/<name>/+model.ts`: storage, `ref` fields, exposure (`outputs`,
-  `create`, `update`, `delete`) and logic in one `model('<name>', { … })` call, imported from
-  `@norbital-ai/bolt` (a model without `outputs` is invisible).
-- Apps under `src/app/<app>/+app.ts` with one `+<page>.page.svelte` per page.
-- Automations under `src/automation/+<name>.automation.ts`.
-- External accounts are integrations: a definition under `src/integration/<name>/+integration.ts`
-  (Bolt's conversation integrations such as `whatsapp` and `email` are built in), a named instance in
-  `src/+workspace.ts` `connections`, and optionally an envoy (a `sys_envoy` row in Settings) bound to
-  that instance. An administrator pairs each instance
-  under **Settings → Integrations**, where its credentials are entered and stay sealed.
+- **Models:** `src/data/model/<name>/+model.ts` (`model('<name>', { … })` from `@norbital-ai/bolt` —
+  schema, refs, `outputs`, write verbs and callbacks together).
+- **Apps:** `src/app/<app>/+app.ts` with one `+<page>.page.svelte` per page.
+- **Automations:** `src/automation/+<name>.automation.ts`.
+- **Integrations:** `src/integration/<name>/+integration.ts` (built-in channels such as `whatsapp` and
+  `email` require no custom definition), paired under **Settings → Integrations**.
 
-The workspace agent (`src/agent/+agent.md`) can author all of this through its Studio tools
-(the `workspace_grep`, `workspace_write` and `workspace_diagnose` tools), which write private drafts a person
-previews and publishes. The authoring contract lives in the
-[Norbital OSS repository](https://github.com/norbital-ai/oss/tree/main/packages/bolt); the
-`authoring-tenant-workspace` skill is its published summary.
+The workspace agent (`src/agent/+agent.md`) can author models, pages and automations directly through its
+Studio tools, writing drafts you preview and publish. See the
+[Norbital OSS repository](https://github.com/norbital-ai/oss/tree/main/packages/bolt) for the authoring
+contract.
 
-## Seed
-
-None.
-
-## Checks
+## Getting started
 
 ```bash
-bun install
-bunx bolt check   # types, Svelte warnings, layout and declarations
-bun run test    # bolt test
+bun install --frozen-lockfile
+bunx bolt check
+bun run test
+bunx bolt build
 ```
 
-`bolt build` derives model, app and automation counts from `src/` and refreshes
-`counts` in `norbital.template.json` before packing the catalogue.
+Starts completely empty with no seed rows. `bolt build` refreshes `counts` in `norbital.template.json`
+from `src/`.
 
-## Maintained source reference
-
-See [the source reference](docs/source-reference.md) for the current applications/pages, model outputs and writes, automation policies, integrations and browser screenshot. The inventory is checked against this template's declarations; provider setup and deployed-release readiness remain separate checks.
+- [Documentation index](docs/README.md)
+- [Source reference](docs/source-reference.md)

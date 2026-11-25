@@ -2,58 +2,42 @@
 
 ![空白工作区界面](docs/screenshots/application.webp)
 
-一个空的 Norbital 工作区：一个只读的起始模型（`notes`），没有应用，也没有自动化。
-它是借助工作区智能体从零开始构建工作区的起点。
+极简 Norbital Bolt 起步模板：仅含一个只读示例模型（`notes`），不含预置应用与自动化，适合从零手写或由工作区智能体快速搭建定制工作区。
 
 ## 应用与角色
 
-无。`src/+workspace.ts` 只声明时区和语言区域，未编写任何团队或策略。
-起始模板包含 Bolt、Svelte 和 Effect；主题行为由工作区外壳负责。
-源码用到其他依赖时再添加。
+无。`src/+workspace.ts` 仅声明时区与语言区域，未预置团队或策略；添加首个应用后，工作区外壳会自动提供默认主题与导航。
 
 ## 数据模型
 
-| 模型    | 用途                                                       |
-| ------- | ---------------------------------------------------------- |
-| `notes` | 自由格式的笔记（`title`，可选 `body`）；只读，没有写入契约 |
+| 模型    | 用途                                                 |
+| ------- | ---------------------------------------------------- |
+| `notes` | 自由格式示例笔记（`title`、可选 `body`）；只读占位符 |
 
-第一个真正的模型建立后，替换或删除 `notes`。
+编写首个业务模型后即可替换或删除 `notes`。
 
 ## 自动化与集成
 
-无。在起始模板的基础上构建：
+无。按 Bolt 标准目录约定扩展此模板：
 
-- 模型位于 `src/data/model/<name>/+model.ts`：存储、`ref` 字段、对外开放（`outputs`、
-  `create`、`update`、`delete`）以及逻辑都写在一次 `model('<name>', { … })` 调用中，从
-  `@norbital-ai/bolt` 导入（没有 `outputs` 的模型不可见）。
-- 应用位于 `src/app/<app>/+app.ts`，每个页面对应一个 `+<page>.page.svelte`。
-- 自动化位于 `src/automation/+<name>.automation.ts`。
-- 外部账号即集成：定义位于 `src/integration/<name>/+integration.ts`
-  （Bolt 的会话集成，例如 `whatsapp` 和 `email`，已内置），命名实例写在
-  `src/+workspace.ts` 的 `connections` 中，还可以选择绑定到该实例的使者（设置中的一条 `sys_envoy` 行）。
-  管理员在**设置 → 集成**中配对每个实例，凭据在此输入并始终保持密封。
+- **模型：** `src/data/model/<name>/+model.ts`（通过 `@norbital-ai/bolt` 的 `model('<name>', { … })` 声明字段、关联、`outputs`、写入契约与回调）。
+- **应用：** `src/app/<app>/+app.ts`，每页对应一个 `+<page>.page.svelte`。
+- **自动化：** `src/automation/+<name>.automation.ts`。
+- **集成：** `src/integration/<name>/+integration.ts`（`whatsapp`、`email` 等内置渠道无需自定义），在**设置 → 集成**中配对。
 
-工作区智能体（`src/agent/+agent.md`）可以通过其 Studio 工具
-（`workspace_grep`、`workspace_write` 和 `workspace_diagnose` 工具）编写上述全部内容，这些工具写入私有草稿，
-由人员预览并发布。编写契约位于
-[Norbital OSS 仓库](https://github.com/norbital-ai/oss/tree/main/packages/bolt)；
-`authoring-tenant-workspace` 技能是其发布的摘要。
+工作区智能体（`src/agent/+agent.md`）可通过 Studio 工具直接生成草稿供预览和发布。完整编写契约见
+[Norbital OSS 仓库](https://github.com/norbital-ai/oss/tree/main/packages/bolt)。
 
-## 种子数据
-
-无。
-
-## 检查
+## 快速开始
 
 ```bash
-bun install
-bunx bolt check   # types, Svelte warnings, layout and declarations
-bun run test    # bolt test
+bun install --frozen-lockfile
+bunx bolt check
+bun run test
+bunx bolt build
 ```
 
-`bolt build` 根据 `src/` 计算模型、应用和自动化的数量，并在打包目录前
-更新 `norbital.template.json` 中的 `counts`。
+新工作区完全为空，不含种子数据；`bolt build` 会自动根据 `src/` 刷新 `norbital.template.json` 中的 `counts`。
 
-## 维护中的源码参考
-
-当前的应用/页面、模型输出与写入、自动化策略、集成以及浏览器截图，请参阅[源码参考](docs/source-reference.md)。该清单会与本模板的声明进行核对；提供方配置和已部署发布版本的就绪情况仍属单独的检查。
+- [文档目录](docs/README.md)
+- [源码参考](docs/source-reference.md)

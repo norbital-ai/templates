@@ -1,45 +1,64 @@
-# Fleet Management (`norbital_fleet_management`)
+# Fleet Management
 
-![Fleet Management live map and active dispatch](docs/screenshots/application.webp)
+![Fleet Management application](docs/screenshots/application.webp)
 
-Real-time **GPS transponder tracking, live fleet mapping, route dispatch, geofencing, and telemetry alerting** — with operational dispatch separated cleanly from isolated configuration.
+A real-time **GPS transponder tracking, live fleet mapping, route dispatch, geofencing and telemetry
+alerting** workspace — keeping daily dispatch operations cleanly separated from telematics configuration.
 
-## Core capabilities
+## Key capabilities
 
-1. **Live Fleet Map & GPS Transponder Stream (`vehicles` & `telemetry_pings`)**
-   - Synchronize GPS fixes (`lat`, `lng`, `speed_kmh`, `heading_deg`, `altitude_m`, `ignition_on`, `odometer_km`, `fuel_pct`, `hdop`) through the `gps_transponder` integration (`telemetry_pings.syncs.transponder`, running every 5 minutes and woken immediately on verified HMAC-SHA256 webhook hints) or bulk CSV/XLSX GPS log uploads (`telemetry_pings.syncs.gps_csv`).
-   - Every ping is stored in an append-only `telemetry_pings` stream and atomically refreshes its parent `vehicles` live snapshot (`last_location`, `current_speed_kmh`, `heading_deg`, `ignition_on`, `odometer_km`, `fuel_pct`, `last_ping_at`, live `status`) plus CEL-computed `is_overspeed`.
-   - Inspect all vehicles on the native `<Map>` with speed badges, live status, and glowing trajectory lines to each active route destination.
-2. **Route Dispatch, Waypoints & Live ETAs (`routes`)**
-   - Plan and dispatch trips (`planned -> dispatched -> en_route -> arrived -> completed | cancelled`) with origin, destination, ordered `route_waypoints`, planned vs actual timestamps, Haversine road-distance estimation, and live `eta_minutes`.
-   - Moving a route to `dispatched` or `en_route` automatically syncs the vehicle's live destination (and clears the old vehicle on reassignment); completing or cancelling clears it and returns the vehicle to `available`.
-   - Recalculate ETAs on demand (`refresh_route_eta`) using live vehicle GPS speed or optional **Google Routes** traffic, automatically flagging `route_delay` alerts when projected arrival slips.
-3. **Geofences & Operational Alerts (`geofences` & `fleet_alerts`)**
-   - Define circular geofences (`depot`, `job_site`, `customer`, `corridor`, `restricted`) with configurable radius, optional zone speed limit override, and enter/exit triggers.
-   - Overspeeding, geofence transitions, stale/offline transponders (>30 min via `check_fleet_health`), and route delays create `seq`-numbered `fleet_alerts` (`open -> acknowledged -> resolved`).
+- **Live fleet map & GPS transponder stream:** Ingest GPS fixes (`lat`, `lng`, `speed_kmh`, `heading_deg`,
+  `altitude_m`, `ignition_on`, `odometer_km`, `fuel_pct`, `hdop`) via the `gps_transponder` integration
+  (5-minute poll woken immediately by HMAC-SHA256 webhooks) or bulk CSV/XLSX log uploads. Every ping lands
+  in append-only `telemetry_pings` and atomically refreshes the parent vehicle's live snapshot and CEL
+  `is_overspeed` flag.
+- **Route dispatch, waypoints & live ETAs:** Plan and track trips (`planned → dispatched → en_route →
+arrived → completed | cancelled`) with ordered `route_waypoints`, Haversine road-distance estimates,
+  automatic vehicle destination sync, and on-demand traffic ETA refreshes via optional **Google Routes**.
+- **Circular geofences & operational alerting:** Define `depot`, `job_site`, `customer`, `corridor` and
+  `restricted` geofences with optional zone speed-limit overrides and enter/exit triggers. Overspeeding,
+  geofence crossings, stale/offline transponders (> 30 min) and route delays automatically open
+  `seq`-numbered `fleet_alerts` (`open → acknowledged → resolved`).
 
-## Navigation & isolated configuration
+## Apps and roles
 
-Every model has one primary home across 2 apps:
+| App                  | Pages                              | Audience / role                                               |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| **Fleet Operations** | Live Map, Vehicles, Routes, Alerts | `Dispatchers`, `Fleet Managers`, `Drivers` (own routes/reads) |
+| **Configuration**    | Connections, Geofences, Drivers    | `Fleet Managers` (isolated telematics & master configuration) |
 
-- **Fleet Operations**: `Live Map` (real-time `<Map>` + active dispatch `<Table>` with live ETA/health actions), `Vehicles`, `Routes`, `Alerts`.
-- **Configuration** (isolated): `Connections` (`GPS Transponder Gateway` & `Google Routes`), `Geofences` (table + map split), `Drivers`.
+## Data model
 
-## Data model (6 models, 1 custom field, 2 syncs)
+6 models and 1 custom field (`route_waypoints`):
 
 - `vehicles` — transponder-equipped fleet assets (`is_overspeed` CEL computed field, 5-tab Vehicle Hub).
-  - `telemetry_pings` (`owned: true`) — append-only GPS transponder fixes (`transponder` webhook-woken/5-min HTTP sync + `gps_csv` CSV/XLSX file sync).
-- `routes` — `seq`-numbered dispatched trips (`route_waypoints` custom field, `closed_locked`).
+  - `telemetry_pings` (`owned: true`) — append-only GPS transponder stream (`transponder` HTTP/webhook
+    sync and `gps_csv` file sync).
+- `routes` — `seq`-numbered dispatched trips with ordered `route_waypoints` and `closed_locked` seal.
 - `fleet_alerts` — `seq`-numbered exception ledger (`resolved_locked`).
-- `geofences` — GPS boundary circles, zone speed overrides, and enter/exit triggers.
+- `geofences` — GPS boundary circles, zone speed overrides and enter/exit alert triggers.
 - `drivers` — commercial drivers and license compliance.
 
-See [docs/README.md](docs/README.md) and [docs/source-reference.md](docs/source-reference.md) for workflows and exact source inventory.
+## Automations and integrations
 
-## Development & verification
+| Automation / integration | Trigger / type             | Purpose                                                                                   |
+| ------------------------ | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `refresh_route_eta`      | Manual (Live Map / route)  | Recomputes live route ETAs from GPS speed or Google Routes and flags `route_delay` alerts |
+| `check_fleet_health`     | Every 15 min; manual run   | Detects stale/offline GPS transponders (> 30 min) and opens `transponder_offline` alerts  |
+| `gps_transponder`        | Webhook-woken / 5-min sync | Pulls live GPS fixes from a transponder gateway (HMAC-SHA256 verified webhook hint)       |
+| `google_routes`          | Optional HTTP integration  | Supplies live traffic ETA calculations for active routes                                  |
+
+## Getting started
 
 ```bash
-bolt build
-bolt check
-bolt test
+bun install --frozen-lockfile
+bunx bolt check
+bun run test
+bunx bolt build
 ```
+
+A fresh workspace starts empty; add drivers, geofences and your `gps_transponder` / `google_routes`
+connections under **Configuration**, or upload GPS logs via CSV/XLSX on a vehicle.
+
+- [Workflow guide](docs/README.md)
+- [Source reference](docs/source-reference.md)

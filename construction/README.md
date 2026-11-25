@@ -1,58 +1,76 @@
-# Construction Operations (`norbital_construction`)
+# Construction Operations
 
 ![Construction Operations application](docs/screenshots/application.webp)
 
-A generic **contractor project management system (PMS)** designed for **both main contractors coordinating specialized trade subcontractors and subcontractors or specialist contractors managing their own projects**. Unstructured updates from **WhatsApp**, **Email**, and structured **BIM IFC** models are organized into three operational pillars: **Cashflow**, **Progression**, and **Documentation & BIM Costing**.
+A generic contractor project management workspace for **both main contractors coordinating specialized
+trade subcontractors and subcontractors or specialist contractors managing their own projects**.
+Unstructured updates from **WhatsApp**, **Email** and structured **BIM IFC** models are organized into
+three pillars: **Cashflow**, **Progression**, and **Documentation & BIM Costing**.
 
-## Core capabilities
+## Key capabilities
 
-1. **Automated BIM IFC takeoff & cost estimation pipeline**
-   - Upload `.ifc` models into `project_files` (automatic `revision_trail` + Autodesk ACC model/sheet sync).
-   - `analyze_bim_file` automatically parses the ISO-10303-21 IFC STEP file on upload, classifies every physical asset against the quantifiable **Costing Matrix** (`cost_matrix`), flags unmatched assets for review, and combines quantified BIM subtotals with editable **Additional Non-BIM Costings** (preliminaries, hoisting, permits, testing, contingency) inside `cost_estimates`.
-   - Inspect models in the 3D IFC viewer (X/Y/Z axis section planes, severity/4D highlights, click-to-tag `issues` with `bim_pin` and site `photos`).
-2. **Large-scale project planning & progression (`tasks` & `issues`)**
-   - Switch between **Timeline** (4D date-axis scrubber, milestone diamonds, variation markers), **Table**, and **Board** views of `tasks`.
-   - Import large-scale programmes directly from **Autodesk ACC/APS** (`autodesk_schedule` two-way sync), **Primavera P6 (`.xer`)**, **MS Project (`.xml`)**, CSV, and XLSX (`schedule_file`).
-   - Track BIM-pinned **Issues & Snags** (`issues`) by trade specialty (`roofing`, `flooring`, `mne`, `electrical`, `plumbing`, `hvac`, `structural`, `facade`, `piling`, etc.) as part of progression and 3D visualization.
-3. **Contract management, PO / DO / Invoice matching & cashflow**
-   - **Contracts (`contracts`)**: unified upstream (main contract / client subcontract) and downstream (trade subcontract / supply agreement / variation order) ledger with `priced_lines`, revision archival (`revision_trail`), EOT days, and permanent lock upon activation.
-   - **Commercial Ledger (`commercial_documents`)**: exact `BigDecimal` ledger for **POs**, **DOs**, **Invoices**, **Progress Claims**, and **Credit Notes** across inflows and outflows, with automatic **3-way PO → DO → Invoice matching** (`match_status`), SQL-aggregated commercial `<Chart>`, and one-click **Draft progress claim** (`generate_payment_claim`).
-4. **WhatsApp & Email intake into structured records**
-   - Connect personal or workspace **WhatsApp**, **Email**, and **Autodesk ACC** accounts under the isolated **Configuration** app.
-   - Messages sync automatically on new `sys_message` arrival (with a 15-minute safety net via `sync_messages`), transcribe voice notes, route to projects (`classify_messages`), AI-extract (`extract_project_updates`) structured task progression, BIM issues, draft variation orders, and PO/DO/Invoice records, and deliver 06:00 SGT digests (`daily_project_digest`).
+- **Automated BIM IFC takeoff & costing:** Upload `.ifc` models into `project_files` (with automatic
+  `revision_trail` and Autodesk ACC sync). `analyze_bim_file` parses ISO-10303-21 STEP files on upload,
+  classifies assets against the quantifiable **Costing Matrix** (`cost_matrix`), flags unmatched assets,
+  and combines quantified BIM totals with editable **Additional Non-BIM Costings** inside `cost_estimates`.
+- **3D BIM viewer & issue tracking:** Inspect `.ifc` models with X/Y/Z axis section planes and 4D/severity
+  highlights, and pin site **Issues & Snags** (`issues`) directly to 3D elements by trade specialty
+  (`roofing`, `flooring`, `mne`, `electrical`, `plumbing`, `hvac`, `structural`, `facade`, `piling`, etc.).
+- **Large-scale planning & progression:** Manage `tasks` across **Timeline** (4D scrubber and milestone
+  diamonds), **Table** and **Board** views, with two-way **Autodesk ACC/APS** sync (`autodesk_schedule`)
+  and **Primavera P6 (`.xer`)**, **MS Project (`.xml`)**, CSV and XLSX imports (`schedule_file`).
+- **Contracts, PO / DO / Invoice matching & cashflow:** Manage upstream and downstream `contracts`
+  (with `priced_lines`, revision history, EOT days and activation locks) alongside an exact `BigDecimal`
+  `commercial_documents` ledger featuring automatic **3-way PO → DO → Invoice matching** and one-click
+  progress claim drafts (`generate_payment_claim`).
+- **WhatsApp & email intake:** Connect personal or workspace **WhatsApp**, **Email** and **Autodesk ACC**
+  under isolated **Configuration**; inbound messages sync automatically, transcribe voice notes, route to
+  projects, extract task/issue/commercial updates, and deliver 06:00 daily digests.
 
-## Navigation & isolated configuration
+## Apps and roles
 
-Every model has one primary home across 2 apps:
+| App               | Pages                                 | Audience / role                                                        |
+| ----------------- | ------------------------------------- | ---------------------------------------------------------------------- |
+| **Operations**    | Projects (Project Hub), Messages      | `Project Managers`, `Commercial`, `Site Supervisors`, `Subcontractors` |
+| **Configuration** | Connections, Contacts, Costing Matrix | `Project Managers`, `Commercial` (isolated setup & master data)        |
 
-- **Operations**: `Projects` (portfolio & single-row Project Hub), `Messages` (WhatsApp & email inbox with Sync, Route, and Extract toolbar actions).
-- **Configuration** (isolated): `Connections` (`WhatsApp`, `Email`, `Autodesk ACC` + personal intake rules), `Contacts` (trade subcontractors, clients, consultants, suppliers), `Costing Matrix` (quantifiable BIM classification & unit-rate rules).
+Opening a project lands on the single-row **Project Hub** tabs: **Overview**, **Programme & Tasks**,
+**BIM & Issues**, **Cost Estimations**, **BIM & Documents**, **Contracts & VOs**, and **PO / DO / Invoices**.
 
-Opening a project lands on the single-row **Project Hub** (`RecordShell` native tabs):
+## Data model
 
-| Tab                    | What lives here                                                                                                                                               |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**           | Project role (`main_contractor` / `subcontractor` / `specialist_contractor`), terms, spatial `zones`, cashflow KPIs, and SQL-aggregated commercial `<Chart>`. |
-| **Programme & Tasks**  | 4D programme (`Timeline` / `Table` / `Board`) with Autodesk ACC, Primavera P6 (`.xer`), MS Project (`.xml`), and CSV/XLSX sync.                               |
-| **BIM & Issues**       | Split 3D IFC viewer (axis section scrubbers, click-to-tag) alongside the BIM-pinned **Issues & Snags** (`issues`) register.                                   |
-| **Cost Estimations**   | Automated `cost_estimates` combining IFC asset takeoff, matrix coverage checks, and editable non-BIM additional costings.                                     |
-| **BIM & Documents**    | `project_files` register for `.ifc` models, drawings, specifications, and Autodesk ACC sheets with automatic `revision_trail`.                                |
-| **Contracts & VOs**    | Unified upstream & downstream **Contracts & Variations** (`contracts`) with `priced_lines` and activation locks.                                              |
-| **PO / DO / Invoices** | Unified **Commercial Ledger** (`commercial_documents`) with 3-way PO → DO → Invoice matching and one-click `generate_payment_claim`.                          |
+11 models and 6 custom fields (`bim_takeoff`, `bim_pin`, `priced_lines`, `revision_trail`,
+`project_zones`, `project_address`):
 
-## Data model (11 models, 6 custom fields)
+- **Project root (`projects`):** holds `project_role` (`main_contractor` / `subcontractor` /
+  `specialist_contractor`), commercial terms, `autodesk_project_id`, `zones` and `capture_rules`.
+  - Owned children: `contracts`, `commercial_documents`, `tasks`, `issues`, `project_files`,
+    `cost_estimates`.
+- **Intake & configuration:** `project_messages`, `contacts`, `cost_matrix`, `communication_settings`.
 
-- `projects` — project root (`project_role`, commercial terms, `autodesk_project_id`, `zones`, `capture_rules`, `address`).
-  - Owned children (`owned: true`): `contracts`, `commercial_documents`, `tasks`, `issues`, `project_files`, `cost_estimates`.
-- Shared & configuration models: `project_messages`, `contacts`, `cost_matrix`, `communication_settings`.
-- Reusable custom fields (6): `bim_takeoff`, `bim_pin`, `priced_lines`, `revision_trail`, `project_zones`, `project_address`.
+## Automations and integrations
 
-See [docs/README.md](docs/README.md) and [docs/source-reference.md](docs/source-reference.md) for workflows and exact source inventory.
+| Automation / integration  | Trigger / type                                       | Purpose                                                                                     |
+| ------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `analyze_bim_file`        | `project_files` IFC upload; manual run               | Parses IFC geometry/classes, prices against `cost_matrix` and writes `cost_estimates`       |
+| `sync_messages`           | `sys_message` arrival; 15-min safety net; manual run | Mirrors WhatsApp/email messages and transcribes voice notes into `project_messages`         |
+| `classify_messages`       | Message intake; manual run                           | Routes unstructured messages to projects                                                    |
+| `extract_project_updates` | Routed messages; manual run                          | AI-extracts task progression, BIM issues, draft variations and PO/DO/Invoice records        |
+| `generate_payment_claim`  | Manual (on a project)                                | Drafts a `BigDecimal` progress claim from active contracts and commercial documents         |
+| `daily_project_digest`    | Daily 06:00                                          | Delivers project exception and progression digests                                          |
+| `autodesk` integration    | Two-way sync (`tasks`, `project_files`)              | Connects Autodesk ACC/APS programmes, models and sheets alongside built-in WhatsApp & Email |
 
-## Development & verification
+## Getting started
 
 ```bash
-bolt build
-bolt check
-bolt test
+bun install --frozen-lockfile
+bunx bolt check
+bun run test
+bunx bolt build
 ```
+
+A fresh workspace starts empty; configure trade contacts, costing matrix rules and connections
+(WhatsApp, Email, Autodesk ACC) under **Configuration**.
+
+- [Workflow guide](docs/README.md)
+- [Source reference](docs/source-reference.md)

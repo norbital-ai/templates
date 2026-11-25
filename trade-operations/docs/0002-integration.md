@@ -44,7 +44,27 @@ an audited SO into a new version, as KIS's 订单变更 does. An audited PO refu
 domestic delivery date or the last day of the foreign shipment window. Kingdee keeps the header (party, currency, order
 date, salesperson, settlement); a local change to it is refused. Purchase
 orders take part once the ledger's **Verified SQL account for purchase documents** is set (`directionsOf`);
-until then a PO stays local. The [README](../README.md#two-way-kingdee-sync) walks the four paths.
+until then a PO stays local.
+
+| Path                           | What moves                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SO: Trade Operations → Kingdee | Syncing creates an unaudited SO with a derived `FUUID`. Edits replace lines in place while unaudited (`修改`); once audited, edits amend via archive copy, `FVersionNo + 1` and `ICOrderAlter` (`订单变更`). |
+| SO: Kingdee → Trade Operations | Header (party, salesperson, settlement, date, currency, rate, audit/void/close, version) and lines sync every minute; void or completed history is not imported.                                             |
+| PO: Trade Operations → Kingdee | Syncing creates an unaudited PO and replaces lines while unaudited; an audited PO refuses changes and returns to Kingdee's terms.                                                                            |
+| PO: Kingdee → Trade Operations | Mirrors `POOrder` headers and lines on the same cadence.                                                                                                                                                     |
+
+### Feed cadence
+
+| Feed                                         | Cadence      | Mechanism                                                                 |
+| -------------------------------------------- | ------------ | ------------------------------------------------------------------------- |
+| Parties, contacts, products, warehouses      | 1 min        | Master rowversions (`FModifyTime`), joined columns included               |
+| Settlement methods (`t_Settle`)              | 1 min        | Full listing only when fingerprint moves                                  |
+| Orders and lines                             | 1 min        | `SEOrder` / `POOrder.FOperDate` window                                    |
+| Deliveries, receipts, invoices, payments     | 5 min        | Document header rowversions + active unaudited `draft` DO watch-list      |
+| Sales/purchase analysis lines, lot costs     | 5–15 min     | Header rowversions (opt-in ledgers)                                       |
+| Stock (`ICInventory`)                        | 15 min       | Fingerprinted listing of lots with stock                                  |
+| Open SO commitments, credit & credit release | 5 min, 1 min | Fingerprinted SQL snapshot + incremental `t_Log.FLogID` seek              |
+| AR aging, AP aging, purchase listing         | 1 h          | Rowversion delta + bucket reconciliation / fingerprinted period snapshots |
 
 ## 3. How a read works
 
