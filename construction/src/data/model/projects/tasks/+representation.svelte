@@ -100,14 +100,16 @@
 			<Field {ctx} name="is_milestone" />
 			<Field {ctx} name="zone" />
 			<Field {ctx} name="trade_specialty" />
+			<Field {ctx} name="subcontractor_id" />
+			<Field {ctx} name="contract_id" editor={contractEditor} />
 			{#if record !== null}
 				<Field {ctx} name="status" />
 			{/if}
 			<Field {ctx} name="priority" />
 			<Field {ctx} name="progress_pct" />
-			<Field {ctx} name="baseline_range" />
 			<Field {ctx} name="schedule_range" />
 			<Field {ctx} name="actual_range" />
+			<Field {ctx} name="baseline_range" />
 			<Field {ctx} name="last_updated_on" />
 			<Column span="all"><Field {ctx} name="latest_update" /></Column>
 			<Column span="all"><Field {ctx} name="description" /></Column>
@@ -121,9 +123,7 @@
 		{...linksSummary ? { summary: linksSummary } : {}}
 	>
 		<Grid minimum="card">
-			<Field {ctx} name="contract_id" editor={contractEditor} />
 			<Field {ctx} name="assignee" />
-			<Field {ctx} name="subcontractor_id" />
 			<Field {ctx} name="external_id" />
 			<Field {ctx} name="bim_express_ids" />
 			<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />

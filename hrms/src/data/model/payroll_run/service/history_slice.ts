@@ -298,18 +298,18 @@ export const loadSpan = Effect.fn('payroll.loadSpan')(function* (
 		loan_catalog_entry: { where: theirs, limit: 10000 },
 		loan_catalog_entry_repayment: {
 			where: scopedOr(
-				entryScope.map(({ who: bucketWho, dated }) => ({
+				entryScope.map(({ who: bucketWho, dated, paidBy }) => ({
 					employment_id: { is: { employee_id: { in: bucketWho } } },
-					paid_on: dated
+					or: [{ paid_on: dated }, { payroll_run_id: { in: paidBy } }]
 				}))
 			),
 			limit: 10000
 		},
 		roster_entry: {
 			where: scopedOr(
-				entryScope.map(({ who: bucketWho, dated }) => ({
+				entryScope.map(({ who: bucketWho, dated, paidBy }) => ({
 					employment_id: { is: { employee_id: { in: bucketWho } } },
-					work_date: dated
+					or: [{ work_date: dated }, { payroll_run_id: { in: paidBy } }]
 				}))
 			),
 			fields: [
@@ -463,14 +463,18 @@ export const sliceOf = (
 	carriers: (employee: string) => ReadonlySet<string> | undefined,
 	/** Whether this period's run carried, for this person, the earlier period holding this date. */
 	carriedBack: (employee: string, date: string) => boolean,
-	accounts: ReadonlyMap<string, Accounts>
+	accounts: ReadonlyMap<string, Accounts>,
+	/** Rows (`layer/id`) released when a recalculated earlier period dropped them (e.g. cancelled exit). */
+	released: ReadonlySet<string> = new Set()
 ): RunData => {
 	const { from } = period.frame.attendance;
 	const inside = (date: unknown) =>
 		typeof date === 'string' && date >= from && date <= period.closes;
-	// a row belongs to this period when nothing sealed it, its own run did, or a run that carried for it did
-	const belongs = (row: JsonObject, carrierSet: ReadonlySet<string> | undefined) =>
+	// a row belongs to this period when nothing sealed it, its own run did, a run that carried for it did,
+	// or an earlier recalculated period just released it
+	const belongs = (layer: string, row: JsonObject, carrierSet: ReadonlySet<string> | undefined) =>
 		row.payroll_run_id == null ||
+		released.has(`${layer}/${String(row.id)}`) ||
 		String(row.payroll_run_id) === period.id ||
 		(carrierSet?.has(String(row.payroll_run_id)) ?? false);
 	// an entry this period's own run priced though it is dated before its window was paid here as a late entry: it is
@@ -480,10 +484,10 @@ export const sliceOf = (
 		typeof date === 'string' &&
 		date < from &&
 		!carriedBack(employee, date);
-	const opened = (row: JsonObject): JsonObject => ({
+	const opened = (layer: string, row: JsonObject): JsonObject => ({
 		...row,
 		payroll_run_id: null,
-		sealed: row.payroll_run_id != null
+		sealed: row.payroll_run_id != null && !released.has(`${layer}/${String(row.id)}`)
 	});
 	const contracts: JsonObject[] = [];
 	const profiles: JsonObject[] = [];
@@ -494,6 +498,7 @@ export const sliceOf = (
 	const repayments: JsonObject[] = [];
 	const leaves: JsonObject[] = [];
 	const pick = (
+		layer: string,
 		rows: readonly JsonObject[] | undefined,
 		dateField: string,
 		employee: string,
@@ -503,8 +508,8 @@ export const sliceOf = (
 		if (rows === undefined) return;
 		for (const row of rows) {
 			const date = row[dateField];
-			if ((inside(date) && belongs(row, carrierSet)) || lateHere(row, employee, date))
-				out.push(opened(row));
+			if ((inside(date) && belongs(layer, row, carrierSet)) || lateHere(row, employee, date))
+				out.push(opened(layer, row));
 		}
 	};
 	for (const employee of who) {
@@ -516,24 +521,52 @@ export const sliceOf = (
 		const balance = indexed.balanceByEmployee.get(employee);
 		const held = accounts.get(employee);
 		if (balance !== undefined && held !== undefined) balances.push({ ...balance, account: held });
-		pick(indexed.rosterByEmployee.get(employee), 'work_date', employee, carrierSet, rosters);
-		pick(indexed.claimByEmployee.get(employee), 'incurred_on', employee, carrierSet, claims);
-		pick(indexed.adhocByEmployee.get(employee), 'incurred_on', employee, carrierSet, adhocs);
-		pick(indexed.repaymentByEmployee.get(employee), 'paid_on', employee, carrierSet, repayments);
+		pick(
+			'roster_entry',
+			indexed.rosterByEmployee.get(employee),
+			'work_date',
+			employee,
+			carrierSet,
+			rosters
+		);
+		pick(
+			'claim',
+			indexed.claimByEmployee.get(employee),
+			'incurred_on',
+			employee,
+			carrierSet,
+			claims
+		);
+		pick(
+			'adhoc',
+			indexed.adhocByEmployee.get(employee),
+			'incurred_on',
+			employee,
+			carrierSet,
+			adhocs
+		);
+		pick(
+			'repayment',
+			indexed.repaymentByEmployee.get(employee),
+			'paid_on',
+			employee,
+			carrierSet,
+			repayments
+		);
 		for (const row of indexed.leaveByEmployee.get(employee) ?? []) {
 			const days = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
 				.filter(isJsonObject)
 				.map((child) =>
 					// a cash-out's dates are placeholders: one no run has taken is the next run's own, and one this period's
 					// run took is this period's
-					belongs(child, carrierSet) &&
+					belongs('leave_day', child, carrierSet) &&
 					(row.encashment === true ? child.payroll_run_id != null : inside(child.incurred_on))
-						? opened(child)
+						? opened('leave_day', child)
 						: // a slot another period priced stays sealed: this one neither prices nor reads it
 							{ ...child, payroll_run_id: child.payroll_run_id ?? 'other' }
 				);
 			if (days.some((child) => child.payroll_run_id === null))
-				leaves.push({ ...opened(row), leave_catalog_entry_day: days });
+				leaves.push({ ...opened('leave', row), leave_catalog_entry_day: days });
 		}
 	}
 	const group = indexed.payGroupById.get(String(period.run.pay_group_id));

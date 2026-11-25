@@ -31,10 +31,7 @@
 	let { view, ctx }: { view: RecordView<'cost_estimates'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	const canAnalyzeBim = $derived(
-		ctx.catalog?.cost_estimates?.create !== undefined ||
-			ctx.catalog?.project_files?.create !== undefined
-	);
+	const canAnalyzeBim = $derived(ctx.catalog?.cost_estimates?.update !== undefined);
 	const analyze = use_act(ctx);
 	let lastRunId = $state<string | null>(null);
 	let streaming = $state(false);
@@ -43,18 +40,18 @@
 	let localIfcInput = $state<HTMLInputElement | null>(null);
 	const money = { kind: 'money', currency: 'currency' } as const;
 
-	const linkedFileQuery = $derived(
-		record?.bim_file_id != null
+	const projectQuery = $derived(
+		record?.project_id != null
 			? ctx.query({
-					project_files: {
-						where: { id: { eq: record.bim_file_id } },
-						fields: ['file'],
+					projects: {
+						where: { id: { eq: record.project_id } },
+						fields: ['bim_file'],
 						limit: 1
 					}
 				})
 			: null
 	);
-	const linkedFileRef = $derived(linkedFileQuery?.current?.project_files.rows[0]?.file ?? null);
+	const projectBimFile = $derived(projectQuery?.current?.projects.rows[0]?.bim_file ?? null);
 
 	const controller = use_record_controller();
 	const liveForm = $derived(controller?.current ?? null);
@@ -89,58 +86,43 @@
 	}
 
 	function triggerReanalyze(): void {
-		if (!record || record.bim_file_id == null || streaming || analyze.pending) return;
-		const bimFileId = record.bim_file_id;
+		if (!record || projectBimFile == null || streaming || analyze.pending) return;
 		streamError = null;
 		streamNotice = null;
-		if (linkedFileRef != null) {
-			streaming = true;
-			fork(
-				extractBimFromUrl(ctx.file_url(linkedFileRef), (progress) => {
-					streamNotice = formatProgress(progress);
-				}).pipe(
-					Effect.match({
-						onFailure: (error) => {
-							streaming = false;
-							streamNotice = null;
-							streamError = error.message;
-						},
-						onSuccess: (res) => {
-							streaming = false;
-							streamNotice = t('bim_costing.streaming_done', {
-								assets: res.extracted.total_asset_count,
-								archetypes: res.extracted.archetypes.length,
-								visuals: res.visualCapturedCount,
-								ms: res.durationMs
-							});
-							analyze.run(
-								ctx.run('analyze_bim_file', {
-									project_file_id: bimFileId,
-									estimate_id: record.id,
-									extracted_model: res.extracted
-								}),
-								{
-									then: (handle) => {
-										lastRunId = handle.output.id;
-									}
+		streaming = true;
+		fork(
+			extractBimFromUrl(ctx.file_url(projectBimFile), (progress) => {
+				streamNotice = formatProgress(progress);
+			}).pipe(
+				Effect.match({
+					onFailure: (error) => {
+						streaming = false;
+						streamNotice = null;
+						streamError = error.message;
+					},
+					onSuccess: (res) => {
+						streaming = false;
+						streamNotice = t('bim_costing.streaming_done', {
+							assets: res.extracted.total_asset_count,
+							archetypes: res.extracted.archetypes.length,
+							visuals: res.visualCapturedCount,
+							ms: res.durationMs
+						});
+						analyze.run(
+							ctx.run('analyze_bim_file', {
+								project_id: record.project_id,
+								estimate_id: record.id,
+								extracted_model: res.extracted
+							}),
+							{
+								then: (handle) => {
+									lastRunId = handle.output.id;
 								}
-							);
-						}
-					})
-				)
-			);
-			return;
-		}
-		analyze.run(
-			ctx.run('analyze_bim_file', {
-				project_file_id: bimFileId,
-				estimate_id: record.id
-			}),
-			{
-				then: (handle) => {
-					lastRunId = handle.output.id;
-				}
-			}
+							}
+						);
+					}
+				})
+			)
 		);
 	}
 
@@ -175,7 +157,6 @@
 							ctx.run('analyze_bim_file', {
 								project_id: record.project_id,
 								estimate_id: record.id,
-								...(record.bim_file_id != null ? { project_file_id: record.bim_file_id } : {}),
 								extracted_model: res.extracted
 							}),
 							{
@@ -191,19 +172,6 @@
 	}
 </script>
 
-{#snippet bimFileEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="project_files"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
 {#snippet contractEditor(field: FieldEditor)}
 	<Picker
 		{ctx}
@@ -218,7 +186,7 @@
 {/snippet}
 
 {#snippet headerActions()}
-	{#if canAnalyzeBim && record && record.status === 'draft'}
+	{#if canAnalyzeBim && record && (record.status === 'draft' || record.status === 'void')}
 		<input
 			bind:this={localIfcInput}
 			type="file"
@@ -226,7 +194,7 @@
 			class="hidden"
 			onchange={handleLocalIfcSelected}
 		/>
-		{#if record.bim_file_id != null}
+		{#if projectBimFile != null}
 			<Button variant="outline" disabled={analyze.pending || streaming} onclick={triggerReanalyze}>
 				<Icon name="lucide:scan-line" class="size-3.5" />
 				{t('bim_costing.reanalyze_bim')}
@@ -263,7 +231,7 @@
 		<RunStatus {ctx} automation="analyze_bim_file" run={lastRunId} />
 	{/if}
 
-	{#if record && (record.bim_asset_count > 0 || toNumber(record.bim_subtotal) !== 0 || toNumber(record.additional_subtotal) !== 0 || toNumber(record.total_estimate) !== 0)}
+	{#if record && (record.bim_asset_count > 0 || toNumber(record.bim_subtotal) !== 0 || toNumber(record.total_estimate) !== 0)}
 		<Surface tone="card" padding="md" radius="control">
 			<Grid minimum="card" gap="md">
 				{#if record.bim_asset_count > 0}
@@ -289,11 +257,11 @@
 						</span>
 					</Stack>
 				{/if}
-				{#if toNumber(record.additional_subtotal) !== 0}
+				{#if toNumber(record.contingency_amount) !== 0}
 					<Stack gap="xs">
-						<span class="text-meta">{t('bim_costing.additional_subtotal')}</span>
+						<span class="text-meta">{t('bim_costing.contingency')}</span>
 						<span class="text-label tabular-nums">
-							<Show {ctx} kind={money} value={record.additional_subtotal} row={record} />
+							<Show {ctx} kind={money} value={record.contingency_amount} row={record} />
 						</span>
 					</Stack>
 				{/if}
@@ -315,7 +283,6 @@
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />
 			{/if}
-			<Field {ctx} name="bim_file_id" editor={bimFileEditor} />
 			<Field {ctx} name="contract_id" editor={contractEditor} />
 			{#if record !== null}
 				<Field {ctx} name="status" />
@@ -333,10 +300,6 @@
 
 	<Section icon="lucide:box" name="bim_takeoff" title={t('section.bim_asset_takeoff')}>
 		<Field {ctx} name="bim_assets" />
-	</Section>
-
-	<Section icon="lucide:plus-circle" name="additional" title={t('section.additional_costings')}>
-		<Field {ctx} name="additional_costs" />
 	</Section>
 
 	<Section icon="lucide:file-text" name="notes" title={t('section.notes')} default_open={false}>

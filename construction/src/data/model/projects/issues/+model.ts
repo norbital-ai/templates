@@ -10,7 +10,6 @@ const columns = [
 	'zone',
 	'task_id',
 	'contract_id',
-	'bim_file_id',
 	'bim_pin',
 	'severity',
 	'status',
@@ -92,13 +91,6 @@ export default model('issues', {
 			optional: true,
 			on_delete: 'set_null'
 		},
-		bim_file_id: {
-			kind: 'ref',
-			to: 'project_files',
-			inverse: 'issues',
-			optional: true,
-			on_delete: 'set_null'
-		},
 		assignee: { kind: 'ref', to: 'sys_user', optional: true },
 		party: {
 			kind: 'ref',
@@ -125,7 +117,6 @@ export default model('issues', {
 			project_id: { fields: ['project_name', 'project_number'] },
 			task_id: { fields: ['task_code', 'title'] },
 			contract_id: { fields: ['contract_number', 'title'] },
-			bim_file_id: { fields: ['document_number', 'title'] },
 			assignee: { fields: ['name'] },
 			party: { fields: ['full_name', 'company_name', 'trade_specialty'] },
 			source_message_id: { fields: ['subject', 'transport'] }

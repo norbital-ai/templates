@@ -15,6 +15,8 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
+	import CatalogLinesEditor from '../../../../lib/CatalogLinesEditor.svelte';
+	import { decodePricedLines } from '../../../../lib/commercial.js';
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'commercial_documents'>; ctx: PageContext } = $props();
@@ -36,6 +38,30 @@
 		const id = typeof raw === 'string' ? raw : fixedProject;
 		if (id === null) return null;
 		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
+	});
+	const scopedContract = $derived.by(() => {
+		const raw = liveForm?.get('contract_id');
+		const id =
+			typeof raw === 'string'
+				? raw
+				: (record?.contract_id ??
+					(view.mode === 'create' && typeof view.values.contract_id === 'string'
+						? view.values.contract_id
+						: null));
+		if (id === null) return null;
+		return Option.getOrNull(Schema.decodeUnknownOption(id_of('contracts'))(id));
+	});
+	const scopedParentDoc = $derived.by(() => {
+		const raw = liveForm?.get('parent_document_id');
+		const id =
+			typeof raw === 'string'
+				? raw
+				: (record?.parent_document_id ??
+					(view.mode === 'create' && typeof view.values.parent_document_id === 'string'
+						? view.values.parent_document_id
+						: null));
+		if (id === null) return null;
+		return Option.getOrNull(Schema.decodeUnknownOption(id_of('commercial_documents'))(id));
 	});
 
 	let createLinkedType = $state<'delivery_order' | 'invoice' | null>(null);
@@ -81,6 +107,18 @@
 	/>
 {/snippet}
 
+{#snippet catalogLinesEditor(field: FieldEditor)}
+	<CatalogLinesEditor
+		{ctx}
+		value={decodePricedLines(field.value)}
+		disabled={field.disabled}
+		projectId={scopedProject}
+		parentContractId={scopedContract}
+		parentDocumentId={scopedParentDoc}
+		onChange={(next) => field.on_change(next ? [...next] : null)}
+	/>
+{/snippet}
+
 {#snippet docSections()}
 	<Section icon="lucide:banknote" first name="document" title={t('section.commercial_document')}>
 		<Grid minimum="card">
@@ -121,7 +159,7 @@
 					<Column span="all"><Field {ctx} name="match_notes" readonly /></Column>
 				{/if}
 			{/if}
-			<Column span="all"><Field {ctx} name="lines" /></Column>
+			<Column span="all"><Field {ctx} name="lines" editor={catalogLinesEditor} /></Column>
 		</Grid>
 	</Section>
 

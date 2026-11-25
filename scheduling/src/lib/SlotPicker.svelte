@@ -4,6 +4,7 @@
 	 * selectable start times grouped into morning, afternoon, and evening with end-time preview.
 	 */
 	import { DateTime } from 'effect';
+	import { create_radio_group } from '@norbital-ai/ui/behaviors';
 	import { Bound, Grid, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { formatCalendarDate, formatInstant } from './format.js';
 
@@ -81,31 +82,55 @@
 			? null
 			: `${formatInstant(value, zone, { weekday: 'long', day: 'numeric', month: 'long' }, locale)} · ${timeLabel(value)} – ${timeLabel(endIso(value))}`
 	);
+
+	const dayGroup = create_radio_group({
+		items: () => days.map((d) => d.day),
+		value: () => day,
+		disabled: (d) => (starts.get(d)?.length ?? 0) === 0,
+		on_change: (next) => {
+			picked = next;
+			const dayStarts = starts.get(next) ?? [];
+			if (value !== null && !dayStarts.includes(value)) onPick(null);
+		},
+		orientation: 'horizontal',
+		control: { id: 'slot-picker:day', label: 'Appointment day' }
+	});
+
+	const slotGroup = create_radio_group({
+		items: () => starts.get(day) ?? [],
+		value: () => value ?? undefined,
+		on_change: (next) => onPick(next),
+		orientation: 'horizontal',
+		control: { id: 'slot-picker:time', label: 'Appointment time' }
+	});
 </script>
 
 <Stack gap="lg">
 	<Stack gap="sm">
 		<p class="text-label">{month}</p>
-		<Scroll name="slot-days" axis="x" layout="inline" gap="xs">
+		<Scroll
+			name="slot-days"
+			axis="x"
+			layout="inline"
+			gap="xs"
+			{...dayGroup.root_attrs()}
+			aria-label={month}
+		>
 			{#each days as d (d.day)}
 				{@const open = d.starts.length}
 				{@const selected = d.day === day}
 				<span class="shrink-0">
 					<Bound
 						as="button"
-						type="button"
+						{...dayGroup.item_attrs(d.day)}
+						{@attach dayGroup.item(d.day)}
 						pad="sm"
 						disabled={open === 0}
-						aria-pressed={selected}
 						aria-label={formatCalendarDate(
 							d.day,
 							{ weekday: 'long', day: 'numeric', month: 'long' },
 							locale
 						)}
-						onclick={() => {
-							picked = d.day;
-							if (value !== null && !d.starts.includes(value)) onPick(null);
-						}}
 						class={[
 							'rounded-control border text-center transition-colors disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-content-tertiary',
 							selected
@@ -131,7 +156,15 @@
 	</Stack>
 
 	{#if day !== ''}
-		<Stack gap="md">
+		<Stack
+			gap="md"
+			{...slotGroup.root_attrs()}
+			aria-label={formatCalendarDate(
+				day,
+				{ weekday: 'long', day: 'numeric', month: 'long' },
+				locale
+			)}
+		>
 			<p class="text-label">
 				{formatCalendarDate(day, { weekday: 'long', day: 'numeric', month: 'long' }, locale)}
 			</p>
@@ -145,10 +178,9 @@
 							{@const active = value === s}
 							<Bound
 								as="button"
-								type="button"
+								{...slotGroup.item_attrs(s)}
+								{@attach slotGroup.item(s)}
 								pad="xs"
-								aria-pressed={active}
-								onclick={() => onPick(s)}
 								class={[
 									'rounded-control border text-center tabular-nums transition-colors',
 									active

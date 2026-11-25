@@ -15,6 +15,8 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
+	import CatalogLinesEditor from '../../../../lib/CatalogLinesEditor.svelte';
+	import { decodePricedLines } from '../../../../lib/commercial.js';
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'contracts'>; ctx: PageContext } = $props();
@@ -37,6 +39,18 @@
 		const id = typeof raw === 'string' ? raw : fixedProject;
 		if (id === null) return null;
 		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
+	});
+	const scopedParentContract = $derived.by(() => {
+		const raw = liveForm?.get('parent_contract_id');
+		const id =
+			typeof raw === 'string'
+				? raw
+				: (record?.parent_contract_id ??
+					(view.mode === 'create' && typeof view.values.parent_contract_id === 'string'
+						? view.values.parent_contract_id
+						: null));
+		if (id === null) return null;
+		return Option.getOrNull(Schema.decodeUnknownOption(id_of('contracts'))(id));
 	});
 
 	type ChildSheet =
@@ -75,6 +89,17 @@
 	/>
 {/snippet}
 
+{#snippet catalogLinesEditor(field: FieldEditor)}
+	<CatalogLinesEditor
+		{ctx}
+		value={decodePricedLines(field.value)}
+		disabled={field.disabled}
+		projectId={scopedProject}
+		parentContractId={scopedParentContract}
+		onChange={(next) => field.on_change(next ? [...next] : null)}
+	/>
+{/snippet}
+
 {#snippet contractSections()}
 	<Section icon="lucide:file-signature" first name="contract" title={t('section.contract')}>
 		<Grid minimum="card">
@@ -107,7 +132,7 @@
 			<Field {ctx} name="dlp_months" />
 			<Field {ctx} name="bond_amount" />
 			<Field {ctx} name="insurance_expiry" />
-			<Column span="all"><Field {ctx} name="lines" /></Column>
+			<Column span="all"><Field {ctx} name="lines" editor={catalogLinesEditor} /></Column>
 		</Grid>
 	</Section>
 
@@ -163,7 +188,18 @@
 								run: () => {
 									childSheet = { kind: 'transaction', doc_type: 'invoice' };
 								}
-							}
+							},
+							...(record.direction === 'upstream'
+								? [
+										{
+											icon: 'lucide:file-plus-2',
+											name: t('commercial.draft_claim'),
+											description: t('commercial.draft_claim_desc'),
+											run: () =>
+												ctx.run('generate_payment_claim', { project_id: record.project_id })
+										}
+									]
+								: [])
 						]
 					: [],
 				new: canCreateTx

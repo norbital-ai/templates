@@ -29,6 +29,8 @@ export interface Touched {
 	 */
 	readonly unpaid?: boolean;
 	readonly groups?: readonly unknown[];
+	/** Priced inside the run's attendance cutoff window (or a leaver's exit day), not full salary coverage. */
+	readonly attendance?: boolean;
 }
 
 /** A correction reaching more person-periods than this is made by pay group or by year. */
@@ -52,16 +54,25 @@ const windowsOf = (payslips: readonly JsonObject[], schedules: ReadonlyMap<strin
 		// an off-cycle run prices entries, not a window of attendance: it holds its people only while it is unpaid
 		const attendance =
 			run.kind !== 'ON_CYCLE' || schedule === undefined ? salary : attendanceOf(schedule, salary);
+		// a leaver's last run also prices attendance and entries after its cutoff up to their last day
+		const last = objectValue(objectValue(slip.employment_id).effective_range).to;
+		const attendanceTo =
+			typeof last === 'string' && last > attendance.to && last <= salary.to ? last : attendance.to;
 		return [
 			{
 				employee: String(slip.employee_id),
 				entity: String(slip.entity_id),
 				run,
 				from: attendance.from < salary.from ? attendance.from : salary.from,
-				to: attendance.to > salary.to ? attendance.to : salary.to
+				to: attendance.to > salary.to ? attendance.to : salary.to,
+				attendanceFrom: attendance.from,
+				attendanceTo
 			}
 		];
 	});
+
+/** A run is finalized paid only once approved: a provisional PAID write still holds its people. */
+const finalized = (run: JsonObject) => run.state === 'PAID' && run.$approval == null;
 
 const carried = (
 	touched: readonly {
@@ -73,33 +84,47 @@ const carried = (
 		readonly run?: unknown;
 		readonly undated?: boolean;
 		readonly soft?: boolean;
+		readonly attendance?: boolean;
 	}[],
 	windows: ReturnType<typeof windowsOf>,
-	open: readonly JsonObject[]
+	open: readonly JsonObject[],
+	pendingRuns: ReadonlySet<string> = new Set()
 ) =>
 	Effect.gen(function* () {
+		const isFinal = (run: JsonObject) => finalized(run) && !pendingRuns.has(String(run.id));
 		const touchedByEmployee = Map.groupBy(touched, (touch) => touch.employee);
+		const bounds = (
+			window: ReturnType<typeof windowsOf>[number],
+			touch: { readonly attendance?: boolean }
+		) =>
+			touch.attendance === true
+				? { from: window.attendanceFrom, to: window.attendanceTo }
+				: { from: window.from, to: window.to };
 		const reached = (window: ReturnType<typeof windowsOf>[number]) =>
-			(touchedByEmployee.get(window.employee) ?? []).some(
-				(touch) =>
+			(touchedByEmployee.get(window.employee) ?? []).some((touch) => {
+				const { from: wFrom, to: wTo } = bounds(window, touch);
+				return (
 					(touch.entity === undefined || touch.entity === window.entity) &&
 					((touch.undated !== true &&
-						touch.from <= window.to &&
-						(touch.to === null || touch.to >= window.from)) ||
+						touch.from <= wTo &&
+						(touch.to === null || touch.to >= wFrom)) ||
 						(touch.run != null && String(touch.run) === String(window.run.id)))
-			);
+				);
+			});
 		// nothing of a person moves under a run that is being reviewed: what it priced, or anything before it
 		const holding = windows.find(
 			(window) =>
-				window.run.state !== 'PAID' &&
-				(touchedByEmployee.get(window.employee) ?? []).some(
-					(touch) =>
+				!isFinal(window.run) &&
+				(touchedByEmployee.get(window.employee) ?? []).some((touch) => {
+					const { to: wTo } = bounds(window, touch);
+					return (
 						touch.soft !== true &&
 						(touch.entity === undefined || touch.entity === window.entity) &&
 						(touch.undated === true
 							? touch.run != null && String(touch.run) === String(window.run.id)
-							: touch.from <= window.to)
-				)
+							: touch.from <= wTo)
+					);
+				})
 		);
 		if (holding !== undefined)
 			return yield* Effect.fail(new Refusal({ message: held(holding.run) }));
@@ -110,8 +135,7 @@ const carried = (
 		);
 		const rows: Rows = [];
 		for (const window of windows) {
-			if (window.run.kind !== 'ON_CYCLE' || window.run.state !== 'PAID' || !reached(window))
-				continue;
+			if (window.run.kind !== 'ON_CYCLE' || !isFinal(window.run) || !reached(window)) continue;
 			const key = `${window.employee}/${String(window.run.pay_group_id)}/${String(window.run.period)}`;
 			if (has.has(key)) continue;
 			has.add(key);
@@ -180,8 +204,15 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 			fields: ['employee_id'],
 			limit: 10000
 		},
-		// a stint's days may fall in a period its pay group has paid without the person: the groups their terms name, and
-		// those groups' paid periods since
+		// root read carries `$approval` so provisional PAID runs are treated as holding, not finalized
+		payroll_run: {
+			where: {
+				salary_coverage: { overlaps: { from: since(touched), to: null } }
+			},
+			fields: [...RUN.fields, 'entity_id'],
+			limit: 10000
+		},
+		// a stint's days may fall in a period its pay group has paid without the person: the groups their terms name
 		...(unpaid.length === 0
 			? {}
 			: {
@@ -190,15 +221,6 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 						fields: ['pay_group_id'],
 						limit: 10000,
 						employment_id: { fields: ['employee_id'] }
-					},
-					payroll_run: {
-						where: {
-							kind: { eq: 'ON_CYCLE' },
-							state: { eq: 'PAID' },
-							salary_coverage: { overlaps: { from: since(unpaid), to: until(unpaid) } }
-						},
-						fields: [...RUN.fields, 'entity_id'],
-						limit: 10000
 					}
 				}),
 		// the paid periods the touched days fall in, any run not yet paid that holds the person from them on, and the runs
@@ -223,8 +245,9 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 					{ payroll_run_id: { in: sealing } }
 				]
 			},
-			fields: ['employee_id', 'entity_id', 'payroll_run_id'],
+			fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
 			limit: REACH,
+			employment_id: { fields: ['effective_range'] },
 			payroll_run_id: RUN
 		},
 		pay_group: { fields: ['payment_schedule'], limit: 200 },
@@ -237,7 +260,38 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	const employeeOf = new Map(
 		(known.employment ?? []).map((row) => [String(row.id), row.employee_id])
 	);
-	const slips = known.payslip ?? [];
+	const allRuns = known.payroll_run ?? [];
+	const pendingRuns = new Set(
+		allRuns.filter((run) => !finalized(run)).map((run) => String(run.id))
+	);
+	// a run provisionally marked PAID past `until(touched)` still holds its people while approval waits
+	const provisionalPaidIds = idsOf(
+		'payroll_run',
+		allRuns.filter((run) => run.state === 'PAID' && run.$approval != null).map((run) => run.id)
+	);
+	const extraSlips =
+		provisionalPaidIds.length === 0
+			? []
+			: ((yield* queryRows(read, {
+					payslip: {
+						where: {
+							employee_id: { is: theirs },
+							payroll_run_id: { in: provisionalPaidIds }
+						},
+						fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
+						limit: REACH,
+						employment_id: { fields: ['effective_range'] },
+						payroll_run_id: RUN
+					}
+				})).payslip ?? []);
+	const slips = [
+		...new Map(
+			[...(known.payslip ?? []), ...extraSlips].map((slip) => [
+				`${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`,
+				slip
+			])
+		).values()
+	];
 	const paid = new Set(
 		slips.map((slip) => `${slip.employee_id}/${String(objectValue(slip.payroll_run_id).id)}`)
 	);
@@ -256,19 +310,31 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		],
 		(row) => row.employee
 	);
+	const unpaidFrom = unpaid.length === 0 ? '' : since(unpaid);
+	const unpaidTo = unpaid.length === 0 ? null : until(unpaid);
 	// the periods a group paid without the person stand as payslips that paid nothing
-	const missed = [...groupsOf].flatMap(([employee, rows]) =>
-		(known.payroll_run ?? [])
-			.filter(
-				(run) =>
-					rows.some((row) => row.group === run.pay_group_id) && !paid.has(`${employee}/${run.id}`)
-			)
-			.map((run) => ({
-				employee_id: employee,
-				entity_id: run.entity_id ?? null,
-				payroll_run_id: run
-			}))
-	);
+	const missed =
+		unpaid.length === 0
+			? []
+			: [...groupsOf].flatMap(([employee, rows]) =>
+					allRuns
+						.filter((run) => {
+							const cov = objectValue(run.salary_coverage);
+							return (
+								run.kind === 'ON_CYCLE' &&
+								finalized(run) &&
+								String(cov.to ?? '') >= unpaidFrom &&
+								(unpaidTo === null || String(cov.from ?? '') <= unpaidTo) &&
+								rows.some((row) => row.group === run.pay_group_id) &&
+								!paid.has(`${employee}/${run.id}`)
+							);
+						})
+						.map((run) => ({
+							employee_id: employee,
+							entity_id: run.entity_id ?? null,
+							payroll_run_id: run
+						}))
+				);
 	return yield* carried(
 		touched.flatMap((touch) => {
 			const employee = touch.employee ?? employeeOf.get(String(touch.employment));
@@ -281,7 +347,8 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 							to: touch.to === undefined ? touch.from : touch.to,
 							run: touch.run,
 							...(touch.undated === true ? { undated: true } : {}),
-							...(touch.soft === true ? { soft: true } : {})
+							...(touch.soft === true ? { soft: true } : {}),
+							...(touch.attendance === true ? { attendance: true } : {})
 						}
 					];
 		}),
@@ -289,7 +356,8 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 			[...slips, ...missed],
 			new Map((known.pay_group ?? []).map((row) => [row.id, objectValue(row.payment_schedule)]))
 		),
-		known.pay_amendment ?? []
+		known.pay_amendment ?? [],
+		pendingRuns
 	);
 });
 
@@ -309,7 +377,8 @@ export const followers = Effect.fn('payroll.followers')(function* (
 	return terms.map((row): Touched => ({
 		employment: row.employment_id,
 		from: row.effective_from,
-		to: null
+		to: null,
+		attendance: true
 	}));
 });
 
@@ -340,6 +409,14 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 	const first = since(spans);
 	const last = until(spans);
 	const known = yield* queryRows(read, {
+		payroll_run: {
+			where: {
+				entity_id: { in: entities },
+				salary_coverage: { overlaps: { from: first, to: null } }
+			},
+			fields: ['id', 'state'],
+			limit: 10000
+		},
 		payslip: {
 			where: {
 				entity_id: { in: entities },
@@ -368,8 +445,9 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 							]
 						})
 			},
-			fields: ['employee_id', 'entity_id', 'payroll_run_id'],
+			fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
 			limit: REACH,
+			employment_id: { fields: ['effective_range'] },
 			payroll_run_id: RUN
 		},
 		pay_group: {
@@ -387,7 +465,43 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 			limit: 10000
 		}
 	});
-	const slips = known.payslip ?? [];
+	const allRuns = known.payroll_run ?? [];
+	const pendingRuns = new Set(
+		allRuns.filter((run) => !finalized(run)).map((run) => String(run.id))
+	);
+	const provisionalPaidIds =
+		last === null
+			? []
+			: idsOf(
+					'payroll_run',
+					allRuns
+						.filter((run) => run.state === 'PAID' && run.$approval != null)
+						.map((run) => run.id)
+				);
+	const extraSlips =
+		provisionalPaidIds.length === 0
+			? []
+			: ((yield* queryRows(read, {
+					payslip: {
+						where: {
+							entity_id: { in: entities },
+							...(named === null ? {} : { employee_id: { in: named } }),
+							payroll_run_id: { in: provisionalPaidIds }
+						},
+						fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
+						limit: REACH,
+						employment_id: { fields: ['effective_range'] },
+						payroll_run_id: RUN
+					}
+				})).payslip ?? []);
+	const slips = [
+		...new Map(
+			[...(known.payslip ?? []), ...extraSlips].map((slip) => [
+				`${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`,
+				slip
+			])
+		).values()
+	];
 	// a full page is one the read could not finish: the correction is too wide for one save
 	if (slips.length >= REACH) return yield* Effect.fail(new Refusal({ message: TOO_WIDE }));
 	const people = Map.groupBy(slips, (slip) => String(slip.entity_id));
@@ -402,7 +516,8 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 			slips,
 			new Map((known.pay_group ?? []).map((row) => [row.id, objectValue(row.payment_schedule)]))
 		),
-		known.pay_amendment ?? []
+		known.pay_amendment ?? [],
+		pendingRuns
 	);
 });
 
@@ -432,9 +547,9 @@ export const paidUnder = Effect.fn('payroll.paidUnder')(function* (
 	where: JsonObject
 ) {
 	const { payroll_run: runs = [] } = yield* queryRows(read, {
-		payroll_run: { where: { ...where, state: { eq: 'PAID' } }, fields: ['run_number'], limit: 1 }
+		payroll_run: { where: { ...where, state: { eq: 'PAID' } }, fields: ['run_number'], limit: 100 }
 	});
-	return runs.length > 0;
+	return runs.some((run) => finalized(run));
 });
 
 /**

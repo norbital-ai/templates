@@ -1,16 +1,13 @@
 <script lang="ts">
 	/**
 	 * Streamlined Contractor Project Hub (Main Contractor or Subcontractor):
-	 * Single-level RecordShell tabs (zero nested scrollports, zero duplicate tables):
-	 * - Primary tab (Overview): capped KPI summary strip (up to 5 non-zero KPIs) + model-backed SQL `<Chart>` + editable Project Details form
-	 * - Programme: 4D Timeline | Table | Board switcher for `tasks` (+ Autodesk ACC, Primavera P6, MS Project sync)
-	 * - BIM & Issues: 3D IFC viewer + BIM-pinned `issues` register (`Focus in 3D` & click-to-tag)
-	 * - BIM Costing: automated IFC asset takeoff & non-BIM additional costings (`cost_estimates`)
-	 * - Files & BIM: `.ifc` models, Autodesk ACC sheets, drawings & specs (`project_files`)
-	 * - Contracts: upstream & downstream contracts + variation orders (`contracts`)
-	 * - PO / DO / Invoices: 3-way matched commercial ledger (`commercial_documents`)
+	 * - Record: commercial & cashflow pulse + Project Details + BIM Model slot + Filed Documents section
+	 * - Programme & Tasks: icon-only Timeline | Table | Board switcher flush right beside +New; simplified scannable Board cards
+	 * - BIM (keep_alive): 3D Model & Issues (single project IFC model, no redundant heading) + single inline BIM Costing
+	 * - Commercial: Sales Orders (SO), Purchase Orders (PO), Ad-hoc Costs (VOs & Transactions live inside each SO/PO)
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { create_toggle_group } from '@norbital-ai/ui/behaviors';
 	import {
 		Alert,
 		Badge,
@@ -31,6 +28,7 @@
 		Surface,
 		Table,
 		Tabs,
+		enum_text,
 		open_record,
 		use_act,
 		type RecordView
@@ -53,12 +51,14 @@
 		Stack
 	} from '@norbital-ai/ui/layout';
 	import {
+		computeCatalogCashflowBreakdown,
 		computeProjectCashflow,
 		computeProjectCommercial,
 		toNumber
 	} from '../../../lib/commercial.js';
 	import ProjectTimeline from '../../../lib/ProjectTimeline.svelte';
 	import RecordForm from '../../../lib/record-form.svelte';
+	import BimTakeoffRenderer from '../../custom_field/bim_takeoff/+renderer.svelte';
 	import type {
 		IFCSelectedElement,
 		IFCViewerIssueSummary,
@@ -71,29 +71,12 @@
 		const words: { t(k: string): string } = ctx;
 		return words.t(key);
 	};
-	const canAnalyzeBim = $derived(
-		ctx.catalog?.cost_estimates?.create !== undefined ||
-			ctx.catalog?.project_files?.create !== undefined
-	);
+	const canAnalyzeBim = $derived(ctx.catalog?.cost_estimates?.update !== undefined);
+	const canUpdateProject = $derived(ctx.catalog?.projects?.update !== undefined);
 	const day = ctx.clock('day');
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const id = $derived(record?.id);
 	const money = { kind: 'money', currency: 'currency' } as const;
-
-	const filesQuery = $derived(
-		record &&
-			ctx.query({
-				project_files: {
-					where: {
-						project_id: { eq: record.id },
-						status: { in: ['draft', 'in_review', 'issued'] }
-					},
-					fields: ['title', 'document_number', 'kind', 'file', 'current_version'],
-					order_by: { updated_at: 'desc' },
-					limit: 100
-				}
-			})
-	);
 
 	const issuesQuery = $derived(
 		record &&
@@ -107,7 +90,32 @@
 			})
 	);
 
-	const programmeQuery = $derived(
+	const estimateQuery = $derived(
+		record &&
+			ctx.query({
+				cost_estimates: {
+					where: { project_id: { eq: record.id } },
+					fields: [
+						'estimate_number',
+						'title',
+						'status',
+						'currency',
+						'bim_asset_count',
+						'classified_asset_count',
+						'unmatched_asset_count',
+						'bim_assets',
+						'bim_subtotal',
+						'contingency_pct',
+						'contingency_amount',
+						'total_estimate',
+						'analyzed_at'
+					],
+					limit: 1
+				}
+			})
+	);
+
+	const tasksQuery = $derived(
 		record &&
 			ctx.query({
 				tasks: {
@@ -118,16 +126,26 @@
 						'parent_task_id',
 						'title',
 						'is_milestone',
+						'zone',
 						'trade_specialty',
+						'subcontractor_id',
 						'status',
 						'priority',
 						'progress_pct',
 						'schedule_range',
-						'bim_express_ids'
+						'bim_express_ids',
+						'latest_update',
+						'last_updated_on'
 					],
 					order_by: { wbs_path: 'asc' },
-					limit: 500
-				},
+					limit: 2000
+				}
+			})
+	);
+
+	const commercialQuery = $derived(
+		record &&
+			ctx.query({
 				contracts: {
 					where: { project_id: { eq: record.id } },
 					fields: [
@@ -137,6 +155,7 @@
 						'contract_type',
 						'status',
 						'contract_value',
+						'lines',
 						'schedule_impact_days',
 						'signed_date'
 					],
@@ -149,6 +168,7 @@
 						'doc_type',
 						'direction',
 						'status',
+						'lines',
 						'total_amount',
 						'certified_amount',
 						'net_amount',
@@ -158,20 +178,25 @@
 					],
 					order_by: { issue_date: 'asc' },
 					limit: 500
+				},
+				adhoc_costs: {
+					where: { project_id: { eq: record.id } },
+					fields: ['status', 'title', 'unit', 'amount', 'catalog_item_id'],
+					limit: 300
+				},
+				cost_matrix: {
+					fields: ['code', 'name'],
+					limit: 500
 				}
 			})
 	);
 
-	const ifcFiles = $derived(
-		(filesQuery?.current?.project_files.rows ?? []).filter(
-			(f) =>
-				f.file != null && (f.kind === 'ifc_model' || f.file.name.toLowerCase().endsWith('.ifc'))
-		)
+	const projectBimFile = $derived(record?.bim_file ?? null);
+	const activeIfcSrc = $derived(projectBimFile ? ctx.file_url(projectBimFile) : '');
+	const viewer = $derived(
+		projectBimFile ? import('../../../lib/ifc-viewer/ifc_viewer.svelte') : null
 	);
-	let selectedIfcId = $state<string | null>(null);
-	const activeIfc = $derived(ifcFiles.find((f) => f.id === selectedIfcId) ?? ifcFiles[0] ?? null);
-	const activeIfcSrc = $derived(activeIfc?.file ? ctx.file_url(activeIfc.file) : '');
-	const viewer = $derived(activeIfc ? import('../../../lib/ifc-viewer/ifc_viewer.svelte') : null);
+	const singleEstimate = $derived(estimateQuery?.current?.cost_estimates.rows[0] ?? null);
 
 	const allIssues = $derived(issuesQuery?.current?.issues.rows ?? []);
 	const bimIssues = $derived<IFCViewerIssueSummary[]>(
@@ -207,6 +232,16 @@
 	let focusIssue = $state<IFCViewerIssueSummary | null>(null);
 	let timelineBimHighlight = $state<{ label: string; expressIds: number[] } | null>(null);
 	let tasksView = $state<'timeline' | 'table' | 'board'>('timeline');
+	const tasksViewGroup = create_toggle_group({
+		items: () => ['timeline', 'table', 'board'],
+		mode: 'single',
+		value: () => [tasksView],
+		on_change: (values) => {
+			const next = values[0];
+			if (next === 'timeline' || next === 'table' || next === 'board') tasksView = next;
+		},
+		control: { id: 'construction:tasks-view', label: 'Programme view' }
+	});
 
 	const markerGroups = $derived.by<IFCViewerMarkerGroup[]>(() => {
 		const groups: IFCViewerMarkerGroup[] = [];
@@ -252,21 +287,19 @@
 		| {
 				kind: 'contract';
 				direction: 'upstream' | 'downstream';
-				contract_type: 'main_contract' | 'subcontract' | 'variation_order';
+				contract_type: 'main_contract' | 'subcontract';
 		  }
-		| {
-				kind: 'document';
-				doc_type?: 'delivery_order' | 'invoice' | 'progress_claim' | 'purchase_order';
-		  }
-		| { kind: 'estimate' };
+		| { kind: 'adhoc_cost' };
 
 	let createSheet = $state<CreateSheet>(null);
 	const bimAnalyze = use_act(ctx);
 	let bimRunId = $state<string | null>(null);
 	let bimStreaming = $state(false);
+	let bimUploading = $state(false);
 	let bimStreamNotice = $state<string | null>(null);
 	let bimStreamError = $state<string | null>(null);
 	let localIfcInput = $state<HTMLInputElement | null>(null);
+	let bimUploadInput = $state<HTMLInputElement | null>(null);
 
 	function formatBimProgress(progress: BimTakeoffProgress): string {
 		if (progress.phase === 'snapshots') {
@@ -282,13 +315,49 @@
 		});
 	}
 
+	function handleUploadProjectBim(event: Event): void {
+		const target = event.currentTarget;
+		if (!(target instanceof HTMLInputElement)) return;
+		const file = target.files?.[0];
+		target.value = '';
+		if (!file || !record || bimUploading) return;
+		bimStreamError = null;
+		bimUploading = true;
+		const projectId = record.id;
+		const revision = record.revision;
+		fork(
+			ctx.upload(file, 'projects.bim_file').pipe(
+				Effect.flatMap((fileRef) =>
+					ctx.act({
+						'projects.update': [
+							{
+								target: { id: projectId, revision },
+								set: { bim_file: fileRef }
+							}
+						]
+					})
+				),
+				Effect.match({
+					onFailure: (error) => {
+						bimUploading = false;
+						bimStreamError = 'message' in error ? error.message : String(error);
+					},
+					onSuccess: () => {
+						bimUploading = false;
+					}
+				})
+			)
+		);
+	}
+
 	function triggerProjectIfcTakeoff(): void {
-		if (!activeIfc || !activeIfc.file || bimStreaming || bimAnalyze.pending) return;
+		if (!record || !projectBimFile || bimStreaming || bimAnalyze.pending) return;
 		bimStreamError = null;
 		bimStreamNotice = null;
 		bimStreaming = true;
+		const projectId = record.id;
 		fork(
-			extractBimFromUrl(ctx.file_url(activeIfc.file), (progress) => {
+			extractBimFromUrl(ctx.file_url(projectBimFile), (progress) => {
 				bimStreamNotice = formatBimProgress(progress);
 			}).pipe(
 				Effect.match({
@@ -307,7 +376,8 @@
 						});
 						bimAnalyze.run(
 							ctx.run('analyze_bim_file', {
-								project_file_id: activeIfc.id,
+								project_id: projectId,
+								...(singleEstimate ? { estimate_id: singleEstimate.id } : {}),
 								extracted_model: res.extracted
 							}),
 							{
@@ -353,6 +423,7 @@
 						bimAnalyze.run(
 							ctx.run('analyze_bim_file', {
 								project_id: id,
+								...(singleEstimate ? { estimate_id: singleEstimate.id } : {}),
 								title: `${baseTitle} — BIM Cost Estimate`,
 								extracted_model: res.extracted
 							}),
@@ -375,7 +446,6 @@
 			kind: 'issue',
 			values: {
 				project_id: record.id,
-				...(activeIfc ? { bim_file_id: activeIfc.id } : {}),
 				bim_pin: {
 					express_id: element.expressId,
 					element_name: elementName,
@@ -391,27 +461,62 @@
 		};
 	}
 
-	const allContracts = $derived(programmeQuery?.current?.contracts.rows ?? []);
-	const variations = $derived(allContracts.filter((c) => c.contract_type === 'variation_order'));
+	const allContracts = $derived(commercialQuery?.current?.contracts.rows ?? []);
 
 	const commercial = $derived(
-		record && programmeQuery?.current
+		record && commercialQuery?.current
 			? computeProjectCommercial({
 					contract_value: record.contract_value,
 					retention_rate: record.retention_rate,
 					retention_cap_rate: record.retention_cap_rate,
 					tax_rate: record.tax_rate,
 					contracts: allContracts,
-					tasks: programmeQuery.current.tasks.rows,
-					documents: programmeQuery.current.commercial_documents.rows
+					tasks: tasksQuery?.current?.tasks.rows ?? [],
+					documents: commercialQuery.current.commercial_documents.rows
 				})
 			: null
 	);
 
 	const cashflow = $derived(
-		programmeQuery?.current
-			? computeProjectCashflow(programmeQuery.current.commercial_documents.rows, day.today)
+		commercialQuery?.current
+			? computeProjectCashflow(commercialQuery.current.commercial_documents.rows, day.today)
 			: null
+	);
+
+	const catalogCashflow = $derived.by(() => {
+		const data = commercialQuery?.current;
+		if (!data || !record) return null;
+		const matrixById = new Map(data.cost_matrix.rows.map((m) => [m.id, m] as const));
+		const activeBimAssets =
+			singleEstimate && singleEstimate.status !== 'void' ? (singleEstimate.bim_assets ?? []) : [];
+		return computeCatalogCashflowBreakdown({
+			bim_assets: activeBimAssets,
+			adhoc_costs: data.adhoc_costs.rows.map((c) => {
+				const cat = matrixById.get(c.catalog_item_id);
+				return {
+					status: c.status,
+					catalog_code: cat?.code ?? null,
+					catalog_name: cat?.name ?? null,
+					title: c.title,
+					unit: c.unit,
+					amount: c.amount
+				};
+			}),
+			contracts: data.contracts.rows,
+			documents: data.commercial_documents.rows
+		});
+	});
+
+	const catalogLedgerRows = $derived(
+		(catalogCashflow?.rows ?? []).map((r) => ({
+			...r,
+			id: r.code,
+			source_label:
+				r.source === 'adhoc_catalog'
+					? t('priced_lines.badge_catalog')
+					: t('priced_lines.badge_bim'),
+			currency: record?.currency ?? 'SGD'
+		}))
 	);
 
 	const addressLine = $derived(
@@ -425,6 +530,11 @@
 		]
 			.filter(Boolean)
 			.join(', ')
+	);
+	const bimModelSummary = $derived(
+		projectBimFile
+			? [projectBimFile.name, record?.bim_version].filter(Boolean).join(' · ')
+			: undefined
 	);
 	const hasAnyKpi = $derived(
 		commercial !== null &&
@@ -468,6 +578,25 @@
 	</Section>
 
 	<Section
+		icon="lucide:box"
+		name="bim_model"
+		title={t('section.bim_model')}
+		default_open={false}
+		{...bimModelSummary ? { summary: bimModelSummary } : {}}
+	>
+		<Grid minimum="card">
+			<Field {ctx} name="bim_version" />
+			<Column span="all"><Field {ctx} name="bim_file" /></Column>
+			{#if record?.bim_summary != null}
+				<Column span="all"><Field {ctx} name="bim_summary" readonly /></Column>
+			{/if}
+			{#if record?.bim_revisions && record.bim_revisions.length > 0}
+				<Column span="all"><Field {ctx} name="bim_revisions" readonly /></Column>
+			{/if}
+		</Grid>
+	</Section>
+
+	<Section
 		icon="lucide:layers"
 		name="zones"
 		title={t('section.zones')}
@@ -500,28 +629,200 @@
 	</Section>
 {/snippet}
 
-{#snippet tasksControls()}
-	<Button
-		variant={tasksView === 'timeline' ? 'secondary' : 'ghost'}
-		onclick={() => (tasksView = 'timeline')}
+{#snippet tasksViewToggle()}
+	<div
+		class="inline-flex items-center rounded-control border border-border bg-muted/40 p-0.5"
+		{...tasksViewGroup.root_attrs()}
+		aria-label={t('programme.view_switcher')}
 	>
-		<Icon name="lucide:gantt-chart" class="size-3.5" />
-		{t('programme.view_timeline')}
-	</Button>
-	<Button
-		variant={tasksView === 'table' ? 'secondary' : 'ghost'}
-		onclick={() => (tasksView = 'table')}
-	>
-		<Icon name="lucide:table-2" class="size-3.5" />
-		{t('component.view_table')}
-	</Button>
-	<Button
-		variant={tasksView === 'board' ? 'secondary' : 'ghost'}
-		onclick={() => (tasksView = 'board')}
-	>
-		<Icon name="lucide:columns-3" class="size-3.5" />
-		{t('component.view_board')}
-	</Button>
+		<Button
+			{...tasksViewGroup.item_attrs('timeline')}
+			{@attach tasksViewGroup.item('timeline')}
+			size="icon"
+			variant={tasksView === 'timeline' ? 'secondary' : 'ghost'}
+			class="size-7"
+			aria-label={t('programme.view_timeline')}
+			hint={t('programme.view_timeline')}
+		>
+			<Icon name="lucide:gantt-chart" class="size-3.5" />
+		</Button>
+		<Button
+			{...tasksViewGroup.item_attrs('table')}
+			{@attach tasksViewGroup.item('table')}
+			size="icon"
+			variant={tasksView === 'table' ? 'secondary' : 'ghost'}
+			class="size-7"
+			aria-label={t('component.view_table')}
+			hint={t('component.view_table')}
+		>
+			<Icon name="lucide:table-2" class="size-3.5" />
+		</Button>
+		<Button
+			{...tasksViewGroup.item_attrs('board')}
+			{@attach tasksViewGroup.item('board')}
+			size="icon"
+			variant={tasksView === 'board' ? 'secondary' : 'ghost'}
+			class="size-7"
+			aria-label={t('component.view_board')}
+			hint={t('component.view_board')}
+		>
+			<Icon name="lucide:columns-3" class="size-3.5" />
+		</Button>
+	</div>
+{/snippet}
+
+{#snippet taskBoardCard({
+	row
+}: {
+	row: {
+		readonly title?: unknown;
+		readonly task_code?: unknown;
+		readonly trade_specialty?: unknown;
+		readonly subcontractor_id?: unknown;
+		readonly priority?: unknown;
+		readonly progress_pct?: unknown;
+		readonly is_milestone?: unknown;
+		readonly latest_update?: unknown;
+		readonly last_updated_on?: unknown;
+	};
+})}
+	{@const title = typeof row.title === 'string' ? row.title : ''}
+	{@const code = typeof row.task_code === 'string' ? row.task_code : ''}
+	{@const trade = typeof row.trade_specialty === 'string' ? row.trade_specialty : ''}
+	{@const subconObj =
+		row.subcontractor_id && typeof row.subcontractor_id === 'object' ? row.subcontractor_id : null}
+	{@const subcon =
+		subconObj &&
+		'company_name' in subconObj &&
+		typeof subconObj.company_name === 'string' &&
+		subconObj.company_name.trim()
+			? subconObj.company_name.trim()
+			: subconObj && 'full_name' in subconObj && typeof subconObj.full_name === 'string'
+				? subconObj.full_name.trim()
+				: ''}
+	{@const priority = typeof row.priority === 'string' ? row.priority : ''}
+	{@const isMilestone = row.is_milestone === true}
+	{@const pct = Math.round(
+		toNumber(
+			typeof row.progress_pct === 'string' || typeof row.progress_pct === 'number'
+				? row.progress_pct
+				: 0
+		)
+	)}
+	{@const latestUpdate = typeof row.latest_update === 'string' ? row.latest_update.trim() : ''}
+	{@const updatedOn = typeof row.last_updated_on === 'string' ? row.last_updated_on : ''}
+	<div class="flex flex-col gap-1 pr-4">
+		<div class="flex items-center gap-1">
+			{#if isMilestone}
+				<Icon name="lucide:diamond" class="size-2.5 shrink-0 text-tone-warning-text" />
+			{:else if priority === 'critical'}
+				<span
+					class="size-1.5 shrink-0 rounded-full bg-destructive"
+					title={enum_text(priority, { t: rawT, model: 'tasks', field: 'priority' })}
+				></span>
+			{:else if priority === 'high'}
+				<span
+					class="size-1.5 shrink-0 rounded-full bg-warning"
+					title={enum_text(priority, { t: rawT, model: 'tasks', field: 'priority' })}
+				></span>
+			{/if}
+			<p class="min-w-0 flex-1 truncate text-xs font-medium leading-tight text-foreground" {title}>
+				{title}
+			</p>
+			{#if !isMilestone}
+				<span class="shrink-0 text-tiny font-medium tabular-nums text-muted-foreground">{pct}%</span
+				>
+			{/if}
+		</div>
+		<div class="flex items-center justify-between gap-1.5 text-tiny text-muted-foreground">
+			<span class="min-w-0 truncate">
+				{#if code}<span class="font-mono">{code}</span>{/if}
+				{#if code && (subcon || trade)}
+					·
+				{/if}
+				{#if subcon}
+					{subcon}
+				{:else if trade}
+					{enum_text(trade, { t: rawT, model: 'tasks', field: 'trade_specialty' })}
+				{/if}
+			</span>
+			{#if updatedOn}
+				<span class="shrink-0 font-mono tabular-nums">{updatedOn.slice(5)}</span>
+			{/if}
+		</div>
+		{#if latestUpdate}
+			<p class="truncate text-tiny text-muted-foreground" title={latestUpdate}>{latestUpdate}</p>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet taskTitleCell({
+	row
+}: {
+	row: {
+		readonly title: string;
+		readonly is_milestone?: boolean | null;
+		readonly wbs_path?: string | null;
+	};
+})}
+	<div class="flex min-w-0 items-center gap-1.5">
+		{#if row.is_milestone}
+			<Icon name="lucide:diamond" class="size-3 shrink-0 text-tone-warning-text" />
+		{/if}
+		<span class="min-w-0 flex-1 truncate text-foreground" title={row.title}>{row.title}</span>
+		{#if row.wbs_path}
+			<span class="shrink-0 font-mono text-tiny text-muted-foreground">{row.wbs_path}</span>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet taskProgressCell({
+	row
+}: {
+	row: {
+		readonly progress_pct: string;
+		readonly status: string;
+		readonly is_milestone?: boolean | null;
+	};
+})}
+	{@const pct = Math.round(toNumber(row.progress_pct))}
+	<div class="flex items-center justify-end gap-1.5 tabular-nums">
+		{#if !row.is_milestone}
+			<div class="h-1.5 w-10 overflow-hidden rounded-full bg-muted">
+				<div
+					class="h-full rounded-full {row.status === 'done'
+						? 'bg-tone-success-text'
+						: row.status === 'blocked'
+							? 'bg-tone-destructive-text'
+							: 'bg-primary'}"
+					style={`width: ${pct}%`}
+				></div>
+			</div>
+		{/if}
+		<span class="w-7 text-right text-micro">{pct}%</span>
+	</div>
+{/snippet}
+
+{#snippet taskUpdateCell({
+	row
+}: {
+	row: {
+		readonly latest_update?: string | null;
+		readonly last_updated_on?: string | null;
+	};
+})}
+	{#if row.latest_update}
+		<div class="flex min-w-0 items-center gap-1.5" title={row.latest_update}>
+			{#if row.last_updated_on}
+				<span class="shrink-0 font-mono text-tiny tabular-nums text-muted-foreground">
+					{row.last_updated_on.slice(5)}
+				</span>
+			{/if}
+			<span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">{row.latest_update}</span>
+		</div>
+	{:else}
+		<span class="text-micro text-muted-foreground">—</span>
+	{/if}
 {/snippet}
 
 {#snippet programmeTab()}
@@ -533,23 +834,24 @@
 				key={`project:tasks:${id}`}
 				where={{ project_id: { eq: id } }}
 				order_by={{ task_code: 'asc' }}
+				page_size={100}
+				row_class={(r) => (r.status === 'blocked' ? 'bg-tone-destructive-bg/20' : undefined)}
 				toolbar={{
 					title: t('programme.tasks_title'),
-					controls: tasksControls,
+					trailing: tasksViewToggle,
 					context: { project_id: id },
 					new: ctx.catalog?.tasks?.create ? () => (createSheet = { kind: 'task' }) : false
 				}}
 				columns={[
-					'task_code',
-					'wbs_path',
-					'parent_task_id',
-					'title',
-					'trade_specialty',
-					'subcontractor_id',
-					'status',
-					'progress_pct',
-					'schedule_range',
-					'latest_update'
+					{ field: 'task_code', width: 88 },
+					{ field: 'title', width: 250, cell: taskTitleCell },
+					{ field: 'subcontractor_id', width: 148 },
+					{ field: 'trade_specialty', width: 108 },
+					{ field: 'zone', width: 88, hide: 'narrow' },
+					{ field: 'status', width: 96 },
+					{ field: 'progress_pct', width: 84, align: 'end', cell: taskProgressCell },
+					{ field: 'schedule_range', width: 148, hide: 'narrow' },
+					{ field: 'latest_update', width: 240, cell: taskUpdateCell }
 				]}
 			/>
 		{:else if tasksView === 'board'}
@@ -558,56 +860,61 @@
 				of="tasks"
 				key={`project:tasks:board:${id}`}
 				where={{ project_id: { eq: id } }}
+				order_by={{ last_updated_on: 'desc' }}
 				by="status"
 				lanes={['todo', 'in_progress', 'blocked', 'done']}
-				card={['title', 'trade_specialty', 'priority', 'progress_pct']}
+				columns={4}
+				page_size={50}
+				card={taskBoardCard}
 				toolbar={{
 					title: t('programme.tasks_title'),
-					controls: tasksControls,
+					trailing: tasksViewToggle,
+					select: false,
 					context: { project_id: id },
 					new: ctx.catalog?.tasks?.create ? () => (createSheet = { kind: 'task' }) : false
 				}}
 			/>
-		{:else if programmeQuery?.loading && !programmeQuery.current}
+		{:else if tasksQuery?.loading && !tasksQuery.current}
 			<Bound size="content" inset>
 				<Inline gap="sm" align="center" aria-busy="true">
 					<Spinner />
 					<span class="text-sm text-muted-foreground">{t('component.loading_programme')}</span>
 				</Inline>
 			</Bound>
-		{:else if programmeQuery?.error}
+		{:else if tasksQuery?.error}
 			<Bound size="content" inset>
 				<Alert.Root variant="destructive">
-					<Alert.Title>{programmeQuery.error.message}</Alert.Title>
+					<Alert.Title>{tasksQuery.error.message}</Alert.Title>
 				</Alert.Root>
 			</Bound>
 		{:else}
 			<CustomView
 				{ctx}
 				model="tasks"
-				of={programmeQuery?.current?.tasks.rows ?? []}
-				fields={['task_code', 'title', 'trade_specialty', 'status', 'priority']}
+				of={tasksQuery?.current?.tasks.rows ?? []}
+				fields={['task_code', 'title', 'trade_specialty', 'zone', 'status', 'priority']}
 				key={`project:timeline:${id}`}
 				empty={false}
 				toolbar={{
 					title: t('programme.tasks_title'),
-					controls: tasksControls,
+					trailing: tasksViewToggle,
 					context: { project_id: id },
 					new: ctx.catalog?.tasks?.create ? () => (createSheet = { kind: 'task' }) : false
 				}}
 			>
 				{#snippet children(shownTasks)}
-					<Scroll name={t('programme.tasks_title')} size="fill" inset>
-						<ProjectTimeline
-							{ctx}
-							projectRange={record.schedule_range}
-							tasks={shownTasks}
-							{variations}
-							today={day.today}
-							onInspectBim={(expressIds, label) => {
-								timelineBimHighlight = { label, expressIds: [...expressIds] };
-							}}
-						/>
+					<Scroll name={t('programme.tasks_title')} size="fill">
+						<div class="px-3 pb-3">
+							<ProjectTimeline
+								{ctx}
+								projectRange={record.schedule_range}
+								tasks={shownTasks}
+								today={day.today}
+								onInspectBim={(expressIds, label) => {
+									timelineBimHighlight = { label, expressIds: [...expressIds] };
+								}}
+							/>
+						</div>
 					</Scroll>
 				{/snippet}
 			</CustomView>
@@ -616,28 +923,18 @@
 {/snippet}
 
 {#snippet bimViewerPane()}
-	<Stack gap="sm" size="fill">
-		<Cluster align="center" justify="between" gap="sm">
-			<h3 class="text-heading">{t('component.coordination_model')}</h3>
-			{#if ifcFiles.length > 1}
-				<Cluster gap="xs">
-					{#each ifcFiles as f (f.id)}
-						<Button
-							variant={activeIfc?.id === f.id ? 'secondary' : 'outline'}
-							onclick={() => (selectedIfcId = f.id)}
-						>
-							{`${f.title} (${f.current_version})`}
-						</Button>
-					{/each}
-				</Cluster>
-			{/if}
-		</Cluster>
+	<Stack gap="xs" size="fill">
+		{#if canUpdateProject}
+			<input
+				bind:this={bimUploadInput}
+				type="file"
+				accept=".ifc,application/octet-stream"
+				class="hidden"
+				onchange={handleUploadProjectBim}
+			/>
+		{/if}
 
-		{#if filesQuery?.error}
-			<Alert.Root variant="destructive">
-				<Alert.Title>{filesQuery.error.message}</Alert.Title>
-			</Alert.Root>
-		{:else if issuesQuery?.error}
+		{#if issuesQuery?.error}
 			<Alert.Root variant="destructive">
 				<Alert.Title>{issuesQuery.error.message}</Alert.Title>
 			</Alert.Root>
@@ -646,33 +943,32 @@
 		{#if timelineBimHighlight}
 			<Surface tone="subtle" padding="xs" radius="control">
 				<Inline align="center" justify="between" gap="sm">
-					<span class="text-micro">
+					<span class="text-micro text-foreground">
 						{t('bim.showing_4d_slice', { date: timelineBimHighlight.label })}
 					</span>
-					<Button variant="ghost" onclick={() => (timelineBimHighlight = null)}>
+					<Button
+						variant="ghost"
+						class="h-6 px-2 text-micro"
+						onclick={() => (timelineBimHighlight = null)}
+					>
 						{t('component.clear_filter')}
 					</Button>
 				</Inline>
 			</Surface>
 		{/if}
 
-		{#if filesQuery?.loading && !filesQuery.current}
-			<Inline gap="sm" align="center" justify="center" size="fill" aria-busy="true">
-				<Spinner />
-				<span class="text-sm text-muted-foreground">{t('component.loading_viewer')}</span>
-			</Inline>
-		{:else if activeIfc && viewer && activeIfcSrc}
+		{#if projectBimFile && viewer && activeIfcSrc}
 			{#await viewer}
 				<Inline align="center" justify="center" size="fill" aria-busy="true">
 					<Spinner />
-					<span class="text-sm text-muted-foreground">{t('component.loading_viewer')}</span>
+					<span class="text-xs text-muted-foreground">{t('component.loading_viewer')}</span>
 				</Inline>
 			{:then mod}
 				<mod.default
 					t={ctx.t}
 					translateKey={rawT}
 					src={activeIfcSrc}
-					alt={activeIfc.title}
+					alt={projectBimFile.name}
 					{markerGroups}
 					issues={bimIssues}
 					{focusIssue}
@@ -680,6 +976,7 @@
 						? { onTagIssue: handleTagIssueFromBim }
 						: {}}
 					onOpenIssue={(issueId) => open_record('issues', issueId)}
+					{...canUpdateProject ? { onReplaceModel: () => bimUploadInput?.click() } : {}}
 				/>
 			{:catch error}
 				<Alert.Root variant="destructive">
@@ -692,7 +989,14 @@
 				icon="file"
 				title={t('component.no_ifc_model')}
 				hint={t('component.link_ifc_document')}
-			/>
+			>
+				{#if canUpdateProject}
+					<Button variant="outline" disabled={bimUploading} onclick={() => bimUploadInput?.click()}>
+						<Icon name="lucide:upload" class="size-3.5" />
+						{t('component.upload_ifc_model')}
+					</Button>
+				{/if}
+			</EmptyState>
 		{/if}
 	</Stack>
 {/snippet}
@@ -711,7 +1015,7 @@
 					? () =>
 							(createSheet = {
 								kind: 'issue',
-								values: { project_id: id, ...(activeIfc ? { bim_file_id: activeIfc.id } : {}) }
+								values: { project_id: id }
 							})
 					: false
 			}}
@@ -757,100 +1061,182 @@
 	</Bound>
 {/snippet}
 
-{#snippet estimatesTab()}
-	{#if id}
-		<Stack gap="sm">
-			{#if canAnalyzeBim}
-				<input
-					bind:this={localIfcInput}
-					type="file"
-					accept=".ifc,application/octet-stream"
-					class="hidden"
-					onchange={handleProjectLocalIfcSelected}
-				/>
-			{/if}
-			{#if bimStreamError}
-				<Alert.Root variant="destructive">
-					<Alert.Title>{bimStreamError}</Alert.Title>
-				</Alert.Root>
-			{:else if bimStreamNotice}
-				<Alert.Root>
-					<Alert.Title>{bimStreamNotice}</Alert.Title>
-				</Alert.Root>
-			{/if}
-			{#if bimRunId}
-				<RunStatus {ctx} automation="analyze_bim_file" run={bimRunId} />
-			{/if}
-			<Table
-				{ctx}
-				of="cost_estimates"
-				key={`project:estimates:${id}`}
-				where={{ project_id: { eq: id } }}
-				order_by={{ updated_at: 'desc' }}
-				toolbar={{
-					title: t('bim_costing.estimates_title'),
-					actions: canAnalyzeBim
-						? [
-								...(activeIfc
-									? [
-											{
-												icon: 'lucide:scan-line',
-												name: t('bim_costing.run_pipeline'),
-												description: t('bim_costing.run_pipeline_desc'),
-												run: () => triggerProjectIfcTakeoff()
-											}
-										]
-									: []),
-								{
-									icon: 'lucide:upload',
-									name: t('bim_costing.scan_local_ifc'),
-									description: t('bim_costing.scan_local_ifc_desc'),
-									run: () => localIfcInput?.click()
-								}
-							]
-						: [],
-					new: ctx.catalog?.cost_estimates?.create
-						? () => (createSheet = { kind: 'estimate' })
-						: false
-				}}
-				columns={[
-					'estimate_number',
-					'title',
-					'bim_file_id',
-					'status',
-					'classified_asset_count',
-					'unmatched_asset_count',
-					'bim_subtotal',
-					'additional_subtotal',
-					'total_estimate'
-				]}
-			/>
-		</Stack>
-	{/if}
-{/snippet}
+{#snippet bimCostingTab()}
+	{#if id && record}
+		<Scroll name={t('bim_costing.estimates_title')} size="fill" inset>
+			<Stack gap="md">
+				{#if canAnalyzeBim}
+					<input
+						bind:this={localIfcInput}
+						type="file"
+						accept=".ifc,application/octet-stream"
+						class="hidden"
+						onchange={handleProjectLocalIfcSelected}
+					/>
+				{/if}
+				{#if bimStreamError}
+					<Alert.Root variant="destructive">
+						<Alert.Title>{bimStreamError}</Alert.Title>
+					</Alert.Root>
+				{:else if bimStreamNotice}
+					<Alert.Root>
+						<Alert.Title>{bimStreamNotice}</Alert.Title>
+					</Alert.Root>
+				{/if}
+				{#if bimRunId}
+					<RunStatus {ctx} automation="analyze_bim_file" run={bimRunId} />
+				{/if}
 
-{#snippet filesTab()}
-	{#if id}
-		<Table
-			{ctx}
-			of="project_files"
-			key={`project:files:${id}`}
-			where={{ project_id: { eq: id } }}
-			order_by={{ updated_at: 'desc' }}
-			toolbar={{
-				title: t('project_files.register_title'),
-				new: ctx.catalog?.project_files?.create ? () => (createSheet = { kind: 'file' }) : false
-			}}
-			columns={[
-				'document_number',
-				'title',
-				'kind',
-				'discipline',
-				'current_version',
-				'status',
-				'zone'
-			]}
-		/>
+				{#if estimateQuery?.loading && !estimateQuery.current}
+					<Inline gap="sm" align="center" aria-busy="true">
+						<Spinner />
+						<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+					</Inline>
+				{:else if estimateQuery?.error}
+					<Alert.Root variant="destructive">
+						<Alert.Title>{estimateQuery.error.message}</Alert.Title>
+					</Alert.Root>
+				{:else if singleEstimate}
+					{@const est = singleEstimate}
+					{@const isVoidOrDirty = est.status === 'void' || record.bim_costing_dirty}
+					{#if isVoidOrDirty}
+						<Alert.Root variant="destructive">
+							<Alert.Title>{t('bim_costing.void_banner_title')}</Alert.Title>
+							<Alert.Description>
+								<Cluster align="center" justify="between" gap="sm">
+									<span>{t('bim_costing.void_banner_desc')}</span>
+									{#if canAnalyzeBim && projectBimFile}
+										<Button
+											variant="brand"
+											disabled={bimStreaming || bimAnalyze.pending}
+											onclick={triggerProjectIfcTakeoff}
+										>
+											<Icon name="lucide:scan-line" class="size-3.5" />
+											{t('bim_costing.run_pipeline')}
+										</Button>
+									{/if}
+								</Cluster>
+							</Alert.Description>
+						</Alert.Root>
+					{/if}
+					<Surface tone="card" padding="md" radius="control">
+						<Stack gap="md" divided>
+							<Cluster align="center" justify="between" gap="sm">
+								<Inline gap="sm" align="center">
+									<span class="text-label">{est.title}</span>
+									<Badge variant={est.status === 'void' ? 'destructive' : 'outline'}>
+										{enum_text(est.status, { t: rawT, model: 'cost_estimates', field: 'status' })}
+									</Badge>
+								</Inline>
+								<Cluster gap="xs">
+									{#if canAnalyzeBim && (est.status === 'draft' || est.status === 'void') && projectBimFile}
+										<Button
+											variant={isVoidOrDirty ? 'brand' : 'outline'}
+											disabled={bimStreaming || bimAnalyze.pending}
+											onclick={triggerProjectIfcTakeoff}
+										>
+											<Icon name="lucide:scan-line" class="size-3.5" />
+											{t('bim_costing.reanalyze_bim')}
+										</Button>
+									{/if}
+									{#if canAnalyzeBim && (est.status === 'draft' || est.status === 'void')}
+										<Button
+											variant="ghost"
+											disabled={bimStreaming || bimAnalyze.pending}
+											onclick={() => localIfcInput?.click()}
+										>
+											<Icon name="lucide:upload" class="size-3.5" />
+											{t('bim_costing.scan_local_ifc')}
+										</Button>
+									{/if}
+									<Button variant="secondary" onclick={() => open_record('cost_estimates', est.id)}>
+										<Icon name="lucide:pencil" class="size-3.5" />
+										{t('bim_costing.open_estimate')}
+									</Button>
+								</Cluster>
+							</Cluster>
+
+							<Grid minimum="card" gap="md">
+								<Stack gap="xs">
+									<span class="text-meta">{t('bim_costing.coverage')}</span>
+									<Inline gap="xs" align="center">
+										<span class="text-label tabular-nums">
+											{`${est.classified_asset_count} / ${est.bim_asset_count}`}
+										</span>
+										{#if est.unmatched_asset_count > 0}
+											<Badge variant="warning">
+												{t('bim_costing.unmatched_badge', { count: est.unmatched_asset_count })}
+											</Badge>
+										{/if}
+									</Inline>
+								</Stack>
+								<Stack gap="xs">
+									<span class="text-meta">{t('bim_costing.bim_subtotal')}</span>
+									<span class="text-label tabular-nums">
+										<Show {ctx} kind={money} value={est.bim_subtotal} row={est} />
+									</span>
+								</Stack>
+								<Stack gap="xs">
+									<span class="text-meta"
+										>{t('bim_costing.contingency')} ({est.contingency_pct}%)</span
+									>
+									<span class="text-label tabular-nums">
+										<Show {ctx} kind={money} value={est.contingency_amount} row={est} />
+									</span>
+								</Stack>
+								<Stack gap="xs">
+									<span class="text-meta">{t('bim_costing.total_estimate')}</span>
+									<span class="text-sm font-medium tabular-nums text-primary">
+										<Show {ctx} kind={money} value={est.total_estimate} row={est} />
+									</span>
+								</Stack>
+							</Grid>
+						</Stack>
+					</Surface>
+
+					<Surface tone="card" padding="md" radius="control">
+						<BimTakeoffRenderer
+							{ctx}
+							view={{
+								mode: 'show',
+								name: 'bim_takeoff',
+								value: est.bim_assets ?? null
+							}}
+						/>
+					</Surface>
+				{:else}
+					<EmptyState
+						variant="card"
+						icon="file"
+						title={t('bim_costing.estimates_title')}
+						hint={t('bim_costing.empty_takeoff')}
+					>
+						{#if canAnalyzeBim}
+							<Cluster gap="xs">
+								{#if projectBimFile}
+									<Button
+										variant="brand"
+										disabled={bimStreaming || bimAnalyze.pending}
+										onclick={triggerProjectIfcTakeoff}
+									>
+										<Icon name="lucide:scan-line" class="size-3.5" />
+										{t('bim_costing.run_pipeline')}
+									</Button>
+								{/if}
+								<Button
+									variant="outline"
+									disabled={bimStreaming || bimAnalyze.pending}
+									onclick={() => localIfcInput?.click()}
+								>
+									<Icon name="lucide:upload" class="size-3.5" />
+									{t('bim_costing.scan_local_ifc')}
+								</Button>
+							</Cluster>
+						{/if}
+					</EmptyState>
+				{/if}
+			</Stack>
+		</Scroll>
 	{/if}
 {/snippet}
 
@@ -862,19 +1248,14 @@
 				name: 'model',
 				title: t('bim.tab_model_issues'),
 				icon: 'lucide:box',
+				keep_alive: true,
 				body: bimIssuesTab
 			},
 			{
-				name: 'estimates',
+				name: 'costing',
 				title: t('bim_costing.estimates_title'),
 				icon: 'lucide:calculator',
-				body: estimatesTab
-			},
-			{
-				name: 'files',
-				title: t('project_files.register_title'),
-				icon: 'lucide:file-box',
-				body: filesTab
+				body: bimCostingTab
 			}
 		]}
 	/>
@@ -894,6 +1275,17 @@
 			order_by={{ updated_at: 'desc' }}
 			toolbar={{
 				title: t('commercial.tab_so'),
+				actions:
+					ctx.catalog?.commercial_documents?.create !== undefined
+						? [
+								{
+									icon: 'lucide:file-plus-2',
+									name: t('commercial.draft_claim'),
+									description: t('commercial.draft_claim_desc'),
+									run: () => ctx.run('generate_payment_claim', { project_id: id })
+								}
+							]
+						: [],
 				new: ctx.catalog?.contracts?.create
 					? () =>
 							(createSheet = {
@@ -953,93 +1345,99 @@
 	{/if}
 {/snippet}
 
-{#snippet variationOrdersTab()}
+{#snippet adhocCostsTab()}
 	{#if id}
 		<Table
 			{ctx}
-			of="contracts"
-			key={`project:vo:${id}`}
-			where={{ project_id: { eq: id }, contract_type: { eq: 'variation_order' } }}
+			of="adhoc_costs"
+			key={`project:adhoc:${id}`}
+			where={{ project_id: { eq: id } }}
 			order_by={{ updated_at: 'desc' }}
 			toolbar={{
-				title: t('commercial.tab_vo'),
-				new: ctx.catalog?.contracts?.create
-					? () =>
-							(createSheet = {
-								kind: 'contract',
-								direction: 'upstream',
-								contract_type: 'variation_order'
-							})
-					: false
+				title: t('commercial.tab_adhoc'),
+				new: ctx.catalog?.adhoc_costs?.create ? () => (createSheet = { kind: 'adhoc_cost' }) : false
 			}}
 			columns={[
-				'contract_number',
+				'cost_number',
+				'catalog_item_id',
 				'title',
-				'direction',
-				'trade_specialty',
-				'parent_contract_id',
+				'category',
 				'contact_id',
 				'status',
-				'contract_value',
-				'schedule_impact_days'
+				'qty',
+				'unit',
+				'unit_rate',
+				'amount',
+				'incurred_date'
 			]}
 		/>
 	{/if}
 {/snippet}
 
-{#snippet transactionsTab()}
-	{#if id}
-		<Table
-			{ctx}
-			of="commercial_documents"
-			key={`project:tx:${id}`}
-			where={{ project_id: { eq: id } }}
-			order_by={{ issue_date: 'desc' }}
-			toolbar={{
-				title: t('commercial.tab_transactions'),
-				actions:
-					ctx.catalog?.commercial_documents?.create !== undefined
-						? [
-								{
-									icon: 'lucide:truck',
-									name: t('commercial.new_do'),
-									run: () => {
-										createSheet = { kind: 'document', doc_type: 'delivery_order' };
-									}
-								},
-								{
-									icon: 'lucide:receipt',
-									name: t('commercial.new_invoice'),
-									run: () => {
-										createSheet = { kind: 'document', doc_type: 'invoice' };
-									}
-								},
-								{
-									icon: 'lucide:file-plus-2',
-									name: t('commercial.draft_claim'),
-									description: t('commercial.draft_claim_desc'),
-									run: () => ctx.run('generate_payment_claim', { project_id: id })
-								}
-							]
-						: [],
-				new: ctx.catalog?.commercial_documents?.create
-					? () => (createSheet = { kind: 'document', doc_type: 'invoice' })
-					: false
-			}}
-			columns={[
-				'document_number',
-				'doc_type',
-				'direction',
-				'external_reference',
-				'contract_id',
-				'contact_id',
-				'status',
-				'match_status',
-				'total_amount',
-				'net_amount',
-				'due_date'
-			]}
-		/>
+{#snippet cashflowLedgerTab()}
+	{#if id && record}
+		{#if commercialQuery?.loading && !commercialQuery.current}
+			<Bound size="content" inset>
+				<Inline gap="sm" align="center" aria-busy="true">
+					<Spinner />
+					<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+				</Inline>
+			</Bound>
+		{:else}
+			<Table
+				{ctx}
+				of={catalogLedgerRows}
+				controlled
+				toolbar={{ title: t('commercial.tab_cashflow_ledger') }}
+				columns={[
+					{ field: 'code', label: t('commercial.col_code') },
+					{ field: 'name', label: t('commercial.col_item') },
+					{ field: 'source_label', label: t('priced_lines.col_source') },
+					{
+						field: 'estimated_budget',
+						label: t('commercial.col_budget'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'so_value',
+						label: t('commercial.col_so'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'po_committed',
+						label: t('commercial.col_po'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'delivered_value',
+						label: t('commercial.col_delivered'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'invoiced_outflow',
+						label: t('commercial.col_invoiced'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'paid_outflow',
+						label: t('commercial.col_paid'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'budget_variance',
+						label: t('commercial.col_variance'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					}
+				]}
+			/>
+		{/if}
 	{/if}
 {/snippet}
 
@@ -1047,6 +1445,12 @@
 	<Tabs
 		level={2}
 		tabs={[
+			{
+				name: 'ledger',
+				title: t('commercial.tab_cashflow_ledger'),
+				icon: 'lucide:bar-chart-3',
+				body: cashflowLedgerTab
+			},
 			{
 				name: 'so',
 				title: t('commercial.tab_so'),
@@ -1060,16 +1464,10 @@
 				body: purchaseOrdersTab
 			},
 			{
-				name: 'vo',
-				title: t('commercial.tab_vo'),
-				icon: 'lucide:file-diff',
-				body: variationOrdersTab
-			},
-			{
-				name: 'transactions',
-				title: t('commercial.tab_transactions'),
-				icon: 'lucide:receipt',
-				body: transactionsTab
+				name: 'adhoc',
+				title: t('commercial.tab_adhoc'),
+				icon: 'lucide:receipt-text',
+				body: adhocCostsTab
 			}
 		]}
 	/>
@@ -1093,6 +1491,7 @@
 				name: 'bim',
 				title: t('project.tab_bim'),
 				icon: 'lucide:box',
+				keep_alive: true,
 				body: bimTab
 			},
 			{
@@ -1130,14 +1529,14 @@
 						</Cluster>
 					</Cluster>
 
-					{#if programmeQuery?.loading && !programmeQuery.current}
+					{#if commercialQuery?.loading && !commercialQuery.current}
 						<Inline gap="sm" align="center" aria-busy="true">
 							<Spinner />
 							<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
 						</Inline>
-					{:else if programmeQuery?.error}
+					{:else if commercialQuery?.error}
 						<Alert.Root variant="destructive">
-							<Alert.Title>{programmeQuery.error.message}</Alert.Title>
+							<Alert.Title>{commercialQuery.error.message}</Alert.Title>
 						</Alert.Root>
 					{:else if commercial && cashflow && hasAnyKpi}
 						<Grid minimum="card" gap="md">
@@ -1216,6 +1615,33 @@
 			<Form {ctx} of="projects" mode={view.mode} id={record.id} {record} size="content">
 				{@render projectSections()}
 			</Form>
+
+			<Section
+				icon="lucide:file-text"
+				name="filed_documents"
+				title={t('project_files.register_title')}
+			>
+				<Table
+					{ctx}
+					of="project_files"
+					key={`project:files:${record.id}`}
+					where={{ project_id: { eq: record.id } }}
+					order_by={{ updated_at: 'desc' }}
+					toolbar={{
+						title: false,
+						new: ctx.catalog?.project_files?.create ? () => (createSheet = { kind: 'file' }) : false
+					}}
+					columns={[
+						'document_number',
+						'title',
+						'kind',
+						'discipline',
+						'current_version',
+						'status',
+						'zone'
+					]}
+				/>
+			</Section>
 		</Stack>
 	</RecordShell>
 {:else}
@@ -1262,27 +1688,14 @@
 			}}
 			on_done={() => (createSheet = null)}
 		/>
-	{:else if createSheet?.kind === 'document' && id}
+	{:else if createSheet?.kind === 'adhoc_cost' && id}
 		<RecordShell
 			{ctx}
-			of="commercial_documents"
+			of="adhoc_costs"
 			mode="create"
 			values={{
 				project_id: id,
-				...(createSheet.doc_type ? { doc_type: createSheet.doc_type } : {}),
 				currency: record?.currency ?? 'SGD'
-			}}
-			on_done={() => (createSheet = null)}
-		/>
-	{:else if createSheet?.kind === 'estimate' && id}
-		<RecordShell
-			{ctx}
-			of="cost_estimates"
-			mode="create"
-			values={{
-				project_id: id,
-				currency: record?.currency ?? 'SGD',
-				...(activeIfc ? { bim_file_id: activeIfc.id } : {})
 			}}
 			on_done={() => (createSheet = null)}
 		/>

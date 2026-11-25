@@ -5,7 +5,7 @@
 	import type { ActInput, Id } from '@norbital-ai/bolt';
 	import { file_ref } from '@norbital-ai/bolt/page';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { DescriptionHint, Button, Icon, Spinner } from '@norbital-ai/ui';
+	import { Checkbox, DescriptionHint, Button, Icon, Spinner } from '@norbital-ai/ui';
 	import { Cluster, Columns, Frame, Grid, Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { KIOSK_LOOP_MS } from '../../../app/attendance/config.js';
 	import { meanEmbedding } from '../../../app/attendance/embed.js';
@@ -502,9 +502,12 @@
 			{/each}
 		</Grid>
 		<div class="flex items-center gap-2">
-			<label class="flex-1 rounded-lg border bg-background p-4 text-sm font-medium">
+			<label
+				for="face-enroll-consent"
+				class="flex-1 rounded-lg border bg-background p-4 text-sm font-medium"
+			>
 				<Inline as="span" gap="sm">
-					<input class="size-4" type="checkbox" bind:checked={consent} />
+					<Checkbox id="face-enroll-consent" bind:checked={consent} />
 					{ctx.t('face.consent')}
 				</Inline>
 			</label><DescriptionHint text={ctx.t('face.review_description')} />

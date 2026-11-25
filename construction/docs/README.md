@@ -1,51 +1,37 @@
-# Construction Operations — Workflows & Architecture
+# Construction Operations — Technical Documentation
 
 ![Construction Operations application](screenshots/application.webp)
 
-## Generic contractor design (Main Contractor, Subcontractor & Specialist Contractor)
+Technical guide and developer reference for the `norbital_construction` Bolt template (`templates/construction`). For a business-facing overview of roles, capabilities, and scope, see the root [README](../README.md) ([简体中文](../README.zh.md)).
 
-Each project declares `project_role` (`main_contractor`, `subcontractor`, or `specialist_contractor`). Orders (`contracts`) and transactions (`commercial_documents`) distinguish `upstream` (Sales Orders / client revenue) from `downstream` (Purchase Orders / subcontractor & vendor cost) plus `variation_order` (VO), while `trade_specialty` classifies 16 trade packages (`roofing`, `flooring`, `mne`, `electrical`, `plumbing`, `hvac`, `structural`, `facade`, `piling`, `civil_earthworks`, `waterproofing`, `fire_protection`, `elv_security`, `finishing`, `landscaping`, `general`) across business partners, orders, WBS tasks, BIM issues, and the Costing Matrix.
+## Documentation Index
 
-## Core workflows
+| Document                                       | Contents                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **[architecture.md](architecture.md)**         | System topology, full 12-model ER diagram, 8 state machines & locks, single-model BIM & EOD sweep pipeline, 3D viewer two-tier `.frag` cache, catalog-wired commercial & cashflow ledger engine, WhatsApp/email AI pipeline, schedule/Autodesk syncs, and RBAC matrix (all illustrated with ASCII diagrams). |
+| **[source-reference.md](source-reference.md)** | Complete file-by-file inventory of workspace config, secrets, i18n, 6 custom fields, 12 models, 4 syncs, 1 custom integration, 2 apps / 5 pages, 8 automations, 4 teams, 5 policies, `src/lib/` modules, migrations, and tests.                                                                              |
 
-### 1. Project Overview & Cashflow (`Overview`)
+## Developer Quickstart
 
-- Review project role, commercial retention/tax/payment terms, Autodesk ACC project ID, spatial `zones`, site `address`, and message `capture_rules`.
-- Track revised upstream contract sum, downstream committed cost, projected margin %, net projected cashflow, overdue payables/receivables, and the SQL-aggregated commercial `<Chart>`.
+Run all commands from the template root (`templates/construction`):
 
-### 2. Hierarchical WBS Progression (`Programme & Tasks`)
+```bash
+bun install --frozen-lockfile   # Install pinned Bolt & toolchain dependencies
+bunx bolt check                 # Type-check, compile manifest, and verify migration history
+bun run test                    # Run Vitest + @effect/vitest suites against PGlite
+bunx bolt build                 # Build release bundle, generate next SQL migration if schema changed
+```
 
-- Manage parent/child WBS work packages (`parent_task_id`, `wbs_path`) and milestones (`tasks`) across a virtualized **Timeline** (4D date scrubber, rollup summary bars, milestone diamonds and variation markers), **Table**, and **Board** views.
-- Pull and push large programmes via **Autodesk ACC/APS** (`tasks.syncs.autodesk_schedule`), or upload **Primavera P6 (`.xer`)**, **MS Project (`.xml`)**, CSV, and XLSX schedules (`tasks.syncs.schedule_file`).
+### Schema Migrations & Seed Workflow
 
-### 3. Unified BIM Hub (`BIM` → `3D Model & Issues` | `Cost Estimation` | `BIM Files`)
+- **Schema changes:** Edit model declarations under `src/data/model/**` or custom fields under `src/data/custom_field/**`, then run `bunx bolt build` to generate the next sequential SQL migration under `migrations/` and verify full replay against a scratch database. Commit SQL files together with `migrations/snapshot.json`, `migrations/migrations.lock.json`, and `migrations/physical.json`. Never commit `.norbital/`.
+- **Demo seeding:** `seed/+seeder.ts` defines the template's demo dataset binding for `bolt seed --bank=<path>` during environment reset or provisioning. A fresh workspace without seed data starts empty and ready to configure partners, costing matrix rates, and connections.
+- **Autodesk ACC secrets:** Configure `AUTODESK_CLIENT_ID` and `AUTODESK_CLIENT_SECRET` in the host's sealed secret store before pairing the `autodesk_acc` integration under **Configuration → Connections**.
 
-- **3D Model & Issues:** Inspect live `.ifc` models in the browser (`web-ifc` + Three.js) with X/Y/Z axis section planes, severity/4D highlights, and click-to-tag **Issues & Snags** (`issues`) right beside the project issues register.
-- **BIM Files:** Upload `.ifc` models and drawings into `project_files` (with automatic `revision_trail` and optional Autodesk ACC sheet/model sync via `project_files.syncs.autodesk_files`).
-- **Visual AI BIM Cost Estimation:** Uploading an `.ifc` model runs `analyze_bim_file`:
-  1. Parses geometry and deduplicates identical physical elements into unique archetypes (`src/lib/ifc-viewer/ifc_takeoff.ts`).
-  2. Renders isolated multi-angle isometric snapshots per archetype (`src/lib/ifc-viewer/ifc_asset_snapshots.ts`) so poorly named or misclassified proxy elements are identified visually rather than via fragile keyword matching.
-  3. Classifies each archetype with visual AI against active currency-matched rules in `cost_matrix` (applying area/length/volume/count basis and waste factors); unseen or unmapped assemblies route explicitly to `unknown_unseen_catalog` for commercial review.
-  4. Combines quantified BIM costs with editable **Additional Non-BIM Costings** (`additional_costs`) inside `cost_estimates`. Baselined estimates lock rates and totals permanently.
+## Core Architectural Highlights
 
-### 4. Orders & Transactions (`Orders` → `SO` / `PO` / `VO` & nested `Transactions`)
-
-- **Orders (`contracts`):** Sales Orders (`upstream`), Purchase Orders (`downstream`), and Variation Orders (`variation_order`) with itemized `priced_lines`, EOT days, revision history (`revision_trail`), and lock upon activation.
-- **Transactions (`commercial_documents`):** Nested Delivery Orders (`delivery_order`), Invoices (`invoice`), Progress Claims (`progress_claim`), and Credit Notes (`credit_note`) with exact Effect `BigDecimal` totals, automatic **3-way PO → DO → Invoice match evaluation** (`match_status`), lock upon issuance, and one-click **Draft progress claim** (`generate_payment_claim`).
-
-### 5. Business Partners, Messages & Isolated Configuration
-
-- **Business Partners (`Operations → Business Partners`):** Dedicated register for **Customers** (`client`), **Vendors** (`supplier`), and **Subcontractors** (`subcontractor`) with trade specialties and linked records.
-- **Configuration:** External integrations (`whatsapp`, `email`, `autodesk_acc`), quantifiable `cost_matrix` rules, and personal intake rules (`communication_settings`) stay isolated in the **Configuration** app.
-- `sync_messages` ingests WhatsApp and email messages on new `sys_message` creation (plus a 15-minute safety net, deduplicated, with voice transcription), `classify_messages` routes them to projects, `extract_project_updates` turns unstructured site chats/emails into structured `tasks`, `issues`, draft variation orders, and transactions, and `daily_project_digest` sends 06:00 SGT exception digests.
-
-## Access control
-
-Source teams under `src/access_control/team/+team.ts`:
-
-- `construction_administrators` — `construction_read`, `construction_delivery`, `construction_commercial`, `construction_connections`
-- `project_delivery` — `construction_read`, `construction_delivery`, `construction_connections`
-- `commercial_qs` — `construction_read`, `construction_commercial`, `construction_connections`
-- `client_consultant` — `construction_read`
-
-See [source-reference.md](source-reference.md) for the exact file-by-file inventory.
+1. **Single Federated BIM Model (`projects.bim_file`) & 1:1 `cost_estimates`:** Each project stores one `.ifc` model (`bim_file`, `bim_version`, `bim_revisions`, `bim_costing_dirty`, `bim_summary`) paired 1:1 (`unique: ['project_id']`) with `cost_estimates`. Replacing `bim_file` marks `bim_costing_dirty = true` and automatically transitions any non-void estimate to `void`. Non-BIM drawings, specifications, schedules, and handover records are consolidated under **Record → Filed Documents** (`project_files`).
+2. **Visual AI BIM Costing & Daily EOD Sweep:** Browser-side takeoff (`ifc_takeoff.worker.ts` + `ifc_asset_snapshots.ts`) streams arbitrarily large `.ifc` models in 4 MiB chunks, deduplicates instances into unique archetypes, renders 3 isolated studio angles per archetype, and classifies them via Jev System 1 (`analyze_bim_file`) against active currency-matched `cost_matrix` rules (explicitly flagging uncataloged assemblies as `unknown_unseen_catalog`). At 22:00 daily, `sweep_bim_costing` automatically schedules server-side costing for dirty/missing/void models up to 4 MiB and alerts teams to open browser takeoff for larger models.
+3. **Client-Side 3D Viewer & Two-Tier `.frag` Cache:** `ifc_viewer.svelte` boots Three.js + `@thatopen/components` in parallel with a two-tier fragment cache (in-memory LRU-4 + persistent browser `CacheStorage` `norbital-ifc-fragments-v1`), converting raw IFC files once inside a disposable `web-ifc` WASM Web Worker. Includes Orbit / Pan / Inspect modes, keyboard navigation, `Iso`/`Top`/`Front`/`Side` presets, X/Y/Z section planes, severity & 4D highlights, and raycast `bim_pin` tagging.
+4. **Catalog-Wired Commercial Ledger & Standalone Ad-hoc Costs:** Every line item on Sales Orders, Purchase Orders, Variation Orders (`contracts`), and Delivery Orders / Invoices / Claims (`commercial_documents`) must reference a valid `cost_matrix` code (or project BIM takeoff bucket) via `resolveCatalogLines` — zero free-text money lines. Non-BIM site costs live in standalone `adhoc_costs` with a mandatory `catalog_item_id` (`on_delete: 'restrict'`). Everything reconciles per catalog code in **Commercial → Cashflow & Budget** (`computeCatalogCashflowBreakdown`) using exact Effect `BigDecimal` math.
+5. **Simplified Programme & Tasks + Multi-Channel AI Intake:** **Programme & Tasks** pairs a simplified WBS-only 4D timeline (no VOs on the planner), table, and board behind an icon-only view toggle, backed by Primavera P6 (`.xer`), MS Project (`.xml`), XLSX/CSV, and two-way Autodesk ACC sync. WhatsApp and email traffic syncs continuously into `project_messages` (`sync_messages` → `classify_messages` → `extract_project_updates`), with 06:00 SGT exception digests (`daily_project_digest`).

@@ -16,7 +16,20 @@
 		{ctx}
 		of="projects"
 		page_size={50}
-		toolbar={{ title: false }}
+		toolbar={{
+			title: false,
+			actions:
+				ctx.catalog?.cost_estimates?.update !== undefined
+					? [
+							{
+								icon: 'lucide:sparkles',
+								name: ctx.t('bim_costing.sweep_action'),
+								description: ctx.t('bim_costing.sweep_action_desc'),
+								run: () => ctx.run('sweep_bim_costing', {})
+							}
+						]
+					: []
+		}}
 		columns={[
 			'project_name',
 			'project_number',

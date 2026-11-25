@@ -10,7 +10,8 @@
 		href,
 		selected,
 		onclick,
-		children
+		children,
+		...restProps
 	}: {
 		title: string;
 		icon: string;
@@ -18,6 +19,7 @@
 		selected?: boolean;
 		onclick?: () => void;
 		children: Snippet;
+		[key: string]: unknown;
 	} = $props();
 </script>
 
@@ -27,6 +29,7 @@
 	type={onclick ? 'button' : undefined}
 	aria-pressed={onclick ? Boolean(selected) : undefined}
 	{onclick}
+	{...restProps}
 	pad="md"
 	class={href || onclick
 		? selected

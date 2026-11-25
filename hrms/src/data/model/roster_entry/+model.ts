@@ -19,7 +19,8 @@ const touched = (
 	rows.map((row) => ({
 		employment: row.employment_id,
 		from: row.work_date,
-		run: row.payroll_run_id ?? null
+		run: row.payroll_run_id ?? null,
+		attendance: true
 	}));
 
 /** A day's findings: the registered rules it sits outside, then the caps it crosses. */

@@ -234,11 +234,10 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 	expect(estimate.bim_asset_count).toBe(5);
 	expect(estimate.classified_asset_count).toBe(4);
 	expect(estimate.unmatched_asset_count).toBe(1);
-	// USD rule ignored; Panel 10000 + Receptacles 220 + Roof 50000 = 60220.00
+	// USD rule ignored; Panel 10000 + Receptacles 220 + Roof 50000 = 60220.00; 5% contingency = 3011.00
 	expect(estimate.bim_subtotal).toBe('60220.00');
-	expect(estimate.additional_subtotal).toBe('11022.00');
-	expect(estimate.contingency_amount).toBe('3562.10');
-	expect(estimate.total_estimate).toBe('74804.10');
+	expect(estimate.contingency_amount).toBe('3011.00');
+	expect(estimate.total_estimate).toBe('63231.00');
 
 	const xerTasks = parsePrimaveraXer(SAMPLE_XER);
 	expect(xerTasks).toHaveLength(2);
@@ -406,34 +405,57 @@ it.effect(
 				]
 			});
 			if (setup.kind !== 'committed') throw new Error('Setup failed');
-			const projectId = recordOf(setup.records, 'projects').id;
+			const projectRef = recordOf(setup.records, 'projects');
+			const projectId = projectRef.id;
 
-			// 1. Upload IFC file -> assert project_files.create.effect AUTOMATICALLY ran analyze_bim_file
-			const uploadedIfc = yield* delivery.upload('project_files.file', {
+			// 1. Upload IFC onto projects.bim_file -> marks bim_costing_dirty=true without eager AI burn;
+			// daily EOD sweep_bim_costing picks up dirty/new project and generates 1:1 estimate
+			const uploadedIfc = yield* delivery.upload('projects.bim_file', {
 				name: 'synthetic.ifc',
 				mime: 'application/octet-stream',
 				bytes: new TextEncoder().encode(SAMPLE_IFC)
 			});
 			if (uploadedIfc.kind !== 'committed') throw new Error('IFC upload failed');
-			const fileCreate = yield* delivery.act({
-				'project_files.create': [
+			const bimAttach = yield* delivery.act({
+				'projects.update': [
 					{
-						project_id: projectId,
-						document_number: 'STP-BIM-001',
-						title: 'Synthetic MEP IFC',
-						kind: 'ifc_model',
-						discipline: 'mep',
-						zone: 'L01-MAIN',
-						current_version: 'P01',
-						file: uploadedIfc.output
+						target: projectRef,
+						set: {
+							bim_file: uploadedIfc.output,
+							bim_version: 'P01'
+						}
 					}
 				]
 			});
-			if (fileCreate.kind !== 'committed') throw new Error('BIM file create failed');
-			const bimFileId = recordOf(fileCreate.records, 'project_files').id;
+			if (bimAttach.kind !== 'committed') throw new Error('Project BIM attach failed');
+			const attachedProjectRef = recordOf(bimAttach.records, 'projects');
 
-			// Drain ONLY the effect-scheduled job (do NOT manually invoke analyze_bim_file!)
-			yield* t.run_due();
+			const dirtyProject = rowsOf(
+				yield* delivery.query({
+					projects: {
+						where: { id: { eq: projectId } },
+						fields: ['bim_costing_dirty', 'bim_revisions'],
+						limit: 1
+					}
+				}),
+				'projects'
+			)[0];
+			expect(dirtyProject?.['bim_costing_dirty']).toBe(true);
+			expect(Array.isArray(dirtyProject?.['bim_revisions'])).toBe(true);
+
+			// Run daily EOD sweep automation -> schedules & executes analyze_bim_file for dirty project
+			const sweepRes = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
+			expect(sweepRes.state).toBe('succeeded');
+			const sweepOut = Schema.decodeUnknownSync(
+				Schema.Struct({
+					checked_projects: Schema.Number,
+					scheduled_count: Schema.Number,
+					browser_required_count: Schema.Number
+				})
+			)(sweepRes.output);
+			expect(sweepOut.checked_projects).toBe(1);
+			expect(sweepOut.scheduled_count).toBe(1);
+			expect(sweepOut.browser_required_count).toBe(0);
 
 			const autoEstimates = rowsOf(
 				yield* delivery.query({
@@ -445,7 +467,7 @@ it.effect(
 							'classified_asset_count',
 							'unmatched_asset_count',
 							'bim_subtotal',
-							'additional_subtotal',
+							'contingency_amount',
 							'total_estimate',
 							'contingency_pct',
 							'status'
@@ -457,21 +479,50 @@ it.effect(
 			);
 			expect(autoEstimates).toHaveLength(1);
 			const estRow = autoEstimates[0];
-			if (!estRow) throw new Error('Expected automatic cost estimate from create.effect');
+			if (!estRow) throw new Error('Expected cost estimate from sweep_bim_costing');
 			expect(estRow['bim_asset_count']).toBe(5);
 			expect(estRow['classified_asset_count']).toBe(1);
 			expect(estRow['unmatched_asset_count']).toBe(4);
 			expect(estRow['bim_subtotal']).toBe('12000.00');
-			expect(estRow['additional_subtotal']).toBe('8000.00');
-			expect(estRow['total_estimate']).toBe('21000.00');
+			expect(estRow['contingency_amount']).toBe('600.00');
+			expect(estRow['total_estimate']).toBe('12600.00');
 
-			const bimFileAfter = rowsOf(
+			// 1:1 unique constraint refuses a second cost estimate on the same project
+			const dupEstimate = yield* admin
+				.act({
+					'cost_estimates.create': [
+						{
+							project_id: projectId,
+							title: 'Duplicate Estimate',
+							currency: 'SGD'
+						}
+					]
+				})
+				.pipe(Effect.flip);
+			expect(['ActConflict', 'ActRefused']).toContain(dupEstimate._tag);
+
+			const projectAfter = rowsOf(
 				yield* delivery.query({
-					project_files: { where: { id: { eq: bimFileId } }, fields: ['bim_summary'], limit: 1 }
+					projects: {
+						where: { id: { eq: projectId } },
+						fields: ['revision', 'bim_summary', 'bim_costing_dirty', 'bim_revisions'],
+						limit: 1
+					}
 				}),
-				'project_files'
+				'projects'
 			)[0];
-			expect(bimFileAfter?.['bim_summary']).not.toBeNull();
+			expect(projectAfter?.['bim_summary']).not.toBeNull();
+			expect(projectAfter?.['bim_costing_dirty']).toBe(false);
+			expect(Array.isArray(projectAfter?.['bim_revisions'])).toBe(true);
+
+			// Clean project is skipped by subsequent daily sweep
+			const cleanSweep = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
+			expect(cleanSweep.state).toBe('succeeded');
+			expect(
+				Schema.decodeUnknownSync(Schema.Struct({ scheduled_count: Schema.Number }))(
+					cleanSweep.output
+				).scheduled_count
+			).toBe(0);
 
 			// Baseline estimate -> verify lock refuses pricing edits AND leaves persisted value unchanged
 			const estId = fixtureId('cost_estimates', String(estRow['id']));
@@ -501,7 +552,7 @@ it.effect(
 			// Explicit re-analysis targeting a locked baselined estimate refuses cleanly AND leaves persisted estimate untouched
 			const lockedRerun = yield* runAutomation(
 				t,
-				admin.run('analyze_bim_file', { project_file_id: bimFileId, estimate_id: estId }, JobResult)
+				admin.run('analyze_bim_file', { project_id: projectId, estimate_id: estId }, JobResult)
 			);
 			expect(lockedRerun.state).toBe('failed');
 			const estAfterLockedRerun = rowsOf(
@@ -516,7 +567,52 @@ it.effect(
 			);
 			expect(estAfterLockedRerun).toHaveLength(1);
 			expect(estAfterLockedRerun[0]?.['revision']).toBe(baselinedRef.revision);
-			expect(estAfterLockedRerun[0]?.['total_estimate']).toBe('21000.00');
+			expect(estAfterLockedRerun[0]?.['total_estimate']).toBe('12600.00');
+
+			// Replacing projects.bim_file marks bim_costing_dirty=true AND voids the existing baselined estimate;
+			// next EOD sweep regenerates it back to draft and clears dirty
+			const uploadedIfcV2 = yield* delivery.upload('projects.bim_file', {
+				name: 'synthetic_v2.ifc',
+				mime: 'application/octet-stream',
+				bytes: new TextEncoder().encode(SAMPLE_IFC)
+			});
+			if (uploadedIfcV2.kind !== 'committed') throw new Error('IFC v2 upload failed');
+			const projectRevForReplace = Schema.decodeUnknownSync(Schema.Number)(
+				projectAfter?.['revision'] ?? attachedProjectRef.revision
+			);
+			const bimReplace = yield* delivery.act({
+				'projects.update': [
+					{
+						target: { id: projectId, revision: projectRevForReplace },
+						set: { bim_file: uploadedIfcV2.output }
+					}
+				]
+			});
+			expect(bimReplace.kind).toBe('committed');
+			yield* t.run_due();
+
+			const voidedEst = rowsOf(
+				yield* admin.query({
+					cost_estimates: { where: { id: { eq: estId } }, fields: ['status'], limit: 1 }
+				}),
+				'cost_estimates'
+			)[0];
+			expect(voidedEst?.['status']).toBe('void');
+
+			const regenSweep = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
+			expect(regenSweep.state).toBe('succeeded');
+			const regenEst = rowsOf(
+				yield* admin.query({
+					cost_estimates: {
+						where: { id: { eq: estId } },
+						fields: ['status', 'total_estimate'],
+						limit: 1
+					}
+				}),
+				'cost_estimates'
+			)[0];
+			expect(regenEst?.['status']).toBe('draft');
+			expect(regenEst?.['total_estimate']).toBe('12600.00');
 
 			// 2. Zone validation refuses undeclared zone AND persists zero rows
 			const badZone = yield* delivery

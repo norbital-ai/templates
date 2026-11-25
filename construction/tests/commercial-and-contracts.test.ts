@@ -2,6 +2,7 @@ import { Effect, Schema } from 'effect';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
 import {
+	computeCatalogCashflowBreakdown,
 	computeDocumentTotals,
 	computeLinesTotals,
 	computeProjectCashflow,
@@ -42,7 +43,15 @@ it('computes exact BigDecimal lines, 3-way match, commercial valuation, retentio
 	expect(lines.total_amount).toBe('21800.00');
 
 	const docTotals = computeDocumentTotals({
-		lines: [{ description: 'Switchboard batch', unit: 'ea', qty: '2', unit_rate: '10000.00' }],
+		lines: [
+			{
+				code: 'ELEC-SWB',
+				description: 'Switchboard batch',
+				unit: 'ea',
+				qty: '2',
+				unit_rate: '10000.00'
+			}
+		],
 		subtotal: '0',
 		tax_rate: '9',
 		retention_amount: '2000.00',
@@ -178,6 +187,68 @@ it('computes exact BigDecimal lines, 3-way match, commercial valuation, retentio
 	expect(cashflow.overdue_payables).toBe('120000.00');
 	expect(cashflow.net_realized_cashflow).toBe('350000.00');
 	expect(cashflow.net_projected_cashflow).toBe('230000.00');
+
+	const ledger = computeCatalogCashflowBreakdown({
+		bim_assets: [
+			{
+				matrix_code: 'ROOF-DECK',
+				classification: 'Metal Roof Deck',
+				unit: 'm2',
+				amount: '200000.00',
+				status: 'matched'
+			}
+		],
+		adhoc_costs: [
+			{
+				status: 'incurred',
+				catalog_code: 'GEN-CRANE',
+				catalog_name: 'Tower Crane Hire',
+				title: 'Crane',
+				unit: 'month',
+				amount: '30000.00'
+			}
+		],
+		contracts: [
+			{
+				direction: 'downstream',
+				status: 'active',
+				lines: [
+					{
+						source: 'bim_asset',
+						code: 'ROOF-DECK',
+						description: 'Metal Roof Deck',
+						unit: 'm2',
+						qty: '1000',
+						unit_rate: '180.00',
+						amount: '180000.00'
+					}
+				]
+			}
+		],
+		documents: [
+			{
+				doc_type: 'invoice',
+				direction: 'outflow',
+				status: 'paid',
+				lines: [
+					{
+						source: 'bim_asset',
+						code: 'ROOF-DECK',
+						description: 'Metal Roof Deck',
+						unit: 'm2',
+						qty: '500',
+						unit_rate: '180.00',
+						amount: '90000.00'
+					}
+				]
+			}
+		]
+	});
+	expect(ledger.total_estimated_budget).toBe('230000.00');
+	expect(ledger.total_adhoc_costs).toBe('30000.00');
+	expect(ledger.total_po_committed).toBe('180000.00');
+	expect(ledger.total_paid_outflow).toBe('120000.00');
+	expect(ledger.rows.find((r) => r.code === 'ROOF-DECK')?.budget_variance).toBe('20000.00');
 });
 
 it.effect(
@@ -258,7 +329,82 @@ it.effect(
 				rowsOf(yield* viewer.query({ contracts: { fields: ['title'], limit: 10 } }), 'contracts')
 			).toHaveLength(0);
 
-			// Commercial QS creates contact + upstream & downstream contracts
+			// Commercial QS creates catalog items + contact + upstream & downstream contracts
+			const catalogCreate = yield* qs.act({
+				'cost_matrix.create': [
+					{
+						code: 'ROOF-DECK',
+						name: 'Metal Roof Deck',
+						category: 'bim_asset',
+						discipline: 'architecture',
+						trade_specialty: 'roofing',
+						ifc_classes: ['IFCROOF'],
+						unit: 'm2',
+						quantity_basis: 'area',
+						currency: 'SGD',
+						unit_rate: '200.00',
+						waste_factor_pct: '0.0',
+						active: true
+					},
+					{
+						code: 'WP-MEMB',
+						name: 'Membrane Rolls',
+						category: 'bim_asset',
+						discipline: 'architecture',
+						trade_specialty: 'waterproofing',
+						ifc_classes: ['IFCROOF'],
+						unit: 'ea',
+						quantity_basis: 'count',
+						currency: 'SGD',
+						unit_rate: '1000.00',
+						waste_factor_pct: '0.0',
+						active: true
+					},
+					{
+						code: 'GEN-CRANE',
+						name: 'Tower Crane Hire',
+						category: 'additional_cost',
+						discipline: 'preliminaries',
+						trade_specialty: 'general',
+						unit: 'month',
+						quantity_basis: 'lump_sum',
+						currency: 'SGD',
+						unit_rate: '12000.00',
+						waste_factor_pct: '0.0',
+						active: true
+					}
+				]
+			});
+			if (catalogCreate.kind !== 'committed') throw new Error('Catalog create failed');
+			const bimCatalogId = recordOf(catalogCreate.records, 'cost_matrix', 0).id;
+			const adhocCatalogId = recordOf(catalogCreate.records, 'cost_matrix', 2).id;
+
+			// Free-text uncataloged commercial line code is refused cleanly
+			const uncatalogedContract = yield* qs
+				.act({
+					'contracts.create': [
+						{
+							project_id: projectId,
+							title: 'Uncataloged Free-Text Contract',
+							direction: 'upstream',
+							contract_type: 'subcontract',
+							currency: 'SGD',
+							lines: [
+								{
+									code: 'FREE-TEXT-999',
+									description: 'Random uncataloged item',
+									unit: 'ls',
+									qty: '1',
+									unit_rate: '5000.00',
+									amount: '5000.00'
+								}
+							]
+						}
+					]
+				})
+				.pipe(Effect.flip);
+			expect(uncatalogedContract._tag).toBe('ActRefused');
+
 			const contactCreate = yield* qs.act({
 				'contacts.create': [
 					{
@@ -286,7 +432,7 @@ it.effect(
 						currency: 'SGD',
 						lines: [
 							{
-								code: 'R1',
+								code: 'ROOF-DECK',
 								description: 'Metal Roof Deck',
 								unit: 'm2',
 								qty: '1000',
@@ -305,7 +451,7 @@ it.effect(
 						currency: 'SGD',
 						lines: [
 							{
-								code: 'W1',
+								code: 'WP-MEMB',
 								description: 'Membrane Rolls',
 								unit: 'ea',
 								qty: '50',
@@ -401,7 +547,7 @@ it.effect(
 						tax_rate: '9.00',
 						lines: [
 							{
-								code: 'W1',
+								code: 'WP-MEMB',
 								description: 'Membrane Rolls',
 								unit: 'ea',
 								qty: '50',
@@ -732,5 +878,100 @@ it.effect(
 			expect(persistedClaim?.['status']).toBe('draft');
 			expect(persistedClaim?.['subtotal']).toBe('90000.00');
 			expect(persistedClaim?.['net_amount']).toBe('98100.00');
+
+			// Ad-hoc costs: RBAC (delivery denied, QS admitted), mandatory ad-hoc catalog enforcement, exact BigDecimal qty * unit_rate, and incurred lock
+			const deliveryAdhocDenied = yield* delivery
+				.act({
+					'adhoc_costs.create': [
+						{
+							project_id: projectId,
+							catalog_item_id: adhocCatalogId,
+							title: 'Unauthorized Prelim',
+							category: 'preliminaries',
+							currency: 'SGD',
+							unit: 'month',
+							qty: '1',
+							unit_rate: '5000.00'
+						}
+					]
+				})
+				.pipe(Effect.flip);
+			expect(deliveryAdhocDenied._tag).toBe('ActRefused');
+
+			// Wrong catalog category (bim_asset instead of additional_cost) is refused
+			const wrongCatalogAdhoc = yield* qs
+				.act({
+					'adhoc_costs.create': [
+						{
+							project_id: projectId,
+							catalog_item_id: bimCatalogId,
+							title: 'Wrong Category Adhoc',
+							category: 'preliminaries',
+							qty: '1',
+							unit_rate: '5000.00'
+						}
+					]
+				})
+				.pipe(Effect.flip);
+			expect(wrongCatalogAdhoc._tag).toBe('ActRefused');
+			expect(
+				rowsOf(
+					yield* viewer.query({
+						adhoc_costs: { where: { project_id: { eq: projectId } }, fields: ['title'], limit: 10 }
+					}),
+					'adhoc_costs'
+				)
+			).toHaveLength(0);
+
+			const adhocCreate = yield* qs.act({
+				'adhoc_costs.create': [
+					{
+						project_id: projectId,
+						catalog_item_id: adhocCatalogId,
+						title: 'Tower Crane Hire',
+						category: 'hoisting_logistics',
+						qty: '2.5',
+						unit_rate: '12000.00'
+					}
+				]
+			});
+			if (adhocCreate.kind !== 'committed') throw new Error('Adhoc create failed');
+			const adhocRef = recordOf(adhocCreate.records, 'adhoc_costs');
+
+			const adhocApproved = yield* qs.act({
+				'adhoc_costs.update': [{ target: adhocRef, set: { status: 'approved' } }]
+			});
+			if (adhocApproved.kind !== 'committed') throw new Error('Adhoc approve failed');
+			const adhocIncurred = yield* qs.act({
+				'adhoc_costs.update': [
+					{ target: recordOf(adhocApproved.records, 'adhoc_costs'), set: { status: 'incurred' } }
+				]
+			});
+			if (adhocIncurred.kind !== 'committed') throw new Error('Adhoc incur failed');
+			const incurredRef = recordOf(adhocIncurred.records, 'adhoc_costs');
+
+			const lockedAdhocEdit = yield* qs
+				.act({
+					'adhoc_costs.update': [{ target: incurredRef, set: { unit_rate: '99999.00' } }]
+				})
+				.pipe(Effect.flip);
+			expect(lockedAdhocEdit._tag).toBe('ActRefused');
+
+			const persistedAdhoc = rowsOf(
+				yield* viewer.query({
+					adhoc_costs: {
+						where: { id: { eq: incurredRef.id } },
+						fields: ['catalog_item_id', 'unit', 'currency', 'amount', 'incurred_date', 'status'],
+						limit: 1
+					}
+				}),
+				'adhoc_costs'
+			)[0];
+			expect(persistedAdhoc?.['catalog_item_id']).toBe(adhocCatalogId);
+			expect(persistedAdhoc?.['unit']).toBe('month');
+			expect(persistedAdhoc?.['currency']).toBe('SGD');
+			expect(persistedAdhoc?.['amount']).toBe('30000.00');
+			expect(persistedAdhoc?.['incurred_date']).toBe('2026-06-15');
+			expect(persistedAdhoc?.['status']).toBe('incurred');
 		}).pipe(Effect.scoped)
 );

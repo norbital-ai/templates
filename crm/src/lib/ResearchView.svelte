@@ -4,6 +4,7 @@
 	 * and a linked References section below. Also provides a helper for formatted Use Cases sharing those citations.
 	 */
 	import { Button, Icon, Popover, ReadonlyMarkdown } from '@norbital-ai/ui';
+	import { create_clipboard } from '@norbital-ai/ui/behaviors';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import type { Reference } from './research.js';
 	import { linkCitations, parseResearch, parseUseCase } from './research.js';
@@ -31,6 +32,7 @@
 	let popoverOpen = $state(false);
 	let anchor = $state<HTMLElement | null>(null);
 	let copiedIndex = $state<number | null>(null);
+	const clipboard = create_clipboard({ text: '', timeout_ms: 1500 });
 
 	function handleCitationClick(event: MouseEvent) {
 		const target = event.target instanceof HTMLElement ? event.target.closest('a') : null;
@@ -46,15 +48,7 @@
 	}
 
 	async function copyUseCase(text: string, index: number) {
-		try {
-			await navigator.clipboard.writeText(text);
-			copiedIndex = index;
-			setTimeout(() => {
-				if (copiedIndex === index) copiedIndex = null;
-			}, 1500);
-		} catch {
-			// Clipboard unavailable in restricted contexts.
-		}
+		if (await clipboard.copy(text)) copiedIndex = index;
 	}
 </script>
 
@@ -89,8 +83,11 @@
 						class="h-7 shrink-0 px-2 text-xs text-muted-foreground"
 						onclick={() => void copyUseCase(item, i)}
 					>
-						<Icon name={copiedIndex === i ? 'lucide:check' : 'lucide:copy'} class="mr-1 size-3" />
-						{copiedIndex === i ? copiedLabel : copyLabel}
+						<Icon
+							name={clipboard.copied && copiedIndex === i ? 'lucide:check' : 'lucide:copy'}
+							class="mr-1 size-3"
+						/>
+						{clipboard.copied && copiedIndex === i ? copiedLabel : copyLabel}
 					</Button>
 				</div>
 			</div>

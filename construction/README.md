@@ -2,105 +2,76 @@
 
 ![Construction Operations application](docs/screenshots/application.webp)
 
-A contractor project management workspace built for **main contractors coordinating trade subcontractors
-as well as specialist subcontractors delivering their own packages**. Unstructured updates from
-**WhatsApp** and **Email** sit alongside **3D BIM IFC models**, **hierarchical WBS schedules** and an
-order-centered **SO / PO / VO + DO / Invoice** commercial ledger.
+Construction Operations is an end-to-end contractor project management workspace designed for both **main contractors coordinating multi-trade subcontractors** and **specialist subcontractors delivering their own packages**. It unifies field communication from **WhatsApp** and **Email**, **3D BIM models**, **hierarchical work-breakdown schedules**, and a **catalog-controlled commercial and cashflow ledger** in one operational hub.
 
-## Industry & Bolt capabilities
+Construction teams typically lose hours every week reconciling scattered spreadsheets, buried site chats, outdated bill-of-quantities workbooks, and disconnected delivery dockets. This workspace replaces those manual handoffs with a single source of truth per project: one authoritative 3D BIM model paired with one live cost estimate, standardized rate catalogs across every order and invoice, three-way verification across commitments, deliveries, and billing, and structured capture of site updates as they happen.
 
-- **Industry:** Construction
-- **Bolt capabilities:** `data_modeling`, `complex_files`, `ai_classification`, `channel_integrations`, `third_party_saas`, `scheduled_automations`
+## Expected Business Impact
 
-## Key capabilities
+- **Eliminate pricing drift and commercial leakage:** Every line item on Sales Orders, Purchase Orders, Variation Orders, Delivery Orders, Invoices, and Ad-hoc Costs draws from project BIM takeoff quantities or the approved Costing Matrix — removing free-text line entries and keeping estimated budgets, commitments, deliveries, and payouts reconciled item by item.
+- **Cut manual BIM takeoff turnaround:** Automated deduplication and visual AI classification group thousands of repeated model elements into unique component types, price them against active unit rates and waste factors, and isolate unrecognized assemblies for focused Quantity Surveyor review rather than full manual re-measurement.
+- **Prevent stale estimates after design revisions:** Replacing a project's BIM model automatically logs the new revision, flags the model for re-costing, and marks the prior cost estimate void until updated on demand or by the nightly end-of-day sweep.
+- **Turn unstructured site chatter into actionable records:** WhatsApp messages, voice notes, site photos, and email attachments are automatically transcribed, routed to the right project, and drafted into schedule updates, 3D-pinned snags, draft variation orders, or commercial documents.
+- **Enforce commercial discipline with clear audit trails:** Executed contracts, issued invoices, certified progress claims, incurred ad-hoc costs, and baselined cost estimates lock automatically against silent edits, while automatic three-way matching flags billing variances before payment.
 
-- **Unified BIM hub (`BIM`):** Organizes **3D Model & Issues**, **Cost Estimation** and **BIM Files**
-  into clean nested tabs. Inspect `.ifc` models in the browser with `web-ifc` + Three.js (X/Y/Z section
-  planes, severity and 4D highlights) and pin site issues directly to 3D elements by trade specialty.
-- **Visual AI BIM archetype classification & costing:** Uploading an `.ifc` file triggers
-  `analyze_bim_file`, which parses geometry, deduplicates identical elements into unique archetypes,
-  renders isolated multi-angle isometric snapshots per archetype, and classifies each archetype visually
-  against the active **Costing Matrix** (`cost_matrix`) — routing unseen or poorly tagged proxy elements
-  to `unknown_unseen_catalog` for commercial review alongside editable **Additional Non-BIM Costings**.
-- **Hierarchical WBS planning (`Programme & Tasks`):** Manage parent/child work breakdown trees, rollup
-  progress and milestone diamonds across a virtualized **4D Timeline** (with date scrubber and variation
-  markers), **Table** and **Board** views, synced with **Autodesk ACC/APS** (`autodesk_schedule`) or
-  imported from **Primavera P6 (`.xer`)**, **MS Project (`.xml`)**, CSV and XLSX (`schedule_file`).
-- **Order-centered commercial ledger (`Orders`):** Separates upstream **Sales Orders (SO)**, downstream
-  **Purchase Orders (PO)** and **Variation Orders (VO)** (`contracts` with `priced_lines`, revision trail
-  and EOT days), with nested **Transactions** (`commercial_documents`: Delivery Orders, Invoices,
-  Progress Claims and Credit Notes), exact `BigDecimal` 3-way PO → DO → Invoice matching and one-click
-  progress claim drafts (`generate_payment_claim`).
-- **Business Partners & multi-channel intake:** Maintain **Customers**, **Vendors** and
-  **Subcontractors** in a dedicated **Business Partners** module, while isolated **Configuration**
-  connects **WhatsApp**, **Email** and **Autodesk ACC** for automatic message sync, voice transcription,
-  AI update extraction and 06:00 daily digests.
+## Roles & Access
 
-## How it works
+Workspace authority is divided across four business teams to maintain separation between site delivery, commercial control, workspace administration, and external stakeholders:
 
-1. **Project setup & partners:** Each project declares its `project_role` (`main_contractor`,
-   `subcontractor`, `specialist_contractor`), commercial terms, zones and capture rules. Counterparties
-   are managed in **Business Partners** (`contacts`) tagged as `client`, `supplier` or `subcontractor`.
-2. **BIM ingestion → visual costing:** An `.ifc` upload to `project_files` runs client-side `web-ifc`
-   extraction and multi-angle archetype rendering, then invokes `analyze_bim_file` to visually match
-   every archetype to `cost_matrix` rules, write itemized `cost_estimates` (`matched` vs
-   `unknown_unseen_catalog`), and combine BIM quantities with manual non-BIM costs.
-3. **Schedule & issue coordination:** `tasks` form a self-referential WBS hierarchy (`parent_task_id`,
-   `wbs_path`) whose rollups drive the 4D timeline and link directly to BIM element IDs and 3D-pinned
-   `issues`.
-4. **Commercial execution:** `contracts` (SO/PO/VO) lock on activation; child `commercial_documents`
-   (DOs, Invoices, Progress Claims) cross-check against parent POs and DOs in `BigDecimal` arithmetic.
-5. **Channel automation:** `sync_messages` ingests WhatsApp and email traffic, `classify_messages` routes
-   items to projects, `extract_project_updates` drafts tasks, issues or commercial entries, and
-   `daily_project_digest` notifies project teams each morning.
+- **Construction Administrators:** Full operational, commercial, and setup authority across projects, schedules, BIM models, contracts, invoices, the Costing Matrix, Business Partners, and shared company integrations (including Autodesk Construction Cloud).
+- **Project Delivery (Project Managers & Site Supervisors):** Manage project setup, BIM model revisions, filed drawings and specifications, work-breakdown schedules, 3D-pinned defects and RFIs, Business Partners, and message triage. Delivery users cannot create or alter commercial contracts, invoices, ad-hoc costs, or master unit rates; when they upload a revised BIM model, the workspace automatically marks the previous cost estimate void without granting access to commercial pricing.
+- **Commercial & Quantity Surveying (QS):** Manage Sales Orders, Purchase Orders, Variation Orders, Delivery Orders, Invoices, Progress Claims, Ad-hoc Costs, the master Costing Matrix, BIM cost estimation review and baselining, and project financial terms. Commercial users cannot modify site schedules, BIM models, or snag registers.
+- **Client & Consultant:** Read-only visibility across the Operations app to inspect project status, programmes, 3D models, site issues, and commercial progress — with zero write permissions and no visibility into internal integrations or configuration settings.
 
-## Apps and roles
+Personal WhatsApp and email channels are strictly isolated per team member: individuals can connect and configure intake rules only for their own accounts, while company-wide shared channels are administered centrally.
 
-| App               | Pages                                               | Audience / role                                                        |
-| ----------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
-| **Operations**    | Projects (Project Hub), Business Partners, Messages | `Project Managers`, `Commercial`, `Site Supervisors`, `Subcontractors` |
-| **Configuration** | Connections, Costing Matrix                         | `Project Managers`, `Commercial` (isolated setup & master rates)       |
+## Apps & Functionality
 
-Opening a project lands on four clean **Project Hub** tabs: **Overview**, **Programme & Tasks**, **BIM**
-(`3D Model & Issues` · `Cost Estimation` · `BIM Files`), and **Orders** (`SO / PO / VO` with nested
-`Transactions: DO & Invoices`).
+### Operations
 
-## Data model
+| App / Module                        | Functionality                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projects**                        | Portfolio register showing project role (Main Contractor, Subcontractor, or Specialist Contractor), client, status, contract value, open tasks, open issues, and active contracts, with a one-click action to sweep pending BIM costings across all projects. Opening any project enters the four-tab **Project Hub** detailed below.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Project Hub — Record**            | Live **Cashflow & Commercial Pulse** (revised contract value, committed downstream contracts, net projected cashflow, projected margin, overall physical progress, overdue receivables/payables alerts, and a commercial ledger chart), core project and payment terms, the project's single **BIM IFC Model** slot with revision history, spatial zones and grid axes, message routing instructions, and the consolidated **Filed Documents** register (drawings, specifications, schedules, contract documents, handover records, and synced Autodesk sheets with full revision history).                                                                                                                                                        |
+| **Project Hub — Programme & Tasks** | Hierarchical work-breakdown schedule and milestone tracking with quick switching between a **Timeline** (interactive 4D date scrubber, summary rollups, milestone diamonds, behind-plan alerts, and one-click highlighting of scheduled elements in the 3D BIM viewer), **Table**, and streamlined **Board** view. Supports two-way Autodesk Construction Cloud schedule sync plus Primavera P6, Microsoft Project, Excel, and CSV import/export.                                                                                                                                                                                                                                                                                                  |
+| **Project Hub — BIM**               | Two dedicated sub-tabs: **3D Model & Issues** pairs an interactive browser 3D viewer (fast local caching after first open, Orbit/Pan/Inspect navigation, keyboard controls, Iso/Top/Front/Side camera presets, X/Y/Z 3D section cuts, issue severity and 4D highlights, and click-to-pin defects with saved camera viewpoints and site photos) alongside the project Issues & Snags register; **BIM Costing** displays the project's single inline BIM cost estimate, void/dirty alerts when the BIM model changes, on-demand re-run or large local IFC scanning, coverage and unmatched item review, and baselining controls.                                                                                                                     |
+| **Project Hub — Commercial**        | Four structured sub-tabs: **Cashflow & Budget** reconciles every BIM and catalog code across Estimated Budget, Sales Order Revenue, Purchase Order Committed, Delivered (DO), Invoiced, Paid, and Budget Variance; **Sales Orders (SO)** and **Purchase Orders (PO)** manage upstream and downstream agreements with nested **Variation Orders (VO)**, nested **Transactions** (Delivery Orders, Invoices, Progress Claims, Credit Notes), automatic three-way PO → DO → Invoice matching, revision trails, execution locks, and one-click progress claim drafting; **Ad-hoc Costs** tracks catalog-backed non-BIM project costs (preliminaries, hoisting and logistics, permits, testing and commissioning, temporary works, and site overheads). |
+| **Business Partners**               | Dedicated partner register organized into **All Partners**, **Customers**, **Vendors**, and **Subcontractors** across 16 construction trade specialties, with contact handles for automatic message matching and per-partner tabs for linked Orders & Contracts, Transactions, and Assigned Tasks.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Messages**                        | Unified WhatsApp and Email coordination inbox displaying sender, channel, project routing, voice-note transcription status, and AI extraction status, with manual controls to sync messages, route pending threads, or extract updates into project records.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
-11 models and 6 custom fields (`bim_takeoff`, `bim_pin`, `priced_lines`, `revision_trail`,
-`project_zones`, `project_address`):
+### Configuration
 
-- **Project root (`projects`):** `project_role`, commercial terms, `autodesk_project_id`, `zones` and
-  `capture_rules`.
-  - Owned children: `contracts` (SO / PO / VO), `commercial_documents` (DO / Invoice / Claim / Credit
-    Note), `tasks` (hierarchical WBS), `issues` (3D-pinned snags), `project_files` (`.ifc` & drawings),
-    `cost_estimates`.
-- **Partners, intake & configuration:** `contacts` (Customers, Vendors, Subcontractors),
-  `project_messages`, `cost_matrix`, `communication_settings`.
+| App / Module       | Functionality                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Costing Matrix** | Master catalog of active unit rates, measurement bases (count, length, area, volume, weight, lump sum, or percentage), waste factors, rate bases, currencies, validity periods, and trade classifications covering both BIM assets and approved Ad-hoc Cost catalog items, with bulk Excel and CSV import/export. |
+| **Connections**    | Isolated workspace to pair personal WhatsApp and email accounts, define personal message filtering and AI auto-extraction guidelines, and manage administrator-owned shared company channels and Autodesk Construction Cloud links.                                                                               |
 
-## Automations and integrations
+## Automations & Connections
 
-| Automation / integration   | Trigger / type                                   | Purpose                                                                                            |
-| -------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `analyze_bim_file`         | `project_files` IFC upload; manual run           | Deduplicates IFC archetypes, classifies visually against `cost_matrix` and writes `cost_estimates` |
-| `sync_messages`            | `sys_message` arrival; 15-min safety net; manual | Mirrors WhatsApp/email messages and transcribes voice notes into `project_messages`                |
-| `classify_messages`        | Message intake; manual                           | Routes unstructured messages to projects                                                           |
-| `extract_project_updates`  | Routed messages; manual                          | AI-extracts task updates, BIM issues, draft variations and commercial transactions                 |
-| `generate_payment_claim`   | Manual (on a project)                            | Drafts a `BigDecimal` progress claim from active orders and transactions                           |
-| `daily_project_digest`     | Daily 06:00                                      | Delivers project exception and progression digests                                                 |
-| `autodesk_acc` integration | Two-way sync (`tasks`, `project_files`)          | Syncs Autodesk ACC/APS programmes, models and sheets alongside built-in WhatsApp & Email           |
+### Built-In Automations
 
-## Getting started
+- **Nightly BIM Costing Sweep (22:00 daily):** Scans active and tendering projects for newly uploaded, updated, or voided BIM models, automatically schedules costing for standard-sized models, and notifies commercial and delivery teams when oversized models should be processed through browser-based multi-angle scanning.
+- **Visual AI BIM Takeoff & Costing:** Parses IFC files, collapses repeated elements into unique archetypes, captures isolated multi-angle 3D studio views per archetype, classifies each against active currency-matched Costing Matrix rules, prices quantities with waste factors and contingency, and explicitly flags uncataloged assemblies for Quantity Surveyor review.
+- **Continuous WhatsApp & Email Intake + Voice Transcription:** Mirrors incoming and outgoing messages from connected accounts in real time (backed by a 15-minute catch-up check), respects each connection's chosen start window, carries through attachments and photos, and transcribes site voice notes into searchable text.
+- **Automated Project Routing & Structured Extraction:** Routes incoming messages to the right project using contact handles, project codes, and AI classification (automatically re-evaluating unassigned threads whenever contacts or intake rules change), then extracts task progress updates, photo-backed site issues, draft variation orders, and draft commercial documents from messages and attached PDFs or images.
+- **One-Click Progress Claim Valuation:** Computes gross work done from revised contract values and physical schedule progress, applies contractual retention rates and caps, deducts previously certified or submitted inflows, and drafts a ready-to-review Progress Claim.
+- **Daily Morning Exception Digest (06:00):** Sends project delivery, commercial, and administrator teams a consolidated morning alert covering open critical and high-severity issues, blocked or overdue tasks, contracts and variations awaiting review, and overdue invoices or claims.
 
-```bash
-bun install --frozen-lockfile
-bunx bolt check
-bun run test
-bunx bolt build
-```
+### External Connections & File Formats
 
-A fresh workspace starts empty; configure business partners, costing matrix rules and connections
-(WhatsApp, Email, Autodesk ACC) under **Operations → Business Partners** and **Configuration**.
+- **WhatsApp & Email:** Personal member connections and shared company accounts for continuous field intake.
+- **Autodesk Construction Cloud (ACC):** Secure account authorization providing two-way schedule synchronization (every 30 minutes) and project sheet/document synchronization (hourly).
+- **Industry File Standards:** Native import and export support for **IFC** 3D BIM models, **Primavera P6** schedules, **Microsoft Project** schedules, **Excel**, **CSV**, and **PDF** document conversion.
 
-- [Workflow guide](docs/README.md)
-- [Source reference](docs/source-reference.md)
+## Scope & Boundaries
+
+- **Operational project control, not statutory accounting:** The workspace manages project budgets, orders, variations, deliveries, billing, claims, and cashflow forecasting, and provides clean data for finance teams — it does not replace an enterprise general ledger, execute bank or GIRO transfers, or submit statutory tax filings.
+- **BIM coordination and takeoff, not CAD authoring:** Users inspect, slice, tag, and estimate federated IFC models exported from authoring tools such as Revit, ArchiCAD, or Tekla — geometry authoring, clash resolution modeling, and professional engineering sign-off remain in specialist CAD tools.
+- **Drafting assistance with human sign-off:** AI-extracted variation orders, invoices, progress claims, and BIM cost estimates always enter in draft status and require authorized Quantity Surveyor or Project Manager review before activation, issuance, or baselining.
+- **Customer-managed external accounts:** Organizations provision and maintain their own Autodesk Construction Cloud credentials, WhatsApp accounts, email accounts, and company rate cards.
+
+## Documentation
+
+- [Technical Documentation & Developer Quickstart](docs/README.md)
+- [Architecture & Inner Mechanisms (with ASCII Diagrams)](docs/architecture.md)
+- [Source Reference](docs/source-reference.md)

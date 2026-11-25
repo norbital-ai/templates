@@ -544,7 +544,7 @@ function computeArchetypeSignature(elem: BimAssetRecord): string {
 	if (elem.type_id !== null) {
 		const typeKey =
 			elem.type_name !== null && elem.type_name.trim().length > 0
-				? elem.type_name.trim().toLowerCase()
+				? normalizeInstanceName(elem.type_name) || elem.type_name.trim().toLowerCase()
 				: `#${elem.type_id}`;
 		return [
 			'TYPE',
@@ -1200,9 +1200,13 @@ export function createIfcStepStreamParser() {
 		const matInfo = resolveMaterialsFor(a.express_id, typeId);
 		const qp = resolveQuantitiesAndProps(a.express_id, typeId);
 		const storey = resolveStorey(a.express_id);
-		const family =
-			typeInfo?.name?.trim() || a.name.split(':')[0]?.trim() || a.object_type || a.ifc_class;
-		const typeName = typeInfo?.name ?? null;
+		const cleanTypeName =
+			typeInfo?.name
+				?.trim()
+				.replace(/:(?:[A-Za-z]{0,2}\d{1,7}|[0-9A-Fa-f]{6,})$/, '')
+				.trim() ?? null;
+		const family = cleanTypeName || a.name.split(':')[0]?.trim() || a.object_type || a.ifc_class;
+		const typeName = cleanTypeName;
 		const predefinedType = a.predefined_type ?? typeInfo?.predefined_type ?? null;
 		const operationType = a.operation_type ?? typeInfo?.operation_type ?? null;
 		const partIds = (childrenOf.get(a.express_id) ?? []).slice(0, 32);

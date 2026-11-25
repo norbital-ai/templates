@@ -14,6 +14,7 @@
 		TimeInput,
 		use_act
 	} from '@norbital-ai/ui';
+	import { create_inline_edit } from '@norbital-ai/ui/behaviors';
 	import { AppShell, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
@@ -108,28 +109,20 @@
 	const days = $derived(monthDays(month));
 	const rows = $derived(book?.current ? priceBookRows(book.current, month) : []);
 
-	let editing = $state<string | null>(null);
-	let draft = $state('');
 	const save = use_act(ctx);
 	let readingDefaults = $state(false);
 	let error = $state<string | null>(null);
 	const keyOf = (row: PriceRow, day: string) => `${row.key}|${day}`;
-	function start(row: PriceRow, day: string) {
-		if (save.pending || readingDefaults) return;
-		error = null;
-		editing = keyOf(row, day);
-		const cell = row.cells[day];
-		draft = cell ? BigDecimal.format(BigDecimal.fromStringUnsafe(cell.floor_price)) : '';
+	const rowByKey = $derived(new Map(rows.map((row) => [row.key, row])));
+	function parseCellId(id: string): { readonly row: PriceRow; readonly day: string } | null {
+		const sep = id.lastIndexOf('|');
+		if (sep < 0) return null;
+		const row = rowByKey.get(id.slice(0, sep));
+		const day = id.slice(sep + 1);
+		return row !== undefined ? { row, day } : null;
 	}
-	function cancel() {
-		editing = null;
-		draft = '';
-	}
-	function commit(row: PriceRow, day: string) {
-		const key = keyOf(row, day);
-		if (editing !== key) return;
-		editing = null;
-		const value = draft.trim();
+	function commitPrice(row: PriceRow, day: string, raw: string) {
+		const value = raw.trim();
 		if (value === '') return;
 		if (group === null || currency === null) return;
 		const existing = row.cells[day];
@@ -196,16 +189,30 @@
 			);
 		}
 	}
+	const cellEdit = create_inline_edit({
+		disabled: () => save.pending || readingDefaults,
+		value: (id) => {
+			const parsed = parseCellId(id);
+			const cell = parsed?.row.cells[parsed.day];
+			return cell ? BigDecimal.format(BigDecimal.fromStringUnsafe(cell.floor_price)) : '';
+		},
+		commit: (id, text) => {
+			const parsed = parseCellId(id);
+			if (parsed !== null) commitPrice(parsed.row, parsed.day, text);
+		},
+		on_tab: (id, direction) => {
+			const parsed = parseCellId(id);
+			if (parsed === null) return;
+			const nextDay = days[days.indexOf(parsed.day) + direction];
+			if (nextDay !== undefined) cellEdit.begin(keyOf(parsed.row, nextDay), 'imperative');
+		}
+	});
 	function create() {
 		openCreate('pricing_floors', {
 			...(group === null ? {} : { group_code: group }),
 			...(currency === null ? {} : { currency }),
 			effective_on: `${month}-01`
 		});
-	}
-	function focusInput(node: HTMLInputElement) {
-		node.focus();
-		node.select();
 	}
 </script>
 
@@ -376,21 +383,11 @@
 												day === today && 'bg-surface-muted'
 											]}
 										>
-											{#if editing === key}
+											{#if cellEdit.is_editing(key)}
 												<input
 													class="h-8 w-24 rounded-none border-0 bg-transparent px-1.5 text-right text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
-													bind:value={draft}
-													onkeydown={(event) => {
-														if (event.key === 'Enter') {
-															event.preventDefault();
-															commit(row, day);
-														} else if (event.key === 'Escape') {
-															event.preventDefault();
-															cancel();
-														}
-													}}
-													onblur={() => commit(row, day)}
-													use:focusInput
+													{@attach cellEdit.input}
+													{...cellEdit.input_attrs()}
 													aria-label={`${row.name} ${day}`}
 												/>
 											{:else}
@@ -399,7 +396,10 @@
 													class="group/cell hover:bg-muted flex h-8 w-full items-center justify-end px-1.5 tabular-nums"
 													aria-label={`${row.name} ${day}`}
 													disabled={save.pending || readingDefaults}
-													onclick={() => start(row, day)}
+													onclick={() => {
+														error = null;
+														cellEdit.begin(key, 'imperative');
+													}}
 												>
 													{#if cell}
 														{BigDecimal.format(BigDecimal.fromStringUnsafe(cell.floor_price))}

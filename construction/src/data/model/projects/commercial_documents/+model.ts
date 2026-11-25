@@ -1,6 +1,11 @@
 import { model, type Id } from '@norbital-ai/bolt';
 import { BigDecimal } from 'effect';
 import {
+	resolveCatalogLines,
+	type BimTakeoffBucketRef,
+	type CatalogItemRef
+} from '../../../../lib/catalog-lines.js';
+import {
 	computeDocumentTotals,
 	evaluateThreeWayMatch,
 	toDecimal
@@ -178,6 +183,13 @@ export default model('commercial_documents', {
 					)
 				)
 			];
+			const lineCodes = [
+				...new Set(
+					changes.flatMap(({ after }) =>
+						(after.lines ?? []).map((l) => l.code.trim()).filter((c) => c.length > 0)
+					)
+				)
+			];
 			const lookup = yield* ctx.query({
 				projects: {
 					where: { id: { in: projectIds } },
@@ -206,9 +218,33 @@ export default model('commercial_documents', {
 								as_of: 'act'
 							}
 						}
+					: {}),
+				...(lineCodes.length > 0
+					? {
+							cost_matrix: {
+								where: { code: { in: lineCodes } },
+								fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
+								limit: lineCodes.length + 10,
+								as_of: 'act'
+							},
+							cost_estimates: {
+								where: { project_id: { in: projectIds } },
+								fields: ['project_id', 'bim_assets'],
+								limit: projectIds.length + 10,
+								as_of: 'act'
+							}
+						}
 					: {})
 			});
 
+			const matrixByCode = new Map<string, CatalogItemRef>(
+				('cost_matrix' in lookup ? lookup.cost_matrix.rows : []).map((m) => [m.code, m] as const)
+			);
+			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>(
+				('cost_estimates' in lookup ? lookup.cost_estimates.rows : []).map(
+					(est) => [est.project_id, est.bim_assets ?? []] as const
+				)
+			);
 			const projectTerms = new Map(lookup.projects.rows.map((p) => [p.id, p.payment_terms_days]));
 			const contractTerms = new Map(
 				('contracts' in lookup ? lookup.contracts.rows : []).map((c) => [
@@ -233,9 +269,26 @@ export default model('commercial_documents', {
 				}
 			}
 
-			return changes.map(({ set, after }) => {
+			const out = [];
+			for (const [row, { set, after }] of changes.entries()) {
+				let normalizedLines = after.lines;
+				if (after.lines != null && after.lines.length > 0) {
+					const resolved = resolveCatalogLines({
+						lines: after.lines,
+						matrixByCode,
+						bimBuckets: bimByProject.get(after.project_id)
+					});
+					if (!resolved.ok) {
+						return yield* ctx.refuse('errors.line_requires_catalog', {
+							field: 'lines',
+							row,
+							values: { code: resolved.missingCode }
+						});
+					}
+					normalizedLines = [...resolved.lines];
+				}
 				const totals = computeDocumentTotals({
-					lines: after.lines,
+					lines: normalizedLines,
 					subtotal: after.subtotal,
 					tax_rate: after.tax_rate,
 					retention_amount: after.retention_amount,
@@ -266,7 +319,7 @@ export default model('commercial_documents', {
 					siblingSums.set(k, BigDecimal.sum(prevSib, toDecimal(totals.total_amount)));
 				}
 
-				return {
+				out.push({
 					...set,
 					...(totals.lines ? { lines: totals.lines } : {}),
 					subtotal: totals.subtotal,
@@ -275,8 +328,9 @@ export default model('commercial_documents', {
 					net_amount: totals.net_amount,
 					due_date: dueDate,
 					...matchPatch
-				};
-			});
+				});
+			}
+			return out;
 		}
 	},
 	update: {
@@ -289,6 +343,18 @@ export default model('commercial_documents', {
 					)
 				)
 			];
+			const changedWithLines = changes.filter(
+				(c) => c.changed('lines') && (c.after.lines ?? []).length > 0
+			);
+			const lineCodes = [
+				...new Set(
+					changedWithLines.flatMap((c) =>
+						(c.after.lines ?? []).map((l) => l.code.trim()).filter((x) => x.length > 0)
+					)
+				)
+			];
+			const lineProjectIds = [...new Set(changedWithLines.map((c) => c.before.project_id))];
+
 			const relatedDocs =
 				parentIds.length === 0
 					? []
@@ -302,12 +368,54 @@ export default model('commercial_documents', {
 								as_of: 'act'
 							}
 						})).commercial_documents.rows;
+			const catalogLookup =
+				lineCodes.length === 0
+					? null
+					: yield* ctx.query({
+							cost_matrix: {
+								where: { code: { in: lineCodes } },
+								fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
+								limit: lineCodes.length + 10,
+								as_of: 'act'
+							},
+							cost_estimates: {
+								where: { project_id: { in: lineProjectIds } },
+								fields: ['project_id', 'bim_assets'],
+								limit: lineProjectIds.length + 10,
+								as_of: 'act'
+							}
+						});
+			const matrixByCode = new Map<string, CatalogItemRef>(
+				(catalogLookup?.cost_matrix.rows ?? []).map((m) => [m.code, m] as const)
+			);
+			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>(
+				(catalogLookup?.cost_estimates.rows ?? []).map(
+					(est) => [est.project_id, est.bim_assets ?? []] as const
+				)
+			);
 			const parentTotals = new Map<Id<'commercial_documents'>, string>();
 			for (const d of relatedDocs) {
 				if (parentIds.includes(d.id)) parentTotals.set(d.id, d.total_amount);
 			}
 
-			return changes.map((c) => {
+			const out = [];
+			for (const [row, c] of changes.entries()) {
+				let normalizedLines = c.after.lines;
+				if (c.changed('lines') && c.after.lines != null && c.after.lines.length > 0) {
+					const resolved = resolveCatalogLines({
+						lines: c.after.lines,
+						matrixByCode,
+						bimBuckets: bimByProject.get(c.before.project_id)
+					});
+					if (!resolved.ok) {
+						return yield* ctx.refuse('errors.line_requires_catalog', {
+							field: 'lines',
+							row,
+							values: { code: resolved.missingCode }
+						});
+					}
+					normalizedLines = [...resolved.lines];
+				}
 				const recompute = c.changed(
 					'lines',
 					'subtotal',
@@ -317,7 +425,7 @@ export default model('commercial_documents', {
 				);
 				const totals = recompute
 					? computeDocumentTotals({
-							lines: c.after.lines,
+							lines: normalizedLines,
 							subtotal: c.after.subtotal,
 							tax_rate: c.after.tax_rate,
 							retention_amount: c.after.retention_amount,
@@ -354,7 +462,7 @@ export default model('commercial_documents', {
 					});
 				}
 
-				return {
+				out.push({
 					...c.set,
 					...(totals
 						? {
@@ -369,8 +477,9 @@ export default model('commercial_documents', {
 					...(c.changed('status') && c.after.status === 'paid' && c.after.paid_date == null
 						? { paid_date: ctx.today }
 						: {})
-				};
-			});
+				});
+			}
+			return out;
 		}
 	}
 });

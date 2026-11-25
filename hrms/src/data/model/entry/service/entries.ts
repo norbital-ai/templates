@@ -31,7 +31,8 @@ const touched = (rows: readonly Entry[]): Touched[] =>
 	rows.map((row) => ({
 		employment: row.employment_id,
 		from: row.incurred_on,
-		run: row.payroll_run_id ?? null
+		run: row.payroll_run_id ?? null,
+		attendance: true
 	}));
 
 /** A create's sets, with what the entries post and the amendment rows of the paid periods they touch. */

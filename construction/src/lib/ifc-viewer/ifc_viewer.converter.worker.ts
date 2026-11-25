@@ -66,23 +66,25 @@ function withSuppressedGeometryLogs<T, E>(task: Effect.Effect<T, E>): Effect.Eff
 const importIfcImporter = Effect.gen(function* () {
 	// esm.sh's `process` polyfill reports `versions.node`, so web-ifc's emscripten guard takes the worker for Node and
 	// throws "not compiled for this environment"; the polyfill is one module instance per URL, shared with web-ifc.
-	// ponytail: a CDN-side workaround; self-host web-ifc and fragments if esm.sh changes the polyfill again
 	const { default: processShim } = yield* Effect.tryPromise(
 		() => import(/* @vite-ignore */ 'https://esm.sh/node/process.mjs')
 	);
 	yield* Effect.sync(() =>
 		Object.defineProperty(processShim, 'versions', { value: {}, configurable: true })
 	);
-	const { IfcAPI } = yield* Effect.tryPromise(
-		() => import(/* @vite-ignore */ 'https://esm.sh/web-ifc@0.0.77')
+	const [{ IfcAPI }, FRAGS] = yield* Effect.all(
+		[
+			Effect.tryPromise(() => import(/* @vite-ignore */ 'https://esm.sh/web-ifc@0.0.77')),
+			Effect.tryPromise(
+				() =>
+					import(
+						/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
+					)
+			)
+		],
+		{ concurrency: 'unbounded' }
 	);
 	yield* Effect.sync(() => configureWebIfc(WEB_IFC_WASM_URL, IfcAPI));
-	const FRAGS = yield* Effect.tryPromise(
-		() =>
-			import(
-				/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
-			)
-	);
 	const instance: ViewerIfcImporter = new FRAGS.IfcImporter();
 	instance.wasm = { path: '', absolute: true };
 	return instance;
@@ -128,7 +130,7 @@ self.onmessage = (event: MessageEvent<unknown>) => {
 	if (message._tag === 'None') return;
 	void Effect.runPromise(handleConvert(message.value));
 };
-self.onerror = (event: ErrorEvent) => {
+self.onerror = () => {
 	self.postMessage({
 		type: 'error',
 		error: 'ifc.worker_crashed'

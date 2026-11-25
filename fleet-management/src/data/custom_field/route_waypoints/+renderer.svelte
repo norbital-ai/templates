@@ -2,8 +2,9 @@
 	import type { CustomFieldView } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Badge, Button, Icon, Input, Label, TimeInput, type UiContext } from '@norbital-ai/ui';
-	import { Cluster, Grid, Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { parsePlainTime } from '../../../lib/geo.js';
+	import WaypointStatus from './waypoint-status.svelte';
 
 	type WaypointRow = NonNullable<CustomFieldView<'route_waypoints'>['value']>[number];
 
@@ -21,8 +22,6 @@
 	const stops = $derived<readonly WaypointRow[]>(view.value ?? []);
 	const compact = $derived(view.mode === 'show' && view.dense === true);
 	const arrivedCount = $derived(stops.filter((s) => s.status === 'arrived').length);
-
-	const STATUSES = ['pending', 'arrived', 'skipped'] as const;
 
 	function badgeVariant(status: WaypointRow['status']): 'default' | 'outline' {
 		if (status === 'arrived') return 'default';
@@ -144,20 +143,14 @@
 								<span id={`${uid}-status-${idx}`} class="text-label">
 									{t('waypoints.col_status')}
 								</span>
-								<div role="group" aria-labelledby={`${uid}-status-${idx}`}>
-									<Cluster gap="xs">
-										{#each STATUSES as s (s)}
-											<Button
-												variant={(stop.status ?? 'pending') === s ? 'default' : 'outline'}
-												aria-pressed={(stop.status ?? 'pending') === s}
-												disabled={view.disabled}
-												onclick={() => updateStop(idx, { status: s })}
-											>
-												{statusLabel(s)}
-											</Button>
-										{/each}
-									</Cluster>
-								</div>
+								<WaypointStatus
+									value={stop.status ?? 'pending'}
+									disabled={view.disabled}
+									labelled_by={`${uid}-status-${idx}`}
+									index={idx}
+									label_of={statusLabel}
+									on_change={(status) => updateStop(idx, { status })}
+								/>
 							</Stack>
 						</Grid>
 					</Stack>

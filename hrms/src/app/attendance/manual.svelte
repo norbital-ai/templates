@@ -10,6 +10,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { DescriptionHint, Button, Input } from '@norbital-ai/ui';
+	import { create_radio_group } from '@norbital-ai/ui/behaviors';
 	import { Center, Cluster, Frame, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { punchTime, punchWork, rangeCovers, type PunchResult } from './punch.js';
 	import { getErrorMessage } from '../../lib/foundation.js';
@@ -46,6 +47,21 @@
 	);
 	const people = $derived(peopleQuery?.current?.employee_profile.rows ?? []);
 	const chosen = $derived(people.find((person) => person.id === chosenId) ?? null);
+	const peopleGroup = create_radio_group({
+		items: () => people.map((person) => person.id),
+		value: () => chosenId ?? undefined,
+		orientation: 'vertical',
+		on_change: (id) => {
+			const match = people.find((person) => person.id === id);
+			if (match === undefined) return;
+			chosenId = match.id;
+			result = null;
+			resultTone = 'success';
+			error = null;
+		},
+		label: ctx.t('kiosk.search_employee'),
+		control: { id: 'hrms:kiosk-employee', label: ctx.t('kiosk.search_employee') }
+	});
 
 	const employmentsQuery = $derived.by(() =>
 		chosen === null || companyId == null
@@ -173,22 +189,22 @@
 					<p class="text-sm text-muted-foreground">{ctx.t('kiosk.no_people_match')}</p>
 				{/if}
 				{#if people.length > 0}
-					<Stack as="ul" gap="none" divided class="overflow-clip rounded-lg border">
+					<Stack
+						as="ul"
+						gap="none"
+						divided
+						class="overflow-clip rounded-lg border"
+						{...peopleGroup.root_attrs()}
+					>
 						{#each people as person (person.id)}
 							<li>
 								<button
-									type="button"
-									aria-pressed={chosenId === person.id}
+									{...peopleGroup.item_attrs(person.id)}
+									{@attach peopleGroup.item(person.id)}
 									class="w-full px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring {chosenId ===
 									person.id
 										? 'bg-muted'
 										: ''}"
-									onclick={() => {
-										chosenId = person.id;
-										result = null;
-										resultTone = 'success';
-										error = null;
-									}}
 								>
 									<Inline as="span" gap="sm">
 										<Frame as="span" ratio="square" class="size-9 rounded-full bg-background">

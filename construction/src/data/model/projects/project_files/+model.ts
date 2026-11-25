@@ -17,8 +17,8 @@ const columns = [
 
 export default model('project_files', {
 	description:
-		'BIM IFC models, Autodesk ACC models/sheets, construction drawings, schedules, and contract documentation with revision history and automatic BIM asset analysis.',
-	icon: 'lucide:file-box',
+		'Filed project drawings, specifications, schedules, contract documents, handover records, and Autodesk ACC sheets with revision history.',
+	icon: 'lucide:file-text',
 	record_label:
 		"record.document_number != null ? record.document_number + ' · ' + record.title : record.title",
 	fields: {
@@ -26,15 +26,7 @@ export default model('project_files', {
 		title: { kind: 'text' },
 		kind: {
 			kind: 'enum',
-			values: [
-				'ifc_model',
-				'autodesk_model',
-				'drawing',
-				'spec',
-				'schedule',
-				'contract_doc',
-				'handover'
-			],
+			values: ['drawing', 'spec', 'schedule', 'contract_doc', 'handover', 'autodesk_model'],
 			default: 'drawing'
 		},
 		discipline: {
@@ -59,21 +51,6 @@ export default model('project_files', {
 		autodesk_urn: { kind: 'text', optional: true },
 		file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
 		revisions: { kind: 'custom', of: 'revision_trail', optional: true },
-		/** Automatically populated summary once the BIM pipeline parses an uploaded IFC file. */
-		bim_summary: {
-			kind: 'json',
-			optional: true,
-			shape: {
-				kind: 'object',
-				fields: {
-					schema: { kind: 'text' },
-					asset_count: { kind: 'int' },
-					storey_count: { kind: 'int' },
-					storeys: { kind: 'text', many: true },
-					analyzed_at: { kind: 'text' }
-				}
-			}
-		},
 		notes: { kind: 'text', format: 'markdown', optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'project_files', owned: true }
 	},
@@ -105,21 +82,10 @@ export default model('project_files', {
 					]
 				};
 			});
-		},
-		effect: function* (changes, ctx) {
-			for (const { after } of changes) {
-				if (after.kind === 'ifc_model' && after.file != null) {
-					yield* ctx.schedule(
-						'analyze_bim_file',
-						{ project_file_id: after.id },
-						{ at: ctx.now, key: `bim-analyze-${after.id}-${after.file.id}` }
-					);
-				}
-			}
 		}
 	},
 	update: {
-		fields: [...columns.filter((f) => f !== 'project_id'), 'bim_summary'],
+		fields: columns.filter((f) => f !== 'project_id'),
 		transform: function* (changes, ctx) {
 			yield* validateProjectZones(changes, ctx);
 			const isRemoteSync = ctx.actor.kind === 'system' && 'sync' in ctx.actor.by;
@@ -142,17 +108,6 @@ export default model('project_files', {
 					]
 				};
 			});
-		},
-		effect: function* (changes, ctx) {
-			for (const c of changes) {
-				if (c.after.kind === 'ifc_model' && c.after.file != null && c.changed('file')) {
-					yield* ctx.schedule(
-						'analyze_bim_file',
-						{ project_file_id: c.after.id },
-						{ at: ctx.now, key: `bim-analyze-${c.after.id}-${c.after.file.id}` }
-					);
-				}
-			}
 		}
 	}
 });

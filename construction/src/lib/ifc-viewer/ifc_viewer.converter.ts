@@ -7,15 +7,89 @@ import {
 	fetchEffect,
 	messageOf
 } from './ifc_viewer.types.js';
+
 /** Error codes the converter worker posts instead of display copy. */
 const WORKER_ERROR_KEYS: Readonly<Record<string, Parameters<Translator>[0]>> = {
 	'ifc.unable_to_convert': 'component.ifc_unable_to_convert',
 	'ifc.worker_crashed': 'component.ifc_worker_crashed'
 };
+
 function resolveWorkerError(raw: string, t: Translator): string {
 	const key = WORKER_ERROR_KEYS[raw];
 	return key === undefined ? raw : t(key);
 }
+
+/**
+ * Client-side two-tier fragment cache (in-memory LRU + persistent browser CacheStorage).
+ * Keyed by immutable file URL path so tab switches, navigation, and full page reloads skip
+ * re-downloading the raw IFC and re-running single-threaded WASM geometry tessellation.
+ */
+const FRAGMENT_CACHE_NAME = 'norbital-ifc-fragments-v1';
+const MEMORY_CACHE_LIMIT = 4;
+const memoryFragmentCache = new Map<string, Uint8Array>();
+
+function cacheUrlForKey(cacheKey: string): string {
+	return `https://norbital-ifc-fragments.cache/v1/${encodeURIComponent(cacheKey)}`;
+}
+
+function rememberInMemory(cacheKey: string, bytes: Uint8Array): void {
+	if (memoryFragmentCache.has(cacheKey)) memoryFragmentCache.delete(cacheKey);
+	memoryFragmentCache.set(cacheKey, bytes);
+	while (memoryFragmentCache.size > MEMORY_CACHE_LIMIT) {
+		const oldest = memoryFragmentCache.keys().next().value;
+		if (oldest === undefined) break;
+		memoryFragmentCache.delete(oldest);
+	}
+}
+
+export function readCachedFragments(cacheKey: string): Effect.Effect<Uint8Array | null, never> {
+	const inMem = memoryFragmentCache.get(cacheKey);
+	if (inMem !== undefined) {
+		rememberInMemory(cacheKey, inMem);
+		return Effect.succeed(inMem);
+	}
+	if (typeof globalThis.caches === 'undefined') return Effect.succeed(null);
+	return Effect.tryPromise({
+		try: async () => {
+			const cache = await globalThis.caches.open(FRAGMENT_CACHE_NAME);
+			const match = await cache.match(cacheUrlForKey(cacheKey));
+			if (!match) return null;
+			const bytes = new Uint8Array(await match.arrayBuffer());
+			if (bytes.byteLength === 0) return null;
+			rememberInMemory(cacheKey, bytes);
+			return bytes;
+		},
+		catch: () => null
+	}).pipe(Effect.catch(() => Effect.succeed(null)));
+}
+
+export function writeCachedFragments(
+	cacheKey: string,
+	bytes: Uint8Array
+): Effect.Effect<void, never> {
+	rememberInMemory(cacheKey, bytes);
+	if (typeof globalThis.caches === 'undefined') return Effect.void;
+	const copy = Uint8Array.from(bytes);
+	return Effect.tryPromise({
+		try: async () => {
+			const cache = await globalThis.caches.open(FRAGMENT_CACHE_NAME);
+			await cache.put(
+				cacheUrlForKey(cacheKey),
+				new Response(copy, {
+					headers: {
+						'Content-Type': 'application/octet-stream',
+						'Cache-Control': 'immutable'
+					}
+				})
+			);
+		},
+		catch: () => undefined
+	}).pipe(Effect.ignore);
+}
+
+/** Cached converter worker source text so repeated conversions don't re-fetch the worker script. */
+let cachedWorkerScriptText: string | null = null;
+
 /**
  * A failure on the converter worker channel. `context` carries the crash event fields so the
  * structured log keeps the diagnostics the console.error used to print; it is null for protocol
@@ -30,15 +104,20 @@ class WorkerConnectionError extends Schema.TaggedError<WorkerConnectionError>()(
 ) {}
 const workerFailure = (message: string, context: Readonly<Record<string, unknown>> | null = null) =>
 	new WorkerConnectionError({ message, context });
+
 const createConverterWorker = Effect.gen(function* () {
-	const workerUrl = new URL(converterWorkerUrl, import.meta.url);
-	// Sandboxed iframes block direct worker URLs in Chrome.
-	// Fetch the script and create a blob URL to bypass the restriction.
-	const response = yield* fetchEffect(workerUrl.href, 'load-ifc-converter-worker');
-	const scriptText = yield* Effect.tryPromise({
-		try: () => response.text(),
-		catch: (cause) => workerFailure(messageOf(cause))
-	});
+	let scriptText = cachedWorkerScriptText;
+	if (scriptText === null) {
+		const workerUrl = new URL(converterWorkerUrl, import.meta.url);
+		// Sandboxed iframes block direct worker URLs in Chrome.
+		// Fetch the script and create a blob URL to bypass the restriction.
+		const response = yield* fetchEffect(workerUrl.href, 'load-ifc-converter-worker');
+		scriptText = yield* Effect.tryPromise({
+			try: () => response.text(),
+			catch: (cause) => workerFailure(messageOf(cause))
+		});
+		cachedWorkerScriptText = scriptText;
+	}
 	const blob = new Blob([scriptText], { type: 'application/javascript' });
 	const blobUrl = yield* Effect.acquireRelease(
 		Effect.sync(() => URL.createObjectURL(blob)),
@@ -49,6 +128,7 @@ const createConverterWorker = Effect.gen(function* () {
 		catch: (cause) => workerFailure(messageOf(cause))
 	});
 });
+
 function runConversion(
 	worker: Worker,
 	transferBuffer: ArrayBuffer,
@@ -104,17 +184,15 @@ function runConversion(
 		});
 	});
 }
+
 /**
- * Decodes IFC bytes into @thatopen fragments inside a dedicated worker, one worker per call, torn
- * down when the conversion settles. The formatted error is translated here so the caller displays
- * copy, not code.
+ * Decodes IFC bytes into @thatopen fragments inside a dedicated worker, torn down once conversion
+ * finishes so the WASM heap is reclaimed while converted fragments remain cached client-side.
  */
 export function convertIfcToFragments(
 	bytes: Uint8Array,
 	t: Translator
 ): Effect.Effect<Uint8Array, WorkerConnectionError> {
-	// Copy so the transferred buffer backs no view the caller still holds; detaching it cannot tear
-	// other data.
 	const transferBuffer = Uint8Array.from(bytes).buffer;
 	return Effect.acquireUseRelease(
 		createConverterWorker.pipe(

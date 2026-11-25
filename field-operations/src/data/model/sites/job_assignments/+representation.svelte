@@ -5,6 +5,7 @@
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { type RecordView, Button, Field, Form, RecordShell, Section } from '@norbital-ai/ui';
+	import { create_disclosure } from '@norbital-ai/ui/behaviors';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import Conversation from '../../../../lib/conversation.svelte';
@@ -36,6 +37,10 @@
 	);
 	const finding = $derived(open?.current?.suspicious_activity_logs.rows[0]);
 	let addingSite = $state(false);
+	const siteDisclosure = create_disclosure({
+		open: () => addingSite,
+		on_open_change: (next) => (addingSite = next)
+	});
 	let opened = $state<{
 		name: string;
 		url: string;
@@ -49,29 +54,27 @@
 {#if record == null}
 	<Stack gap="md">
 		<div>
-			<Button
-				variant="outline"
-				aria-expanded={addingSite}
-				onclick={() => (addingSite = !addingSite)}
-			>
+			<Button variant="outline" {...siteDisclosure.trigger_attrs()}>
 				<Icon icon="lucide:map-pin-plus" class="size-4" />{t('component.new_site_by_address')}
 			</Button>
 		</div>
 		{#if addingSite}
-			<Form
-				{ctx}
-				of="sites"
-				mode="create"
-				submit={t('component.add_site')}
-				on_outcome={(o) => o.kind === 'committed' && (addingSite = false)}
-			>
-				{#snippet children()}
-					<Grid minimum="card">
-						<Field {ctx} name="location" address="address" />
-						<Field {ctx} name="unit_number" />
-					</Grid>
-				{/snippet}
-			</Form>
+			<div {...siteDisclosure.content_attrs()}>
+				<Form
+					{ctx}
+					of="sites"
+					mode="create"
+					submit={t('component.add_site')}
+					on_outcome={(o) => o.kind === 'committed' && (addingSite = false)}
+				>
+					{#snippet children()}
+						<Grid minimum="card">
+							<Field {ctx} name="location" address="address" />
+							<Field {ctx} name="unit_number" />
+						</Grid>
+					{/snippet}
+				</Form>
+			</div>
 		{/if}
 		<RecordShell
 			{ctx}

@@ -14,7 +14,7 @@ import {
 	carriedFor,
 	type Carried
 } from '../../employee_profile/employee_balance/service/service.js';
-import { type JsonObject } from '../../../../lib/foundation.js';
+import { isJsonObject, type JsonObject } from '../../../../lib/foundation.js';
 import { attendanceOf } from './pay_cycle.js';
 import { emptyPayslipBreakdown } from './payslip_breakdown.js';
 import { objectValue, type Reader } from '../../../../lib/reads.js';
@@ -127,7 +127,9 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const lawFor = (run: JsonObject) =>
 		laws(lawCode.get(String(run.entity_id)), String(run.pay_date));
 	const { runs } = known;
-	const paidRuns = runs.filter((run) => run.kind === 'ON_CYCLE' && run.state === 'PAID');
+	const paidRuns = runs.filter(
+		(run) => run.kind === 'ON_CYCLE' && run.state === 'PAID' && run.$approval == null
+	);
 	const periodOfRun = (run: JsonObject): Period | undefined => {
 		const schedule = schedules.get(String(run.pay_group_id));
 		const law = lawFor(run);
@@ -239,12 +241,34 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	// precompute each candidate's own continuous-stint span and terms once so safe single-year amendments neither
 	// over-count their cap cost nor load un-recalculated later tax years
 	const ownStintMinFrom = new Map<string, string>();
+	const ownStintsByEmployee = Map.groupBy(own.data.employment ?? [], (row) =>
+		String(row.employee_id)
+	);
 	for (const row of own.data.employment ?? []) {
 		const employee = String(row.employee_id);
 		const from = rangeOf(row).from;
 		const prev = ownStintMinFrom.get(employee);
 		if (from !== '' && (prev === undefined || from < prev)) ownStintMinFrom.set(employee, from);
 	}
+	/** The last day a period prices for this person's attendance and entries: its cutoff, or their exit day in that month. */
+	const attendanceEndOf = (period: Period, stints: readonly JsonObject[]): string => {
+		const coverage = objectValue(period.run.salary_coverage);
+		const covFrom = String(coverage.from);
+		const covTo = String(coverage.to);
+		const end = period.frame.attendance.to;
+		if (end >= covTo) return end;
+		const group = String(period.run.pay_group_id);
+		const active = stints
+			.filter((row) => {
+				const { from, to } = rangeOf(row);
+				return from <= covTo && (to === null || to >= covFrom);
+			})
+			.toSorted((a, b) => rangeOf(a).from.localeCompare(rangeOf(b).from))
+			.at(-1);
+		if (active === undefined || String(active.pay_group_id) !== group) return end;
+		const last = rangeOf(active).to;
+		return active.exit === true && last !== null && last > end && last <= covTo ? last : end;
+	};
 	const ownTermsByEmployee = Map.groupBy(
 		(own.data.contract_terms ?? []).flatMap((row) => {
 			const employee = employeeOf.get(String(row.employment_id));
@@ -288,12 +312,13 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			dates.push(reached !== undefined && reached < row.from ? reached : row.from);
 		}
 		const ownMinFrom = ownStintMinFrom.get(employee);
+		const ownStints = ownStintsByEmployee.get(employee) ?? [];
 		const ownTerms = ownTermsByEmployee.get(employee) ?? [];
 		const latePeriods = myLate.map(({ row }) =>
 			ownGroupPeriods.find(
 				(period) =>
 					String(row.incurred_on) >= period.frame.attendance.from &&
-					String(row.incurred_on) <= period.closes
+					String(row.incurred_on) <= attendanceEndOf(period, ownStints)
 			)
 		);
 		// recalculating a later-signed terms row's signing period also re-prices every earlier paid period its back pay
@@ -370,7 +395,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 						.at(-1) ?? ownFrom;
 				return {
 					from: monthStart(minOpen),
-					to: maxClose < ownFrom ? maxClose : ownFrom
+					to: maxClose
 				};
 			});
 			return {
@@ -393,11 +418,16 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				(period) => String(objectValue(period.run.salary_coverage).to) >= earliest
 			).length
 		);
+		const maxClose =
+			groupPeriods
+				.map((period) => period.closes)
+				.toSorted()
+				.at(-1) ?? ownFrom;
 		return {
 			employee,
 			earliest,
 			cost,
-			entryWindows: [{ from: balanceFrom, to: ownFrom }],
+			entryWindows: [{ from: balanceFrom, to: maxClose > ownFrom ? maxClose : ownFrom }],
 			balanceFrom,
 			paidSince
 		};
@@ -627,11 +657,12 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			if (start !== undefined) reach2(employee, start);
 		}
 		// a late entry with no row of its own still belongs to the period that paid the person for its date
+		const stints = versionsOf(employee);
 		for (const { row } of lateByEmployee.get(employee) ?? []) {
 			const start = paid.find(
 				(period) =>
 					String(row.incurred_on) >= period.frame.attendance.from &&
-					String(row.incurred_on) <= period.closes
+					String(row.incurred_on) <= attendanceEndOf(period, stints)
 			);
 			if (start === undefined) continue;
 			leftOut.add(String(row.id));
@@ -740,6 +771,14 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		const ranges = carriedRangesByKey.get(`${period.id}/${employee}`);
 		return ranges !== undefined && ranges.some((range) => date >= range.from && date <= range.to);
 	};
+	// rows sealed by an earlier period's extended leaver tail that dropped out when the exit was cancelled or moved
+	const released = new Set<string>();
+	const releasedRoster = new Map<string, JsonObject>();
+	const releasedClaim = new Map<string, JsonObject>();
+	const releasedAdhoc = new Map<string, JsonObject>();
+	const releasedRepayment = new Map<string, JsonObject>();
+	const releasedLeaveDay = new Set<string>();
+	const releasedLeaveParent = new Map<string, JsonObject>();
 	const priced = (period: Period, who: readonly string[], frame: Partial<RunFrame>) =>
 		calculateRun(
 			sliceOf(
@@ -749,7 +788,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				who,
 				carriersOf(period),
 				carriedBackOf(period),
-				new Map(who.map((employee) => [employee, accountsAt(employee, period)]))
+				new Map(who.map((employee) => [employee, accountsAt(employee, period)])),
+				released
 			),
 			period.run,
 			{ ...period.frame, people: new Set(who), termsAsOf: period.payDate, ...frame }
@@ -916,12 +956,134 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			const prevCarried = carried.get(employee);
 			if (prevCarried === undefined) carried.set(employee, [{ period, postings }]);
 			else prevCarried.push({ period, postings });
+			// if an exit was cancelled or moved, rows this period sealed past its active attendance cutoff drop out here
+			// and are released so the period that now owns their date prices and re-seals them
+			const until = attendanceEndOf(period, versionsOf(employee));
+			if (period.closes > until) {
+				const releaseRows = (
+					layer: string,
+					rows: readonly JsonObject[] | undefined,
+					dateField: string,
+					bucket: Map<string, JsonObject>
+				) => {
+					for (const row of rows ?? []) {
+						const date = row[dateField];
+						if (
+							String(row.payroll_run_id) === period.id &&
+							typeof date === 'string' &&
+							date > until
+						) {
+							released.add(`${layer}/${String(row.id)}`);
+							bucket.set(String(row.id), row);
+						}
+					}
+				};
+				releaseRows(
+					'roster_entry',
+					indexed.rosterByEmployee.get(employee),
+					'work_date',
+					releasedRoster
+				);
+				releaseRows('claim', indexed.claimByEmployee.get(employee), 'incurred_on', releasedClaim);
+				releaseRows('adhoc', indexed.adhocByEmployee.get(employee), 'incurred_on', releasedAdhoc);
+				releaseRows(
+					'repayment',
+					indexed.repaymentByEmployee.get(employee),
+					'paid_on',
+					releasedRepayment
+				);
+				for (const row of indexed.leaveByEmployee.get(employee) ?? []) {
+					if (row.encashment === true) continue;
+					const days = Array.isArray(row.leave_catalog_entry_day)
+						? row.leave_catalog_entry_day.filter(isJsonObject)
+						: [];
+					let hit = false;
+					for (const child of days) {
+						if (
+							String(child.payroll_run_id) === period.id &&
+							typeof child.incurred_on === 'string' &&
+							child.incurred_on > until
+						) {
+							released.add(`leave_day/${String(child.id)}`);
+							releasedLeaveDay.add(String(child.id));
+							hit = true;
+						}
+					}
+					if (hit) releasedLeaveParent.set(String(row.id), row);
+				}
+			}
 		}
 	}
+
+	// merge unclaimed released rows into this run's own read so it prices and re-seals them cleanly
+	const claimed = (layer: string) => new Set(attaches[layer] ?? []);
+	const mergeReleased = (
+		existing: readonly JsonObject[] | undefined,
+		extra: ReadonlyMap<string, JsonObject>,
+		layer: string
+	): readonly JsonObject[] => {
+		if (extra.size === 0) return existing ?? [];
+		const takenIds = claimed(layer);
+		const byId = new Map((existing ?? []).map((row) => [String(row.id), row]));
+		for (const [id, row] of extra) {
+			if (takenIds.has(id)) continue;
+			byId.set(id, { ...row, payroll_run_id: null });
+		}
+		return [...byId.values()];
+	};
+	const ownRepayments = mergeReleased(
+		own.data.loan_catalog_entry_repayment,
+		releasedRepayment,
+		'repayment'
+	);
+	const ownLoanIds = new Set((own.data.loan_catalog_entry ?? []).map((row) => String(row.id)));
+	const neededLoanIds = new Set(
+		ownRepayments.map((row) => String(row.loan_id)).filter((id) => !ownLoanIds.has(id))
+	);
+	const extraLoans =
+		neededLoanIds.size === 0
+			? []
+			: (spanData.loan_catalog_entry ?? []).filter((row) => neededLoanIds.has(String(row.id)));
+	const takenLeaveDays = claimed('leave_day');
+	const openReleasedLeaveDays = new Set(
+		[...releasedLeaveDay].filter((id) => !takenLeaveDays.has(id))
+	);
+	const ownLeaves =
+		openReleasedLeaveDays.size === 0
+			? (own.data.leave_catalog_entry ?? [])
+			: (() => {
+					const byId = new Map(
+						(own.data.leave_catalog_entry ?? []).map((row) => [String(row.id), row])
+					);
+					for (const [id, row] of releasedLeaveParent) if (!byId.has(id)) byId.set(id, row);
+					return [...byId.values()].map((row) => {
+						const days = Array.isArray(row.leave_catalog_entry_day)
+							? row.leave_catalog_entry_day.filter(isJsonObject)
+							: [];
+						if (!days.some((child) => openReleasedLeaveDays.has(String(child.id)))) return row;
+						const nextDays = days.map((child) =>
+							openReleasedLeaveDays.has(String(child.id))
+								? { ...child, payroll_run_id: null }
+								: child
+						);
+						const allOpen = nextDays.every((child) => child.payroll_run_id == null);
+						return {
+							...row,
+							...(allOpen ? { payroll_run_id: null } : {}),
+							leave_catalog_entry_day: nextDays
+						};
+					});
+				})();
 
 	// the run's own period, on the balance the carried differences leave
 	const ownData: RunData = {
 		...own.data,
+		roster_entry: mergeReleased(own.data.roster_entry, releasedRoster, 'roster_entry'),
+		claim_catalog_entry: mergeReleased(own.data.claim_catalog_entry, releasedClaim, 'claim'),
+		adhoc_catalog_entry: mergeReleased(own.data.adhoc_catalog_entry, releasedAdhoc, 'adhoc'),
+		loan_catalog_entry_repayment: ownRepayments,
+		loan_catalog_entry: [...(own.data.loan_catalog_entry ?? []), ...extraLoans],
+		leave_catalog_entry: ownLeaves,
 		employee_balance: (own.data.employee_balance ?? []).map((row) =>
 			peopleSet.has(String(row.employee_id))
 				? { ...row, account: accountsAt(String(row.employee_id), ownPeriod) }

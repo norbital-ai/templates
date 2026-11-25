@@ -2,7 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { attach } from '@norbital-ai/ui/effect';
 	import { type Id } from '@norbital-ai/bolt';
-	import { Button, Dialog, Label } from '@norbital-ai/ui';
+	import { Button, Checkbox, Dialog, Label } from '@norbital-ai/ui';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import OrderPdfViewer from './order-pdf-viewer.svelte';
@@ -63,7 +63,7 @@
 			<Stack gap="md">
 				{#if stampAvailable}
 					<Inline gap="sm" align="center">
-						<input id="include-company-stamp" type="checkbox" bind:checked={includeStamp} />
+						<Checkbox id="include-company-stamp" bind:checked={includeStamp} />
 						<Label for="include-company-stamp">{ctx.t('component.include_company_stamp')}</Label>
 					</Inline>
 				{/if}

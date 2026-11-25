@@ -67,6 +67,7 @@ export type IFCViewerProps = {
 	focusIssue?: IFCViewerIssueSummary | null;
 	onTagIssue?: (element: IFCSelectedElement) => void;
 	onOpenIssue?: (issueId: string) => void;
+	onReplaceModel?: () => void;
 };
 
 export interface ViewerVector3 {
@@ -247,6 +248,25 @@ interface ViewerSimpleCamera {
 	enabled: boolean;
 	three: ViewerCameraObject;
 	controls: {
+		dollyToCursor?: boolean;
+		infinityDolly?: boolean;
+		dollySpeed?: number;
+		truckSpeed?: number;
+		smoothTime?: number;
+		draggingSmoothTime?: number;
+		minDistance?: number;
+		maxDistance?: number;
+		mouseButtons?: {
+			left: number;
+			middle: number;
+			right: number;
+			wheel: number;
+		};
+		touches?: {
+			one: number;
+			two: number;
+			three: number;
+		};
 		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		fitToBox(box: ViewerBox, enableTransition: boolean): Promise<void>;
 		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
@@ -259,6 +279,17 @@ interface ViewerSimpleCamera {
 			targetZ: number,
 			enableTransition?: boolean
 		): Promise<void>;
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		setTarget?: (
+			targetX: number,
+			targetY: number,
+			targetZ: number,
+			enableTransition?: boolean
+		) => Promise<void>;
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		dolly?: (distance: number, enableTransition?: boolean) => Promise<void>;
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		truck?: (x: number, y: number, enableTransition?: boolean) => Promise<void>;
 		getTarget(out: ViewerVector3): ViewerVector3;
 		update(delta: number): boolean;
 	};

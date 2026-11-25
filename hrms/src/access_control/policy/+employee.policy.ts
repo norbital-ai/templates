@@ -113,9 +113,21 @@ export default policy({
 		roster_entry: {
 			outputs: { default: { where: { employment_id: { is: OWN_EMPLOYMENT } } } }
 		},
-		shift_definition: { outputs: { default: {} } },
-		shift_pattern: { outputs: { default: {} } },
+		shift_definition: {
+			outputs: {
+				default: { where: { entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } } } }
+			}
+		},
+		shift_pattern: {
+			outputs: {
+				default: { where: { entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } } } }
+			}
+		},
 		// the working week their leave form plans days by
-		pay_group: { outputs: { default: {} } }
+		pay_group: {
+			outputs: {
+				default: { where: { entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } } } }
+			}
+		}
 	}
 });

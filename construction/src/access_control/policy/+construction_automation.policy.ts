@@ -5,9 +5,13 @@ export default policy({
 	description:
 		'Background automation authority for messaging sync, AI extraction, BIM takeoff pipeline, Autodesk syncs, claim drafting, and digests.',
 	grants: {
-		projects: { outputs: { default: {} } },
+		projects: {
+			outputs: { default: {} },
+			update: { fields: ['bim_summary', 'bim_costing_dirty'] }
+		},
 		contracts: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		commercial_documents: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		adhoc_costs: { outputs: { default: {} } },
 		tasks: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		issues: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		project_files: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },

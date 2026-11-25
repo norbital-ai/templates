@@ -15,15 +15,12 @@
  */
 import { BigDecimal } from 'effect';
 import {
-	computeLinesTotals,
 	divSafe,
 	formatTrimmed,
 	moneyStr,
 	pctOf,
 	toDecimal,
-	type DecimalLike,
-	type NormalizedPricedLine,
-	type PricedLineInput
+	type DecimalLike
 } from './commercial.js';
 import {
 	ASSET_CLASSES,
@@ -111,9 +108,7 @@ export type BimCostEstimateResult = {
 	readonly ai_classified_count: number;
 	readonly unmatched_asset_count: number;
 	readonly bim_assets: readonly BimTakeoffLine[];
-	readonly additional_costs: readonly NormalizedPricedLine[];
 	readonly bim_subtotal: string;
-	readonly additional_subtotal: string;
 	readonly contingency_amount: string;
 	readonly total_estimate: string;
 };
@@ -357,14 +352,13 @@ function measureBucket(bucket: BimStoreyBucket, basis: CostMatrixRule['quantity_
 /**
  * Prices an `ExtractedBimModel` against the active currency-matched `cost_matrix` using Jev
  * System 1 archetype decisions (no Tier 1 keyword rule bypass), computing exact `BigDecimal`
- * amounts, wastage, non-BIM additional costings, and contingency.
+ * amounts, wastage, and contingency for the project's single BIM cost estimate.
  */
 export function buildBimCostEstimateFromExtracted(input: {
 	readonly extracted: ExtractedBimModel;
 	readonly matrix: readonly CostMatrixRule[];
 	readonly currency: string;
 	readonly ai_decisions?: Readonly<Record<string, ArchetypeDecision>>;
-	readonly existing_additional_costs?: readonly PricedLineInput[] | null;
 	readonly contingency_pct?: DecimalLike;
 }): BimCostEstimateResult {
 	const targetCurrency = input.currency.trim().toUpperCase();
@@ -515,38 +509,9 @@ export function buildBimCostEstimateFromExtracted(input: {
 			};
 		});
 
-	// Populate additional (non-BIM) costings from existing user edits OR default active additional_cost matrix rules
-	const additionalInputs: readonly PricedLineInput[] =
-		input.existing_additional_costs && input.existing_additional_costs.length > 0
-			? input.existing_additional_costs
-			: activeCurrencyMatrix
-					.filter((r) => r.category === 'additional_cost')
-					.map((r) => {
-						if (r.quantity_basis === 'pct_of_bim') {
-							const computedPctAmt = pctOf(bimSubtotal, toDecimal(r.unit_rate));
-							return {
-								code: r.code,
-								description: `${r.name} (${formatTrimmed(toDecimal(r.unit_rate), 1)}% of BIM)`,
-								unit: 'ls',
-								qty: '1',
-								unit_rate: moneyStr(computedPctAmt)
-							};
-						}
-						return {
-							code: r.code,
-							description: r.name,
-							unit: r.unit,
-							qty: '1',
-							unit_rate: moneyStr(toDecimal(r.unit_rate))
-						};
-					});
-
-	const additionalTotals = computeLinesTotals(additionalInputs, '0');
-	const additionalSubtotal = toDecimal(additionalTotals.subtotal);
-	const combined = BigDecimal.sum(bimSubtotal, additionalSubtotal);
 	const contingencyPct = BigDecimal.max(ZERO, toDecimal(input.contingency_pct ?? '0'));
-	const contingencyAmount = pctOf(combined, contingencyPct);
-	const totalEstimate = BigDecimal.sum(combined, contingencyAmount);
+	const contingencyAmount = pctOf(bimSubtotal, contingencyPct);
+	const totalEstimate = BigDecimal.sum(bimSubtotal, contingencyAmount);
 
 	return {
 		bim_asset_count: input.extracted.total_asset_count,
@@ -555,9 +520,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 		ai_classified_count: aiClassifiedCount,
 		unmatched_asset_count: unmatchedCount,
 		bim_assets: bimAssets,
-		additional_costs: additionalTotals.lines,
 		bim_subtotal: moneyStr(bimSubtotal),
-		additional_subtotal: moneyStr(additionalSubtotal),
 		contingency_amount: moneyStr(contingencyAmount),
 		total_estimate: moneyStr(totalEstimate)
 	};
@@ -572,7 +535,6 @@ export function buildBimCostEstimate(input: {
 	readonly matrix: readonly CostMatrixRule[];
 	readonly currency: string;
 	readonly ai_decisions?: Readonly<Record<string, ArchetypeDecision>>;
-	readonly existing_additional_costs?: readonly PricedLineInput[] | null;
 	readonly contingency_pct?: DecimalLike;
 }): BimCostEstimateResult {
 	return buildBimCostEstimateFromExtracted({
@@ -580,26 +542,20 @@ export function buildBimCostEstimate(input: {
 		matrix: input.matrix,
 		currency: input.currency,
 		...(input.ai_decisions ? { ai_decisions: input.ai_decisions } : {}),
-		...(input.existing_additional_costs !== undefined
-			? { existing_additional_costs: input.existing_additional_costs }
-			: {}),
 		...(input.contingency_pct !== undefined ? { contingency_pct: input.contingency_pct } : {})
 	});
 }
 
-/** Recomputes totals on a `cost_estimates` row whenever `bim_assets`, `additional_costs`, or `contingency_pct` change. */
+/** Recomputes totals on a `cost_estimates` row whenever `bim_assets` or `contingency_pct` change. */
 export function recomputeCostEstimateTotals(input: {
 	readonly bim_assets: readonly BimTakeoffLine[] | null | undefined;
-	readonly additional_costs: readonly PricedLineInput[] | null | undefined;
 	readonly contingency_pct: DecimalLike;
 }): {
 	readonly bim_asset_count: number;
 	readonly classified_asset_count: number;
 	readonly unmatched_asset_count: number;
 	readonly bim_assets: readonly BimTakeoffLine[] | null;
-	readonly additional_costs: readonly NormalizedPricedLine[] | null;
 	readonly bim_subtotal: string;
-	readonly additional_subtotal: string;
 	readonly contingency_amount: string;
 	readonly total_estimate: string;
 } {
@@ -637,22 +593,16 @@ export function recomputeCostEstimateTotals(input: {
 		};
 	});
 
-	const hasAdditional = input.additional_costs != null && input.additional_costs.length > 0;
-	const addTotals = hasAdditional ? computeLinesTotals(input.additional_costs, '0') : null;
-	const additionalSubtotal = addTotals ? toDecimal(addTotals.subtotal) : ZERO;
-	const combined = BigDecimal.sum(bimSubtotal, additionalSubtotal);
 	const contingencyPct = BigDecimal.max(ZERO, toDecimal(input.contingency_pct));
-	const contingencyAmount = pctOf(combined, contingencyPct);
-	const totalEstimate = BigDecimal.sum(combined, contingencyAmount);
+	const contingencyAmount = pctOf(bimSubtotal, contingencyPct);
+	const totalEstimate = BigDecimal.sum(bimSubtotal, contingencyAmount);
 
 	return {
 		bim_asset_count: bimAssetCount,
 		classified_asset_count: classifiedCount,
 		unmatched_asset_count: unmatchedCount,
 		bim_assets: normalizedBim ?? null,
-		additional_costs: addTotals ? addTotals.lines : null,
 		bim_subtotal: moneyStr(bimSubtotal),
-		additional_subtotal: moneyStr(additionalSubtotal),
 		contingency_amount: moneyStr(contingencyAmount),
 		total_estimate: moneyStr(totalEstimate)
 	};

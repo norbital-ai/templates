@@ -18,6 +18,7 @@
 		type Point,
 		use_act
 	} from '@norbital-ai/ui';
+	import { create_radio_group } from '@norbital-ai/ui/behaviors';
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PublicPageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -92,6 +93,16 @@
 	const known = $derived(answer?.customers?.rows[0]);
 
 	let service = $state<Id<'services'> | null>(null);
+	const serviceGroup = create_radio_group({
+		items: () => (catalog?.current?.services.rows ?? []).map((item) => item.id),
+		value: () => service ?? undefined,
+		on_change: (next) => {
+			const match = catalog?.current?.services.rows.find((item) => item.id === next);
+			if (match !== undefined) service = match.id;
+		},
+		orientation: 'both',
+		control: { id: 'portal:service', label: 'Services' }
+	});
 	let nameOverride = $state<string | null>(null);
 	let addressOverride = $state<string | null>(null);
 	let locationOverride = $state<Point | null | undefined>(undefined);
@@ -379,16 +390,20 @@
 							{:else if catalog.current.services.rows.length > 0}
 								<Stack gap="sm">
 									<h2 class="text-overline">{t('app.portal.browse_services')}</h2>
-									<Grid minimum="card" gap="sm">
+									<Grid
+										minimum="card"
+										gap="sm"
+										{...serviceGroup.root_attrs()}
+										aria-label={t('app.portal.browse_services')}
+									>
 										{#each catalog.current.services.rows as item (item.id)}
 											{@const stats = openingSummary.get(item.id)}
 											{@const selected = service === item.id}
 											<Bound
 												as="button"
-												type="button"
+												{...serviceGroup.item_attrs(item.id)}
+												{@attach serviceGroup.item(item.id)}
 												pad="sm"
-												aria-pressed={selected}
-												onclick={() => (service = item.id)}
 												class={[
 													'rounded-control border text-left transition-colors',
 													selected

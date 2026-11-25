@@ -5,7 +5,7 @@
 	 * the reader scrolls away.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { watch } from '@norbital-ai/ui/behaviors';
+	import { create_stick_to_bottom } from '@norbital-ai/ui/behaviors';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Button, EmptyState, Image } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
@@ -196,15 +196,7 @@
 			DateTime.formatIsoDate(DateTime.makeZonedUnsafe(item.sentAt, { timeZone: ctx.tz }))
 		);
 	});
-	let port = $state<HTMLElement | null>(null);
-	let pinned = $state(true);
-	// A new message, a re-pin or a mounted port scrolls a pinned view to the bottom.
-	watch(
-		() => [timeline, pinned, port] as const,
-		() => {
-			if (pinned && port) queueMicrotask(() => port?.scrollTo({ top: port.scrollHeight }));
-		}
-	);
+	const tail = create_stick_to_bottom({ threshold: 24 });
 </script>
 
 <Stack gap="sm">
@@ -218,11 +210,10 @@
 			{t('component.evidence_load_failed')}
 		</p>{/if}
 	<Scroll
-		bind:ref={port}
 		name={t('component.conversation')}
 		max="tall"
 		class="min-h-80 rounded-lg border bg-muted/25 p-3"
-		onscroll={() => port && (pinned = port.scrollHeight - port.scrollTop - port.clientHeight <= 24)}
+		{@attach tail.viewport}
 	>
 		{#if timeline.size === 0}
 			<EmptyState variant="inset" title={t('component.conversation_empty')} />
@@ -274,14 +265,8 @@
 			{/each}
 		</Stack>
 	</Scroll>
-	{#if !pinned}
-		<Button
-			variant="secondary"
-			onclick={() => {
-				port?.scrollTo({ top: port.scrollHeight });
-				pinned = true;
-			}}
-		>
+	{#if !tail.stuck}
+		<Button variant="secondary" onclick={() => tail.scroll_to_bottom()}>
 			{t('component.conversation_to_latest')}
 		</Button>
 	{/if}

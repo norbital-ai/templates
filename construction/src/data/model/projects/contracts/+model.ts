@@ -1,4 +1,9 @@
 import { model } from '@norbital-ai/bolt';
+import {
+	resolveCatalogLines,
+	type BimTakeoffBucketRef,
+	type CatalogItemRef
+} from '../../../../lib/catalog-lines.js';
 import { computeLinesTotals, moneyStr, toDecimal } from '../../../../lib/commercial.js';
 import { TRADE_SPECIALTIES } from '../../../../lib/trades.js';
 
@@ -157,19 +162,117 @@ export default model('contracts', {
 	},
 	create: {
 		fields: editableColumns.filter((f) => f !== 'status'),
-		transform: function* (changes) {
-			return changes.map(({ set, after }) => {
-				if (after.lines && after.lines.length > 0) {
-					const computed = computeLinesTotals(after.lines, '0');
-					return { ...set, lines: computed.lines, contract_value: computed.subtotal };
+		transform: function* (changes, ctx) {
+			const codes = [
+				...new Set(
+					changes.flatMap(({ after }) =>
+						(after.lines ?? []).map((l) => l.code.trim()).filter((c) => c.length > 0)
+					)
+				)
+			];
+			const projectIds = [
+				...new Set(
+					changes
+						.filter(({ after }) => (after.lines ?? []).length > 0)
+						.map(({ after }) => after.project_id)
+				)
+			];
+			const matrixByCode = new Map<string, CatalogItemRef>();
+			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>();
+			if (codes.length > 0) {
+				const lookup = yield* ctx.query({
+					cost_matrix: {
+						where: { code: { in: codes } },
+						fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
+						limit: codes.length + 10,
+						as_of: 'act'
+					},
+					...(projectIds.length > 0
+						? {
+								cost_estimates: {
+									where: { project_id: { in: projectIds } },
+									fields: ['project_id', 'bim_assets'],
+									limit: projectIds.length + 10,
+									as_of: 'act'
+								}
+							}
+						: {})
+				});
+				for (const m of lookup.cost_matrix.rows) matrixByCode.set(m.code, m);
+				if ('cost_estimates' in lookup) {
+					for (const est of lookup.cost_estimates.rows) {
+						bimByProject.set(est.project_id, est.bim_assets ?? []);
+					}
 				}
-				return { ...set, contract_value: moneyStr(toDecimal(after.contract_value)) };
-			});
+			}
+
+			const out = [];
+			for (const [row, { set, after }] of changes.entries()) {
+				if (after.lines && after.lines.length > 0) {
+					const resolved = resolveCatalogLines({
+						lines: after.lines,
+						matrixByCode,
+						bimBuckets: bimByProject.get(after.project_id)
+					});
+					if (!resolved.ok) {
+						return yield* ctx.refuse('errors.line_requires_catalog', {
+							field: 'lines',
+							row,
+							values: { code: resolved.missingCode }
+						});
+					}
+					const computed = computeLinesTotals(resolved.lines, '0');
+					out.push({ ...set, lines: computed.lines, contract_value: computed.subtotal });
+				} else {
+					out.push({ ...set, contract_value: moneyStr(toDecimal(after.contract_value)) });
+				}
+			}
+			return out;
 		}
 	},
 	update: {
 		fields: editableColumns.filter((f) => f !== 'project_id'),
 		transform: function* (changes, ctx) {
+			const changedWithLines = changes.filter(
+				(c) => c.changed('lines') && (c.after.lines ?? []).length > 0
+			);
+			const codes = [
+				...new Set(
+					changedWithLines.flatMap((c) =>
+						(c.after.lines ?? []).map((l) => l.code.trim()).filter((x) => x.length > 0)
+					)
+				)
+			];
+			const projectIds = [...new Set(changedWithLines.map((c) => c.before.project_id))];
+			const matrixByCode = new Map<string, CatalogItemRef>();
+			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>();
+			if (codes.length > 0) {
+				const lookup = yield* ctx.query({
+					cost_matrix: {
+						where: { code: { in: codes } },
+						fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
+						limit: codes.length + 10,
+						as_of: 'act'
+					},
+					...(projectIds.length > 0
+						? {
+								cost_estimates: {
+									where: { project_id: { in: projectIds } },
+									fields: ['project_id', 'bim_assets'],
+									limit: projectIds.length + 10,
+									as_of: 'act'
+								}
+							}
+						: {})
+				});
+				for (const m of lookup.cost_matrix.rows) matrixByCode.set(m.code, m);
+				if ('cost_estimates' in lookup) {
+					for (const est of lookup.cost_estimates.rows) {
+						bimByProject.set(est.project_id, est.bim_assets ?? []);
+					}
+				}
+			}
+
 			const out = [];
 			for (const [row, c] of changes.entries()) {
 				if (
@@ -184,10 +287,22 @@ export default model('contracts', {
 						row
 					});
 				}
-				const computed =
-					c.changed('lines') && c.after.lines && c.after.lines.length > 0
-						? computeLinesTotals(c.after.lines, '0')
-						: null;
+				let computed = null;
+				if (c.changed('lines') && c.after.lines && c.after.lines.length > 0) {
+					const resolved = resolveCatalogLines({
+						lines: c.after.lines,
+						matrixByCode,
+						bimBuckets: bimByProject.get(c.before.project_id)
+					});
+					if (!resolved.ok) {
+						return yield* ctx.refuse('errors.line_requires_catalog', {
+							field: 'lines',
+							row,
+							values: { code: resolved.missingCode }
+						});
+					}
+					computed = computeLinesTotals(resolved.lines, '0');
+				}
 				const returningToDraft =
 					c.changed('status') && c.after.status === 'draft' && c.before.status === 'under_review';
 				out.push({

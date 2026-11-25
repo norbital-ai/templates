@@ -2,63 +2,50 @@
 
 ![Blank application](docs/screenshots/application.webp)
 
-A minimal Norbital Bolt starter with one read-only example model (`notes`), no apps and no automations —
-designed as a clean foundation for building a custom workspace from scratch or with the workspace agent.
+Blank is a clean, unopinionated Norbital workspace built for teams that want to design their own operational software from first principles instead of adapting an existing industry template. Rather than forcing bespoke processes into rigid off-the-shelf tools or running day-to-day operations across scattered spreadsheets, chat threads, and manual handoffs, teams start with an uncluttered foundation and introduce only the records, screens, roles, and workflows their business actually needs.
 
-## Industry & Bolt capabilities
+Out of the box, the workspace includes the core Norbital shell, bilingual English and Simplified Chinese support, an approvals inbox, built-in change history, and Norbius—the workspace assistant—ready to help turn plain-language requirements into structured record types, custom applications, and guarded workflows. Teams can build incrementally through Norbius in Workspace Studio, preview drafts safely before publishing, or work directly with an engineering team as requirements mature.
 
-- **Industry:** General
-- **Bolt capabilities:** `data_modeling`
+## Expected Business Impact
 
-## How it works
+- **Zero legacy clutter:** Start from a clean operational slate using your organization's own terminology, structures, and rules rather than stripping down an unrelated industry template.
+- **Faster move from spreadsheets to structured operations:** Replace ad-hoc trackers and manual email or chat handoffs with purpose-built records, screens, and workflows shaped one module at a time.
+- **Governance built in from day one:** Inherit workspace-wide user management, review queues, audit history, and bilingual labels before authoring a single custom application.
+- **Controlled, low-risk rollout:** Introduce one record type, one application, and one team boundary at a time, validating every change in preview before publishing it to staff.
 
-1. **Minimal declarative shell:** `src/+workspace.ts` declares the workspace time zone and locale, while
-   `src/data/model/notes/+model.ts` demonstrates one minimal Bolt record model.
-2. **Filesystem conventions:** Add models under `src/data/model/`, apps under `src/app/`, policies under
-   `src/access_control/`, automations under `src/automation/` and custom connectors under `src/integration/`.
-3. **Interactive authoring:** Run `bolt check` and `bolt build` locally or author changes directly through
-   Norbius in Workspace Studio.
+## Roles & Access
 
-## Apps and roles
+Blank ships intentionally unopinionated with **no preconfigured business teams, custom permission policies, or approval chains**. Builders define roles and access boundaries around their own organizational chart rather than inheriting preset departments.
 
-None. `src/+workspace.ts` declares only the time zone and locale, with no authored teams or policies. The
-workspace shell provides default theming and navigation once you add your first app.
+- **Workspace Administrators:** Manage member invitations, workspace settings, connected services, and the review and publication of new workspace drafts.
+- **Custom Teams (Authored as You Build):** Once teams and policies are authored for your workflow, administrators assign members to those roles in **People** to control which records each team can view, which fields they can edit, which workflow actions they can run, and which updates require approval before taking effect.
+- **Built-In Safety Defaults:** Until custom write permissions are defined, the included starter Notes placeholder remains strictly read-only so unconfigured data cannot be entered accidentally.
 
-## Data model
+## Apps & Functionality
 
-| Model   | Purpose                                                                  |
-| ------- | ------------------------------------------------------------------------ |
-| `notes` | Free-form starter note (`title`, optional `body`); read-only placeholder |
+Blank starts with **zero prebuilt business applications** and **one read-only starter placeholder** so the workspace opens cleanly and grows only as you author modules.
 
-Replace or delete `notes` once you author your first domain model.
+| App / Module                      | Functionality                                                                                                                                                                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Workspace Home**                | Clean applications launcher that prompts builders to ask Norbius to create their first app and automatically displays custom applications as they are published.                                                                    |
+| **Norbius (Workspace Assistant)** | Always-available workspace assistant that helps ingest and analyse supplied information, answer operational questions, configure the workspace, and draft new record types, applications, and workflows for preview and publishing. |
+| **Approvals**                     | Built-in review inbox ready to route provisional changes for multi-step sign-off, revision requests, rejection, or withdrawal once approval rules are added to custom workflows.                                                    |
+| **Notes (Starter Placeholder)**   | A single read-only example record holding a title and optional body text with English and Simplified Chinese labels; designed to be replaced or removed once your first real business record type is created.                       |
+| **Workspace Shell & Settings**    | Standard navigation, workspace search, notifications, bilingual interface support (English and Simplified Chinese), member directory, and external service pairing controls ready to host future apps.                              |
 
-## Automations and integrations
+## Automations & Connections
 
-None. Extend this starter using standard Bolt filesystem conventions:
+Blank ships with **no preconfigured automations or external connections**, keeping background processing silent until your workflows require it. Teams can add scheduled, event-driven, or on-demand automations as they build out the workspace, and pair built-in communication channels (such as email or messaging) or custom connectors under **Settings → Integrations** with credentials stored securely by the platform.
 
-- **Models:** `src/data/model/<name>/+model.ts` (`model('<name>', { … })` from `@norbital-ai/bolt` —
-  schema, refs, `outputs`, write verbs and callbacks together).
-- **Apps:** `src/app/<app>/+app.ts` with one `+<page>.page.svelte` per page.
-- **Automations:** `src/automation/+<name>.automation.ts`.
-- **Integrations:** `src/integration/<name>/+integration.ts` (built-in channels such as `whatsapp` and
-  `email` require no custom definition), paired under **Settings → Integrations**.
+## Scope & Boundaries
 
-The workspace agent (`src/agent/+agent.md`) can author models, pages and automations directly through its
-Studio tools, writing drafts you preview and publish. See the
-[Norbital OSS repository](https://github.com/norbital-ai/oss/tree/main/packages/bolt) for the authoring
-contract.
+- **Included out of the box:** A clean workspace shell, bilingual English and Simplified Chinese defaults, Norbius assistant, approvals inbox, change-history foundation, member and integration management, and one read-only Notes placeholder.
+- **Requires authoring before operational use:** All domain record types, custom business applications, team roles, access policies, approval routes, background automations, and external system syncs must be designed and published for your specific workflow.
+- **Starts completely empty:** No demonstration transactions, industry catalogs, or sample operational data are preloaded into the workspace.
+- **Outside the software boundary:** Internal process design, organizational governance policies, legal or regulatory compliance sign-off, and external vendor account provisioning remain the responsibility of the workspace owner.
 
-## Getting started
+## Documentation
 
-```bash
-bun install --frozen-lockfile
-bunx bolt check
-bun run test
-bunx bolt build
-```
-
-Starts completely empty with no seed rows. `bolt build` refreshes `counts` in `norbital.template.json`
-from `src/`.
-
-- [Documentation index](docs/README.md)
-- [Source reference](docs/source-reference.md)
+- [Documentation Index](docs/README.md) — Developer setup, verification commands, schema migration workflow, and authoring guide.
+- [Architecture & Inner Mechanisms](docs/architecture.md) — Technical architecture and ASCII diagrams covering the workspace build pipeline, runtime topology, physical data model, triggers, migrations, and extension points.
+- [Source Reference](docs/source-reference.md) — Verified inventory of workspace configuration, models, localization catalogs, toolchain versions, and local browser evidence.

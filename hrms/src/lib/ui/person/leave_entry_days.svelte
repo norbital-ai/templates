@@ -4,6 +4,7 @@
 	import { DateTime, Effect } from 'effect';
 	import { onDestroy } from 'svelte';
 	import { Button, Combobox, confirm_action, Field, Picker, use_form } from '@norbital-ai/ui';
+	import { create_toggle_group } from '@norbital-ai/ui/behaviors';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import {
 		accountsOf,
@@ -454,14 +455,6 @@
 		sessions.some((row) => row.date === date && row.part === part);
 	const availableDays = $derived(chosenCatalog === null ? 0 : availableFor(chosenCatalog));
 	const selectedDays = $derived(sessions.length / 2);
-	const toggle = (date: string, part: 'AM' | 'PM') => {
-		if (catalog === null || blocked(date) || occupied(date, part)) return;
-		putDays(
-			selected(date, part)
-				? sessions.filter((row) => row.date !== date || row.part !== part)
-				: [...sessions, { date, part }].sort((a, b) => a.date.localeCompare(b.date))
-		);
-	};
 	onDestroy(
 		form.add_validation(() => {
 			if (!editable) return [];
@@ -506,6 +499,28 @@
 	);
 	const weekday = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 	const PARTS = ['AM', 'PM'] as const;
+	const slotKey = (date: string, part: 'AM' | 'PM') => `${date}:${part}`;
+	const slotGroup = create_toggle_group({
+		items: () => dates.flatMap((date) => PARTS.map((part) => slotKey(date, part))),
+		mode: 'multiple',
+		value: () => sessions.map((row) => slotKey(row.date, row.part)),
+		disabled: (key) => {
+			const split = key.lastIndexOf(':');
+			const date = key.slice(0, split);
+			const part = key.slice(split + 1);
+			if (part !== 'AM' && part !== 'PM') return true;
+			return !editable || catalog === null || blocked(date) || occupied(date, part);
+		},
+		on_change: (next) => {
+			const parsed = next.flatMap<{ date: string; part: 'AM' | 'PM' }>((key) => {
+				const split = key.lastIndexOf(':');
+				const date = key.slice(0, split);
+				const part = key.slice(split + 1);
+				return part === 'AM' || part === 'PM' ? [{ date, part }] : [];
+			});
+			putDays(parsed.sort((a, b) => a.date.localeCompare(b.date)));
+		}
+	});
 </script>
 
 <Stack gap="md">
@@ -562,7 +577,7 @@
 		>
 			{#each weekday as day, index (index)}<span class="py-1">{day}</span>{/each}
 		</div>
-		<div class="grid grid-cols-7">
+		<div class="grid grid-cols-7" {...slotGroup.root_attrs()} aria-label={monthLabel}>
 			{#each dates as date, index (date)}
 				{@const holiday = off(date) === 'HOLIDAY' ? holidayByDate.get(date) : undefined}
 				<div
@@ -579,11 +594,11 @@
 					>
 					<div class="mt-1 flex flex-1 gap-0.5">
 						{#each PARTS as part (part)}
+							{@const key = slotKey(date, part)}
 							<button
-								type="button"
+								{...slotGroup.item_attrs(key)}
+								{@attach slotGroup.item(key)}
 								aria-label={`${date} ${part}`}
-								aria-pressed={selected(date, part)}
-								disabled={!editable || catalog === null || blocked(date) || occupied(date, part)}
 								class="min-h-10 flex-1 rounded-md border px-0.5 py-1 text-micro transition-colors disabled:cursor-not-allowed disabled:opacity-30 {selected(
 									date,
 									part
@@ -593,7 +608,6 @@
 								title={entry != null && isSealed(date, part)
 									? 'A payroll run paid this half-day. Removing it is carried by the next run.'
 									: undefined}
-								onclick={() => toggle(date, part)}
 							>
 								{part}
 							</button>

@@ -3,7 +3,7 @@
  * calculations shared by models, automations, and UI.
  * All monetary and decimal arithmetic uses Effect `BigDecimal` — zero IEEE-754 float math.
  */
-import { BigDecimal, Option } from 'effect';
+import { BigDecimal, Option, Schema } from 'effect';
 
 export type DecimalLike = string | number | null | undefined;
 
@@ -66,22 +66,63 @@ export const pctOf = (
 	});
 
 export type PricedLineInput = {
-	readonly code?: string | null;
+	readonly source?: 'bim_asset' | 'adhoc_catalog' | null | undefined;
+	readonly code: string;
+	readonly bim_asset_key?: string | null | undefined;
+	readonly storey?: string | null | undefined;
+	readonly bim_express_ids?: readonly number[] | null | undefined;
 	readonly description: string;
-	readonly unit?: string | null;
+	readonly unit: string;
 	readonly qty: DecimalLike;
 	readonly unit_rate: DecimalLike;
 	readonly amount?: DecimalLike;
 };
 
 export type NormalizedPricedLine = {
-	readonly code: string | null;
+	readonly source?: 'bim_asset' | 'adhoc_catalog' | null;
+	readonly code: string;
+	readonly bim_asset_key?: string | null;
+	readonly storey?: string | null;
+	readonly bim_express_ids?: readonly number[] | null;
 	readonly description: string;
-	readonly unit: string | null;
+	readonly unit: string;
 	readonly qty: string;
 	readonly unit_rate: string;
 	readonly amount: string;
 };
+
+const PricedLineSchema = Schema.Struct({
+	source: Schema.optional(Schema.NullOr(Schema.Literals(['bim_asset', 'adhoc_catalog']))),
+	code: Schema.String,
+	bim_asset_key: Schema.optional(Schema.NullOr(Schema.String)),
+	storey: Schema.optional(Schema.NullOr(Schema.String)),
+	bim_express_ids: Schema.optional(Schema.NullOr(Schema.Array(Schema.Number))),
+	description: Schema.String,
+	unit: Schema.String,
+	qty: Schema.String,
+	unit_rate: Schema.String,
+	amount: Schema.String
+});
+
+const decodeLinesOption = Schema.decodeUnknownOption(Schema.Array(PricedLineSchema));
+
+export function decodePricedLines(value: unknown): readonly NormalizedPricedLine[] | null {
+	if (!Array.isArray(value)) return null;
+	const decoded = Option.getOrNull(decodeLinesOption(value));
+	if (decoded === null) return null;
+	return decoded.map((line) => ({
+		...(line.source !== undefined ? { source: line.source } : {}),
+		code: line.code,
+		...(line.bim_asset_key !== undefined ? { bim_asset_key: line.bim_asset_key } : {}),
+		...(line.storey !== undefined ? { storey: line.storey } : {}),
+		...(line.bim_express_ids !== undefined ? { bim_express_ids: line.bim_express_ids } : {}),
+		description: line.description,
+		unit: line.unit,
+		qty: line.qty,
+		unit_rate: line.unit_rate,
+		amount: line.amount
+	}));
+}
 
 export type ComputedLinesTotal = {
 	readonly lines: readonly NormalizedPricedLine[];
@@ -90,7 +131,7 @@ export type ComputedLinesTotal = {
 	readonly total_amount: string;
 };
 
-/** Computes exact line amounts, subtotal, tax, and gross total for contracts, POs, DOs, invoices, and additional costs. */
+/** Computes exact line amounts, subtotal, tax, and gross total for contracts, POs, DOs, invoices, and claims. */
 export function computeLinesTotals(
 	lines: readonly PricedLineInput[] | null | undefined,
 	taxRate: DecimalLike
@@ -105,9 +146,15 @@ export function computeLinesTotals(
 		});
 		subtotal = BigDecimal.sum(subtotal, amount);
 		return {
-			code: line.code ?? null,
+			...(line.source != null ? { source: line.source } : {}),
+			code: line.code,
+			...(line.bim_asset_key != null ? { bim_asset_key: line.bim_asset_key } : {}),
+			...(line.storey != null ? { storey: line.storey } : {}),
+			...(line.bim_express_ids != null && line.bim_express_ids.length > 0
+				? { bim_express_ids: [...line.bim_express_ids] }
+				: {}),
 			description: line.description,
-			unit: line.unit ?? null,
+			unit: line.unit,
 			qty: formatTrimmed(qty, 3),
 			unit_rate: moneyStr(rate),
 			amount: moneyStr(amount)
@@ -463,5 +510,190 @@ export function computeProjectCashflow(
 		overdue_receivables: moneyStr(overdueReceivables),
 		overdue_payables: moneyStr(overduePayables),
 		months
+	};
+}
+
+export type CatalogCashflowRow = {
+	readonly code: string;
+	readonly name: string;
+	readonly source: 'bim_asset' | 'adhoc_catalog';
+	readonly unit: string;
+	readonly estimated_budget: string;
+	readonly so_value: string;
+	readonly po_committed: string;
+	readonly delivered_value: string;
+	readonly invoiced_outflow: string;
+	readonly paid_outflow: string;
+	readonly budget_variance: string;
+};
+
+/**
+ * Reconciles BIM takeoff budget, catalog-backed ad-hoc costs, SO revenue, PO commitments,
+ * verified DO deliveries, and billed/paid outflows per Costing Matrix catalog code.
+ */
+export function computeCatalogCashflowBreakdown(input: {
+	readonly bim_assets: readonly {
+		readonly matrix_code?: string | null;
+		readonly classification: string;
+		readonly unit: string;
+		readonly amount: DecimalLike;
+		readonly status: string;
+	}[];
+	readonly adhoc_costs: readonly {
+		readonly status: string;
+		readonly catalog_code: string | null;
+		readonly catalog_name: string | null;
+		readonly title: string;
+		readonly unit: string;
+		readonly amount: DecimalLike;
+	}[];
+	readonly contracts: readonly {
+		readonly direction: string;
+		readonly status: string;
+		readonly lines?: readonly PricedLineInput[] | null;
+	}[];
+	readonly documents: readonly {
+		readonly doc_type: string;
+		readonly direction: string;
+		readonly status: string;
+		readonly lines?: readonly PricedLineInput[] | null;
+	}[];
+}): {
+	readonly rows: readonly CatalogCashflowRow[];
+	readonly total_estimated_budget: string;
+	readonly total_adhoc_costs: string;
+	readonly total_po_committed: string;
+	readonly total_invoiced_outflow: string;
+	readonly total_paid_outflow: string;
+} {
+	type Acc = {
+		code: string;
+		name: string;
+		source: 'bim_asset' | 'adhoc_catalog';
+		unit: string;
+		estimated: BigDecimal.BigDecimal;
+		so: BigDecimal.BigDecimal;
+		po: BigDecimal.BigDecimal;
+		delivered: BigDecimal.BigDecimal;
+		invoicedOut: BigDecimal.BigDecimal;
+		paidOut: BigDecimal.BigDecimal;
+	};
+	const byCode = new Map<string, Acc>();
+	const ensure = (
+		code: string,
+		name: string,
+		source: 'bim_asset' | 'adhoc_catalog',
+		unit: string
+	): Acc => {
+		const existing = byCode.get(code);
+		if (existing !== undefined) return existing;
+		const created: Acc = {
+			code,
+			name,
+			source,
+			unit,
+			estimated: ZERO,
+			so: ZERO,
+			po: ZERO,
+			delivered: ZERO,
+			invoicedOut: ZERO,
+			paidOut: ZERO
+		};
+		byCode.set(code, created);
+		return created;
+	};
+
+	for (const line of input.bim_assets) {
+		if (!line.matrix_code || line.status === 'unmatched') continue;
+		const acc = ensure(line.matrix_code, line.classification, 'bim_asset', line.unit);
+		acc.estimated = BigDecimal.sum(acc.estimated, toDecimal(line.amount));
+	}
+
+	let totalAdhoc = ZERO;
+	for (const cost of input.adhoc_costs) {
+		if (cost.status === 'cancelled') continue;
+		const code = cost.catalog_code ?? 'ADHOC';
+		const amt = toDecimal(cost.amount);
+		totalAdhoc = BigDecimal.sum(totalAdhoc, amt);
+		const acc = ensure(code, cost.catalog_name ?? cost.title, 'adhoc_catalog', cost.unit);
+		acc.estimated = BigDecimal.sum(acc.estimated, amt);
+		if (cost.status === 'incurred') {
+			acc.invoicedOut = BigDecimal.sum(acc.invoicedOut, amt);
+			acc.paidOut = BigDecimal.sum(acc.paidOut, amt);
+		} else if (cost.status === 'approved') {
+			acc.po = BigDecimal.sum(acc.po, amt);
+		}
+	}
+
+	for (const ctr of input.contracts) {
+		if (ctr.status !== 'active' && ctr.status !== 'completed') continue;
+		for (const line of ctr.lines ?? []) {
+			if (!line.code) continue;
+			const src = line.source ?? 'bim_asset';
+			const acc = ensure(line.code, line.description, src, line.unit);
+			const amt = toDecimal(line.amount);
+			if (ctr.direction === 'upstream') acc.so = BigDecimal.sum(acc.so, amt);
+			else acc.po = BigDecimal.sum(acc.po, amt);
+		}
+	}
+
+	for (const doc of input.documents) {
+		if (doc.status === 'cancelled') continue;
+		for (const line of doc.lines ?? []) {
+			if (!line.code) continue;
+			const src = line.source ?? 'bim_asset';
+			const acc = ensure(line.code, line.description, src, line.unit);
+			const rawAmt = toDecimal(line.amount);
+			const amt =
+				doc.doc_type === 'credit_note' ? BigDecimal.negate(BigDecimal.abs(rawAmt)) : rawAmt;
+			if (doc.doc_type === 'delivery_order') {
+				acc.delivered = BigDecimal.sum(acc.delivered, amt);
+			} else if (
+				doc.direction === 'outflow' &&
+				(doc.doc_type === 'invoice' || doc.doc_type === 'credit_note')
+			) {
+				acc.invoicedOut = BigDecimal.sum(acc.invoicedOut, amt);
+				if (doc.status === 'paid') {
+					acc.paidOut = BigDecimal.sum(acc.paidOut, amt);
+				}
+			}
+		}
+	}
+
+	let totalEstimated = ZERO;
+	let totalPo = ZERO;
+	let totalInvoiced = ZERO;
+	let totalPaid = ZERO;
+
+	const rows: CatalogCashflowRow[] = [...byCode.values()]
+		.sort((a, b) => a.code.localeCompare(b.code))
+		.map((a) => {
+			totalEstimated = BigDecimal.sum(totalEstimated, a.estimated);
+			totalPo = BigDecimal.sum(totalPo, a.po);
+			totalInvoiced = BigDecimal.sum(totalInvoiced, a.invoicedOut);
+			totalPaid = BigDecimal.sum(totalPaid, a.paidOut);
+			const variance = BigDecimal.subtract(a.estimated, a.po);
+			return {
+				code: a.code,
+				name: a.name,
+				source: a.source,
+				unit: a.unit,
+				estimated_budget: moneyStr(a.estimated),
+				so_value: moneyStr(a.so),
+				po_committed: moneyStr(a.po),
+				delivered_value: moneyStr(a.delivered),
+				invoiced_outflow: moneyStr(a.invoicedOut),
+				paid_outflow: moneyStr(a.paidOut),
+				budget_variance: moneyStr(variance)
+			};
+		});
+
+	return {
+		rows,
+		total_estimated_budget: moneyStr(totalEstimated),
+		total_adhoc_costs: moneyStr(totalAdhoc),
+		total_po_committed: moneyStr(totalPo),
+		total_invoiced_outflow: moneyStr(totalInvoiced),
+		total_paid_outflow: moneyStr(totalPaid)
 	};
 }

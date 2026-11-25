@@ -5,6 +5,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { BigDecimal } from 'effect';
 	import { EmptyState, Show, Table, open_record, singular, type Kind } from '@norbital-ai/ui';
+	import { create_toggle_group } from '@norbital-ai/ui/behaviors';
 	import { AppShell, Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { observe_once } from '@norbital-ai/ui/effect';
 	import {
@@ -133,6 +134,16 @@
 			(['drafts', 'approvals', 'kingdee'] as const).find((name) => shown[name]) ??
 			null
 	);
+	const viewToggle = create_toggle_group({
+		items: () => (['drafts', 'approvals', 'kingdee'] as const).filter((name) => shown[name]),
+		mode: 'single',
+		value: () => (opened !== null ? [opened] : []),
+		on_change: (values) => {
+			const next = values[0];
+			if (next === 'drafts' || next === 'approvals' || next === 'kingdee') chosen = next;
+		},
+		control: { id: 'trade-dashboard:view', label: 'Dashboard' }
+	});
 	const analysis = (tab: 'aging' | 'credit') =>
 		`${ctx.href('operations/analysis', 'reports')}?${new URLSearchParams(tab === 'aging' ? { tab, as_of: day.today } : { tab })}`;
 	const orderColumns = $derived([
@@ -213,13 +224,14 @@
 		{#if !Object.values(shown).some(Boolean)}<EmptyState title={ctx.t('dashboard.access')} />
 		{:else}
 			<Stack gap="md">
-				<Grid minimum="compact" gap="sm">
+				<Grid minimum="compact" gap="sm" onkeydown={viewToggle.root_attrs().onkeydown}>
 					{#if shown.drafts}
 						<Tile
+							{...viewToggle.item_attrs('drafts')}
+							{@attach viewToggle.item('drafts')}
 							title={ctx.t('dashboard.drafts')}
 							icon="lucide:file-pen"
 							selected={opened === 'drafts'}
-							onclick={() => (chosen = 'drafts')}
 						>
 							{@render count(drafts?.current?.orders.total, drafts?.error)}
 							<span class="text-meta">{ctx.t('dashboard.drafts_hint')}</span>
@@ -227,10 +239,11 @@
 					{/if}
 					{#if shown.approvals}
 						<Tile
+							{...viewToggle.item_attrs('approvals')}
+							{@attach viewToggle.item('approvals')}
 							title={ctx.t('dashboard.approvals')}
 							icon="lucide:stamp"
 							selected={opened === 'approvals'}
-							onclick={() => (chosen = 'approvals')}
 						>
 							{@render count(approvals?.length, requests.error)}
 							{@render meta([
@@ -247,10 +260,11 @@
 					{/if}
 					{#if shown.kingdee}
 						<Tile
+							{...viewToggle.item_attrs('kingdee')}
+							{@attach viewToggle.item('kingdee')}
 							title={ctx.t('dashboard.kingdee')}
 							icon="lucide:refresh-cw"
 							selected={opened === 'kingdee'}
-							onclick={() => (chosen = 'kingdee')}
 						>
 							{@render count(
 								awaiting?.current && recent?.current ? failed.length + pending.length : undefined,

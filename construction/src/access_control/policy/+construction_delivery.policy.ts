@@ -6,6 +6,13 @@ export default policy({
 		'Delivery writes for projects, BIM files, WBS tasks, BIM issues, contacts, and WhatsApp/email coordination messages.',
 	grants: {
 		projects: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		cost_estimates: {
+			outputs: { default: {} },
+			update: {
+				fields: ['status'],
+				moves: { status: ['draft->void', 'reviewed->void', 'baselined->void'] }
+			}
+		},
 		project_files: {
 			outputs: { default: {} },
 			create: {},
@@ -36,7 +43,8 @@ export default policy({
 			'classify_messages',
 			'extract_project_updates',
 			'reclassify_messages',
-			'analyze_bim_file'
+			'analyze_bim_file',
+			'sweep_bim_costing'
 		],
 		syncs: ['tasks.autodesk_schedule', 'project_files.autodesk_files']
 	}

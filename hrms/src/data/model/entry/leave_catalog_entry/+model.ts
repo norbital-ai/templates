@@ -25,6 +25,7 @@ const touched = (employment: unknown, days: readonly unknown[], cashOut: unknown
 						employment: String(employment),
 						from: date,
 						run: day.payroll_run_id ?? null,
+						attendance: true,
 						// a cash-out's days are placeholders: only the run that paid it is touched
 						...(cashOut === true ? { undated: true } : {})
 					}

@@ -33,6 +33,15 @@ export const requestReview: ApprovalFlow = {
 	],
 	superseded_by: ['hr_manager', 'senior_management']
 };
+export const payrollPaymentReview: ApprovalFlow = {
+	steps: [
+		{
+			name: 'Payroll payment approval',
+			teams: ['hr_manager', 'manager', 'senior_management']
+		}
+	],
+	superseded_by: ['hr_manager', 'senior_management']
+};
 const READ = { outputs: { default: {} } } as const;
 const HISTORY = { outputs: { default: { history: true } } } as const;
 export const READ_ALL = {
@@ -49,7 +58,7 @@ export const READ_ALL = {
 	statutory_finding: HISTORY,
 	statutory_source: HISTORY,
 	leave_catalog_entry: HISTORY,
-	leave_catalog_entry_day: { ...READ, update: {} },
+	leave_catalog_entry_day: READ,
 	claim_catalog_entry: HISTORY,
 	adhoc_catalog_entry: HISTORY,
 	loan_catalog_entry: HISTORY,
@@ -64,8 +73,7 @@ export const READ_ALL = {
 	workplace_case_catalog_entry: HISTORY,
 	payroll_run: HISTORY,
 	payslip: HISTORY,
-	// a run takes the rows it carries: the update is that seal, as it is for a leave slot
-	pay_amendment: { ...READ, update: {} },
+	pay_amendment: READ,
 	obligation: HISTORY,
 	sys_user: READ,
 	sys_invitation: READ
@@ -138,6 +146,8 @@ export const HR_OPERATIONS = {
 		update: { moves: 'all' },
 		delete: {}
 	},
+	// a run takes the rows it carries: the update is that seal, as it is for a leave slot
+	pay_amendment: { ...READ, update: {} },
 	obligation: { ...READ_ALL.obligation, create: {}, update: { moves: 'all' }, delete: {} }
 } as const;
 export const PAYROLL_STARTS = ['statutory_research', 'ledger'] as const;

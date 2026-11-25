@@ -4,12 +4,10 @@ import { recomputeCostEstimateTotals } from '../../../../lib/bim-pipeline.js';
 const editableColumns = [
 	'title',
 	'project_id',
-	'bim_file_id',
 	'contract_id',
 	'status',
 	'currency',
 	'bim_assets',
-	'additional_costs',
 	'contingency_pct',
 	'analyzed_at',
 	'notes'
@@ -17,7 +15,7 @@ const editableColumns = [
 
 export default model('cost_estimates', {
 	description:
-		'Quantifiable BIM cost estimations built by classifying IFC assets against the Costing Matrix, combined with additional non-BIM costings (preliminaries, hoisting, permits, testing, contingency).',
+		'Single BIM cost estimation per project built by classifying IFC assets from the project BIM model against the Costing Matrix.',
 	icon: 'lucide:calculator',
 	record_label:
 		"record.estimate_number != null ? record.estimate_number + ' · ' + record.title : record.title",
@@ -28,10 +26,10 @@ export default model('cost_estimates', {
 			kind: 'state',
 			initial: 'draft',
 			states: {
-				draft: { to: ['reviewed', 'baselined', 'superseded'] },
-				reviewed: { to: ['baselined', 'draft', 'superseded'] },
-				baselined: { to: ['superseded'] },
-				superseded: { to: [] }
+				draft: { to: ['reviewed', 'baselined', 'void'] },
+				reviewed: { to: ['baselined', 'draft', 'void'] },
+				baselined: { to: ['draft', 'void'] },
+				void: { to: ['draft'] }
 			}
 		},
 		currency: { kind: 'currency', default: 'SGD' },
@@ -40,23 +38,13 @@ export default model('cost_estimates', {
 		unmatched_asset_count: { kind: 'int', min: 0, default: 0 },
 		/** Quantified BIM asset takeoff lines classified and cross-checked against `cost_matrix`. */
 		bim_assets: { kind: 'custom', of: 'bim_takeoff', optional: true },
-		/** Additional non-BIM costings (preliminaries, hoisting, permits, testing, temporary works, logistics). */
-		additional_costs: { kind: 'custom', of: 'priced_lines', optional: true },
 		bim_subtotal: { kind: 'money', currency: 'currency', default: 0 },
-		additional_subtotal: { kind: 'money', currency: 'currency', default: 0 },
 		contingency_pct: { kind: 'decimal', scale: 2, default: 5 },
 		contingency_amount: { kind: 'money', currency: 'currency', default: 0 },
 		total_estimate: { kind: 'money', currency: 'currency', default: 0 },
 		analyzed_at: { kind: 'instant', optional: true },
 		notes: { kind: 'text', format: 'markdown', optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'cost_estimates', owned: true },
-		bim_file_id: {
-			kind: 'ref',
-			to: 'project_files',
-			inverse: 'cost_estimates',
-			optional: true,
-			on_delete: 'set_null'
-		},
 		/** Optional contract or budget benchmark this estimate is cross-checked against. */
 		contract_id: {
 			kind: 'ref',
@@ -67,10 +55,11 @@ export default model('cost_estimates', {
 		}
 	},
 	constraints: {
+		one_per_project: { unique: ['project_id'] },
 		valid_contingency: { check: { contingency_pct: { gte: 0, lte: 100 } } },
-		/** Baselined and superseded estimates lock takeoff, rates, and totals permanently. */
+		/** Baselined estimates lock takeoff, rates, and totals until explicitly returned to draft. */
 		baselined_locked: {
-			locked: { status: { in: ['baselined', 'superseded'] } },
+			locked: { status: { eq: 'baselined' } },
 			except: ['status', 'notes']
 		}
 	},
@@ -82,7 +71,6 @@ export default model('cost_estimates', {
 		default: {
 			fields: 'all',
 			project_id: { fields: ['project_name', 'project_number'] },
-			bim_file_id: { fields: ['document_number', 'title', 'current_version'] },
 			contract_id: { fields: ['contract_number', 'title', 'contract_value'] }
 		}
 	},
@@ -92,7 +80,6 @@ export default model('cost_estimates', {
 			return changes.map(({ set, after }) => {
 				const computed = recomputeCostEstimateTotals({
 					bim_assets: after.bim_assets,
-					additional_costs: after.additional_costs,
 					contingency_pct: after.contingency_pct
 				});
 				return {
@@ -101,9 +88,7 @@ export default model('cost_estimates', {
 					classified_asset_count: computed.classified_asset_count,
 					unmatched_asset_count: computed.unmatched_asset_count,
 					...(computed.bim_assets ? { bim_assets: computed.bim_assets } : {}),
-					...(computed.additional_costs ? { additional_costs: computed.additional_costs } : {}),
 					bim_subtotal: computed.bim_subtotal,
-					additional_subtotal: computed.additional_subtotal,
 					contingency_amount: computed.contingency_amount,
 					total_estimate: computed.total_estimate
 				};
@@ -114,11 +99,10 @@ export default model('cost_estimates', {
 		fields: editableColumns.filter((f) => f !== 'project_id'),
 		transform: function* (changes) {
 			return changes.map((c) => {
-				const recompute = c.changed('bim_assets', 'additional_costs', 'contingency_pct');
+				const recompute = c.changed('bim_assets', 'contingency_pct');
 				if (!recompute) return c.set;
 				const computed = recomputeCostEstimateTotals({
 					bim_assets: c.after.bim_assets,
-					additional_costs: c.after.additional_costs,
 					contingency_pct: c.after.contingency_pct
 				});
 				return {
@@ -127,9 +111,7 @@ export default model('cost_estimates', {
 					classified_asset_count: computed.classified_asset_count,
 					unmatched_asset_count: computed.unmatched_asset_count,
 					...(computed.bim_assets ? { bim_assets: computed.bim_assets } : {}),
-					...(computed.additional_costs ? { additional_costs: computed.additional_costs } : {}),
 					bim_subtotal: computed.bim_subtotal,
-					additional_subtotal: computed.additional_subtotal,
 					contingency_amount: computed.contingency_amount,
 					total_estimate: computed.total_estimate
 				};

@@ -1,6 +1,166 @@
 {
 	"currency": "SGD",
 	"tables": {
+		"adhoc_costs": {
+			"audit": true,
+			"check": {
+				"non_negative_qty": {
+					"qty": {
+						"gte": 0
+					}
+				},
+				"non_negative_rate": {
+					"unit_rate": {
+						"gte": 0
+					}
+				}
+			},
+			"fields": {
+				"amount": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"attachments": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"catalog_item_id": {
+					"inverse": "adhoc_costs",
+					"kind": "ref",
+					"on_delete": "restrict",
+					"to": "cost_matrix"
+				},
+				"category": {
+					"default": "preliminaries",
+					"kind": "enum",
+					"values": [
+						"preliminaries",
+						"hoisting_logistics",
+						"permits_fees",
+						"testing_commissioning",
+						"temporary_works",
+						"overhead",
+						"other"
+					]
+				},
+				"contact_id": {
+					"inverse": "adhoc_costs",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contacts"
+				},
+				"cost_number": {
+					"kind": "seq",
+					"pattern": "ADH-{yyyy}-{000}",
+					"per": [
+						"project_id"
+					]
+				},
+				"currency": {
+					"default": "SGD",
+					"kind": "currency"
+				},
+				"incurred_date": {
+					"kind": "date",
+					"optional": true
+				},
+				"notes": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"project_id": {
+					"inverse": "adhoc_costs",
+					"kind": "ref",
+					"owned": true,
+					"to": "projects"
+				},
+				"qty": {
+					"default": 1,
+					"kind": "decimal",
+					"scale": 3
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"approved": {
+							"to": [
+								"incurred",
+								"draft",
+								"cancelled"
+							]
+						},
+						"cancelled": {
+							"to": [
+								"draft"
+							]
+						},
+						"draft": {
+							"to": [
+								"approved",
+								"cancelled"
+							]
+						},
+						"incurred": {
+							"to": []
+						}
+					}
+				},
+				"title": {
+					"kind": "text"
+				},
+				"unit": {
+					"default": "ls",
+					"kind": "text"
+				},
+				"unit_rate": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"project_id",
+						"status"
+					]
+				}
+			],
+			"locks": {
+				"settled_locked": {
+					"except": [
+						"status",
+						"attachments",
+						"notes"
+					],
+					"where": {
+						"status": {
+							"in": [
+								"incurred",
+								"cancelled"
+							]
+						}
+					}
+				}
+			},
+			"record_label": "record.cost_number != null ? record.cost_number + ' · ' + record.title : record.title",
+			"search": {
+				"text": [
+					"cost_number",
+					"title",
+					"notes"
+				]
+			}
+		},
 		"approval_request": {
 			"fields": {
 				"action": {
@@ -875,16 +1035,6 @@
 				}
 			},
 			"fields": {
-				"additional_costs": {
-					"kind": "custom",
-					"of": "priced_lines",
-					"optional": true
-				},
-				"additional_subtotal": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
 				"analyzed_at": {
 					"kind": "instant",
 					"optional": true
@@ -898,13 +1048,6 @@
 					"kind": "custom",
 					"of": "bim_takeoff",
 					"optional": true
-				},
-				"bim_file_id": {
-					"inverse": "cost_estimates",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "project_files"
 				},
 				"bim_subtotal": {
 					"currency": "currency",
@@ -961,25 +1104,28 @@
 					"states": {
 						"baselined": {
 							"to": [
-								"superseded"
+								"draft",
+								"void"
 							]
 						},
 						"draft": {
 							"to": [
 								"reviewed",
 								"baselined",
-								"superseded"
+								"void"
 							]
 						},
 						"reviewed": {
 							"to": [
 								"baselined",
 								"draft",
-								"superseded"
+								"void"
 							]
 						},
-						"superseded": {
-							"to": []
+						"void": {
+							"to": [
+								"draft"
+							]
 						}
 					}
 				},
@@ -1013,10 +1159,7 @@
 					],
 					"where": {
 						"status": {
-							"in": [
-								"baselined",
-								"superseded"
-							]
+							"eq": "baselined"
 						}
 					}
 				}
@@ -1028,7 +1171,15 @@
 					"title",
 					"notes"
 				]
-			}
+			},
+			"unique": [
+				{
+					"fields": [
+						"project_id"
+					],
+					"name": "one_per_project"
+				}
+			]
 		},
 		"cost_matrix": {
 			"audit": true,
@@ -1211,13 +1362,6 @@
 					"many": true,
 					"max": "20MiB",
 					"optional": true
-				},
-				"bim_file_id": {
-					"inverse": "issues",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "project_files"
 				},
 				"bim_pin": {
 					"kind": "custom",
@@ -1412,31 +1556,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"bim_summary": {
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"fields": {
-							"analyzed_at": {
-								"kind": "text"
-							},
-							"asset_count": {
-								"kind": "int"
-							},
-							"schema": {
-								"kind": "text"
-							},
-							"storey_count": {
-								"kind": "int"
-							},
-							"storeys": {
-								"kind": "text",
-								"many": true
-							}
-						},
-						"kind": "object"
-					}
-				},
 				"current_version": {
 					"default": "P01",
 					"kind": "text"
@@ -1468,13 +1587,12 @@
 					"default": "drawing",
 					"kind": "enum",
 					"values": [
-						"ifc_model",
-						"autodesk_model",
 						"drawing",
 						"spec",
 						"schedule",
 						"contract_doc",
-						"handover"
+						"handover",
+						"autodesk_model"
 					]
 				},
 				"notes": {
@@ -1797,6 +1915,52 @@
 					"optional": true
 				},
 				"autodesk_project_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"bim_costing_dirty": {
+					"default": false,
+					"kind": "bool"
+				},
+				"bim_file": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"max": "20MiB",
+					"optional": true
+				},
+				"bim_revisions": {
+					"kind": "custom",
+					"of": "revision_trail",
+					"optional": true
+				},
+				"bim_summary": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"analyzed_at": {
+								"kind": "text"
+							},
+							"asset_count": {
+								"kind": "int"
+							},
+							"schema": {
+								"kind": "text"
+							},
+							"storey_count": {
+								"kind": "int"
+							},
+							"storeys": {
+								"kind": "text",
+								"many": true
+							}
+						},
+						"kind": "object"
+					}
+				},
+				"bim_version": {
 					"kind": "text",
 					"optional": true
 				},

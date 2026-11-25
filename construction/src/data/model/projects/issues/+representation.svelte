@@ -65,19 +65,6 @@
 	/>
 {/snippet}
 
-{#snippet bimFileEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="project_files"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
 {#snippet sourceMessageEditor(field: FieldEditor)}
 	<Picker
 		{ctx}
@@ -124,7 +111,6 @@
 		{...bimSummary ? { summary: bimSummary } : {}}
 	>
 		<Grid minimum="card">
-			<Field {ctx} name="bim_file_id" editor={bimFileEditor} />
 			<Column span="all"><Field {ctx} name="bim_pin" /></Column>
 		</Grid>
 	</Section>

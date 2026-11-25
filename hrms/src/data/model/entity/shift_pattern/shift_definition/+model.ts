@@ -77,7 +77,8 @@ export default model('shift_definition', {
 					...used.roster_entry.rows.map((row) => ({
 						employment: row.employment_id,
 						from: row.work_date,
-						run: row.payroll_run_id
+						run: row.payroll_run_id,
+						attendance: true
 					})),
 					...(yield* followers(ctx.query, holding))
 				]).pipe(refusing(ctx))

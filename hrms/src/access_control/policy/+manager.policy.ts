@@ -1,7 +1,8 @@
 import { policy } from '@norbital-ai/bolt';
+import { READ_ALL } from './grants.js';
 export default policy({
 	description:
-		'Review native leave and claim approvals and read scheduling evidence. Personal payroll remains under employee or HR authority.',
-	capabilities: { apps: ['hr_employee'] },
-	grants: {}
+		'L1 management visibility across HR controller modules plus approval of employee leave/claims and payroll payment requests.',
+	capabilities: { apps: ['hr_controller', 'hr_employee'] },
+	grants: { ...READ_ALL }
 });

@@ -2,7 +2,7 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { createKioskSession } from './kiosk_session.svelte.js';
 	import { Clock, Data, DateTime, Duration, Effect, Match, Result } from 'effect';
-	import { watch } from '@norbital-ai/ui/behaviors';
+	import { create_switch, create_toggle_group, watch } from '@norbital-ai/ui/behaviors';
 	/**
 	 * The attendance kiosk: a full-screen time clock for one legal entity. A live face held in the outline for two
 	 * seconds is matched on the device against the enrolled descriptors and punched on the person's day
@@ -823,6 +823,25 @@
 			narrator.stop();
 		}
 	});
+	const tabGroup = create_toggle_group({
+		items: () => ['scan', 'manual'],
+		mode: 'single',
+		value: () => [tab],
+		on_change: (values) => {
+			const next = values[0];
+			if (next === 'scan') toScan();
+			else if (next === 'manual') openTab('manual');
+		},
+		label: ctx.t('kiosk.tools'),
+		control: { id: 'hrms:kiosk-mode', label: ctx.t('kiosk.tools') }
+	});
+	const voiceSwitch = create_switch({
+		checked: () => voiceEnabled,
+		on_change: (next) => {
+			if (next !== voiceEnabled) toggleVoice();
+		},
+		control: { id: 'hrms:kiosk-voice', label: ctx.t('kiosk.voice_on') }
+	});
 </script>
 
 {#snippet header()}
@@ -862,30 +881,31 @@
 		</div>
 
 		<Inline gap="xs" aria-label={ctx.t('kiosk.tools')}>
+			<Inline gap="xs" {...tabGroup.root_attrs()}>
+				<Button
+					{...tabGroup.item_attrs('scan')}
+					{@attach tabGroup.item('scan')}
+					variant={tab === 'scan' ? 'secondary' : 'ghost'}
+					aria-label={ctx.t('kiosk.clock')}
+				>
+					<Icon icon="lucide:scan-face" class="size-4" />
+					<span class="hidden md:inline">{ctx.t('kiosk.clock')}</span>
+				</Button>
+				<Button
+					{...tabGroup.item_attrs('manual')}
+					{@attach tabGroup.item('manual')}
+					variant={tab === 'manual' ? 'secondary' : 'ghost'}
+					aria-label={ctx.t('kiosk.manual_entry')}
+				>
+					<Icon icon="lucide:keyboard" class="size-4" />
+					<span class="hidden md:inline">{ctx.t('kiosk.manual_entry')}</span>
+				</Button>
+			</Inline>
 			<Button
-				variant={tab === 'scan' ? 'secondary' : 'ghost'}
-				onclick={toScan}
-				aria-label={ctx.t('kiosk.clock')}
-				aria-pressed={tab === 'scan'}
-			>
-				<Icon icon="lucide:scan-face" class="size-4" />
-				<span class="hidden md:inline">{ctx.t('kiosk.clock')}</span>
-			</Button>
-			<Button
-				variant={tab === 'manual' ? 'secondary' : 'ghost'}
-				onclick={() => openTab('manual')}
-				aria-label={ctx.t('kiosk.manual_entry')}
-				aria-pressed={tab === 'manual'}
-			>
-				<Icon icon="lucide:keyboard" class="size-4" />
-				<span class="hidden md:inline">{ctx.t('kiosk.manual_entry')}</span>
-			</Button>
-			<Button
+				{...voiceSwitch.attrs()}
 				variant="ghost"
 				size="icon"
-				aria-pressed={voiceEnabled}
 				aria-label={voiceEnabled ? ctx.t('kiosk.voice_off') : ctx.t('kiosk.voice_on')}
-				onclick={toggleVoice}
 			>
 				<Icon icon={voiceEnabled ? 'lucide:volume-2' : 'lucide:volume-x'} class="size-4" />
 			</Button>

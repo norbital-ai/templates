@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { Effect, Schema } from 'effect';
-	import { Badge, Button, Icon, Image, Surface, cn, enum_text } from '@norbital-ai/ui';
+	import { Badge, Button, Icon, Image, Spinner, Surface, cn, enum_text } from '@norbital-ai/ui';
 	import { attach, fork, run } from '@norbital-ai/ui/effect';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { create_slider, register_control, watch } from '@norbital-ai/ui/behaviors';
-	import { convertIfcToFragments } from './ifc_viewer.converter.js';
+	import {
+		create_disclosure,
+		create_slider,
+		create_switch,
+		create_toggle_group,
+		register_control,
+		watch
+	} from '@norbital-ai/ui/behaviors';
+	import {
+		convertIfcToFragments,
+		readCachedFragments,
+		writeCachedFragments
+	} from './ifc_viewer.converter.js';
 	import {
 		type IFCSelectedElement,
 		type IFCViewerIssueSummary,
@@ -40,54 +51,62 @@
 		new ViewerOperationFailed({ operation, message: messageOf(cause), cause });
 
 	const viewerLibraries = Effect.cached(
-		Effect.all([
-			Effect.tryPromise({
-				try: () =>
-					import(
-						/* @vite-ignore */ 'https://esm.sh/@thatopen/components@3.4.6?deps=three@0.185.1,@thatopen/fragments@3.4.6,web-ifc@0.0.77,camera-controls@3.1.2'
-					),
-				catch: viewerFailure('load-components')
-			}),
-			Effect.tryPromise({
-				try: () =>
-					import(
-						/* @vite-ignore */ 'https://esm.sh/@thatopen/components-front@3.4.3?deps=@thatopen/components@3.4.6,@thatopen/fragments@3.4.6,three@0.185.1,web-ifc@0.0.77,camera-controls@3.1.2'
-					),
-				catch: viewerFailure('load-components-front')
-			}),
-			Effect.tryPromise({
-				try: () =>
-					import(
-						/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
-					),
-				catch: viewerFailure('load-fragments')
-			}),
-			Effect.tryPromise({
-				try: () => import(/* @vite-ignore */ 'https://esm.sh/three@0.185.1'),
-				catch: viewerFailure('load-three')
-			})
-		])
+		Effect.all(
+			[
+				Effect.tryPromise({
+					try: () =>
+						import(
+							/* @vite-ignore */ 'https://esm.sh/@thatopen/components@3.4.6?deps=three@0.185.1,@thatopen/fragments@3.4.6,web-ifc@0.0.77,camera-controls@3.1.2'
+						),
+					catch: viewerFailure('load-components')
+				}),
+				Effect.tryPromise({
+					try: () =>
+						import(
+							/* @vite-ignore */ 'https://esm.sh/@thatopen/components-front@3.4.3?deps=@thatopen/components@3.4.6,@thatopen/fragments@3.4.6,three@0.185.1,web-ifc@0.0.77,camera-controls@3.1.2'
+						),
+					catch: viewerFailure('load-components-front')
+				}),
+				Effect.tryPromise({
+					try: () =>
+						import(
+							/* @vite-ignore */ 'https://esm.sh/@thatopen/fragments@3.4.6?deps=three@0.185.1,web-ifc@0.0.77'
+						),
+					catch: viewerFailure('load-fragments')
+				}),
+				Effect.tryPromise({
+					try: () => import(/* @vite-ignore */ 'https://esm.sh/three@0.185.1'),
+					catch: viewerFailure('load-three')
+				})
+			],
+			{ concurrency: 'unbounded' }
+		)
 	);
 
 	function normalizeFileUrlForSameOrigin(
 		rawUrl: string,
 		origin: string
-	): Effect.Effect<string, never> {
+	): Effect.Effect<{ readonly fetchUrl: string; readonly cacheKey: string }, never> {
 		return Effect.try({
 			try: () => {
 				const base = origin.endsWith('/') ? origin : `${origin}/`;
 				const parsed = new URL(rawUrl, base);
 				if (parsed.pathname.startsWith('/api/files/')) {
 					const originRoot = origin.replace(/\/$/, '');
-					return `${originRoot}${parsed.pathname}${parsed.search}${parsed.hash}`;
+					return {
+						fetchUrl: `${originRoot}${parsed.pathname}${parsed.search}${parsed.hash}`,
+						cacheKey: parsed.pathname
+					};
 				}
-				return parsed.href;
+				return { fetchUrl: parsed.href, cacheKey: parsed.href };
 			},
 			catch: viewerFailure('normalize-model-url')
-		}).pipe(Effect.catch(() => Effect.succeed(rawUrl)));
+		}).pipe(Effect.catch(() => Effect.succeed({ fetchUrl: rawUrl, cacheKey: rawUrl })));
 	}
 
-	type LoadBanner = 'none' | 'loading' | { error: string };
+	type LoadBanner = 'none' | 'downloading' | 'converting' | 'loading' | { readonly error: string };
+	type NavMode = 'orbit' | 'pan' | 'inspect';
+	type CameraPreset = 'iso' | 'top' | 'front' | 'side';
 
 	type ModelBounds = {
 		readonly minX: number;
@@ -109,11 +128,16 @@
 		highlighter: ViewerHighlighter | null;
 		currentGroup: ViewerFragmentsModel | null;
 		markerStyleIds: string[];
+		rotateAction: number;
+		truckAction: number;
+		touchRotateAction: number;
+		touchTruckAction: number;
 	};
 
 	const IFC_FETCH_TIMEOUT_MS = 120000;
 	const IFC_CONVERSION_TIMEOUT_MS = 60000;
 	const IFC_FRAGMENT_LOAD_TIMEOUT_MS = 120000;
+	const PICK_DRAG_THRESHOLD_PX = 5;
 	const DEFAULT_BACKGROUND_COLOR = 'var(--color-background)';
 	const DEFAULT_SELECTION_COLOR = 'var(--color-brand)';
 	const DEFAULT_MARKER_COLOR = 'var(--color-muted-foreground)';
@@ -148,7 +172,8 @@
 		issues = [],
 		focusIssue = null,
 		onTagIssue,
-		onOpenIssue
+		onOpenIssue,
+		onReplaceModel
 	}: Props = $props();
 
 	const trimmedSrc = $derived(src?.trim() ?? '');
@@ -168,6 +193,8 @@
 	let selectedItem = $state<IFCSelectedElement | null>(null);
 	let loadBanner = $state<LoadBanner>('none');
 	let interactionLocked = $state(false);
+	let navMode = $state<NavMode>('orbit');
+	let shiftPanning = $state(false);
 	let propertiesOpen = $state(false);
 	let sectionPanelOpen = $state(false);
 	let modelBounds = $state<ModelBounds | null>(null);
@@ -176,12 +203,46 @@
 	let cutZ = $state(100);
 	let viewer = $state.raw<IFCViewerRuntime | null>(null);
 	let markerSyncFrame = $state.raw(0);
+	let pointerDown = $state.raw<{
+		readonly x: number;
+		readonly y: number;
+		readonly button: number;
+	} | null>(null);
 
 	const selectedElementIssues = $derived.by(() => {
 		if (!selectedItem) return [];
 		return issues.filter((issue) => issue.expressId === selectedItem?.expressId);
 	});
 	const sectionActive = $derived(cutX < 100 || cutY < 100 || cutZ < 100);
+	const effectivePan = $derived(navMode === 'pan' || shiftPanning);
+
+	const loadingMessage = $derived.by(() => {
+		if (loadBanner === 'downloading') return t('component.downloading_ifc_model');
+		if (loadBanner === 'converting') return t('component.converting_ifc_model');
+		if (loadBanner === 'loading') return t('component.loading_ifc_model');
+		return '';
+	});
+
+	const canvasCursorClass = $derived(
+		interactionLocked
+			? 'cursor-default touch-pan-y'
+			: effectivePan
+				? 'cursor-move touch-none'
+				: navMode === 'inspect'
+					? 'cursor-crosshair touch-none'
+					: 'cursor-grab active:cursor-grabbing touch-none'
+	);
+
+	function modelGeometryInfo(bounds: ModelBounds) {
+		const cx = (bounds.minX + bounds.maxX) * 0.5;
+		const cy = (bounds.minY + bounds.maxY) * 0.5;
+		const cz = (bounds.minZ + bounds.maxZ) * 0.5;
+		const dx = bounds.maxX - bounds.minX;
+		const dy = bounds.maxY - bounds.minY;
+		const dz = bounds.maxZ - bounds.minZ;
+		const radius = Math.max(1, Math.hypot(dx, dy, dz) * 0.5);
+		return { cx, cy, cz, dx, dy, dz, radius };
+	}
 
 	function resetAxes(): void {
 		cutX = 100;
@@ -213,6 +274,108 @@
 		}
 		renderer.localClippingEnabled = true;
 		renderer.clippingPlanes = planes;
+	}
+
+	function applyNavigationControls(runtime: IFCViewerRuntime): void {
+		const controls = runtime.world.camera.controls;
+		const pan = navMode === 'pan' || shiftPanning;
+		if (controls.mouseButtons) {
+			controls.mouseButtons.left = pan ? runtime.truckAction : runtime.rotateAction;
+			controls.mouseButtons.right = runtime.truckAction;
+		}
+		if (controls.touches) {
+			controls.touches.one = pan ? runtime.touchTruckAction : runtime.touchRotateAction;
+		}
+	}
+
+	function tuneCameraControls(runtime: IFCViewerRuntime, bounds: ModelBounds | null): void {
+		const controls = runtime.world.camera.controls;
+		controls.dollyToCursor = true;
+		controls.infinityDolly = true;
+		controls.dollySpeed = 0.85;
+		controls.truckSpeed = 1.8;
+		controls.smoothTime = 0.12;
+		controls.draggingSmoothTime = 0.08;
+		if (bounds) {
+			const { radius } = modelGeometryInfo(bounds);
+			controls.minDistance = 0.4;
+			controls.maxDistance = Math.max(radius * 10, 120);
+		}
+		applyNavigationControls(runtime);
+	}
+
+	function framePresetEffect(runtime: IFCViewerRuntime, preset: CameraPreset, transition: boolean) {
+		return Effect.gen(function* () {
+			const bounds = modelBounds;
+			const group = runtime.currentGroup;
+			const controls = runtime.world.camera.controls;
+			if (!bounds || !group) return;
+			const { cx, cy, cz, radius } = modelGeometryInfo(bounds);
+			const dist = Math.max(radius * 2.05, 6);
+			let px = cx + dist * 0.72;
+			let py = cy + dist * 0.52;
+			let pz = cz + dist * 0.82;
+			if (preset === 'top') {
+				px = cx;
+				py = cy + dist * 1.55;
+				pz = cz + 0.02;
+			} else if (preset === 'front') {
+				px = cx;
+				py = cy + dist * 0.14;
+				pz = cz + dist * 1.35;
+			} else if (preset === 'side') {
+				px = cx + dist * 1.35;
+				py = cy + dist * 0.14;
+				pz = cz;
+			}
+			yield* Effect.tryPromise({
+				try: () => controls.setLookAt(px, py, pz, cx, cy, cz, transition),
+				catch: viewerFailure('frame-preset')
+			}).pipe(Effect.ignore);
+			if (!transition) controls.update(0);
+		});
+	}
+
+	function framePreset(preset: CameraPreset): void {
+		const runtime = viewer;
+		if (!runtime) return;
+		fork(framePresetEffect(runtime, preset, true), () => {});
+	}
+
+	function refitModel(): void {
+		framePreset('iso');
+	}
+
+	function zoomBy(direction: 1 | -1): void {
+		const runtime = viewer;
+		if (!runtime?.world.camera.controls.dolly) return;
+		const radius = modelBounds ? modelGeometryInfo(modelBounds).radius : 12;
+		const step = direction * Math.max(radius * 0.28, 2.5);
+		const dolly = runtime.world.camera.controls.dolly;
+		fork(
+			Effect.tryPromise({
+				try: () => dolly.call(runtime.world.camera.controls, step, true),
+				catch: viewerFailure('zoom-camera')
+			}).pipe(Effect.ignore),
+			() => {}
+		);
+	}
+
+	function focusSelected(): void {
+		const runtime = viewer;
+		const pin = selectedItem?.pin;
+		if (!runtime || !pin) return;
+		const controls = runtime.world.camera.controls;
+		if (typeof controls.setTarget === 'function') {
+			const setTarget = controls.setTarget;
+			fork(
+				Effect.tryPromise({
+					try: () => setTarget.call(controls, pin.x, pin.y, pin.z, true),
+					catch: viewerFailure('focus-selected')
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		}
 	}
 
 	function fetchIfcModelResponse(url: string) {
@@ -293,19 +456,6 @@
 
 	function toggleInteractionLock(): void {
 		interactionLocked = !interactionLocked;
-	}
-
-	function refitModel(): void {
-		const runtime = viewer;
-		const group = runtime?.currentGroup;
-		if (!runtime || !group) return;
-		fork(
-			Effect.tryPromise({
-				try: () => runtime.world.camera.controls.fitToBox(group.box, true),
-				catch: viewerFailure('refit-model')
-			}).pipe(Effect.ignore),
-			() => {}
-		);
 	}
 
 	function cancelScheduledMarkerVisualization(): void {
@@ -448,7 +598,8 @@
 					catch: viewerFailure('load-fragments-worker')
 				});
 				yield* Effect.sync(() => fragments.init(worker));
-				return {
+				const controls = world.camera.controls;
+				const runtime: IFCViewerRuntime = {
 					OBC,
 					OBF,
 					FRAGS,
@@ -458,8 +609,14 @@
 					fragments,
 					highlighter: null,
 					currentGroup: null,
-					markerStyleIds: []
+					markerStyleIds: [],
+					rotateAction: controls.mouseButtons?.left ?? 1,
+					truckAction: controls.mouseButtons?.right ?? 2,
+					touchRotateAction: controls.touches?.one ?? 64,
+					touchTruckAction: 128
 				};
+				tuneCameraControls(runtime, null);
+				return runtime;
 			}).pipe(Effect.onError(() => Effect.sync(() => components.dispose())));
 		});
 	}
@@ -486,9 +643,14 @@
 		);
 	}
 
-	function loadIfcModelIntoRuntime(runtime: IFCViewerRuntime, url: string) {
+	function resolveFragmentBytes(fetchUrl: string, cacheKey: string) {
 		return Effect.gen(function* () {
-			const fetchUrl = yield* normalizeFileUrlForSameOrigin(url, window.location.origin);
+			const cached = yield* readCachedFragments(cacheKey);
+			if (cached !== null) {
+				loadBanner = 'loading';
+				return cached;
+			}
+			loadBanner = 'downloading';
 			const response = yield* fetchIfcModelResponse(fetchUrl);
 			if (!response.ok) {
 				return yield* Effect.fail(
@@ -501,12 +663,25 @@
 			});
 			const buffer = new Uint8Array(arrayBuffer);
 			yield* assertIfcBodyNotHtml(response, buffer);
-			const modelName = yield* getModelName(fetchUrl);
+			loadBanner = 'converting';
 			const fragmentBytes = yield* withTimeout(
 				convertIfcToFragments(buffer, t),
 				IFC_CONVERSION_TIMEOUT_MS,
 				t('component.ifc_conversion')
 			);
+			yield* writeCachedFragments(cacheKey, fragmentBytes);
+			return fragmentBytes;
+		});
+	}
+
+	function loadFragmentsIntoRuntime(
+		runtime: IFCViewerRuntime,
+		fetchUrl: string,
+		fragmentBytes: Uint8Array
+	) {
+		return Effect.gen(function* () {
+			loadBanner = 'loading';
+			const modelName = yield* getModelName(fetchUrl);
 			const group = yield* withTimeout(
 				Effect.tryPromise({
 					try: () =>
@@ -519,25 +694,22 @@
 				IFC_FRAGMENT_LOAD_TIMEOUT_MS,
 				t('component.ifc_fragment_load')
 			);
+			const nextBounds: ModelBounds = {
+				minX: group.box.min.x,
+				maxX: group.box.max.x,
+				minY: group.box.min.y,
+				maxY: group.box.max.y,
+				minZ: group.box.min.z,
+				maxZ: group.box.max.z
+			};
 			yield* Effect.sync(() => {
 				runtime.world.scene.three.add(group.object);
 				runtime.currentGroup = group;
-				modelBounds = {
-					minX: group.box.min.x,
-					maxX: group.box.max.x,
-					minY: group.box.min.y,
-					maxY: group.box.max.y,
-					minZ: group.box.min.z,
-					maxZ: group.box.max.z
-				};
+				modelBounds = nextBounds;
+				tuneCameraControls(runtime, nextBounds);
 				applyClippingPlanes(runtime);
 			});
-			const controls = runtime.world.camera.controls;
-			yield* Effect.tryPromise({
-				try: () => controls.fitToBox(group.box, false),
-				catch: viewerFailure('frame-model')
-			}).pipe(Effect.uninterruptible);
-			yield* Effect.sync(() => controls.update(0));
+			yield* framePresetEffect(runtime, 'iso', false).pipe(Effect.uninterruptible);
 		});
 	}
 
@@ -553,18 +725,29 @@
 					return;
 				}
 				loadBanner = 'loading';
-				const runtime = yield* Effect.acquireRelease(createViewerRuntime(node), (runtime) =>
-					Effect.gen(function* () {
-						if (viewer === runtime) {
-							viewer = null;
-							resetSelectionState();
-						}
-						yield* disposeRuntime(runtime).pipe(Effect.ignore);
-					})
+				const { fetchUrl, cacheKey } = yield* normalizeFileUrlForSameOrigin(
+					url,
+					window.location.origin
+				);
+				// Parallelize Three/OBC runtime boot and client-cached/fetched fragment conversion
+				const [runtime, fragmentBytes] = yield* Effect.all(
+					[
+						Effect.acquireRelease(createViewerRuntime(node), (rt) =>
+							Effect.gen(function* () {
+								if (viewer === rt) {
+									viewer = null;
+									resetSelectionState();
+								}
+								yield* disposeRuntime(rt).pipe(Effect.ignore);
+							})
+						),
+						resolveFragmentBytes(fetchUrl, cacheKey)
+					],
+					{ concurrency: 'unbounded' }
 				);
 				viewer = runtime;
 				applyInteractionLock(runtime, interactionLocked);
-				yield* loadIfcModelIntoRuntime(runtime, url);
+				yield* loadFragmentsIntoRuntime(runtime, fetchUrl, fragmentBytes);
 				loadBanner = 'none';
 				scheduleMarkerVisualization();
 				yield* Effect.never;
@@ -706,7 +889,6 @@
 				clearSelection();
 				return;
 			}
-			// Capture 3D ray hit point and current camera viewpoint for BIM pin tagging
 			const raycaster = runtime.components.get(runtime.OBC.Raycasters).get(runtime.world);
 			const castRay = raycaster.castRay;
 			const hit =
@@ -742,12 +924,111 @@
 		});
 	}
 
-	function handleKeydown(event: KeyboardEvent): void {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
+	function handlePointerDown(event: PointerEvent): void {
+		pointerDown = { x: event.clientX, y: event.clientY, button: event.button };
+	}
+
+	function handleCanvasClick(event: MouseEvent): void {
+		const down = pointerDown;
+		pointerDown = null;
+		if (down !== null) {
+			if (down.button !== 0) return;
+			const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
+			if (moved > PICK_DRAG_THRESHOLD_PX) return;
+		}
+		const explicitInspect = navMode === 'inspect' || event.metaKey || event.ctrlKey;
+		if (!explicitInspect) return;
 		fork(handlePick(), (failure) => {
 			loadBanner = { error: messageOf(failure) };
 		});
+	}
+
+	function handleWindowKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Shift') shiftPanning = true;
+	}
+
+	function handleWindowKeyup(event: KeyboardEvent): void {
+		if (event.key === 'Shift') shiftPanning = false;
+	}
+
+	function handleCanvasKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Escape') {
+			clearSelection();
+			return;
+		}
+		const runtime = viewer;
+		if (!runtime || interactionLocked) return;
+		const controls = runtime.world.camera.controls;
+		const radius = modelBounds ? modelGeometryInfo(modelBounds).radius : 12;
+		const step = Math.max(radius * 0.08, 0.8);
+		const key = event.key.toLowerCase();
+		if (key === 'r') {
+			event.preventDefault();
+			framePreset('iso');
+		} else if ((key === 'w' || event.key === 'ArrowUp') && typeof controls.dolly === 'function') {
+			event.preventDefault();
+			const dolly = controls.dolly;
+			fork(
+				Effect.tryPromise({
+					try: () => dolly.call(controls, step, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		} else if ((key === 's' || event.key === 'ArrowDown') && typeof controls.dolly === 'function') {
+			event.preventDefault();
+			const dolly = controls.dolly;
+			fork(
+				Effect.tryPromise({
+					try: () => dolly.call(controls, -step, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		} else if ((key === 'a' || event.key === 'ArrowLeft') && typeof controls.truck === 'function') {
+			event.preventDefault();
+			const truck = controls.truck;
+			fork(
+				Effect.tryPromise({
+					try: () => truck.call(controls, -step, 0, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		} else if (
+			(key === 'd' || event.key === 'ArrowRight') &&
+			typeof controls.truck === 'function'
+		) {
+			event.preventDefault();
+			const truck = controls.truck;
+			fork(
+				Effect.tryPromise({
+					try: () => truck.call(controls, step, 0, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		} else if (key === 'q' && typeof controls.truck === 'function') {
+			event.preventDefault();
+			const truck = controls.truck;
+			fork(
+				Effect.tryPromise({
+					try: () => truck.call(controls, 0, step, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		} else if (key === 'e' && typeof controls.truck === 'function') {
+			event.preventDefault();
+			const truck = controls.truck;
+			fork(
+				Effect.tryPromise({
+					try: () => truck.call(controls, 0, -step, true),
+					catch: () => undefined
+				}).pipe(Effect.ignore),
+				() => {}
+			);
+		}
 	}
 
 	watch(
@@ -755,6 +1036,13 @@
 		(locked) => {
 			if (!viewer) return;
 			applyInteractionLock(viewer, locked);
+		}
+	);
+	watch(
+		() => [navMode, shiftPanning] as const,
+		() => {
+			if (!viewer) return;
+			applyNavigationControls(viewer);
 		}
 	);
 	watch(
@@ -810,6 +1098,7 @@
 			label: alt ?? t('component.ifc_model_preview'),
 			state: () => ({
 				selected_express_id: selectedItem?.expressId ?? null,
+				nav_mode: navMode,
 				section_panel_open: sectionPanelOpen,
 				cut_x: cutX,
 				cut_y: cutY,
@@ -825,6 +1114,34 @@
 		})
 	);
 
+	const navModeGroup = create_toggle_group({
+		items: () => ['orbit', 'pan', 'inspect'],
+		mode: 'single',
+		value: () => [navMode],
+		on_change: (values) => {
+			const next = values[0];
+			if (next === 'orbit' || next === 'pan' || next === 'inspect') navMode = next;
+			else navMode = 'orbit';
+		}
+	});
+
+	const propertiesDisclosure = create_disclosure({
+		open: () => propertiesOpen,
+		on_open_change: (next) => (propertiesOpen = next)
+	});
+
+	const sectionDisclosure = create_disclosure({
+		open: () => sectionPanelOpen,
+		on_open_change: (next) => (sectionPanelOpen = next)
+	});
+
+	const lockSwitch = create_switch({
+		checked: () => interactionLocked,
+		on_change: (next) => {
+			if (next !== interactionLocked) toggleInteractionLock();
+		}
+	});
+
 	watch(
 		() => focusIssue,
 		(issue) => {
@@ -833,6 +1150,12 @@
 		}
 	);
 </script>
+
+<svelte:window
+	onkeydown={handleWindowKeydown}
+	onkeyup={handleWindowKeyup}
+	onblur={() => (shiftPanning = false)}
+/>
 
 <Bound
 	size="fill"
@@ -844,25 +1167,24 @@
 		<div
 			class={cn(
 				'size-full overscroll-contain border-0 bg-transparent text-left',
-				interactionLocked ? 'touch-pan-y' : 'touch-none'
+				canvasCursorClass
 			)}
-			role="button"
+			role="application"
 			tabindex={0}
 			aria-label={alt ?? t('component.ifc_model_preview')}
-			onclick={() =>
-				fork(handlePick(), (failure) => {
-					loadBanner = { error: messageOf(failure) };
-				})}
-			onkeydown={handleKeydown}
+			onpointerdown={handlePointerDown}
+			onclick={handleCanvasClick}
+			onkeydown={handleCanvasKeydown}
 			{@attach viewerAttach}
 		></div>
 	</Imposter>
 
-	{#if loadBanner === 'loading'}
+	{#if loadBanner === 'downloading' || loadBanner === 'converting' || loadBanner === 'loading'}
 		<Imposter placement="fill" class="pointer-events-auto">
 			<Surface tone="muted" padding="md" radius="none" class="size-full">
-				<Inline align="center" justify="center" size="fill">
-					<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
+				<Inline align="center" justify="center" gap="sm" size="fill" aria-busy="true">
+					<Spinner />
+					<p class="text-xs text-muted-foreground">{loadingMessage}</p>
 				</Inline>
 			</Surface>
 		</Imposter>
@@ -870,7 +1192,7 @@
 		<Imposter placement="fill" class="pointer-events-auto">
 			<Surface tone="muted" padding="md" radius="none" class="size-full">
 				<Inline align="center" justify="center" size="fill">
-					<p class="max-w-sm text-center text-sm text-destructive">{loadBanner.error}</p>
+					<p class="max-w-sm text-center text-xs text-destructive">{loadBanner.error}</p>
 				</Inline>
 			</Surface>
 		</Imposter>
@@ -878,7 +1200,7 @@
 		<Imposter placement="fill">
 			<Surface tone="muted" padding="md" radius="none" class="size-full">
 				<Inline align="center" justify="center" size="fill">
-					<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
+					<p class="text-xs text-muted-foreground">{t('component.no_ifc_model')}</p>
 				</Inline>
 			</Surface>
 		</Imposter>
@@ -886,48 +1208,63 @@
 
 	<Imposter placement="top" offset="sm" class="pointer-events-none">
 		<Inline align="start" justify="between" gap="sm">
-			<div class="w-full max-w-md min-w-0">
+			<div class="w-full max-w-xs min-w-0">
 				{#if selectedItem}
 					{@const item = selectedItem}
-					<Surface tone="popover" padding="sm" radius="control" class="pointer-events-auto">
-						<Stack gap="sm" divided>
+					<Surface tone="popover" padding="xs" radius="control" class="pointer-events-auto">
+						<Stack gap="xs" divided>
 							<Inline align="start" justify="between" gap="xs">
 								<button
-									type="button"
-									class="min-w-0 grow rounded-inset text-left transition-colors hover:bg-muted"
-									onclick={() => (propertiesOpen = !propertiesOpen)}
+									{...propertiesDisclosure.trigger_attrs()}
+									class="min-w-0 grow rounded-inset px-1 py-0.5 text-left transition-colors hover:bg-muted"
 								>
 									<Inline align="center" justify="between" gap="xs">
 										<div class="min-w-0">
-											<span class="block truncate text-label">
+											<span
+												class="block truncate text-xs font-medium leading-tight text-foreground"
+											>
 												{item.title}
 											</span>
-											<span class="block truncate text-micro text-muted-foreground">
+											<span class="block truncate text-micro leading-tight text-muted-foreground">
 												{#if item.subtitle}{item.subtitle} ·
 												{/if}#{item.expressId}
 											</span>
 										</div>
 										<Icon
 											name="lucide:chevron-down"
-											class="size-4 text-muted-foreground transition-transform {propertiesOpen
+											class="size-3.5 shrink-0 text-muted-foreground transition-transform {propertiesOpen
 												? 'rotate-180'
 												: ''}"
 										/>
 									</Inline>
 								</button>
-								<Button
-									size="icon"
-									variant="ghost"
-									hint={t('component.clear_selected_element')}
-									onclick={clearSelection}
-								>
-									<Icon name="lucide:x" class="size-4" />
-								</Button>
+								<Inline gap="none">
+									{#if item.pin}
+										<Button
+											size="icon"
+											variant="ghost"
+											class="size-7"
+											hint={t('component.focus_selected_element')}
+											onclick={focusSelected}
+										>
+											<Icon name="lucide:focus" class="size-3.5" />
+										</Button>
+									{/if}
+									<Button
+										size="icon"
+										variant="ghost"
+										class="size-7"
+										hint={t('component.clear_selected_element')}
+										onclick={clearSelection}
+									>
+										<Icon name="lucide:x" class="size-3.5" />
+									</Button>
+								</Inline>
 							</Inline>
 
 							{#if onTagIssue}
-								<Inline align="center" justify="between" gap="xs">
-									<span class="text-micro text-muted-foreground">
+								<Inline align="center" justify="between" gap="xs" class="pt-1">
+									<span class="text-micro leading-tight text-muted-foreground">
 										{#if selectedElementIssues.length > 0}
 											{t('component.element_tagged_issues_count', {
 												count: selectedElementIssues.length
@@ -936,15 +1273,19 @@
 											{t('component.click_to_tag_issue')}
 										{/if}
 									</span>
-									<Button variant="brand" onclick={() => onTagIssue?.(item)}>
-										<Icon name="lucide:pin" class="size-3.5" />
+									<Button
+										variant="brand"
+										class="h-6 px-2 text-micro"
+										onclick={() => onTagIssue?.(item)}
+									>
+										<Icon name="lucide:pin" class="size-3" />
 										{t('component.tag_issue_and_photos')}
 									</Button>
 								</Inline>
 							{/if}
 
 							{#if selectedElementIssues.length > 0}
-								<Stack gap="xs">
+								<Stack gap="xs" class="pt-1">
 									{#each selectedElementIssues as issue (issue.id)}
 										<Surface tone="subtle" padding="xs" radius="control">
 											<button
@@ -954,11 +1295,11 @@
 											>
 												<Stack gap="xs">
 													<Inline align="center" justify="between" gap="xs">
-														<span class="min-w-0 truncate text-label">
+														<span class="min-w-0 truncate text-xs font-medium text-foreground">
 															{#if issue.issue_number}{issue.issue_number} ·
 															{/if}{issue.title}
 														</span>
-														<Badge variant="outline">
+														<Badge variant="outline" class="text-tiny">
 															{enum_text(issue.severity, {
 																t: words,
 																model: 'issues',
@@ -972,7 +1313,7 @@
 																<Image
 																	src={url}
 																	alt={issue.title}
-																	class="size-10 rounded-inset border border-border"
+																	class="size-9 rounded-inset border border-border"
 																	image_class="object-cover"
 																/>
 															{/each}
@@ -986,19 +1327,21 @@
 							{/if}
 
 							{#if propertiesOpen}
-								<Stack gap="xs">
-									<p class="text-overline">{t('component.selected_element_properties')}</p>
+								<Stack {...propertiesDisclosure.content_attrs()} gap="xs" class="pt-1">
+									<p class="text-tiny font-medium tracking-wider uppercase text-muted-foreground">
+										{t('component.selected_element_properties')}
+									</p>
 									<Surface tone="subtle" padding="xs" radius="control">
 										<Scroll
 											axis="both"
 											name={t('component.selected_element_properties')}
 											max="compact"
-											class="text-micro wrap-break-word text-muted-foreground"
+											class="text-micro leading-snug wrap-break-word"
 										>
-											<Grid as="dl" tracks="minmax(5.5rem, 10rem) 1fr" gap="sm" row_gap="xs">
+											<Grid as="dl" tracks="minmax(5rem, 8rem) 1fr" gap="xs" row_gap="xs">
 												{#each item.properties as property (property.name)}
-													<dt>{property.name}</dt>
-													<dd class="text-foreground">{property.value}</dd>
+													<dt class="text-micro text-muted-foreground">{property.name}</dt>
+													<dd class="text-micro text-foreground">{property.value}</dd>
 												{/each}
 											</Grid>
 										</Scroll>
@@ -1011,116 +1354,205 @@
 			</div>
 
 			<Stack align="end" gap="xs" class="pointer-events-auto">
-				<Inline align="center" gap="xs">
+				<div
+					class="flex items-center gap-0.5 rounded-control border border-border bg-popover/90 p-0.5 backdrop-blur-xs"
+				>
+					<div class="flex items-center gap-0.5" {...navModeGroup.root_attrs()}>
+						<Button
+							{...navModeGroup.item_attrs('orbit')}
+							{@attach navModeGroup.item('orbit')}
+							size="icon"
+							variant={navMode === 'orbit' ? 'secondary' : 'ghost'}
+							class="size-7"
+							hint={t('component.nav_mode_orbit')}
+						>
+							<Icon name="lucide:orbit" class="size-3.5" />
+						</Button>
+						<Button
+							{...navModeGroup.item_attrs('pan')}
+							{@attach navModeGroup.item('pan')}
+							size="icon"
+							variant={navMode === 'pan' ? 'secondary' : 'ghost'}
+							class="size-7"
+							hint={t('component.nav_mode_pan')}
+						>
+							<Icon name="lucide:hand" class="size-3.5" />
+						</Button>
+						<Button
+							{...navModeGroup.item_attrs('inspect')}
+							{@attach navModeGroup.item('inspect')}
+							size="icon"
+							variant={navMode === 'inspect' ? 'secondary' : 'ghost'}
+							class="size-7"
+							hint={t('component.nav_mode_inspect')}
+						>
+							<Icon name="lucide:mouse-pointer-click" class="size-3.5" />
+						</Button>
+					</div>
+					<span class="mx-0.5 h-4 w-px bg-border" aria-hidden="true"></span>
 					<Button
 						size="icon"
-						variant={sectionPanelOpen || sectionActive ? 'secondary' : 'ghost'}
-						aria-pressed={sectionPanelOpen}
-						hint={t('component.axis_section_scrubbers')}
-						onclick={() => (sectionPanelOpen = !sectionPanelOpen)}
+						variant="ghost"
+						class="size-7"
+						hint={t('component.zoom_in')}
+						onclick={() => zoomBy(1)}
 					>
-						<Icon name="lucide:sliders-horizontal" class="size-4" />
+						<Icon name="lucide:zoom-in" class="size-3.5" />
 					</Button>
 					<Button
 						size="icon"
 						variant="ghost"
-						hint={t('component.reset_camera_view')}
-						onclick={refitModel}
+						class="size-7"
+						hint={t('component.zoom_out')}
+						onclick={() => zoomBy(-1)}
 					>
-						<Icon name="lucide:maximize-2" class="size-4" />
+						<Icon name="lucide:zoom-out" class="size-3.5" />
 					</Button>
 					<Button
 						size="icon"
+						variant="ghost"
+						class="size-7"
+						hint={t('component.reset_camera_view')}
+						onclick={refitModel}
+					>
+						<Icon name="lucide:maximize-2" class="size-3.5" />
+					</Button>
+					<span class="mx-0.5 h-4 w-px bg-border" aria-hidden="true"></span>
+					<Button
+						{...sectionDisclosure.trigger_attrs()}
+						size="icon"
+						variant={sectionPanelOpen || sectionActive ? 'secondary' : 'ghost'}
+						class="size-7"
+						hint={t('component.axis_section_scrubbers')}
+					>
+						<Icon name="lucide:sliders-horizontal" class="size-3.5" />
+					</Button>
+					<Button
+						{...lockSwitch.attrs()}
+						size="icon"
 						variant={interactionLocked ? 'secondary' : 'ghost'}
-						aria-pressed={!interactionLocked}
+						class="size-7"
 						hint={interactionLocked
 							? t('component.unlock_model_navigation')
 							: t('component.lock_model_navigation')}
-						onclick={toggleInteractionLock}
 					>
-						<Icon name={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} class="size-4" />
+						<Icon name={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} class="size-3.5" />
 					</Button>
-				</Inline>
+					{#if onReplaceModel}
+						<span class="mx-0.5 h-4 w-px bg-border" aria-hidden="true"></span>
+						<Button
+							size="icon"
+							variant="ghost"
+							class="size-7"
+							hint={t('component.replace_ifc_model')}
+							onclick={onReplaceModel}
+						>
+							<Icon name="lucide:upload" class="size-3.5" />
+						</Button>
+					{/if}
+				</div>
+
+				{#if modelBounds}
+					<div
+						class="flex items-center gap-0.5 rounded-control border border-border bg-popover/90 p-0.5 backdrop-blur-xs"
+					>
+						{#each [['iso', t('component.view_iso')], ['top', t('component.view_top')], ['front', t('component.view_front')], ['side', t('component.view_side')]] as const as [preset, label] (preset)}
+							<button
+								type="button"
+								class="h-5 rounded-inset px-1.5 text-tiny font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+								onclick={() => framePreset(preset)}
+							>
+								{label}
+							</button>
+						{/each}
+					</div>
+				{/if}
 
 				{#if sectionPanelOpen && modelBounds}
-					<div class="min-w-52">
-						<Surface tone="popover" padding="sm" radius="control">
-							<Stack gap="sm">
-								<Inline align="center" justify="between">
-									<p class="text-overline">{t('component.axis_section_scrubbers')}</p>
+					<div {...sectionDisclosure.content_attrs()} class="w-44">
+						<Surface tone="popover" padding="xs" radius="control">
+							<div class="flex flex-col gap-2">
+								<div class="flex items-center justify-between gap-2">
+									<p class="text-tiny font-medium tracking-wider uppercase text-muted-foreground">
+										{t('component.axis_section_scrubbers')}
+									</p>
 									{#if sectionActive}
-										<Button variant="ghost" onclick={resetAxes}>
+										<button
+											type="button"
+											class="text-tiny font-medium text-primary hover:underline"
+											onclick={resetAxes}
+										>
 											{t('component.reset_axes')}
-										</Button>
+										</button>
 									{/if}
-								</Inline>
-								<Stack gap="xs" class="text-micro text-muted-foreground">
-									<Inline justify="between">
-										<span>{t('component.axis_y_elevation')}</span>
+								</div>
+								<div class="flex flex-col gap-0.5">
+									<div class="flex items-center justify-between text-micro leading-tight">
+										<span class="text-muted-foreground">{t('component.axis_y_elevation')}</span>
 										<span class="tabular-nums text-foreground">{cutY}%</span>
-									</Inline>
+									</div>
 									<div
-										class="relative flex h-5 w-full cursor-pointer items-center"
+										class="relative flex h-3.5 w-full cursor-pointer items-center"
 										{@attach sliderY.track}
 									>
-										<div class="h-1.5 w-full rounded-full bg-muted">
+										<div class="h-1 w-full rounded-full bg-muted">
 											<div
 												class="h-full rounded-full bg-primary"
 												style={`width: ${sliderY.percent}%`}
 											></div>
 										</div>
 										<div
-											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											class="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-xs"
 											style={`left: ${sliderY.percent}%`}
 											{...sliderY.thumb_attrs()}
 										></div>
 									</div>
-								</Stack>
-								<Stack gap="xs" class="text-micro text-muted-foreground">
-									<Inline justify="between">
-										<span>{t('component.axis_x_section')}</span>
+								</div>
+								<div class="flex flex-col gap-0.5">
+									<div class="flex items-center justify-between text-micro leading-tight">
+										<span class="text-muted-foreground">{t('component.axis_x_section')}</span>
 										<span class="tabular-nums text-foreground">{cutX}%</span>
-									</Inline>
+									</div>
 									<div
-										class="relative flex h-5 w-full cursor-pointer items-center"
+										class="relative flex h-3.5 w-full cursor-pointer items-center"
 										{@attach sliderX.track}
 									>
-										<div class="h-1.5 w-full rounded-full bg-muted">
+										<div class="h-1 w-full rounded-full bg-muted">
 											<div
 												class="h-full rounded-full bg-primary"
 												style={`width: ${sliderX.percent}%`}
 											></div>
 										</div>
 										<div
-											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											class="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-xs"
 											style={`left: ${sliderX.percent}%`}
 											{...sliderX.thumb_attrs()}
 										></div>
 									</div>
-								</Stack>
-								<Stack gap="xs" class="text-micro text-muted-foreground">
-									<Inline justify="between">
-										<span>{t('component.axis_z_section')}</span>
+								</div>
+								<div class="flex flex-col gap-0.5">
+									<div class="flex items-center justify-between text-micro leading-tight">
+										<span class="text-muted-foreground">{t('component.axis_z_section')}</span>
 										<span class="tabular-nums text-foreground">{cutZ}%</span>
-									</Inline>
+									</div>
 									<div
-										class="relative flex h-5 w-full cursor-pointer items-center"
+										class="relative flex h-3.5 w-full cursor-pointer items-center"
 										{@attach sliderZ.track}
 									>
-										<div class="h-1.5 w-full rounded-full bg-muted">
+										<div class="h-1 w-full rounded-full bg-muted">
 											<div
 												class="h-full rounded-full bg-primary"
 												style={`width: ${sliderZ.percent}%`}
 											></div>
 										</div>
 										<div
-											class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-sm"
+											class="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-background shadow-xs"
 											style={`left: ${sliderZ.percent}%`}
 											{...sliderZ.thumb_attrs()}
 										></div>
 									</div>
-								</Stack>
-							</Stack>
+								</div>
+							</div>
 						</Surface>
 					</div>
 				{/if}
@@ -1132,28 +1564,40 @@
 		<Imposter
 			placement="bottom-start"
 			offset="sm"
-			class="pointer-events-none max-w-xs"
+			class="pointer-events-none max-w-52"
 			aria-label={t('component.marker_legend')}
 		>
-			<Surface tone="popover" padding="xs" radius="control">
-				<Stack gap="xs">
-					<p class="text-overline">{t('component.highlights')}</p>
-					<Stack as="ul" gap="xs">
-						{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
-							<li>
-								<Inline gap="xs" align="center" class="text-micro text-foreground">
-									<span
-										class="size-2.5 rounded-inset border border-border"
-										style={`background-color: ${group.color}`}
-										aria-hidden="true"
-									></span>
-									<span class="min-w-0 truncate">{group.label}</span>
-								</Inline>
-							</li>
-						{/each}
-					</Stack>
-				</Stack>
-			</Surface>
+			<div class="rounded-control border border-border bg-popover/90 px-2 py-1.5 backdrop-blur-xs">
+				<p class="mb-1 text-tiny font-medium tracking-wider uppercase text-muted-foreground">
+					{t('component.highlights')}
+				</p>
+				<ul class="flex flex-col gap-1">
+					{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
+						<li class="flex items-center gap-1.5 text-micro leading-tight text-foreground">
+							<span
+								class="size-2 shrink-0 rounded-full"
+								style={`background-color: ${group.color}`}
+								aria-hidden="true"
+							></span>
+							<span class="min-w-0 truncate">{group.label}</span>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		</Imposter>
+	{/if}
+
+	{#if modelBounds}
+		<Imposter placement="bottom-end" offset="sm" class="pointer-events-none hidden sm:block">
+			<div
+				class="rounded-control border border-border bg-popover/85 px-2 py-1 text-tiny leading-tight text-muted-foreground backdrop-blur-xs"
+			>
+				{navMode === 'inspect'
+					? t('component.nav_hint_inspect')
+					: navMode === 'pan'
+						? t('component.nav_hint_pan')
+						: t('component.nav_hint_orbit')}
+			</div>
 		</Imposter>
 	{/if}
 </Bound>

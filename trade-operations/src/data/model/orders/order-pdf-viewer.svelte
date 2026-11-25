@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Button } from '@norbital-ai/ui';
+	import { create_pagination } from '@norbital-ai/ui/behaviors';
 	import { Bound, Center, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { getAbortSignal } from 'svelte';
+	import { getAbortSignal, untrack } from 'svelte';
 	import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 	import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -12,6 +13,14 @@
 	let pageNumber = $state(1);
 	let renderedPage = $state(0);
 	let failed = $state(false);
+	const pager = create_pagination({
+		page: () => pageNumber,
+		total_pages: () => pdf?.numPages ?? 1,
+		on_page_change: (next) => {
+			pageNumber = next;
+		},
+		control: { id: 'order-pdf-viewer:page', label: untrack(() => title) }
+	});
 
 	$effect(() => {
 		const signal = getAbortSignal();
@@ -63,15 +72,11 @@
 	<Stack gap="sm">
 		{#if pdf && pdf.numPages > 1}
 			<Cluster gap="sm" align="center">
-				<Button variant="outline" disabled={pageNumber === 1} onclick={() => pageNumber--}>
+				<Button variant="outline" disabled={!pager.has_previous} onclick={pager.previous}>
 					{ctx.t('component.pdf_previous')}
 				</Button>
-				<span aria-live="polite">{pageNumber} / {pdf.numPages}</span>
-				<Button
-					variant="outline"
-					disabled={pageNumber === pdf.numPages}
-					onclick={() => pageNumber++}
-				>
+				<span aria-live="polite">{pager.page} / {pager.pages}</span>
+				<Button variant="outline" disabled={!pager.has_next} onclick={pager.next}>
 					{ctx.t('component.pdf_next')}
 				</Button>
 			</Cluster>
