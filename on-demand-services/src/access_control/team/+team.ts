@@ -1,4 +1,5 @@
 import { team } from '@norbital-ai/bolt';
+
 /** Source access roles: stable handles are membership and approval identities. */
 export default team({
 	operations: {
@@ -6,9 +7,9 @@ export default team({
 		parent: null,
 		policies: ['operations']
 	},
-	helpers: {
-		name: 'Helpers',
+	providers: {
+		name: 'Providers',
 		parent: null,
-		policies: ['helper']
+		policies: ['provider']
 	}
 });

@@ -1,27 +1,26 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
-/** The customer record the signed-in member is (bound by their mobile number). */
+
 const ME = { eq: { var: 'actor.party' } } as const;
 const MINE = { customer: ME } as const;
-const MY_VISITS = { booking: { is: MINE } } as const;
-/** A request is theirs by the number they signed in with. */
+const MY_APPOINTMENTS = { booking: { is: MINE } } as const;
 const MY_NUMBER = { phone: { eq: { var: 'actor.phone' } } } as const;
-/** The first request raised under another number than the one the member signed in with; -1 when none. */
+
 const notMine = (
-	changes: readonly { readonly set: { readonly phone?: string | null } }[],
+	changes: readonly { readonly after: { readonly phone?: string | null } }[],
 	actor: Actor
 ) =>
 	changes.findIndex(
-		({ set }) => actor.kind !== 'member' || actor.phone === null || set.phone !== actor.phone
+		({ after }) => actor.kind !== 'member' || actor.phone === null || after.phone !== actor.phone
 	);
 const OTHER_NUMBER = 'errors.other_number';
+
 /**
- * A customer, signed up with their mobile number: the portal's services and open times, booking requests under their
- * own number, and their own record, bookings, visits (when, where, who comes and how far away they are) and notices.
- * Nothing of any other customer or of any helper's schedule; a request is booked by the `portal_intake` run
- * its effect schedules.
+ * Verified self-service customer: active services and published openings, availability and booking
+ * requests under their verified phone number, and their own profile, bookings, appointments, and notices.
  */
 export default policy({
-	description: 'A customer: book on the portal, and see their own bookings, visits and notices.',
+	description:
+		'A customer: book on the portal and view their own bookings, appointments, and notices.',
 	capabilities: { apps: ['portal'] },
 	grants: {
 		customers: {
@@ -38,7 +37,6 @@ export default policy({
 					'email',
 					'phone',
 					'address',
-					'area',
 					'service',
 					'start',
 					'repeat',
@@ -55,24 +53,15 @@ export default policy({
 		bookings: {
 			outputs: { customer: { where: MINE } }
 		},
-		visits: {
-			outputs: { customer: { where: MY_VISITS } }
+		appointments: {
+			outputs: { customer: { where: MY_APPOINTMENTS } }
 		},
-		helpers: {
+		providers: {
 			outputs: { customer: { where: { status: { eq: 'active' } } } }
 		},
 		availability_requests: {
 			create: {
-				fields: [
-					'phone',
-					'address',
-					'location',
-					'area',
-					'service',
-					'preference',
-					'helper',
-					'repeat'
-				],
+				fields: ['phone', 'address', 'location', 'service', 'preference', 'provider', 'repeat'],
 				verdict: function* (changes, ctx) {
 					const row = notMine(changes, ctx.actor);
 					return row < 0 ? ctx.allow() : yield* ctx.refuse(OTHER_NUMBER, { row, field: 'phone' });

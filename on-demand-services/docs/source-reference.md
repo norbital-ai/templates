@@ -1,89 +1,69 @@
-# Source reference
+# Service Scheduling — source reference
 
-Checked against this template's source and compiled declaration manifest on 30 October 2026.
-This is a local source inventory, not a declaration that a deployed tenant runs these bytes.
+Authoritative inventory of models, policies, apps, automations, and integrations in
+`templates/on-demand-services`.
 
-14 models, 6 applications, 21 automations.
+## Models (13)
 
-## Applications and pages
+| Model                   | Path                                                   | Purpose                                                                                                                             |
+| ----------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `services`              | `src/data/model/services/+model.ts`                    | Bookable services: name, optional category, normalized runtime skill tag, duration, price, active flag                              |
+| `openings`              | `src/data/model/services/openings/+model.ts`           | Published open start instants per active service per day for unauthenticated portal browsing                                        |
+| `availability_requests` | `src/data/model/availability_requests/+model.ts`       | Customer-scoped availability quotes accounting for destination coordinates, recurrence, and preferred provider                      |
+| `booking_requests`      | `src/data/model/booking_requests/+model.ts`            | Verified portal booking submissions validated against quote freshness (`15m`) before intake                                         |
+| `customers`             | `src/data/model/customers/+model.ts`                   | Customer profiles keyed by unique phone number with default service address and coordinates                                         |
+| `customer_notices`      | `src/data/model/customers/customer_notices/+model.ts`  | Owned outbound WhatsApp and synced email (`+mail.sync.ts`) notifications with mailbox delivery lifecycle tracking                   |
+| `bookings`              | `src/data/model/bookings/+model.ts`                    | One-off or recurring service orders owning `booking_providers` and `appointments`                                                   |
+| `booking_providers`     | `src/data/model/bookings/booking_providers/+model.ts`  | Ranked preferred providers (1–5) attached to a booking                                                                              |
+| `appointments`          | `src/data/model/bookings/appointments/+model.ts`       | Scheduled service occurrences with native `started_at`/`completed_at` state stamps, `no_overlap` guard, shift check, and ETA fields |
+| `providers`             | `src/data/model/providers/+model.ts`                   | Service providers with normalized skills, working weekdays/hours, base point, `sys_user` link, and live GPS location                |
+| `provider_time_off`     | `src/data/model/providers/provider_time_off/+model.ts` | Non-overlapping date ranges when a provider cannot be scheduled                                                                     |
+| `scheduling_settings`   | `src/data/model/scheduling_settings/+model.ts`         | Singleton configuration for slot interval, turnaround buffer, booking horizon, ETA/shift timings, and free-change window            |
+| `drive_times`           | `src/data/model/drive_times/+model.ts`                 | Cached Google Routes drive minutes between ~1 km grid cells (`legOf`)                                                               |
 
-| Source application                                                      | Title             | Pages                                                                   | Purpose                                                                   |
-| ----------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [helper](../src/app/helper/+app.ts)                                     | My Day            | today: Today                                                            | Your visits, the drive to each, your shift check and job completion.      |
-| [portal](../src/app/portal/+app.ts)                                     | Book a visit      | book: Book; visits: My bookings                                         | Book a home service with your mobile number, and see your bookings.       |
-| [scheduler/configurations](../src/app/scheduler/configurations/+app.ts) | Configurations    | dispatch: Dispatch; services: Services                                  | Dispatch thresholds and the services customers can book.                  |
-| [scheduler/customers](../src/app/scheduler/customers/+app.ts)           | Customer profiles | profiles: Customers                                                     | Customers, their addresses, bookings and the notices sent to them.        |
-| [scheduler/helpers](../src/app/scheduler/helpers/+app.ts)               | Helper profiles   | profiles: Helpers                                                       | Skills, working hours, area, time off and warnings of every helper.       |
-| [scheduler/schedule](../src/app/scheduler/schedule/+app.ts)             | Scheduling        | board: Schedule; warnings: Warnings; live: Live map; bookings: Bookings | The day’s visits by helper, warnings, live helper positions and bookings. |
+## Apps (4)
 
-## Models and exposed operations
+| App             | Path                            | Pages                                                                                    |
+| --------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| `scheduling`    | `src/app/scheduling/+app.ts`    | `schedule`, `bookings`, `dispatch`, `live`, `customers`, `providers`                     |
+| `configuration` | `src/app/configuration/+app.ts` | `services`, `settings`, `connections`                                                    |
+| `provider`      | `src/app/provider/+app.ts`      | `today` (plus `+session.svelte` background GPS tracker)                                  |
+| `portal`        | `src/app/portal/+app.ts`        | `book`, `appointments` (public `portal_visitor` audience; phone signup binds `customer`) |
 
-Outputs fix field visibility. Policies select outputs and scope rows; write columns and checks constrain mutations. Each row links to its owning declaration.
+## Teams & policies
 
-| Model                                                                                      | Fields | Read outputs                      | Writes                 | Post-commit effects | Syncs |
-| ------------------------------------------------------------------------------------------ | ------ | --------------------------------- | ---------------------- | ------------------- | ----- |
-| [availability_requests](../src/data/model/services/availability_requests/+model.ts)        | 11     | default, customer                 | create, update         | create              | none  |
-| [booking_helpers](../src/data/model/customers/bookings/booking_helpers/+model.ts)          | 1      | default                           | none                   | none                | none  |
-| [booking_requests](../src/data/model/services/booking_requests/+model.ts)                  | 11     | default, customer                 | create, update         | create              | none  |
-| [bookings](../src/data/model/customers/bookings/+model.ts)                                 | 9      | default, customer, helper         | create, update         | create              | none  |
-| [customer_notices](../src/data/model/customers/bookings/visits/customer_notices/+model.ts) | 13     | default, customer                 | create, update         | create              | mail  |
-| [customers](../src/data/model/customers/+model.ts)                                         | 7      | default, customer, helper         | create, update, delete | none                | none  |
-| [dispatch_settings](../src/data/model/dispatch_settings/+model.ts)                         | 6      | default                           | create, update         | none                | none  |
-| [drive_times](../src/data/model/drive_times/+model.ts)                                     | 2      | default                           | create                 | none                | none  |
-| [helper_time_off](../src/data/model/helpers/helper_time_off/+model.ts)                     | 2      | default                           | create, update, delete | create              | none  |
-| [helper_warnings](../src/data/model/customers/bookings/visits/helper_warnings/+model.ts)   | 4      | default                           | create, update         | create              | none  |
-| [helpers](../src/data/model/helpers/+model.ts)                                             | 13     | default, customer, helper         | create, update         | update              | none  |
-| [openings](../src/data/model/services/openings/+model.ts)                                  | 2      | default, portal                   | create, update, delete | none                | none  |
-| [services](../src/data/model/services/+model.ts)                                           | 6      | default, customer, portal, helper | create, update, delete | none                | none  |
-| [visits](../src/data/model/customers/bookings/visits/+model.ts)                            | 18     | default, customer, helper         | create, update         | create, update      | none  |
+| Team            | Policies                                               | Access scope                                                                                                                   |
+| --------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `operations`    | `operations`                                           | Full operational read/write across `scheduling`, `configuration`, and `provider` apps plus desk and shift automations          |
+| `providers`     | `provider`                                             | Scoped to own provider record (`last_location`), own appointments (`scheduled->in_progress->completed`), and shift automations |
+| _(self-signup)_ | `customer`                                             | Scoped to `portal` app and the signed-in customer's own records (`actor.party` / `actor.phone`)                                |
+| _(public)_      | `portal_visitor`                                       | Anonymous read of active `services` (`portal` output) and published `openings`                                                 |
+| _(system)_      | `dispatch_automation`, `provider_shift`, `notice_mail` | Automation and email sync authority                                                                                            |
 
-Import is available on a model whose unique constraint is marked `import_key: true`; it matches rows on that key and requires an explicit conflict rule. No model here declares one.
+## Automations (18)
 
-## Automations
+| Automation                        | Policy                | Trigger / role                                                                                                        |
+| --------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `bookings_book`                   | `operations`          | Manual booking creation with full recurring horizon validation                                                        |
+| `bookings_cancel`                 | `operations`          | Cancels a booking and all upcoming scheduled appointments with late flags                                             |
+| `providers_deactivate`            | `operations`          | Marks provider inactive after `last_day` and proposes skill-closest replacements                                      |
+| `appointments_rebook`             | `operations`          | Reassigns and/or reschedules an appointment, enforcing free-change window outside recovery                            |
+| `appointments_recommend`          | `operations`          | Computes ranked replacement provider proposal for dispatcher approval                                                 |
+| `appointments_accept_proposal`    | `operations`          | Commits an approved replacement after rechecking live availability and travel                                         |
+| `appointments_report_unavailable` | `operations`          | Marks assigned provider's day declined so `shift_watch` prepares replacements                                         |
+| `appointments_cancel`             | `operations`          | Cancels scheduled appointments and flags cancellations inside `free_change_hours`                                     |
+| `appointments_confirm_shift`      | `provider_shift`      | Provider confirms their own day's appointments (`ctx.trigger` ownership checked)                                      |
+| `appointments_decline_shift`      | `provider_shift`      | Provider reports unavailability for their own day (`ctx.trigger` ownership checked)                                   |
+| `publish_openings`                | `dispatch_automation` | Cron `3,18,33,48 * * * *` (`rest: '1d'`) + model effects; refreshes public `openings`                                 |
+| `prepare_availability`            | `dispatch_automation` | Scheduled by `availability_requests` create; computes address- & recurrence-specific starts                           |
+| `portal_intake`                   | `dispatch_automation` | Scheduled by `booking_requests` create; auto-books or routes to `follow_up`                                           |
+| `check_drives`                    | `dispatch_automation` | Cron `8,23,38,53 * * * *` (`rest: '1d'`) + model effects; caches routes, reassigns unreachable stops, runs `optimise` |
+| `shift_watch`                     | `dispatch_automation` | Cron `2,12,22,32,42,52 * * * *` (`rest: '1d'`) + decline effect; prompts providers and triggers recovery              |
+| `eta_watch`                       | `dispatch_automation` | Cron `*/5 * * * *` (`rest: '1d'`); fans out per-appointment `eta_check` runs                                          |
+| `eta_check`                       | `dispatch_automation` | Checks one appointment's live GPS ETA and flags `eta_risk`                                                            |
+| `deliver_notices`                 | `dispatch_automation` | Scheduled by `customer_notices` create; sends WhatsApp notice and records queue admission                             |
 
-All named runs use the reserved system identity and the listed policies. A manual-start grant controls who may start a run; cron/webhook/schedules use their declared trigger path. Model effects run as their writer and are separate from these named automations.
+## Integrations
 
-| Automation                                                                              | Trigger                             | Policies            | Purpose                                                                                                                                                                                                                                                                       |
-| --------------------------------------------------------------------------------------- | ----------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [bookings_book](../src/automation/+bookings_book.automation.ts)                         | started or scheduled from code      | operations          | Books a service for a customer at their address, once or recurring. With preferred helpers every visit goes to the first of them who is free; without, to the best-matched helper. Every occurrence in the requested horizon must find a helper; otherwise nothing is booked. |
-| [bookings_cancel](../src/automation/+bookings_cancel.automation.ts)                     | started or scheduled from code      | operations          | Cancels the booking and every visit still to come. Each visit inside the configured free-change cutoff is marked late.                                                                                                                                                        |
-| [check_drives](../src/automation/+check_drives.automation.ts)                           | {"cron":"*/15 * * * *","rest":"1d"} | dispatch_automation | Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match; then movable visits are rebalanced to a local optimum of workload and driving.                  |
-| [deliver_notices](../src/automation/+deliver_notices.automation.ts)                     | started or scheduled from code      | dispatch_automation | Sends each customer notice on WhatsApp to the customer’s number and records whether it went.                                                                                                                                                                                  |
-| [eta_check](../src/automation/+eta_check.automation.ts)                                 | started or scheduled from code      | dispatch_automation | Checks one visit’s live ETA without sharing another visit’s read dependencies.                                                                                                                                                                                                |
-| [eta_watch](../src/automation/+eta_watch.automation.ts)                                 | {"cron":"*/5 * * * *","rest":"1d"}  | dispatch_automation | Until each visit starts, re-estimates the helper’s drive from their last GPS position every five minutes, flagging the visit for dispatch while it exceeds the ETA limit or the position is missing or stale.                                                                 |
-| [helpers_offboard](../src/automation/+helpers_offboard.automation.ts)                   | started or scheduled from code      | operations          | Marks the helper as left after their last day and proposes, for each of their later visits, the helper with the closest skills at the same time or the nearest time anyone is free.                                                                                           |
-| [portal_intake](../src/automation/+portal_intake.automation.ts)                         | started or scheduled from code      | dispatch_automation | Books each portal request when a helper is free at the time asked; otherwise hands it to the desk and tells the customer a time will be proposed.                                                                                                                             |
-| [prepare_availability](../src/automation/+prepare_availability.automation.ts)           | started or scheduled from code      | dispatch_automation | Calculates customer-specific starts after preference, skills, address, travel and recurrence are known.                                                                                                                                                                       |
-| [publish_openings](../src/automation/+publish_openings.automation.ts)                   | {"cron":"*/15 * * * *","rest":"1d"} | dispatch_automation | Publishes, for each active service and each of the next two weeks, the start times at which a helper with its skill is free — the times the booking portal offers.                                                                                                            |
-| [shift_watch](../src/automation/+shift_watch.automation.ts)                             | {"cron":"*/10 * * * *","rest":"1d"} | dispatch_automation | Asks each helper to confirm their day two hours before its first visit, and proposes replacements for controller approval when they decline or do not answer, issuing a warning letter when there is no medical certificate.                                                  |
-| [visits_accept_proposal](../src/automation/+visits_accept_proposal.automation.ts)       | started or scheduled from code      | operations          | Approves a recommended replacement, rechecking availability and travel at approval.                                                                                                                                                                                           |
-| [visits_cancel](../src/automation/+visits_cancel.automation.ts)                         | started or scheduled from code      | operations          | Cancels the visit; inside the free-change window before its start it is a late, chargeable cancellation.                                                                                                                                                                      |
-| [visits_confirm_shift](../src/automation/+visits_confirm_shift.automation.ts)           | started or scheduled from code      | helper_shift        | The helper confirms they will work their visits that day.                                                                                                                                                                                                                     |
-| [visits_decline_shift](../src/automation/+visits_decline_shift.automation.ts)           | started or scheduled from code      | helper_shift        | The helper says they cannot work their visits that day. Dispatch proposes replacements for controller approval.                                                                                                                                                               |
-| [visits_reassign](../src/automation/+visits_reassign.automation.ts)                     | started or scheduled from code      | operations          | Gives the visit to the named helper, or to the best-matched one when none is named. A customer who asked for particular helpers is told.                                                                                                                                      |
-| [visits_rebook](../src/automation/+visits_rebook.automation.ts)                         | started or scheduled from code      | operations          | Approves one occurrence at a feasible start; service recovery can bypass the customer change cutoff.                                                                                                                                                                          |
-| [visits_recommend](../src/automation/+visits_recommend.automation.ts)                   | started or scheduled from code      | operations          | Prepares a replacement recommendation; the controller must approve it.                                                                                                                                                                                                        |
-| [visits_report_unavailable](../src/automation/+visits_report_unavailable.automation.ts) | started or scheduled from code      | operations          | The controller records that the assigned cleaner cannot work this day and requests recommendations.                                                                                                                                                                           |
-| [visits_reschedule](../src/automation/+visits_reschedule.automation.ts)                 | started or scheduled from code      | operations          | Moves the visit to a new start, keeping its helper when they are free then. Only outside the free-change window before the visit.                                                                                                                                             |
-| [warning_letter](../src/automation/+warning_letter.automation.ts)                       | started or scheduled from code      | dispatch_automation | Renders a PDF warning letter for each warning filed and attaches it to the warning.                                                                                                                                                                                           |
-
-## Integrations and source roles
-
-- Integration definitions: `google_routes`.
-- Connections: none in source. The runs send through the workspace's one active `whatsapp` account and time drives through its one `google_routes` account; the `customer_notices` `mail` sync uses an `email` account.
-- Source policies: `customer`, `dispatch_automation`, `helper`, `helper_shift`, `operations`, `portal_visitor`.
-- Custom datatypes: none.
-
-Accounts, pairing and credentials belong to the host's Connections surface; an account that is not paired delivers nothing.
-
-## Browser evidence
-
-![Current local workspace](screenshots/workspace-overview.webp)
-
-![Representative application](screenshots/application.webp)
-
-Captured through the browser from a separate local documentation workspace on 30 October 2026. This shows layout and navigation; it does not certify external providers, automation results or deployment.
-
-![Scheduler board](screenshots/scheduler.webp)
-
-The My Day capture shows its declared location and notification permission gate. The scheduler board is also captured; the empty documentation workspace has no bookings or helper positions. A permission gate is expected behavior, not evidence that tracking or notification delivery succeeded.
+- `google_routes` (`src/integration/google_routes/+integration.ts`): HTTP integration (`routes.googleapis.com`, `X-Goog-Api-Key`).
+- Built-in `whatsapp` and `email` connections managed via **Configuration → Connections**.

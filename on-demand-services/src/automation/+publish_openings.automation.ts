@@ -1,36 +1,41 @@
 import { DateTime, Effect } from 'effect';
-import { automation, type CreateInput, type ActInput } from '@norbital-ai/bolt';
-import { targetOf } from '../lib/dispatch.js';
-import { loadPool } from '../lib/dispatch.js';
-import { openSlots } from '../lib/matching.js';
-/** How far ahead the portal offers times. */
-const AHEAD = 14;
+import { automation, type ActInput, type CreateInput } from '@norbital-ai/bolt';
+import { loadPool, settingsOf, targetOf } from '../lib/dispatch.js';
+import { epochMs } from '../lib/format.js';
+import { normalizeSkill, openSlots } from '../lib/matching.js';
+
 /**
- * Publishes the portal's times: for each active service and each of the next two weeks, the starts at which some helper
- * with its skill is free, by the same rules a booking is matched with. The customer's address is not known here, so the
- * drive to and from it counts as the unknown-distance allowance; the booking itself is matched again when it is made.
+ * Publishes anonymous portal openings for every active service across `booking_horizon_days`.
+ * Destination is unknown here, so travel uses the fallback allowance; exact travel is rechecked
+ * per customer in `prepare_availability` and `portal_intake`.
  */
 export default automation({
 	description:
-		'Publishes, for each active service and each of the next two weeks, the start times at which a helper with its skill is free — the times the booking portal offers.',
-	// also scheduled by the bookings, visits, helper_time_off and helpers effects; rests a day after an idle slot so quiet workspaces sleep
-	on: [{ cron: '*/15 * * * *', rest: '1d' }],
+		'Publishes available start times for every active service across the configured booking horizon for the public portal.',
+	on: [{ cron: '3,18,33,48 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
+		const { booking_horizon_days } = yield* settingsOf(ctx);
 		const day = (i: number) =>
 			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }));
-		const days = Array.from({ length: AHEAD }, (_, i) => day(i));
+		const days = Array.from({ length: booking_horizon_days }, (_, i) => day(i));
 		const [{ services, openings: stored }, pool] = yield* Effect.all(
 			[
-				ctx.query({ services: { where: { active: { eq: true } } }, openings: {} }),
+				ctx.query({
+					services: { where: { active: { eq: true } }, limit: 200 },
+					openings: { limit: 5000 }
+				}),
 				loadPool(
 					ctx,
 					DateTime.formatIso(
 						DateTime.makeZonedUnsafe(ctx.today, { timeZone: ctx.tz, adjustForTimeZone: true })
 					),
 					DateTime.formatIso(
-						DateTime.makeZonedUnsafe(day(AHEAD - 1), { timeZone: ctx.tz, adjustForTimeZone: true })
+						DateTime.makeZonedUnsafe(day(booking_horizon_days - 1), {
+							timeZone: ctx.tz,
+							adjustForTimeZone: true
+						})
 					)
 				)
 			],
@@ -40,32 +45,33 @@ export default automation({
 		const creates: CreateInput<'openings'>[] = [];
 		const updates: Extract<ActInput<'openings.update'>, readonly unknown[]>[number][] = [];
 		for (const s of services.rows) {
-			const able = pool.helpers.filter((h) => h.skills.includes(s.skill));
-			for (const day of days) {
+			const wantSkill = normalizeSkill(s.skill);
+			const able = pool.providers.filter((p) =>
+				p.skills.some((ps) => normalizeSkill(ps) === wantSkill)
+			);
+			for (const d of days) {
 				const starts = [
 					...new Set(
-						able.flatMap((h) =>
+						able.flatMap((p) =>
 							openSlots(
-								h,
-								{ skill: s.skill, location: null, area: h.home_area, minutes: s.duration_minutes },
-								[day],
+								p,
+								{ skill: s.skill, location: null, minutes: s.duration_minutes },
+								[d],
 								pool,
 								ctx.tz,
 								ctx.now
 							).flatMap((slot) => slot.starts)
 						)
 					)
-				].sort();
-				const row = have.get(`${s.id}|${day}`);
-				have.delete(`${s.id}|${day}`);
-				if (row === undefined) creates.push({ service: s.id, day, starts });
+				].sort((a, b) => epochMs(a) - epochMs(b));
+				const row = have.get(`${s.id}|${d}`);
+				have.delete(`${s.id}|${d}`);
+				if (row === undefined) creates.push({ service: s.id, day: d, starts });
 				else if (row.starts.join() !== starts.join())
 					updates.push({ target: targetOf(row), set: { starts } });
 			}
 		}
-		// past days, and services no longer offered
 		const gone = [...have.values()].map(targetOf);
-		// a run that lost a race to another publish leaves the times to it: the newer run read the newer schedule
 		if (creates.length + updates.length + gone.length > 0)
 			yield* ctx
 				.act({

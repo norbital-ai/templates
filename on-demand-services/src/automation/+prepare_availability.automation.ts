@@ -1,22 +1,28 @@
 import { DateTime, Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
-import { loadPool, learnLegs, targetOf } from '../lib/dispatch.js';
+import { learnLegs, loadPool, settingsOf, targetOf } from '../lib/dispatch.js';
 import {
 	availableSlots,
 	BOOKING_AHEAD,
 	legOf,
 	lookups,
+	normalizeSkill,
 	occurrences,
 	type Point
 } from '../lib/matching.js';
+
 export default automation({
 	description:
-		'Calculates customer-specific starts after preference, skills, address, travel and recurrence are known.',
+		'Calculates customer-specific open start times using service skill, provider preference, address travel, and recurrence.',
 	input: { ids: { kind: 'ref', to: 'availability_requests', many: true, min_items: 1 } },
 	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
+		const { booking_horizon_days } = yield* settingsOf(ctx);
 		const { rows } = (yield* ctx.query({
-			availability_requests: { where: { id: { in: ids }, status: { eq: 'pending' } } }
+			availability_requests: {
+				where: { id: { in: ids }, status: { eq: 'pending' } },
+				limit: ids.length + 1
+			}
 		})).availability_requests;
 		for (const r of rows) {
 			const service =
@@ -30,11 +36,11 @@ export default automation({
 				});
 			});
 			if (service === null || !service.active) {
-				yield* fail('Pick an active service.');
+				yield* fail('Select an active service.');
 				continue;
 			}
-			if (r.preference === 'preferred' && r.helper === null) {
-				yield* fail('Pick a preferred helper.');
+			if (r.preference === 'preferred' && r.provider === null) {
+				yield* fail('Select a preferred provider.');
 				continue;
 			}
 			const known = (yield* ctx.query({
@@ -49,44 +55,49 @@ export default automation({
 							.search(r.address)
 							.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as([]))));
 			const location = savedLocation ?? hits[0]?.point ?? null;
-			const horizon = 14;
 			const day = (i: number) =>
 				DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(ctx.today), { days: i }));
-			const days = Array.from({ length: horizon }, (_, i) => day(i));
+			const days = Array.from({ length: booking_horizon_days }, (_, i) => day(i));
 			const from = DateTime.formatIso(
 				DateTime.makeZonedUnsafe(day(0), { timeZone: ctx.tz, adjustForTimeZone: true })
 			);
 			const last = DateTime.formatIso(
-				DateTime.makeZonedUnsafe(day(horizon - 1), { timeZone: ctx.tz, adjustForTimeZone: true })
+				DateTime.makeZonedUnsafe(day(booking_horizon_days - 1), {
+					timeZone: ctx.tz,
+					adjustForTimeZone: true
+				})
 			);
 			const end = occurrences(last, r.repeat, BOOKING_AHEAD, ctx.tz).at(-1);
 			if (end === undefined) {
-				yield* fail('The booking has no visits.');
+				yield* fail('The booking has no scheduled occurrences.');
 				continue;
 			}
 			const pool = yield* loadPool(ctx, from, end, [location]);
-			const preferred = r.preference === 'preferred' && r.helper !== null ? [r.helper] : [];
-			const selected = pool.helpers.find((h) => h.id === r.helper);
+			const preferred = r.preference === 'preferred' && r.provider !== null ? [r.provider] : [];
+			const selected = pool.providers.find((p) => p.id === r.provider);
 			if (r.preference === 'preferred' && selected === undefined) {
-				yield* fail('The selected helper is not available.');
+				yield* fail('The selected provider is not available.');
 				continue;
 			}
-			if (selected && !selected.skills.includes(service.skill)) {
-				yield* fail(`${selected.name} cannot perform the selected service.`);
+			const wantSkill = normalizeSkill(service.skill);
+			if (selected && !selected.skills.some((s) => normalizeSkill(s) === wantSkill)) {
+				yield* fail(`${selected.name} is not qualified for the selected service.`);
 				continue;
 			}
-			// ponytail: bounded route fetches; existing cache/estimates cover larger rosters rather than an unbounded API fan-out.
 			const drive = new Map(pool.drive);
 			const points = [
-				...pool.helpers.map((h) => h.home_location),
-				...pool.busy.map((v) => v.location)
+				...pool.providers.map((p) => p.home_location),
+				...pool.busy.map((a) => a.location)
 			].filter((p): p is Point => p !== null);
 			const allPoints = [...new Map(points.map((p) => [`${p.lat},${p.lng}`, p])).values()];
 			const unique = allPoints.slice(0, 24);
 			if (location !== null) {
 				const learned = yield* learnLegs(
 					ctx,
-					[{ from: location, to: unique }, ...unique.map((from) => ({ from, to: [location] }))],
+					[
+						{ from: location, to: unique },
+						...unique.map((origin) => ({ from: origin, to: [location] }))
+					],
 					drive
 				);
 				for (const row of learned) drive.set(row.leg, row.minutes);
@@ -99,7 +110,7 @@ export default automation({
 					[legOf(location, p), legOf(p, location)].some((key) => key !== null && !drive.has(key))
 				);
 			const starts = availableSlots(
-				{ skill: service.skill, minutes: service.duration_minutes, location, area: r.area },
+				{ skill: service.skill, minutes: service.duration_minutes, location },
 				days,
 				{ ...pool, drive },
 				ctx.tz,
@@ -108,12 +119,24 @@ export default automation({
 				BOOKING_AHEAD,
 				preferred
 			).flatMap((d) => d.starts);
-			// Save successfully timed legs so confirmation uses the same route data. Existing cache rows are immutable.
 			const timed = [...drive]
 				.filter(([leg]) => !pool.drive?.has(leg))
 				.map(([leg, minutes]) => ({ leg, minutes }));
+			if (timed.length > 0)
+				yield* ctx
+					.act(
+						{ 'drive_times.create': timed },
+						{
+							key: `drives:${timed
+								.map((row) => row.leg)
+								.sort()
+								.join('|')}`
+						}
+					)
+					.pipe(
+						Effect.catchTags({ ActConflict: () => Effect.void, ActRefused: () => Effect.void })
+					);
 			yield* ctx.act({
-				...(timed.length > 0 ? { 'drive_times.create': timed } : {}),
 				'availability_requests.update': [
 					{
 						target: targetOf(r),

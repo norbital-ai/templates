@@ -1,52 +1,63 @@
 <script lang="ts">
 	import {
+		Alert,
 		Button,
 		Combobox,
 		EmptyState,
 		format,
-		TimeInput,
 		Label,
 		RunStatus,
+		Spinner,
+		TimeInput,
 		use_act
 	} from '@norbital-ai/ui';
 	import { DateTime, Duration } from 'effect';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Cluster, Stack } from '@norbital-ai/ui/layout';
-	import SlotPicker from './SlotPicker.svelte';
-	import Countdown from './Countdown.svelte';
-	import { livePool } from './pool.svelte.js';
-	import { closedSlot } from './matching.js';
-	import { candidatesFor, rebookingSlots, rebookingWindow, type Rematch } from './slots.js';
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Cluster, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
+	import Countdown from './Countdown.svelte';
+	import SlotPicker from './SlotPicker.svelte';
+	import { closedSlot } from './matching.js';
+	import { livePool } from './pool.svelte.js';
+	import { candidatesFor, rebookingSlots, rebookingWindow, type Rematch } from './slots.js';
+
 	let {
 		ctx,
-		visit
+		appointment
 	}: {
 		ctx: PageContext;
-		visit: Id<'visits'>;
+		appointment: Id<'appointments'>;
 	} = $props();
-	const zone = ctx.tz;
-	const t = ctx.t;
+
+	const uid = $props.id();
+	const t = (...args: Parameters<PageContext['t']>) => ctx.t(...args);
+	const zone = $derived(ctx.tz);
+	const dayClock = $derived(ctx.clock('day'));
+	const minuteClock = $derived(ctx.clock('minute'));
+	const canUpdate = $derived(
+		ctx.catalog?.scheduling_settings !== undefined &&
+			ctx.catalog?.appointments?.update !== undefined
+	);
+
 	const stored = $derived(
 		ctx.query({
-			visits: {
-				where: { id: { eq: visit } },
+			appointments: {
+				where: { id: { eq: appointment } },
 				fields: [
 					'number',
 					'slot',
 					'status',
-					'helper',
+					'provider',
 					'address',
 					'location',
-					'area',
 					'skill',
 					'attention',
-					'proposed_helper',
-					'unavailable_helper',
+					'proposed_provider',
+					'unavailable_provider',
 					'booking'
 				],
 				limit: 1,
-				unavailable_helper: { fields: ['name'] },
+				unavailable_provider: { fields: ['name'] },
 				booking: {
 					fields: ['customer', 'service'],
 					customer: { fields: ['name'] },
@@ -55,27 +66,28 @@
 			}
 		})
 	);
-	const v = $derived(stored.current?.visits.rows[0]);
-	/** The visit as a re-match reads it. */
-	const rematch = $derived.by<Rematch | undefined>(() => {
-		const slot = v === undefined ? null : closedSlot(v.slot);
-		return v === undefined || slot === null
+	const a = $derived(stored.current?.appointments.rows[0]);
+	const closed = $derived(a === undefined ? null : closedSlot(a.slot));
+	const rematch = $derived<Rematch | undefined>(
+		a === undefined || closed === null
 			? undefined
-			: { ...v, slot, unavailable_helper: v.unavailable_helper?.id ?? null };
-	});
+			: { ...a, slot: closed, unavailable_provider: a.unavailable_provider?.id ?? null }
+	);
+
 	let newTime = $state(false);
 	let picked = $state<string | null>(null);
-	let chosen = $state<Id<'helpers'> | null>(null);
-	let from = $state<string>(ctx.clock('day').today);
-	const start = $derived(newTime ? picked : (v?.slot.start ?? null));
-	// who could take it at `start`: the pool around that moment, ranked as `visits_rebook` ranks it
+	let chosen = $state<Id<'providers'> | null>(null);
+	let fromOverride = $state<string | null>(null);
+	const from = $derived(fromOverride ?? dayClock.today);
+	const start = $derived(newTime ? picked : (a?.slot.start ?? null));
+
 	const around = livePool(
 		ctx,
 		() =>
-			rematch === undefined || start === null
+			!canUpdate || rematch === undefined || start === null
 				? null
 				: { from: start, to: start, spots: [rematch.location] },
-		zone
+		() => zone
 	);
 	const candidates = $derived(
 		rematch === undefined || start === null || around.current === undefined
@@ -83,12 +95,11 @@
 			: candidatesFor(rematch, newTime ? start : undefined, around.current, zone)
 	);
 	const best = $derived(
-		candidates?.find((c) => c.helper === chosen) ??
-			(!newTime ? candidates?.find((c) => c.helper === v?.proposed_helper) : undefined) ??
+		candidates?.find((c) => c.provider === chosen) ??
+			(!newTime ? candidates?.find((c) => c.provider === a?.proposed_provider) : undefined) ??
 			candidates?.[0]
 	);
-	const clock = ctx.clock('minute');
-	// another time: the next fortnight's feasible starts, adjacent travel included
+
 	const fortnight = $derived(
 		Array.from({ length: 14 }, (_, i) =>
 			DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(from), { days: i }))
@@ -97,20 +108,30 @@
 	const ahead = livePool(
 		ctx,
 		() =>
-			!newTime || rematch === undefined
+			!canUpdate || !newTime || rematch === undefined
 				? null
 				: { ...rebookingWindow(from, 14, zone), spots: [rematch.location] },
-		zone
+		() => zone
 	);
 	const days = $derived(
 		!newTime || rematch === undefined || ahead.current === undefined
 			? undefined
-			: rebookingSlots(rematch, fortnight, ahead.current, zone, clock.now)
+			: rebookingSlots(rematch, fortnight, ahead.current, zone, minuteClock.now)
 	);
+	const durationMinutes = $derived(
+		closed === null
+			? 60
+			: Duration.toMinutes(
+					DateTime.distance(DateTime.makeUnsafe(closed.start), DateTime.makeUnsafe(closed.end))
+				)
+	);
+	const startInPast = $derived(
+		start === null ||
+			DateTime.isLessThanOrEqualTo(DateTime.makeUnsafe(start), DateTime.makeUnsafe(minuteClock.now))
+	);
+
 	const save = use_act(ctx);
-	let medical = $state<'yes' | 'no'>('no');
 	let started = $state<{ id: string; automation: string } | null>(null);
-	/** Follows the started run below. */
 	const follow = (then?: () => void) => ({
 		then: ({
 			output
@@ -121,62 +142,86 @@
 			then?.();
 		}
 	});
+
 	function approve() {
-		if (start === null || best === undefined) return;
-		save.run(ctx.run('visits_rebook', { targets: [visit], start, helper: best.helper }), follow());
-	}
-	const refresh = () =>
+		if (!canUpdate || start === null || best === undefined) return;
 		save.run(
-			ctx.run('visits_recommend', { targets: [visit] }),
-			follow(() => (chosen = null))
-		);
-	const report = () =>
-		save.run(
-			ctx.run('visits_report_unavailable', { targets: [visit], mc: medical === 'yes' }),
+			ctx.run('appointments_rebook', { targets: [appointment], start, provider: best.provider }),
 			follow()
 		);
+	}
+	const refresh = () => {
+		if (!canUpdate) return;
+		save.run(
+			ctx.run('appointments_recommend', { targets: [appointment] }),
+			follow(() => (chosen = null))
+		);
+	};
+	const reportUnavailable = () => {
+		if (!canUpdate) return;
+		save.run(ctx.run('appointments_report_unavailable', { targets: [appointment] }), follow());
+	};
 </script>
 
 <Stack gap="lg">
-	{#if stored.error}<p role="alert">{stored.error.message}</p>
-	{:else if v === undefined}<p>{t('component.loading')}</p>
+	{#if stored.error}
+		<Alert.Root variant="destructive">
+			<Alert.Title>{stored.error.message}</Alert.Title>
+		</Alert.Root>
+	{:else if a === undefined}
+		<Surface tone="subtle" padding="md" radius="control" aria-busy="true">
+			<Inline gap="sm" align="center">
+				<Spinner />
+				<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+			</Inline>
+		</Surface>
 	{:else}
-		<Stack gap="xs">
-			<p class="text-heading">
-				{v.booking?.customer?.name ?? ''} · {v.booking?.service?.name ?? ''}
-			</p>
-			<p class="text-sm">
-				{format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })} · {v.address}
-			</p>
-			<Countdown {ctx} start={v.slot.start} />
-			{#if v.unavailable_helper}<p class="text-sm text-muted-foreground">
-					{t('app.recovery.absent', { name: v.unavailable_helper.name })}
-				</p>{/if}
-		</Stack>
-		{#if v.status === 'scheduled'}
+		<Surface tone="subtle" padding="md" radius="control">
+			<Stack gap="xs">
+				<p class="text-heading">
+					{a.booking?.customer?.name ?? ''} · {a.booking?.service?.name ?? ''}
+				</p>
+				<p class="text-sm">
+					{format({ kind: 'instant' }, a.slot.start, { locale: ctx.locale, zone })} · {a.address}
+				</p>
+				<Countdown {ctx} start={a.slot.start} />
+				{#if a.unavailable_provider}
+					<p class="text-sm text-muted-foreground">
+						{t('app.recovery.absent', { name: a.unavailable_provider.name })}
+					</p>
+				{/if}
+			</Stack>
+		</Surface>
+
+		{#if a.status === 'scheduled' && canUpdate}
 			{#if newTime}
 				<Stack gap="sm">
-					<Label for="rebook-from">{t('app.recovery.from')}</Label>
+					<Label for={`${uid}-from`}>{t('app.recovery.from')}</Label>
 					<TimeInput
 						{ctx}
-						id="rebook-from"
+						id={`${uid}-from`}
 						value={from}
 						on_change={(d: string | null) => {
-							from = d ?? from;
+							fromOverride = d ?? dayClock.today;
 							picked = null;
 							chosen = null;
 						}}
 					/>
-					{#if ahead.error}<p role="alert">{ahead.error.message}</p>
-					{:else if days === undefined}<p>{t('component.loading')}</p>
-					{:else}<SlotPicker
+					{#if ahead.error}
+						<Alert.Root variant="destructive">
+							<Alert.Title>{ahead.error.message}</Alert.Title>
+						</Alert.Root>
+					{:else if days === undefined}
+						<Surface tone="subtle" padding="sm" radius="control" aria-busy="true">
+							<Inline gap="sm" align="center">
+								<Spinner />
+								<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+							</Inline>
+						</Surface>
+					{:else}
+						<SlotPicker
 							{days}
-							minutes={Duration.toMinutes(
-								DateTime.distance(
-									DateTime.makeUnsafe(v.slot.start),
-									DateTime.makeUnsafe(v.slot.end!)
-								)
-							)}
+							minutes={durationMinutes}
 							value={picked}
 							locale={ctx.locale}
 							{zone}
@@ -185,20 +230,31 @@
 								chosen = null;
 							}}
 							{t}
-						/>{/if}
+						/>
+					{/if}
 					<p class="text-sm text-muted-foreground">{t('app.recovery.date_change')}</p>
 				</Stack>
 			{/if}
-			{#if around.error}<p role="alert">{around.error.message}</p>
-			{:else if candidates === undefined && start !== null}<p>{t('component.loading')}</p>
+
+			{#if around.error}
+				<Alert.Root variant="destructive">
+					<Alert.Title>{around.error.message}</Alert.Title>
+				</Alert.Root>
+			{:else if candidates === undefined && start !== null}
+				<Surface tone="subtle" padding="sm" radius="control" aria-busy="true">
+					<Inline gap="sm" align="center">
+						<Spinner />
+						<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+					</Inline>
+				</Surface>
 			{:else if best !== undefined}
 				<Stack gap="sm">
-					<Label for="replacement">{t('app.recovery.recommended')}</Label>
+					<Label for={`${uid}-replacement`}>{t('app.recovery.recommended')}</Label>
 					<Combobox
-						id="replacement"
-						value={chosen ?? best.helper}
+						id={`${uid}-replacement`}
+						value={chosen ?? best.provider}
 						options={(candidates ?? []).map((c) => ({
-							value: c.helper,
+							value: c.provider,
 							label: c.name
 						}))}
 						on_change={(id) => {
@@ -209,19 +265,20 @@
 						{t('app.recovery.metrics', { drive: best.drive_minutes, hours: best.week_hours })}
 					</p>
 					<p class="text-sm text-muted-foreground">{t('app.recovery.planning')}</p>
-					<Button
-						disabled={save.pending || start === null || Date.parse(start) <= Date.now()}
-						onclick={approve}>{t('app.recovery.approve', { name: best.name })}</Button
-					>
+					<Cluster gap="sm">
+						<Button variant="brand" disabled={save.pending || startInPast} onclick={approve}>
+							{t('app.recovery.approve', { name: best.name })}
+						</Button>
+					</Cluster>
 				</Stack>
-			{:else if start !== null}<EmptyState
-					variant="inset"
-					title={t('app.recovery.no_match')}
-				/>{/if}
+			{:else if start !== null}
+				<EmptyState variant="inset" title={t('app.recovery.no_match')} />
+			{/if}
+
 			<Cluster gap="sm">
-				<Button variant="outline" disabled={save.pending} onclick={refresh}
-					>{t('app.recovery.refresh')}</Button
-				>
+				<Button variant="outline" disabled={save.pending} onclick={refresh}>
+					{t('app.recovery.refresh')}
+				</Button>
 				<Button
 					variant="ghost"
 					disabled={save.pending}
@@ -229,34 +286,22 @@
 						newTime = !newTime;
 						picked = null;
 						chosen = null;
-					}}>{t('app.recovery.other_time')}</Button
+					}}
 				>
+					{t('app.recovery.other_time')}
+				</Button>
+				{#if a.provider !== null}
+					<Button variant="outline" disabled={save.pending} onclick={reportUnavailable}>
+						{t('app.recovery.report_absence')}
+					</Button>
+				{/if}
 			</Cluster>
 
-			{#if v.helper !== null}
-				<details>
-					<summary class="cursor-pointer text-sm">{t('app.recovery.report_absence')}</summary>
-					<Stack gap="sm" class="pt-3">
-						<p class="text-sm text-muted-foreground">{t('app.recovery.report_absence_help')}</p>
-						<Combobox
-							id="medical"
-							value={medical}
-							options={[
-								{ value: 'no', label: t('app.recovery.no_medical') },
-								{ value: 'yes', label: t('app.recovery.medical') }
-							]}
-							on_change={(m) => {
-								if (m !== null) medical = m;
-							}}
-						/>
-						<Button variant="outline" disabled={save.pending} onclick={report}
-							>{t('app.recovery.prepare')}</Button
-						>
-					</Stack>
-				</details>
-			{/if}
 			<p class="text-caption">{t('app.recovery.scope')}</p>
 		{/if}
-		{#if started}<RunStatus {ctx} automation={started.automation} run={started.id} />{/if}
+
+		{#if started}
+			<RunStatus {ctx} automation={started.automation} run={started.id} />
+		{/if}
 	{/if}
 </Stack>

@@ -1,15 +1,39 @@
-# On-Demand Services workflows
+# Service Scheduling workflows
 
-![On-Demand Services application](screenshots/application.webp)
+![Service Scheduling application](screenshots/application.webp)
 
-Choose the schedule day and switch between board and list. Open a visit to review booking details, progress and recovery. The local run sheet covers representative booking and recovery probes.
+## Operating loop
 
-The [template README](../README.md) is the maintained workflow and authoring reference.
-Use the [local run sheet](DEMO.md) for booking and recovery acceptance.
+1. **Configure services and rules** in **Configuration → Services** and **Scheduling rules**:
+   define bookable services with normalized skill tags, duration, and price, and tune slot
+   intervals, turnaround buffers, booking horizon, shift-check timing, ETA limits, and free-change
+   windows.
+2. **Manage providers and time off** in **Scheduling → Providers**: set working weekdays, daily
+   hours, runtime skills, base coordinates, and link each provider to their `sys_user` sign-in so
+   they can open **My Day**.
+3. **Take bookings** either from **Scheduling → Bookings** (interactive desk composer with live
+   slot availability) or via the embeddable **Booking portal** (phone-verified 3-step self-service
+   flow backed by `availability_requests` and `booking_requests`).
+4. **Dispatch and recover** from **Scheduling → Schedule** (drag-to-reassign board by provider and
+   sortable list), **Dispatch** (attention queue and open shift checks), and **Live map** (live
+   provider GPS markers with next-stop routes). Open any scheduled appointment's **Recovery** tab
+   to compare ranked replacements, choose another time, or mark a provider unavailable.
+5. **Execute in the field** with **My Day**: providers confirm their shift, share live GPS
+   positions, open turn-by-turn directions, start appointments (`started_at` stamped natively), and
+   record completion notes (`completed_at` stamped natively).
 
-Teams, policy links and approval routes are authored in source. People selects existing roles;
-it does not edit those definitions. Connected services use Settings → Connections and native
-pairing/status controls. Credentials remain sealed; available providers determine the setup flow.
+## External integrations
 
-A submitted approval proposal is awaiting a decision, not a completed business write. Record
-sheets retain the surrounding model context; their tabs and accordion sections disclose details.
+Connect shared accounts in **Configuration → Connections** (credentials remain sealed):
+
+- **WhatsApp (`whatsapp`):** delivers outbound customer notices (`deliver_notices`), new
+  appointment assignments (`alertProviders`), and pre-shift prompts (`shift_watch`).
+- **Email (`email`):** drives `customer_notices` `+mail.sync.ts`, sending email copies to
+  customers with an email address and folding delivery/open/bounce/reply events back onto each
+  notice.
+- **Google Routes (`google_routes`):** caches ~1 km grid driving times (`drive_times`) via
+  `check_drives` and `prepare_availability`, and provides live traffic ETAs in `eta_check`. Without
+  a connected key, scheduling falls back seamlessly to Haversine distance estimates.
+
+See the [template README](../README.md) for the summary overview and the
+[source reference](source-reference.md) for the exact models, policies, and automations.

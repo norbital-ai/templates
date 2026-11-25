@@ -1,23 +1,26 @@
 import { Effect, Result } from 'effect';
 import { automation, new_id } from '@norbital-ai/bolt';
-import { targetOf } from '../lib/dispatch.js';
 import { bookService } from '../lib/booking.js';
+import { targetOf } from '../lib/dispatch.js';
+import { formatInstant } from '../lib/format.js';
+
 /**
- * A portal request becomes a booking on its own when a helper is free at the time asked. The customer is found by their
- * mobile number, or filed (placed on the map when the host geocodes); the booking goes through `bookings_book`, the same
- * matching the desk uses, which confirms it to them. Otherwise they are told the desk will propose a time.
+ * Books verified customer portal requests automatically when a qualified provider is free;
+ * otherwise moves the request to `follow_up` and notifies operations and the customer.
  */
 export default automation({
 	description:
-		'Books each portal request when a helper is free at the time asked; otherwise hands it to the desk and tells the customer a time will be proposed.',
+		'Books each portal request automatically when a provider is free, or routes it to operations for follow-up.',
 	input: { ids: { kind: 'ref', to: 'booking_requests', many: true, min_items: 1 } },
 	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
-			booking_requests: { where: { id: { in: ids }, status: { eq: 'received' } } }
+			booking_requests: {
+				where: { id: { in: ids }, status: { eq: 'received' } },
+				limit: ids.length + 1
+			}
 		})).booking_requests;
 		for (const r of rows) {
-			// the mobile number is the customer's identity
 			const known = (yield* ctx.query({
 				customers: { where: { phone: { eq: r.phone } }, limit: 1 }
 			})).customers.rows[0];
@@ -27,18 +30,20 @@ export default automation({
 					.search(r.address)
 					.pipe(Effect.catch((failure) => Effect.logWarning(failure).pipe(Effect.as([]))));
 				const point = hits[0]?.point;
-				const { records } = yield* ctx.act({
-					'customers.create': [
-						{
-							name: r.name,
-							address: r.address,
-							area: r.area,
-							phone: r.phone,
-							...(r.email === null ? {} : { email: r.email }),
-							...(point === undefined ? {} : { location: point })
-						}
-					]
-				});
+				const { records } = yield* ctx.act(
+					{
+						'customers.create': [
+							{
+								name: r.name,
+								address: r.address,
+								phone: r.phone,
+								...(r.email === null ? {} : { email: r.email }),
+								...(point === undefined ? {} : { location: point })
+							}
+						]
+					},
+					{ key: `intake-customer:${r.id}` }
+				);
 				const created = records.find((record) => record.model === 'customers');
 				if (created === undefined) return yield* ctx.refuse('errors.customer_not_created');
 				customer = created.id;
@@ -58,10 +63,9 @@ export default automation({
 			const destination =
 				availability?.location ?? (profile?.address === r.address ? profile.location : null);
 			const preferred =
-				availability?.preference === 'preferred' && availability.helper !== null
-					? [availability.helper]
+				availability?.preference === 'preferred' && availability.provider !== null
+					? [availability.provider]
 					: [];
-			// the request is marked booked in the booking's own commit
 			const booking = new_id('bookings');
 			const booked = yield* Effect.result(
 				bookService(
@@ -69,9 +73,8 @@ export default automation({
 						customer,
 						service: r.service,
 						preference: preferred.length > 0 ? 'preferred' : 'any',
-						...(preferred.length === 0 ? {} : { helpers: preferred }),
+						...(preferred.length === 0 ? {} : { providers: preferred }),
 						address: r.address,
-						area: r.area,
 						...(destination == null ? {} : { location: destination }),
 						start: r.start,
 						repeat: r.repeat,
@@ -84,25 +87,28 @@ export default automation({
 					}
 				)
 			);
-			// the booking files the confirmation notice
 			if (Result.isSuccess(booked)) continue;
 			const why = Result.isFailure(booked)
 				? booked.failure.message
-				: 'The booking could not be made.';
-			yield* ctx.act({
-				'booking_requests.update': [
-					{ target: targetOf(r), set: { status: 'follow_up', outcome: why } }
-				],
-				'customer_notices.create': [
-					{
-						customer,
-						subject: `We received your booking request ${r.number}`,
-						body: `Thank you, ${r.name}. No helper is free at exactly ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(r.start))}, so our team will contact you shortly with the nearest available times.`
-					}
-				]
-			});
+				: 'The booking could not be confirmed automatically.';
+			const when = formatInstant(r.start, ctx.tz);
+			yield* ctx.act(
+				{
+					'booking_requests.update': [
+						{ target: targetOf(r), set: { status: 'follow_up', outcome: why } }
+					],
+					'customer_notices.create': [
+						{
+							customer,
+							subject: `We received your booking request ${r.number}`,
+							body: `Thank you, ${r.name}. No provider is available at ${when}, so our scheduling team will reach out shortly with the nearest open times.`
+						}
+					]
+				},
+				{ key: `intake-followup:${r.id}:${r.revision}` }
+			);
 			yield* ctx.notify({
-				title: `Portal request ${r.number} needs a time`,
+				title: `Portal request ${r.number} needs follow-up`,
 				description: why,
 				to: [{ team: 'operations' }],
 				link: { model: 'booking_requests', id: r.id },

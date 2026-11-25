@@ -1,9 +1,10 @@
 import type { PageContext } from '@norbital-ai/bolt/page';
 import { driveRequest, poolOf, poolRequest, withDrive } from './dispatch.js';
 import { lookups, type Point } from './matching.js';
+
 /**
- * A page's live matching pool (`dispatch.ts` `loadPool`, read as the viewer through the page's `ctx`): the pool read, then the drive times its
- * legs need. `current` is `undefined` until both have arrived.
+ * Reactive page-level matching pool: loads providers, occupied appointments, time off, scheduling
+ * settings, and then cached Google Routes legs for the candidate stops.
  */
 export function livePool(
 	ctx: Pick<PageContext, 'query'>,
@@ -12,19 +13,20 @@ export function livePool(
 		readonly to: string;
 		readonly spots: readonly (Point | null)[];
 	} | null,
-	zone: string
+	zone: () => string
 ) {
 	const read = $derived.by(() => {
 		const w = window();
-		return w === null ? null : { w, query: ctx.query(poolRequest(w.from, w.to, zone)) };
+		const z = zone();
+		return w === null ? null : { w, z, query: ctx.query(poolRequest(w.from, w.to, z)) };
 	});
 	const pool = $derived(
 		read?.query.current === undefined
 			? undefined
-			: poolOf(read.query.current, read.w.from, read.w.to, zone)
+			: poolOf(read.query.current, read.w.from, read.w.to, read.z)
 	);
 	const legs = $derived(
-		pool === undefined || read === null ? undefined : lookups(pool, read.w.spots, zone)
+		pool === undefined || read === null ? undefined : lookups(pool, read.w.spots, read.z)
 	);
 	const drive = $derived(
 		legs === undefined || legs.length === 0 ? null : ctx.query(driveRequest(legs))

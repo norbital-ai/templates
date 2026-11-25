@@ -1,21 +1,20 @@
 import { automation } from '@norbital-ai/bolt';
 import { bookService } from '../lib/booking.js';
-import { AREAS, REPEATS } from '../lib/matching.js';
+import { REPEATS } from '../lib/matching.js';
 
 export default automation({
 	description:
-		'Books a service for a customer at their address, once or recurring. With preferred helpers every visit goes to the first of them who is free; without, to the best-matched helper. Every occurrence in the requested horizon must find a helper; otherwise nothing is booked.',
+		'Books a service once or recurring with travel-aware provider matching. Every occurrence must find a qualified provider; otherwise nothing is booked.',
 	input: {
 		customer: { kind: 'ref', to: 'customers' },
 		service: { kind: 'ref', to: 'services', where: { active: { eq: true } } },
 		preference: { kind: 'enum', values: ['any', 'preferred'] },
-		helpers: { kind: 'ref', to: 'helpers', many: true, max_items: 5, optional: true },
+		providers: { kind: 'ref', to: 'providers', many: true, max_items: 5, optional: true },
 		start: { kind: 'instant' },
 		repeat: { kind: 'enum', values: REPEATS },
-		visits: { kind: 'int', min: 1, max: 26, optional: true },
+		appointments: { kind: 'int', min: 1, max: 26, optional: true },
 		notes: { kind: 'text', optional: true },
 		address: { kind: 'text', max: 500, optional: true },
-		area: { kind: 'enum', values: AREAS, optional: true },
 		location: { kind: 'point', optional: true }
 	},
 	output: {

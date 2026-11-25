@@ -1,44 +1,42 @@
 import { policy } from '@norbital-ai/bolt';
-/** The scheduler: bookings, dispatch and re-dispatch, helper and customer profiles, and the dispatch settings. */
+
+/** Operations staff: scheduling, bookings, dispatch recovery, providers, customers, and configuration. */
 export default policy({
 	description:
-		'Scheduler: settings, services, customers, bookings and portal requests, visits, helpers and their time off, warnings and customer notices.',
+		'Operations: scheduling rules, services, customers, bookings, portal requests, appointments, providers, time off, and notices.',
 	capabilities: {
-		apps: ['scheduler', 'helper'],
+		apps: ['scheduling', 'configuration', 'provider'],
 		automations: [
-			'helpers_offboard',
+			'providers_deactivate',
 			'bookings_book',
 			'bookings_cancel',
-			'visits_reassign',
-			'visits_reschedule',
-			'visits_cancel',
-			'visits_accept_proposal',
-			'visits_recommend',
-			'visits_rebook',
-			'visits_report_unavailable'
+			'appointments_cancel',
+			'appointments_confirm_shift',
+			'appointments_decline_shift',
+			'appointments_accept_proposal',
+			'appointments_recommend',
+			'appointments_rebook',
+			'appointments_report_unavailable'
 		]
 	},
 	grants: {
-		dispatch_settings: { outputs: { default: {} }, create: {}, update: {} },
+		scheduling_settings: { outputs: { default: {} }, create: {}, update: {} },
 		services: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		openings: { outputs: { default: {} } },
 		drive_times: { outputs: { default: {} } },
 		customers: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
-		helpers: {
-			// the helper app's day reads `helper`
-			outputs: { default: {}, helper: {} },
+		providers: {
+			outputs: { default: {}, provider: {} },
 			create: {},
 			update: { moves: 'all' }
 		},
-		helper_time_off: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		provider_time_off: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		booking_requests: { outputs: { default: {} }, update: { moves: 'all' } },
 		bookings: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
-		booking_helpers: { outputs: { default: {} } },
-		visits: { outputs: { default: {}, helper: {} }, update: { moves: 'all' } },
-		helper_warnings: { outputs: { default: {} }, create: {} },
+		booking_providers: { outputs: { default: {} } },
+		appointments: { outputs: { default: {}, provider: {} }, update: { moves: 'all' } },
 		customer_notices: { outputs: { default: {} }, create: {} },
 		sys_user: { outputs: { default: {} } },
-		// the WhatsApp account a visit's effect tells its helper through
 		sys_integration: { outputs: { default: {} } }
 	}
 });

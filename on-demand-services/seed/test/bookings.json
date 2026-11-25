@@ -4,12 +4,11 @@
 		"number": "BK-2026-0005",
 		"customer": "019ad736-f330-7000-a470-f87a20a7b895",
 		"service": "019ad736-e778-7000-b1fe-861d5e541192",
-		"address": "1 Example Avenue, Singapore 400001",
+		"address": "100 Market Street, Suite 101",
 		"location": {
-			"lat": 1.3236,
-			"lng": 103.9273
+			"lat": 40.7128,
+			"lng": -74.006
 		},
-		"area": "east",
 		"preference": "any",
 		"repeat": "once",
 		"status": "active"
@@ -19,12 +18,11 @@
 		"number": "BK-2026-0006",
 		"customer": "019ad736-f330-7000-a470-f87a20a7b895",
 		"service": "019ad736-e778-7000-b1fe-861d5e541192",
-		"address": "1 Example Avenue, Singapore 400001",
+		"address": "100 Market Street, Suite 101",
 		"location": {
-			"lat": 1.3236,
-			"lng": 103.9273
+			"lat": 40.7128,
+			"lng": -74.006
 		},
-		"area": "east",
 		"preference": "any",
 		"repeat": "once",
 		"status": "active"

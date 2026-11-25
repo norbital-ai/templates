@@ -1,0 +1,33 @@
+[
+	{
+		"id": "019b76dc-1f00-7000-a3bb-dd6cc8f5ac58",
+		"name": "Fixture Provider Alpha",
+		"phone": "+15550100201",
+		"home_location": {
+			"lat": 40.72,
+			"lng": -74.0
+		},
+		"work_days": ["mon", "tue", "wed", "thu", "fri", "sat"],
+		"day_start": "08:00",
+		"day_end": "18:00",
+		"skills": ["hvac_service", "general_maintenance"]
+	},
+	{
+		"id": "019b76dc-22e8-7000-a81d-cf841de9d389",
+		"name": "Fixture Provider Charlie",
+		"phone": "+15550100203",
+		"home_location": {
+			"lat": 40.708,
+			"lng": -74.01
+		},
+		"work_days": ["tue", "wed", "thu", "fri", "sat", "sun"],
+		"day_start": "07:00",
+		"day_end": "16:00",
+		"skills": ["hvac_service", "general_maintenance"],
+		"last_location": {
+			"lat": 40.95,
+			"lng": -74.3
+		},
+		"last_location_at": "2026-09-29T08:00:00.000Z"
+	}
+]

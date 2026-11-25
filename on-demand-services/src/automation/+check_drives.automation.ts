@@ -2,12 +2,13 @@ import { automation, type Id } from '@norbital-ai/bolt';
 import * as DateTime from 'effect/DateTime';
 import * as Effect from 'effect/Effect';
 import {
+	appointmentsToMove,
 	HELD_SHIFT,
 	learnLegs,
 	loadPool,
 	optimise,
 	reassign,
-	visitsToMove
+	settingsOf
 } from '../lib/dispatch.js';
 import {
 	cellOf,
@@ -15,37 +16,33 @@ import {
 	legOf,
 	legsOf,
 	routes,
-	SETTLE_MINUTES,
 	type Busy,
 	type Point
 } from '../lib/matching.js';
-/** How far ahead the helpers' days are timed and checked: the portal's two weeks. */
-const AHEAD_DAYS = 14;
-/** Google calls per run, one per origin square. ponytail: a larger backlog drains over the next runs. */
+
+/** Maximum uncached Google Routes calls per sweep (one per origin grid square). */
 const MAX_CALLS = 25;
+
 /**
- * Keeps every planned drive real. Each leg a helper's next two weeks will be driven (home to the first visit, then visit
- * to visit) that the cache lacks is timed by Google and cached for matching. Then each day is walked in order: a visit
- * its helper can no longer reach from the one before, drive and settling in counted, is handed to the best match.
- * Without a Google key nothing is fetched, and the walk still catches two bookings that raced for one helper. Last, the
- * schedule is brought back to a local optimum (`optimise`): booking places each visit as it arrives, and this undoes the
- * choices later bookings, cancellations and new cleaners made poor. A move schedules this run again (the visits effect), which then finds none.
+ * Caches Google Routes drive times for upcoming provider routes, reassigns any appointment that
+ * became unreachable under real travel times, and runs relocate local search to keep the schedule
+ * balanced.
  */
 export default automation({
 	description:
-		'Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match; then movable visits are rebalanced to a local optimum of workload and driving.',
-	// also scheduled by the bookings, visits and helpers effects; rests a day after an idle slot so quiet workspaces sleep
-	on: [{ cron: '*/15 * * * *', rest: '1d' }],
+		'Caches Google Routes drive times for upcoming routes, reassigns unreachable appointments, and rebalances movable appointments.',
+	on: [{ cron: '8,23,38,53 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = DateTime.makeUnsafe(ctx.now);
+		const { booking_horizon_days, buffer_minutes } = yield* settingsOf(ctx);
 		const pool = yield* loadPool(
 			ctx,
 			ctx.now,
-			DateTime.formatIso(DateTime.add(now, { days: AHEAD_DAYS }))
+			DateTime.formatIso(DateTime.add(now, { days: booking_horizon_days }))
 		);
-		const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
+		const homes = new Map(pool.providers.map((p) => [p.id, p.home_location]));
 		const days = routes(
 			{
 				...pool,
@@ -53,17 +50,10 @@ export default automation({
 			},
 			ctx.tz
 		);
-		// the legs not timed yet, by origin square: one call each
 		const drive = new Map(pool.drive);
-		const todo = new Map<
-			string,
-			{
-				from: Point;
-				to: Map<string, Point>;
-			}
-		>();
+		const todo = new Map<string, { from: Point; to: Map<string, Point> }>();
 		for (const day of days)
-			for (const [a, b] of legsOf(day, homes.get(day[0].helper) ?? null)) {
+			for (const [a, b] of legsOf(day, homes.get(day[0].provider) ?? null)) {
 				if (a === null || b === null) continue;
 				const leg = legOf(a, b);
 				if (leg === null || drive.has(leg)) continue;
@@ -79,9 +69,19 @@ export default automation({
 			drive
 		);
 		for (const row of learned) drive.set(row.leg, row.minutes);
-		if (learned.length > 0) yield* ctx.act({ 'drive_times.create': learned });
-		// walk each day: a visit too close to the last one kept moves, and the next is checked against that one
-		const late = new Map<Id<'helpers'>, Id<'visits'>[]>();
+		if (learned.length > 0)
+			yield* ctx
+				.act(
+					{ 'drive_times.create': learned },
+					{
+						key: `drives:${learned
+							.map((row) => row.leg)
+							.sort()
+							.join('|')}`
+					}
+				)
+				.pipe(Effect.catchTags({ ActConflict: () => Effect.void, ActRefused: () => Effect.void }));
+		const late = new Map<Id<'providers'>, Id<'appointments'>[]>();
 		for (const day of days) {
 			const [first, ...rest] = day;
 			let last: Busy = first;
@@ -90,7 +90,7 @@ export default automation({
 				const reachable = DateTime.isGreaterThanOrEqualTo(
 					start,
 					DateTime.add(DateTime.makeUnsafe(last.slot.end), {
-						minutes: driveMinutes(last.location, b.location, drive) + SETTLE_MINUTES
+						minutes: driveMinutes(last.location, b.location, drive) + buffer_minutes
 					})
 				);
 				if (b.planned === true) {
@@ -98,16 +98,26 @@ export default automation({
 					continue;
 				}
 				if (reachable || DateTime.isLessThanOrEqualTo(start, now)) last = b;
-				else late.set(b.helper, [...(late.get(b.helper) ?? []), b.id]);
+				else late.set(b.provider, [...(late.get(b.provider) ?? []), b.id]);
 			}
 		}
-		// a visit written since it was read is the newer writer's: its conflict is skipped, and that write runs this again
-		for (const [helper, ids] of late) {
-			const { rows } = (yield* ctx.query(
-				visitsToMove({ id: { in: ids }, status: { eq: 'scheduled' }, shift_check: HELD_SHIFT })
-			)).visits;
-			yield* reassign(ctx, rows, helper).pipe(Effect.catchTag('ActConflict', () => Effect.void));
+		if (late.size > 0) {
+			for (const [provider, ids] of late) {
+				const { rows } = (yield* ctx.query(
+					appointmentsToMove({
+						id: { in: ids },
+						status: { eq: 'scheduled' },
+						shift_check: HELD_SHIFT
+					})
+				)).appointments;
+				yield* reassign(ctx, rows, provider).pipe(
+					Effect.catchTag('ActConflict', () => Effect.void)
+				);
+			}
+			return;
 		}
-		yield* optimise(ctx).pipe(Effect.catchTag('ActConflict', () => Effect.void));
+		yield* optimise(ctx, { ...pool, drive }).pipe(
+			Effect.catchTag('ActConflict', () => Effect.void)
+		);
 	}
 });

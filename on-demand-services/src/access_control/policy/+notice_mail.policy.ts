@@ -1,7 +1,8 @@
 import { policy } from '@norbital-ai/bolt';
-/** The `mail` sync: record on each customer notice where its mail got to, as the mailbox reports it. */
+
+/** Email sync: record mailbox delivery lifecycle events on each customer notice. */
 export default policy({
-	description: 'The notice mail sync: record where each notice’s mail got to.',
+	description: 'Notice mail sync: record delivery status updates from the mailbox.',
 	grants: {
 		customer_notices: {
 			outputs: { default: {} },

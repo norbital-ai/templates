@@ -1,41 +1,41 @@
 import { DateTime, Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
 import { settingsOf } from '../lib/dispatch.js';
+
 /**
- * Every due visit gets its own read and write scope. A visit changed while Google times its drive cannot make another
- * visit's independent ETA check stale. Queued checks for the same visit coalesce until they run.
+ * Fans out independent `eta_check` runs for every scheduled appointment inside the ETA lead window
+ * so each appointment reads and updates its own scope without cross-appointment conflicts.
  */
 export default automation({
 	description:
-		'Until each visit starts, re-estimates the helper’s drive from their last GPS position every five minutes, flagging the visit for dispatch while it exceeds the ETA limit or the position is missing or stale.',
-	// rests a day after an idle slot with no due visits; any workspace activity wakes the database and resumes the watch
+		'Schedules live GPS ETA checks every five minutes for appointments starting within the configured ETA lead window.',
 	on: [{ cron: '*/5 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
+		const now = DateTime.makeUnsafe(ctx.now);
 		const settings = yield* settingsOf(ctx);
 		const { rows } = (yield* ctx.query({
-			visits: {
+			appointments: {
 				where: {
 					status: { eq: 'scheduled' },
-					helper: { is_null: false },
+					provider: { is_null: false },
 					slot: {
 						overlaps: {
 							start: ctx.now,
 							end: DateTime.formatIso(
-								DateTime.add(DateTime.makeUnsafe(ctx.now), {
-									minutes: settings.eta_check_lead_minutes
-								})
+								DateTime.add(now, { minutes: settings.eta_check_lead_minutes })
 							)
 						}
 					}
 				},
-				fields: ['slot']
+				fields: ['slot'],
+				limit: 500
 			}
-		})).visits;
+		})).appointments;
 		yield* Effect.forEach(
-			rows.filter((v) => Date.parse(v.slot.start) >= Date.parse(ctx.now)),
-			(v) => ctx.schedule('eta_check', { visit: v.id }, { key: `eta-${v.id}` }),
+			rows.filter((a) => DateTime.isGreaterThanOrEqualTo(DateTime.makeUnsafe(a.slot.start), now)),
+			(a) => ctx.schedule('eta_check', { appointment: a.id }, { key: `eta-${a.id}` }),
 			{ concurrency: 'unbounded', discard: true }
 		);
 	}

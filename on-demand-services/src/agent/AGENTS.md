@@ -1,50 +1,60 @@
-# On-Demand Services source
+# Service Scheduling source
 
-This is the coding-agent map for this workspace. Norbius reads [`+agent.md`](./+agent.md); this file says where the source lives and what an edit must not break.
+Coding-agent map for this workspace. Norbius loads [`+agent.md`](./+agent.md); this file documents
+where source lives and which invariants edits must preserve.
 
 ## Model ownership
 
-`src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
+`src/data/model/` mirrors ownership (`owned: true`). Owned child models live inside their owner's
+folder; the leaf folder names the model.
 
 ```text
+availability_requests/
+booking_requests/
+bookings/
+  appointments/
+  booking_providers/
 customers/
-  bookings/
-    booking_helpers/
-    visits/
-      customer_notices/
-      helper_warnings/
-dispatch_settings/
+  customer_notices/
 drive_times/
-helpers/
-  helper_time_off/
+providers/
+  provider_time_off/
+scheduling_settings/
 services/
-  availability_requests/
-  booking_requests/
   openings/
 ```
 
-Keep a new model in the branch of the record that owns it. Moving a model folder does not rename it: its leaf folder name is the model name.
-
 ## Surfaces
 
-- Apps: `helper`, `portal`, `scheduler/configurations`, `scheduler/customers`, `scheduler/helpers`, `scheduler/schedule`
+- Apps: `scheduling`, `configuration`, `provider`, `portal`
 - Kiosks: none
-- Automations: `bookings_book`, `bookings_cancel`, `check_drives`, `deliver_notices`, `eta_check`, `eta_watch`, `helpers_offboard`, `portal_intake`, `prepare_availability`, `publish_openings`, `shift_watch`, `visits_accept_proposal`, `visits_cancel`, `visits_confirm_shift`, `visits_decline_shift`, `visits_reassign`, `visits_rebook`, `visits_recommend`, `visits_report_unavailable`, `visits_reschedule`, `warning_letter`
-- Policies: `customer`, `dispatch_automation`, `helper`, `helper_shift`, `notice_mail`, `operations`, `portal_visitor`
+- Automations: `appointments_accept_proposal`, `appointments_cancel`, `appointments_confirm_shift`,
+  `appointments_decline_shift`, `appointments_rebook`, `appointments_recommend`,
+  `appointments_report_unavailable`, `bookings_book`, `bookings_cancel`, `check_drives`,
+  `deliver_notices`, `eta_check`, `eta_watch`, `portal_intake`, `prepare_availability`,
+  `providers_deactivate`, `publish_openings`, `shift_watch`
+- Policies: `customer`, `dispatch_automation`, `notice_mail`, `operations`, `portal_visitor`,
+  `provider`, `provider_shift`
 - Custom fields: none
-- Integrations: `google_routes`
+- Integrations: `google_routes` (plus built-in `whatsapp` and `email`)
 
 ## Gates
 
-`bolt check` proves discovery, schema history, rules and types. `bolt test` runs the workspace tests. `bolt build` writes `.norbital/` and the release artifact; run it only when a schema or release change is intended. Migrations under `migrations/` are generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.json` together.
+Run `bolt check` to verify discovery, schema history, rules, and types; `bolt test` for the
+workspace test suite; `bolt build` when changing schema or producing a release artifact. Commit
+generated SQL files, `snapshot.json`, `migrations.lock.json`, and `physical.json` together.
 
 ## Invariants
 
-- A helper must have the service skill, be free for the visit and its drive, not be on time off, and never hold overlapping visits.
-- Every booking resolves to visits; every visit is held by at most one helper.
-- Shift confirmation, late cancellation, ETA and replacement rules are automations, not chat policy.
+- Every assigned provider must be active, hold the appointment's normalized skill tag, work that
+  weekday and local hours, not be on time off, and satisfy driving + turnaround buffers (enforced
+  on both `appointments.create` and `appointments.update`).
+- No provider may hold overlapping non-cancelled appointments (enforced natively via `no_overlap`
+  and in `appointments` write transforms).
+- Booking creation, cancellation, recovery, shift confirmation, and live ETA checks execute via
+  declared automations and callbacks — never chat prose.
 
 ## Read next
 
-- [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
-- `README.md` and `docs/` — operator walkthrough and design detail.
+- [`+agent.md`](./+agent.md) — workspace assistant brief.
+- `README.md` and `docs/` — product overview, architecture, and source reference.

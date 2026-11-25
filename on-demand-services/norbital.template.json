@@ -1,17 +1,17 @@
 {
 	"schema_version": 1,
 	"key": "norbital_on_demand",
-	"name": "On-Demand Services",
-	"industry": "Home Services",
-	"description": "On-demand helper bookings: skill- and availability-matched helpers with travel buffers, preferred-helper scheduling, recurring visits, pre-shift checks with replacements proposed for controller approval, and GPS ETA alerts.",
+	"name": "Service Scheduling",
+	"industry": "Field & Local Services",
+	"description": "Generic service booking, provider scheduling, and route-aware dispatch: self-service booking portal, runtime service catalog, skill- and travel-matched recurring appointments, pre-shift check-ins, and live GPS ETA alerts.",
 	"visibility": "public",
 	"counts": {
-		"models": 14,
-		"apps": 6,
-		"automations": 21
+		"models": 13,
+		"apps": 4,
+		"automations": 18
 	},
-	"tags": ["Home services", "Scheduling", "Dispatch"],
-	"name_zh": "上门服务",
-	"description_zh": "按需上门服务预约：按技能与空档匹配帮手并预留车程，指定帮手排期，定期上门，班前确认与待主管批准的替换建议，以及 GPS 预计到达提醒。",
-	"tags_zh": ["家居服务", "排程", "调度"]
+	"tags": ["Scheduling", "Booking", "Dispatch"],
+	"name_zh": "服务排程",
+	"description_zh": "通用服务预约、人员排程与路径感知调度工作区：支持在线自助预约门户、可配置服务目录、技能与路程匹配的周期预约、班前确认与实时 GPS 到达预警。",
+	"tags_zh": ["排程", "预约", "调度"]
 }

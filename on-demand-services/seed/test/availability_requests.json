@@ -1,19 +1,18 @@
 [
 	{
 		"id": "019b76dc-0790-7000-a470-307912f48d15",
-		"phone": "+6580000001",
-		"address": "1 Example Avenue, Singapore 400001",
-		"area": "east",
+		"phone": "+15550100101",
+		"address": "100 Market Street, Suite 101",
 		"service": "019ad736-e778-7000-b1fe-861d5e541192",
 		"preference": "any",
 		"repeat": "once",
 		"location": {
-			"lat": 1.3236,
-			"lng": 103.9273
+			"lat": 40.7128,
+			"lng": -74.006
 		},
-		"starts": ["2026-09-30T02:00:00.000Z"],
+		"starts": ["2026-09-30T10:00:00.000Z"],
 		"estimated": false,
-		"checked_at": "2026-09-29T00:00:00.000Z",
+		"checked_at": "2026-09-29T08:00:00.000Z",
 		"status": "ready"
 	}
 ]

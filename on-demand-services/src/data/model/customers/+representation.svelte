@@ -1,35 +1,34 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
+		Alert,
 		EmptyState,
 		RecordShell,
+		Sheet,
+		Spinner,
 		Table,
 		Timeline,
-		enum_text,
 		format,
 		open_record,
 		type RecordSection,
 		type RecordView,
 		type TimelineEntry
 	} from '@norbital-ai/ui';
-	import { Scroll, Stack } from '@norbital-ai/ui/layout';
-	/**
-	 * A customer's profile for the desk: their visits still to come (each with the cleaner it is planned with, or the one
-	 * proposed to cover, the shift check and the ETA), their past visits (done or cancelled, with the notes), the bookings
-	 * behind them and the notices sent to them.
-	 */
-	let {
-		view,
-		ctx
-	}: {
-		view: RecordView<'customers'>;
-		ctx: PageContext;
-	} = $props();
-	const zone = ctx.tz;
-	const t = ctx.t;
-	const words: { t(key: string): string } = ctx;
+	import { Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
+	import { setContext } from 'svelte';
+
+	const BOOKING_DONE = Symbol.for('scheduling.booking_done');
+
+	let { view, ctx }: { view: RecordView<'customers'>; ctx: PageContext } = $props();
+	const t = (...args: Parameters<PageContext['t']>) => ctx.t(...args);
+	const zone = $derived(ctx.tz);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	/** Their visits through their bookings. */
+	const canCreateBooking = $derived(ctx.catalog?.bookings?.create !== undefined);
+	let addingBooking = $state(false);
+	setContext(BOOKING_DONE, () => {
+		addingBooking = false;
+	});
+
 	const theirs = $derived(
 		record === null ? null : { booking: { is: { customer: { eq: record.id } } } }
 	);
@@ -39,27 +38,16 @@
 			: { ...theirs, status: { in: ['scheduled' as const, 'in_progress' as const] } }
 	);
 	const pastWhere = $derived(
-		theirs === null ? null : { ...theirs, status: { in: ['done' as const, 'cancelled' as const] } }
-	);
-	// the headline: what is next, and how much is ahead and behind
-	const next = $derived(
-		upcomingWhere === null
+		theirs === null
 			? null
-			: ctx.query({
-					visits: {
-						where: upcomingWhere,
-						fields: ['slot', 'helper', 'booking'],
-						order_by: 'number',
-						helper: { fields: ['name'] },
-						booking: { fields: ['service'], service: { fields: ['name'] } }
-					}
-				})
+			: { ...theirs, status: { in: ['completed' as const, 'cancelled' as const] } }
 	);
+
 	const past = $derived(
 		pastWhere === null
 			? null
 			: ctx.query({
-					visits: {
+					appointments: {
 						where: pastWhere,
 						fields: [
 							'number',
@@ -71,51 +59,53 @@
 							'late_cancellation'
 						],
 						order_by: { number: 'desc' },
-						helper: { fields: ['name'] }
+						limit: 100,
+						provider: { fields: ['name'] }
 					}
 				})
 	);
+
 	const historyEntries = $derived<TimelineEntry[]>(
-		(past?.current?.visits.rows ?? []).map((v) => ({
-			key: v.id,
-			icon: v.status === 'done' ? 'lucide:check-circle-2' : 'lucide:x-circle',
-			tone: v.status === 'done' ? 'success' : 'danger',
-			title: `${v.number} · ${format({ kind: 'instant' }, v.slot.start, { locale: ctx.locale, zone })}`,
+		(past?.current?.appointments.rows ?? []).map((a) => ({
+			key: a.id,
+			icon: a.status === 'completed' ? 'lucide:check-circle-2' : 'lucide:x-circle',
+			tone: a.status === 'completed' ? 'success' : 'danger',
+			title: `${a.number} · ${format({ kind: 'instant' }, a.slot.start, { locale: ctx.locale, zone })}`,
 			line: [
-				enum_text(v.skill, { t: (k) => words.t(k), model: 'visits', field: 'skill' }),
-				...(v.helper?.name ? [v.helper.name] : []),
-				...(v.completed_at
+				a.skill,
+				...(a.provider?.name ? [a.provider.name] : []),
+				...(a.completed_at
 					? [
-							`${t('models.visits.fields.completed_at')} ${format({ kind: 'instant' }, v.completed_at, { locale: ctx.locale, zone })}`
+							`${t('models.appointments.fields.completed_at')} ${format({ kind: 'instant' }, a.completed_at, { locale: ctx.locale, zone })}`
 						]
 					: [])
 			],
 			mark: {
-				text: enum_text(v.status, { t: (k) => words.t(k), model: 'visits', field: 'status' }),
-				variant: v.status === 'done' ? ('success' as const) : ('destructive' as const)
+				text: t(
+					a.status === 'completed'
+						? 'models.appointments.fields.status.completed'
+						: 'models.appointments.fields.status.cancelled'
+				),
+				variant: a.status === 'completed' ? ('success' as const) : ('destructive' as const)
 			},
 			notes: [
-				...(v.late_cancellation
-					? [{ kind: 'late', text: t('models.visits.fields.late_cancellation'), warn: true }]
+				...(a.late_cancellation
+					? [{ kind: 'late', text: t('models.appointments.fields.late_cancellation'), warn: true }]
 					: []),
-				...(v.completion_notes ? [{ kind: 'notes', text: v.completion_notes }] : [])
+				...(a.completion_notes ? [{ kind: 'notes', text: a.completion_notes }] : [])
 			],
-			onpick: () => open_record('visits', v.id)
+			onpick: () => open_record('appointments', a.id)
 		}))
 	);
-	const soonest = $derived(
-		[...(next?.current?.visits.rows ?? [])].sort((a, b) =>
-			a.slot.start.localeCompare(b.slot.start)
-		)[0]
+
+	const completedCount = $derived(
+		(past?.current?.appointments.rows ?? []).filter((a) => a.status === 'completed').length
 	);
-	const done = $derived(
-		(past?.current?.visits.rows ?? []).filter((v) => v.status === 'done').length
+	const cancelledCount = $derived(
+		(past?.current?.appointments.rows ?? []).filter((a) => a.status === 'cancelled').length
 	);
-	const cancelled = $derived(
-		(past?.current?.visits.rows ?? []).filter((v) => v.status === 'cancelled').length
-	);
-	// who they are, where the work is and their notes stay together; the map pin folds away
-	const sections: RecordSection[] = [
+
+	const sections = $derived<RecordSection[]>([
 		{
 			name: 'customer',
 			icon: 'lucide:user-round',
@@ -130,79 +120,95 @@
 			default_open: false,
 			summary: (r) => (r.location == null ? t('summary.not_set') : t('summary.pinned'))
 		}
-	];
+	]);
 </script>
 
 {#snippet upcoming()}
-	{#if record && upcomingWhere}<Stack size="fill" gap="sm">
-			<p class="text-sm text-muted-foreground">
-				{soonest === undefined
-					? t('app.customers.nothing_ahead')
-					: t('app.customers.next_visit', {
-							when: format({ kind: 'instant' }, soonest.slot.start, { locale: ctx.locale, zone }),
-							service: soonest.booking?.service?.name ?? '',
-							cleaner: soonest.helper?.name ?? t('app.customers.cleaner_tbc'),
-							count: next?.current?.visits.rows.length ?? 0
-						})}
-			</p>
-			<Table
-				{ctx}
-				of="visits"
-				key="customer-upcoming"
-				toolbar={{ title: t('app.customers.upcoming'), new: false }}
-				where={upcomingWhere}
-				order_by={{ number: 'asc' }}
-				columns={[
-					'number',
-					'slot',
-					'helper',
-					'proposed_helper',
-					'skill',
-					'status',
-					'shift_check',
-					'eta_minutes',
-					'attention'
-				]}
-			/>
-		</Stack>{/if}
+	{#if record && upcomingWhere}
+		<Table
+			{ctx}
+			of="appointments"
+			key="customer-upcoming"
+			toolbar={{ title: t('app.customers.upcoming'), new: false }}
+			where={upcomingWhere}
+			order_by={{ number: 'asc' }}
+			columns={[
+				'number',
+				'slot',
+				'provider',
+				'proposed_provider',
+				'skill',
+				'status',
+				'shift_check',
+				'eta_minutes',
+				'attention'
+			]}
+		/>
+	{/if}
 {/snippet}
-{#snippet history()}
+
+{#snippet pastAppointments()}
 	{#if record && pastWhere}
-		<Scroll name={t('app.customers.history')} size="fill" inset>
+		<Scroll name={t('app.customers.past_appointments')} size="fill" inset>
 			<Stack gap="md">
-				<p class="text-sm text-muted-foreground">
-					{t('app.customers.history_summary', { done, cancelled })}
-				</p>
-				<Timeline entries={historyEntries} label={t('app.customers.history')}>
-					{#snippet empty()}
-						<EmptyState title={t('app.customers.history_empty')} />
-					{/snippet}
-				</Timeline>
+				{#if past?.error}
+					<Alert.Root variant="destructive">
+						<Alert.Title>{past.error.message}</Alert.Title>
+					</Alert.Root>
+				{:else if past?.current === undefined}
+					<Surface tone="subtle" padding="md" radius="control" aria-busy="true">
+						<Inline gap="sm" align="center">
+							<Spinner />
+							<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+						</Inline>
+					</Surface>
+				{:else}
+					<p class="text-sm text-muted-foreground">
+						{t('app.customers.history_summary', {
+							completed: completedCount,
+							cancelled: cancelledCount
+						})}
+					</p>
+					<Timeline entries={historyEntries} label={t('app.customers.past_appointments')}>
+						{#snippet empty()}
+							<EmptyState title={t('app.customers.history_empty')} />
+						{/snippet}
+					</Timeline>
+				{/if}
 			</Stack>
 		</Scroll>
 	{/if}
 {/snippet}
+
 {#snippet bookings()}
-	{#if record}<Table
+	{#if record}
+		<Table
 			{ctx}
 			of="bookings"
 			key="customer-bookings"
-			toolbar={{ title: t('app.customers.bookings'), new: false }}
+			toolbar={{
+				title: t('app.customers.bookings'),
+				new: canCreateBooking ? () => (addingBooking = true) : false
+			}}
 			where={{ customer: { eq: record.id } }}
 			order_by={{ number: 'desc' }}
-			columns={['number', 'service', 'preference', 'repeat', 'status', 'visit_count']}
-		/>{/if}
+			columns={['number', 'service', 'preference', 'repeat', 'status', 'appointment_count']}
+		/>
+	{/if}
 {/snippet}
+
 {#snippet notices()}
-	{#if record}<Table
+	{#if record}
+		<Table
 			{ctx}
 			of="customer_notices"
 			key="customer-notices"
 			toolbar={{ title: t('app.customers.notices'), new: false }}
 			where={{ customer: { eq: record.id } }}
 			order_by={{ created_at: 'desc' }}
-			columns={['subject', 'visit', 'created_at']}
-		/>{/if}
+			columns={['subject', 'appointment', 'created_at']}
+		/>
+	{/if}
 {/snippet}
 
 {#if record === null}
@@ -229,7 +235,12 @@
 				icon: 'lucide:calendar-clock',
 				body: upcoming
 			},
-			{ name: 'history', title: t('app.customers.history'), icon: 'lucide:history', body: history },
+			{
+				name: 'past_appointments',
+				title: t('app.customers.past_appointments'),
+				icon: 'lucide:calendar-check-2',
+				body: pastAppointments
+			},
 			{
 				name: 'bookings',
 				title: t('app.customers.bookings'),
@@ -239,4 +250,24 @@
 			{ name: 'notices', title: t('app.customers.notices'), icon: 'lucide:mail', body: notices }
 		]}
 	/>
+
+	<Sheet
+		open={addingBooking}
+		on_open_change={(open) => {
+			addingBooking = open;
+		}}
+		title={t('models.bookings.singular')}
+	>
+		{#if addingBooking}
+			<RecordShell
+				{ctx}
+				of="bookings"
+				mode="create"
+				values={{ customer: record.id }}
+				on_done={() => {
+					addingBooking = false;
+				}}
+			/>
+		{/if}
+	</Sheet>
 {/if}

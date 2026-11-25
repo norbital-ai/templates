@@ -1,10 +1,11 @@
 [
 	{
 		"id": "019ad736-e778-7000-b1fe-861d5e541192",
-		"name": "Fixture home cleaning",
-		"skill": "home_cleaning",
+		"name": "Standard Maintenance Inspection",
+		"category": "Maintenance",
+		"skill": "hvac_service",
 		"duration_minutes": 180,
-		"price": "75.00",
+		"price": "120.00",
 		"active": true
 	}
 ]

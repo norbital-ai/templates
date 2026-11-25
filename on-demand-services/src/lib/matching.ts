@@ -1,132 +1,154 @@
 /**
- * The matching rules, pure: which helpers may take a visit (the hard requirements) and in what order (the soft ones).
+ * Pure scheduling and matching rules: which providers satisfy hard requirements and how feasible
+ * candidates rank.
  *
- * Hard: the helper is active, has the service's skill, works that weekday and those hours, is not off that day, and has
- * no visit that overlaps this one once the drive between the two addresses (plus settling in) is added on both sides.
- * Soft: added route travel plus the increase in squared weekly utilization. Recurring continuity is a small bonus;
- * otherwise-equal candidates preserve scarce skills. Existing appointments never move during matching.
+ * Hard: provider is active, holds the service's skill, works that weekday and local hours, is not on
+ * time off, and has no overlapping appointment once travel time plus turnaround buffer is added on
+ * both sides.
+ * Soft: added route travel plus marginal squared weekly utilization. Recurring continuity adds a small
+ * preference bonus; ties preserve scarce skills. Existing appointments never move during matching.
  *
- * A drive is Google's time between the ~1 km squares the two addresses sit in, when the `drive_times` cache has it
- * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
+ * Drive times use cached Google Routes legs (~1 km grid squares) when available, else Haversine estimate.
  */
 import type { Id, Instant, PlainDate, PlainTime } from '@norbital-ai/bolt';
 import { BigDecimal, DateTime, Duration } from 'effect';
-export const SKILLS = [
-	'home_cleaning',
-	'deep_cleaning',
-	'move_in_out',
-	'post_renovation',
-	'office_cleaning',
-	'laundry_ironing',
-	'handyman'
-] as const;
-export const AREAS = ['central', 'north', 'north_east', 'east', 'west'] as const;
+import { epochMs } from './format.js';
+
 export const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 export const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
-/** Time to park and carry the kit in, on top of the drive. */
-export const SETTLE_MINUTES = 15;
-/** A drive whose ends are not both known. */
-const UNKNOWN_DRIVE_MINUTES = 30;
-/** Door-to-door urban speed for the straight-line estimate, used for a leg Google has not timed yet. */
-const KMH = 25;
-/** Soft weights, in minutes of driving. */
-const LOAD_BALANCE = 180;
-const CONTINUITY = 15;
-export const BOOKING_AHEAD = 8;
-/** The dispatch thresholds when the workspace has no `dispatch_settings` row; the row's defaults match. */
+
+/** Default scheduling thresholds when no `scheduling_settings` row exists; model defaults match. */
 export const DEFAULTS = {
-	/** The ETA above which dispatch calls the helper, and how long before a visit it is checked. */
+	/** Spacing in minutes between offered booking start times. */
+	slot_interval_minutes: 30,
+	/** Arrival and turnaround buffer in minutes added on top of driving time. */
+	buffer_minutes: 15,
+	/** Number of calendar days ahead published on the self-service booking portal. */
+	booking_horizon_days: 14,
+	/** Live ETA threshold (minutes) above which dispatch is alerted, and check lead window. */
 	eta_limit_minutes: 30,
 	eta_check_lead_minutes: 60,
-	/** How far ahead of a helper's first visit of the day the shift is checked, and how long they have to answer. */
+	/** Pre-shift confirmation lead time before a provider's first appointment and reply cutoff. */
 	shift_check_lead_minutes: 120,
 	shift_reply_minutes: 60,
-	/** Cancelling or moving a visit later than this before it starts is chargeable. */
+	/** Rescheduling or cancelling inside this window before start is marked a late change. */
 	free_change_hours: 24
 };
 export type Settings = typeof DEFAULTS;
+
+/** Default number of recurring occurrences booked ahead. */
+export const BOOKING_AHEAD = 8;
+/** Fallback drive estimate when either endpoint lacks coordinates. */
+const UNKNOWN_DRIVE_MINUTES = 30;
+/** Average urban door-to-door speed (km/h) for Haversine fallback estimates. */
+const KMH = 25;
+/** Soft ranking weights in equivalent drive minutes. */
+const LOAD_BALANCE = 180;
+const CONTINUITY = 15;
+
+/** Normalize a runtime skill tag so case and whitespace differences never split matching. */
+export const normalizeSkill = (value: string): string =>
+	value.trim().toLowerCase().replace(/\s+/g, '_');
+
 export type Point = {
 	readonly lat: number;
 	readonly lng: number;
 };
+
 export type Slot = {
 	readonly start: Instant;
 	readonly end: Instant;
 };
-/** A visit's slot as matching reads it, both ends set: an open-ended slot has no length to place, so `null`. */
+
+/** Closed appointment slot; open-ended slots have no duration to place and return `null`. */
 export const closedSlot = (slot: {
 	readonly start: Instant;
 	readonly end: Instant | null;
 }): Slot | null => (slot.end === null ? null : { start: slot.start, end: slot.end });
-export type Helper = {
-	readonly id: Id<'helpers'>;
+
+export type Provider = {
+	readonly id: Id<'providers'>;
 	readonly name: string;
 	readonly skills: readonly string[];
-	readonly home_area: string | null;
 	readonly home_location: Point | null;
 	readonly work_days: readonly string[];
 	readonly day_start: PlainTime;
 	readonly day_end: PlainTime;
 	readonly status: string;
 };
-/** A visit a helper already holds, or a not-yet-written slot `planBooking` is laying out. */
+
+/** A stored appointment a provider holds, or a provisional slot during booking planning. */
 export type Busy = {
-	readonly helper: Id<'helpers'>;
+	readonly provider: Id<'providers'>;
 	readonly slot: Slot;
 	readonly location: Point | null;
 } & (
 	| {
 			readonly planned?: false;
-			readonly id: Id<'visits'>;
+			readonly id: Id<'appointments'>;
 	  }
 	| {
 			readonly planned: true;
 			readonly id: string;
 	  }
 );
+
 type Off = {
-	readonly helper: Id<'helpers'>;
+	readonly provider: Id<'providers'>;
 	readonly period: {
-		from: string;
-		to: string | null;
+		readonly from: string;
+		readonly to: string | null;
 	};
 };
+
 type Need = {
 	readonly skill: string;
 	readonly slot: Slot;
 	readonly location: Point | null;
-	readonly area: string | null;
-	/** The visit being re-matched: its own hold does not count against it. */
-	readonly visit?: string;
+	/** Appointment being re-matched: its own hold does not block itself. */
+	readonly appointment?: string;
 };
+
 export type Pool = {
-	readonly helpers: readonly Helper[];
+	readonly providers: readonly Provider[];
 	readonly busy: readonly Busy[];
 	readonly off: readonly Off[];
-	/** Google's drive minutes by `legOf` key; a leg not here is estimated. */
+	/** Cached Google Routes minutes keyed by `legOf`. */
 	readonly drive?: ReadonlyMap<string, number>;
+	/** Turnaround buffer in minutes on top of driving time; defaults to `DEFAULTS.buffer_minutes`. */
+	readonly bufferMinutes?: number;
+	/** Base start-time interval in minutes; defaults to `DEFAULTS.slot_interval_minutes`. */
+	readonly slotIntervalMinutes?: number;
 };
+
 type Candidate = {
-	readonly helper: Id<'helpers'>;
+	readonly provider: Id<'providers'>;
 	readonly name: string;
 	readonly score: number;
-	/** The drive this visit adds to the helper's day: in from their last stop, on to their next, less the leg it replaces. */
+	/** Net drive minutes added to the provider's day by inserting this appointment. */
 	readonly drive_minutes: number;
-	readonly same_area: boolean;
-	/** Hours already booked for the helper that week. */
+	/** Hours of service already scheduled for the provider in that week. */
 	readonly week_hours: number;
 };
-export type Refusal = 'left' | 'skill' | 'day' | 'hours' | 'time_off' | 'booked';
-/** The ~1 km square (0.01°) a point sits in. ponytail: one cached time per square pair; finer squares cost more lookups. */
-export const cellOf = (p: Point) => `${p.lat.toFixed(2)},${p.lng.toFixed(2)}`;
-/** The cache key of the drive from `a` to `b`, or `null` when an end is unknown or both share a square. */
+
+export type Refusal = 'inactive' | 'skill' | 'day' | 'hours' | 'time_off' | 'booked';
+
+const bufferOf = (pool: Pool): number => pool.bufferMinutes ?? DEFAULTS.buffer_minutes;
+const intervalOf = (pool: Pool): number =>
+	pool.slotIntervalMinutes ?? DEFAULTS.slot_interval_minutes;
+
+/** The ~1 km square (0.01 deg) containing `p`. */
+export const cellOf = (p: Point): string => `${p.lat.toFixed(2)},${p.lng.toFixed(2)}`;
+
+/** Cache key for the directed leg from `a` to `b`, or `null` when unknown or same square. */
 export function legOf(a: Point | null, b: Point | null): string | null {
 	if (a === null || b === null) return null;
-	const from = cellOf(a),
-		to = cellOf(b);
+	const from = cellOf(a);
+	const to = cellOf(b);
 	return from === to ? null : `${from}>${to}`;
 }
-/** Minutes to drive from `a` to `b`: Google's time from `drive` when it has the leg, else the straight-line estimate. */
+
+/** Drive minutes from `a` to `b`: cached Google Routes value when present, else Haversine estimate. */
 export function driveMinutes(
 	a: Point | null,
 	b: Point | null,
@@ -142,10 +164,15 @@ export function driveMinutes(
 	const km = 2 * 6371 * Math.asin(Math.sqrt(h));
 	return Math.ceil((km / KMH) * 60);
 }
-/** The first hard requirement `helper` fails for `need`, or `null` when they may take it. */
-export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): Refusal | null {
-	if (helper.status !== 'active') return 'left';
-	if (!helper.skills.includes(need.skill)) return 'skill';
+
+const wallMinutes = (time: PlainTime): number =>
+	Duration.toMinutes(DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${time}Z`)));
+
+/** First hard requirement `provider` fails for `need`, or `null` when eligible. */
+export function refusal(provider: Provider, need: Need, pool: Pool, zone: string): Refusal | null {
+	if (provider.status !== 'active') return 'inactive';
+	const wantSkill = normalizeSkill(need.skill);
+	if (!provider.skills.some((s) => normalizeSkill(s) === wantSkill)) return 'skill';
 	const local = DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone });
 	const parts = DateTime.toParts(local);
 	const date = DateTime.formatIsoDate(local);
@@ -158,37 +185,28 @@ export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): R
 	const length = Duration.toMinutes(
 		DateTime.distance(DateTime.makeUnsafe(need.slot.start), DateTime.makeUnsafe(need.slot.end))
 	);
-	if (!helper.work_days.some((d) => d === DAYS.at(parts.weekDay))) return 'day';
-	if (
-		minutes <
-			Duration.toMinutes(
-				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`))
-			) ||
-		minutes + length >
-			Duration.toMinutes(
-				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`))
-			)
-	)
+	if (!provider.work_days.some((d) => d === DAYS.at(parts.weekDay))) return 'day';
+	if (minutes < wallMinutes(provider.day_start) || minutes + length > wallMinutes(provider.day_end))
 		return 'hours';
 	if (
 		pool.off.some(
 			(o) =>
-				o.helper === helper.id &&
+				o.provider === provider.id &&
 				o.period.from <= date &&
 				(o.period.to === null || date <= o.period.to)
 		)
 	)
 		return 'time_off';
-	const from = DateTime.makeUnsafe(need.slot.start),
-		to = DateTime.makeUnsafe(need.slot.end);
+	const from = DateTime.makeUnsafe(need.slot.start);
+	const to = DateTime.makeUnsafe(need.slot.end);
+	const settle = bufferOf(pool);
 	for (const b of pool.busy) {
-		if (b.helper !== helper.id || b.id === need.visit) continue;
+		if (b.provider !== provider.id || b.id === need.appointment) continue;
 		const start = DateTime.makeUnsafe(b.slot.start);
-		// the drive that matters is the one out of whichever visit comes first
 		const [first, second] = DateTime.isLessThan(start, from)
 			? [b.location, need.location]
 			: [need.location, b.location];
-		const buffer = { minutes: driveMinutes(first, second, pool.drive) + SETTLE_MINUTES };
+		const buffer = { minutes: driveMinutes(first, second, pool.drive) + settle };
 		if (
 			DateTime.isLessThan(from, DateTime.add(DateTime.makeUnsafe(b.slot.end), buffer)) &&
 			DateTime.isLessThan(start, DateTime.add(to, buffer))
@@ -197,29 +215,30 @@ export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): R
 	}
 	return null;
 }
-/** The helper's own visits on the local day of `need`, other than `need` itself. */
-function sameDay(helper: Helper, need: Need, pool: Pool, zone: string): Busy[] {
+
+/** Provider's appointments on the local day of `need`, excluding `need` itself. */
+function sameDay(provider: Provider, need: Need, pool: Pool, zone: string): Busy[] {
 	const day = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone }));
 	return pool.busy.filter(
 		(b) =>
-			b.helper === helper.id &&
-			b.id !== need.visit &&
+			b.provider === provider.id &&
+			b.id !== need.appointment &&
 			DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone })) === day
 	);
 }
-/**
- * The drive `need` adds to the helper's day: from their last stop before it (a visit, else home) to it, on to their next
- * visit that day, less the drive from that stop straight to the next one that it replaces.
- */
-function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
-	const day = sameDay(helper, need, pool, zone);
+
+/** Net drive minutes added to `provider`'s day by inserting `need`. */
+function detour(provider: Provider, need: Need, pool: Pool, zone: string): number {
+	const day = sameDay(provider, need, pool, zone);
+	const needStart = epochMs(need.slot.start);
+	const needEnd = epochMs(need.slot.end);
 	const before = day
-		.filter((b) => Date.parse(b.slot.end) <= Date.parse(need.slot.start))
-		.sort((a, b) => Date.parse(b.slot.end) - Date.parse(a.slot.end))[0];
+		.filter((b) => epochMs(b.slot.end) <= needStart)
+		.sort((a, b) => epochMs(b.slot.end) - epochMs(a.slot.end))[0];
 	const after = day
-		.filter((b) => Date.parse(b.slot.start) >= Date.parse(need.slot.end))
-		.sort((a, b) => Date.parse(a.slot.start) - Date.parse(b.slot.start))[0];
-	const from = before === undefined ? helper.home_location : before.location;
+		.filter((b) => epochMs(b.slot.start) >= needEnd)
+		.sort((a, b) => epochMs(a.slot.start) - epochMs(b.slot.start))[0];
+	const from = before === undefined ? provider.home_location : before.location;
 	const drive = (a: Point | null, b: Point | null) => driveMinutes(a, b, pool.drive);
 	if (after === undefined) return drive(from, need.location);
 	return Math.max(
@@ -227,23 +246,20 @@ function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
 		drive(from, need.location) + drive(need.location, after.location) - drive(from, after.location)
 	);
 }
-/** Service and travel minutes in the local Monday-started week, normalized by hours actually available. */
-function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
+
+/** Service and travel minutes in the local Monday-started week, normalized by available capacity. */
+function weeklyLoad(provider: Provider, need: Need, pool: Pool, zone: string) {
 	const monday = DateTime.startOf(
 		DateTime.makeZonedUnsafe(need.slot.start, { timeZone: zone }),
 		'week',
-		{
-			weekStartsOn: 1
-		}
+		{ weekStartsOn: 1 }
 	);
-	const sunday = DateTime.formatIsoDate(DateTime.add(monday, { days: 6 }));
+	const mondayIso = DateTime.formatIsoDate(monday);
+	const sundayIso = DateTime.formatIsoDate(DateTime.add(monday, { days: 6 }));
 	const busy = pool.busy.filter((b) => {
 		const d = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }));
 		return (
-			b.helper === helper.id &&
-			b.id !== need.visit &&
-			DateTime.formatIsoDate(monday) <= d &&
-			d <= sunday
+			b.provider === provider.id && b.id !== need.appointment && mondayIso <= d && d <= sundayIso
 		);
 	});
 	const service = busy.reduce(
@@ -257,7 +273,7 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 	const travel = routes({ ...pool, busy }, zone).reduce(
 		(sum, day) =>
 			sum +
-			legsOf(day, helper.home_location).reduce(
+			legsOf(day, provider.home_location).reduce(
 				(total, [a, b]) => total + driveMinutes(a, b, pool.drive),
 				0
 			),
@@ -267,10 +283,10 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 		(day) => {
 			const d = DateTime.formatIsoDate(day);
 			return (
-				helper.work_days.some((d) => d === DAYS.at(DateTime.toParts(day).weekDay)) &&
+				provider.work_days.some((wd) => wd === DAYS.at(DateTime.toParts(day).weekDay)) &&
 				!pool.off.some(
 					(o) =>
-						o.helper === helper.id &&
+						o.provider === provider.id &&
 						o.period.from <= d &&
 						(o.period.to === null || d <= o.period.to)
 				)
@@ -284,39 +300,44 @@ function weeklyLoad(helper: Helper, need: Need, pool: Pool, zone: string) {
 			days.length *
 			Duration.toMinutes(
 				DateTime.distance(
-					DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`),
-					DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`)
+					DateTime.makeUnsafe(`1970-01-01T${provider.day_start}Z`),
+					DateTime.makeUnsafe(`1970-01-01T${provider.day_end}Z`)
 				)
 			)
 	};
 }
-/** Feasible helpers ranked by route insertion and marginal utilization; continuity never overrides feasibility. */
+
+/** Feasible providers ranked by route insertion cost and marginal utilization. */
 export function rank(
 	need: Need,
 	pool: Pool,
 	zone: string,
-	keep: Id<'helpers'> | null = null
+	keep: Id<'providers'> | null = null
 ): Candidate[] {
-	const scarcity = (h: Helper) =>
-		h.skills
-			.filter((s) => s !== need.skill)
+	const wantSkill = normalizeSkill(need.skill);
+	const scarcity = (p: Provider) =>
+		p.skills
+			.map(normalizeSkill)
+			.filter((s) => s !== wantSkill)
 			.reduce(
 				(sum, skill) =>
 					sum +
 					1 /
 						Math.max(
 							1,
-							pool.helpers.filter(
-								(other) => other.status === 'active' && other.skills.includes(skill)
+							pool.providers.filter(
+								(other) =>
+									other.status === 'active' &&
+									other.skills.some((os) => normalizeSkill(os) === skill)
 							).length
 						),
 				0
 			);
-	return pool.helpers
-		.filter((h) => refusal(h, need, pool, zone) === null)
-		.map((h) => {
-			const drive = detour(h, need, pool, zone);
-			const load = weeklyLoad(h, need, pool, zone);
+	return pool.providers
+		.filter((p) => refusal(p, need, pool, zone) === null)
+		.map((p) => {
+			const drive = detour(p, need, pool, zone);
+			const load = weeklyLoad(p, need, pool, zone);
 			const added =
 				Duration.toMinutes(
 					DateTime.distance(
@@ -328,20 +349,16 @@ export function rank(
 				(LOAD_BALANCE * ((load.minutes + added) ** 2 - load.minutes ** 2)) /
 				Math.max(1, load.capacity) ** 2;
 			return {
-				extra: scarcity(h),
+				extra: scarcity(p),
 				candidate: {
-					helper: h.id,
-					name: h.name,
-					score: -drive - balance + (h.id === keep ? CONTINUITY : 0),
+					provider: p.id,
+					name: p.name,
+					score: -drive - balance + (p.id === keep ? CONTINUITY : 0),
 					drive_minutes: drive,
-					same_area: need.area !== null && h.home_area === need.area,
 					week_hours: BigDecimal.toNumberUnsafe(
 						BigDecimal.round(
 							BigDecimal.fromNumberUnsafe(Duration.toHours(Duration.minutes(load.service))),
-							{
-								scale: 1,
-								mode: 'half-ceil'
-							}
+							{ scale: 1, mode: 'half-ceil' }
 						)
 					)
 				}
@@ -352,72 +369,69 @@ export function rank(
 				b.candidate.score - a.candidate.score ||
 				a.extra - b.extra ||
 				a.candidate.name.localeCompare(b.candidate.name) ||
-				a.candidate.helper.localeCompare(b.candidate.helper)
+				a.candidate.provider.localeCompare(b.candidate.provider)
 		)
 		.map(({ candidate }) => candidate);
 }
-/** One shared plan for availability and confirmation. No rows are written by planning. */
+
+/** Shared planner for availability and confirmation. Writes nothing. */
 export function planBooking(
-	need: Omit<Need, 'slot'> & {
-		readonly minutes: number;
-	},
+	need: Omit<Need, 'slot'> & { readonly minutes: number },
 	starts: readonly Instant[],
 	pool: Pool,
 	zone: string,
-	preferred: readonly Id<'helpers'>[] = []
+	preferred: readonly Id<'providers'>[] = []
 ) {
-	const helpers =
+	const providers =
 		preferred.length === 0
-			? pool.helpers
-			: preferred.flatMap((id) => pool.helpers.filter((h) => h.id === id));
+			? pool.providers
+			: preferred.flatMap((id) => pool.providers.filter((p) => p.id === id));
 	const busy = [...pool.busy];
-	const visits: {
-		slot: Slot;
-		helper: Id<'helpers'>;
-	}[] = [];
-	let keep: Id<'helpers'> | null = null;
+	const appointments: { slot: Slot; provider: Id<'providers'> }[] = [];
+	let keep: Id<'providers'> | null = null;
 	for (const [i, start] of starts.entries()) {
 		const slot = slotOf(start, need.minutes);
-		const found = rank({ ...need, slot }, { ...pool, helpers, busy }, zone, keep);
+		const found = rank({ ...need, slot }, { ...pool, providers, busy }, zone, keep);
 		const best =
 			preferred.length === 0
 				? found[0]
-				: preferred.flatMap((id) => found.filter((c) => c.helper === id))[0];
-		if (best === undefined) return { visits, missing: i };
-		visits.push({ slot, helper: best.helper });
+				: preferred.flatMap((id) => found.filter((c) => c.provider === id))[0];
+		if (best === undefined) return { appointments, missing: i };
+		appointments.push({ slot, provider: best.provider });
 		busy.push({
 			planned: true,
 			id: `planned-${i}`,
-			helper: best.helper,
+			provider: best.provider,
 			slot,
 			location: need.location
 		});
-		keep = best.helper;
+		keep = best.provider;
 	}
-	return { visits, missing: null };
+	return { appointments, missing: null };
 }
-/** Union of feasible starts, scoped before matching; recurring starts must cover the whole finite horizon. */
+
+/** Union of feasible starts across `days`; recurring starts must satisfy the full horizon. */
 export function availableSlots(
-	need: Omit<Need, 'slot'> & {
-		readonly minutes: number;
-	},
+	need: Omit<Need, 'slot'> & { readonly minutes: number },
 	days: readonly PlainDate[],
 	pool: Pool,
 	zone: string,
 	now: string,
 	repeat = 'once',
 	count = BOOKING_AHEAD,
-	preferred: readonly Id<'helpers'>[] = []
+	preferred: readonly Id<'providers'>[] = []
 ) {
-	const helpers = pool.helpers.filter((h) => preferred.length === 0 || preferred.includes(h.id));
+	const providers = pool.providers.filter(
+		(p) => preferred.length === 0 || preferred.includes(p.id)
+	);
 	return days.map((day) => {
 		const possible = [
 			...new Set(
-				helpers.flatMap((h) =>
-					openSlots(h, need, [day], pool, zone, now).flatMap((open) => open.starts)
+				providers.flatMap((p) =>
+					openSlots(p, need, [day], pool, zone, now).flatMap((open) => open.starts)
 				)
 			)
-		].sort();
+		].sort((a, b) => epochMs(a) - epochMs(b));
 		return {
 			day,
 			starts: possible.filter(
@@ -428,20 +442,22 @@ export function availableSlots(
 		};
 	});
 }
-/** Each helper's visits grouped by local day, in order: the day as it will be driven. */
+
+/** Each provider's appointments grouped by local day, chronologically ordered. */
 export function routes(pool: Pool, zone: string): [Busy, ...Busy[]][] {
 	const by = new Map<string, [Busy, ...Busy[]]>();
 	for (const b of pool.busy) {
-		const key = `${b.helper}|${DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }))}`;
+		const key = `${b.provider}|${DateTime.formatIsoDate(DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }))}`;
 		const held = by.get(key);
 		if (held === undefined) by.set(key, [b]);
 		else held.push(b);
 	}
 	return [...by.values()].map((day) =>
-		day.sort((a, b) => Date.parse(a.slot.start) - Date.parse(b.slot.start))
+		day.sort((a, b) => epochMs(a.slot.start) - epochMs(b.slot.start))
 	);
 }
-/** The legs driven on a day: home to the first visit, then visit to visit. */
+
+/** Directed legs driven on a day: home to first appointment, then appointment to appointment. */
 export function legsOf(day: readonly Busy[], home: Point | null): [Point | null, Point | null][] {
 	let from = home;
 	return day.map((b): [Point | null, Point | null] => {
@@ -450,80 +466,76 @@ export function legsOf(day: readonly Busy[], home: Point | null): [Point | null,
 		return leg;
 	});
 }
-/** Every leg a match over `spots` may ask about: each planned leg, and each spot to and from every visit and home. */
+
+/** Unique cache keys queried when matching over `spots`. */
 export function lookups(pool: Pool, spots: readonly (Point | null)[], zone: string): string[] {
-	const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
-	const legs = routes(pool, zone).flatMap((day) => legsOf(day, homes.get(day[0].helper) ?? null));
+	const homes = new Map(pool.providers.map((p) => [p.id, p.home_location]));
+	const legs = routes(pool, zone).flatMap((day) => legsOf(day, homes.get(day[0].provider) ?? null));
 	for (const s of spots) {
 		for (const b of pool.busy) legs.push([b.location, s], [s, b.location]);
-		for (const h of pool.helpers) legs.push([h.home_location, s]);
+		for (const p of pool.providers) legs.push([p.home_location, s]);
 	}
 	return [...new Set(legs.flatMap(([a, b]) => legOf(a, b) ?? []))];
 }
-/** Minutes driven over every helper-day in `pool`: home to the first visit, then visit to visit. */
+
+/** Total planned drive minutes across every provider-day in `pool`. */
 function travelMinutes(pool: Pool, zone: string): number {
-	const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
+	const homes = new Map(pool.providers.map((p) => [p.id, p.home_location]));
 	return routes(pool, zone).reduce(
 		(sum, day) =>
 			sum +
-			legsOf(day, homes.get(day[0].helper) ?? null).reduce(
+			legsOf(day, homes.get(day[0].provider) ?? null).reduce(
 				(total, [a, b]) => total + driveMinutes(a, b, pool.drive),
 				0
 			),
 		0
 	);
 }
-/**
- * Local search over the relocate neighbourhood: hand a movable visit to another helper whenever that improves the
- * ranking objective (added drive plus squared weekly utilization) by more than the continuity bonus, and sweep again
- * until no single move improves it. Greedy booking fixes each visit in arrival order; this undoes the choices later
- * bookings made poor. Hard requirements hold for every move, since only `rank`'s feasible helpers are considered.
- * ponytail: relocate only, no swaps; a two-visit exchange would escape a few more local minima.
- */
-export function improve<V extends string>(
+
+/** Relocate-neighborhood local search lowering combined drive and squared weekly utilization. */
+export function improve<A extends string>(
 	pool: Pool,
-	movable: readonly (Omit<Need, 'visit'> & {
-		readonly visit: V;
-	})[],
+	movable: readonly (Omit<Need, 'appointment'> & { readonly appointment: A })[],
 	zone: string,
 	sweeps = 20
 ) {
 	let busy = [...pool.busy];
-	const moves = new Map<
-		V,
-		{
-			from: Id<'helpers'>;
-			to: Id<'helpers'>;
-		}
-	>();
+	const moves = new Map<A, { from: Id<'providers'>; to: Id<'providers'> }>();
 	for (let sweep = 0; sweep < sweeps; sweep++) {
 		let moved = false;
 		for (const need of movable) {
-			const held = busy.find((b) => b.id === need.visit);
+			const held = busy.find((b) => b.id === need.appointment);
 			if (held === undefined) continue;
-			const best = rank(need, { ...pool, busy }, zone, held.helper)[0];
-			if (best === undefined || best.helper === held.helper) continue;
-			busy = busy.map((b) => (b.id === need.visit ? { ...b, helper: best.helper } : b));
-			const from = moves.get(need.visit)?.from ?? held.helper;
-			if (from === best.helper) moves.delete(need.visit);
-			else moves.set(need.visit, { from, to: best.helper });
+			const best = rank(need, { ...pool, busy }, zone, held.provider)[0];
+			if (best === undefined || best.provider === held.provider) continue;
+			busy = busy.map((b) => (b.id === need.appointment ? { ...b, provider: best.provider } : b));
+			const from = moves.get(need.appointment)?.from ?? held.provider;
+			if (from === best.provider) moves.delete(need.appointment);
+			else moves.set(need.appointment, { from, to: best.provider });
 			moved = true;
 		}
 		if (!moved) break;
 	}
 	return {
-		moves: [...moves].map(([visit, m]) => ({ visit, ...m })),
+		moves: [...moves].map(([appointment, m]) => ({ appointment, ...m })),
 		before: travelMinutes(pool, zone),
 		after: travelMinutes({ ...pool, busy }, zone),
 		busy
 	};
 }
-/** Shared skills over all skills of either: how closely `b` can stand in for `a`. */
+
+/** Jaccard skill overlap between two providers for replacement similarity. */
 function skillSimilarity(a: readonly string[], b: readonly string[]): number {
-	const all = new Set([...a, ...b]);
-	return all.size === 0 ? 0 : a.filter((s) => b.includes(s)).length / all.size;
+	const setA = new Set(a.map(normalizeSkill));
+	const setB = new Set(b.map(normalizeSkill));
+	const all = new Set([...setA, ...setB]);
+	if (all.size === 0) return 0;
+	let shared = 0;
+	for (const s of setA) if (setB.has(s)) shared += 1;
+	return shared / all.size;
 }
-/** The start of every occurrence: the same local wall time each week, fortnight or month. */
+
+/** Start instants of each occurrence at the same local wall time each week, fortnight or month. */
 export function occurrences(start: string, repeat: string, count: number, zone: string): Instant[] {
 	const first = DateTime.makeZonedUnsafe(start, { timeZone: zone });
 	const n = repeat === 'once' ? 1 : count;
@@ -541,45 +553,38 @@ export function occurrences(start: string, repeat: string, count: number, zone: 
 		)
 	);
 }
-/** A slot of `minutes` from `start`. */
+
+/** Closed slot of `minutes` starting at `start`. */
 export const slotOf = (start: string, minutes: number): Slot => ({
 	start: DateTime.formatIso(DateTime.makeUnsafe(start)),
 	end: DateTime.formatIso(DateTime.add(DateTime.makeUnsafe(start), { minutes }))
 });
+
 /**
- * The starts at which the helper could take `need`'s service on each of `days`, later than `now`: every half hour inside
- * their hours, plus the times their day actually opens up — the arrival after each visit they hold (its end, the drive
- * and settling in) rounded up to the quarter hour, and the last start that still reaches their next visit, rounded down.
- * Every candidate is held to the hard requirements, travel buffers included, so a listed start is one they can make.
+ * Feasible start times for `provider` on each day in `days`, strictly after `now`: regular grid
+ * intervals inside working hours plus exact gap edges derived from adjacent appointments and travel.
  */
 export function openSlots(
-	helper: Helper,
-	need: Omit<Need, 'slot'> & {
-		readonly minutes: number;
-	},
+	provider: Provider,
+	need: Omit<Need, 'slot'> & { readonly minutes: number },
 	days: readonly PlainDate[],
 	pool: Pool,
 	zone: string,
 	now: string
-): {
-	day: PlainDate;
-	starts: Instant[];
-}[] {
+): { day: PlainDate; starts: Instant[] }[] {
 	const QUARTER = 15;
-	const from = Duration.toMinutes(
-			DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_start}Z`))
-		),
-		to =
-			Duration.toMinutes(
-				DateTime.toEpochMillis(DateTime.makeUnsafe(`1970-01-01T${helper.day_end}Z`))
-			) - need.minutes;
+	const step = intervalOf(pool);
+	const settle = bufferOf(pool);
+	const from = wallMinutes(provider.day_start);
+	const to = wallMinutes(provider.day_end) - need.minutes;
+	const nowMs = epochMs(now);
 	return days.map((day) => {
 		const candidates = new Set<number>();
-		for (let m = from; m <= to; m += 30) candidates.add(m);
+		for (let m = from; m <= to; m += step) candidates.add(m);
 		for (const b of pool.busy) {
-			if (b.helper !== helper.id || b.id === need.visit) continue;
-			const start = DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone }),
-				end = DateTime.makeZonedUnsafe(b.slot.end, { timeZone: zone });
+			if (b.provider !== provider.id || b.id === need.appointment) continue;
+			const start = DateTime.makeZonedUnsafe(b.slot.start, { timeZone: zone });
+			const end = DateTime.makeZonedUnsafe(b.slot.end, { timeZone: zone });
 			if (DateTime.formatIsoDate(end) === day) {
 				const parts = DateTime.toParts(end);
 				const arrive =
@@ -590,7 +595,7 @@ export function openSlots(
 						milliseconds: parts.millisecond
 					}) +
 					driveMinutes(b.location, need.location, pool.drive) +
-					SETTLE_MINUTES;
+					settle;
 				candidates.add(Math.ceil(arrive / QUARTER) * QUARTER);
 			}
 			if (DateTime.formatIsoDate(start) === day) {
@@ -603,7 +608,7 @@ export function openSlots(
 						milliseconds: parts.millisecond
 					}) -
 					driveMinutes(need.location, b.location, pool.drive) -
-					SETTLE_MINUTES -
+					settle -
 					need.minutes;
 				candidates.add(Math.floor(leave / QUARTER) * QUARTER);
 			}
@@ -620,28 +625,23 @@ export function openSlots(
 				),
 				need.minutes
 			);
-			if (
-				Date.parse(slot.start) > Date.parse(now) &&
-				refusal(helper, { ...need, slot }, pool, zone) === null
-			)
+			if (epochMs(slot.start) > nowMs && refusal(provider, { ...need, slot }, pool, zone) === null)
 				starts.push(slot.start);
 		}
 		return { day, starts };
 	});
 }
+
 /**
- * An alternative for a visit whose helper left: the same time with the helper whose skills are closest to the one who
- * left, else the nearest time (an hour or two either side, then the next days) at which anyone can take it.
+ * Replacement proposal for an appointment whose provider became inactive: same time with the closest
+ * skill match, else nearest feasible time over the coming week.
  */
 export function proposal(
 	need: Need,
-	leaving: readonly string[],
+	departingSkills: readonly string[],
 	pool: Pool,
 	zone: string
-): {
-	helper: Id<'helpers'>;
-	slot: Slot;
-} | null {
+): { provider: Id<'providers'>; slot: Slot } | null {
 	const minutes = Duration.toMinutes(
 		DateTime.distance(DateTime.makeUnsafe(need.slot.start), DateTime.makeUnsafe(need.slot.end))
 	);
@@ -654,14 +654,14 @@ export function proposal(
 		if (found.length === 0) continue;
 		const [best] = found
 			.flatMap((c) => {
-				const helper = pool.helpers.find((h) => h.id === c.helper);
-				return helper === undefined
+				const provider = pool.providers.find((p) => p.id === c.provider);
+				return provider === undefined
 					? []
-					: [{ candidate: c, similarity: skillSimilarity(leaving, helper.skills) }];
+					: [{ candidate: c, similarity: skillSimilarity(departingSkills, provider.skills) }];
 			})
 			.sort((a, b) => b.similarity - a.similarity || b.candidate.score - a.candidate.score);
 		if (best === undefined) continue;
-		return { helper: best.candidate.helper, slot };
+		return { provider: best.candidate.provider, slot };
 	}
 	return null;
 }

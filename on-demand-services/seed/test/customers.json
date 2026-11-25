@@ -2,12 +2,23 @@
 	{
 		"id": "019ad736-f330-7000-a470-f87a20a7b895",
 		"name": "Fixture Customer One",
-		"phone": "+6580000001",
-		"address": "1 Example Avenue, Singapore 400001",
+		"phone": "+15550100101",
+		"email": "customer-one@example.test",
+		"address": "100 Market Street, Suite 101",
 		"location": {
-			"lat": 1.3236,
-			"lng": 103.9273
-		},
-		"area": "east"
+			"lat": 40.7128,
+			"lng": -74.006
+		}
+	},
+	{
+		"id": "019ad736-f330-7000-a470-f87a20a7b896",
+		"name": "Fixture Customer Two",
+		"phone": "+15550100102",
+		"email": "customer-two@example.test",
+		"address": "200 Harbor Road, Unit 202",
+		"location": {
+			"lat": 40.7306,
+			"lng": -73.9866
+		}
 	}
 ]

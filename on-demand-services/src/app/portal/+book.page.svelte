@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { DateTime } from 'effect';
 	import {
+		Alert,
+		Badge,
 		Button,
 		Combobox,
 		EmptyState,
@@ -8,32 +10,71 @@
 		Icon,
 		Input,
 		Label,
-		Section,
 		PhoneVerify,
 		PointInput,
+		Section,
 		Spinner,
 		Textarea,
 		type Point,
 		use_act
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
-	import { AppShell, Center, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import SlotPicker from '../../lib/SlotPicker.svelte';
 	import type { PublicPageContext } from '@norbital-ai/bolt/page';
+	import {
+		AppShell,
+		Bound,
+		Center,
+		Cluster,
+		Grid,
+		Inline,
+		Scroll,
+		Stack,
+		Surface
+	} from '@norbital-ai/ui/layout';
+	import SlotPicker from '../../lib/SlotPicker.svelte';
+	import { formatCalendarDate } from '../../lib/format.js';
+	import { normalizeSkill, REPEATS } from '../../lib/matching.js';
+
 	let { ctx }: { ctx: PublicPageContext } = $props();
-	const zone = ctx.tz;
-	const t = ctx.t;
-	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
+	const uid = $props.id();
+	const t = (...args: Parameters<PublicPageContext['t']>) => ctx.t(...args);
+	const zone = $derived(ctx.tz);
+	const minuteClock = $derived(ctx.clock('minute'));
+	const me = $derived(ctx.actor?.kind === 'member' ? ctx.actor : null);
 	const repeatWord = (value: (typeof REPEATS)[number]) =>
 		ctx.t(`models.bookings.fields.repeat.${value}`);
-	const me = ctx.actor?.kind === 'member' ? ctx.actor : null;
 	const STEPS = ['details', 'time', 'done'] as const;
-	function changeAddress(next: string | null) {
-		if (next !== address) location = null;
-		address = next ?? '';
-	}
-	// read once verified: until then the page is the number alone
-	const reads =
+
+	const catalog = $derived(
+		me !== null
+			? null
+			: ctx.query({
+					services: {
+						output: 'portal',
+						fields: ['name', 'category', 'duration_minutes', 'price', 'description'],
+						order_by: { name: 'asc' },
+						limit: 50
+					},
+					openings: {
+						output: 'portal',
+						fields: ['service', 'day', 'starts'],
+						order_by: { day: 'asc' },
+						limit: 500
+					}
+				})
+	);
+	const openingSummary = $derived.by(() => {
+		const by = new Map<Id<'services'>, { count: number; nextDay: string | null }>();
+		for (const row of catalog?.current?.openings.rows ?? []) {
+			if (row.starts.length === 0) continue;
+			const cur = by.get(row.service);
+			if (cur === undefined) by.set(row.service, { count: row.starts.length, nextDay: row.day });
+			else cur.count += row.starts.length;
+		}
+		return by;
+	});
+
+	const reads = $derived(
 		me === null
 			? null
 			: ctx.query({
@@ -42,25 +83,38 @@
 						output: 'customer',
 						fields: ['name', 'duration_minutes', 'description', 'skill'],
 						order_by: { name: 'asc' },
-						limit: 20
+						limit: 50
 					},
-					helpers: { output: 'customer', fields: ['name', 'skills'] }
-				});
+					providers: { output: 'customer', fields: ['name', 'skills'], limit: 100 }
+				})
+	);
 	const answer = $derived(reads?.current);
-	// a returning customer starts with their details; typing replaces them
 	const known = $derived(answer?.customers?.rows[0]);
+
 	let service = $state<Id<'services'> | null>(null);
-	let name = $derived(known?.name ?? '');
-	let address = $derived(known?.address ?? '');
-	let location = $derived<Point | null>(known?.location ?? null);
+	let nameOverride = $state<string | null>(null);
+	let addressOverride = $state<string | null>(null);
+	let locationOverride = $state<Point | null | undefined>(undefined);
+	const name = $derived(nameOverride ?? known?.name ?? '');
+	const address = $derived(addressOverride ?? known?.address ?? '');
+	const location = $derived<Point | null>(
+		locationOverride === undefined ? (known?.location ?? null) : locationOverride
+	);
+
 	let repeat = $state<(typeof REPEATS)[number]>('once');
 	let notes = $state('');
 	let preference = $state<'any' | 'preferred'>('any');
-	let helper = $state<Id<'helpers'> | null>(null);
+	let provider = $state<Id<'providers'> | null>(null);
 	let availability = $state<Id<'availability_requests'> | null>(null);
 	let step = $state<'details' | 'time' | 'done'>('details');
 	let start = $state<string | null>(null);
 	let request = $state<Id<'booking_requests'> | null>(null);
+
+	function changeAddress(next: string | null) {
+		if (next !== address) locationOverride = null;
+		addressOverride = next ?? '';
+	}
+
 	const quote = $derived(
 		availability === null
 			? null
@@ -75,12 +129,13 @@
 	const quoted = $derived(quote?.current?.availability_requests.rows[0]);
 	const days = $derived.by(() => {
 		const by = new Map<string, string[]>();
-		for (const start of quoted?.starts ?? []) {
-			const day = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(start, { timeZone: zone }));
-			by.set(day, [...(by.get(day) ?? []), start]);
+		for (const s of quoted?.starts ?? []) {
+			const day = DateTime.formatIsoDate(DateTime.makeZonedUnsafe(s, { timeZone: zone }));
+			by.set(day, [...(by.get(day) ?? []), s]);
 		}
 		return [...by].map(([day, starts]) => ({ day, starts }));
 	});
+
 	const settled = $derived(
 		request === null
 			? null
@@ -95,41 +150,42 @@
 	);
 	const settledRow = $derived(settled?.current?.booking_requests.rows[0]);
 	const chosen = $derived(answer?.services?.rows.find((s) => s.id === service));
-	const mismatch = $derived(
-		preference === 'preferred' &&
-			helper !== null &&
-			chosen !== undefined &&
-			!answer?.helpers?.rows.find((h) => h.id === helper)?.skills.includes(chosen.skill)
-	);
-	/** The booking's first visit, once it is booked: who comes, and exactly when. */
+	const mismatch = $derived.by(() => {
+		if (preference !== 'preferred' || provider === null || chosen === undefined) return false;
+		const row = answer?.providers?.rows.find((p) => p.id === provider);
+		if (row === undefined) return false;
+		const want = normalizeSkill(chosen.skill);
+		return !row.skills.some((s) => normalizeSkill(s) === want);
+	});
+
 	const first = $derived.by(() => {
 		const booking = settledRow?.booking;
 		return booking == null
 			? null
 			: ctx.query({
-					visits: {
+					appointments: {
 						output: 'customer',
 						where: { booking: { eq: booking } },
-						fields: ['slot', 'helper'],
+						fields: ['slot', 'provider'],
 						order_by: { number: 'asc' },
 						limit: 1,
-						helper: { fields: ['name'] }
+						provider: { fields: ['name'] }
 					}
 				});
 	});
-	/** What the confirmation lists: the visit, where, who comes (once matched) and the reference. */
+
 	const summary = $derived.by(() => {
 		const r = settledRow;
 		if (r == null) return [];
-		const visit = first?.current?.visits.rows[0];
+		const appt = first?.current?.appointments.rows[0];
 		return [
-			{ icon: 'lucide:sparkles', label: t('app.portal.row_service'), value: chosen?.name ?? '' },
+			{ icon: 'lucide:briefcase', label: t('app.portal.row_service'), value: chosen?.name ?? '' },
 			{
 				icon: 'lucide:calendar-clock',
 				label: t('app.portal.row_when'),
 				value: format(
 					{ kind: 'period', of: 'instant' },
-					visit?.slot ?? {
+					appt?.slot ?? {
 						start: r.start,
 						end: DateTime.formatIso(
 							DateTime.add(DateTime.makeUnsafe(r.start), {
@@ -146,21 +202,21 @@
 				value: repeatWord(repeat)
 			},
 			{ icon: 'lucide:map-pin', label: t('app.portal.row_where'), value: address },
-			...(r.status === 'booked' && visit?.helper
+			...(r.status === 'booked' && appt?.provider
 				? [
 						{
 							icon: 'lucide:user-round-check',
-							label: t('app.portal.row_helper'),
-							value: visit.helper.name
+							label: t('app.portal.row_provider'),
+							value: appt.provider.name
 						}
 					]
 				: []),
 			{ icon: 'lucide:hash', label: t('app.portal.row_reference'), value: r.number }
 		];
 	});
-	/** The visit as a calendar file the customer's phone opens in its own calendar. */
+
 	function addToCalendar(reference: string) {
-		const slot = first?.current?.visits.rows[0]?.slot;
+		const slot = first?.current?.appointments.rows[0]?.slot;
 		if (slot == null) return;
 		const end =
 			slot.end ??
@@ -173,8 +229,7 @@
 			'PRODID:-//booking portal//EN',
 			'BEGIN:VEVENT',
 			`UID:${reference}@portal`,
-			// iCalendar's basic UTC form: 20260102T030405Z
-			`DTSTAMP:${DateTime.formatIso(DateTime.nowUnsafe()).replace(/[-:]|\.\d{3}/g, '')}`,
+			`DTSTAMP:${minuteClock.now.replace(/[-:]|\.\d{3}/g, '')}`,
 			`DTSTART:${slot.start.replace(/[-:]|\.\d{3}/g, '')}`,
 			`DTEND:${end.replace(/[-:]|\.\d{3}/g, '')}`,
 			`SUMMARY:${chosen?.name ?? ''}`,
@@ -189,17 +244,19 @@
 		a.click();
 		URL.revokeObjectURL(a.href);
 	}
+
 	const ready = $derived(
 		me !== null &&
 			service !== null &&
 			name.trim() !== '' &&
 			address.trim() !== '' &&
-			(preference === 'any' || (helper !== null && !mismatch))
+			(preference === 'any' || (provider !== null && !mismatch))
 	);
 	const save = use_act(ctx);
+
 	function chooseTime() {
-		const phone = me?.phone,
-			selectedService = service;
+		const phone = me?.phone;
+		const selectedService = service;
 		if (!ready || phone == null || selectedService === null) return;
 		start = null;
 		availability = null;
@@ -213,12 +270,11 @@
 						...(location === null ? {} : { location }),
 						preference,
 						repeat,
-						...(preference === 'preferred' && helper !== null ? { helper } : {})
+						...(preference === 'preferred' && provider !== null ? { provider } : {})
 					}
 				]
 			}),
 			{
-				// past the person-wait the request runs on: its run reports the outcome
 				then: (outcome) => {
 					const record =
 						outcome.kind === 'committed'
@@ -231,11 +287,12 @@
 			}
 		);
 	}
+
 	function confirm() {
-		const phone = me?.phone,
-			selectedService = service,
-			selectedStart = start,
-			selectedAvailability = availability;
+		const phone = me?.phone;
+		const selectedService = service;
+		const selectedStart = start;
+		const selectedAvailability = availability;
 		if (
 			phone == null ||
 			selectedService === null ||
@@ -272,6 +329,7 @@
 			}
 		);
 	}
+
 	function again() {
 		request = null;
 		start = null;
@@ -281,44 +339,127 @@
 
 <AppShell
 	icon="lucide:calendar-heart"
-	title={ctx.t('app.portal.tab_book')}
-	description={ctx.t('app.portal.description')}
+	title={t('app.portal.tab_book')}
+	description={t('app.portal.description')}
 	variant="full"
 >
 	<Scroll name="portal-book" size="fill" inset>
 		<Center measure="reading">
 			<Stack gap="lg">
-				<Stack as="header" gap="md">
-					<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
-					<Inline as="ol" gap="lg" class="border-b pb-3 text-sm" aria-label={t('app.portal.title')}>
-						{#each STEPS as s, i (s)}
-							<li
-								aria-current={step === s ? 'step' : undefined}
-								class={step === s ? 'text-label' : 'text-muted-foreground'}
-							>
-								{i + 1}. {t(`app.portal.step_${s}`)}
-							</li>
-						{/each}
-					</Inline>
-				</Stack>
+				<Surface as="header" tone="subtle" padding="sm" radius="control">
+					<Stack gap="sm">
+						<p class="text-sm text-muted-foreground" data-portal-org>{ctx.org.name}</p>
+						<Inline as="ol" gap="lg" class="text-sm" aria-label={t('app.portal.title')}>
+							{#each STEPS as s, i (s)}
+								<li
+									aria-current={step === s ? 'step' : undefined}
+									class={step === s ? 'text-label' : 'text-muted-foreground'}
+								>
+									{i + 1}. {t(`app.portal.step_${s}`)}
+								</li>
+							{/each}
+						</Inline>
+					</Stack>
+				</Surface>
 
 				{#if step === 'details'}
 					{#if me === null}
-						<Stack gap="md">
-							<PhoneVerify {ctx} session={ctx.session} />
+						<Stack gap="lg">
+							{#if catalog?.error}
+								<Alert.Root variant="destructive">
+									<Alert.Title>{catalog.error.message}</Alert.Title>
+								</Alert.Root>
+							{:else if catalog?.current === undefined}
+								<Surface tone="subtle" padding="md" radius="control" role="status" aria-busy="true">
+									<Inline gap="sm" align="center">
+										<Spinner />
+										<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+									</Inline>
+								</Surface>
+							{:else if catalog.current.services.rows.length > 0}
+								<Stack gap="sm">
+									<h2 class="text-overline">{t('app.portal.browse_services')}</h2>
+									<Grid minimum="card" gap="sm">
+										{#each catalog.current.services.rows as item (item.id)}
+											{@const stats = openingSummary.get(item.id)}
+											{@const selected = service === item.id}
+											<Bound
+												as="button"
+												type="button"
+												pad="sm"
+												aria-pressed={selected}
+												onclick={() => (service = item.id)}
+												class={[
+													'rounded-control border text-left transition-colors',
+													selected
+														? 'border-brand bg-surface-hover'
+														: 'border-border-control bg-surface-card hover:bg-surface-hover'
+												]}
+											>
+												<Stack gap="xs">
+													<Cluster gap="xs" justify="between" align="center">
+														<span class="text-heading">{item.name}</span>
+														{#if item.category}
+															<Badge variant="outline">{item.category}</Badge>
+														{/if}
+													</Cluster>
+													{#if item.description}
+														<p class="text-sm text-muted-foreground">{item.description}</p>
+													{/if}
+													<p class="text-meta tabular-nums">
+														{t('app.booking.duration', { minutes: item.duration_minutes })} · {format(
+															{ kind: 'money' },
+															item.price,
+															{ locale: ctx.locale }
+														)}
+													</p>
+													{#if stats && stats.nextDay !== null}
+														<p class="text-caption">
+															{t('app.portal.open_slots_next', {
+																count: stats.count,
+																day: formatCalendarDate(
+																	stats.nextDay,
+																	{ weekday: 'short', day: 'numeric', month: 'short' },
+																	ctx.locale
+																)
+															})}
+														</p>
+													{/if}
+												</Stack>
+											</Bound>
+										{/each}
+									</Grid>
+								</Stack>
+							{/if}
+
+							<Stack gap="sm">
+								<p class="text-sm text-muted-foreground">{t('app.portal.verify_to_book')}</p>
+								<PhoneVerify {ctx} session={ctx.session} />
+							</Stack>
 						</Stack>
+					{:else if reads?.error}
+						<Alert.Root variant="destructive">
+							<Alert.Title>{reads.error.message}</Alert.Title>
+						</Alert.Root>
+					{:else if answer === undefined}
+						<Surface tone="subtle" padding="md" radius="control" role="status" aria-busy="true">
+							<Inline gap="sm" align="center">
+								<Spinner />
+								<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+							</Inline>
+						</Surface>
 					{:else}
 						<Stack gap="lg">
 							<p class="text-sm text-muted-foreground">{me.phone} · {t('app.portal.verified')}</p>
-							<Grid minimum="compact" gap="md">
+							<Grid minimum="card" gap="md">
 								<Stack gap="sm">
-									<Label for="portal-service">{t('app.portal.service')}</Label>
+									<Label for={`${uid}-service`}>{t('app.portal.service')}</Label>
 									<Combobox
-										id="portal-service"
+										id={`${uid}-service`}
 										value={service}
 										clearable
 										placeholder={t('app.booking.select_service')}
-										options={(answer?.services?.rows ?? []).map((s) => ({
+										options={(answer.services?.rows ?? []).map((s) => ({
 											value: s.id,
 											label: s.name
 										}))}
@@ -327,16 +468,19 @@
 											start = null;
 										}}
 									/>
-									{#if chosen}<p class="text-caption">
-											{chosen.description} · {t('app.booking.duration', {
-												minutes: chosen.duration_minutes
-											})}
-										</p>{/if}
+									{#if chosen}
+										<p class="text-caption">
+											{chosen.description ? `${chosen.description} · ` : ''}{t(
+												'app.booking.duration',
+												{ minutes: chosen.duration_minutes }
+											)}
+										</p>
+									{/if}
 								</Stack>
 								<Stack gap="sm">
-									<Label for="portal-repeat">{t('app.portal.repeat')}</Label>
+									<Label for={`${uid}-repeat`}>{t('app.portal.repeat')}</Label>
 									<Combobox
-										id="portal-repeat"
+										id={`${uid}-repeat`}
 										value={repeat}
 										options={REPEATS.map((r) => ({
 											value: r,
@@ -348,48 +492,59 @@
 									/>
 								</Stack>
 							</Grid>
-							<Stack gap="sm" class="booking-destination">
-								<Label for="portal-address">{t('app.portal.address')}</Label>
+
+							<Stack gap="sm">
+								<Label for={`${uid}-address`}>{t('app.portal.address')}</Label>
 								<PointInput
 									{ctx}
-									id="portal-address"
+									id={`${uid}-address`}
 									value={location}
 									{address}
 									on_address={changeAddress}
 									on_change={(next) => {
-										// The picker sets a point before its address callback; apply the point after address invalidation.
 										queueMicrotask(() => {
-											location = next;
+											locationOverride = next;
 										});
 									}}
 								/>
 							</Stack>
-							<Grid minimum="compact" gap="md">
+
+							<Grid minimum="card" gap="md">
 								<Stack gap="sm">
-									<Label for="portal-name">{t('app.portal.name')}</Label>
-									<Input id="portal-name" autocomplete="name" bind:value={name} />
-								</Stack>
-								<Stack gap="sm">
-									<Label for="preferred-helper">{t('app.booking.cleaner')}</Label>
-									<Combobox
-										id="preferred-helper"
-										value={helper}
-										clearable
-										placeholder={t('app.booking.no_preference')}
-										options={(answer?.helpers?.rows ?? []).map((h) => ({
-											value: h.id,
-											label: h.name
-										}))}
-										on_change={(value) => {
-											helper = value;
-											preference = helper === null ? 'any' : 'preferred';
+									<Label for={`${uid}-name`}>{t('app.portal.name')}</Label>
+									<Input
+										id={`${uid}-name`}
+										autocomplete="name"
+										value={name}
+										oninput={(e: Event & { currentTarget: HTMLInputElement }) => {
+											nameOverride = e.currentTarget.value;
 										}}
 									/>
-									{#if mismatch}<p role="alert" class="text-sm text-destructive">
-											{t('app.booking.skill_mismatch')}
-										</p>{/if}
+								</Stack>
+								<Stack gap="sm">
+									<Label for={`${uid}-provider`}>{t('app.booking.provider')}</Label>
+									<Combobox
+										id={`${uid}-provider`}
+										value={provider}
+										clearable
+										placeholder={t('app.booking.no_preference')}
+										options={(answer.providers?.rows ?? []).map((p) => ({
+											value: p.id,
+											label: p.name
+										}))}
+										on_change={(value) => {
+											provider = value;
+											preference = provider === null ? 'any' : 'preferred';
+										}}
+									/>
+									{#if mismatch}
+										<Alert.Root variant="destructive">
+											<Alert.Title>{t('app.booking.skill_mismatch')}</Alert.Title>
+										</Alert.Root>
+									{/if}
 								</Stack>
 							</Grid>
+
 							<Section
 								icon="lucide:notebook-pen"
 								name="notes"
@@ -398,13 +553,15 @@
 								summary={notes.trim() || t('app.portal.no_notes')}
 							>
 								<Textarea
-									id="portal-notes"
+									id={`${uid}-notes`}
 									aria-label={t('app.portal.notes')}
 									rows={3}
 									bind:value={notes}
 								/>
 							</Section>
+
 							<Button
+								variant="brand"
 								size="lg"
 								class="w-full"
 								disabled={!ready || save.pending}
@@ -417,20 +574,21 @@
 				{:else if step === 'time'}
 					<Stack gap="lg">
 						<p class="text-sm text-muted-foreground">{chosen?.name} · {address}</p>
-						{#if quoted == null || quoted.status === 'pending'}
-							<Stack gap="sm" role="status" aria-busy="true" aria-label={t('component.loading')}>
-								<div
-									class="h-10 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
-								></div>
-								<div
-									class="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
-								></div>
-								<div
-									class="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
-								></div>
-							</Stack>
+						{#if quote?.error}
+							<Alert.Root variant="destructive">
+								<Alert.Title>{quote.error.message}</Alert.Title>
+							</Alert.Root>
+						{:else if quoted == null || quoted.status === 'pending'}
+							<Surface tone="subtle" padding="md" radius="control" role="status" aria-busy="true">
+								<Inline gap="sm" align="center">
+									<Spinner />
+									<span class="text-sm text-muted-foreground">{t('component.loading')}</span>
+								</Inline>
+							</Surface>
 						{:else if quoted.status === 'failed'}
-							<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
+							<Alert.Root variant="destructive">
+								<Alert.Title>{quoted.problem}</Alert.Title>
+							</Alert.Root>
 						{:else if days.length === 0}
 							<EmptyState variant="inset" title={t('app.portal.no_times')} />
 						{:else}
@@ -444,17 +602,18 @@
 								{t}
 							/>
 						{/if}
-						{#if quoted?.estimated}<p class="text-caption">
-								{t('app.booking.travel_estimated')}
-							</p>{/if}
+						{#if quoted?.estimated}
+							<p class="text-caption">{t('app.booking.travel_estimated')}</p>
+						{/if}
 						<Stack gap="sm">
 							<Button
+								variant="brand"
 								size="lg"
 								class="w-full"
 								disabled={start === null || save.pending || quoted?.status !== 'ready'}
 								onclick={confirm}
 							>
-								{#if save.pending}<Spinner class="h-4 w-4" />{/if}{t('app.portal.confirm')}
+								{#if save.pending}<Spinner class="size-4" />{/if}{t('app.portal.confirm')}
 							</Button>
 							<Button
 								variant="ghost"
@@ -463,32 +622,39 @@
 									step = 'details';
 									start = null;
 									availability = null;
-								}}>{t('app.portal.back')}</Button
+								}}
 							>
+								{t('app.portal.back')}
+							</Button>
 						</Stack>
 					</Stack>
 				{:else}
 					{@const r = settledRow}
-					{#if r == null || r.status === 'received'}
-						<Stack gap="md" align="center" class="py-12 text-center">
-							<Spinner class="h-6 w-6" />
-							<p class="text-subhead">{t('app.portal.confirming')}</p>
-						</Stack>
+					{#if settled?.error}
+						<Alert.Root variant="destructive">
+							<Alert.Title>{settled.error.message}</Alert.Title>
+						</Alert.Root>
+					{:else if r == null || r.status === 'received'}
+						<Surface tone="subtle" padding="lg" radius="control" role="status" aria-busy="true">
+							<Stack gap="md" align="center" class="text-center">
+								<Spinner class="size-6" />
+								<p class="text-subhead">{t('app.portal.confirming')}</p>
+							</Stack>
+						</Surface>
 					{:else}
 						{@const booked = r.status === 'booked'}
 						<Stack gap="lg">
-							<Stack gap="sm" align="center" class="pt-4 text-center">
-								<Stack
-									as="span"
-									align="center"
-									justify="center"
+							<Stack gap="sm" align="center" class="text-center">
+								<span
 									class={[
-										'size-14 rounded-full',
-										booked ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
+										'inline-flex size-14 items-center justify-center rounded-full',
+										booked
+											? 'bg-tone-success-bg text-tone-success-text'
+											: 'bg-tone-warning-bg text-tone-warning-text'
 									]}
 								>
 									<Icon name={booked ? 'lucide:check' : 'lucide:clock'} class="size-7" />
-								</Stack>
+								</span>
 								<h2 class="text-title">
 									{booked ? t('app.portal.booked_title') : t('app.portal.follow_up_title')}
 								</h2>
@@ -496,20 +662,19 @@
 									{booked ? t('app.portal.booked_body') : t('app.portal.follow_up_body')}
 								</p>
 							</Stack>
-							<Stack as="dl" gap="none" divided class="rounded-md border bg-card text-sm">
-								{#each summary as row (row.label)}
-									<Grid
-										tracks="auto minmax(6rem,8rem) minmax(0,1fr)"
-										gap="sm"
-										align="start"
-										class="px-4 py-3"
-									>
-										<Icon name={row.icon} class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-										<dt class="text-muted-foreground">{row.label}</dt>
-										<dd class="min-w-0 font-medium">{row.value}</dd>
-									</Grid>
-								{/each}
-							</Stack>
+
+							<Surface tone="card" padding="md" radius="control">
+								<Stack as="dl" gap="sm" divided class="text-sm">
+									{#each summary as row (row.label)}
+										<Grid tracks="auto minmax(6rem,8rem) minmax(0,1fr)" gap="sm" align="center">
+											<Icon name={row.icon} class="size-4 shrink-0 text-muted-foreground" />
+											<dt class="text-muted-foreground">{row.label}</dt>
+											<dd class="min-w-0 font-medium">{row.value}</dd>
+										</Grid>
+									{/each}
+								</Stack>
+							</Surface>
+
 							<Stack gap="sm">
 								{#if booked}
 									<Button variant="outline" class="w-full" onclick={() => addToCalendar(r.number)}>
@@ -518,19 +683,21 @@
 										)}
 									</Button>
 								{/if}
-								<Button class="w-full" href="visits">{t('app.portal.my_bookings')}</Button>
-								<Button variant="ghost" class="w-full" onclick={again}
-									>{t('app.portal.another')}</Button
-								>
+								<Button variant="brand" class="w-full" href="appointments">
+									{t('app.portal.my_bookings')}
+								</Button>
+								<Button variant="ghost" class="w-full" onclick={again}>
+									{t('app.portal.another')}
+								</Button>
 							</Stack>
 						</Stack>
 					{/if}
 				{/if}
 
 				{#if me !== null && step !== 'done'}
-					<a class="text-center text-sm underline underline-offset-4" href="visits"
-						>{t('app.portal.my_bookings')}</a
-					>
+					<a class="text-center text-sm underline underline-offset-4" href="appointments">
+						{t('app.portal.my_bookings')}
+					</a>
 				{/if}
 			</Stack>
 		</Center>

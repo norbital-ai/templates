@@ -1,0 +1,39 @@
+[
+	{
+		"id": "019b76dc-0f60-7000-a62e-d53c2544c573",
+		"number": "AP-2026-00005",
+		"booking": "019b76dc-0f60-7000-a62e-d53c2544c573",
+		"provider": "019b76dc-1f00-7000-a3bb-dd6cc8f5ac58",
+		"slot": {
+			"start": "2026-09-29T10:00:00.000Z",
+			"end": "2026-09-29T13:00:00.000Z"
+		},
+		"address": "100 Market Street, Suite 101",
+		"location": {
+			"lat": 40.7128,
+			"lng": -74.006
+		},
+		"skill": "hvac_service",
+		"status": "scheduled",
+		"shift_check": "asked",
+		"shift_asked_at": "2026-09-29T07:45:00.000Z"
+	},
+	{
+		"id": "019b76dc-1348-7000-8bfd-cd9a22600c91",
+		"number": "AP-2026-00006",
+		"booking": "019b76dc-1348-7000-8bfd-cd9a22600c91",
+		"provider": "019b76dc-22e8-7000-a81d-cf841de9d389",
+		"slot": {
+			"start": "2026-09-29T08:45:00.000Z",
+			"end": "2026-09-29T09:15:00.000Z"
+		},
+		"address": "100 Market Street, Suite 101",
+		"location": {
+			"lat": 40.7128,
+			"lng": -74.006
+		},
+		"skill": "hvac_service",
+		"status": "scheduled",
+		"shift_check": "confirmed"
+	}
+]

@@ -1,31 +1,52 @@
 import { Effect } from 'effect';
-import type { ActInput, Row } from '@norbital-ai/bolt';
+import type { ActInput, Id, Row } from '@norbital-ai/bolt';
 import type { ActFailure } from '@norbital-ai/bolt/errors';
 
 type Notice = Pick<Row<'customer_notices'>, 'id' | 'revision' | 'subject' | 'body'> & {
 	readonly customer: Pick<Row<'customers'>, 'phone'>;
 };
 type Status = Extract<ActInput<'customer_notices.update'>, readonly unknown[]>[number];
+type RevisionRow = { readonly id: Id<'customer_notices'>; readonly revision: number };
 
-/** Send once; only a status-write conflict is safe to retry. */
-export const deliverNoticeRows = Effect.fnUntraced(function* <E>(
+/**
+ * Send each notice once via WhatsApp and record queue admission (`queued` or `failed: ...`).
+ * On an `ActConflict` (for example from a concurrent email delivery update), reload fresh
+ * revisions and retry the status write without resending WhatsApp.
+ */
+export const deliverNoticeRows = Effect.fnUntraced(function* <E, RE = never>(
 	rows: readonly Notice[],
 	send: (notice: Notice) => Effect.Effect<unknown, E>,
-	write: (set: Status[]) => Effect.Effect<unknown, ActFailure>
+	write: (set: Status[]) => Effect.Effect<unknown, ActFailure>,
+	reload: (ids: readonly Id<'customer_notices'>[]) => Effect.Effect<readonly RevisionRow[], RE>
 ) {
-	const set = yield* Effect.forEach(rows, (notice) =>
+	const results = yield* Effect.forEach(rows, (notice) =>
 		send(notice).pipe(
 			Effect.match({
-				onSuccess: () => 'sent',
+				onSuccess: () => 'queued',
 				onFailure: (error) => `failed: ${String(error instanceof Error ? error.message : error)}`
 			}),
-			Effect.map((went): Status => ({
-				target: { id: notice.id, revision: notice.revision },
-				set: { whatsapp: went }
-			}))
+			Effect.map((went) => ({ id: notice.id, revision: notice.revision, whatsapp: went }))
 		)
 	);
-	if (set.length > 0) yield* write(set).pipe(Effect.catchTag('ActConflict', () => write(set)));
+	if (results.length === 0) return;
+	const toUpdate = (revisions: ReadonlyMap<Id<'customer_notices'>, number>): Status[] =>
+		results.flatMap((r) => {
+			const revision = revisions.get(r.id);
+			return revision === undefined
+				? []
+				: [{ target: { id: r.id, revision }, set: { whatsapp: r.whatsapp } }];
+		});
+	const initial = new Map(results.map((r) => [r.id, r.revision]));
+	yield* write(toUpdate(initial)).pipe(
+		Effect.catchTag('ActConflict', () =>
+			reload(results.map((r) => r.id)).pipe(
+				Effect.flatMap((fresh) => {
+					const next = toUpdate(new Map(fresh.map((r) => [r.id, r.revision])));
+					return next.length === 0 ? Effect.void : write(next);
+				})
+			)
+		)
+	);
 });
 
 export const DELIVERY = [

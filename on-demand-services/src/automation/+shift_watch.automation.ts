@@ -2,37 +2,35 @@ import { automation, type Id } from '@norbital-ai/bolt';
 import * as DateTime from 'effect/DateTime';
 import * as Effect from 'effect/Effect';
 import {
-	whatsappAccount,
+	appointmentsToMove,
 	dayOf,
 	recommend,
 	settingsOf,
 	targetOf,
-	visitsToMove,
-	whatsapp
+	whatsapp,
+	whatsappAccount
 } from '../lib/dispatch.js';
+import { epochMs, formatInstant } from '../lib/format.js';
 import type { Slot } from '../lib/matching.js';
+
 /**
- * The pre-shift check. Two hours before a helper's first visit of the day they are asked to confirm the day. No answer
- * within the hour, or a decline, and the day's visits receive replacement proposals for controller approval; a customer who asked for particular helpers is
- * told. A no-show without a medical certificate earns a warning letter.
+ * Pre-shift check monitor: prompts each provider ahead of their first appointment of the day, and
+ * logs time off plus prepares replacement recommendations when they decline or fail to respond in time.
  */
 export default automation({
 	description:
-		'Asks each helper to confirm their day two hours before its first visit, and proposes replacements for controller approval when they decline or do not answer, issuing a warning letter when there is no medical certificate.',
-	// not `*/5`: a cron run is keyed by its expression alone, so two automations on one expression run once between them;
-	// a decline also schedules it (the visits effect); rests a day after an idle slot so quiet workspaces sleep
-	on: [{ cron: '*/10 * * * *', rest: '1d' }],
+		'Prompts providers to confirm their day ahead of their first appointment and prepares replacement recommendations if they decline or do not respond.',
+	on: [{ cron: '2,12,22,32,42,52 * * * *', rest: '1d' }],
 	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = DateTime.makeUnsafe(ctx.now);
 		const settings = yield* settingsOf(ctx);
-		// ask: the first unconfirmed visit of each helper's day that starts within the lead time
 		const { rows: soon } = (yield* ctx.query({
-			visits: {
+			appointments: {
 				where: {
 					status: { eq: 'scheduled' },
-					helper: { is_null: false },
+					provider: { is_null: false },
 					shift_check: { eq: 'not_due' },
 					slot: {
 						overlaps: {
@@ -43,59 +41,69 @@ export default automation({
 						}
 					}
 				},
-				fields: ['revision', 'number', 'slot', 'helper'],
+				fields: ['revision', 'number', 'slot', 'provider'],
 				order_by: { number: 'asc' },
-				helper: { fields: ['user', 'name', 'phone'] }
+				limit: 500,
+				provider: { fields: ['user', 'name', 'phone'] }
 			}
-		})).visits;
+		})).appointments;
 		const first = new Map<
 			string,
-			{ visit: (typeof soon)[number]; helper: NonNullable<(typeof soon)[number]['helper']> }
+			{
+				appointment: (typeof soon)[number];
+				provider: NonNullable<(typeof soon)[number]['provider']>;
+			}
 		>();
-		for (const v of [...soon].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
-			if (v.helper === null || DateTime.isLessThan(DateTime.makeUnsafe(v.slot.start), now))
+		for (const a of [...soon].sort((x, y) => epochMs(x.slot.start) - epochMs(y.slot.start))) {
+			if (a.provider === null || DateTime.isLessThan(DateTime.makeUnsafe(a.slot.start), now))
 				continue;
-			const key = `${v.helper.id} ${dayOf(v.slot.start, ctx.tz).start}`;
-			if (!first.has(key)) first.set(key, { visit: v, helper: v.helper });
+			const key = `${a.provider.id} ${dayOf(a.slot.start, ctx.tz).start}`;
+			if (!first.has(key)) first.set(key, { appointment: a, provider: a.provider });
 		}
 		const ask = [...first.values()];
 		if (ask.length > 0) {
-			yield* ctx.act({
-				'visits.update': ask.map(({ visit: v }) => ({
-					target: targetOf(v),
-					set: { shift_check: 'asked' as const, shift_asked_at: ctx.now }
-				}))
-			});
+			yield* ctx.act(
+				{
+					'appointments.update': ask.map(({ appointment: a }) => ({
+						target: targetOf(a),
+						set: { shift_check: 'asked' as const, shift_asked_at: ctx.now }
+					}))
+				},
+				{
+					key: `shift-ask:${ask
+						.map(({ appointment: a }) => `${a.id}:${a.revision}`)
+						.sort()
+						.join(',')}`
+				}
+			);
 			yield* ctx.notify(
-				ask.flatMap(({ visit: v, helper }) =>
-					helper.user === null
+				ask.flatMap(({ appointment: a, provider }) =>
+					provider.user === null
 						? []
 						: [
 								{
 									title: 'Confirm your shift',
-									to: [{ user: helper.user }],
-									description: `Your first visit today, ${v.number}, starts soon. Confirm you are coming, or tell us you cannot.`,
-									link: { model: 'visits', id: v.id },
-									once: `ask-${v.id}`
+									to: [{ user: provider.user }],
+									description: `Your first appointment today, ${a.number}, starts soon. Open My Day to confirm or report unavailability.`,
+									link: { model: 'appointments', id: a.id },
+									once: `ask-${a.id}`
 								}
 							]
 				)
 			);
-			// the phone too: an inbox notice reaches only a helper who has the app open or push enabled
 			const account = yield* whatsappAccount(ctx);
 			if (account !== null)
-				for (const { visit: v, helper } of ask)
+				for (const { appointment: a, provider } of ask)
 					yield* ctx.send(account, {
-						to: whatsapp(helper.phone),
-						text: `Your first visit today, ${v.number}, starts at ${new Intl.DateTimeFormat('en-SG', { timeZone: ctx.tz, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v.slot.start))}. Open My Day to confirm you are coming, or tell us you cannot.`
+						to: whatsapp(provider.phone),
+						text: `Your first appointment today, ${a.number}, starts at ${formatInstant(a.slot.start, ctx.tz)}. Open My Day to confirm your shift or report unavailability.`
 					});
 		}
-		// no answer in time: treat as not coming
 		const { rows: silent } = (yield* ctx.query({
-			visits: {
+			appointments: {
 				where: {
 					status: { eq: 'scheduled' },
-					helper: { is_null: false },
+					provider: { is_null: false },
 					shift_check: { eq: 'asked' },
 					shift_asked_at: {
 						lte: DateTime.formatIso(
@@ -103,90 +111,66 @@ export default automation({
 						)
 					}
 				},
-				fields: ['helper', 'slot', 'mc']
+				fields: ['provider', 'slot'],
+				limit: 500
 			}
-		})).visits;
-		// declined and still held: every run picks these up, so a decline is handled even if its own trigger was skipped
+		})).appointments;
 		const { rows: declined } = (yield* ctx.query({
-			visits: {
+			appointments: {
 				where: {
 					status: { eq: 'scheduled' },
-					helper: { is_null: false },
+					provider: { is_null: false },
 					shift_check: { eq: 'declined' }
 				},
-				fields: ['helper', 'slot', 'mc']
+				fields: ['provider', 'slot'],
+				limit: 500
 			}
-		})).visits;
-		// one warning and one recovery plan per helper's day
-		const days = new Map<
-			string,
-			{
-				helper: Id<'helpers'>;
-				visit: Id<'visits'>;
-				day: Slot;
-				warn: 'no_response' | 'declined_without_mc' | null;
-			}
-		>();
-		for (const [rows, reason] of [
-			[silent, 'no_response'],
-			[declined, 'declined_without_mc']
+		})).appointments;
+		const days = new Map<string, { provider: Id<'providers'>; day: Slot; lapsed: boolean }>();
+		for (const [rows, lapsed] of [
+			[silent, true],
+			[declined, false]
 		] as const)
-			for (const v of rows) {
-				if (v.helper === null) continue;
-				const day = dayOf(v.slot.start, ctx.tz);
-				const key = `${v.helper} ${day.start}`;
-				if (!days.has(key))
-					days.set(key, { helper: v.helper, visit: v.id, day, warn: v.mc ? null : reason });
+			for (const a of rows) {
+				if (a.provider === null) continue;
+				const day = dayOf(a.slot.start, ctx.tz);
+				const key = `${a.provider} ${day.start}`;
+				if (!days.has(key)) days.set(key, { provider: a.provider, day, lapsed });
 			}
 		if (days.size === 0) return;
 		for (const d of days.values()) {
-			// a day whose plan lost a revision race is read again next run: its warning is already filed
-			if (d.warn !== null) {
-				const filed = (yield* ctx.query({
-					helper_warnings: {
-						where: {
-							helper: { eq: d.helper },
-							reason: { eq: d.warn },
-							visit: { is: { slot: { overlaps: d.day } } }
-						},
-						limit: 1
-					}
-				})).helper_warnings;
-				if (filed.rows.length === 0)
-					yield* ctx.act({
-						'helper_warnings.create': [
-							{ helper: d.helper, visit: d.visit, reason: d.warn, issued_at: ctx.now }
-						]
-					});
-			}
 			const { rows } = (yield* ctx.query(
-				visitsToMove({
-					helper: { eq: d.helper },
+				appointmentsToMove({
+					provider: { eq: d.provider },
 					status: { eq: 'scheduled' },
 					slot: { overlaps: d.day }
 				})
-			)).visits;
+			)).appointments;
 			const date = DateTime.formatIsoDate(
 				DateTime.makeZonedUnsafe(d.day.start, { timeZone: ctx.tz })
 			);
 			const existing = (yield* ctx.query({
-				helper_time_off: {
-					where: { helper: { eq: d.helper }, period: { overlaps: { from: date, to: date } } },
+				provider_time_off: {
+					where: { provider: { eq: d.provider }, period: { overlaps: { from: date, to: date } } },
 					limit: 1
 				}
-			})).helper_time_off;
+			})).provider_time_off;
 			if (existing.rows.length === 0)
-				yield* ctx.act({
-					'helper_time_off.create': [
+				yield* ctx
+					.act(
 						{
-							helper: d.helper,
-							period: { from: date, to: date },
-							reason: d.warn === null ? 'medical' : 'other'
-						}
-					]
-				});
-			// a visit of the day written since it was read is the newer writer's; a day still held is planned next run
-			yield* recommend(ctx, rows, d.helper, d.warn === 'no_response').pipe(
+							'provider_time_off.create': [
+								{
+									provider: d.provider,
+									period: { from: date, to: date },
+									reason: 'unavailable'
+								}
+							]
+						},
+						{ key: `time-off:${d.provider}:${date}` }
+					)
+					.pipe(Effect.catchTag('ActConflict', () => Effect.void));
+			yield* recommend(ctx, rows, d.provider, d.lapsed).pipe(
 				Effect.catchTag('ActConflict', () => Effect.void)
 			);
 		}

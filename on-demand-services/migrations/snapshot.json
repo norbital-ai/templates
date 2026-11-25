@@ -1,6 +1,194 @@
 {
-	"currency": "SGD",
+	"currency": "USD",
 	"tables": {
+		"appointments": {
+			"audit": true,
+			"fields": {
+				"address": {
+					"kind": "text",
+					"max": 500
+				},
+				"attention": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"unassigned",
+						"eta_risk",
+						"provider_inactive",
+						"awaiting_approval"
+					]
+				},
+				"booking": {
+					"inverse": "appointments",
+					"kind": "ref",
+					"owned": true,
+					"to": "bookings"
+				},
+				"completed_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"completion_notes": {
+					"kind": "text",
+					"max": 2000,
+					"optional": true
+				},
+				"eta_checked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"eta_minutes": {
+					"kind": "int",
+					"optional": true
+				},
+				"late_cancellation": {
+					"default": false,
+					"kind": "bool"
+				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
+				"number": {
+					"kind": "seq",
+					"pattern": "AP-{yyyy}-{00000}"
+				},
+				"proposed_provider": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "providers"
+				},
+				"proposed_slot": {
+					"kind": "period",
+					"of": "instant",
+					"optional": true
+				},
+				"provider": {
+					"inverse": "appointments",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "providers"
+				},
+				"shift_asked_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"shift_check": {
+					"default": "not_due",
+					"kind": "enum",
+					"values": [
+						"not_due",
+						"asked",
+						"confirmed",
+						"no_response",
+						"declined"
+					]
+				},
+				"skill": {
+					"kind": "text",
+					"max": 80
+				},
+				"slot": {
+					"kind": "period",
+					"of": "instant"
+				},
+				"started_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"status": {
+					"initial": "scheduled",
+					"kind": "state",
+					"states": {
+						"cancelled": {},
+						"completed": {
+							"stamp": "completed_at"
+						},
+						"in_progress": {
+							"stamp": "started_at",
+							"to": [
+								"completed"
+							]
+						},
+						"scheduled": {
+							"to": [
+								"in_progress",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"unavailable_provider": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "providers"
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"attention",
+						"shift_check"
+					]
+				}
+			],
+			"locks": {
+				"finished": {
+					"where": {
+						"status": {
+							"in": [
+								"completed",
+								"cancelled"
+							]
+						}
+					}
+				},
+				"under_way": {
+					"except": [
+						"status",
+						"completion_notes",
+						"completed_at",
+						"attention"
+					],
+					"where": {
+						"status": {
+							"eq": "in_progress"
+						}
+					}
+				}
+			},
+			"no_overlap": [
+				{
+					"key": [
+						"provider"
+					],
+					"name": "one_appointment_at_a_time",
+					"period": "slot",
+					"where": {
+						"provider": {
+							"is_null": false
+						},
+						"status": {
+							"ne": "cancelled"
+						}
+					}
+				}
+			],
+			"record_label": "record.number",
+			"search": {
+				"text": [
+					"number",
+					"address",
+					"provider",
+					"booking"
+				]
+			},
+			"was": "visits"
+		},
 		"approval_request": {
 			"fields": {
 				"action": {
@@ -106,17 +294,6 @@
 					"kind": "text",
 					"max": 500
 				},
-				"area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
-				},
 				"checked_at": {
 					"kind": "instant",
 					"optional": true
@@ -124,11 +301,6 @@
 				"estimated": {
 					"default": true,
 					"kind": "bool"
-				},
-				"helper": {
-					"kind": "ref",
-					"optional": true,
-					"to": "helpers"
 				},
 				"location": {
 					"kind": "point",
@@ -149,6 +321,11 @@
 				"problem": {
 					"kind": "text",
 					"optional": true
+				},
+				"provider": {
+					"kind": "ref",
+					"optional": true,
+					"to": "providers"
 				},
 				"repeat": {
 					"default": "once",
@@ -199,19 +376,19 @@
 			},
 			"record_label": "record.address"
 		},
-		"booking_helpers": {
+		"booking_providers": {
 			"audit": true,
 			"fields": {
 				"booking": {
-					"inverse": "preferred_helpers",
+					"inverse": "preferred_providers",
 					"kind": "ref",
 					"owned": true,
 					"to": "bookings"
 				},
-				"helper": {
+				"provider": {
 					"inverse": "preferred_by",
 					"kind": "ref",
-					"to": "helpers"
+					"to": "providers"
 				},
 				"rank": {
 					"kind": "int",
@@ -219,16 +396,17 @@
 					"min": 1
 				}
 			},
-			"record_label": "record.booking.number + ' · ' + record.helper.name",
+			"record_label": "record.booking.number + ' · ' + record.provider.name",
 			"unique": [
 				{
 					"fields": [
 						"booking",
-						"helper"
+						"provider"
 					],
-					"name": "one_rank_per_helper"
+					"name": "one_rank_per_provider"
 				}
-			]
+			],
+			"was": "booking_helpers"
 		},
 		"booking_requests": {
 			"audit": true,
@@ -236,17 +414,6 @@
 				"address": {
 					"kind": "text",
 					"max": 500
-				},
-				"area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
 				},
 				"availability": {
 					"kind": "ref",
@@ -359,18 +526,12 @@
 			"audit": true,
 			"fields": {
 				"address": {
-					"kind": "text"
+					"kind": "text",
+					"max": 500
 				},
-				"area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
+				"appointment_count": {
+					"kind": "count",
+					"of": "appointments"
 				},
 				"customer": {
 					"inverse": "bookings",
@@ -383,6 +544,7 @@
 				},
 				"notes": {
 					"kind": "text",
+					"max": 2000,
 					"optional": true
 				},
 				"number": {
@@ -421,10 +583,6 @@
 						},
 						"cancelled": {}
 					}
-				},
-				"visit_count": {
-					"kind": "count",
-					"of": "visits"
 				}
 			},
 			"indexes": [
@@ -436,6 +594,9 @@
 			],
 			"locks": {
 				"cancelled": {
+					"except": [
+						"appointments"
+					],
 					"where": {
 						"status": {
 							"eq": "cancelled"
@@ -455,16 +616,24 @@
 		"customer_notices": {
 			"audit": true,
 			"fields": {
+				"appointment": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "appointments"
+				},
 				"auto_replied_at": {
 					"kind": "instant",
 					"optional": true
 				},
 				"body": {
-					"kind": "text"
+					"kind": "text",
+					"max": 4000
 				},
 				"customer": {
 					"inverse": "notices",
 					"kind": "ref",
+					"owned": true,
 					"to": "customers"
 				},
 				"delivered_at": {
@@ -510,17 +679,12 @@
 					"optional": true
 				},
 				"subject": {
-					"kind": "text"
+					"kind": "text",
+					"max": 300
 				},
 				"to_address": {
 					"kind": "text",
 					"optional": true
-				},
-				"visit": {
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "visits"
 				},
 				"whatsapp": {
 					"kind": "text",
@@ -531,7 +695,7 @@
 			"search": {
 				"text": [
 					"subject",
-					"visit"
+					"appointment"
 				]
 			}
 		},
@@ -539,18 +703,8 @@
 			"audit": true,
 			"fields": {
 				"address": {
-					"kind": "text"
-				},
-				"area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
+					"kind": "text",
+					"max": 500
 				},
 				"email": {
 					"format": "email",
@@ -562,10 +716,12 @@
 					"optional": true
 				},
 				"name": {
-					"kind": "text"
+					"kind": "text",
+					"max": 160
 				},
 				"notes": {
 					"kind": "text",
+					"max": 2000,
 					"optional": true
 				},
 				"phone": {
@@ -591,63 +747,6 @@
 				}
 			]
 		},
-		"dispatch_settings": {
-			"audit": true,
-			"check": {
-				"reply_inside_lead": {
-					"shift_reply_minutes": {
-						"lt": {
-							"field": "shift_check_lead_minutes"
-						}
-					}
-				}
-			},
-			"fields": {
-				"eta_check_lead_minutes": {
-					"default": 60,
-					"kind": "int",
-					"max": 240,
-					"min": 15
-				},
-				"eta_limit_minutes": {
-					"default": 30,
-					"kind": "int",
-					"max": 240,
-					"min": 5
-				},
-				"free_change_hours": {
-					"default": 24,
-					"kind": "int",
-					"max": 168,
-					"min": 0
-				},
-				"name": {
-					"default": "Dispatch",
-					"kind": "text"
-				},
-				"shift_check_lead_minutes": {
-					"default": 120,
-					"kind": "int",
-					"max": 720,
-					"min": 30
-				},
-				"shift_reply_minutes": {
-					"default": 60,
-					"kind": "int",
-					"max": 240,
-					"min": 10
-				}
-			},
-			"record_label": "record.name",
-			"unique": [
-				{
-					"fields": [
-						"name"
-					],
-					"name": "name"
-				}
-			]
-		},
 		"drive_times": {
 			"audit": true,
 			"fields": {
@@ -667,212 +766,6 @@
 						"leg"
 					],
 					"name": "leg"
-				}
-			]
-		},
-		"helper_time_off": {
-			"audit": true,
-			"fields": {
-				"helper": {
-					"inverse": "time_off",
-					"kind": "ref",
-					"owned": true,
-					"to": "helpers"
-				},
-				"period": {
-					"kind": "period",
-					"of": "date"
-				},
-				"reason": {
-					"kind": "enum",
-					"values": [
-						"leave",
-						"medical",
-						"other"
-					]
-				}
-			},
-			"no_overlap": [
-				{
-					"key": [
-						"helper"
-					],
-					"name": "one_absence",
-					"period": "period"
-				}
-			],
-			"record_label": "record.helper.name + ' · ' + string(record.period.from)"
-		},
-		"helper_warnings": {
-			"audit": true,
-			"fields": {
-				"helper": {
-					"inverse": "warnings",
-					"kind": "ref",
-					"to": "helpers"
-				},
-				"issued_at": {
-					"kind": "instant"
-				},
-				"letter": {
-					"accept": [
-						"application/pdf"
-					],
-					"kind": "file",
-					"max": "2MiB",
-					"optional": true
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"reason": {
-					"kind": "enum",
-					"values": [
-						"no_response",
-						"declined_without_mc"
-					]
-				},
-				"visit": {
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "visits"
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"issued_at"
-					]
-				}
-			],
-			"record_label": "record.helper.name + ' · ' + string(record.issued_at)",
-			"search": {
-				"text": [
-					"helper",
-					"visit",
-					"reason"
-				]
-			}
-		},
-		"helpers": {
-			"audit": true,
-			"check": {
-				"hours": {
-					"day_end": {
-						"gt": {
-							"field": "day_start"
-						}
-					}
-				}
-			},
-			"fields": {
-				"day_end": {
-					"kind": "time"
-				},
-				"day_start": {
-					"kind": "time"
-				},
-				"home_area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
-				},
-				"home_location": {
-					"kind": "point",
-					"optional": true
-				},
-				"last_location": {
-					"kind": "point",
-					"optional": true
-				},
-				"last_location_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"left_on": {
-					"kind": "date",
-					"optional": true
-				},
-				"name": {
-					"kind": "text"
-				},
-				"phone": {
-					"format": "phone",
-					"kind": "text"
-				},
-				"skills": {
-					"kind": "enum",
-					"many": true,
-					"values": [
-						"home_cleaning",
-						"deep_cleaning",
-						"move_in_out",
-						"post_renovation",
-						"office_cleaning",
-						"laundry_ironing",
-						"handyman"
-					]
-				},
-				"status": {
-					"initial": "active",
-					"kind": "state",
-					"states": {
-						"active": {
-							"to": [
-								"left"
-							]
-						},
-						"left": {
-							"to": [
-								"active"
-							]
-						}
-					}
-				},
-				"user": {
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "sys_user"
-				},
-				"warning_count": {
-					"kind": "count",
-					"of": "warnings"
-				},
-				"work_days": {
-					"kind": "enum",
-					"many": true,
-					"values": [
-						"sun",
-						"mon",
-						"tue",
-						"wed",
-						"thu",
-						"fri",
-						"sat"
-					]
-				}
-			},
-			"record_label": "record.name",
-			"search": {
-				"text": [
-					"name"
-				]
-			},
-			"unique": [
-				{
-					"fields": [
-						"user"
-					],
-					"name": "one_user"
 				}
 			]
 		},
@@ -905,6 +798,145 @@
 				}
 			]
 		},
+		"provider_time_off": {
+			"audit": true,
+			"fields": {
+				"period": {
+					"kind": "period",
+					"of": "date"
+				},
+				"provider": {
+					"inverse": "time_off",
+					"kind": "ref",
+					"owned": true,
+					"to": "providers"
+				},
+				"reason": {
+					"kind": "enum",
+					"values": [
+						"leave",
+						"sick",
+						"unavailable"
+					]
+				}
+			},
+			"no_overlap": [
+				{
+					"key": [
+						"provider"
+					],
+					"name": "one_absence",
+					"period": "period"
+				}
+			],
+			"record_label": "record.provider.name + ' · ' + string(record.period.from)",
+			"was": "helper_time_off"
+		},
+		"providers": {
+			"audit": true,
+			"check": {
+				"hours": {
+					"day_end": {
+						"gt": {
+							"field": "day_start"
+						}
+					}
+				}
+			},
+			"fields": {
+				"day_end": {
+					"kind": "time"
+				},
+				"day_start": {
+					"kind": "time"
+				},
+				"email": {
+					"format": "email",
+					"kind": "text",
+					"optional": true
+				},
+				"home_location": {
+					"kind": "point",
+					"optional": true
+				},
+				"inactive_since": {
+					"kind": "date",
+					"optional": true
+				},
+				"last_location": {
+					"kind": "point",
+					"optional": true
+				},
+				"last_location_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"name": {
+					"kind": "text",
+					"max": 160
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text"
+				},
+				"skills": {
+					"kind": "text",
+					"many": true,
+					"max": 80
+				},
+				"status": {
+					"initial": "active",
+					"kind": "state",
+					"states": {
+						"active": {
+							"to": [
+								"inactive"
+							]
+						},
+						"inactive": {
+							"to": [
+								"active"
+							]
+						}
+					}
+				},
+				"user": {
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"work_days": {
+					"kind": "enum",
+					"many": true,
+					"values": [
+						"sun",
+						"mon",
+						"tue",
+						"wed",
+						"thu",
+						"fri",
+						"sat"
+					]
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"phone",
+					"email"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"user"
+					],
+					"name": "one_user"
+				}
+			]
+		},
 		"requestor": {
 			"fields": {
 				"approval_request_id": {
@@ -918,6 +950,82 @@
 			"key": "text",
 			"record_label": "record.user_id"
 		},
+		"scheduling_settings": {
+			"audit": true,
+			"check": {
+				"reply_inside_lead": {
+					"shift_reply_minutes": {
+						"lt": {
+							"field": "shift_check_lead_minutes"
+						}
+					}
+				}
+			},
+			"fields": {
+				"booking_horizon_days": {
+					"default": 14,
+					"kind": "int",
+					"max": 60,
+					"min": 7
+				},
+				"buffer_minutes": {
+					"default": 15,
+					"kind": "int",
+					"max": 120,
+					"min": 0
+				},
+				"eta_check_lead_minutes": {
+					"default": 60,
+					"kind": "int",
+					"max": 240,
+					"min": 15
+				},
+				"eta_limit_minutes": {
+					"default": 30,
+					"kind": "int",
+					"max": 240,
+					"min": 5
+				},
+				"free_change_hours": {
+					"default": 24,
+					"kind": "int",
+					"max": 168,
+					"min": 0
+				},
+				"name": {
+					"default": "Scheduling",
+					"kind": "text"
+				},
+				"shift_check_lead_minutes": {
+					"default": 120,
+					"kind": "int",
+					"max": 720,
+					"min": 30
+				},
+				"shift_reply_minutes": {
+					"default": 60,
+					"kind": "int",
+					"max": 240,
+					"min": 10
+				},
+				"slot_interval_minutes": {
+					"default": 30,
+					"kind": "int",
+					"max": 60,
+					"min": 15
+				}
+			},
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"name"
+					],
+					"name": "name"
+				}
+			],
+			"was": "dispatch_settings"
+		},
 		"services": {
 			"audit": true,
 			"fields": {
@@ -925,38 +1033,39 @@
 					"default": true,
 					"kind": "bool"
 				},
+				"category": {
+					"kind": "text",
+					"max": 80,
+					"optional": true
+				},
 				"description": {
 					"kind": "text",
+					"max": 1000,
 					"optional": true
 				},
 				"duration_minutes": {
 					"kind": "int",
 					"max": 720,
-					"min": 30
+					"min": 15
 				},
 				"name": {
-					"kind": "text"
+					"kind": "text",
+					"max": 160
 				},
 				"price": {
 					"kind": "money"
 				},
 				"skill": {
-					"kind": "enum",
-					"values": [
-						"home_cleaning",
-						"deep_cleaning",
-						"move_in_out",
-						"post_renovation",
-						"office_cleaning",
-						"laundry_ironing",
-						"handyman"
-					]
+					"kind": "text",
+					"max": 80
 				}
 			},
 			"record_label": "record.name",
 			"search": {
 				"text": [
-					"name"
+					"name",
+					"category",
+					"skill"
 				]
 			},
 			"unique": [
@@ -2446,213 +2555,7 @@
 			},
 			"key": "text",
 			"record_label": "record.name"
-		},
-		"visits": {
-			"audit": true,
-			"fields": {
-				"address": {
-					"kind": "text"
-				},
-				"area": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"central",
-						"north",
-						"north_east",
-						"east",
-						"west"
-					]
-				},
-				"attention": {
-					"default": "none",
-					"kind": "enum",
-					"values": [
-						"none",
-						"unassigned",
-						"eta_risk",
-						"helper_left",
-						"awaiting_approval"
-					]
-				},
-				"booking": {
-					"inverse": "visits",
-					"kind": "ref",
-					"owned": true,
-					"to": "bookings"
-				},
-				"completed_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"completion_notes": {
-					"kind": "text",
-					"max": 2000,
-					"optional": true
-				},
-				"eta_checked_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"eta_minutes": {
-					"kind": "int",
-					"optional": true
-				},
-				"helper": {
-					"inverse": "visits",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "helpers"
-				},
-				"late_cancellation": {
-					"default": false,
-					"kind": "bool"
-				},
-				"location": {
-					"kind": "point",
-					"optional": true
-				},
-				"mc": {
-					"default": false,
-					"kind": "bool"
-				},
-				"number": {
-					"kind": "seq",
-					"pattern": "V-{yyyy}-{00000}"
-				},
-				"proposed_helper": {
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "helpers"
-				},
-				"proposed_slot": {
-					"kind": "period",
-					"of": "instant",
-					"optional": true
-				},
-				"shift_asked_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"shift_check": {
-					"default": "not_due",
-					"kind": "enum",
-					"values": [
-						"not_due",
-						"asked",
-						"confirmed",
-						"no_response",
-						"declined"
-					]
-				},
-				"skill": {
-					"kind": "enum",
-					"values": [
-						"home_cleaning",
-						"deep_cleaning",
-						"move_in_out",
-						"post_renovation",
-						"office_cleaning",
-						"laundry_ironing",
-						"handyman"
-					]
-				},
-				"slot": {
-					"kind": "period",
-					"of": "instant"
-				},
-				"started_at": {
-					"kind": "instant",
-					"optional": true
-				},
-				"status": {
-					"initial": "scheduled",
-					"kind": "state",
-					"states": {
-						"cancelled": {},
-						"done": {},
-						"in_progress": {
-							"to": [
-								"done"
-							]
-						},
-						"scheduled": {
-							"to": [
-								"in_progress",
-								"cancelled"
-							]
-						}
-					}
-				},
-				"unavailable_helper": {
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "helpers"
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"attention",
-						"shift_check"
-					]
-				}
-			],
-			"locks": {
-				"finished": {
-					"where": {
-						"status": {
-							"in": [
-								"done",
-								"cancelled"
-							]
-						}
-					}
-				},
-				"under_way": {
-					"except": [
-						"status",
-						"completion_notes",
-						"completed_at",
-						"attention"
-					],
-					"where": {
-						"status": {
-							"eq": "in_progress"
-						}
-					}
-				}
-			},
-			"no_overlap": [
-				{
-					"key": [
-						"helper"
-					],
-					"name": "one_visit_at_a_time",
-					"period": "slot",
-					"where": {
-						"helper": {
-							"is_null": false
-						},
-						"status": {
-							"ne": "cancelled"
-						}
-					}
-				}
-			],
-			"record_label": "record.number",
-			"search": {
-				"text": [
-					"number",
-					"address",
-					"helper",
-					"booking"
-				]
-			}
 		}
 	},
-	"tz": "Asia/Singapore"
+	"tz": "UTC"
 }

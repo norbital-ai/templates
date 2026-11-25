@@ -1,13 +1,14 @@
 /**
- * What used to be the `open_slots`, `rebooking_slots` and `candidates` reads: pure functions over a pool (`dispatch.ts`
- * `poolRequest` + `driveRequest`, read by the page with its `ctx.query` or by server code with `loadPool`). The writes
- * that act on a pick (`bookings_book`, `visits_rebook`, `visits_reassign`) recheck everything, so a preview is safe.
+ * Pure availability helpers shared by the desk booking composer, appointment recovery pane, and
+ * portal quote automation. Writes always recheck live state before committing.
  */
 import type { Id, Instant, PlainDate } from '@norbital-ai/bolt';
 import { DateTime, Duration } from 'effect';
+import { epochMs } from './format.js';
 import {
 	availableSlots,
 	BOOKING_AHEAD,
+	normalizeSkill,
 	occurrences,
 	openSlots,
 	rank,
@@ -16,16 +17,17 @@ import {
 	type Pool,
 	type Slot
 } from './matching.js';
-/** The calendar date `i` days after `from`. */
-const dayOf = (from: PlainDate, i: number) =>
+
+const dayOf = (from: PlainDate, i: number): PlainDate =>
 	DateTime.formatIsoDateUtc(DateTime.add(DateTime.makeUnsafe(from), { days: i }));
-/** The days a booking picker lists and the full recurring horizon its pool must cover. */
+
+/** Days listed in the booking picker and the full recurring horizon the pool must cover. */
 export function bookingWindow(
 	input: {
 		readonly from: PlainDate;
 		readonly days: number;
 		readonly repeat: string;
-		readonly visits?: number;
+		readonly appointments?: number;
 	},
 	zone: string
 ) {
@@ -34,16 +36,24 @@ export function bookingWindow(
 	return {
 		days,
 		from: edge.from,
-		// no further occurrence: the window ends at the last day's midnight
-		to: occurrences(edge.to, input.repeat, input.visits ?? BOOKING_AHEAD, zone).at(-1) ?? edge.to
+		to:
+			occurrences(edge.to, input.repeat, input.appointments ?? BOOKING_AHEAD, zone).at(-1) ??
+			edge.to
 	};
 }
+
 /**
- * The starts per day a new booking could take: skills, preference, travel and the full recurring horizon checked. A
- * string is why nothing can be offered.
+ * Available start times per day for a new booking, or a structured refusal code/params when nothing
+ * can be offered.
  */
+export type BookingSlotRefusal =
+	| { readonly key: 'errors.customer_service_required' }
+	| { readonly key: 'errors.preferred_provider_required' }
+	| { readonly key: 'errors.provider_unavailable' }
+	| { readonly key: 'errors.provider_lacks_skill'; readonly values: { readonly name: string } };
+
 export function bookingSlots(
-	customer: { readonly location: Point | null; readonly area: string | null } | null,
+	customer: { readonly location: Point | null } | null,
 	service: {
 		readonly skill: string;
 		readonly duration_minutes: number;
@@ -51,52 +61,55 @@ export function bookingSlots(
 	} | null,
 	input: {
 		readonly preference: 'any' | 'preferred';
-		readonly helpers?: readonly Id<'helpers'>[];
+		readonly providers?: readonly Id<'providers'>[];
 		readonly repeat: string;
-		readonly visits?: number;
+		readonly appointments?: number;
 	},
 	days: readonly PlainDate[],
 	pool: Pool,
 	zone: string,
 	now: string
-) {
+):
+	readonly { readonly day: PlainDate; readonly starts: readonly Instant[] }[] | BookingSlotRefusal {
 	if (customer === null || service === null || !service.active)
-		return 'Pick a customer and an active service.';
-	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
+		return { key: 'errors.customer_service_required' };
+	const preferred = input.preference === 'preferred' ? (input.providers ?? []) : [];
 	if (input.preference === 'preferred' && preferred.length === 0)
-		return 'Name at least one preferred helper.';
+		return { key: 'errors.preferred_provider_required' };
+	const wantSkill = normalizeSkill(service.skill);
 	for (const id of preferred) {
-		const h = pool.helpers.find((h) => h.id === id);
-		if (h === undefined) return 'The selected helper is not available.';
-		if (!h.skills.includes(service.skill)) return `${h.name} cannot perform the selected service.`;
+		const p = pool.providers.find((row) => row.id === id);
+		if (p === undefined) return { key: 'errors.provider_unavailable' };
+		if (!p.skills.some((s) => normalizeSkill(s) === wantSkill))
+			return { key: 'errors.provider_lacks_skill', values: { name: p.name } };
 	}
 	return availableSlots(
 		{
 			skill: service.skill,
 			minutes: service.duration_minutes,
-			location: customer.location,
-			area: customer.area
+			location: customer.location
 		},
 		days,
 		pool,
 		zone,
 		now,
 		input.repeat,
-		input.visits ?? BOOKING_AHEAD,
+		input.appointments ?? BOOKING_AHEAD,
 		preferred
 	);
 }
-/** What a re-match reads of the visit it moves. */
+
+/** Appointment projection used for re-matching and candidate ranking. */
 export type Rematch = {
-	readonly id: Id<'visits'>;
+	readonly id: Id<'appointments'>;
 	readonly slot: Slot;
 	readonly skill: string;
 	readonly location: Point | null;
-	readonly area: string | null;
-	readonly helper: Id<'helpers'> | null;
-	readonly unavailable_helper: Id<'helpers'> | null;
+	readonly provider: Id<'providers'> | null;
+	readonly unavailable_provider: Id<'providers'> | null;
 };
-/** The pool window of `rebookingSlots` over `days` days from `from`: midnight of the first and of the last day. */
+
+/** Midnight-bounded pool window covering `days` calendar days starting from `from`. */
 export function rebookingWindow(from: PlainDate, days: number, zone: string) {
 	const midnight = (i: number) =>
 		DateTime.formatIso(
@@ -104,9 +117,10 @@ export function rebookingWindow(from: PlainDate, days: number, zone: string) {
 		);
 	return { from: midnight(0), to: midnight(days - 1) };
 }
-/** Feasible replacement starts for a scheduled visit on each of `days`, adjacent travel included. */
+
+/** Feasible replacement start times for a scheduled appointment across `days`. */
 export function rebookingSlots(
-	v: Rematch,
+	a: Rematch,
 	days: readonly PlainDate[],
 	pool: Pool,
 	zone: string,
@@ -114,46 +128,45 @@ export function rebookingSlots(
 ) {
 	const freed = {
 		...pool,
-		busy: pool.busy.filter((b) => b.id !== v.id),
-		helpers: pool.helpers.filter((h) => h.id !== v.unavailable_helper)
+		busy: pool.busy.filter((b) => b.id !== a.id),
+		providers: pool.providers.filter((p) => p.id !== a.unavailable_provider)
 	};
 	const need = {
-		skill: v.skill,
-		location: v.location,
-		area: v.area,
+		skill: a.skill,
+		location: a.location,
 		minutes: Duration.toMinutes(
-			DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
+			DateTime.distance(DateTime.makeUnsafe(a.slot.start), DateTime.makeUnsafe(a.slot.end))
 		)
 	};
 	const starts = new Map(days.map((d) => [d, new Set<Instant>()]));
-	for (const h of freed.helpers)
-		for (const d of openSlots(h, need, days, freed, zone, now))
+	for (const p of freed.providers)
+		for (const d of openSlots(p, need, days, freed, zone, now))
 			for (const start of d.starts) starts.get(d.day)?.add(start);
-	return days.map((day) => ({ day, starts: [...(starts.get(day) ?? [])].sort() }));
+	return days.map((day) => ({
+		day,
+		starts: [...(starts.get(day) ?? [])].sort((a, b) => epochMs(a) - epochMs(b))
+	}));
 }
-/**
- * The helpers who could take the visit instead (at `start`, else its own time), best match first; at its own time its
- * current helper is not one of them, and the helper who reported unavailable never is. Read the pool at `start ?? slot.start`.
- */
-export function candidatesFor(v: Rematch, start: Instant | undefined, pool: Pool, zone: string) {
+
+/** Qualified providers who can take `a` at `start` (or its current slot), best match first. */
+export function candidatesFor(a: Rematch, start: Instant | undefined, pool: Pool, zone: string) {
 	const need = {
-		skill: v.skill,
+		skill: a.skill,
 		slot: slotOf(
-			start ?? v.slot.start,
+			start ?? a.slot.start,
 			Duration.toMinutes(
-				DateTime.distance(DateTime.makeUnsafe(v.slot.start), DateTime.makeUnsafe(v.slot.end))
+				DateTime.distance(DateTime.makeUnsafe(a.slot.start), DateTime.makeUnsafe(a.slot.end))
 			)
 		),
-		location: v.location,
-		area: v.area,
-		visit: v.id
+		location: a.location,
+		appointment: a.id
 	};
 	return rank(
 		need,
 		{
 			...pool,
-			helpers: pool.helpers.filter(
-				(h) => (start !== undefined || h.id !== v.helper) && h.id !== v.unavailable_helper
+			providers: pool.providers.filter(
+				(p) => (start !== undefined || p.id !== a.provider) && p.id !== a.unavailable_provider
 			)
 		},
 		zone
