@@ -4,14 +4,14 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
-		Picker,
-		Section,
-		use_record_controller,
 		type FieldEditor,
-		type RecordView
+		Picker,
+		RecordForm,
+		type RecordView,
+		Section,
+		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
-	import RecordForm from '../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'fleet_alerts'>; ctx: PageContext } = $props();
 	const t = ctx.t;

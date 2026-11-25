@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import type { RecordView } from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { Field, RecordForm, Section, type RecordView } from '@norbital-ai/ui';
+	import { Grid } from '@norbital-ai/ui/layout';
 	let {
 		view,
 		ctx
@@ -11,15 +11,11 @@
 	} = $props();
 </script>
 
-<RecordForm
-	{ctx}
-	{view}
-	sections={[
-		{
-			name: 'controls',
-			icon: 'lucide:sliders-horizontal',
-			title: ctx.t('section.general'),
-			fields: ['freight_treatment', 'floor_rule']
-		}
-	]}
-/>
+<RecordForm {ctx} {view}>
+	<Section first name="controls" icon="lucide:sliders-horizontal" title={ctx.t('section.general')}>
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="freight_treatment" />
+			<Field {ctx} name="floor_rule" />
+		</Grid>
+	</Section>
+</RecordForm>

@@ -3,9 +3,18 @@
 	import { commissionPreview, previewRead } from '../../../../lib/commission-expressions.js';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { BigDecimal, Effect, Schema } from 'effect';
-	import { Input, Button, Label, Show, TimeInput, type RecordView } from '@norbital-ai/ui';
+	import {
+		Input,
+		Button,
+		Field,
+		Label,
+		RecordForm,
+		Section,
+		Show,
+		TimeInput,
+		type RecordView
+	} from '@norbital-ai/ui';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
-	import RecordForm from '../../../../lib/ui/record-form.svelte';
 
 	let {
 		view,
@@ -178,19 +187,6 @@
 	{ctx}
 	{view}
 	subtitle={['basis_unit']}
-	sections={[
-		{
-			name: 'rule',
-			fields: ['currency', 'effective_on', 'basis_unit', 'fixed_rate', 'spread_pct', 'active']
-		},
-		{
-			name: 'formula',
-			icon: 'lucide:sigma',
-			title: ctx.t('section.custom_formula'),
-			closed: ctx.t('component.custom_formula_summary'),
-			fields: ['eligibility_expression', 'amount_expression', 'parameters']
-		}
-	]}
 	tabs={[
 		{
 			name: 'reference',
@@ -201,4 +197,28 @@
 			? [{ name: 'preview', title: ctx.t('component.commission_preview'), body: testExpression }]
 			: [])
 	]}
-/>
+>
+	<Section first name="rule">
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="effective_on" />
+			<Field {ctx} name="basis_unit" />
+			<Field {ctx} name="fixed_rate" />
+			<Field {ctx} name="spread_pct" />
+			<Field {ctx} name="active" />
+		</Grid>
+	</Section>
+	<Section
+		name="formula"
+		icon="lucide:sigma"
+		title={ctx.t('section.custom_formula')}
+		default_open={false}
+		summary={ctx.t('component.custom_formula_summary')}
+	>
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="eligibility_expression" />
+			<Field {ctx} name="amount_expression" />
+			<Field {ctx} name="parameters" />
+		</Grid>
+	</Section>
+</RecordForm>

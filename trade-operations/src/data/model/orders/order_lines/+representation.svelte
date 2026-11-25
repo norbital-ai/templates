@@ -3,16 +3,21 @@
 	import { run } from '@norbital-ai/ui/effect';
 	import { selectOrderProduct } from '../../../../lib/ui/order-product-defaults.js';
 	import {
+		Field,
 		format,
+		open_record,
+		type InsertOf,
 		Picker,
 		MoneyInput,
+		RecordForm,
+		Section,
 		type RecordView,
 		type FormState,
-		type FieldEditor
+		type FieldEditor,
+		type FieldView
 	} from '@norbital-ai/ui';
-	import { Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
-	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	import { contractKind, currentTemplate, documentLocale } from '../../../../lib/order-document.js';
 	import { floorFor, floorNetInUnit, quoteBelowFloor } from '../../../../lib/commercial.js';
@@ -104,14 +109,18 @@
 				: false;
 		return { floor, below, rule, flagged: !floor || floorNet === null || below };
 	}
+	const values: Partial<InsertOf<'order_lines'>> = $derived(
+		view.mode === 'create' ? { ...preset, ...view.values } : {}
+	);
+	let added = $state(0);
 </script>
 
-{#snippet product(form: FormState, field: FieldEditor)}
+{#snippet product(field: FieldEditor)}
 	<Picker
 		{ctx}
 		of="products"
 		id={field.id}
-		value={form.id<'products'>('product')}
+		value={field.form.id<'products'>('product')}
 		where={{ active: { eq: true } }}
 		disabled={field.disabled}
 		invalid={Boolean(field.error)}
@@ -119,7 +128,7 @@
 			void run(
 				selectOrderProduct(
 					ctx,
-					form,
+					field.form,
 					field,
 					id,
 					(value) => {
@@ -130,8 +139,8 @@
 			)}
 	/>
 {/snippet}
-{#snippet unitPrice(form: FormState, field: FieldEditor)}
-	{@const state = floorState(form)}
+{#snippet unitPrice(field: FieldEditor)}
+	{@const state = floorState(field.form)}
 	<Stack gap="xs">
 		<MoneyInput
 			{ctx}
@@ -167,7 +176,7 @@
 		{/if}
 	</Stack>
 {/snippet}
-{#snippet printDetails(_form: FormState, field: FieldEditor)}
+{#snippet printDetails(field: FieldEditor)}
 	<PrintDetails
 		{ctx}
 		{layout}
@@ -178,30 +187,35 @@
 		disabled={field.disabled}
 	/>
 {/snippet}
-{#snippet printDetailsView(form: FormState)}
-	<PrintDetails {ctx} {layout} scope="line" value={form.get('print_values')} />
+{#snippet printDetailsView(field: FieldView)}
+	<PrintDetails {ctx} {layout} scope="line" value={field.value} />
 {/snippet}
-<RecordForm
-	{ctx}
-	{view}
-	readonly={Boolean(header?.archived)}
-	readonly_reason={ctx.t('component.order_archived')}
-	editors={{ product, unit_price: unitPrice, print_values: printDetails }}
-	viewers={{ print_values: printDetailsView }}
-	sections={[
-		{
-			name: 'line',
-			icon: 'lucide:list',
-			title: ctx.t('section.lines'),
-			fields: [
-				'product',
-				'quantity',
-				'unit_price',
-				'discount_pct',
-				'tax_rate',
-				...(layout ? ['print_values'] : [])
-			],
-			wide: ['print_values']
-		}
-	]}
-/>
+{#key added}
+	<RecordForm
+		{ctx}
+		on_done={(o) => {
+			if (view.mode !== 'create' || o.kind !== 'committed' || !o.records[0]) return;
+			// a create its opener scopes stays open for the next one
+			if (Object.keys(values).length > 0) added++;
+			else open_record(view.model, o.records[0].id);
+		}}
+		view={view.mode === 'create' ? { ...view, values } : view}
+		{...header?.archived ? { lock: ctx.t('component.order_archived') } : {}}
+	>
+		<Section first name="line" icon="lucide:list" title={ctx.t('section.lines')}>
+			<Grid gap="md" minimum="compact">
+				<Field {ctx} name="product" editor={product} />
+				<Field {ctx} name="quantity" />
+				<Field {ctx} name="unit_price" editor={unitPrice} />
+				<Field {ctx} name="discount_pct" />
+				<Field {ctx} name="tax_rate" />
+				{#if layout}<Field
+						{ctx}
+						name="print_values"
+						wide
+						editor={printDetails}
+						view={printDetailsView}
+					/>{/if}
+			</Grid>
+		</Section>
+	</RecordForm>{/key}

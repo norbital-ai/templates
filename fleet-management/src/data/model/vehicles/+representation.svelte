@@ -6,13 +6,13 @@
 		Field,
 		Form,
 		Map,
+		RecordForm,
 		RecordShell,
+		type RecordView,
 		Section,
 		Sheet,
-		Table,
-		type RecordView
+		Table
 	} from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'vehicles'>; ctx: PageContext } = $props();
 	const t = ctx.t;

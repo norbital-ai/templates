@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { BigDecimal } from 'effect';
-	import { Chart, EmptyState, type RecordView } from '@norbital-ai/ui';
-	import { Bound, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { Chart, EmptyState, Field, RecordForm, Section, type RecordView } from '@norbital-ai/ui';
+	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
 		view,
@@ -185,29 +184,26 @@
 <RecordForm
 	{ctx}
 	{view}
-	readonly
-	readonly_reason={ctx.t('component.kingdee_readonly')}
-	sections={[
-		{
-			name: 'product',
-			fields: [
-				'external_code',
-				'source_number',
-				'name',
-				'category',
-				'spec',
-				'brand',
-				'brand_en',
-				'producing_area',
-				'unit',
-				'currency',
-				'unit_price',
-				'tax_rate',
-				'active'
-			]
-		}
-	]}
+	lock={ctx.t('component.kingdee_readonly')}
 	tabs={id && (ctx.catalog?.pricing_floors || ctx.catalog?.source_sales_lines)
 		? [{ name: 'pricing', title: ctx.t('component.pricing_history'), body: pricing }]
 		: []}
-/>
+>
+	<Section first name="product">
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="external_code" />
+			<Field {ctx} name="source_number" />
+			<Field {ctx} name="name" />
+			<Field {ctx} name="category" />
+			<Field {ctx} name="spec" />
+			<Field {ctx} name="brand" />
+			<Field {ctx} name="brand_en" />
+			<Field {ctx} name="producing_area" />
+			<Field {ctx} name="unit" />
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="unit_price" />
+			<Field {ctx} name="tax_rate" />
+			<Field {ctx} name="active" />
+		</Grid>
+	</Section>
+</RecordForm>

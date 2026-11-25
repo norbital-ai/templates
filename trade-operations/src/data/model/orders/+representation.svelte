@@ -13,9 +13,12 @@
 	} from '../../../lib/quotation.js';
 	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
 	import {
+		Field,
 		Form,
 		Editor,
+		RecordForm,
 		RecordShell,
+		Section,
 		type Value,
 		Table,
 		ChildGrid,
@@ -43,7 +46,6 @@
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
-	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 
 	const DateBounds = Schema.Struct({
@@ -717,9 +719,15 @@
 {:else}
 	<RecordForm
 		{ctx}
+		view={view.mode === 'create' && choice
+			? { ...view, values: { ...preset, ...view.values, trade: { kind: choice } } }
+			: view}
 		trailing={orderState}
-		readonly={archived}
-		readonly_reason={ctx.t('component.order_archived')}
+		on_done={(o) => {
+			// a new order returns its sheet to the type choice
+			if (view.mode === 'create' && o.kind === 'committed' && o.records[0]) choice = null;
+		}}
+		{...archived ? { lock: ctx.t('component.order_archived') } : {}}
 		history={{
 			fields: [
 				'title',
@@ -753,60 +761,6 @@
 					].map((of) => ({ of, where: { order: { eq: id } } }))
 				: []
 		}}
-		editors={{
-			party,
-			warehouse,
-			buyer_contact: buyer,
-			trade: tradeDetails,
-			valid_from: validity,
-			print_values: printDetails
-		}}
-		viewers={{ trade: tradeDetails, print_values: printDetailsView }}
-		editable_presets={['trade']}
-		on_created={() => (choice = null)}
-		view={view.mode === 'create' && choice
-			? { ...view, values: { ...view.values, trade: { kind: choice } } }
-			: view}
-		sections={[
-			{
-				name: 'order',
-				// Kingdee keeps a synced order's header
-				readonlyFields: draft ? [] : ['party', 'owner'],
-				fields: [
-					'title',
-					...(view.mode === 'create' ? ['direction'] : []),
-					'party',
-					'owner',
-					'notes'
-				],
-				wide: ['notes']
-			},
-			{
-				name: 'contract',
-				icon: 'lucide:file-signature',
-				title: ctx.t('section.seal'),
-				actions: contractActions,
-				body: contractBody,
-				fields: [
-					'warehouse',
-					'ordered_on',
-					'currency',
-					'tax_inclusive',
-					'valid_from',
-					'payment_terms',
-					'packaging',
-					'payment_method',
-					'buyer_contact',
-					'customer_po_no',
-					'delivery_address',
-					'logistics_handler',
-					'trade',
-					'print_values'
-				],
-				readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],
-				wide: ['trade', 'print_values']
-			}
-		]}
 		tabs={id
 			? [
 					{ name: 'activities', title: ctx.t('models.activities.label'), body: activity },
@@ -816,5 +770,59 @@
 						: [])
 				]
 			: []}
-	/>
+	>
+		{#snippet children(form)}
+			{#snippet tradeView()}{@render tradeDetails(form)}{/snippet}
+			{#snippet printView()}{@render printDetailsView(form)}{/snippet}
+			<Section first name="order">
+				<Grid gap="md" minimum="compact">
+					<Field {ctx} name="title" />
+					<!-- the page a new order is opened from fixes its direction (`openCreate`) -->
+					{#if view.mode === 'create' && (view.values.direction ?? preset.direction) == null}
+						<Field {ctx} name="direction" />
+					{/if}
+					<!-- Kingdee keeps a synced order's header -->
+					<Field {ctx} name="party" readonly={!draft}>
+						{#snippet editor(field)}{@render party(form, field)}{/snippet}
+					</Field>
+					<Field {ctx} name="owner" readonly={!draft} />
+					<Field {ctx} name="notes" wide />
+				</Grid>
+			</Section>
+			<Section
+				name="contract"
+				icon="lucide:file-signature"
+				title={ctx.t('section.seal')}
+				actions={contractActions}
+			>
+				<Grid gap="md" minimum="compact">
+					<Field {ctx} name="warehouse">
+						{#snippet editor(field)}{@render warehouse(form, field)}{/snippet}
+					</Field>
+					<Field {ctx} name="ordered_on" readonly={!draft} />
+					<Field {ctx} name="currency" readonly={!draft} />
+					<Field {ctx} name="tax_inclusive" />
+					<Field {ctx} name="valid_from">
+						{#snippet editor(field)}{@render validity(form, field)}{/snippet}
+					</Field>
+					<Field {ctx} name="payment_terms" readonly={!draft} />
+					<Field {ctx} name="packaging" />
+					<Field {ctx} name="payment_method" />
+					<Field {ctx} name="buyer_contact">
+						{#snippet editor(field)}{@render buyer(form, field)}{/snippet}
+					</Field>
+					<Field {ctx} name="customer_po_no" />
+					<Field {ctx} name="delivery_address" />
+					<Field {ctx} name="logistics_handler" />
+					<Field {ctx} name="trade" wide view={tradeView}>
+						{#snippet editor(field)}{@render tradeDetails(form, field)}{/snippet}
+					</Field>
+					<Field {ctx} name="print_values" wide view={printView}>
+						{#snippet editor(field)}{@render printDetails(form, field)}{/snippet}
+					</Field>
+				</Grid>
+				{@render contractBody(form)}
+			</Section>
+		{/snippet}
+	</RecordForm>
 {/if}

@@ -2,6 +2,8 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		EmptyState,
+		Field,
+		RecordForm,
 		Section,
 		Table,
 		Timeline,
@@ -10,7 +12,7 @@
 		type RecordView,
 		type TimelineEntry
 	} from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { Grid } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
 		view,
@@ -80,16 +82,6 @@
 		}))
 	);
 	const canClassify = $derived(Boolean(ctx.catalog?.parties?.update));
-	const kingdeeFields = [
-		'name',
-		'external_code',
-		'kind',
-		'region',
-		'currency',
-		'phone',
-		'active',
-		'address'
-	] as const;
 </script>
 
 {#snippet contacts()}{#if id}<Table
@@ -121,44 +113,42 @@
 	{/if}{/snippet}
 <RecordForm
 	{ctx}
-	after_form={credit}
 	{view}
-	readonly={!canClassify}
-	readonly_reason={ctx.t('component.kingdee_readonly')}
-	sections={[
-		{
-			name: 'partner',
-			fields: [
-				'name',
-				'external_code',
-				'kind',
-				'region',
-				'currency',
-				'phone',
-				'active',
-				'related_party',
-				'address'
-			],
-			readonlyFields: kingdeeFields,
-			wide: ['address']
-		},
-		{
-			name: 'sync',
-			icon: 'lucide:refresh-cw',
-			title: ctx.t('section.sync'),
-			closed:
-				view.mode === 'create'
-					? ''
-					: format({ kind: 'instant' }, view.record.source_updated_at, {
-							locale: ctx.locale,
-							...(ctx.tz == null ? {} : { zone: ctx.tz })
-						}),
-			fields: ['source_updated_at'],
-			readonlyFields: ['source_updated_at']
-		}
-	]}
+	{...canClassify ? {} : { lock: ctx.t('component.kingdee_readonly') }}
 	tabs={[
 		{ name: 'poc', title: ctx.t('component.poc'), body: contacts },
 		{ name: 'orders', title: ctx.t('component.orders'), body: orders }
 	]}
-/>
+>
+	<!-- Kingdee keeps a partner's own fields; only its related party is classified here -->
+	<Section first name="partner">
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="name" readonly />
+			<Field {ctx} name="external_code" readonly />
+			<Field {ctx} name="kind" readonly />
+			<Field {ctx} name="region" readonly />
+			<Field {ctx} name="currency" readonly />
+			<Field {ctx} name="phone" readonly />
+			<Field {ctx} name="active" readonly />
+			<Field {ctx} name="related_party" />
+			<Field {ctx} name="address" readonly wide />
+		</Grid>
+	</Section>
+	<Section
+		name="sync"
+		icon="lucide:refresh-cw"
+		title={ctx.t('section.sync')}
+		default_open={false}
+		summary={view.mode === 'create'
+			? ''
+			: format({ kind: 'instant' }, view.record.source_updated_at, {
+					locale: ctx.locale,
+					...(ctx.tz == null ? {} : { zone: ctx.tz })
+				})}
+	>
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="source_updated_at" readonly />
+		</Grid>
+	</Section>
+	{@render credit()}
+</RecordForm>

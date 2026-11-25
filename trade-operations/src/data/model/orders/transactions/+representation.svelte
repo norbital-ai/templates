@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, Table, type RecordView } from '@norbital-ai/ui';
-	import { Bound, Cluster, Stack } from '@norbital-ai/ui/layout';
-	import RecordForm from '../../../../lib/ui/record-form.svelte';
+	import { Button, Field, RecordForm, Section, Table, type RecordView } from '@norbital-ai/ui';
+	import { Bound, Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
 	let {
 		view,
 		ctx
@@ -76,26 +75,19 @@
 {/snippet}
 
 <!-- a Kingdee mirror: only its sync writes it -->
-<RecordForm
-	{ctx}
-	{view}
-	readonly
-	readonly_reason={ctx.t('component.kingdee_readonly')}
-	after_form={extras}
-	sections={[
-		{
-			name: 'transaction',
-			fields: [
-				'order',
-				'reference',
-				'kind',
-				'status',
-				'currency',
-				'issued_on',
-				'due_on',
-				'total',
-				'source_updated_at'
-			]
-		}
-	]}
-/>
+<RecordForm {ctx} {view} lock={ctx.t('component.kingdee_readonly')}>
+	<Section first name="transaction">
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="order" />
+			<Field {ctx} name="reference" />
+			<Field {ctx} name="kind" />
+			<Field {ctx} name="status" />
+			<Field {ctx} name="currency" />
+			<Field {ctx} name="issued_on" />
+			<Field {ctx} name="due_on" />
+			<Field {ctx} name="total" />
+			<Field {ctx} name="source_updated_at" />
+		</Grid>
+	</Section>
+	{@render extras()}
+</RecordForm>

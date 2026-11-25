@@ -3,8 +3,12 @@
 	import {
 		Button,
 		Combobox,
+		Field,
+		Form,
 		Input,
 		Label,
+		RecordShell,
+		Section,
 		Textarea,
 		format,
 		use_act,
@@ -12,7 +16,6 @@
 	} from '@norbital-ai/ui';
 	import { Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { isAdvanceSettlement } from '../../../lib/credit-release.js';
-	import RecordForm from '../../../lib/ui/record-form.svelte';
 
 	let {
 		view,
@@ -166,37 +169,50 @@
 	{/if}
 {/snippet}
 
-<RecordForm
+<!-- the request's own inputs sit beside the form, not in it: a readonly form's controls read as text -->
+<RecordShell
 	{ctx}
-	{view}
-	readonly
-	after_form={noticesAndRequest}
-	sections={[
-		{
-			name: 'credit_release',
-			fields: [
-				'bill_number',
-				'status',
-				'party',
-				'order',
-				'delivery',
-				'bill_on',
-				'settlement_name',
-				'block_reasons',
-				'bill_amount',
-				'credit_limit',
-				'credit_used',
-				'over_limit',
-				'overdue_days',
-				'oldest_overdue_bill',
-				'route',
-				'proposed_limit',
-				'released_by',
-				'released_at',
-				'observed_at',
-				'reason'
-			],
-			wide: ['reason']
-		}
-	]}
-/>
+	of="credit_releases"
+	mode={view.mode}
+	{...view.mode === 'create'
+		? { values: view.values }
+		: { id: view.record.id, lock: ctx.t('component.readonly') }}
+>
+	<Stack gap="md">
+		<Form
+			{ctx}
+			of="credit_releases"
+			mode={view.mode === 'create' ? 'create' : 'view'}
+			readonly
+			{...view.mode === 'create'
+				? { values: view.values }
+				: { id: view.record.id, record: view.record }}
+		>
+			<Section first name="credit_release">
+				<Grid gap="md" minimum="compact">
+					<Field {ctx} name="bill_number" />
+					<Field {ctx} name="status" />
+					<Field {ctx} name="party" />
+					<Field {ctx} name="order" />
+					<Field {ctx} name="delivery" />
+					<Field {ctx} name="bill_on" />
+					<Field {ctx} name="settlement_name" />
+					<Field {ctx} name="block_reasons" />
+					<Field {ctx} name="bill_amount" />
+					<Field {ctx} name="credit_limit" />
+					<Field {ctx} name="credit_used" />
+					<Field {ctx} name="over_limit" />
+					<Field {ctx} name="overdue_days" />
+					<Field {ctx} name="oldest_overdue_bill" />
+					<Field {ctx} name="route" />
+					<Field {ctx} name="proposed_limit" />
+					<Field {ctx} name="released_by" />
+					<Field {ctx} name="released_at" />
+					<Field {ctx} name="observed_at" />
+					<Field {ctx} name="reason" wide />
+				</Grid>
+			</Section>
+		</Form>
+		{@render noticesAndRequest()}
+	</Stack>
+</RecordShell>

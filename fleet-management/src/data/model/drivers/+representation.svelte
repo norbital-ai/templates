@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { Field, Section, type RecordView } from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/record-form.svelte';
+	import { Field, RecordForm, type RecordView, Section } from '@norbital-ai/ui';
 
 	let { view, ctx }: { view: RecordView<'drivers'>; ctx: PageContext } = $props();
 	const t = ctx.t;

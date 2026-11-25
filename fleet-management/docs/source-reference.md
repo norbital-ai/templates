@@ -132,10 +132,9 @@ these components interact at runtime.
 
 ## Shared Libraries (2)
 
-| File                         | Exports & Purpose                                                                                                                                                                                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/lib/geo.ts`             | `PlainTimeSchema`, `parsePlainTime`, `toDecimal`, `formatBigDecimal`, `formatDecimal`, `parseInstant`, `haversineKm`, `haversineMeters`, `isInsideGeofence`, `computeRouteDistanceKm`, `estimateEtaMinutes`, `deriveVehicleStatus`, `normalizeTransponderPayload`. |
-| `src/lib/record-form.svelte` | Reusable `RecordShell` + `Form` wrapper shared by record representations (`routes`, `fleet_alerts`, `geofences`, `drivers`, and `vehicles` create mode).                                                                                                           |
+| File             | Exports & Purpose                                                                                                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/geo.ts` | `PlainTimeSchema`, `parsePlainTime`, `toDecimal`, `formatBigDecimal`, `formatDecimal`, `parseInstant`, `haversineKm`, `haversineMeters`, `isInsideGeofence`, `computeRouteDistanceKm`, `estimateEtaMinutes`, `deriveVehicleStatus`, `normalizeTransponderPayload`. |
 
 ## Access Control (3 Teams, 4 Policies)
 
