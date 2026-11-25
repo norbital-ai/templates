@@ -35,52 +35,6 @@
 					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 					"conversion": "return ctx.entry.quantity;"
 				},
-				"BACKPAY_BASIC": {
-					"lookup": {},
-					"references": [
-						{
-							"title": "13th-month basic includes eligible basic salary differentials and maternity salary differential. Required earning_year attributes this actual amount to its earned calendar year independently of cash payment year; split cross-year amounts. classification_reference identifies the underlying wage/leave adjustment evidence.",
-							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-						}
-					],
-					"off_cycle_eligible": true,
-					"subtotal": "TAXABLE_TERMINATION",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-					"conversion": "return ctx.entry.quantity;",
-					"description": "Basic salary owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid and counts toward 13th-month pay for the year it was earned."
-				},
-				"BACKPAY_DUTY_ALLOWANCE": {
-					"references": [
-						{
-							"title": "Labor Code art.100; RA 6727 wage orders: an unpaid contractual allowance owed for past periods is back pay."
-						}
-					],
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "TAXABLE_TERMINATION",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-					"conversion": "return ctx.entry.quantity;",
-					"description": "A contract allowance owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid."
-				},
-				"BACKPAY_ADD_WAGES": {
-					"references": [
-						{
-							"title": "Labor Code art.100; RA 6727 wage orders: an unpaid wage adjustment owed for past periods is back pay."
-						}
-					],
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "TAXABLE_TERMINATION",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
-					"conversion": "return ctx.entry.quantity;",
-					"description": "A wage adjustment owed for past periods and paid now, at the amount entered. It is taxable pay of the month it is paid."
-				},
 				"COMMISSION": {
 					"lookup": {},
 					"references": [
@@ -2888,7 +2842,7 @@
 					],
 					"subtotal": "DE_MINIMIS_LAUNDRY",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"allowance": {
@@ -2903,7 +2857,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"communication": {
@@ -2918,7 +2872,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"corporate_duty_allowance": {
@@ -2933,7 +2887,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"duty_allowance": {
@@ -2953,7 +2907,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"leader": {
@@ -2968,7 +2922,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"meal": {
@@ -2983,7 +2937,7 @@
 					],
 					"subtotal": "DE_MINIMIS_RICE",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"position": {
@@ -2998,7 +2952,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				},
 				"transport": {
@@ -3013,7 +2967,7 @@
 					},
 					"subtotal": "ORDINARY_WAGES",
 					"eligibility": "return Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn basic > 0 ? Math.max(0, (amount * share * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / basic) : amount * share;",
+					"conversion": "const coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\n// A monthly amount paid twice a month pays half each run (Labor Code art.103), whatever the month's length.\nconst frequency = get(ctx.subject.employer, 'payment_schedule.frequency', 'MONTHLY');\nconst share = frequency === 'SEMI_MONTHLY' ? 1 / 2 : frequency === 'TEN_DAY' ? 1 / 3 : days / month_days;\nreturn amount * share * ctx.paid_share;",
 					"include_in_rate": false
 				}
 			},
@@ -5652,7 +5606,8 @@
 					"mode": "HALF_UP",
 					"scale": 2,
 					"day_rate": "AMOUNT"
-				}
+				},
+				"back_pay": true
 			},
 			"entity_statutory_parameters": {
 				"$schema": "https://json-schema.org/draft/2020-12/schema",

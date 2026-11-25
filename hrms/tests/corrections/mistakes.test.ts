@@ -552,7 +552,7 @@ describe('a paid run that needs an adjustment', () => {
 				yield* run(t, '2026-08');
 				yield* pay(t, '2026-08');
 				const paid = yield* slipOf(t, '2026-08');
-				const arrears = yield* adhoc(t, 'BPAYBS', 200, '2026-08-31');
+				const arrears = yield* adhoc(t, 'BONUS', 200, '2026-08-31');
 				const owed = yield* current(t, 'adhoc_catalog_entry', arrears);
 				yield* t.as(t.admin).pipe(
 					Effect.andThen((caller) =>
@@ -569,9 +569,9 @@ describe('a paid run that needs an adjustment', () => {
 					)
 				);
 				yield* t.run_due();
-				assert.equal(signed(yield* slipOf(t, '2026-08', PERSON, 'OFF_CYCLE'), 'BPAYBS'), 200);
+				assert.equal(signed(yield* slipOf(t, '2026-08', PERSON, 'OFF_CYCLE'), 'BONUS'), 200);
 				yield* run(t, '2026-09');
-				assert.equal(signed(yield* slipOf(t, '2026-09'), 'BPAYBS'), 0);
+				assert.equal(signed(yield* slipOf(t, '2026-09'), 'BONUS'), 0);
 				assert.equal(Number((yield* slipOf(t, '2026-08')).net_pay), Number(paid.net_pay));
 			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);

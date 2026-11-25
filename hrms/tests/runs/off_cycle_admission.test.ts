@@ -122,7 +122,7 @@ describe('a leaver with no further on-cycle run', () => {
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* pay(t, '2026-05');
-				yield* enter(t, 'ADJ', 1000, '2026-05-25');
+				yield* enter(t, 'BONUS', 1000, '2026-05-25');
 				yield* offCycle(t, '2026-05');
 				const { payslip, payroll_run } = yield* storedQuery(t, {
 					payslip: { limit: 10 },
@@ -133,7 +133,7 @@ describe('a leaver with no further on-cycle run', () => {
 				const adjustment = Schema.decodeUnknownSync(PayslipBreakdown)(
 					payslip.rows.find((row) => row.payroll_run_id === run.id)?.breakdown
 				);
-				assert.equal(adjustment.lines.find((line) => line.code === 'ADJ')?.amount, 1000);
+				assert.equal(adjustment.lines.find((line) => line.code === 'BONUS')?.amount, 1000);
 				assert.ok((adjustment.statutory.find((row) => row.code === 'EPF')?.employee ?? 0) > 0);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 	);
@@ -141,7 +141,7 @@ describe('a leaver with no further on-cycle run', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* pay(t, '2026-05');
-			yield* enter(t, 'ADJ', 1000, '2026-05-25');
+			yield* enter(t, 'BONUS', 1000, '2026-05-25');
 			const refused = yield* refusal(offCycle(t, '2026-06'));
 			assert.equal(refused.key, 'errors.payroll_run_not_in_group');
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))

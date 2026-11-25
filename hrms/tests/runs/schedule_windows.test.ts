@@ -162,7 +162,7 @@ describe('a leaver', () => {
 								{
 									entity_id: ENTITY,
 									employment_id: STINT,
-									catalog_code: 'BPAYBS',
+									catalog_code: 'BONUS',
 									description: 'Last half',
 									quantity: '1000',
 									incurred_on: '2026-02-11'
@@ -174,7 +174,7 @@ describe('a leaver', () => {
 				for (const period of ['2026-01-1', '2026-01-2', '2026-02-1', '2026-02-2'])
 					yield* run(t, period);
 				const last = yield* slipOf(t, '2026-02-1');
-				assert.equal(lineOf(last, 'BPAYBS'), 1000);
+				assert.equal(lineOf(last, 'BONUS'), 1000);
 				assert.ok(lineOf(last, 'OVERTIME') > 0);
 				assert.equal(yield* slipOf(t, '2026-02-2'), undefined);
 				const paidBy = (yield* runIds(t)).get('2026-02-1');

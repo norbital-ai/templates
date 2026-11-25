@@ -7,16 +7,10 @@ export const adhoc_catalog = {
 		monthly_cap: Schema.Number
 	}),
 	ACHIEVEMENT_AWARD: Schema.Struct({}),
-	ADDITIONAL_BACKPAY: Schema.Struct({}),
-	ADJ: Schema.Struct({}),
 	AMENITIES_RECOVERY: Schema.Struct({}),
 	ANNUAL_BONUS: Schema.Struct({}),
 	APPROVED_DAMAGE_RECOVERY: Schema.Struct({}),
 	AWS: Schema.Struct({}),
-	BACK_PAY_SALARY: Schema.Struct({}),
-	BACKPAY_ADD_WAGES: Schema.Struct({}),
-	BACKPAY_BASIC: Schema.Struct({}),
-	BACKPAY_DUTY_ALLOWANCE: Schema.Struct({}),
 	BANKRUPTCY_ESTATE: Schema.Struct({
 		ceiling: Schema.Number
 	}),
@@ -24,7 +18,6 @@ export const adhoc_catalog = {
 	BONUS: Schema.Struct({}),
 	BONUS_OVER_SIX_MONTHS: Schema.Struct({}),
 	BONUS_THR: Schema.Struct({}),
-	BPAYBS: Schema.Struct({}),
 	CBA_PRODUCTIVITY: Schema.Struct({}),
 	CHRISTMAS_BONUS: Schema.Struct({}),
 	CHRISTMAS_GIFT: Schema.Struct({}),
@@ -153,8 +146,6 @@ export const adhoc_catalog = {
 	NIGHT_MEAL_CASH: Schema.Struct({
 		limit_per_unit: Schema.Number
 	}),
-	NO_PAY_ADJUSTMENT: Schema.Struct({}),
-	NO_PAY_REFUND: Schema.Struct({}),
 	NON_ACCUMULATING_INSURANCE: Schema.Struct({}),
 	NON_COMPETE_COMPENSATION: Schema.Struct({
 		max_years: Schema.optional(Schema.Number),
@@ -228,7 +219,6 @@ export const adhoc_catalog = {
 	OCC_INJURY_OFFSET: Schema.Struct({}),
 	OCCUPATIONAL_ACCIDENT_COMPENSATION: Schema.Struct({}),
 	OCCUPATIONAL_ACCIDENT_MEDICAL: Schema.Struct({}),
-	ORDINARY_BACKPAY: Schema.Struct({}),
 	OT_MEAL_ALLOWANCE: Schema.Struct({}),
 	PAY_IN_LIEU_OF_NOTICE: Schema.Struct({}),
 	PAYEE_PAYMENT: Schema.Struct({}),
@@ -330,7 +320,6 @@ export const adhoc_catalog = {
 	RETIREMENT_PAY_QUALIFIED_PLAN: Schema.Struct({}),
 	RETIREMENT_PAY_TAXABLE: Schema.Struct({}),
 	RETRENCHMENT_BENEFIT: Schema.Struct({}),
-	RETROACTIVE_PAY: Schema.Struct({}),
 	SALARY_IN_LIEU_OF_NOTICE: Schema.Struct({}),
 	SECURITY_DEPOSIT: Schema.Struct({}),
 	SEPARATION_PAY: Schema.Struct({}),

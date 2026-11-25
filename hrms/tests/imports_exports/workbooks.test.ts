@@ -50,7 +50,7 @@ const laws = lawsOf({
 					ANNUAL: { name: 'Annual' },
 					ANNUAL_LEAVE: { name: 'Annual leave' }
 				},
-				adhoc_catalog: { BPAYBS: { name: 'Back pay – basic' } },
+				adhoc_catalog: { BONUS: { name: 'Bonus' } },
 				claim_catalog: { MEDICAL: { name: 'Medical' } },
 				loan_catalog: { STAFF_LOAN: { name: 'Staff loan' } },
 				workplace_case_catalog: { ACCIDENT: { name: 'Accident' } }
@@ -524,7 +524,7 @@ describe('the one-workbook data request', () => {
 			'Ad Hoc',
 			[
 				['Employee Number', 'Ad Hoc Type', 'Incurred On', 'Amount', 'Description'],
-				['1001', 'BPAYBS', '2026-03-02', 75, 'March']
+				['1001', 'BONUS', '2026-03-02', 75, 'March']
 			]
 		]
 	]);
@@ -535,7 +535,7 @@ describe('the one-workbook data request', () => {
 		const adhoc = parseAdhocSheet(workbook, { ...known, existing: [] });
 		assert.deepEqual(
 			adhoc.rows.map((row) => [row.catalog_code, row.quantity, row.description]),
-			[['BPAYBS', 75, 'March']]
+			[['BONUS', 75, 'March']]
 		);
 	});
 });

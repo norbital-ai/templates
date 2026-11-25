@@ -5,39 +5,6 @@
 		"effective_from": "2025-12-01",
 		"law": {
 			"adhoc_catalog": {
-				"BPAYBS": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "WAGE_ARREARS",
-					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "Employment Act 1955 (Act 265)",
-							"locator": "s.2 \"wages\"; s.19(1)",
-							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
-							"quote": "A shortfall in basic wages for an earlier wage period remains wages under s.2 and is paid under s.19(1), which requires payment not later than the seventh day after the last day of the wage period; it is back pay of basic wages, not a separate wage category."
-						}
-					],
-					"description": "Back pay owed for an earlier period under terms signed later, at the amount entered or computed by the run. Wages for EPF, SOCSO, EIS and HRD; PCB taxes it as additional remuneration in the month paid."
-				},
-				"ADJ": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "WAGE_ARREARS",
-					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "a salary adjustment is wages for EPF (KWSP FAQ 20) and for the HRD levy, as BPAYBS is."
-						}
-					],
-					"description": "A salary adjustment for an earlier period, paid at the amount entered. It counts as wages for EPF and the HRD levy, as back pay does."
-				},
 				"BONUS": {
 					"lookup": {},
 					"off_cycle_eligible": true,
@@ -354,36 +321,6 @@
 						}
 					],
 					"description": "An incentive paid on top of overtime, entered as a money amount. It counts as wages for EPF, SOCSO and EIS, and PCB taxes it in the month it is paid as additional remuneration."
-				},
-				"NO_PAY_ADJUSTMENT": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "REGULAR_PAY",
-					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "DEDUCT",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
-						}
-					],
-					"description": "No-pay leave settled by hand: what HR takes beyond the unpaid days the cycle holds (a calendar month with no paid day pays nothing)."
-				},
-				"NO_PAY_REFUND": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "REGULAR_PAY",
-					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "the manual no-pay leave adjustment of a payroll listing. It moves basic pay, so it counts wherever basic pay counts."
-						}
-					],
-					"description": "No-pay leave settled by hand: gives back unpaid days an earlier payslip already took, so no day is deducted twice."
 				},
 				"STATUTORY_ADJUSTMENT": {
 					"references": [

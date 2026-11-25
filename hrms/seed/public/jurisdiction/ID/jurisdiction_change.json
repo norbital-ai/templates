@@ -43,25 +43,6 @@
 					"party": "EMPLOYEE",
 					"description": "A medical allowance paid in money, at the amount entered. It is part of the month's wages (PP 36/2021 art.7)."
 				},
-				"BACK_PAY_SALARY": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "ADDITIONAL_WAGES",
-					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn end == null || ctx.entry.incurred_on <= end;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "PP 36/2021",
-							"locator": "art.61(2)",
-							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
-							"quote": "The wage remains due although it is paid late.",
-							"effective_from": "2021-02-02"
-						}
-					],
-					"description": "Salary owed for an earlier period and paid now, at the amount entered. It is taxed as income of the month it is paid."
-				},
 				"KESEHATAN_TERMINATION_MONTH_EMPLOYER": {
 					"lookup": {},
 					"off_cycle_eligible": false,
@@ -117,25 +98,6 @@
 						}
 					],
 					"description": "The employee's share of the BPJS Kesehatan contribution for a month still owed after the employment ends, deducted at the amount entered (Perpres 82/2018 art.30)."
-				},
-				"RETROACTIVE_PAY": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "ADDITIONAL_WAGES",
-					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn end == null || ctx.entry.incurred_on <= end;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"references": [
-						{
-							"title": "PP 36/2021",
-							"locator": "art.61(2)",
-							"url": "https://web.archive.org/web/20261012123615/https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
-							"quote": "The wage remains due although it is paid late.",
-							"effective_from": "2021-02-02"
-						}
-					],
-					"description": "A pay rise applied to earlier months and paid now, at the amount entered. It is taxed as income of the month it is paid."
 				},
 				"COMPENSATION": {
 					"lookup": {},

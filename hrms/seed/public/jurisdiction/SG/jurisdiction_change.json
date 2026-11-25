@@ -149,42 +149,6 @@
 					"party": "EMPLOYEE",
 					"description": "Deduction for damage above the quarter-salary limit, as keyed, with the Commissioner’s permission (EA s.29(1))."
 				},
-				"ORDINARY_BACKPAY": {
-					"lookup": {},
-					"references": [
-						{
-							"title": "CPF Act 1953 First Schedule — wages for one month payable by the 14th of the next month are Ordinary Wages",
-							"locator": "First Schedule",
-							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
-							"effective_from": "2025-12-01"
-						}
-					],
-					"off_cycle_eligible": true,
-					"subtotal": "ORDINARY_WAGES",
-					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"description": "Back pay keyed by HR; paid in full as keyed; Ordinary Wages for CPF."
-				},
-				"ADDITIONAL_BACKPAY": {
-					"lookup": {},
-					"references": [
-						{
-							"title": "CPF Act 1953 First Schedule — wages not meeting the Ordinary Wage timing test are Additional Wages",
-							"locator": "First Schedule",
-							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
-							"effective_from": "2025-12-01"
-						}
-					],
-					"off_cycle_eligible": true,
-					"subtotal": "ADDITIONAL_WAGES",
-					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"description": "Back pay keyed by HR; paid in full as keyed; Additional Wages for CPF."
-				},
 				"PRIOR_WAGE_CASH_REPAYMENT": {
 					"lookup": {},
 					"references": [

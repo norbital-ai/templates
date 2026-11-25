@@ -161,9 +161,9 @@ describe('the tax year to date', () => {
 		const pcb = (late: boolean) =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				if (!late) yield* enter(t, 'BPAYBS', 30_000, '2026-11-10');
+				if (!late) yield* enter(t, 'BONUS', 30_000, '2026-11-10');
 				yield* run(t, '2026-11');
-				if (late) yield* enter(t, 'BPAYBS', 30_000, '2026-12-10');
+				if (late) yield* enter(t, 'BONUS', 30_000, '2026-12-10');
 				yield* run(t, '2026-12');
 				const november = yield* taxed(t, '2026-11', 'PCB');
 				const december = yield* taxed(t, '2026-12', 'PCB');

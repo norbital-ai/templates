@@ -315,16 +315,6 @@
 					"direction": "ADD",
 					"party": "EMPLOYEE",
 					"description": "A bonus at the amount entered."
-				},
-				"BPAYBS": {
-					"lookup": {},
-					"off_cycle_eligible": true,
-					"subtotal": "WAGE_ARREARS",
-					"eligibility": "const exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-					"conversion": "return ctx.entry.quantity;",
-					"direction": "ADD",
-					"party": "EMPLOYEE",
-					"description": "Back pay owed for an earlier period under terms signed later, at the amount entered or computed by the run."
 				}
 			},
 			"loan_catalog": {
