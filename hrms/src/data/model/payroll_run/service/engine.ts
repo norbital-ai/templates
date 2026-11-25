@@ -37,6 +37,7 @@ import {
 	unemployedDays,
 	unpaidByDate,
 	withCompanyPaidLeave,
+	type BackPayLine,
 	type PayLine,
 	type PayrollInput,
 	type PayrollResult,
@@ -56,6 +57,7 @@ export {
 	sharesPay,
 	statutoryOrder,
 	subtotalChain,
+	type BackPayLine,
 	type PayLine,
 	type PayrollInput,
 	type PayrollResult,
@@ -622,6 +624,61 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 		lines.push(...subtotalLines);
 	}
 
+	// Back-pay lines from later-signed terms preserve each item's own catalogue code, source and subtotal (or post at the
+	// law's declared back-pay subtotal, e.g. ADDITIONAL_WAGES where all prior-month arrears are additional wages).
+	const backPaySetting = isJsonObject(input.settings.conversions)
+		? input.settings.conversions.back_pay
+		: undefined;
+	const backPayFloor =
+		typeof backPaySetting === 'string'
+			? chain.findIndex((row) => text(row, 'code') === backPaySetting)
+			: -1;
+	const chainByCode = new Map(chain.map((row, index) => [text(row, 'code'), { row, index }]));
+	const backPayBySubtotal = new Map<string, number>();
+	for (const bp of input.back_pay ?? []) {
+		const own = chainByCode.get(bp.subtotal);
+		const target =
+			backPayFloor >= 0 && (own === undefined || own.index < backPayFloor)
+				? chain[backPayFloor]
+				: (own?.row ?? baseSubtotal);
+		if (target === undefined) continue;
+		const targetCode = text(target, 'code');
+		const amt = round(input.settings, bp.amount);
+		if (amt === 0) continue;
+		lines.push(
+			line({
+				code: bp.code,
+				label: bp.label,
+				subtotal: target,
+				amount: amt,
+				direction: bp.direction,
+				party: bp.party,
+				incurred_on: coverage.to,
+				coverage,
+				source: { code: bp.code },
+				model: bp.source,
+				back_pay_period: bp.back_pay_period
+			})
+		);
+		if (bp.party === 'EMPLOYEE')
+			backPayBySubtotal.set(
+				targetCode,
+				round(input.settings, (backPayBySubtotal.get(targetCode) ?? 0) + signed(bp.direction, amt))
+			);
+	}
+	let backPaySoFar = 0;
+	const backPayAt = new Map<string, number>();
+	for (const r of results) {
+		backPaySoFar = round(input.settings, backPaySoFar + (backPayBySubtotal.get(r.code) ?? 0));
+		backPayAt.set(r.code, backPaySoFar);
+		if (backPaySoFar !== 0) {
+			const next = round(input.settings, r.value + backPaySoFar);
+			values.set(r.code, next);
+			r.value = next;
+		}
+	}
+	const backPayContext = Object.fromEntries(backPayAt);
+
 	const statutory: StatutoryResult[] = [];
 	const statutoryValues: Record<string, { employee: number; employer: number }> = {};
 	// carried pay enters the chain where it was earned: its checkpoint and every one after it
@@ -644,12 +701,13 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 			subtotals: Object.fromEntries(
 				results.map((r) => [r.code, paidMonth ? (withCarried.get(r.code) ?? r.value) : r.value])
 			),
+			back_pay: backPayContext,
 			statutory: statutoryValues,
 			posted,
 			encashment,
 			overtime: lines
 				.filter((row) => row.source_id.model === 'overtime_catalog')
-				.reduce((total, row) => total + row.amount, 0)
+				.reduce((total, row) => total + signed(row.direction, row.amount), 0)
 		};
 		const roots = programOf('statutory_contribution_catalog')?.roots;
 		if (!eligible(scheme.eligibility, context, `${code}.eligibility`, roots)) continue;
@@ -718,7 +776,11 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 	const finalValues = new Map<string, number>();
 	const finalResults: SubtotalResult[] = [];
 	const linesBy = Map.groupBy(
-		lines.filter((l) => l.party === 'EMPLOYEE' && l.source_id.model !== 'employment'),
+		lines.filter(
+			(l) =>
+				l.party === 'EMPLOYEE' &&
+				!(l.source_id.model === 'employment' && l.back_pay_period === undefined)
+		),
 		(l) => l.subtotal
 	);
 	for (const subtotal of chain) {

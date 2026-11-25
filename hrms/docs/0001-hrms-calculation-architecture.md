@@ -34,7 +34,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - Net pay never goes below zero. What cannot be taken back is one line, "Recovery carried forward", and the next run takes the rest.
 - Nothing of a person moves while an unpaid run holds them. Delete the run first.
 - A paid payslip is never rewritten. A priced entry may be deleted. A change to a person's terms or statutory parameters, to a company or to a law is a dated row from its real date; a wrong one is corrected, moved or deleted in place ([RFC 0011](0011-dated-changes.md)).
-- **The employment, by date.** Facts (family, events, statutory parameters, pay group) are those in force on the date; a dated row is priced under the terms in force on its date. Agreed terms are the change rows signed by the period's pay date. What a later-signed row adds for earlier periods is back pay of the period it was signed in, on the row the law names in `conversions.back_pay`. A law that names none applies a row from its date. A hire signed after its first months follows the same rule.
+- **The employment, by date.** Facts (family, events, statutory parameters, pay group) are those in force on the date; a dated row is priced under the terms in force on its date. Agreed terms are the change rows signed by the period's pay date. What a later-signed row adds for earlier periods is back pay of the period it was signed in, carried line by line on each item's own catalogue row (`back_pay_period`) rather than collapsed onto a synthetic ad hoc arrears row (owner, 2026-11-25). `conversions.back_pay` enables this (`true` keeps every line's own subtotal so overtime arrears stay outside EPF/HRDF while basic arrears enter them; a subtotal code such as `ADDITIONAL_WAGES` posts all prior-period arrears there where the statute classifies all arrears as additional wages). Statutory schemes also see cumulative back pay by checkpoint in `ctx.back_pay`. A law that leaves `conversions.back_pay` out applies a row from its date. A hire signed after its first months follows the same rule.
 - The full description is in [corrections and integrity](0007-corrections-and-integrity.md).
 
 ### Leave rows
@@ -134,7 +134,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 - Seed from **December 2025**, each change dated the day a change in law took effect. A change already enacted with a later date of effect is seeded in advance as its own change from that date (owner, 2026-11-13).
 - Nothing in a law has an id: an entry names its catalogue row by code, a catalogue row its subtotal, a subtotal its predecessor. Pickers list the rows of the law in force on the day.
 - `lookup` holds only shared tables and constants, each with a declared shape. A row's local lookup wins. A value read by one row lives on that row.
-- One typed `conversions` block declares `day`, `hour`, `proration` and `rounding`, and `back_pay` where the law prices back pay on a row of its own. The engine computes the day and hour rates once per run; a row never derives its own.
+- One typed `conversions` block declares `day`, `hour`, `proration` and `rounding`, and `back_pay` where later-signed terms are assessed in the signing period (`true` keeps each item's own subtotal; a subtotal code posts them at that subtotal). The engine computes the day and hour rates once per run; a row never derives its own.
 - A law that ties a contribution to a work pass reads `terms.work_authorisation_expires_on`, the day a foreign worker's pass ends, an extension included.
 
 ### Registered rules and effects
@@ -249,19 +249,19 @@ Before a field is added, five questions decide whether it has a second owner. A 
 4. Would renaming the thing it names break it silently (a field named by a string)?
 5. Can the type hold a combination that cannot run?
 
-| Fact                                                   | Owner                                                 |
-| ------------------------------------------------------ | ----------------------------------------------------- |
-| What was agreed: rate, hours, allowances               | `contract_terms`                                      |
-| What the law is told of a person                       | `statutory_parameters`                                |
-| How this law converts: day, hour, proration, rounding  | The law's `conversions` block                         |
-| Whether an allowance is in the rate a day or hour uses | That `allowance_catalog` row (`include_in_rate`)      |
-| Whether an allowance line follows absence              | That row's `conversion`, by reading `ctx.paid_share`  |
-| What one catalogue row pays or decides                 | That row's `lookup`                                   |
-| A rate table read by many rows                         | The law's `lookup`, with a declared shape             |
-| Which period a checkpoint or scheme posts to           | That `subtotal` or statutory row (`balance_window`)   |
-| Which paid periods are worked out again                | The open `pay_amendment` rows, never a date or a seal |
-| Which period a payslip line belongs to                 | The line's `period`; empty is the payslip's own       |
-| Which row prices back pay                              | `conversions.back_pay` in the law                     |
+| Fact                                                   | Owner                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| What was agreed: rate, hours, allowances               | `contract_terms`                                       |
+| What the law is told of a person                       | `statutory_parameters`                                 |
+| How this law converts: day, hour, proration, rounding  | The law's `conversions` block                          |
+| Whether an allowance is in the rate a day or hour uses | That `allowance_catalog` row (`include_in_rate`)       |
+| Whether an allowance line follows absence              | That row's `conversion`, by reading `ctx.paid_share`   |
+| What one catalogue row pays or decides                 | That row's `lookup`                                    |
+| A rate table read by many rows                         | The law's `lookup`, with a declared shape              |
+| Which period a checkpoint or scheme posts to           | That `subtotal` or statutory row (`balance_window`)    |
+| Which paid periods are worked out again                | The open `pay_amendment` rows, never a date or a seal  |
+| Which period a payslip line belongs to                 | The line's `period`; empty is the payslip's own        |
+| How back pay from later-signed terms posts             | `conversions.back_pay` in the law (`true` or subtotal) |
 
 Three tests guard this: `tests/configuration/configuration_ownership.test.ts` (every `lookup` key of a law is a shared table, every row's params match its declared shape, no contract-term duplicate, no bare `ctx.` read), `tests/configuration/statutory_parameter_fields.test.ts` (every extension field has a reader) and `tests/configuration/lookup_keys.test.ts` (no declared key without a reader).
 
@@ -371,7 +371,7 @@ Each law declares one typed block:
 - `conversions.hour`: `CONTRACT_HOURS` (day ÷ contract normal hours), `CONTRACT_WEEKLY` (monthly × 12 ÷ (52 × contract hours a week)), or `FIXED` with its `hours`.
 - `conversions.proration`: `CALENDAR_DAYS`, `WORKING_DAYS` or `DAY_RATE`. `DAY_RATE` prices each missed day at `ctx.day_rate`, whether it is leave, an absence, a joiner's missing day or a leaver's.
 - `conversions.rounding`: `{ mode, scale, day_rate }`. The mode is `HALF_UP`, `HALF_EVEN`, `UP`, `DOWN` or `TRUNCATE`; the scale is 0 to 12. `day_rate` is `RATE` (the default: the day rate is rounded before it multiplies the days) or `AMOUNT` (only the amount is rounded). The Philippines uses `AMOUNT`.
-- `conversions.back_pay`: optional, the code of the ad hoc row that prices back pay. Named, a terms row signed after periods it reaches pays what it adds for them as back pay of the period it was signed in. Left out, a row applies from its date.
+- `conversions.back_pay`: optional, `true` or a subtotal code of this law. Set, a terms row signed after periods it reaches pays what it adds for them as back pay of the period it was signed in, line by line on each item's own catalogue (`back_pay_period`): `true` keeps each item's own subtotal (Malaysia), while a subtotal code (e.g. `ADDITIONAL_WAGES` in Singapore and Indonesia) posts all prior-period arrears there. Left out, a row applies from its date.
 - `ledger.ytd_scope`: `JURISDICTION` or `EMPLOYER`. `EMPLOYER` restarts pay and statutory totals when a person changes employer.
 
 The terms state the rate as `MONTHLY`, `DAILY` or `HOURLY`. A daily or hourly rate already is its day or hour. On an overtime row, `ctx.hour_rate` is the higher of the jurisdiction's hour and the employer's `overtime_hour_basis` hour.

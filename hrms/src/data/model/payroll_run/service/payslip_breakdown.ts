@@ -22,7 +22,9 @@ export const PayslipBreakdown = Schema.Struct({
 			quantity: Schema.optional(Schema.Number),
 			unit: Schema.optional(Schema.String),
 			/** The earlier pay period this line belongs to: a difference this payslip carries for it. */
-			period: Schema.optional(Schema.String)
+			period: Schema.optional(Schema.String),
+			/** The earlier pay period this back-pay line was earned in, assessed in this run's signing period. */
+			back_pay_period: Schema.optional(Schema.String)
 		})
 	),
 	statutory: Schema.Array(
@@ -92,7 +94,18 @@ export const emptyPayslipBreakdown: PayslipBreakdown = {
 export const breakdownOf = (result: PayrollResult): PayslipBreakdown => ({
 	checkpoints: result.subtotals.map(({ code, name, value }) => ({ code, name, value })),
 	lines: result.lines.map(
-		({ code, label, subtotal, amount, direction, party, source_id, quantity, unit }) => ({
+		({
+			code,
+			label,
+			subtotal,
+			amount,
+			direction,
+			party,
+			source_id,
+			quantity,
+			unit,
+			back_pay_period
+		}) => ({
 			code,
 			label,
 			subtotal,
@@ -101,7 +114,8 @@ export const breakdownOf = (result: PayrollResult): PayslipBreakdown => ({
 			party,
 			source: source_id.model,
 			...(quantity === undefined ? {} : { quantity }),
-			...(unit === undefined ? {} : { unit })
+			...(unit === undefined ? {} : { unit }),
+			...(back_pay_period === undefined ? {} : { back_pay_period })
 		})
 	),
 	statutory: result.statutory.map(({ code, kind, employee, employer }) => ({

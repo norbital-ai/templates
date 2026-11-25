@@ -6972,7 +6972,7 @@
 					"mode": "HALF_UP",
 					"scale": 0
 				},
-				"back_pay": "RETROACTIVE_PAY"
+				"back_pay": "ADDITIONAL_WAGES"
 			},
 			"entity_statutory_parameters": {
 				"$schema": "https://json-schema.org/draft/2020-12/schema",

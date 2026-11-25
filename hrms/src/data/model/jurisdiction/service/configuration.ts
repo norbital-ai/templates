@@ -129,6 +129,18 @@ export const checkLaw = (law: Law, seen: Set<string> = new Set()): void => {
 	const arm = conversionArmError({ conversions: law.settings.conversions, code: law.code });
 	if (arm !== undefined) throw new Refusal({ message: arm });
 	const subtotals = new Set(subtotalChain(law.rows.subtotal).map((row) => String(row.code)));
+	const backPay = isDynObject(law.settings.conversions)
+		? law.settings.conversions.back_pay
+		: undefined;
+	if (
+		backPay !== undefined &&
+		backPay !== null &&
+		backPay !== true &&
+		(typeof backPay !== 'string' || !subtotals.has(backPay))
+	)
+		throw new Refusal({
+			message: `${law.code}: conversions.back_pay must be true or a subtotal of this law.`
+		});
 	statutoryOrder(law.rows.statutory_contribution_catalog);
 	const chain = [...subtotals].join();
 	for (const family of LAW_ROWS)

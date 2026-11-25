@@ -57,6 +57,7 @@ const CALCULATION_ROOTS = [
 	'abs_amount',
 	'used',
 	'subtotals',
+	'back_pay',
 	'overtime',
 	'statutory',
 	'posted',

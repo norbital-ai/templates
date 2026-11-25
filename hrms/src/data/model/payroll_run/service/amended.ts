@@ -1,4 +1,4 @@
-import { BigDecimal, Effect } from 'effect';
+import { Effect } from 'effect';
 import {
 	accountsOf,
 	apply,
@@ -25,11 +25,12 @@ import {
 	type RunData,
 	type RunFrame
 } from './run_calculation.js';
-import { round } from './rates.js';
+import { round, type BackPayLine } from './rates.js';
 import {
 	RECALCULATED_A_RUN,
 	RECOVERY,
-	earned,
+	backPayDeltaLines,
+	earningLines,
 	fromOf,
 	indexSpan,
 	isMoney,
@@ -189,7 +190,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			row.payroll_run_id == null && typeof row.incurred_on === 'string' && row.incurred_on < ownFrom
 	);
 	// terms signed since the last pay date that began before this period: they may owe back pay
-	const paysBack = typeof objectValue(settings?.conversions).back_pay === 'string';
+	const backPaySetting = objectValue(settings?.conversions).back_pay;
+	const paysBack = backPaySetting === true || typeof backPaySetting === 'string';
 	const ownGroupPeriods = periodsByGroup.get(ownGroupId) ?? [];
 	const lastPayDate =
 		ownGroupPeriods
@@ -285,10 +287,6 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				.toSorted()[0];
 			dates.push(reached !== undefined && reached < row.from ? reached : row.from);
 		}
-		const earliest = dates.toSorted()[0] ?? ownFrom;
-		const balanceFrom = monthStart(earliest);
-		const paidSince =
-			orderedPeriods.find((period) => period.closes >= balanceFrom)?.payDate ?? ownPayDate;
 		const ownMinFrom = ownStintMinFrom.get(employee);
 		const ownTerms = ownTermsByEmployee.get(employee) ?? [];
 		const latePeriods = myLate.map(({ row }) =>
@@ -298,6 +296,47 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 					String(row.incurred_on) <= period.closes
 			)
 		);
+		// recalculating a later-signed terms row's signing period also re-prices every earlier paid period its back pay
+		// reaches: widen the loaded span so those earlier periods' attendance, leave and paid slips are present
+		if (paysBack && ownTerms.length > 0) {
+			const starts = [
+				...openPeriods,
+				...latePeriods.filter((period): period is Period => period !== undefined)
+			];
+			const termGroupIds = unique(ownTerms.map(({ row }) => String(row.pay_group_id)));
+			const backPayPeriods = termGroupIds
+				.flatMap((groupId) => periodsByGroup.get(groupId) ?? [])
+				.toSorted((a, b) => a.order.localeCompare(b.order));
+			for (const { row } of ownTerms) {
+				const signed = signedOn(row);
+				const from = fromOf(row);
+				if (signed === '' || signed <= from) continue;
+				const signing = backPayPeriods.find((period) => period.payDate >= signed);
+				if (signing === undefined) continue;
+				const reachesSigning = starts.some(
+					(start) =>
+						(start.year === signing.year && start.order <= signing.order) ||
+						backPayPeriods.some(
+							(period) =>
+								period.year === start.year &&
+								period.order >= start.order &&
+								period.payDate < signed &&
+								period.closes >= from
+						)
+				);
+				if (!reachesSigning) continue;
+				for (const groupId of termGroupIds) groupIds.add(groupId);
+				const reached = backPayPeriods
+					.filter((period) => period.order < signing.order && period.closes >= from)
+					.map(opensOf)
+					.toSorted()[0];
+				dates.push(reached !== undefined && reached < from ? reached : from);
+			}
+		}
+		const earliest = dates.toSorted()[0] ?? ownFrom;
+		const balanceFrom = monthStart(earliest);
+		const paidSince =
+			orderedPeriods.find((period) => period.closes >= balanceFrom)?.payDate ?? ownPayDate;
 		// when the person's unbroken stint in this pay group is already loaded and carries no backdated-signed raise,
 		// their recalculated periods stay strictly within the amended tax year(s)
 		const bounded =
@@ -717,14 +756,10 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		);
 
 	/**
-	 * A person's earnings in an earlier period on the terms signed by a day, priced once: what one period's back pay counts
-	 * on its pay date is what the next one's counts on the pay date before.
+	 * A person's own non-statutory earning lines in an earlier period on the terms signed by a day, priced once: what one
+	 * period's back pay counts on its pay date is what the next one's counts on the pay date before.
 	 */
-	const backPayCode =
-		typeof objectValue(settings?.conversions).back_pay === 'string'
-			? String(objectValue(settings?.conversions).back_pay)
-			: '';
-	const earnings = new Map<string, number>();
+	const earnings = new Map<string, readonly JsonObject[]>();
 	const earnedOn = Effect.fn('payroll.earnedOn')(function* (
 		period: Period,
 		asOf: string,
@@ -733,8 +768,8 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		const keyOf = (employee: string) => `${period.id}/${asOf}/${employee}`;
 		for (const employee of who) {
 			if (earnings.has(keyOf(employee))) continue;
-			// An un-amended paid period with no terms signed between its pay date and `asOf` (and no back pay of its own)
-			// already holds its exact earnings on the paid payslip.
+			// An un-amended paid period with no terms signed between its pay date and `asOf` already holds its exact own
+			// earning lines (`period === undefined && back_pay_period === undefined`) on the paid payslip.
 			const amended =
 				(againIds.get(employee)?.has(period.id) ?? false) ||
 				(amendedKeysByEmployee.get(employee)?.has(period.key) ?? false);
@@ -743,12 +778,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			);
 			const held =
 				!amended && !changed ? slipByEmployeeRun.get(`${employee}/${period.id}`) : undefined;
-			if (
-				held !== undefined &&
-				(backPayCode === '' ||
-					!linesOf(held.slip.breakdown).some((line) => line.code === backPayCode))
-			)
-				earnings.set(keyOf(employee), earned(held.slip.breakdown));
+			if (held !== undefined) earnings.set(keyOf(employee), earningLines(held.slip.breakdown));
 		}
 		const missing = who.filter((employee) => !earnings.has(keyOf(employee)));
 		if (missing.length > 0) {
@@ -756,17 +786,17 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 			for (const employee of missing)
 				earnings.set(
 					keyOf(employee),
-					earned(payslips.find((slip) => slip.employee_id === employee)?.breakdown)
+					earningLines(payslips.find((slip) => slip.employee_id === employee)?.breakdown)
 				);
 		}
-		return (employee: string) => earnings.get(keyOf(employee)) ?? 0;
+		return (employee: string) => earnings.get(keyOf(employee)) ?? [];
 	});
 	/**
-	 * The back pay a period owes: for each earlier paid period, its earnings on the terms signed by this period's pay
-	 * date, less its earnings on the terms signed by the pay date before.
+	 * The back pay a period owes, line by line: for each earlier paid period (oldest first), its own earning lines on the
+	 * terms signed by this period's pay date, less its own earning lines on the terms signed by the pay date before.
 	 */
 	const backPay = Effect.fn('payroll.backPay')(function* (at: Period, who: readonly string[]) {
-		const owed = new Map<string, number>();
+		const owed = new Map<string, BackPayLine[]>();
 		const asks = new Map<string, { period: Period; since: string; who: string[] }>();
 		for (const employee of who) {
 			const paid = periodsOf.get(employee) ?? [];
@@ -783,20 +813,22 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				asks.set(`${period.id}/${since}`, ask);
 			}
 		}
-		for (const { period, since, who: asked } of asks.values()) {
+		const orderedAsks = [...asks.values()].toSorted((a, b) =>
+			a.period.order.localeCompare(b.period.order)
+		);
+		for (const { period, since, who: asked } of orderedAsks) {
 			const now = yield* earnedOn(period, at.payDate, asked);
 			const then = yield* earnedOn(period, since, asked);
-			for (const employee of asked)
-				owed.set(employee, (owed.get(employee) ?? 0) + now(employee) - then(employee));
+			const periodName = String(period.run.period);
+			for (const employee of asked) {
+				const delta = backPayDeltaLines(now(employee), then(employee), periodName);
+				if (delta.length === 0) continue;
+				const held = owed.get(employee);
+				if (held === undefined) owed.set(employee, [...delta]);
+				else held.push(...delta);
+			}
 		}
-		return new Map(
-			[...owed].map(([employee, amount]) => [
-				employee,
-				BigDecimal.toNumberUnsafe(
-					BigDecimal.round(BigDecimal.fromNumberUnsafe(amount), { scale: 6 })
-				)
-			])
-		);
+		return owed;
 	});
 
 	const attaches: Record<string, string[]> = {};

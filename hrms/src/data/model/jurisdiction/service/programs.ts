@@ -56,6 +56,7 @@ export const PROGRAMS: Readonly<Record<string, Program>> = {
 			'lookup',
 			'base_pay',
 			'subtotals',
+			'back_pay',
 			'calendar_days',
 			'working_days',
 			'month_wage',

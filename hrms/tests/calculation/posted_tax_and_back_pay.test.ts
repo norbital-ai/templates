@@ -1,14 +1,14 @@
 // Two ways a law row is reached from outside the month's own chain: an ad hoc entry that posts to a statutory account
 // (a tax instalment the authority directs) counts as that scheme's amount withheld without entering the base the scheme
-// is worked out from; and terms signed after their first month's pay date pays those days as back pay of the period
-// it was signed in, on the row the law names in `conversions.back_pay`. Malaysia's law pack is the fixture; each figure
-// is the same run without the entry, or the test's own salary and dates.
+// is worked out from; and terms signed after their first month's pay date pays those days as line-preserving back pay
+// of the period it was signed in. Malaysia's law pack is the fixture; each figure is the same run without the entry,
+// or the test's own salary and dates.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../../src/lib/reads.ts';
-import { ownLines, pay, run, slip } from '../amendment_kit.ts';
+import { backPayFor, ownLines, pay, run, slip } from '../amendment_kit.ts';
 import {
 	ENTITY,
 	ledgerRows,
@@ -112,20 +112,28 @@ describe('a joiner signed after the month’s pay date', () => {
 		}))
 	};
 
-	it.live('is paid the first days as back pay of the next month, on the law’s back-pay row', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const february = yield* pay(t, '2026-02');
-			const { payslip } = yield* storedQuery(t, {
-				payslip: { where: { payroll_run_id: { eq: february.id } }, limit: 1 }
-			});
-			assert.deepEqual(payslip.rows, [], 'nothing was signed by February’s pay date');
-			yield* run(t, '2026-03');
-			const march = yield* ownLines(t, '2026-03');
-			assert.equal(march['BASIC/EMPLOYEE'], SALARY);
-			// 6 of February's 28 calendar days
-			assert.equal(march['BPAYBS/EMPLOYEE'], Math.round(((SALARY * 6) / 28) * 100) / 100);
-			yield* ledgerWhole(t);
-		}).pipe(Effect.provide(workspace({ seed, now: '2026-03-20T02:00:00.000Z' })))
+	it.live(
+		'is paid the first days as line-preserving back pay of the next month (no synthetic BPAYBS)',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const february = yield* pay(t, '2026-02');
+				const { payslip } = yield* storedQuery(t, {
+					payslip: { where: { payroll_run_id: { eq: february.id } }, limit: 1 }
+				});
+				assert.deepEqual(payslip.rows, [], 'nothing was signed by February’s pay date');
+				yield* run(t, '2026-03');
+				const march = yield* ownLines(t, '2026-03');
+				assert.equal(march['BASIC/EMPLOYEE'], SALARY);
+				assert.equal(march['BPAYBS/EMPLOYEE'], undefined);
+				// 6 of February's 28 calendar days: BASIC +4000 less 22 unworked days prorated
+				const back = yield* backPayFor(t, '2026-03', '2026-02');
+				assert.equal(back['BASIC/EMPLOYEE'], SALARY);
+				const netBack = Number(
+					((back['BASIC/EMPLOYEE'] ?? 0) + (back['PRORATED/EMPLOYEE'] ?? 0)).toFixed(2)
+				);
+				assert.equal(netBack, Math.round(((SALARY * 6) / 28) * 100) / 100);
+				yield* ledgerWhole(t);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-03-20T02:00:00.000Z' })))
 	);
 });

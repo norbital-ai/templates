@@ -67,6 +67,7 @@ export default messages({
 	'app.payroll.line.leave_encashment': '年假折现',
 	'app.payroll.line.overtaken_leave': '超休假期扣回',
 	'app.payroll.line.refund': '退还',
+	'app.payroll.line.back_pay_for': '补发（{period}）',
 	'app.payroll.line.recovery_carried': '结转扣回余额',
 	'app.payroll.line.recovery_carried_hint':
 		'本期扣除超过应发薪资。实发工资止于零，剩余扣回余额结转至下期核算。',

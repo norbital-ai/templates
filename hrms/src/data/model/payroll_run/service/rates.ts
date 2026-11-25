@@ -18,7 +18,20 @@ export interface PayLine {
 	readonly quantity?: number;
 	readonly unit?: Unit;
 	readonly rate_code?: string;
+	readonly back_pay_period?: string;
 	readonly source_id: { readonly model: string; readonly id: string };
+}
+
+/** One earlier-period earning delta owed in the signing period, preserving its original catalogue and subtotal. */
+export interface BackPayLine {
+	readonly code: string;
+	readonly label: string;
+	readonly subtotal: string;
+	readonly amount: number;
+	readonly direction: Direction;
+	readonly party: Party;
+	readonly source: string;
+	readonly back_pay_period: string;
 }
 
 export interface SubtotalResult {
@@ -74,6 +87,11 @@ export interface PayrollInput {
 	 * as this month's wages; every other scheme was worked out again for the month it was earned.
 	 */
 	readonly carried?: Readonly<Record<string, number>>;
+	/**
+	 * Back-pay deltas owed in this signing period for earlier periods under later-signed terms, line by line with each
+	 * item's own catalogue code, source and subtotal.
+	 */
+	readonly back_pay?: readonly BackPayLine[];
 }
 
 /** Overtime a run owes as time off: its hours, on the leave row that takes them, in the window of the day worked. */
@@ -255,6 +273,7 @@ export function line(input: {
 	readonly quantity?: number;
 	readonly unit?: Unit;
 	readonly rate_code?: string;
+	readonly back_pay_period?: string;
 }): PayLine {
 	return {
 		code: input.code,
@@ -272,7 +291,8 @@ export function line(input: {
 		},
 		...(input.quantity === undefined ? {} : { quantity: input.quantity }),
 		...(input.unit === undefined ? {} : { unit: input.unit }),
-		...(input.rate_code === undefined ? {} : { rate_code: input.rate_code })
+		...(input.rate_code === undefined ? {} : { rate_code: input.rate_code }),
+		...(input.back_pay_period === undefined ? {} : { back_pay_period: input.back_pay_period })
 	};
 }
 

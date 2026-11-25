@@ -8,7 +8,7 @@ The rule is [section 0's](0001-hrms-calculation-architecture.md#corrections): co
 
 **Example: missed overtime.** Two hours of overtime on 10 March were not keyed, and March is paid. HR opens the roster day, adds the hours and saves. The March payslip does not change. The April payslip shows, under "Adjustments for earlier periods", the overtime for March and what it moves in contributions and tax, each tagged March. HR works out nothing and keys no amount.
 
-**Example: a backdated raise.** In September the company signs a raise from 1 June. HR adds a terms row from 1 June with the new rate and its signed date. September's payslip shows the new salary and one line of back pay for June to August, with September's contributions and tax worked out on it by the law's own rule for back pay. June to August do not change.
+**Example: a backdated raise.** In September the company signs a raise from 1 June. HR adds a terms row from 1 June with the new rate and its signed date. September's payslip shows the new salary plus line-by-line back-pay deltas for June to August on each item's own catalogue (`BASIC`, `OVERTIME`, `NPL`, etc., tagged with `back_pay_period`), with September's contributions and tax worked out on them by each item's subtotal and the law's rule for back pay (so overtime arrears stay outside EPF and HRDF while basic arrears enter them). June to August do not change.
 
 A record of a period nobody has been paid for is simply edited or deleted. Nothing below applies to it.
 
@@ -39,7 +39,7 @@ Three rules.
 
 1. **Facts are those in force on the date.** Dependants, the person's particulars, events, statutory parameters, pay group. A dated row (roster day, leave, claim, ad hoc entry) is priced under the terms in force on its date.
 2. **Agreed terms are the terms rows signed by the period's pay date.** Rate, hours, days, agreed allowances: each `contract_terms` row, by its `signed_on`. A row with no signed date counts as signed in time. So a raise signed later changes nothing in the periods before it.
-3. **What a later-signed row adds for earlier periods is back pay of the period it was signed in.** The run works it out (each earlier period's earnings with the row, less its earnings without), puts the sum on the law's own back-pay row before it calculates, and that period's schemes price it with the formula they already have. It is never keyed and never stored. The law names the row in its `conversions.back_pay`. A law that names none has no such case: a row there applies from its date.
+3. **What a later-signed row adds for earlier periods is back pay of the period it was signed in.** The run works it out line by line (each earlier period's own earning lines with the row, less its lines without), emits each delta on its own original catalogue (`back_pay_period`) rather than collapsing onto a synthetic ad hoc row, feeds each line into the subtotal chain (at its own subtotal when `conversions.back_pay` is `true`, or at the named subtotal such as `ADDITIONAL_WAGES`), and exposes cumulative back pay by checkpoint as `ctx.back_pay` so that period's schemes price it by statute (e.g. Malaysia EPF/HRDF exclude overtime arrears while PCB taxes all arrears as additional remuneration). It is never keyed and never stored. A law that leaves `conversions.back_pay` out has no such case: a row there applies from its date.
 
 What follows:
 
@@ -111,7 +111,7 @@ One open row serves a person and period however many edits, which is why the row
 - A cumulative tax, a yearly ceiling and a figure a later period worked out once from the year so far all end exact, also when the correction comes after the year has closed.
 - A set-up wrong over several months is collected month by month, with no lump and no double.
 - A raise keyed late pays each month's difference on every line, each month under the law of its own pay date.
-- A raise signed later is back pay of the signing month, priced by the law's own row; editing, moving or deleting it afterwards returns the contributions too.
+- A raise signed later is back pay of the signing month, preserved line by line on each item's own catalogue and subtotal; editing, moving or deleting it afterwards returns the contributions too.
 - A change of pay schedule leaves old periods exact.
 - A late-registered child corrects the tax of the months since, and the leave opens on the real birth date.
 - Balances end where a never-wrong history would have left them.

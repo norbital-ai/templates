@@ -4,6 +4,7 @@ import type { PayWindow } from './pay_cycle.js';
 import { idOf, idsOf, objectValue, queryRows, type Reader } from '../../../../lib/reads.js';
 import { isJsonObject } from '../../../../lib/foundation.js';
 import type { PayslipBreakdown } from './payslip_breakdown.js';
+import type { BackPayLine } from './rates.js';
 import { accountsOf } from '../../employee_profile/employee_balance/service/core.js';
 import { claimLeft, claimWanted } from '../../employee_profile/employee_balance/service/service.js';
 import { lawsWith, type Law } from '../../jurisdiction/service/law.js';
@@ -56,8 +57,8 @@ export interface RunFrame {
 	readonly people?: ReadonlySet<string>;
 	/** Dated rows this run leaves to a paid period it works out again. */
 	readonly leftOut?: ReadonlySet<string>;
-	/** Back pay this period owes each person: the run puts it on the law's own back-pay row. */
-	readonly backPay?: ReadonlyMap<string, number>;
+	/** Back-pay lines this period owes each person from later-signed terms, with each item's own catalogue and subtotal. */
+	readonly backPay?: ReadonlyMap<string, readonly BackPayLine[]>;
 	/** Pay the run carries for earlier periods, by person and checkpoint code: wages of this month for a scheme assessed when paid. */
 	readonly carried?: ReadonlyMap<string, Readonly<Record<string, number>>>;
 	/** Agreed terms are read as they were signed by this day. The run's pay date when left out. */

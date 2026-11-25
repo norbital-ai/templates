@@ -11,6 +11,7 @@ import { type PayWindow } from './pay_cycle.js';
 import { type PayslipBreakdown } from './payslip_breakdown.js';
 import { idsOf, objectValue, queryRows, type Reader } from '../../../../lib/reads.js';
 import { type Law } from '../../jurisdiction/service/law.js';
+import { type BackPayLine } from './rates.js';
 import {
 	claimsAsPosted,
 	lawData,
@@ -63,16 +64,16 @@ export const signedOn = (row: JsonObject) => textOf(row.signed_on);
 export const fromOf = (row: JsonObject) => textOf(row.effective_from);
 const signedOf = (line: JsonObject) =>
 	(line.direction === 'DEDUCT' ? -1 : 1) * Number(line.amount ?? 0);
-/** The pay a period's lines give the person before any scheme: what later-signed terms change. */
-export const earned = (breakdown: unknown): number =>
-	linesOf(breakdown)
-		.filter(
-			(line) =>
-				line.party === 'EMPLOYEE' &&
-				line.source !== 'statutory_contribution_catalog' &&
-				line.period === undefined
-		)
-		.reduce((total, line) => total + signedOf(line), 0);
+/** The pay a period's own non-statutory lines give the person: what later-signed terms change. */
+export const earningLines = (breakdown: unknown): readonly JsonObject[] =>
+	linesOf(breakdown).filter(
+		(line) =>
+			line.party === 'EMPLOYEE' &&
+			line.source !== 'statutory_contribution_catalog' &&
+			line.source !== 'pay_amendment' &&
+			line.period === undefined &&
+			line.back_pay_period === undefined
+	);
 
 export const keyOf = (row: Wanted) => [row.account, row.code, row.period, row.measure].join('/');
 export const net = (rows: readonly Wanted[]): Map<string, Wanted> => {
@@ -115,16 +116,12 @@ export const movements = (rows: readonly Wanted[], sign: 1 | -1): readonly Movem
 		source: ''
 	}));
 
-/** The remainder of one period, line by line: what it should pay now, less what was paid for it. */
-export const remainderLines = (
-	due: readonly JsonObject[],
-	paid: readonly JsonObject[],
-	period: string
-): Line[] => {
+const deltaEntries = (due: readonly JsonObject[], paid: readonly JsonObject[]) => {
 	const by = (lines: readonly JsonObject[]) => {
 		const held = new Map<string, { line: JsonObject; amount: number }>();
 		for (const line of lines) {
-			const key = `${String(line.code)}/${String(line.party)}`;
+			const backPay = typeof line.back_pay_period === 'string' ? line.back_pay_period : '';
+			const key = `${String(line.code)}/${String(line.party)}/${backPay}`;
 			const before = held.get(key);
 			held.set(key, { line: before?.line ?? line, amount: (before?.amount ?? 0) + signedOf(line) });
 		}
@@ -140,21 +137,44 @@ export const remainderLines = (
 				{ scale: 6 }
 			)
 		);
-		if (model === undefined || amount === 0) return [];
-		return [
-			{
-				code: String(model.code),
-				label: String(model.label ?? model.code),
-				subtotal: String(model.subtotal),
-				amount: Math.abs(amount),
-				direction: amount < 0 ? 'DEDUCT' : 'ADD',
-				party: String(model.party),
-				source: String(model.source),
-				period
-			}
-		];
+		return model === undefined || amount === 0 ? [] : [{ model, amount }];
 	});
 };
+
+/** The remainder of one period, line by line: what it should pay now, less what was paid for it. */
+export const remainderLines = (
+	due: readonly JsonObject[],
+	paid: readonly JsonObject[],
+	period: string
+): Line[] =>
+	deltaEntries(due, paid).map(({ model, amount }) => ({
+		code: String(model.code),
+		label: String(model.label ?? model.code),
+		subtotal: String(model.subtotal),
+		amount: Math.abs(amount),
+		direction: amount < 0 ? 'DEDUCT' : 'ADD',
+		party: String(model.party),
+		source: String(model.source),
+		period,
+		...(typeof model.back_pay_period === 'string' ? { back_pay_period: model.back_pay_period } : {})
+	}));
+
+/** The back-pay delta of one earlier period under later-signed terms, line by line with its own catalogue and subtotal. */
+export const backPayDeltaLines = (
+	due: readonly JsonObject[],
+	paid: readonly JsonObject[],
+	earnedPeriod: string
+): BackPayLine[] =>
+	deltaEntries(due, paid).map(({ model, amount }) => ({
+		code: String(model.code),
+		label: String(model.label ?? model.code),
+		subtotal: String(model.subtotal),
+		amount: Math.abs(amount),
+		direction: amount < 0 ? 'DEDUCT' : 'ADD',
+		party: model.party === 'EMPLOYER' ? 'EMPLOYER' : 'EMPLOYEE',
+		source: String(model.source),
+		back_pay_period: earnedPeriod
+	}));
 
 export interface Period {
 	readonly run: JsonObject;

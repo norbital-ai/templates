@@ -73,6 +73,7 @@ export default messages({
 	'app.payroll.line.leave_encashment': 'Leave encashment',
 	'app.payroll.line.overtaken_leave': 'Over-taken leave recovery',
 	'app.payroll.line.refund': 'Refund',
+	'app.payroll.line.back_pay_for': 'Back pay ({period})',
 	'app.payroll.line.recovery_carried': 'Recovery carried forward',
 	'app.payroll.line.recovery_carried_hint':
 		'Deductions exceeded pay this period. Net pay stops at zero and the remaining balance carries to the next run.',

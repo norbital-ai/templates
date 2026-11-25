@@ -121,14 +121,47 @@ export const monthTotals = (t: Kit) =>
 			)
 		)
 	);
-/** A payslip's own lines (nothing it carries for an earlier period), signed, by code and party. */
+const groupedLines = (
+	lines: readonly {
+		readonly code: string;
+		readonly party: string;
+		readonly direction: string;
+		readonly amount: number;
+	}[]
+) => {
+	const totals = new Map<string, number>();
+	for (const line of lines) {
+		const key = `${line.code}/${line.party}`;
+		totals.set(key, (totals.get(key) ?? 0) + signed(line));
+	}
+	return Object.fromEntries(
+		[...totals]
+			.map(([key, value]) => [key, cents(value)] as const)
+			.filter(([, value]) => value !== 0)
+	);
+};
+/** A payslip's own lines (nothing carried or back pay from earlier periods), signed, by code and party. */
 export const ownLines = (t: Kit, period: string, employee?: string) =>
 	slip(t, period, employee).pipe(
 		Effect.map(({ breakdown }) =>
-			Object.fromEntries(
-				breakdown.lines
-					.filter((line) => line.period === undefined)
-					.map((line) => [`${line.code}/${line.party}`, cents(signed(line))])
+			groupedLines(
+				breakdown.lines.filter(
+					(line) => line.period === undefined && line.back_pay_period === undefined
+				)
+			)
+		)
+	);
+/** A payslip's signing-month back-pay lines (all earlier periods, or one named earlier period), signed, by code and party. */
+export const backPayFor = (t: Kit, on: string, earnedPeriod?: string, employee?: string) =>
+	slip(t, on, employee).pipe(
+		Effect.map(({ breakdown }) =>
+			groupedLines(
+				breakdown.lines.filter(
+					(line) =>
+						line.period === undefined &&
+						line.back_pay_period !== undefined &&
+						(earnedPeriod === undefined || line.back_pay_period === earnedPeriod)
+				)
 			)
 		)
 	);
@@ -136,10 +169,37 @@ export const ownLines = (t: Kit, period: string, employee?: string) =>
 export const carriedFor = (t: Kit, on: string, period: string, employee?: string) =>
 	slip(t, on, employee).pipe(
 		Effect.map(({ breakdown }) =>
-			Object.fromEntries(
-				breakdown.lines
-					.filter((line) => line.period === period)
-					.map((line) => [`${line.code}/${line.party}`, cents(signed(line))])
+			groupedLines(breakdown.lines.filter((line) => line.period === period))
+		)
+	);
+/** What a payslip carries for one earlier period's own lines (excluding its back-pay lines). */
+export const carriedOwnFor = (t: Kit, on: string, period: string, employee?: string) =>
+	slip(t, on, employee).pipe(
+		Effect.map(({ breakdown }) =>
+			groupedLines(
+				breakdown.lines.filter(
+					(line) => line.period === period && line.back_pay_period === undefined
+				)
+			)
+		)
+	);
+/** What a payslip carries for one earlier signing period's back-pay lines of a given earlier period. */
+export const carriedBackPayFor = (
+	t: Kit,
+	on: string,
+	period: string,
+	earnedPeriod?: string,
+	employee?: string
+) =>
+	slip(t, on, employee).pipe(
+		Effect.map(({ breakdown }) =>
+			groupedLines(
+				breakdown.lines.filter(
+					(line) =>
+						line.period === period &&
+						line.back_pay_period !== undefined &&
+						(earnedPeriod === undefined || line.back_pay_period === earnedPeriod)
+				)
 			)
 		)
 	);

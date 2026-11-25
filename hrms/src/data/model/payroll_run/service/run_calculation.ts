@@ -72,17 +72,14 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		return yield* Effect.fail(
 			new Refusal({ message: 'The run needs the law in force on its pay date.' })
 		);
-	// the law's own row for pay that belongs to earlier periods: without one, terms apply from their date
-	const backPayCode = objectValue(settings.conversions).back_pay;
-	const backPayRow =
-		typeof backPayCode !== 'string'
-			? undefined
-			: (stored.adhoc_catalog ?? []).find((row) => row.code === backPayCode);
+	// when the law defers later-signed terms to the signing month, terms signed after `asOf` do not apply to earlier periods
+	const backPaySetting = objectValue(settings.conversions).back_pay;
+	const paysBack = backPaySetting === true || typeof backPaySetting === 'string';
 	// agreed terms are those signed by the pay date; every other fact is the one in force on the date
 	const asOf = frame.termsAsOf ?? String(run.pay_date ?? to);
 	const late = (row: JsonObject) => {
 		const signed = objectValue(row.terms).signed_on;
-		return backPayRow !== undefined && typeof signed === 'string' && signed > asOf;
+		return paysBack && typeof signed === 'string' && signed > asOf;
 	};
 	const startOf = (row: JsonObject) => String(objectValue(row.effective_range).from ?? '');
 	// a stretch of a stint: what stands on one set of terms and parameters, and so what a day is priced under
@@ -526,26 +523,9 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 							overtime_intervals: []
 						}));
 		const claims = entries(data.claim_catalog_entry).filter((row) => due(row, row.incurred_on));
-		// what later-signed terms add for earlier periods is this period's back pay, on the law's own row
-		const owed = pays === undefined ? (frame.backPay?.get(employeeId) ?? 0) : 0;
-		const adhoc = [
-			...entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on)),
-			...(backPayRow === undefined || owed === 0
-				? []
-				: [
-						{
-							id: `back_pay:${employeeId}`,
-							entity_id: companyId,
-							employment_id: employmentId,
-							catalog_code: String(backPayRow.code),
-							incurred_on: to,
-							quantity: owed,
-							unit: 'MONEY',
-							payroll_run_id: null,
-							back_pay: true
-						}
-					])
-		];
+		// what later-signed terms add for earlier periods is this period's back pay, line by line on each item's own catalogue
+		const backPayLines = pays === undefined ? (frame.backPay?.get(employeeId) ?? []) : [];
+		const adhoc = entries(data.adhoc_catalog_entry).filter((row) => due(row, row.incurred_on));
 		// an instalment is priced by the run whose attendance holds its date, like every other entry
 		const repayments = entries(data.loan_catalog_entry_repayment).filter(
 			(row) =>
@@ -630,6 +610,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					...(frame.carried?.has(employeeId) === true
 						? { carried: frame.carried.get(employeeId) ?? {} }
 						: {}),
+					...(backPayLines.length === 0 ? {} : { back_pay: backPayLines }),
 					balance: {
 						account: viewOf(
 							accountsOf(balance?.account),
@@ -769,8 +750,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			for (const slot of slots) sealing.leave_day.add(String(slot.id));
 		}
 		for (const row of claims.filter(open)) sealing.claim.add(String(row.id));
-		for (const row of adhoc.filter(open))
-			if (row.back_pay !== true) sealing.adhoc.add(String(row.id));
+		for (const row of adhoc.filter(open)) sealing.adhoc.add(String(row.id));
 		for (const row of repayments.filter(open)) sealing.repayment.add(String(row.id));
 		if (pays !== undefined) continue;
 		for (const row of data.workplace_case_catalog_entry ?? [])

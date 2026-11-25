@@ -88,7 +88,11 @@ describe('the seeded laws', () => {
 				);
 				const { conversions } = law.settings;
 				const back_pay = isJsonObject(conversions) ? conversions.back_pay : undefined;
-				if (back_pay != null && !codes('adhoc_catalog').has(String(back_pay)))
+				if (
+					back_pay != null &&
+					back_pay !== true &&
+					(typeof back_pay !== 'string' || !subtotals.has(back_pay))
+				)
 					missing.push(`conversions.back_pay ${String(back_pay)}`);
 				assert.deepEqual(missing, [], `${code} ${law.on}`);
 			}

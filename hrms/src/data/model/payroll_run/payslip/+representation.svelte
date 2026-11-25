@@ -41,7 +41,11 @@
 
 	const currentEmployee = $derived(
 		breakdown.lines.filter(
-			(line) => line.party === 'EMPLOYEE' && line.period === undefined && line.code !== RECOVERY
+			(line) =>
+				line.party === 'EMPLOYEE' &&
+				line.period === undefined &&
+				line.back_pay_period === undefined &&
+				line.code !== RECOVERY
 		)
 	);
 	const basicLines = $derived(currentEmployee.filter(isBasic));
@@ -57,7 +61,11 @@
 		)
 	);
 	const adjustments = $derived(
-		breakdown.lines.filter((line) => line.party === 'EMPLOYEE' && line.period !== undefined)
+		breakdown.lines.filter(
+			(line) =>
+				line.party === 'EMPLOYEE' &&
+				(line.period !== undefined || line.back_pay_period !== undefined)
+		)
 	);
 	const recovery = $derived(
 		breakdown.lines.filter(
@@ -209,7 +217,7 @@
 	};
 
 	const lineContext = (line: Line): string => {
-		if (line.period !== undefined) return '';
+		if (line.period !== undefined || line.back_pay_period !== undefined) return '';
 		if (line.source === 'leave_catalog_entry') {
 			const settled = cashOutByCode.get(line.code);
 			if (line.direction === 'ADD')
@@ -224,7 +232,16 @@
 	};
 
 	const lineNote = (line: Line) =>
-		[measure(line), lineContext(line), line.period].filter(Boolean).join(' · ');
+		[
+			measure(line),
+			lineContext(line),
+			line.period,
+			line.back_pay_period === undefined
+				? ''
+				: ctx.t('app.payroll.line.back_pay_for', { period: line.back_pay_period })
+		]
+			.filter(Boolean)
+			.join(' · ');
 </script>
 
 {#snippet row(

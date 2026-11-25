@@ -190,8 +190,12 @@ const columnsOf = (sheet: Sheet): readonly Column[] => {
 	const lines = new Map<string, Line>();
 	for (const person of sheet.people)
 		for (const line of person.breakdown.lines)
-			// A current-period line supplies the label and band when a carried correction moved subtotals.
-			if (!lines.has(keyOf(line)) || line.period === undefined) lines.set(keyOf(line), line);
+			// A current-period line supplies the label and band when a carried correction or back-pay line moved subtotals.
+			if (
+				!lines.has(keyOf(line)) ||
+				(line.period === undefined && line.back_pay_period === undefined)
+			)
+				lines.set(keyOf(line), line);
 	const sum = (key: string) => (person: Person) =>
 		person.breakdown.lines
 			.filter((own) => keyOf(own) === key)
@@ -494,7 +498,7 @@ const addDetails = (
 					person.code,
 					person.name,
 					sheet.period,
-					line.period ?? sheet.period,
+					line.period ?? line.back_pay_period ?? sheet.period,
 					line.source,
 					line.code,
 					line.label,
