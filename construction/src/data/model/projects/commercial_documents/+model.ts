@@ -190,11 +190,14 @@ export default model('commercial_documents', {
 					)
 				)
 			];
+			const contactIds = [
+				...new Set(changes.flatMap(({ after }) => (after.contact_id ? [after.contact_id] : [])))
+			];
 			const lookup = yield* ctx.query({
-				projects: {
-					where: { id: { in: projectIds } },
+				contacts: {
+					where: { id: { in: contactIds } },
 					fields: ['payment_terms_days'],
-					limit: projectIds.length + 10,
+					limit: contactIds.length + 10,
 					as_of: 'act'
 				},
 				...(contractIds.length > 0
@@ -245,7 +248,7 @@ export default model('commercial_documents', {
 					(est) => [est.project_id, est.bim_assets ?? []] as const
 				)
 			);
-			const projectTerms = new Map(lookup.projects.rows.map((p) => [p.id, p.payment_terms_days]));
+			const partnerTerms = new Map(lookup.contacts.rows.map((c) => [c.id, c.payment_terms_days]));
 			const contractTerms = new Map(
 				('contracts' in lookup ? lookup.contracts.rows : []).map((c) => [
 					c.id,
@@ -297,9 +300,10 @@ export default model('commercial_documents', {
 				const baseDate = after.issue_date ?? ctx.today;
 				const terms =
 					(after.contract_id ? contractTerms.get(after.contract_id) : undefined) ??
-					projectTerms.get(after.project_id) ??
-					30;
-				const dueDate = after.due_date ?? addCalendarDays(baseDate, terms);
+					(after.contact_id ? partnerTerms.get(after.contact_id) : undefined) ??
+					null;
+				const dueDate =
+					after.due_date ?? (terms === null ? null : addCalendarDays(baseDate, terms));
 
 				let matchPatch: {
 					match_status?: 'unmatched' | 'partial' | 'matched' | 'variance';

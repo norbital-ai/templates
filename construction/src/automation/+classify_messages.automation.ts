@@ -18,16 +18,13 @@ const LIMITS = {
 	confidence: 0.8
 } as const;
 
-type ProjectRef = Pick<
-	Row<'projects'>,
-	'id' | 'project_name' | 'project_number' | 'client' | 'capture_rules' | 'status'
->;
+type ProjectRef = Pick<Row<'projects'>, 'id' | 'project_name' | 'project_number' | 'status'>;
 
-function evidentProject(
+function evidentProject<P extends ProjectRef>(
 	text: string,
 	contactProject: Id<'projects'> | null,
-	projects: readonly ProjectRef[]
-): ProjectRef | undefined {
+	projects: readonly P[]
+): P | undefined {
 	const lower = text.toLowerCase();
 	const byCodeOrName = projects.filter((p) => {
 		const code = p.project_number?.trim().toLowerCase();
@@ -121,7 +118,8 @@ export default automation({
 			},
 			projects: {
 				where: { status: { in: ['tendering', 'active', 'on_hold', 'defects_liability'] } },
-				fields: ['project_name', 'project_number', 'client', 'capture_rules', 'status'],
+				fields: ['project_name', 'project_number', 'status'],
+				client_id: { fields: ['company_name', 'full_name'] },
 				order_by: { project_name: 'asc' },
 				limit: LIMITS.projects
 			}
@@ -179,7 +177,6 @@ export default automation({
 								'company_name',
 								'role',
 								'trade_specialty',
-								'project_id',
 								'email_key',
 								'phone_key'
 							],
@@ -189,6 +186,28 @@ export default automation({
 
 		const settingsByOwner = new Map(first.communication_settings.rows.map((s) => [s.owner, s]));
 		const projects = first.projects.rows;
+		// A partner's projects: those they hold a live contract on, or engaged us on as client.
+		const contactIds = contacts.map((c) => c.id);
+		const liveContracts =
+			contactIds.length === 0
+				? []
+				: (yield* ctx.query({
+						contracts: {
+							where: {
+								contact_id: { in: contactIds },
+								status: { in: ['draft', 'under_review', 'active'] }
+							},
+							fields: ['contact_id', 'project_id'],
+							limit: LIMITS.contacts * 4
+						}
+					})).contracts.rows;
+		const projectsOfPartner = (contactId: Id<'contacts'>): Id<'projects'> | null => {
+			const ids = new Set([
+				...liveContracts.flatMap((c) => (c.contact_id === contactId ? [c.project_id] : [])),
+				...projects.flatMap((p) => (p.client_id?.id === contactId ? [p.id] : []))
+			]);
+			return ids.size === 1 ? ([...ids][0] ?? null) : null;
+		};
 		let aiUnavailable: string | null = null;
 
 		for (const item of items) {
@@ -232,7 +251,7 @@ export default automation({
 
 			const evident = evidentProject(
 				`${item.subject}\n${item.detail ?? ''}`,
-				contact?.project_id ?? null,
+				contact === null ? null : projectsOfPartner(contact.id),
 				projects
 			);
 
@@ -260,13 +279,12 @@ export default automation({
 									]
 								}
 							]),
-							matched_contact_project: contact?.project_id ?? null,
+							matched_contact_project: contact === null ? null : projectsOfPartner(contact.id),
 							projects: projects.map((p) => ({
 								id: p.id,
 								code: p.project_number ?? '',
 								name: cap(p.project_name, 160),
-								client: p.client ?? '',
-								capture_rules: p.capture_rules ?? ''
+								client: p.client_id?.company_name ?? p.client_id?.full_name ?? ''
 							}))
 						},
 						questions: {

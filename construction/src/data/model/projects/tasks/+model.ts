@@ -8,7 +8,6 @@ const columns = [
 	'external_id',
 	'title',
 	'project_id',
-	'parent_task_id',
 	'contract_id',
 	'is_milestone',
 	'zone',
@@ -31,12 +30,13 @@ const columns = [
 
 export default model('tasks', {
 	description:
-		'Large-scale WBS work packages and milestones synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml), and spreadsheets, with baseline vs actual progression and 4D BIM references.',
+		"Work packages and milestones of the project's work breakdown structure, synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml) and spreadsheets, with baseline vs actual progression and 4D BIM references.",
 	icon: 'lucide:list-checks',
 	record_label: "record.task_code != null ? record.task_code + ' · ' + record.title : record.title",
 	fields: {
+		/** The activity's identifier in the source schedule (P6 activity ID, MS Project ID, ACC code). */
 		task_code: { kind: 'text' },
-		/** Hierarchical WBS path from Primavera P6, MS Project, or Autodesk Schedule (e.g. `1.2.4`). */
+		/** Position in the work breakdown structure: `3.1.2` sits under `3.1`, which sits under `3`. The programme's hierarchy. */
 		wbs_path: { kind: 'text', optional: true },
 		external_id: { kind: 'text', optional: true },
 		title: { kind: 'text' },
@@ -75,13 +75,6 @@ export default model('tasks', {
 		description: { kind: 'text', format: 'markdown', optional: true },
 		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true, optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'tasks', owned: true },
-		parent_task_id: {
-			kind: 'ref',
-			to: 'tasks',
-			inverse: 'subtasks',
-			optional: true,
-			on_delete: 'set_null'
-		},
 		contract_id: {
 			kind: 'ref',
 			to: 'contracts',
@@ -117,7 +110,6 @@ export default model('tasks', {
 		default: {
 			fields: 'all',
 			project_id: { fields: ['project_name', 'project_number'] },
-			parent_task_id: { fields: ['task_code', 'title'] },
 			contract_id: { fields: ['contract_number', 'title'] },
 			assignee: { fields: ['name'] },
 			subcontractor_id: { fields: ['full_name', 'company_name', 'trade_specialty'] },

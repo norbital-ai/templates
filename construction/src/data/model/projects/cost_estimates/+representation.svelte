@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { id_of } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import {
@@ -8,25 +7,22 @@
 		Button,
 		Field,
 		Icon,
-		Picker,
+		RecordForm,
+		type RecordView,
 		RunStatus,
 		Section,
 		Show,
 		Surface,
-		use_act,
-		use_record_controller,
-		type FieldEditor,
-		type RecordView
+		use_act
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect, Option, Schema } from 'effect';
+	import { Effect } from 'effect';
 	import { toNumber } from '../../../../lib/commercial.js';
 	import {
 		extractBimFromFile,
 		extractBimFromUrl,
 		type BimTakeoffProgress
 	} from '../../../../lib/ifc-viewer/ifc_takeoff.js';
-	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'cost_estimates'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -53,23 +49,9 @@
 	);
 	const projectBimFile = $derived(projectQuery?.current?.projects.rows[0]?.bim_file ?? null);
 
-	const controller = use_record_controller();
-	const liveForm = $derived(controller?.current ?? null);
-	const fixedProject = $derived(
-		record?.project_id ??
-			(view.mode === 'create' && typeof view.values.project_id === 'string'
-				? view.values.project_id
-				: null)
-	);
 	const hideProject = $derived(
 		record !== null || (view.mode === 'create' && view.values.project_id != null)
 	);
-	const scopedProject = $derived.by(() => {
-		const raw = liveForm?.get('project_id');
-		const id = typeof raw === 'string' ? raw : fixedProject;
-		if (id === null) return null;
-		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
-	});
 
 	function formatProgress(progress: BimTakeoffProgress): string {
 		if (progress.phase === 'snapshots') {
@@ -172,19 +154,6 @@
 	}
 </script>
 
-{#snippet contractEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="contracts"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
 {#snippet headerActions()}
 	{#if canAnalyzeBim && record && (record.status === 'draft' || record.status === 'void')}
 		<input
@@ -283,7 +252,6 @@
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />
 			{/if}
-			<Field {ctx} name="contract_id" editor={contractEditor} />
 			{#if record !== null}
 				<Field {ctx} name="status" />
 			{/if}

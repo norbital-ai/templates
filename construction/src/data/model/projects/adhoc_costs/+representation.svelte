@@ -3,13 +3,13 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
-		Picker,
-		Section,
-		use_record_controller,
 		type FieldEditor,
-		type RecordView
+		Picker,
+		RecordForm,
+		type RecordView,
+		Section,
+		use_record_controller
 	} from '@norbital-ai/ui';
-	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'adhoc_costs'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -71,7 +71,7 @@
 	/>
 {/snippet}
 
-<RecordForm {ctx} {view} subtitle={['category', 'status', 'currency']}>
+<RecordForm {ctx} {view} subtitle={['catalog_item_id', 'status', 'currency']}>
 	<Section icon="lucide:receipt-text" first name="adhoc" title={t('section.adhoc_cost')}>
 		<Grid minimum="card">
 			<Field {ctx} name="catalog_item_id" editor={catalogEditor} />
@@ -79,7 +79,6 @@
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />
 			{/if}
-			<Field {ctx} name="category" />
 			{#if record !== null}
 				<Field {ctx} name="status" />
 			{/if}

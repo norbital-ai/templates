@@ -1,4 +1,4 @@
-<!-- @component High-density virtualized 4D construction programme timeline built for hundreds of subcontractors and daily updates, with WBS/Subcontractor/Trade/Zone grouping, quick filters, and inline 4D date scrubber. -->
+<!-- @component High-density virtualized 4D construction programme timeline built for hundreds of subcontractors and daily updates, with work breakdown/Subcontractor/Trade/Zone grouping, quick filters, and inline 4D date scrubber. -->
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -30,7 +30,6 @@
 		readonly id: string;
 		readonly task_code: string | null;
 		readonly wbs_path?: string | null;
-		readonly parent_task_id?: string | { readonly id: string } | null;
 		readonly title: string;
 		readonly zone?: string | null;
 		readonly trade_specialty: string | null;
@@ -89,11 +88,27 @@
 		return words.t(key);
 	};
 
+	const idByPath = $derived(
+		new Map(
+			tasks.flatMap((task) => {
+				const path = task.wbs_path?.trim();
+				return path ? [[path, task.id] as const] : [];
+			})
+		)
+	);
+
+	/** The nearest task whose breakdown code prefixes this one's: `3.1.2` sits under `3.1`, else under `3`. */
 	function parentIdOf(task: TimelineTask): string | null {
-		const raw = task.parent_task_id;
-		if (raw == null) return null;
-		return typeof raw === 'string' ? raw : raw.id;
+		const parts = task.wbs_path?.trim().split('.') ?? [];
+		for (let n = parts.length - 1; n > 0; n -= 1) {
+			const id = idByPath.get(parts.slice(0, n).join('.'));
+			if (id !== undefined && id !== task.id) return id;
+		}
+		return null;
 	}
+
+	const codeOf = (task: TimelineTask): string =>
+		task.wbs_path?.trim() || task.task_code?.trim() || '';
 
 	function subconLabelOf(task: TimelineTask): string {
 		const raw = task.subcontractor_id;
@@ -532,8 +547,12 @@
 				? 'bg-tone-destructive-text'
 				: 'bg-primary';
 
-	const groupOptions: readonly { readonly id: GroupMode; readonly label: () => string }[] = [
-		{ id: 'wbs', label: () => t('timeline.group_wbs') },
+	const groupOptions: readonly {
+		readonly id: GroupMode;
+		readonly label: () => string;
+		readonly hint?: () => string;
+	}[] = [
+		{ id: 'wbs', label: () => t('timeline.group_wbs'), hint: () => t('timeline.group_wbs_hint') },
 		{ id: 'subcontractor', label: () => t('timeline.group_subcontractor') },
 		{ id: 'trade', label: () => t('timeline.group_trade') },
 		{ id: 'zone', label: () => t('timeline.group_zone') }
@@ -637,6 +656,7 @@
 							<button
 								{...groupToggle.item_attrs(opt.id)}
 								{@attach groupToggle.item(opt.id)}
+								title={opt.hint?.()}
 								class="rounded-inset px-2 py-0.5 text-micro font-medium transition-colors {groupMode ===
 								opt.id
 									? 'bg-secondary text-foreground'
@@ -884,7 +904,7 @@
 										task.latest_update && task.latest_update.trim().length > 0
 									)}
 									{@const barTip = [
-										task.task_code ? `${task.task_code} · ${task.title}` : task.title,
+										codeOf(task) ? `${codeOf(task)} · ${task.title}` : task.title,
 										subcon || tradeLabelOf(task.trade_specialty),
 										`${actualPct}%`,
 										row.effectiveRange?.from
@@ -943,9 +963,9 @@
 													<span class="size-1.5 shrink-0 rounded-full bg-warning"></span>
 												{/if}
 
-												{#if task.task_code}
+												{#if codeOf(task)}
 													<span class="shrink-0 font-mono text-tiny text-muted-foreground">
-														{task.task_code}
+														{codeOf(task)}
 													</span>
 												{/if}
 

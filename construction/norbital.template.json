@@ -3,7 +3,7 @@
 	"key": "norbital_construction",
 	"name": "Construction Operations",
 	"industry": "Construction",
-	"description": "Contractor workspace for main contractors and subcontractors: BIM IFC 3D viewer, visual AI archetype classification and Costing Matrix estimation, hierarchical WBS planning with Autodesk ACC and P6/MSP sync, SO/PO/VO contracts with DO and invoice transactions, Business Partners, and WhatsApp/email intake.",
+	"description": "Contractor workspace for main contractors and subcontractors: BIM IFC 3D viewer, visual AI archetype classification and Costing Matrix estimation, hierarchical WBS planning with Autodesk ACC and P6/MSP sync, client contracts, subcontracts and VOs with PO, DO and invoice transactions, Business Partners, and WhatsApp/email intake.",
 	"visibility": "public",
 	"counts": {
 		"models": 12,
@@ -20,6 +20,6 @@
 	],
 	"tags": ["Construction", "BIM", "Costing", "WBS", "Orders", "Autodesk"],
 	"name_zh": "施工管理",
-	"description_zh": "面向总承包商与分包商的一体化工程工作区：BIM IFC 三维模型与视觉 AI 构件分类算量、支持 Autodesk ACC 与 P6/MSP 同步的层级 WBS 进度计划、SO/PO/VO 订单与送货单/发票台账、商业伙伴管理以及 WhatsApp/邮件自动同步。",
+	"description_zh": "面向总承包商与分包商的一体化工程工作区：BIM IFC 三维模型与视觉 AI 构件分类算量、支持 Autodesk ACC 与 P6/MSP 同步的层级 WBS 进度计划、客户合同、分包合同与变更单及采购单/送货单/发票台账、商业伙伴管理以及 WhatsApp/邮件自动同步。",
 	"tags_zh": ["施工", "BIM", "造价", "进度计划", "订单", "Autodesk"]
 }

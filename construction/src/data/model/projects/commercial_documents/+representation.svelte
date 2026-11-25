@@ -4,20 +4,20 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
+		type FieldEditor,
 		Form,
 		Picker,
+		RecordForm,
 		RecordShell,
+		type RecordView,
 		Section,
 		Sheet,
 		Table,
-		use_record_controller,
-		type FieldEditor,
-		type RecordView
+		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
 	import CatalogLinesEditor from '../../../../lib/CatalogLinesEditor.svelte';
 	import { decodePricedLines } from '../../../../lib/commercial.js';
-	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'commercial_documents'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);

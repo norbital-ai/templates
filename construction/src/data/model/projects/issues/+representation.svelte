@@ -4,21 +4,19 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
-		Picker,
-		Section,
-		use_record_controller,
 		type FieldEditor,
-		type RecordView
+		Picker,
+		RecordForm,
+		type RecordView,
+		Section,
+		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
-	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'issues'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const bimSummary = $derived(record?.bim_pin?.element_name ?? undefined);
-	const followUpSummary = $derived(
-		[record?.due_date, record?.reported_by].filter(Boolean).join(' · ') || undefined
-	);
+	const followUpSummary = $derived(record?.due_date ?? undefined);
 
 	const controller = use_record_controller();
 	const liveForm = $derived(controller?.current ?? null);
@@ -122,7 +120,6 @@
 		{...followUpSummary ? { summary: followUpSummary } : {}}
 	>
 		<Grid minimum="card">
-			<Field {ctx} name="reported_by" />
 			<Field {ctx} name="assignee" />
 			<Field {ctx} name="party" />
 			<Field {ctx} name="reported_date" />

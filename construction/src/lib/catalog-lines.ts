@@ -33,7 +33,7 @@ export type ResolveCatalogLinesResult =
 	| { readonly ok: false; readonly missingCode: string };
 
 /**
- * Validates and normalizes commercial line items (SO, PO, VO, DO, Invoice, Claim) against the
+ * Validates and normalizes commercial line items (contracts, variations, DO, Invoice, Claim) against the
  * Costing Matrix catalog and optional project BIM takeoff buckets so no free-text codes or units
  * can enter commercial records.
  */

@@ -52,9 +52,7 @@ export default messages({
 
 	// Project Hub tabs
 	'project.tab_bim': 'BIM',
-	'project.tab_commercial': 'Commercial',
 	'bim.tab_model_issues': '3D Model & Issues',
-	'tasks.subtasks_tab': 'Sub-tasks',
 
 	// Co-located spatial zones
 	'zones.code': 'Zone code (e.g. L01)',
@@ -72,7 +70,6 @@ export default messages({
 	'bim.legend_4d_active': 'Active on {date}',
 	'bim.showing_4d_slice': 'Highlighting BIM elements scheduled on {date}.',
 	'bim.unpinned_issue': 'Not pinned to a 3D element',
-	'bim.focus_in_3d': 'Focus in 3D',
 	'bim.pin_coords': '3D Pin: X {x}, Y {y}, Z {z}',
 	'bim.express_id': 'IFC expressID',
 	'bim.element_name': 'BIM element',
@@ -129,9 +126,7 @@ export default messages({
 	'bim_costing.status_unmatched': 'Unmatched',
 
 	// Project files & revisions
-	'project_files.register_title': 'Filed Documents',
-	'project_files.revision_history': 'Revision history',
-	'project_files.revision_count': '{count} revision(s)',
+	'project_files.register_title': 'Documents',
 
 	// Programme, Milestones & 4D Timeline scrubber
 	'programme.view_timeline': 'Timeline',
@@ -155,8 +150,8 @@ export default messages({
 	'timeline.work_package': 'Work package / milestone',
 	'timeline.behind_plan': 'plan {planned}%',
 	'timeline.unscheduled': 'No schedule dates',
-	'timeline.group_wbs': 'WBS',
-	'timeline.group_subcontractor': 'Subcon',
+	'timeline.group_wbs': 'Breakdown',
+	'timeline.group_subcontractor': 'Subcontractor',
 	'timeline.group_trade': 'Trade',
 	'timeline.group_zone': 'Zone',
 	'timeline.filter_all': 'All',
@@ -196,8 +191,8 @@ export default messages({
 	'commercial.overall_progress': 'Overall progress',
 	'commercial.tab_contracts': 'Orders & Contracts',
 	'commercial.tab_documents': 'Transactions (DO / Invoices)',
-	'commercial.tab_so': 'Sales Orders (SO)',
-	'commercial.tab_po': 'Purchase Orders (PO)',
+	'commercial.tab_so': 'Client contracts',
+	'commercial.tab_po': 'Subcontracts & supply',
 	'commercial.tab_vo': 'Variation Orders (VO)',
 	'commercial.tab_adhoc': 'Ad-hoc Costs',
 	'commercial.tab_cashflow_ledger': 'Cashflow & Budget',
@@ -207,8 +202,8 @@ export default messages({
 	'commercial.col_code': 'Code',
 	'commercial.col_item': 'Description',
 	'commercial.col_budget': 'Budget',
-	'commercial.col_so': 'SO Revenue',
-	'commercial.col_po': 'PO Committed',
+	'commercial.col_so': 'Client contract value',
+	'commercial.col_po': 'Subcontracted',
 	'commercial.col_delivered': 'Delivered (DO)',
 	'commercial.col_invoiced': 'Invoiced',
 	'commercial.col_paid': 'Paid',
@@ -233,20 +228,14 @@ export default messages({
 	'priced_lines.remove_line': 'Remove line',
 
 	// Cashflow
-	'cashflow.title': 'Cashflow & commercial pulse',
 	'cashflow.net_projected': 'Net projected',
 	'cashflow.overdue_in': 'Overdue receivables: {amount}',
 	'cashflow.overdue_out': 'Overdue payables: {amount}',
 	'cashflow.ledger_chart': 'Commercial ledger net value by document type',
 
 	// Sections
-	'section.project': 'Project details',
-	'section.schedule_and_value': 'Programme, commercial & cashflow terms',
+	'section.project': 'Project',
 	'section.bim_model': 'BIM IFC model',
-	'section.zones': 'Spatial zones & grid axes',
-	'section.capture_rules': 'WhatsApp & email routing rules',
-	'section.configured': 'Configured',
-	'section.address': 'Site address',
 	'section.issue': 'Issue details',
 	'section.photos_and_evidence': 'Photos & evidence',
 	'section.bim_tag': 'BIM IFC tag & 3D pin',
@@ -345,7 +334,6 @@ export default messages({
 	'models.projects.singular': 'Project',
 	'models.projects.fields.bim_file': 'BIM IFC Model',
 	'models.projects.fields.bim_version': 'BIM Version',
-	'models.projects.fields.bim_revisions': 'BIM Revisions',
 	'models.projects.fields.bim_costing_dirty': 'BIM Costing Pending',
 	'models.projects.fields.bim_summary': 'BIM Analysis Summary',
 	'models.projects.fields.project_role.main_contractor': 'Main Contractor',
@@ -426,7 +414,6 @@ export default messages({
 	'models.tasks.label': 'Programme Tasks',
 	'models.tasks.singular': 'Task',
 	'models.tasks.fields.project_id': 'Project',
-	'models.tasks.fields.parent_task_id': 'Parent Task',
 	'models.tasks.fields.contract_id': 'Contract',
 	'models.tasks.fields.assignee': 'Assignee',
 	'models.tasks.fields.subcontractor_id': 'Subcontractor',
@@ -522,7 +509,6 @@ export default messages({
 	'models.cost_estimates.label': 'BIM Costing',
 	'models.cost_estimates.singular': 'BIM Cost Estimate',
 	'models.cost_estimates.fields.project_id': 'Project',
-	'models.cost_estimates.fields.contract_id': 'Contract',
 	'models.cost_estimates.fields.status.draft': 'Draft',
 	'models.cost_estimates.fields.status.reviewed': 'Reviewed',
 	'models.cost_estimates.fields.status.baselined': 'Baselined',
@@ -534,13 +520,6 @@ export default messages({
 	'models.adhoc_costs.fields.catalog_item_id': 'Catalog Item',
 	'models.adhoc_costs.fields.project_id': 'Project',
 	'models.adhoc_costs.fields.contact_id': 'Vendor / Counterparty',
-	'models.adhoc_costs.fields.category.preliminaries': 'Preliminaries',
-	'models.adhoc_costs.fields.category.hoisting_logistics': 'Hoisting & Logistics',
-	'models.adhoc_costs.fields.category.permits_fees': 'Permits & Fees',
-	'models.adhoc_costs.fields.category.testing_commissioning': 'Testing & Commissioning',
-	'models.adhoc_costs.fields.category.temporary_works': 'Temporary Works',
-	'models.adhoc_costs.fields.category.overhead': 'Site Overhead',
-	'models.adhoc_costs.fields.category.other': 'Other',
 	'models.adhoc_costs.fields.status.draft': 'Draft',
 	'models.adhoc_costs.fields.status.approved': 'Approved',
 	'models.adhoc_costs.fields.status.incurred': 'Incurred',
@@ -694,6 +673,8 @@ export default messages({
 		'Classification instructions must be 8,000 characters or fewer.',
 	'errors.project_not_found': 'Project not found.',
 	'errors.claim_create_failed': 'Unable to create draft progress claim.',
+	'errors.claim_needs_main_contract':
+		'A progress claim needs an active client contract to value against.',
 	'errors.invalid_zone': 'Zone "{zone}" is not defined in this project’s spatial zones.',
 	'errors.contract_value_managed_by_lines':
 		'Contract value is computed automatically from priced line items; update the lines instead.',
@@ -707,5 +688,22 @@ export default messages({
 	'errors.bim_file_unreadable': 'Unable to read uploaded IFC file bytes.',
 	'errors.bim_estimate_not_found': 'Target cost estimate was not found.',
 	'errors.bim_estimate_locked': 'Only draft or void cost estimates can be updated by BIM takeoff.',
-	'errors.bim_estimate_write_failed': 'Unable to save BIM cost estimate.'
+	'errors.bim_estimate_write_failed': 'Unable to save BIM cost estimate.',
+	'project.tab_finance': 'Finance',
+	'finance.overview': 'Overview',
+	'section.site': 'Site',
+	'bim.tab_model_file': 'Model file',
+	'bim.open_issue': 'Open issue',
+	'bim.issues_register_hint':
+		'Select an issue to show only its element in the model; select it again, or Show whole model, to see everything.',
+	'component.showing_issue_only': 'Showing {issue} only',
+	'component.show_whole_model': 'Show whole model',
+	'tasks.wbs_path_help':
+		'Where this work sits in the work breakdown structure (WBS): 3.1.2 sits under 3.1, which sits under 3. The programme nests work by this code.',
+	'timeline.group_wbs_hint':
+		'Work breakdown structure (WBS): work packages nested by their breakdown code, so 3.1.2 sits under 3.1.',
+	'models.projects.fields.client_id': 'Client',
+	'models.projects.fields.project_manager': 'Project Manager',
+	'models.tasks.fields.task_code': 'Activity ID',
+	'models.tasks.fields.wbs_path': 'Breakdown code'
 });

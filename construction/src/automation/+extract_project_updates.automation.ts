@@ -133,7 +133,7 @@ export default automation({
 		const contextData = yield* ctx.query({
 			projects: {
 				where: { id: { in: projectIds } },
-				fields: ['project_name', 'project_number', 'currency', 'tax_rate', 'zones'],
+				fields: ['project_name', 'project_number', 'currency', 'zones'],
 				limit: projectIds.length + 10
 			},
 			tasks: {
@@ -241,7 +241,6 @@ export default automation({
 			}
 
 			const out = inferred.success;
-			const reporter = msg.sender_name ?? msg.handle ?? 'WhatsApp / Email';
 			const safeDate = instantToLocalDate(msg.occurred_at, ctx.tz, ctx.today);
 			const allowedZones = new Set((project.zones ?? []).map((z) => z.code));
 			const resolveZone = (z: string | null | undefined): string | null =>
@@ -321,7 +320,6 @@ export default automation({
 					severity: i.severity,
 					description: i.description,
 					zone: resolveZone(i.zone),
-					reported_by: reporter,
 					reported_date: safeDate,
 					task_id: resolveTask(i.task_id),
 					party: msg.contact_id ?? null,
@@ -342,7 +340,6 @@ export default automation({
 				parent_contract_id: resolveContract(v.parent_contract_id),
 				contact_id: msg.contact_id ?? null,
 				currency: project.currency,
-				tax_rate: project.tax_rate,
 				contract_value: moneyStr(toDecimal(v.contract_value ?? 0)),
 				schedule_impact_days: v.schedule_impact_days ?? 0,
 				scope_notes: v.scope_notes,
@@ -363,7 +360,6 @@ export default automation({
 						contract_id: resolveContract(d.contract_id),
 						contact_id: msg.contact_id ?? null,
 						currency: project.currency,
-						tax_rate: project.tax_rate,
 						subtotal: moneyStr(toDecimal(d.subtotal ?? 0)),
 						issue_date: issueDate ?? safeDate,
 						...(deliveryDate !== null ? { delivery_date: deliveryDate } : {}),

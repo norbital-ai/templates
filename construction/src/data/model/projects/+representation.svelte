@@ -1,10 +1,11 @@
 <script lang="ts">
 	/**
-	 * Streamlined Contractor Project Hub (Main Contractor or Subcontractor):
-	 * - Record: commercial & cashflow pulse + Project Details + BIM Model slot + Filed Documents section
-	 * - Programme & Tasks: icon-only Timeline | Table | Board switcher flush right beside +New; simplified scannable Board cards
-	 * - BIM (keep_alive): 3D Model & Issues (single project IFC model, no redundant heading) + single inline BIM Costing
-	 * - Commercial: Sales Orders (SO), Purchase Orders (PO), Ad-hoc Costs (VOs & Transactions live inside each SO/PO)
+	 * The project hub. Each tab owns one concern and every project field appears in exactly one tab:
+	 * - Record: the project's identity and site.
+	 * - Programme: the work breakdown as a timeline, table or board.
+	 * - BIM: the model with its issues (selecting an issue isolates its element), costing, and the model file.
+	 * - Finance: the commercial position, cost ledger, client contracts, subcontracts and ad-hoc costs.
+	 * - Documents: filed drawings, specifications and handover records.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { create_toggle_group } from '@norbital-ai/ui/behaviors';
@@ -16,10 +17,14 @@
 		Chart,
 		CustomView,
 		EmptyState,
+		enum_text,
 		Field,
 		Form,
 		Icon,
+		open_record,
+		RecordForm,
 		RecordShell,
+		type RecordView,
 		RunStatus,
 		Section,
 		Sheet,
@@ -28,10 +33,7 @@
 		Surface,
 		Table,
 		Tabs,
-		enum_text,
-		open_record,
-		use_act,
-		type RecordView
+		use_act
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
@@ -57,7 +59,6 @@
 		toNumber
 	} from '../../../lib/commercial.js';
 	import ProjectTimeline from '../../../lib/ProjectTimeline.svelte';
-	import RecordForm from '../../../lib/record-form.svelte';
 	import BimTakeoffRenderer from '../../custom_field/bim_takeoff/+renderer.svelte';
 	import type {
 		IFCSelectedElement,
@@ -123,7 +124,6 @@
 					fields: [
 						'task_code',
 						'wbs_path',
-						'parent_task_id',
 						'title',
 						'is_milestone',
 						'zone',
@@ -155,6 +155,9 @@
 						'contract_type',
 						'status',
 						'contract_value',
+						'retention_rate',
+						'retention_cap_rate',
+						'tax_rate',
 						'lines',
 						'schedule_impact_days',
 						'signed_date'
@@ -229,7 +232,11 @@
 	);
 	const bimIssueById = $derived(new Map(bimIssues.map((i) => [i.id, i])));
 
-	let focusIssue = $state<IFCViewerIssueSummary | null>(null);
+	/** The issue selected in the register; the model isolates its element. */
+	let selectedIssueId = $state<string | null>(null);
+	const focusIssue = $derived(
+		selectedIssueId === null ? null : (bimIssueById.get(selectedIssueId) ?? null)
+	);
 	let timelineBimHighlight = $state<{ label: string; expressIds: number[] } | null>(null);
 	let tasksView = $state<'timeline' | 'table' | 'board'>('timeline');
 	const tasksViewGroup = create_toggle_group({
@@ -466,10 +473,6 @@
 	const commercial = $derived(
 		record && commercialQuery?.current
 			? computeProjectCommercial({
-					contract_value: record.contract_value,
-					retention_rate: record.retention_rate,
-					retention_cap_rate: record.retention_cap_rate,
-					tax_rate: record.tax_rate,
 					contracts: allContracts,
 					tasks: tasksQuery?.current?.tasks.rows ?? [],
 					documents: commercialQuery.current.commercial_documents.rows
@@ -531,10 +534,13 @@
 			.filter(Boolean)
 			.join(', ')
 	);
-	const bimModelSummary = $derived(
-		projectBimFile
-			? [projectBimFile.name, record?.bim_version].filter(Boolean).join(' · ')
-			: undefined
+	const siteSummary = $derived(
+		[
+			addressLine,
+			record?.zones?.length ? t('zones.count_summary', { count: record.zones.length }) : ''
+		]
+			.filter(Boolean)
+			.join(' · ') || undefined
 	);
 	const hasAnyKpi = $derived(
 		commercial !== null &&
@@ -553,79 +559,29 @@
 			<Field {ctx} name="project_name" />
 			<Field {ctx} name="project_number" />
 			<Field {ctx} name="project_role" />
-			<Field {ctx} name="client" />
-			<Field {ctx} name="main_contractor" />
-			<Field {ctx} name="project_manager" />
-			<Field {ctx} name="project_type" />
 			{#if record !== null}
 				<Field {ctx} name="status" />
 			{/if}
+			<Field {ctx} name="client_id" />
+			<Field {ctx} name="project_manager" />
+			<Field {ctx} name="schedule_range" />
+			<Field {ctx} name="currency" />
 			<Field {ctx} name="autodesk_project_id" />
 			<Column span="all"><Field {ctx} name="description" /></Column>
 		</Grid>
 	</Section>
 
-	<Section icon="lucide:calculator" name="commercial" title={t('section.schedule_and_value')}>
-		<Grid minimum="card">
-			<Field {ctx} name="schedule_range" />
-			<Field {ctx} name="currency" />
-			<Field {ctx} name="contract_value" />
-			<Field {ctx} name="retention_rate" />
-			<Field {ctx} name="retention_cap_rate" />
-			<Field {ctx} name="tax_rate" />
-			<Field {ctx} name="payment_terms_days" />
-		</Grid>
-	</Section>
-
-	<Section
-		icon="lucide:box"
-		name="bim_model"
-		title={t('section.bim_model')}
-		default_open={false}
-		{...bimModelSummary ? { summary: bimModelSummary } : {}}
-	>
-		<Grid minimum="card">
-			<Field {ctx} name="bim_version" />
-			<Column span="all"><Field {ctx} name="bim_file" /></Column>
-			{#if record?.bim_summary != null}
-				<Column span="all"><Field {ctx} name="bim_summary" readonly /></Column>
-			{/if}
-			{#if record?.bim_revisions && record.bim_revisions.length > 0}
-				<Column span="all"><Field {ctx} name="bim_revisions" readonly /></Column>
-			{/if}
-		</Grid>
-	</Section>
-
-	<Section
-		icon="lucide:layers"
-		name="zones"
-		title={t('section.zones')}
-		default_open={false}
-		{...record?.zones?.length
-			? { summary: t('zones.count_summary', { count: record.zones.length }) }
-			: {}}
-	>
-		<Field {ctx} name="zones" />
-	</Section>
-
-	<Section
-		icon="lucide:message-square-text"
-		name="capture"
-		title={t('section.capture_rules')}
-		default_open={false}
-		{...record?.capture_rules ? { summary: t('section.configured') } : {}}
-	>
-		<Field {ctx} name="capture_rules" />
-	</Section>
-
 	<Section
 		icon="lucide:map-pin"
-		name="address"
-		title={t('section.address')}
+		name="site"
+		title={t('section.site')}
 		default_open={false}
-		{...addressLine ? { summary: addressLine } : {}}
+		{...siteSummary ? { summary: siteSummary } : {}}
 	>
-		<Field {ctx} name="address" />
+		<Grid minimum="card">
+			<Column span="all"><Field {ctx} name="address" /></Column>
+			<Column span="all"><Field {ctx} name="zones" /></Column>
+		</Grid>
 	</Section>
 {/snippet}
 
@@ -972,6 +928,7 @@
 					{markerGroups}
 					issues={bimIssues}
 					{focusIssue}
+					onClearFocus={() => (selectedIssueId = null)}
 					{...ctx.catalog?.issues?.create !== undefined
 						? { onTagIssue: handleTagIssueFromBim }
 						: {}}
@@ -1009,8 +966,16 @@
 			key={`project:issues:${id}`}
 			where={{ project_id: { eq: id } }}
 			order_by={{ updated_at: 'desc' }}
+			on_open={(row) => {
+				if (!bimIssueById.has(row.id)) return open_record('issues', row.id);
+				selectedIssueId = selectedIssueId === row.id ? null : row.id;
+			}}
+			row_class={(row) =>
+				row.id === selectedIssueId ? 'bg-accent/40 [&>td]:bg-accent' : undefined}
+			actions={[{ label: t('bim.open_issue'), run: (row) => open_record('issues', row.id) }]}
 			toolbar={{
 				title: t('component.issues_register'),
+				description: t('bim.issues_register_hint'),
 				new: ctx.catalog?.issues?.create
 					? () =>
 							(createSheet = {
@@ -1029,22 +994,7 @@
 				'zone',
 				'bim_pin'
 			]}
-		>
-			{#snippet row_trailing(row)}
-				{@const match = bimIssueById.get(String(row.id))}
-				{#if match}
-					<Button
-						variant="ghost"
-						onclick={(e) => {
-							e.stopPropagation();
-							focusIssue = { ...match };
-						}}
-					>
-						{t('bim.focus_in_3d')}
-					</Button>
-				{/if}
-			{/snippet}
-		</Table>
+		/>
 	{/if}
 {/snippet}
 
@@ -1256,9 +1206,32 @@
 				title: t('bim_costing.estimates_title'),
 				icon: 'lucide:calculator',
 				body: bimCostingTab
+			},
+			{
+				name: 'model_file',
+				title: t('bim.tab_model_file'),
+				icon: 'lucide:file-box',
+				keep_alive: true,
+				body: bimFileTab
 			}
 		]}
 	/>
+{/snippet}
+
+{#snippet bimFileTab()}
+	{#if record}
+		<Form {ctx} of="projects" mode={view.mode} id={record.id} {record}>
+			<Section icon="lucide:file-box" first name="bim_model" title={t('section.bim_model')}>
+				<Grid minimum="card">
+					<Field {ctx} name="bim_version" />
+					<Column span="all"><Field {ctx} name="bim_file" /></Column>
+					{#if record.bim_summary != null}
+						<Column span="all"><Field {ctx} name="bim_summary" readonly /></Column>
+					{/if}
+				</Grid>
+			</Section>
+		</Form>
+	{/if}
 {/snippet}
 
 {#snippet salesOrdersTab()}
@@ -1361,7 +1334,6 @@
 				'cost_number',
 				'catalog_item_id',
 				'title',
-				'category',
 				'contact_id',
 				'status',
 				'qty',
@@ -1441,72 +1413,12 @@
 	{/if}
 {/snippet}
 
-{#snippet commercialTab()}
-	<Tabs
-		level={2}
-		tabs={[
-			{
-				name: 'ledger',
-				title: t('commercial.tab_cashflow_ledger'),
-				icon: 'lucide:bar-chart-3',
-				body: cashflowLedgerTab
-			},
-			{
-				name: 'so',
-				title: t('commercial.tab_so'),
-				icon: 'lucide:arrow-down-left',
-				body: salesOrdersTab
-			},
-			{
-				name: 'po',
-				title: t('commercial.tab_po'),
-				icon: 'lucide:arrow-up-right',
-				body: purchaseOrdersTab
-			},
-			{
-				name: 'adhoc',
-				title: t('commercial.tab_adhoc'),
-				icon: 'lucide:receipt-text',
-				body: adhocCostsTab
-			}
-		]}
-	/>
-{/snippet}
-
-{#if record}
-	<RecordShell
-		{ctx}
-		of="projects"
-		mode={view.mode}
-		id={record.id}
-		subtitle={['project_role', 'client', 'status']}
-		tabs={[
-			{
-				name: 'programme',
-				title: t('programme.tasks_title'),
-				icon: 'lucide:gantt-chart',
-				body: programmeTab
-			},
-			{
-				name: 'bim',
-				title: t('project.tab_bim'),
-				icon: 'lucide:box',
-				keep_alive: true,
-				body: bimTab
-			},
-			{
-				name: 'commercial',
-				title: t('project.tab_commercial'),
-				icon: 'lucide:banknote',
-				body: commercialTab
-			}
-		]}
-	>
-		<Stack gap="lg">
+{#snippet financeOverviewTab()}
+	{#if record}
+		<Scroll name={t('finance.overview')} size="fill" inset>
 			<Surface tone="card" padding="md" radius="control">
 				<Stack gap="md" divided>
-					<Cluster align="center" justify="between" gap="sm">
-						<p class="text-overline">{t('cashflow.title')}</p>
+					<Cluster align="center" justify="end" gap="sm">
 						<Cluster gap="xs">
 							{#if cashflow && toNumber(cashflow.overdue_receivables) > 0}
 								<Badge variant="warning">
@@ -1611,41 +1523,114 @@
 					</Bound>
 				</Stack>
 			</Surface>
+		</Scroll>
+	{/if}
+{/snippet}
 
-			<Form {ctx} of="projects" mode={view.mode} id={record.id} {record} size="content">
-				{@render projectSections()}
-			</Form>
+{#snippet financeTab()}
+	<Tabs
+		level={2}
+		tabs={[
+			{
+				name: 'overview',
+				title: t('finance.overview'),
+				icon: 'lucide:layout-dashboard',
+				body: financeOverviewTab
+			},
+			{
+				name: 'ledger',
+				title: t('commercial.tab_cashflow_ledger'),
+				icon: 'lucide:bar-chart-3',
+				body: cashflowLedgerTab
+			},
+			{
+				name: 'client_contracts',
+				title: t('commercial.tab_so'),
+				icon: 'lucide:arrow-down-left',
+				body: salesOrdersTab
+			},
+			{
+				name: 'subcontracts',
+				title: t('commercial.tab_po'),
+				icon: 'lucide:arrow-up-right',
+				body: purchaseOrdersTab
+			},
+			{
+				name: 'adhoc',
+				title: t('commercial.tab_adhoc'),
+				icon: 'lucide:receipt-text',
+				body: adhocCostsTab
+			}
+		]}
+	/>
+{/snippet}
 
-			<Section
-				icon="lucide:file-text"
-				name="filed_documents"
-				title={t('project_files.register_title')}
-			>
-				<Table
-					{ctx}
-					of="project_files"
-					key={`project:files:${record.id}`}
-					where={{ project_id: { eq: record.id } }}
-					order_by={{ updated_at: 'desc' }}
-					toolbar={{
-						title: false,
-						new: ctx.catalog?.project_files?.create ? () => (createSheet = { kind: 'file' }) : false
-					}}
-					columns={[
-						'document_number',
-						'title',
-						'kind',
-						'discipline',
-						'current_version',
-						'status',
-						'zone'
-					]}
-				/>
-			</Section>
-		</Stack>
+{#snippet documentsTab()}
+	{#if id}
+		<Table
+			{ctx}
+			of="project_files"
+			key={`project:files:${id}`}
+			where={{ project_id: { eq: id } }}
+			order_by={{ updated_at: 'desc' }}
+			toolbar={{
+				title: t('project_files.register_title'),
+				new: ctx.catalog?.project_files?.create ? () => (createSheet = { kind: 'file' }) : false
+			}}
+			columns={[
+				'document_number',
+				'title',
+				'kind',
+				'discipline',
+				'current_version',
+				'status',
+				'zone'
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#if record}
+	<RecordShell
+		{ctx}
+		of="projects"
+		mode={view.mode}
+		id={record.id}
+		subtitle={['project_role', 'client_id', 'status']}
+		tabs={[
+			{
+				name: 'programme',
+				title: t('programme.tasks_title'),
+				icon: 'lucide:gantt-chart',
+				body: programmeTab
+			},
+			{
+				name: 'bim',
+				title: t('project.tab_bim'),
+				icon: 'lucide:box',
+				keep_alive: true,
+				body: bimTab
+			},
+			{
+				name: 'finance',
+				title: t('project.tab_finance'),
+				icon: 'lucide:banknote',
+				body: financeTab
+			},
+			{
+				name: 'documents',
+				title: t('project_files.register_title'),
+				icon: 'lucide:file-text',
+				body: documentsTab
+			}
+		]}
+	>
+		<Form {ctx} of="projects" mode={view.mode} id={record.id} {record} size="content">
+			{@render projectSections()}
+		</Form>
 	</RecordShell>
 {:else}
-	<RecordForm {ctx} {view} subtitle={['project_role', 'client', 'status']}>
+	<RecordForm {ctx} {view} subtitle={['project_role', 'client_id', 'status']}>
 		{@render projectSections()}
 	</RecordForm>
 {/if}

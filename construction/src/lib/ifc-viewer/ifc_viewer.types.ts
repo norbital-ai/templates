@@ -64,7 +64,10 @@ export type IFCViewerProps = {
 	markers?: number[];
 	markerGroups?: IFCViewerMarkerGroup[];
 	issues?: readonly IFCViewerIssueSummary[];
+	/** The issue in focus: the model shows only its element, framed; `null` shows the whole model. */
 	focusIssue?: IFCViewerIssueSummary | null;
+	/** The viewer left the focused issue (Show whole model, or the selection closed). */
+	onClearFocus?: () => void;
 	onTagIssue?: (element: IFCSelectedElement) => void;
 	onOpenIssue?: (issueId: string) => void;
 	onReplaceModel?: () => void;
@@ -419,6 +422,14 @@ export interface ViewerComponentsModule {
 		getWorker(): Promise<Worker>;
 	};
 	Raycasters: ViewerComponentToken<ViewerRaycasters>;
+	Hider: ViewerComponentToken<ViewerHider>;
+}
+
+export interface ViewerHider {
+	// repository-health:allow EFF2 -- The pinned components vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	isolate(modelIdMap: Record<string, Set<number>>): Promise<void>;
+	// repository-health:allow EFF2 -- The pinned components vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	set(visible: boolean, modelIdMap?: Record<string, Set<number>>): Promise<void>;
 }
 
 export interface ViewerFrontendModule {

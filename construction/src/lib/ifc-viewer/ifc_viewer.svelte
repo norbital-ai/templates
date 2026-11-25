@@ -171,6 +171,7 @@
 		markerGroups,
 		issues = [],
 		focusIssue = null,
+		onClearFocus,
 		onTagIssue,
 		onOpenIssue,
 		onReplaceModel
@@ -439,6 +440,7 @@
 
 	function clearSelection(): void {
 		resetSelectionState();
+		if (focusIssue) onClearFocus?.();
 		const highlighter = viewer?.highlighter;
 		if (highlighter) {
 			void run(
@@ -840,14 +842,13 @@
 					renderedFaces: runtime.FRAGS.RenderedFaces.TWO
 				});
 			});
+			const issueElements = { [group.modelId]: new Set([issue.expressId]) };
 			yield* Effect.tryPromise({
-				try: () =>
-					highlighter.highlightByID(
-						FOCUS_STYLE_ID,
-						{ [group.modelId]: new Set([issue.expressId]) },
-						true,
-						true
-					),
+				try: () => runtime.components.get(runtime.OBC.Hider).isolate(issueElements),
+				catch: viewerFailure('isolate-issue-element')
+			}).pipe(Effect.ignore);
+			yield* Effect.tryPromise({
+				try: () => highlighter.highlightByID(FOCUS_STYLE_ID, issueElements, true, true),
 				catch: viewerFailure('focus-issue-element')
 			}).pipe(Effect.ignore);
 			if (
@@ -868,6 +869,25 @@
 				catch: viewerFailure('read-focus-properties')
 			}).pipe(Effect.catch(() => Effect.succeed([null]))))[0];
 			selectedItem = buildSelectedItem(issue.expressId, properties ?? null, issue.pin);
+		});
+	}
+
+	/** Leaves the focused issue: every element visible again, the focus colour cleared, the whole model framed. */
+	function showWholeModel() {
+		return Effect.gen(function* () {
+			const runtime = viewer;
+			if (!runtime?.currentGroup) return;
+			yield* Effect.tryPromise({
+				try: () => runtime.components.get(runtime.OBC.Hider).set(true),
+				catch: viewerFailure('show-whole-model')
+			}).pipe(Effect.ignore);
+			yield* framePresetEffect(runtime, 'iso', true);
+			const highlighter = runtime.highlighter;
+			if (highlighter === null) return;
+			yield* Effect.tryPromise({
+				try: () => highlighter.clear(FOCUS_STYLE_ID),
+				catch: viewerFailure('clear-focus')
+			}).pipe(Effect.ignore);
 		});
 	}
 
@@ -1145,8 +1165,12 @@
 	watch(
 		() => focusIssue,
 		(issue) => {
-			if (!issue || !viewer?.currentGroup) return;
-			fork(focusOnIssue(issue), () => {});
+			if (!viewer?.currentGroup) return;
+			if (issue) fork(focusOnIssue(issue), () => {});
+			else {
+				resetSelectionState();
+				fork(showWholeModel(), () => {});
+			}
 		}
 	);
 </script>
@@ -1560,7 +1584,22 @@
 		</Inline>
 	</Imposter>
 
-	{#if normalizedMarkerGroups.length > 0}
+	{#if focusIssue}
+		<Imposter placement="bottom-start" offset="sm" class="pointer-events-auto max-w-72">
+			<Surface tone="popover" padding="xs" radius="control">
+				<Inline align="center" justify="between" gap="sm">
+					<span class="min-w-0 truncate text-micro text-foreground">
+						{t('component.showing_issue_only', {
+							issue: focusIssue.issue_number ?? focusIssue.title
+						})}
+					</span>
+					<Button variant="ghost" class="h-6 px-2 text-micro" onclick={() => onClearFocus?.()}>
+						{t('component.show_whole_model')}
+					</Button>
+				</Inline>
+			</Surface>
+		</Imposter>
+	{:else if normalizedMarkerGroups.length > 0}
 		<Imposter
 			placement="bottom-start"
 			offset="sm"
@@ -1587,7 +1626,7 @@
 		</Imposter>
 	{/if}
 
-	{#if modelBounds}
+	{#if modelBounds && !focusIssue}
 		<Imposter placement="bottom-end" offset="sm" class="pointer-events-none hidden sm:block">
 			<div
 				class="rounded-control border border-border bg-popover/85 px-2 py-1 text-tiny leading-tight text-muted-foreground backdrop-blur-xs"

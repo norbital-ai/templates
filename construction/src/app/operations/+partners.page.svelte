@@ -13,7 +13,6 @@
 		'full_name',
 		'role',
 		'trade_specialty',
-		'project_id',
 		'phone',
 		'email',
 		'payment_terms_days',

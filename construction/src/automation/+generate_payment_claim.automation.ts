@@ -1,5 +1,5 @@
 import { automation, type CreateInput } from '@norbital-ai/bolt';
-import { computeProjectCommercial } from '../lib/commercial.js';
+import { clientContractOf, computeProjectCommercial } from '../lib/commercial.js';
 
 export default automation({
 	description:
@@ -28,20 +28,20 @@ export default automation({
 		const data = yield* ctx.query({
 			projects: {
 				where: { id: { eq: input.project_id } },
+				fields: ['project_number', 'project_name', 'currency'],
+				limit: 1
+			},
+			contracts: {
+				where: { project_id: { eq: input.project_id } },
 				fields: [
-					'project_number',
-					'project_name',
-					'currency',
+					'direction',
+					'contract_type',
+					'status',
 					'contract_value',
 					'retention_rate',
 					'retention_cap_rate',
 					'tax_rate'
 				],
-				limit: 1
-			},
-			contracts: {
-				where: { project_id: { eq: input.project_id } },
-				fields: ['direction', 'contract_type', 'status', 'contract_value'],
 				limit: 500
 			},
 			tasks: {
@@ -66,29 +66,25 @@ export default automation({
 		const project = data.projects.rows[0];
 		if (project === undefined) return yield* ctx.refuse('errors.project_not_found');
 
+		const upstreamContract = clientContractOf(data.contracts.rows);
+		if (upstreamContract === undefined)
+			return yield* ctx.refuse('errors.claim_needs_main_contract');
+
 		const summary = computeProjectCommercial({
-			contract_value: project.contract_value,
-			retention_rate: project.retention_rate,
-			retention_cap_rate: project.retention_cap_rate,
-			tax_rate: project.tax_rate,
 			contracts: data.contracts.rows,
 			tasks: data.tasks.rows,
 			documents: data.commercial_documents.rows
 		});
 
 		const issueDate = input.issue_date ?? ctx.today;
-		const upstreamContract = data.contracts.rows.find(
-			(c) =>
-				c.direction === 'upstream' && c.contract_type !== 'variation_order' && c.status === 'active'
-		);
 
 		const draft: CreateInput<'commercial_documents'> = {
 			project_id: input.project_id,
 			doc_type: 'progress_claim',
 			direction: 'inflow',
-			contract_id: upstreamContract?.id ?? null,
+			contract_id: upstreamContract.id,
 			currency: project.currency,
-			tax_rate: project.tax_rate,
+			tax_rate: upstreamContract.tax_rate,
 			subtotal: summary.net_claimable_now,
 			retention_amount: '0.00',
 			issue_date: issueDate,

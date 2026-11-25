@@ -7,6 +7,7 @@ declare module 'https://esm.sh/@thatopen/components@3.4.6?deps=three@0.185.1,@th
 	export const Grids: import('./ifc_viewer.types.js').ViewerComponentsModule['Grids'];
 	export const FragmentsManager: import('./ifc_viewer.types.js').ViewerComponentsModule['FragmentsManager'];
 	export const Raycasters: import('./ifc_viewer.types.js').ViewerComponentsModule['Raycasters'];
+	export const Hider: import('./ifc_viewer.types.js').ViewerComponentsModule['Hider'];
 }
 declare module 'https://esm.sh/@thatopen/components-front@3.4.3?deps=@thatopen/components@3.4.6,@thatopen/fragments@3.4.6,three@0.185.1,web-ifc@0.0.77,camera-controls@3.1.2' {
 	export const Highlighter: import('./ifc_viewer.types.js').ViewerFrontendModule['Highlighter'];

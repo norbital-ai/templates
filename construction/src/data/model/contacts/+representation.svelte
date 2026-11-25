@@ -1,8 +1,15 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { Field, Form, RecordShell, Section, Table, type RecordView } from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/record-form.svelte';
+	import {
+		Field,
+		Form,
+		RecordForm,
+		RecordShell,
+		type RecordView,
+		Section,
+		Table
+	} from '@norbital-ai/ui';
 
 	let { view, ctx }: { view: RecordView<'contacts'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -17,7 +24,6 @@
 			<Field {ctx} name="full_name" />
 			<Field {ctx} name="role" />
 			<Field {ctx} name="trade_specialty" />
-			<Field {ctx} name="project_id" />
 			<Field {ctx} name="status" />
 			<Field {ctx} name="registration_no" />
 			<Field {ctx} name="payment_terms_days" />

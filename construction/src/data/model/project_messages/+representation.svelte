@@ -3,15 +3,15 @@
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
+		enum_text,
 		Field,
 		Icon,
+		RecordForm,
+		type RecordView,
 		RunStatus,
 		Section,
-		enum_text,
-		use_act,
-		type RecordView
+		use_act
 	} from '@norbital-ai/ui';
-	import RecordForm from '../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'project_messages'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);

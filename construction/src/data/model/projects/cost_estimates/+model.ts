@@ -4,7 +4,6 @@ import { recomputeCostEstimateTotals } from '../../../../lib/bim-pipeline.js';
 const editableColumns = [
 	'title',
 	'project_id',
-	'contract_id',
 	'status',
 	'currency',
 	'bim_assets',
@@ -44,15 +43,7 @@ export default model('cost_estimates', {
 		total_estimate: { kind: 'money', currency: 'currency', default: 0 },
 		analyzed_at: { kind: 'instant', optional: true },
 		notes: { kind: 'text', format: 'markdown', optional: true },
-		project_id: { kind: 'ref', to: 'projects', inverse: 'cost_estimates', owned: true },
-		/** Optional contract or budget benchmark this estimate is cross-checked against. */
-		contract_id: {
-			kind: 'ref',
-			to: 'contracts',
-			inverse: 'cost_estimates',
-			optional: true,
-			on_delete: 'set_null'
-		}
+		project_id: { kind: 'ref', to: 'projects', inverse: 'cost_estimates', owned: true }
 	},
 	constraints: {
 		one_per_project: { unique: ['project_id'] },
@@ -70,8 +61,7 @@ export default model('cost_estimates', {
 	outputs: {
 		default: {
 			fields: 'all',
-			project_id: { fields: ['project_name', 'project_number'] },
-			contract_id: { fields: ['contract_number', 'title', 'contract_value'] }
+			project_id: { fields: ['project_name', 'project_number'] }
 		}
 	},
 	create: {

@@ -36,19 +36,6 @@
 					"on_delete": "restrict",
 					"to": "cost_matrix"
 				},
-				"category": {
-					"default": "preliminaries",
-					"kind": "enum",
-					"values": [
-						"preliminaries",
-						"hoisting_logistics",
-						"permits_fees",
-						"testing_commissioning",
-						"temporary_works",
-						"overhead",
-						"other"
-					]
-				},
 				"contact_id": {
 					"inverse": "adhoc_costs",
 					"kind": "ref",
@@ -646,13 +633,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"project_id": {
-					"inverse": "contacts",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "projects"
-				},
 				"registration_no": {
 					"kind": "text",
 					"optional": true
@@ -813,11 +793,6 @@
 					"default": "SGD",
 					"kind": "currency"
 				},
-				"current_revision": {
-					"default": 1,
-					"kind": "int",
-					"min": 1
-				},
 				"direction": {
 					"default": "downstream",
 					"kind": "enum",
@@ -869,11 +844,6 @@
 					"default": 10,
 					"kind": "decimal",
 					"scale": 2
-				},
-				"revisions": {
-					"kind": "custom",
-					"of": "revision_trail",
-					"optional": true
 				},
 				"schedule_impact_days": {
 					"default": 0,
@@ -989,8 +959,6 @@
 				"review_locked": {
 					"except": [
 						"status",
-						"current_revision",
-						"revisions",
 						"signed_date",
 						"attachments",
 						"scope_notes"
@@ -1068,13 +1036,6 @@
 					"default": 5,
 					"kind": "decimal",
 					"scale": 2
-				},
-				"contract_id": {
-					"inverse": "cost_estimates",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "contracts"
 				},
 				"currency": {
 					"default": "SGD",
@@ -1430,10 +1391,6 @@
 					"owned": true,
 					"to": "projects"
 				},
-				"reported_by": {
-					"kind": "text",
-					"optional": true
-				},
 				"reported_date": {
 					"default": {
 						"var": "today"
@@ -1605,11 +1562,6 @@
 					"kind": "ref",
 					"owned": true,
 					"to": "projects"
-				},
-				"revisions": {
-					"kind": "custom",
-					"of": "revision_trail",
-					"optional": true
 				},
 				"status": {
 					"initial": "draft",
@@ -1876,26 +1828,6 @@
 		},
 		"projects": {
 			"audit": true,
-			"check": {
-				"valid_retention_cap": {
-					"retention_cap_rate": {
-						"gte": 0,
-						"lte": 100
-					}
-				},
-				"valid_retention_rate": {
-					"retention_rate": {
-						"gte": 0,
-						"lte": 100
-					}
-				},
-				"valid_tax_rate": {
-					"tax_rate": {
-						"gte": 0,
-						"lte": 100
-					}
-				}
-			},
 			"fields": {
 				"active_contract_count": {
 					"kind": "count",
@@ -1930,11 +1862,6 @@
 					"max": "20MiB",
 					"optional": true
 				},
-				"bim_revisions": {
-					"kind": "custom",
-					"of": "revision_trail",
-					"optional": true
-				},
 				"bim_summary": {
 					"kind": "json",
 					"optional": true,
@@ -1964,19 +1891,12 @@
 					"kind": "text",
 					"optional": true
 				},
-				"capture_rules": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"client": {
-					"kind": "text",
-					"optional": true
-				},
-				"contract_value": {
-					"currency": "currency",
-					"kind": "money",
-					"optional": true
+				"client_id": {
+					"inverse": "client_projects",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "contacts"
 				},
 				"currency": {
 					"default": "SGD",
@@ -1984,10 +1904,6 @@
 				},
 				"description": {
 					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"main_contractor": {
 					"kind": "text",
 					"optional": true
 				},
@@ -2031,15 +1947,10 @@
 						}
 					}
 				},
-				"payment_terms_days": {
-					"default": 30,
-					"kind": "int",
-					"max": 180,
-					"min": 0
-				},
 				"project_manager": {
-					"kind": "text",
-					"optional": true
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
 				},
 				"project_name": {
 					"kind": "text"
@@ -2056,20 +1967,6 @@
 						"subcontractor",
 						"specialist_contractor"
 					]
-				},
-				"project_type": {
-					"kind": "text",
-					"optional": true
-				},
-				"retention_cap_rate": {
-					"default": 5,
-					"kind": "decimal",
-					"scale": 2
-				},
-				"retention_rate": {
-					"default": 10,
-					"kind": "decimal",
-					"scale": 2
 				},
 				"schedule_range": {
 					"kind": "period",
@@ -2120,11 +2017,6 @@
 						}
 					}
 				},
-				"tax_rate": {
-					"default": 9,
-					"kind": "decimal",
-					"scale": 2
-				},
 				"zones": {
 					"kind": "custom",
 					"of": "project_zones",
@@ -2135,9 +2027,7 @@
 			"search": {
 				"text": [
 					"project_name",
-					"project_number",
-					"client",
-					"main_contractor"
+					"project_number"
 				]
 			},
 			"unique": [
@@ -3708,13 +3598,6 @@
 				"latest_update": {
 					"kind": "text",
 					"optional": true
-				},
-				"parent_task_id": {
-					"inverse": "subtasks",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "tasks"
 				},
 				"priority": {
 					"default": "medium",

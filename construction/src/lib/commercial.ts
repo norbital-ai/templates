@@ -9,8 +9,6 @@ export type DecimalLike = string | number | null | undefined;
 
 const ZERO = BigDecimal.fromBigInt(0n);
 const HUNDRED = BigDecimal.fromBigInt(100n);
-const DEFAULT_RETENTION_RATE = BigDecimal.fromBigInt(10n);
-const DEFAULT_RETENTION_CAP = BigDecimal.fromBigInt(5n);
 
 export function toDecimal(value: DecimalLike): BigDecimal.BigDecimal {
 	if (typeof value === 'string') {
@@ -259,17 +257,32 @@ export type CommercialSummary = {
 	readonly net_claimable_with_tax: string;
 };
 
-/** Computes project commercial totals & claimable valuation from contracts, task progress, and claims. */
+const IN_FORCE = new Set(['active', 'completed']);
+
+/** The client contract a project is valued against: the first upstream, non-variation contract in force. */
+export const clientContractOf = <
+	C extends { readonly direction: string; readonly contract_type: string; readonly status: string }
+>(
+	contracts: readonly C[]
+): C | undefined =>
+	contracts.find(
+		(c) =>
+			c.direction === 'upstream' && c.contract_type !== 'variation_order' && IN_FORCE.has(c.status)
+	);
+
+/**
+ * Computes project commercial totals & claimable valuation from contracts, task progress, and claims. Retention and tax
+ * follow the client contract (`clientContractOf`): the terms agreed with the client.
+ */
 export function computeProjectCommercial(input: {
-	readonly contract_value: DecimalLike;
-	readonly retention_rate: DecimalLike;
-	readonly retention_cap_rate: DecimalLike;
-	readonly tax_rate: DecimalLike;
 	readonly contracts: readonly {
 		readonly direction: string;
 		readonly contract_type: string;
 		readonly status: string;
 		readonly contract_value: DecimalLike;
+		readonly retention_rate: DecimalLike;
+		readonly retention_cap_rate: DecimalLike;
+		readonly tax_rate: DecimalLike;
 	}[];
 	readonly tasks: readonly {
 		readonly progress_pct: DecimalLike;
@@ -289,9 +302,8 @@ export function computeProjectCommercial(input: {
 	let downstreamBase = ZERO;
 	let downstreamVars = ZERO;
 
-	const activeStatuses = new Set(['active', 'completed']);
 	for (const c of input.contracts) {
-		if (!activeStatuses.has(c.status)) continue;
+		if (!IN_FORCE.has(c.status)) continue;
 		const val = toDecimal(c.contract_value);
 		if (c.direction === 'upstream') {
 			if (c.contract_type === 'variation_order') upstreamVars = BigDecimal.sum(upstreamVars, val);
@@ -303,9 +315,8 @@ export function computeProjectCommercial(input: {
 		}
 	}
 
-	const originalContractSum = BigDecimal.isPositive(upstreamBase)
-		? upstreamBase
-		: BigDecimal.round(toDecimal(input.contract_value), { scale: 2, mode: 'half-from-zero' });
+	const mainContract = clientContractOf(input.contracts);
+	const originalContractSum = upstreamBase;
 	const revisedContractSum = BigDecimal.sum(originalContractSum, upstreamVars);
 	const committedDownstream = BigDecimal.sum(downstreamBase, downstreamVars);
 	const projectedMargin = BigDecimal.subtract(revisedContractSum, committedDownstream);
@@ -325,14 +336,10 @@ export function computeProjectCommercial(input: {
 			: ZERO;
 
 	const grossWorkDone = pctOf(nonNegative(revisedContractSum), overallProgressPct);
-	const retentionRate =
-		input.retention_rate == null
-			? DEFAULT_RETENTION_RATE
-			: nonNegative(toDecimal(input.retention_rate));
-	const retentionCapRate =
-		input.retention_cap_rate == null
-			? DEFAULT_RETENTION_CAP
-			: nonNegative(toDecimal(input.retention_cap_rate));
+	const retentionRate = mainContract ? nonNegative(toDecimal(mainContract.retention_rate)) : ZERO;
+	const retentionCapRate = mainContract
+		? nonNegative(toDecimal(mainContract.retention_cap_rate))
+		: ZERO;
 	const retentionCapAmount = pctOf(nonNegative(revisedContractSum), retentionCapRate);
 	const rawRetention = pctOf(grossWorkDone, retentionRate);
 	const retentionHeld = BigDecimal.isPositive(retentionCapRate)
@@ -357,7 +364,7 @@ export function computeProjectCommercial(input: {
 	}
 
 	const netClaimableNow = nonNegative(BigDecimal.subtract(netCumulativeValue, previousValued));
-	const taxRate = nonNegative(toDecimal(input.tax_rate));
+	const taxRate = mainContract ? nonNegative(toDecimal(mainContract.tax_rate)) : ZERO;
 	const estimatedTax = pctOf(netClaimableNow, taxRate);
 	const netClaimableWithTax = BigDecimal.sum(netClaimableNow, estimatedTax);
 
@@ -528,7 +535,7 @@ export type CatalogCashflowRow = {
 };
 
 /**
- * Reconciles BIM takeoff budget, catalog-backed ad-hoc costs, SO revenue, PO commitments,
+ * Reconciles BIM takeoff budget, catalog-backed ad-hoc costs, client contract value, subcontract commitments,
  * verified DO deliveries, and billed/paid outflows per Costing Matrix catalog code.
  */
 export function computeCatalogCashflowBreakdown(input: {

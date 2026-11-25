@@ -367,7 +367,6 @@ it.effect(
 						project_role: 'main_contractor',
 						autodesk_project_id: 'acc-proj-1',
 						currency: 'SGD',
-						contract_value: '12000000.00',
 						zones: [
 							{ code: 'L01-MAIN', name: 'Level 1 Switchroom', elevation_m: 0, grid_axis: 'A-D' }
 						]
@@ -434,14 +433,14 @@ it.effect(
 				yield* delivery.query({
 					projects: {
 						where: { id: { eq: projectId } },
-						fields: ['bim_costing_dirty', 'bim_revisions'],
+						fields: ['bim_costing_dirty', 'bim_version'],
 						limit: 1
 					}
 				}),
 				'projects'
 			)[0];
 			expect(dirtyProject?.['bim_costing_dirty']).toBe(true);
-			expect(Array.isArray(dirtyProject?.['bim_revisions'])).toBe(true);
+			expect(dirtyProject?.['bim_version']).toBe('P01');
 
 			// Run daily EOD sweep automation -> schedules & executes analyze_bim_file for dirty project
 			const sweepRes = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
@@ -505,7 +504,7 @@ it.effect(
 				yield* delivery.query({
 					projects: {
 						where: { id: { eq: projectId } },
-						fields: ['revision', 'bim_summary', 'bim_costing_dirty', 'bim_revisions'],
+						fields: ['revision', 'bim_summary', 'bim_costing_dirty'],
 						limit: 1
 					}
 				}),
@@ -513,7 +512,6 @@ it.effect(
 			)[0];
 			expect(projectAfter?.['bim_summary']).not.toBeNull();
 			expect(projectAfter?.['bim_costing_dirty']).toBe(false);
-			expect(Array.isArray(projectAfter?.['bim_revisions'])).toBe(true);
 
 			// Clean project is skipped by subsequent daily sweep
 			const cleanSweep = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
@@ -827,7 +825,6 @@ it.effect(
 						company_name: 'Synthetic Electrical Pte Ltd',
 						role: 'subcontractor',
 						trade_specialty: 'electrical',
-						project_id: projectId,
 						phone: '+65 9222 3333',
 						email: 'sam@syntheticelec.test'
 					}
@@ -1358,8 +1355,7 @@ it.effect(
 						project_name: 'HDB Block 888B & Precinct Playground',
 						project_number: 'HDB-888B',
 						project_role: 'main_contractor',
-						currency: 'SGD',
-						contract_value: '45000000.00'
+						currency: 'SGD'
 					}
 				],
 				'cost_matrix.create': [

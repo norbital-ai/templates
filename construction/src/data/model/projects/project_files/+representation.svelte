@@ -1,12 +1,10 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
-	import { Field, Section, type RecordView } from '@norbital-ai/ui';
-	import RecordForm from '../../../../lib/record-form.svelte';
+	import { Field, RecordForm, type RecordView, Section } from '@norbital-ai/ui';
 
 	let { view, ctx }: { view: RecordView<'project_files'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	const revCount = $derived(record?.revisions?.length ?? 0);
 	const hideProject = $derived(
 		record !== null || (view.mode === 'create' && view.values.project_id != null)
 	);
@@ -32,15 +30,4 @@
 			<Column span="all"><Field {ctx} name="notes" /></Column>
 		</Grid>
 	</Section>
-	{#if record && revCount > 0}
-		<Section
-			icon="lucide:history"
-			name="revisions"
-			title={ctx.t('project_files.revision_history')}
-			default_open={false}
-			summary={ctx.t('project_files.revision_count', { count: revCount })}
-		>
-			<Field {ctx} name="revisions" readonly />
-		</Section>
-	{/if}
 </RecordForm>

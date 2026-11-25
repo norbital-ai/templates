@@ -6,7 +6,6 @@ const columns = [
 	'company_name',
 	'role',
 	'trade_specialty',
-	'project_id',
 	'phone',
 	'email',
 	'payment_terms_days',
@@ -51,15 +50,9 @@ export default model('contacts', {
 			values: [...TRADE_SPECIALTIES],
 			default: 'general'
 		},
-		project_id: {
-			kind: 'ref',
-			to: 'projects',
-			inverse: 'contacts',
-			optional: true,
-			on_delete: 'set_null'
-		},
 		phone: { kind: 'text', format: 'phone', optional: true },
 		email: { kind: 'text', format: 'email', optional: true },
+		/** The partner's standard payment terms, used for documents that no contract governs. */
 		payment_terms_days: { kind: 'int', min: 0, max: 180, optional: true },
 		registration_no: { kind: 'text', optional: true },
 		status: {
@@ -77,12 +70,7 @@ export default model('contacts', {
 		by_trade: { on: ['trade_specialty', 'role'] },
 		find: { text: ['full_name', 'company_name', 'phone', 'email', 'registration_no'] }
 	},
-	outputs: {
-		default: {
-			fields: 'all',
-			project_id: { fields: ['project_name', 'project_number'] }
-		}
-	},
+	outputs: { default: { fields: 'all' } },
 	create: {
 		fields: columns,
 		effect: function* (_changes, ctx) {
@@ -92,7 +80,7 @@ export default model('contacts', {
 	update: {
 		fields: columns,
 		effect: function* (changes, ctx) {
-			if (changes.some((c) => c.changed('phone', 'email', 'project_id'))) {
+			if (changes.some((c) => c.changed('phone', 'email'))) {
 				yield* replayMessages(ctx);
 			}
 		}

@@ -7,16 +7,7 @@ export default policy({
 	grants: {
 		projects: {
 			outputs: { default: {} },
-			update: {
-				fields: [
-					'contract_value',
-					'currency',
-					'retention_rate',
-					'retention_cap_rate',
-					'tax_rate',
-					'payment_terms_days'
-				]
-			}
+			update: { fields: ['currency'] }
 		},
 		contracts: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		commercial_documents: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },

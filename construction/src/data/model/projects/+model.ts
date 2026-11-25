@@ -4,30 +4,22 @@ const columns = [
 	'project_name',
 	'project_number',
 	'project_role',
-	'client',
-	'main_contractor',
+	'client_id',
 	'project_manager',
-	'project_type',
 	'status',
 	'schedule_range',
 	'currency',
-	'contract_value',
-	'retention_rate',
-	'retention_cap_rate',
-	'tax_rate',
-	'payment_terms_days',
 	'autodesk_project_id',
 	'bim_file',
 	'bim_version',
 	'zones',
-	'capture_rules',
 	'address',
 	'description'
 ] as const;
 
 export default model('projects', {
 	description:
-		'Construction projects usable by main contractors managing subcontractors or subcontractors managing their own works, with a single federated BIM IFC model, programme, cashflow terms, Autodesk project link, zones, and WhatsApp/email capture rules.',
+		"Construction projects run as main contractor or subcontractor, with a single federated BIM IFC model, programme, Autodesk project link and spatial zones. Contract terms live on the project's contracts.",
 	icon: 'lucide:building-2',
 	record_label:
 		"record.project_number != null ? record.project_number + ' · ' + record.project_name : record.project_name",
@@ -40,10 +32,16 @@ export default model('projects', {
 			values: ['main_contractor', 'subcontractor', 'specialist_contractor'],
 			default: 'main_contractor'
 		},
-		client: { kind: 'text', optional: true },
-		main_contractor: { kind: 'text', optional: true },
-		project_manager: { kind: 'text', optional: true },
-		project_type: { kind: 'text', optional: true },
+		/** The business partner who engaged us: the client, or the main contractor when we subcontract. */
+		client_id: {
+			kind: 'ref',
+			to: 'contacts',
+			inverse: 'client_projects',
+			optional: true,
+			on_delete: 'set_null'
+		},
+		/** The member accountable for delivering the project. */
+		project_manager: { kind: 'ref', to: 'sys_user', optional: true },
 		status: {
 			kind: 'state',
 			initial: 'active',
@@ -57,21 +55,14 @@ export default model('projects', {
 			}
 		},
 		schedule_range: { kind: 'period', of: 'date', optional: true },
+		/** The currency the project's figures are reported in. */
 		currency: { kind: 'currency', default: 'SGD' },
-		contract_value: { kind: 'money', currency: 'currency', optional: true },
-		retention_rate: { kind: 'decimal', scale: 2, default: 10 },
-		retention_cap_rate: { kind: 'decimal', scale: 2, default: 5 },
-		tax_rate: { kind: 'decimal', scale: 2, default: 9 },
-		/** Standard payment cycle in calendar days used to forecast cashflow due dates. */
-		payment_terms_days: { kind: 'int', min: 0, max: 180, default: 30 },
 		/** Optional Autodesk Construction Cloud / BIM 360 project ID for schedule and document sync. */
 		autodesk_project_id: { kind: 'text', optional: true },
 		/** Single federated BIM IFC model for this project (updated in place with revision history). */
 		bim_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
-		/** Revision label for the project's BIM model (e.g. P01, P04). */
+		/** Revision label for the project's BIM model (e.g. P01, P04); record history keeps earlier files. */
 		bim_version: { kind: 'text', optional: true },
-		/** Revision trail for the project's BIM IFC model. */
-		bim_revisions: { kind: 'custom', of: 'revision_trail', optional: true },
 		/** True when a new or updated BIM file awaits AI takeoff costing (manual run or daily EOD sweep). */
 		bim_costing_dirty: { kind: 'bool', default: false },
 		/** Automatically populated summary once the BIM pipeline parses the project's IFC model. */
@@ -91,8 +82,6 @@ export default model('projects', {
 		},
 		/** Co-located storeys, zones, grid axes, and elevations owned by this project. */
 		zones: { kind: 'custom', of: 'project_zones', optional: true },
-		/** Project-specific WhatsApp and email routing and extraction rules. */
-		capture_rules: { kind: 'text', format: 'markdown', optional: true },
 		address: { kind: 'custom', of: 'project_address', optional: true },
 		description: { kind: 'text', format: 'markdown', optional: true },
 		open_task_count: {
@@ -116,66 +105,30 @@ export default model('projects', {
 			where: { status: { in: ['issued', 'verified', 'certified', 'disputed'] } }
 		}
 	},
-	constraints: {
-		project_number: { unique: ['project_number'] },
-		valid_retention_rate: { check: { retention_rate: { gte: 0, lte: 100 } } },
-		valid_retention_cap: { check: { retention_cap_rate: { gte: 0, lte: 100 } } },
-		valid_tax_rate: { check: { tax_rate: { gte: 0, lte: 100 } } }
+	constraints: { project_number: { unique: ['project_number'] } },
+	indexes: { find: { text: ['project_name', 'project_number'] } },
+	outputs: {
+		default: {
+			fields: 'all',
+			client_id: { fields: ['full_name', 'company_name'] },
+			project_manager: { fields: ['name'] }
+		}
 	},
-	indexes: { find: { text: ['project_name', 'project_number', 'client', 'main_contractor'] } },
-	outputs: { default: { fields: 'all' } },
 	create: {
 		fields: columns.filter((f) => f !== 'status'),
-		transform: function* (changes, ctx) {
+		transform: function* (changes) {
 			return changes.map(({ set, after }) => {
 				if (after.bim_file == null) return set;
-				const version = after.bim_version?.trim() || 'P01';
-				return {
-					...set,
-					bim_version: version,
-					bim_costing_dirty: true,
-					...(after.bim_revisions != null && after.bim_revisions.length > 0
-						? {}
-						: {
-								bim_revisions: [
-									{
-										version,
-										saved_on: ctx.today,
-										reference: after.bim_file.name,
-										summary: 'Initial BIM model'
-									}
-								]
-							})
-				};
+				return { ...set, bim_version: after.bim_version?.trim() || 'P01', bim_costing_dirty: true };
 			});
 		}
 	},
 	update: {
 		fields: [...columns, 'bim_summary', 'bim_costing_dirty'],
-		transform: function* (changes, ctx) {
+		transform: function* (changes) {
 			return changes.map((c) => {
-				if (c.changed('bim_file') && c.after.bim_file == null) {
-					return { ...c.set, bim_costing_dirty: false };
-				}
-				if (!c.changed('bim_file') && !c.changed('bim_version')) return c.set;
-				if (c.after.bim_file == null) return c.set;
-				const prev = c.before.bim_revisions ?? [];
-				const version =
-					c.after.bim_version?.trim() || `P${String(prev.length + 1).padStart(2, '0')}`;
-				return {
-					...c.set,
-					bim_version: version,
-					...(c.changed('bim_file') ? { bim_costing_dirty: true } : {}),
-					bim_revisions: [
-						...prev,
-						{
-							version,
-							saved_on: ctx.today,
-							reference: c.after.bim_file.name,
-							summary: c.changed('bim_file') ? 'Updated BIM model revision' : 'BIM version updated'
-						}
-					]
-				};
+				if (!c.changed('bim_file')) return c.set;
+				return { ...c.set, bim_costing_dirty: c.after.bim_file != null };
 			});
 		},
 		effect: function* (changes, ctx) {

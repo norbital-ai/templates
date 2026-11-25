@@ -6,7 +6,6 @@ const columns = [
 	'catalog_item_id',
 	'title',
 	'project_id',
-	'category',
 	'status',
 	'currency',
 	'unit',
@@ -51,19 +50,6 @@ export default model('adhoc_costs', {
 			on_delete: 'restrict'
 		},
 		title: { kind: 'text' },
-		category: {
-			kind: 'enum',
-			values: [
-				'preliminaries',
-				'hoisting_logistics',
-				'permits_fees',
-				'testing_commissioning',
-				'temporary_works',
-				'overhead',
-				'other'
-			],
-			default: 'preliminaries'
-		},
 		status: {
 			kind: 'state',
 			initial: 'draft',

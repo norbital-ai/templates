@@ -17,7 +17,7 @@ const columns = [
 
 export default model('project_files', {
 	description:
-		'Filed project drawings, specifications, schedules, contract documents, handover records, and Autodesk ACC sheets with revision history.',
+		'Filed project drawings, specifications, schedules, contract documents, handover records, and Autodesk ACC sheets. Record history keeps each earlier version.',
 	icon: 'lucide:file-text',
 	record_label:
 		"record.document_number != null ? record.document_number + ' · ' + record.title : record.title",
@@ -50,7 +50,6 @@ export default model('project_files', {
 		/** Optional Autodesk ACC / BIM 360 item URN when synced from Autodesk Platform Services. */
 		autodesk_urn: { kind: 'text', optional: true },
 		file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
-		revisions: { kind: 'custom', of: 'revision_trail', optional: true },
 		notes: { kind: 'text', format: 'markdown', optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'project_files', owned: true }
 	},
@@ -66,48 +65,14 @@ export default model('project_files', {
 		fields: columns.filter((f) => f !== 'status'),
 		transform: function* (changes, ctx) {
 			yield* validateProjectZones(changes, ctx);
-			const isRemoteSync = ctx.actor.kind === 'system' && 'sync' in ctx.actor.by;
-			if (isRemoteSync) return changes.map(({ set }) => set);
-			return changes.map(({ set, after }) => {
-				if (after.revisions != null && after.revisions.length > 0) return set;
-				return {
-					...set,
-					revisions: [
-						{
-							version: after.current_version ?? 'P01',
-							saved_on: ctx.today,
-							reference: after.file?.name ?? after.autodesk_urn ?? null,
-							summary: 'Initial issue'
-						}
-					]
-				};
-			});
+			return changes.map(({ set }) => set);
 		}
 	},
 	update: {
 		fields: columns.filter((f) => f !== 'project_id'),
 		transform: function* (changes, ctx) {
 			yield* validateProjectZones(changes, ctx);
-			const isRemoteSync = ctx.actor.kind === 'system' && 'sync' in ctx.actor.by;
-			if (isRemoteSync) return changes.map(({ set }) => set);
-			return changes.map((c) => {
-				if (!c.changed('current_version') && !c.changed('file')) {
-					return c.set;
-				}
-				const prev = c.before.revisions ?? [];
-				return {
-					...c.set,
-					revisions: [
-						...prev,
-						{
-							version: c.after.current_version ?? 'P01',
-							saved_on: ctx.today,
-							reference: c.after.file?.name ?? c.after.autodesk_urn ?? null,
-							summary: c.changed('file') ? 'Updated file revision' : 'Version updated'
-						}
-					]
-				};
-			});
+			return changes.map(({ set }) => set);
 		}
 	}
 });

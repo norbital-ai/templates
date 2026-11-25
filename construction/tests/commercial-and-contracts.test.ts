@@ -86,29 +86,33 @@ it('computes exact BigDecimal lines, 3-way match, commercial valuation, retentio
 		}).match_status
 	).toBe('variance');
 
+	const terms = { retention_rate: '10', retention_cap_rate: '5', tax_rate: '9' };
 	const commercial = computeProjectCommercial({
-		contract_value: '1000000.00',
-		retention_rate: '10',
-		retention_cap_rate: '5',
-		tax_rate: '9',
 		contracts: [
 			{
 				direction: 'upstream',
 				contract_type: 'main_contract',
 				status: 'active',
-				contract_value: '2000000.00'
+				contract_value: '2000000.00',
+				...terms
 			},
 			{
 				direction: 'upstream',
 				contract_type: 'variation_order',
 				status: 'active',
-				contract_value: '200000.00'
+				contract_value: '200000.00',
+				retention_rate: '0',
+				retention_cap_rate: '0',
+				tax_rate: '0'
 			},
 			{
 				direction: 'downstream',
 				contract_type: 'subcontract',
 				status: 'active',
-				contract_value: '1500000.00'
+				contract_value: '1500000.00',
+				retention_rate: '0',
+				retention_cap_rate: '0',
+				tax_rate: '0'
 			}
 		],
 		tasks: [
@@ -252,7 +256,7 @@ it('computes exact BigDecimal lines, 3-way match, commercial valuation, retentio
 });
 
 it.effect(
-	'enforces contract revisions & locks, PO/DO/Invoice 3-way matching, progress claim persistence, and non-admin RBAC policies',
+	'enforces contract review locks, PO/DO/Invoice 3-way matching, progress claim persistence, and non-admin RBAC policies',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* acquireWorkspace({ root, now: '2026-06-15T06:00:00.000Z' });
@@ -298,17 +302,18 @@ it.effect(
 						project_number: 'SLH-001',
 						project_role: 'subcontractor',
 						currency: 'SGD',
-						contract_value: '2000000.00',
-						retention_rate: '10.00',
-						retention_cap_rate: '5.00',
-						tax_rate: '9.00',
-						payment_terms_days: 30,
 						zones: [{ code: 'Z-ROOF', name: 'Roof Deck', elevation_m: 18, grid_axis: 'A-F' }]
 					}
 				]
 			});
 			if (createdProject.kind !== 'committed') throw new Error('Project create failed');
 			const projectId = recordOf(createdProject.records, 'projects').id;
+
+			// A progress claim values work against an active client contract; with none, it is refused
+			const claimWithoutContract = yield* qs
+				.run('generate_payment_claim', { project_id: projectId }, ClaimCallOutput)
+				.pipe(Effect.flip);
+			expect(claimWithoutContract._tag).toBe('ActRefused');
 
 			// Delivery cannot create commercial contracts
 			const deliveryContractDenied = yield* delivery
@@ -412,9 +417,9 @@ it.effect(
 						company_name: 'Synthetic Roofing Pte Ltd',
 						role: 'subcontractor',
 						trade_specialty: 'roofing',
-						project_id: projectId,
 						phone: '+65 8111 2222',
-						email: 'alex@syntheticroofing.test'
+						email: 'alex@syntheticroofing.test',
+						payment_terms_days: 45
 					}
 				]
 			});
@@ -508,14 +513,12 @@ it.effect(
 				yield* viewer.query({
 					contracts: {
 						where: { id: { eq: activeRef.id } },
-						fields: ['current_revision', 'revisions', 'signed_date', 'contract_value', 'tax_rate'],
+						fields: ['signed_date', 'contract_value', 'tax_rate'],
 						limit: 1
 					}
 				}),
 				'contracts'
 			)[0];
-			expect(storedCtr?.['current_revision']).toBe(2);
-			expect(Array.isArray(storedCtr?.['revisions']) ? storedCtr['revisions'].length : 0).toBe(1);
 			expect(storedCtr?.['signed_date']).toBe('2026-06-15');
 
 			// Active contract lock refuses pricing edits AND preserves persisted tax_rate
@@ -606,6 +609,34 @@ it.effect(
 			);
 			expect(matched.every((r) => r['match_status'] === 'matched')).toBe(true);
 			expect(matched.every((r) => r['total_amount'] === '54500.00')).toBe(true);
+
+			// With no governing contract, a document falls due on its partner's standard terms (45 days)
+			const partnerInvoice = yield* qs.act({
+				'commercial_documents.create': [
+					{
+						project_id: projectId,
+						doc_type: 'invoice',
+						direction: 'outflow',
+						contact_id: contactId,
+						currency: 'SGD',
+						subtotal: '1000.00',
+						issue_date: '2026-06-01'
+					}
+				]
+			});
+			if (partnerInvoice.kind !== 'committed') throw new Error('Partner invoice failed');
+			expect(
+				rowsOf(
+					yield* viewer.query({
+						commercial_documents: {
+							where: { id: { eq: recordOf(partnerInvoice.records, 'commercial_documents').id } },
+							fields: ['due_date'],
+							limit: 1
+						}
+					}),
+					'commercial_documents'
+				)[0]?.['due_date']
+			).toBe('2026-07-16');
 
 			// Clearing parent_document_id resets match_status to 'unmatched' and clears match_notes
 			const unlinkedDo = yield* qs.act({
@@ -887,7 +918,6 @@ it.effect(
 							project_id: projectId,
 							catalog_item_id: adhocCatalogId,
 							title: 'Unauthorized Prelim',
-							category: 'preliminaries',
 							currency: 'SGD',
 							unit: 'month',
 							qty: '1',
@@ -906,7 +936,6 @@ it.effect(
 							project_id: projectId,
 							catalog_item_id: bimCatalogId,
 							title: 'Wrong Category Adhoc',
-							category: 'preliminaries',
 							qty: '1',
 							unit_rate: '5000.00'
 						}
@@ -929,7 +958,6 @@ it.effect(
 						project_id: projectId,
 						catalog_item_id: adhocCatalogId,
 						title: 'Tower Crane Hire',
-						category: 'hoisting_logistics',
 						qty: '2.5',
 						unit_rate: '12000.00'
 					}

@@ -34,10 +34,9 @@
 			'project_name',
 			'project_number',
 			'project_role',
-			'client',
+			'client_id',
 			'status',
 			'schedule_range',
-			'contract_value',
 			'open_task_count',
 			'open_issue_count',
 			'active_contract_count'

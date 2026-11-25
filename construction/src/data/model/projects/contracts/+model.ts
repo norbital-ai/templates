@@ -37,7 +37,7 @@ const editableColumns = [
 
 export default model('contracts', {
 	description:
-		'Upstream client/main-contractor agreements, downstream trade subcontracts and supply contracts, and variation orders (VOs/EOTs) with priced schedules of values, revision trails, and execution locks.',
+		'Upstream client/main-contractor agreements, downstream trade subcontracts and supply contracts, and variation orders (VOs/EOTs) with priced schedules of values and execution locks. Retention, tax and payment terms are agreed here.',
 	icon: 'lucide:file-signature',
 	record_label:
 		"record.contract_number != null ? record.contract_number + ' · ' + record.title : record.title",
@@ -78,7 +78,6 @@ export default model('contracts', {
 				rejected: { to: ['draft'] }
 			}
 		},
-		current_revision: { kind: 'int', min: 1, default: 1 },
 		currency: { kind: 'currency', default: 'SGD' },
 		tax_rate: { kind: 'decimal', scale: 2, default: 9 },
 		/** Schedule of values / priced line items; when provided, `contract_value` auto-sums from them. */
@@ -94,7 +93,6 @@ export default model('contracts', {
 		/** Approved/claimed EOT impact in calendar days (used by variation orders on the 4D timeline). */
 		schedule_impact_days: { kind: 'int', default: 0 },
 		signed_date: { kind: 'date', optional: true },
-		revisions: { kind: 'custom', of: 'revision_trail', optional: true },
 		bim_pin: { kind: 'custom', of: 'bim_pin', optional: true },
 		scope_notes: { kind: 'text', format: 'markdown', optional: true },
 		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true, optional: true },
@@ -125,17 +123,10 @@ export default model('contracts', {
 		valid_tax_rate: { check: { tax_rate: { gte: 0, lte: 100 } } },
 		valid_retention_rate: { check: { retention_rate: { gte: 0, lte: 100 } } },
 		valid_retention_cap: { check: { retention_cap_rate: { gte: 0, lte: 100 } } },
-		/** Under-review contracts lock pricing until returned to draft; returning snapshots a revision. */
+		/** Under-review contracts lock pricing until returned to draft; record history keeps each priced version. */
 		review_locked: {
 			locked: { status: { eq: 'under_review' } },
-			except: [
-				'status',
-				'current_revision',
-				'revisions',
-				'signed_date',
-				'attachments',
-				'scope_notes'
-			]
+			except: ['status', 'signed_date', 'attachments', 'scope_notes']
 		},
 		/** Active executed contracts lock pricing and core terms permanently; use variation orders for changes. */
 		active_locked: {
@@ -303,27 +294,11 @@ export default model('contracts', {
 					}
 					computed = computeLinesTotals(resolved.lines, '0');
 				}
-				const returningToDraft =
-					c.changed('status') && c.after.status === 'draft' && c.before.status === 'under_review';
 				out.push({
 					...c.set,
 					...(computed ? { lines: computed.lines, contract_value: computed.subtotal } : {}),
 					...(c.changed('status') && c.after.status === 'active' && c.after.signed_date == null
 						? { signed_date: ctx.today }
-						: {}),
-					...(returningToDraft
-						? {
-								current_revision: c.before.current_revision + 1,
-								revisions: [
-									...(c.before.revisions ?? []),
-									{
-										version: `R${c.before.current_revision}`,
-										saved_on: ctx.today,
-										reference: `${c.before.currency} ${c.before.contract_value}`,
-										summary: `Revision ${c.before.current_revision} archived (${(c.before.lines ?? []).length} line(s))`
-									}
-								]
-							}
 						: {})
 				});
 			}
