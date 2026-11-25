@@ -249,7 +249,10 @@
 </script>
 
 <script lang="ts">
-	/** One row of a law, edited as the folded law holds it. Its footer asks the one save question and writes the patch. */
+	/**
+	 * One row of a law as it stands today, read from its changes: it is not edited in place. Its footer adds a change
+	 * (with its date of effect) or corrects the changes that set its values; either opens the fields for that one write.
+	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
 		Button,
@@ -260,10 +263,12 @@
 		Section,
 		Sheet,
 		enum_text,
+		format,
 		label,
 		notify_outcome,
 		toast
 	} from '@norbital-ai/ui';
+	import { watch } from '@norbital-ai/ui/behaviors';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Cluster, Columns, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
@@ -306,15 +311,40 @@
 	const fields = (row: JsonObject | undefined): JsonObject =>
 		Object.fromEntries(Object.entries(row ?? {}).filter(([name]) => name !== 'code'));
 	const title = (name: string) => label(ctx, 'law', name);
-	let always = $state(false);
+	/** What the open fields will write: a new change from a date, or a correction of the changes that set the values. */
+	let writing = $state<'change' | 'correction' | null>(null);
+	const always = $derived(writing === 'correction');
 	let chosen = $state<string | null>(null);
 	let saving = $state(false);
-	const close = () => {
-		target = null;
+	/** The dates of the changes that set this row's values: where a correction is written. */
+	const setOn = $derived.by(() => {
+		if (target === null || target.code === null) return [];
+		const under = `${target.family}/${target.code}`;
+		const ids = new Set(
+			Object.entries(law.set_by)
+				.filter(([path]) => path === under || path.startsWith(`${under}/`))
+				.map(([, id]) => id)
+		);
+		return [
+			...new Set(chain.filter((row) => ids.has(row.id)).map((row) => row.effective_from))
+		].toSorted();
+	});
+	const stop = () => {
 		edits = {};
-		always = false;
+		writing = null;
 		chosen = null;
 	};
+	const close = () => {
+		target = null;
+		stop();
+	};
+	// a row being added has nothing to read: it opens as a new change
+	watch(
+		() => adding,
+		(isNew) => {
+			if (isNew) writing = 'change';
+		}
+	);
 	function write(patch: JsonObject) {
 		if (Object.keys(patch).length === 0) return close();
 		const writes = lawWrites(chain, law, patch, always ? null : (chosen ?? law.on));
@@ -369,6 +399,7 @@
 				wrap
 				value={String(value[name] ?? '')}
 				aria-label={title(name)}
+				readonly={writing === null}
 				on_change={(next) => (edits[name] = next === '' ? null : next)}
 			/>
 		{:else if kind === 'subtotal'}
@@ -377,6 +408,7 @@
 				clearable
 				options={subtotals}
 				value={typeof value[name] === 'string' ? value[name] : null}
+				readonly={writing === null}
 				on_change={(next) => (edits[name] = next)}
 			/>
 		{:else if kind.kind === 'enum' && kind.many !== true}
@@ -387,6 +419,7 @@
 					label: label(ctx, 'law', `${name}.${option}`, enum_text(option))
 				}))}
 				value={typeof value[name] === 'string' ? value[name] : null}
+				readonly={writing === null}
 				on_change={(next) => (edits[name] = next)}
 			/>
 		{:else}
@@ -397,6 +430,7 @@
 				{kind}
 				value={value[name] ?? null}
 				row={value}
+				readonly={writing === null}
 				disabled={name === 'code' && !adding}
 				on_change={(next) => (edits[name] = next)}
 			/>
@@ -415,41 +449,66 @@
 		: `${ctx.t(`law_family.${target.family}`)} · ${target.code ?? ctx.t('law_row.new')}`}
 >
 	{#if target !== null}
-		<Stack gap="md">
-			{#each SECTIONS[target.family] as section, at (section.name)}
-				<Section
-					name="law_row_{section.name}"
-					first={at === 0}
-					default_open={section.closed !== true}
-					{...section.title === undefined ? {} : { title: ctx.t(section.title) }}
-					{...section.icon === undefined ? {} : { icon: section.icon }}
-					{...section.hint === undefined ? {} : { hint: ctx.t(section.hint) }}
-				>
-					{#if section.stack}
-						<Stack gap="md">
-							{#each section.fields as field (field[0])}{@render control(field)}{/each}
-						</Stack>
+		<!-- the row scrolls; its actions sit flush at the bottom, as a record's do -->
+		<div class="flex h-full min-h-0 flex-col gap-4">
+			<div class="min-h-0 flex-1 overflow-auto">
+				<Stack gap="md">
+					{#if writing === 'change'}
+						<LawSave
+							{ctx}
+							id="law-row-effective-from"
+							bind:date={() => chosen ?? law.on, (next) => (chosen = next)}
+						/>
+					{:else if writing === 'correction'}
+						<p class="text-sm text-muted-foreground" role="note">
+							{ctx.t('law_row.correcting')}
+							{setOn.map((day) => format({ kind: 'date' }, day, { locale: ctx.locale })).join(', ')}
+						</p>
 					{:else}
-						<Columns count={2} gap="md">
-							{#each section.fields as field (field[0])}{@render control(field)}{/each}
-						</Columns>
+						<p class="text-sm text-muted-foreground" role="note">{ctx.t('law_row.as_of_today')}</p>
 					{/if}
-				</Section>
-			{/each}
+					{#each SECTIONS[target.family] as section, at (section.name)}
+						<Section
+							name="law_row_{section.name}"
+							first={at === 0}
+							default_open={section.closed !== true}
+							{...section.title === undefined ? {} : { title: ctx.t(section.title) }}
+							{...section.icon === undefined ? {} : { icon: section.icon }}
+							{...section.hint === undefined ? {} : { hint: ctx.t(section.hint) }}
+						>
+							{#if section.stack}
+								<Stack gap="md">
+									{#each section.fields as field (field[0])}{@render control(field)}{/each}
+								</Stack>
+							{:else}
+								<Columns count={2} gap="md">
+									{#each section.fields as field (field[0])}{@render control(field)}{/each}
+								</Columns>
+							{/if}
+						</Section>
+					{/each}
+				</Stack>
+			</div>
 			<Cluster as="footer" gap="sm" justify="end">
-				<LawSave
-					{ctx}
-					id="law-row-effective-from"
-					bind:always
-					bind:date={() => chosen ?? law.on, (next) => (chosen = next)}
-				/>
-				{#if !adding}
-					<Button variant="destructive" disabled={saving} onclick={remove}
-						>{ctx.t('law_row.remove')}</Button
+				{#if writing === null}
+					<Button variant="outline" onclick={() => (writing = 'correction')}
+						>{ctx.t('law_row.correct')}</Button
+					>
+					<Button onclick={() => (writing = 'change')}>{ctx.t('law_row.add_change')}</Button>
+				{:else}
+					{#if !adding}
+						<Button variant="destructive" disabled={saving} onclick={remove}
+							>{ctx.t(always ? 'law_row.remove_always' : 'law_row.remove_from')}</Button
+						>
+					{/if}
+					<Button variant="outline" disabled={saving} onclick={() => (adding ? close() : stop())}
+						>{ctx.t('component.cancel')}</Button
+					>
+					<Button disabled={!valid || saving} onclick={submit}
+						>{ctx.t(always ? 'law_row.save_correction' : 'law_row.save_change')}</Button
 					>
 				{/if}
-				<Button disabled={!valid || saving} onclick={submit}>{ctx.t('law_save.save')}</Button>
 			</Cluster>
-		</Stack>
+		</div>
 	{/if}
 </Sheet>

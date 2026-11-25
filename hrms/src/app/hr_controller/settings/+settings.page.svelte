@@ -114,6 +114,7 @@
 {#snippet inForce()}{#if law && Object.keys(patch).length > 0}<LawSave
 			{ctx}
 			id="law-effective-from"
+			choose
 			bind:always
 			bind:date={() => changesOn ?? law.on, (next) => (changesOn = next)}
 		/>{/if}{/snippet}
