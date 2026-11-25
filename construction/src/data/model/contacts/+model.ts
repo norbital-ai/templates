@@ -24,10 +24,10 @@ const replayMessages = (ctx: Pick<EffectCtx, 'schedule' | 'now'>) =>
  */
 export default model('contacts', {
 	description:
-		'Trade subcontractors, suppliers, clients, main contractors, and consultants for contract management and WhatsApp/email routing.',
-	icon: 'lucide:contact-round',
+		'Business partners — customers/clients, material vendors/suppliers, trade subcontractors, main contractors, and consultants for commercial orders, transactions, and WhatsApp/email routing.',
+	icon: 'lucide:handshake',
 	record_label:
-		"record.company_name != null ? record.full_name + ' · ' + record.company_name : record.full_name",
+		"record.company_name != null ? record.company_name + ' · ' + record.full_name : record.full_name",
 	fields: {
 		full_name: { kind: 'text' },
 		company_name: { kind: 'text', optional: true },

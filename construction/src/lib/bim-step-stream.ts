@@ -153,7 +153,40 @@ const STRUCTURAL_ENTITIES = new Set<string>([
 	'IFCELEMENTQUANTITY',
 	'IFCPROPERTYSINGLEVALUE',
 	'IFCPROPERTYSET',
-	'IFCRELDEFINESBYPROPERTIES'
+	'IFCRELDEFINESBYPROPERTIES',
+	'IFCDOORSTYLE',
+	'IFCWINDOWSTYLE'
+]);
+
+/** IFC2x3 & IFC4 door/window operation & partitioning enum tokens (distinct from PredefinedType). */
+const OPERATION_TYPE_ENUMS = new Set<string>([
+	'SINGLE_SWING_LEFT',
+	'SINGLE_SWING_RIGHT',
+	'DOUBLE_DOOR_SINGLE_SWING',
+	'DOUBLE_DOOR_SINGLE_SWING_OPPOSITE_LEFT',
+	'DOUBLE_DOOR_SINGLE_SWING_OPPOSITE_RIGHT',
+	'DOUBLE_SWING_LEFT',
+	'DOUBLE_SWING_RIGHT',
+	'DOUBLE_DOOR_DOUBLE_SWING',
+	'SLIDING_TO_LEFT',
+	'SLIDING_TO_RIGHT',
+	'DOUBLE_DOOR_SLIDING',
+	'FOLDING_TO_LEFT',
+	'FOLDING_TO_RIGHT',
+	'DOUBLE_DOOR_FOLDING',
+	'REVOLVING',
+	'ROLLINGUP',
+	'SWING_FIXED_LEFT',
+	'SWING_FIXED_RIGHT',
+	'SINGLE_PANEL',
+	'DOUBLE_PANEL_VERTICAL',
+	'DOUBLE_PANEL_HORIZONTAL',
+	'TRIPLE_PANEL_VERTICAL',
+	'TRIPLE_PANEL_BOTTOM',
+	'TRIPLE_PANEL_TOP',
+	'TRIPLE_PANEL_LEFT',
+	'TRIPLE_PANEL_RIGHT',
+	'TRIPLE_PANEL_HORIZONTAL'
 ]);
 
 /** High-signal property names kept for semantic AI classification. */
@@ -183,7 +216,12 @@ const SEMANTIC_PROPERTY_NAMES = new Set<string>([
 	'width',
 	'height',
 	'occupancytype',
-	'predefinedtype'
+	'predefinedtype',
+	'operationtype',
+	'partitioningtype',
+	'glazingareafaction',
+	'numberofleaves',
+	'doorleafcount'
 ]);
 
 export type BimAssetRecord = {
@@ -192,14 +230,19 @@ export type BimAssetRecord = {
 	readonly ifc_class: string;
 	readonly name: string;
 	readonly family: string;
+	readonly type_id: number | null;
 	readonly type_name: string | null;
 	readonly object_type: string | null;
 	readonly predefined_type: string | null;
+	readonly operation_type: string | null;
 	readonly storey: string;
 	readonly classification_code: string | null;
 	readonly classification_name: string | null;
 	readonly materials: readonly string[];
+	readonly material_layers: readonly string[];
+	readonly layer_count: number;
 	readonly properties: readonly string[];
+	readonly part_ids: readonly number[];
 	readonly length_m: number | null;
 	readonly area_m2: number | null;
 	readonly volume_m3: number | null;
@@ -216,14 +259,19 @@ export type ParsedIfcModel = {
 
 export type BimArchetype = {
 	readonly archetype_id: string;
+	readonly representative_express_id: number;
+	readonly representative_part_ids: readonly number[];
 	readonly ifc_class: string;
 	readonly family: string;
 	readonly type_name: string | null;
 	readonly object_type: string | null;
 	readonly predefined_type: string | null;
+	readonly operation_type: string | null;
 	readonly classification_code: string | null;
 	readonly classification_name: string | null;
 	readonly materials: readonly string[];
+	readonly material_layers: readonly string[];
+	readonly layer_count: number;
 	readonly properties: readonly string[];
 	readonly sample_names: readonly string[];
 	readonly total_count: number;
@@ -231,6 +279,7 @@ export type BimArchetype = {
 	readonly has_area: boolean;
 	readonly has_volume: boolean;
 	readonly has_weight: boolean;
+	readonly visual_views?: readonly string[];
 };
 
 export type BimStoreyBucket = {
@@ -433,13 +482,110 @@ type RawAsset = {
 	readonly name: string;
 	readonly object_type: string | null;
 	readonly predefined_type: string | null;
+	readonly operation_type: string | null;
 };
 
 type TypeInfo = {
 	readonly name: string | null;
 	readonly description: string | null;
 	readonly predefined_type: string | null;
+	readonly operation_type: string | null;
 };
+
+type MaterialLayerMeta = {
+	readonly material_ref: number | null;
+	readonly thickness_raw: number | null;
+	readonly name: string | null;
+};
+
+/**
+ * Normalizes an IFC element name by stripping per-instance numeric IDs / tags (e.g., `Door-001`,
+ * `Wall_L01_14`, `Basic Wall:RC-200:1042`, `KONE MonoSpace 1000kg:L1`) while keeping type
+ * specifiers and dimensions (`400A`, `200mm`, `2400x2100`) intact.
+ */
+function normalizeInstanceName(raw: string): string {
+	let s = raw.trim();
+	if (s.length === 0) return '';
+	// Strip Revit-style trailing `:123456` or `:L1` / `:D01` instance tags while keeping Family:Type
+	const colonParts = s
+		.split(':')
+		.map((p) => p.trim())
+		.filter((p) => p.length > 0);
+	if (colonParts.length >= 3) {
+		const last = colonParts[colonParts.length - 1] ?? '';
+		if (/^(?:[A-Za-z]{0,2}\d{1,7}|[0-9A-Fa-f]{6,})$/.test(last)) {
+			colonParts.pop();
+		}
+		s = colonParts.join(':');
+	} else if (colonParts.length === 2) {
+		const second = colonParts[1] ?? '';
+		if (/^(?:[A-Za-z]{0,2}\d{1,7}|Zone\s*[A-Za-z0-9]+)$/i.test(second)) {
+			s = colonParts[0] ?? s;
+		}
+	}
+	// Strip trailing instance numbering (`Door-001`, `Door #12`, `Wall_L02_05`), never dimensions (`200mm`, `400A`, `1000kg`)
+	s = s.replace(/(?:[\s_-]+(?:#|no\.?|id|L\d{1,2}[\s_-]?)?\d{1,6})$/i, '').trim();
+	return s.toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Computes the strict deduplication key for a resolved BIM element so identical assets never get
+ * sent to System 1 more than once:
+ * - Elements linked to an `IFC*TYPE` / `IFC*STYLE` collapse strictly by their type definition +
+ *   operation/predefined type + material layers (ignoring per-instance names like `Door-001`..`Door-500`).
+ * - Un-typed elements collapse by normalized instance family/name + objectType + operation/predefined
+ *   type + material layers.
+ */
+function computeArchetypeSignature(elem: BimAssetRecord): string {
+	const layerSig =
+		elem.material_layers.length > 0
+			? elem.material_layers.map((l) => l.toLowerCase()).join('+')
+			: elem.materials.map((m) => m.toLowerCase()).join('+');
+	if (elem.type_id !== null) {
+		const typeKey =
+			elem.type_name !== null && elem.type_name.trim().length > 0
+				? elem.type_name.trim().toLowerCase()
+				: `#${elem.type_id}`;
+		return [
+			'TYPE',
+			elem.ifc_class,
+			typeKey,
+			elem.operation_type ?? '',
+			elem.predefined_type ?? '',
+			(elem.classification_code ?? '').toLowerCase(),
+			layerSig
+		].join('|');
+	}
+	const normName = normalizeInstanceName(elem.name) || elem.family.toLowerCase();
+	return [
+		'INST',
+		elem.ifc_class,
+		normName,
+		(elem.object_type ?? '').toLowerCase(),
+		elem.operation_type ?? '',
+		elem.predefined_type ?? '',
+		(elem.classification_code ?? '').toLowerCase(),
+		layerSig
+	].join('|');
+}
+
+function classifyEnums(
+	args: readonly string[],
+	startIdx: number
+): { readonly predefined: string | null; readonly operation: string | null } {
+	let predefined: string | null = null;
+	let operation: string | null = null;
+	for (let k = args.length - 1; k >= startIdx; k--) {
+		const parsed = parseEnumToken(args[k]);
+		if (parsed === null) continue;
+		if (OPERATION_TYPE_ENUMS.has(parsed)) {
+			if (operation === null) operation = parsed;
+		} else if (predefined === null) {
+			predefined = parsed;
+		}
+	}
+	return { predefined, operation };
+}
 
 type QtyEntry = {
 	readonly kind: 'length' | 'area' | 'volume' | 'weight';
@@ -472,16 +618,18 @@ export function createIfcStepStreamParser() {
 	const spaces = new Map<number, string>();
 	const sites = new Map<number, string>();
 	const parentOf = new Map<number, number>();
+	const childrenOf = new Map<number, number[]>();
 	const elementToContainer = new Map<number, number>();
 	const classifications = new Map<number, { code: string | null; name: string | null }>();
 	const entityClassification = new Map<number, number>();
 
-	// Type definitions (`IFCRELDEFINESBYTYPE` -> `IFC*TYPE`)
+	// Type definitions (`IFCRELDEFINESBYTYPE` -> `IFC*TYPE` / `IFCDOORSTYLE` / `IFCWINDOWSTYLE`)
 	const typeObjects = new Map<number, TypeInfo>();
 	const elementToType = new Map<number, number>();
 
 	// Material graph (`IFCRELASSOCIATESMATERIAL` -> Material / LayerSet / ConstituentSet / ProfileSet / List)
 	const materialNames = new Map<number, string>();
+	const materialLayers = new Map<number, MaterialLayerMeta>();
 	const materialLinks = new Map<number, number[]>();
 	const entityMaterials = new Map<number, number[]>();
 
@@ -570,22 +718,15 @@ export function createIfcStepStreamParser() {
 			const globalId = unquoteStep(args[0]);
 			const name = unquoteStep(args[2]) ?? entity;
 			const objectType = unquoteStep(args[4]);
-			// PredefinedType is usually the last `.ENUM.` argument in IFC2x3/IFC4 product entities
-			let predefinedType: string | null = null;
-			for (let k = args.length - 1; k >= 5; k--) {
-				const parsed = parseEnumToken(args[k]);
-				if (parsed !== null) {
-					predefinedType = parsed;
-					break;
-				}
-			}
+			const enums = classifyEnums(args, 5);
 			rawAssets.push({
 				express_id: id,
 				global_id: globalId,
 				ifc_class: entity,
 				name,
 				object_type: objectType,
-				predefined_type: predefinedType
+				predefined_type: enums.predefined,
+				operation_type: enums.operation
 			});
 			return;
 		}
@@ -643,7 +784,10 @@ export function createIfcStepStreamParser() {
 			const parentId = parseRef(args[4]);
 			const childIds = parseRefList(args[5]);
 			if (parentId !== null) {
-				for (const cid of childIds) parentOf.set(cid, parentId);
+				for (const cid of childIds) {
+					parentOf.set(cid, parentId);
+					pushMapList(childrenOf, parentId, cid);
+				}
 			}
 		} else if (entity === 'IFCRELCONTAINEDINSPATIALSTRUCTURE') {
 			const args = splitStepArgs(argStr);
@@ -677,17 +821,22 @@ export function createIfcStepStreamParser() {
 			const args = splitStepArgs(argStr);
 			const name = unquoteStep(args[0]);
 			if (name !== null) materialNames.set(id, name);
-		} else if (
-			entity === 'IFCMATERIALLAYER' ||
-			entity === 'IFCMATERIALCONSTITUENT' ||
-			entity === 'IFCMATERIALPROFILE'
-		) {
+		} else if (entity === 'IFCMATERIALLAYER') {
 			const args = splitStepArgs(argStr);
-			// IFCMATERIALLAYER(Material, ...), IFCMATERIALCONSTITUENT(Name, Desc, Material, ...), IFCMATERIALPROFILE(Name, Desc, Material, ...)
-			const matRef =
-				entity === 'IFCMATERIALLAYER'
-					? parseRef(args[0])
-					: (parseRef(args[2]) ?? parseRef(args[0]));
+			// IFCMATERIALLAYER(Material, LayerThickness, IsVentilated, Name, ...)
+			const matRef = parseRef(args[0]);
+			const thicknessRaw = parseStepNumber(args[1]);
+			const layerName = unquoteStep(args[3]);
+			materialLayers.set(id, {
+				material_ref: matRef,
+				thickness_raw: thicknessRaw,
+				name: layerName
+			});
+			if (matRef !== null) materialLinks.set(id, [matRef]);
+		} else if (entity === 'IFCMATERIALCONSTITUENT' || entity === 'IFCMATERIALPROFILE') {
+			const args = splitStepArgs(argStr);
+			// IFCMATERIALCONSTITUENT(Name, Desc, Material, ...), IFCMATERIALPROFILE(Name, Desc, Material, ...)
+			const matRef = parseRef(args[2]) ?? parseRef(args[0]);
 			if (matRef !== null) materialLinks.set(id, [matRef]);
 		} else if (
 			entity === 'IFCMATERIALLAYERSET' ||
@@ -770,23 +919,30 @@ export function createIfcStepStreamParser() {
 			if (defRef !== null) {
 				for (const rid of related) pushMapList(entityDefs, rid, defRef);
 			}
-		} else if (entity.endsWith('TYPE')) {
+		} else if (
+			entity.endsWith('TYPE') ||
+			entity === 'IFCDOORSTYLE' ||
+			entity === 'IFCWINDOWSTYLE'
+		) {
 			const args = splitStepArgs(argStr);
 			const name = unquoteStep(args[2]);
 			const description = unquoteStep(args[3]);
-			let predefinedType: string | null = null;
-			for (let k = args.length - 1; k >= 4; k--) {
-				const parsed = parseEnumToken(args[k]);
-				if (parsed !== null) {
-					predefinedType = parsed;
-					break;
-				}
-			}
+			const enums = classifyEnums(args, 4);
 			// Capture HasPropertySets (arg 5 in IfcTypeObject) so type-level properties attach to instances
 			const hasProps = parseRefList(args[5]);
 			for (const pRef of hasProps) pushMapList(entityDefs, id, pRef);
-			if (name !== null || description !== null || predefinedType !== null) {
-				typeObjects.set(id, { name, description, predefined_type: predefinedType });
+			if (
+				name !== null ||
+				description !== null ||
+				enums.predefined !== null ||
+				enums.operation !== null
+			) {
+				typeObjects.set(id, {
+					name,
+					description,
+					predefined_type: enums.predefined,
+					operation_type: enums.operation
+				});
 			}
 		}
 	}
@@ -880,21 +1036,68 @@ export function createIfcStepStreamParser() {
 		return out;
 	}
 
-	function resolveMaterialsFor(expressId: number, typeId: number | undefined): readonly string[] {
+	const layerCache = new Map<number, readonly string[]>();
+	function collectMaterialLayers(refId: number, depth = 0): readonly string[] {
+		if (depth > 6) return [];
+		const cached = layerCache.get(refId);
+		if (cached !== undefined) return cached;
+		const layer = materialLayers.get(refId);
+		if (layer !== undefined) {
+			const matName =
+				(layer.material_ref !== null ? materialNames.get(layer.material_ref) : undefined) ??
+				layer.name ??
+				'Layer';
+			let desc = matName;
+			if (layer.thickness_raw !== null && layer.thickness_raw > 0) {
+				const mm = Math.round(layer.thickness_raw * lengthFactor * 1000 * 10) / 10;
+				if (mm > 0) desc = `${matName} (${mm}mm)`;
+			}
+			const out = [desc];
+			layerCache.set(refId, out);
+			return out;
+		}
+		const children = materialLinks.get(refId);
+		if (children === undefined || children.length === 0) return [];
+		const out: string[] = [];
+		for (const cid of children) {
+			for (const entry of collectMaterialLayers(cid, depth + 1)) {
+				out.push(entry);
+				if (out.length >= 12) break;
+			}
+			if (out.length >= 12) break;
+		}
+		layerCache.set(refId, out);
+		return out;
+	}
+
+	function resolveMaterialsFor(
+		expressId: number,
+		typeId: number | undefined
+	): {
+		readonly materials: readonly string[];
+		readonly material_layers: readonly string[];
+	} {
 		const refs = entityMaterials.get(expressId);
 		const typeRefs = typeId !== undefined ? entityMaterials.get(typeId) : undefined;
-		if (refs === undefined && typeRefs === undefined) return [];
+		if (refs === undefined && typeRefs === undefined) {
+			return { materials: [], material_layers: [] };
+		}
 		const names = new Set<string>();
+		let layers: readonly string[] = [];
 		for (const list of [refs, typeRefs]) {
 			if (list === undefined) continue;
 			for (const ref of list) {
+				if (layers.length === 0) {
+					const foundLayers = collectMaterialLayers(ref);
+					if (foundLayers.length > 0) layers = foundLayers;
+				}
 				for (const name of collectMaterials(ref)) {
 					names.add(name);
-					if (names.size >= 6) return [...names];
+					if (names.size >= 6) break;
 				}
 			}
 		}
-		return [...names];
+		return { materials: [...names], material_layers: layers };
 	}
 
 	function resolveQuantitiesAndProps(expressId: number, typeId: number | undefined) {
@@ -994,12 +1197,15 @@ export function createIfcStepStreamParser() {
 			entityClassification.get(a.express_id) ??
 			(typeId !== undefined ? entityClassification.get(typeId) : undefined);
 		const cls = classRef !== undefined ? classifications.get(classRef) : undefined;
-		const materials = resolveMaterialsFor(a.express_id, typeId);
+		const matInfo = resolveMaterialsFor(a.express_id, typeId);
 		const qp = resolveQuantitiesAndProps(a.express_id, typeId);
 		const storey = resolveStorey(a.express_id);
-		const family = a.name.split(':')[0]?.trim() || typeInfo?.name || a.object_type || a.ifc_class;
+		const family =
+			typeInfo?.name?.trim() || a.name.split(':')[0]?.trim() || a.object_type || a.ifc_class;
 		const typeName = typeInfo?.name ?? null;
 		const predefinedType = a.predefined_type ?? typeInfo?.predefined_type ?? null;
+		const operationType = a.operation_type ?? typeInfo?.operation_type ?? null;
+		const partIds = (childrenOf.get(a.express_id) ?? []).slice(0, 32);
 
 		return {
 			express_id: a.express_id,
@@ -1007,14 +1213,19 @@ export function createIfcStepStreamParser() {
 			ifc_class: a.ifc_class,
 			name: a.name,
 			family,
+			type_id: typeId ?? null,
 			type_name: typeName,
 			object_type: a.object_type,
 			predefined_type: predefinedType,
+			operation_type: operationType,
 			storey,
 			classification_code: cls?.code ?? null,
 			classification_name: cls?.name ?? null,
-			materials,
+			materials: matInfo.materials,
+			material_layers: matInfo.material_layers,
+			layer_count: matInfo.material_layers.length,
 			properties: qp.properties,
+			part_ids: partIds,
 			length_m: qp.lengthM,
 			area_m2: qp.areaM2,
 			volume_m3: qp.volumeM3,
@@ -1048,212 +1259,42 @@ export function createIfcStepStreamParser() {
 
 	function finish(): ExtractedBimModel {
 		flush();
-		const archetypes = new Map<
-			string,
-			{
-				archetype_id: string;
-				ifc_class: string;
-				family: string;
-				type_name: string | null;
-				object_type: string | null;
-				predefined_type: string | null;
-				classification_code: string | null;
-				classification_name: string | null;
-				materials: Set<string>;
-				properties: Set<string>;
-				sample_names: Set<string>;
-				total_count: number;
-				has_length: boolean;
-				has_area: boolean;
-				has_volume: boolean;
-				has_weight: boolean;
-			}
-		>();
-		const buckets = new Map<
-			string,
-			{
-				archetype_id: string;
-				storey: string;
-				element_count: number;
-				length_m: number;
-				length_measured_count: number;
-				area_m2: number;
-				area_measured_count: number;
-				volume_m3: number;
-				volume_measured_count: number;
-				weight_kg: number;
-				weight_measured_count: number;
-				sample_express_ids: number[];
-			}
-		>();
-
-		let nextArchNum = 1;
-		const sigToId = new Map<string, string>();
-		const seenStoreys = new Set<string>(storeys.values());
-
-		for (const raw of rawAssets) {
-			const elem = resolveElement(raw);
-			seenStoreys.add(elem.storey);
-			const primaryMat = elem.materials[0] ?? '';
-			const sig = [
-				elem.ifc_class,
-				elem.family.toLowerCase(),
-				(elem.type_name ?? '').toLowerCase(),
-				(elem.object_type ?? '').toLowerCase(),
-				elem.predefined_type ?? '',
-				(elem.classification_code ?? '').toLowerCase(),
-				(elem.classification_name ?? '').toLowerCase(),
-				primaryMat.toLowerCase()
-			].join('|');
-
-			let archId = sigToId.get(sig);
-			let arch = archId !== undefined ? archetypes.get(archId) : undefined;
-			if (archId === undefined || arch === undefined) {
-				archId = `A${nextArchNum++}`;
-				sigToId.set(sig, archId);
-				arch = {
-					archetype_id: archId,
-					ifc_class: elem.ifc_class,
-					family: elem.family,
-					type_name: elem.type_name,
-					object_type: elem.object_type,
-					predefined_type: elem.predefined_type,
-					classification_code: elem.classification_code,
-					classification_name: elem.classification_name,
-					materials: new Set(elem.materials),
-					properties: new Set(elem.properties),
-					sample_names: new Set([elem.name]),
-					total_count: 0,
-					has_length: false,
-					has_area: false,
-					has_volume: false,
-					has_weight: false
-				};
-				archetypes.set(archId, arch);
-			}
-
-			arch.total_count += 1;
-			if (arch.sample_names.size < 3) arch.sample_names.add(elem.name);
-			for (const m of elem.materials) {
-				if (arch.materials.size < 6) arch.materials.add(m);
-			}
-			for (const p of elem.properties) {
-				if (arch.properties.size < 8) arch.properties.add(p);
-			}
-			if (elem.length_m !== null) arch.has_length = true;
-			if (elem.area_m2 !== null) arch.has_area = true;
-			if (elem.volume_m3 !== null) arch.has_volume = true;
-			if (elem.weight_kg !== null) arch.has_weight = true;
-
-			const bucketKey = `${archId}::${elem.storey}`;
-			let bucket = buckets.get(bucketKey);
-			if (bucket === undefined) {
-				bucket = {
-					archetype_id: archId,
-					storey: elem.storey,
-					element_count: 0,
-					length_m: 0,
-					length_measured_count: 0,
-					area_m2: 0,
-					area_measured_count: 0,
-					volume_m3: 0,
-					volume_measured_count: 0,
-					weight_kg: 0,
-					weight_measured_count: 0,
-					sample_express_ids: []
-				};
-				buckets.set(bucketKey, bucket);
-			}
-			bucket.element_count += 1;
-			if (elem.length_m !== null) {
-				bucket.length_m += elem.length_m;
-				bucket.length_measured_count += 1;
-			}
-			if (elem.area_m2 !== null) {
-				bucket.area_m2 += elem.area_m2;
-				bucket.area_measured_count += 1;
-			}
-			if (elem.volume_m3 !== null) {
-				bucket.volume_m3 += elem.volume_m3;
-				bucket.volume_measured_count += 1;
-			}
-			if (elem.weight_kg !== null) {
-				bucket.weight_kg += elem.weight_kg;
-				bucket.weight_measured_count += 1;
-			}
-			if (bucket.sample_express_ids.length < 10) {
-				bucket.sample_express_ids.push(elem.express_id);
-			}
-		}
-
-		// Preserve explicit IFCBUILDINGSTOREY ordering first, then any additional containers
-		const orderedStoreys = [...new Set([...storeys.values(), ...seenStoreys])].filter(
-			(s) => s !== 'Unassigned' || seenStoreys.has('Unassigned')
-		);
-
-		return {
+		const explicitStoreys = [...new Set(storeys.values())];
+		return aggregateResolvedAssets(
 			schema,
-			project_name: projectName,
-			storeys:
-				[...new Set(storeys.values())].length > 0 ? [...new Set(storeys.values())] : orderedStoreys,
-			total_asset_count: rawAssets.length,
-			archetypes: [...archetypes.values()]
-				.sort(
-					(a, b) => b.total_count - a.total_count || a.archetype_id.localeCompare(b.archetype_id)
-				)
-				.map((a) => ({
-					archetype_id: a.archetype_id,
-					ifc_class: a.ifc_class,
-					family: a.family,
-					type_name: a.type_name,
-					object_type: a.object_type,
-					predefined_type: a.predefined_type,
-					classification_code: a.classification_code,
-					classification_name: a.classification_name,
-					materials: [...a.materials],
-					properties: [...a.properties],
-					sample_names: [...a.sample_names],
-					total_count: a.total_count,
-					has_length: a.has_length,
-					has_area: a.has_area,
-					has_volume: a.has_volume,
-					has_weight: a.has_weight
-				})),
-			buckets: [...buckets.values()].map((b) => ({
-				archetype_id: b.archetype_id,
-				storey: b.storey,
-				element_count: b.element_count,
-				length_m: Number(b.length_m.toFixed(4)),
-				length_measured_count: b.length_measured_count,
-				area_m2: Number(b.area_m2.toFixed(4)),
-				area_measured_count: b.area_measured_count,
-				volume_m3: Number(b.volume_m3.toFixed(4)),
-				volume_measured_count: b.volume_measured_count,
-				weight_kg: Number(b.weight_kg.toFixed(4)),
-				weight_measured_count: b.weight_measured_count,
-				sample_express_ids: b.sample_express_ids
-			}))
-		};
+			projectName,
+			explicitStoreys,
+			rawAssets.map(resolveElement)
+		);
 	}
 
 	return { push, finish, finishFull, stats };
 }
 
-/** Converts an already-parsed `ParsedIfcModel` into compact bucketed `ExtractedBimModel`. */
-export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimModel {
+function aggregateResolvedAssets(
+	schema: string,
+	projectName: string | null,
+	explicitStoreys: readonly string[],
+	assets: readonly BimAssetRecord[]
+): ExtractedBimModel {
 	const sigToId = new Map<string, string>();
 	const archetypes = new Map<
 		string,
 		{
 			archetype_id: string;
+			representative_express_id: number;
+			representative_part_ids: readonly number[];
 			ifc_class: string;
 			family: string;
 			type_name: string | null;
 			object_type: string | null;
 			predefined_type: string | null;
+			operation_type: string | null;
 			classification_code: string | null;
 			classification_name: string | null;
 			materials: Set<string>;
+			material_layers: readonly string[];
+			layer_count: number;
 			properties: Set<string>;
 			sample_names: Set<string>;
 			total_count: number;
@@ -1281,19 +1322,11 @@ export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimMode
 		}
 	>();
 	let nextArchNum = 1;
+	const seenStoreys = new Set<string>(explicitStoreys);
 
-	for (const elem of parsed.assets) {
-		const primaryMat = elem.materials[0] ?? '';
-		const sig = [
-			elem.ifc_class,
-			elem.family.toLowerCase(),
-			(elem.type_name ?? '').toLowerCase(),
-			(elem.object_type ?? '').toLowerCase(),
-			elem.predefined_type ?? '',
-			(elem.classification_code ?? '').toLowerCase(),
-			(elem.classification_name ?? '').toLowerCase(),
-			primaryMat.toLowerCase()
-		].join('|');
+	for (const elem of assets) {
+		seenStoreys.add(elem.storey);
+		const sig = computeArchetypeSignature(elem);
 
 		let archId = sigToId.get(sig);
 		let arch = archId !== undefined ? archetypes.get(archId) : undefined;
@@ -1302,14 +1335,19 @@ export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimMode
 			sigToId.set(sig, archId);
 			arch = {
 				archetype_id: archId,
+				representative_express_id: elem.express_id,
+				representative_part_ids: elem.part_ids,
 				ifc_class: elem.ifc_class,
 				family: elem.family,
 				type_name: elem.type_name,
 				object_type: elem.object_type,
 				predefined_type: elem.predefined_type,
+				operation_type: elem.operation_type,
 				classification_code: elem.classification_code,
 				classification_name: elem.classification_name,
 				materials: new Set(elem.materials),
+				material_layers: elem.material_layers,
+				layer_count: elem.layer_count,
 				properties: new Set(elem.properties),
 				sample_names: new Set([elem.name]),
 				total_count: 0,
@@ -1325,6 +1363,13 @@ export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimMode
 		if (arch.sample_names.size < 3) arch.sample_names.add(elem.name);
 		for (const m of elem.materials) if (arch.materials.size < 6) arch.materials.add(m);
 		for (const p of elem.properties) if (arch.properties.size < 8) arch.properties.add(p);
+		if (arch.material_layers.length === 0 && elem.material_layers.length > 0) {
+			arch.material_layers = elem.material_layers;
+			arch.layer_count = elem.layer_count;
+		}
+		if (arch.representative_part_ids.length === 0 && elem.part_ids.length > 0) {
+			arch.representative_part_ids = elem.part_ids;
+		}
 		if (elem.length_m !== null) arch.has_length = true;
 		if (elem.area_m2 !== null) arch.has_area = true;
 		if (elem.volume_m3 !== null) arch.has_volume = true;
@@ -1369,23 +1414,32 @@ export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimMode
 		if (bucket.sample_express_ids.length < 10) bucket.sample_express_ids.push(elem.express_id);
 	}
 
+	const orderedStoreys = [...new Set([...explicitStoreys, ...seenStoreys])].filter(
+		(s) => s !== 'Unassigned' || seenStoreys.has('Unassigned')
+	);
+
 	return {
-		schema: parsed.schema,
-		project_name: parsed.project_name,
-		storeys: parsed.storeys,
-		total_asset_count: parsed.assets.length,
+		schema,
+		project_name: projectName,
+		storeys: explicitStoreys.length > 0 ? [...explicitStoreys] : orderedStoreys,
+		total_asset_count: assets.length,
 		archetypes: [...archetypes.values()]
 			.sort((a, b) => b.total_count - a.total_count || a.archetype_id.localeCompare(b.archetype_id))
 			.map((a) => ({
 				archetype_id: a.archetype_id,
+				representative_express_id: a.representative_express_id,
+				representative_part_ids: [...a.representative_part_ids],
 				ifc_class: a.ifc_class,
 				family: a.family,
 				type_name: a.type_name,
 				object_type: a.object_type,
 				predefined_type: a.predefined_type,
+				operation_type: a.operation_type,
 				classification_code: a.classification_code,
 				classification_name: a.classification_name,
 				materials: [...a.materials],
+				material_layers: [...a.material_layers],
+				layer_count: a.layer_count,
 				properties: [...a.properties],
 				sample_names: [...a.sample_names],
 				total_count: a.total_count,
@@ -1409,4 +1463,9 @@ export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimMode
 			sample_express_ids: b.sample_express_ids
 		}))
 	};
+}
+
+/** Converts an already-parsed `ParsedIfcModel` into compact bucketed `ExtractedBimModel`. */
+export function extractFromParsedModel(parsed: ParsedIfcModel): ExtractedBimModel {
+	return aggregateResolvedAssets(parsed.schema, parsed.project_name, parsed.storeys, parsed.assets);
 }

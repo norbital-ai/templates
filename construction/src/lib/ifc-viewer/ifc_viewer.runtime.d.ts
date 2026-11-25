@@ -19,6 +19,22 @@ declare module 'https://esm.sh/three@0.185.1' {
 	export const Color: import('./ifc_viewer.types.js').ViewerThreeModule['Color'];
 	export const Vector3: import('./ifc_viewer.types.js').ViewerThreeModule['Vector3'];
 	export const Plane: import('./ifc_viewer.types.js').ViewerThreeModule['Plane'];
+	export const Matrix4: import('./ifc_viewer.types.js').ViewerThreeModule['Matrix4'];
+	export const BufferAttribute: import('./ifc_viewer.types.js').ViewerThreeModule['BufferAttribute'];
+	export const BufferGeometry: import('./ifc_viewer.types.js').ViewerThreeModule['BufferGeometry'];
+	export const EdgesGeometry: import('./ifc_viewer.types.js').ViewerThreeModule['EdgesGeometry'];
+	export const MeshStandardMaterial: import('./ifc_viewer.types.js').ViewerThreeModule['MeshStandardMaterial'];
+	export const LineBasicMaterial: import('./ifc_viewer.types.js').ViewerThreeModule['LineBasicMaterial'];
+	export const Group: import('./ifc_viewer.types.js').ViewerThreeModule['Group'];
+	export const Mesh: import('./ifc_viewer.types.js').ViewerThreeModule['Mesh'];
+	export const LineSegments: import('./ifc_viewer.types.js').ViewerThreeModule['LineSegments'];
+	export const Scene: import('./ifc_viewer.types.js').ViewerThreeModule['Scene'];
+	export const PerspectiveCamera: import('./ifc_viewer.types.js').ViewerThreeModule['PerspectiveCamera'];
+	export const HemisphereLight: import('./ifc_viewer.types.js').ViewerThreeModule['HemisphereLight'];
+	export const DirectionalLight: import('./ifc_viewer.types.js').ViewerThreeModule['DirectionalLight'];
+	export const Box3: import('./ifc_viewer.types.js').ViewerThreeModule['Box3'];
+	export const WebGLRenderer: import('./ifc_viewer.types.js').ViewerThreeModule['WebGLRenderer'];
+	export const DoubleSide: import('./ifc_viewer.types.js').ViewerThreeModule['DoubleSide'];
 }
 declare module 'https://esm.sh/web-ifc@0.0.77' {
 	export const IfcAPI: import('./ifc_viewer.types.js').ViewerIfcApiConstructor;

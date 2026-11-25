@@ -5,11 +5,11 @@ export default messages({
 	'app.operations.title': '车队运营',
 	'app.operations.description': '实时 GPS 车队地图、车辆遥测、路线调度与异常告警。',
 	'app.operations.page_live': '实时地图',
-	'app.operations.live_description': '实时 GPS 定位、车辆速度、在途路线轨迹与预计到达时间。',
+	'app.operations.live_description': '实时 GPS 定位、车辆速度、在途轨迹与实时异常告警。',
 	'app.operations.page_vehicles': '车辆台账',
 	'app.operations.vehicles_description': '管理车辆应答器编号、实时车速、航向、目的地与油量。',
-	'app.operations.page_routes': '路线调度',
-	'app.operations.routes_description': '跟踪起终点、途经点、时间窗口与实时 ETA。',
+	'app.operations.page_routes': '每日调度与路线',
+	'app.operations.routes_description': '按日查看车队调度计划、时间窗口、起终点与实时 ETA。',
 	'app.operations.page_alerts': '异常告警',
 	'app.operations.alerts_description': '集中处理超速、进出电子围栏、应答器离线与路线延误告警。',
 
@@ -25,9 +25,11 @@ export default messages({
 	'app.configuration.page_drivers': '驾驶员',
 	'app.configuration.drivers_description': '维护车队驾驶员档案、驾照等级、到期日及联系方式。',
 
-	// Live Map
+	// Live Map & Daily Dispatch
 	'app.live.map_title': '实时车队地图',
-	'app.live.routes_title': '在途调度任务',
+	'app.live.alerts_title': '实时异常告警',
+	'app.live.no_active_alerts': '当前无待处理或已确认车队告警。',
+	'app.live.routes_title': '调度计划',
 	'app.live.no_active_routes': '当前暂无计划中或在途路线。',
 	'app.live.routes_load_error': '无法加载在途路线轨迹。',
 	'app.live.overlay_eta': '预计 {minutes} 分钟',
@@ -36,6 +38,22 @@ export default messages({
 		'根据车辆最新位置和速度重算全部在途路线 ETA，并标记延误路线。',
 	'app.live.action_check_health': '检查应答器健康度',
 	'app.live.action_check_health_desc': '检测超过 30 分钟无心跳的车辆并生成离线告警。',
+	'dispatch.tab_daily': '每日调度视图',
+	'dispatch.tab_all': '全部路线',
+	'dispatch.prev_day': '前一天',
+	'dispatch.next_day': '后一天',
+	'dispatch.today': '今天',
+	'dispatch.jump_today': '回到今天',
+	'dispatch.new_dispatch': '新建调度',
+	'dispatch.loading': '正在加载每日调度计划…',
+	'dispatch.empty_day_title': '当日暂无调度任务',
+	'dispatch.empty_day_hint': '{day} 暂无安排的出车路线。请切换日期或新建调度。',
+	'dispatch.stat_total': '当日调度',
+	'dispatch.stat_active': '在途 / 已派车',
+	'dispatch.stat_planned': '待发车',
+	'dispatch.stat_completed': '已到达 / 已完成',
+	'dispatch.stat_distance': '计划总里程',
+	'dispatch.stops_count': '{count} 个途经点',
 
 	// Connections & Integrations
 	'connections.help':

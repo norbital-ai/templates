@@ -8,12 +8,12 @@ export default messages({
 	'app.operations.page_projects': '工程项目',
 	'app.operations.projects_description':
 		'适用于总承包商与分包商的项目管理：合同、现金流、进度计划与 BIM 估价。',
+	'app.operations.page_partners': '业务伙伴',
 	'app.operations.page_messages': '消息收件箱',
 	'app.operations.messages_description': '已同步的 WhatsApp 与邮件现场沟通记录及自动结构化提取。',
 
 	'app.configuration.title': '系统配置',
-	'app.configuration.description':
-		'集中管理 WhatsApp、邮件与 Autodesk 连接、分包商名录与计价矩阵。',
+	'app.configuration.description': '集中管理 WhatsApp、邮件与 Autodesk 连接及计价矩阵。',
 
 	// Connections
 	'connections.title': '外部连接',
@@ -30,15 +30,26 @@ export default messages({
 	'connections.kind.autodesk_acc': 'Autodesk ACC',
 	'connections.intake_rules_title': '采集与自动提取规则',
 
-	// Contacts & Cost Matrix pages
-	'contacts.title': '联系人与分包商',
-	'contacts.description':
-		'按专业工种分类的分包商、供应商、业主与顾问名录，用于合同、采购与消息路由。',
+	// Business Partners & Cost Matrix pages
+	'partners.title': '业务伙伴',
+	'partners.description': '客户/业主、材料供应商与专业分包商名录，关联订单、往来单据与施工任务。',
+	'partners.tab_all': '全部伙伴',
+	'partners.tab_customers': '客户',
+	'partners.tab_vendors': '供应商',
+	'partners.tab_subcontractors': '分包商',
+	'partners.orders_tab': '订单与合同',
+	'partners.transactions_tab': '单据（送货单 / 发票）',
+	'partners.tasks_tab': '指派任务',
+	'contacts.title': '业务伙伴',
+	'contacts.description': '按客户、供应商与专业工种分类的业务伙伴名录。',
 	'cost_matrix.title': '计价矩阵',
 	'cost_matrix.description': '映射到 BIM IFC 构件分类与非 BIM 附加费用的可量化单价矩阵。',
 
 	// Project Hub tabs
-	'project.tab_bim_issues': 'BIM 与问题',
+	'project.tab_bim': 'BIM',
+	'project.tab_commercial': '商务与订单',
+	'bim.tab_model_issues': '3D 模型与问题',
+	'tasks.subtasks_tab': '子任务',
 
 	// Co-located spatial zones
 	'zones.code': '区域编码（如 L01）',
@@ -69,13 +80,15 @@ export default messages({
 	'bim_costing.estimates_title': '成本估算',
 	'bim_costing.run_pipeline': '运行 BIM 算量与估价',
 	'bim_costing.run_pipeline_desc':
-		'流式解析 IFC 模型，通过规则与 AI 对构件分类并匹配计价矩阵，汇总 BIM 与非 BIM 成本。',
+		'流式解析并去重 IFC 模型，为每类唯一构件渲染多角度独立 3D 视图，并通过 System 1 视觉模型匹配计价矩阵。',
 	'bim_costing.scan_local_ifc': '扫描本地大型 IFC',
 	'bim_costing.scan_local_ifc_desc':
-		'在浏览器中分片流式解析任意大小本地 .ifc 文件（支持百兆级多层模型），并提交紧凑构件汇总进行 AI 估价。',
+		'在浏览器中分片流式解析任意大小本地 .ifc 文件（支持百兆级多层模型），为唯一构件生成多角度独立视图并提交 System 1 视觉分类。',
 	'bim_costing.streaming_progress': '浏览器流式解析 IFC 中（{percent}%）· 已识别 {assets} 个构件…',
+	'bim_costing.snapshots_progress':
+		'正在渲染唯一构件多角度独立 3D 视图（{done}/{total} · 已采集 {captured} 类）…',
 	'bim_costing.streaming_done':
-		'耗时 {ms} ms 提取 {assets} 个构件（{archetypes} 类唯一构件）— 正在执行 AI 分类估价…',
+		'耗时 {ms} ms 提取 {assets} 个构件（{archetypes} 类唯一构件 · {visuals} 组多角度视图）— 正在调用 System 1 分类…',
 	'bim_costing.reanalyze_bim': '重新执行 BIM 算量',
 	'bim_costing.coverage': '矩阵匹配覆盖率',
 	'bim_costing.unmatched_badge': '{count} 项未匹配',
@@ -98,6 +111,7 @@ export default messages({
 	'bim_costing.status_rule_matched': '规则',
 	'bim_costing.status_override': '手动调价',
 	'bim_costing.status_rate_missing': '缺单价',
+	'bim_costing.status_unknown_catalog': '未知/未收录目录',
 	'bim_costing.status_unmatched': '未匹配',
 
 	// Project files & revisions
@@ -148,8 +162,14 @@ export default messages({
 	'commercial.projected_margin': '预计毛利率',
 	'commercial.margin_pct_value': '{pct}%',
 	'commercial.overall_progress': '整体进度',
-	'commercial.tab_contracts': '合同与变更',
-	'commercial.tab_documents': 'PO / DO / 发票',
+	'commercial.tab_contracts': '订单与合同',
+	'commercial.tab_documents': '交易单据（DO / 发票）',
+	'commercial.tab_so': '销售订单 (SO)',
+	'commercial.tab_po': '采购/分包订单 (PO)',
+	'commercial.tab_vo': '变更单 (VO)',
+	'commercial.tab_transactions': '交易单据（DO / 发票）',
+	'commercial.new_do': '新增送货单 (DO)',
+	'commercial.new_invoice': '新增发票',
 	'commercial.col_code': '编码',
 	'commercial.col_item': '说明',
 
@@ -571,15 +591,15 @@ export default messages({
 	'models.cost_estimates.fields.notes': '备注',
 
 	// Models — Contacts
-	'models.contacts.label': '联系人与分包商',
-	'models.contacts.singular': '联系人',
-	'models.contacts.fields.full_name': '姓名',
+	'models.contacts.label': '业务伙伴',
+	'models.contacts.singular': '业务伙伴',
+	'models.contacts.fields.full_name': '联系人姓名',
 	'models.contacts.fields.company_name': '公司名称',
-	'models.contacts.fields.role': '角色',
+	'models.contacts.fields.role': '伙伴类型',
 	'models.contacts.fields.role.subcontractor': '分包商',
-	'models.contacts.fields.role.supplier': '材料供应商',
+	'models.contacts.fields.role.supplier': '供应商',
 	'models.contacts.fields.role.main_contractor': '总承包商',
-	'models.contacts.fields.role.client': '业主方',
+	'models.contacts.fields.role.client': '客户 / 业主',
 	'models.contacts.fields.role.consultant': '顾问',
 	'models.contacts.fields.role.architect': '建筑师',
 	'models.contacts.fields.role.qs': '造价师 (QS)',

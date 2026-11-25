@@ -561,7 +561,7 @@
 					]
 				}
 			],
-			"record_label": "record.company_name != null ? record.full_name + ' · ' + record.company_name : record.full_name",
+			"record_label": "record.company_name != null ? record.company_name + ' · ' + record.full_name : record.full_name",
 			"search": {
 				"text": [
 					"full_name",

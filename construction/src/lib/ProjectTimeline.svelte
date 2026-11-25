@@ -1,4 +1,4 @@
-<!-- @component Interactive 4D construction programme timeline with date-axis scrubber, Gantt work packages, milestone diamonds, EOT/variation markers, and BIM highlights. -->
+<!-- @component Interactive 4D construction programme timeline with hierarchical WBS tree, date-axis scrubber, Gantt work packages, milestone diamonds, EOT/variation markers, and BIM highlights. -->
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -19,6 +19,8 @@
 	type TimelineTask = {
 		readonly id: string;
 		readonly task_code: string | null;
+		readonly wbs_path?: string | null;
+		readonly parent_task_id?: string | { readonly id: string } | null;
 		readonly title: string;
 		readonly trade_specialty: string | null;
 		readonly is_milestone?: boolean | null;
@@ -36,6 +38,14 @@
 		readonly status: string;
 		readonly schedule_impact_days: number | null;
 		readonly signed_date: string | null;
+	};
+
+	type TreeRow = {
+		readonly task: TimelineTask;
+		readonly depth: number;
+		readonly childCount: number;
+		readonly effectiveRange: { readonly from: string; readonly to: string | null } | null;
+		readonly effectiveProgress: number;
 	};
 
 	let {
@@ -59,6 +69,131 @@
 		const words: { t(k: string): string } = ctx;
 		return words.t(key);
 	};
+
+	function parentIdOf(task: TimelineTask): string | null {
+		const raw = task.parent_task_id;
+		if (raw == null) return null;
+		return typeof raw === 'string' ? raw : raw.id;
+	}
+
+	function compareWbs(a: TimelineTask, b: TimelineTask): number {
+		const keyA = a.wbs_path?.trim() || a.task_code?.trim() || a.title;
+		const keyB = b.wbs_path?.trim() || b.task_code?.trim() || b.title;
+		return keyA.localeCompare(keyB, undefined, { numeric: true, sensitivity: 'base' });
+	}
+
+	let collapsed = $state<Readonly<Record<string, boolean>>>({});
+
+	function toggleCollapse(id: string): void {
+		collapsed = { ...collapsed, [id]: !collapsed[id] };
+	}
+
+	const hierarchy = $derived.by(() => {
+		const byId = new Map(tasks.map((task) => [task.id, task] as const));
+		const childrenMap = new Map<string, TimelineTask[]>();
+		const roots: TimelineTask[] = [];
+
+		for (const task of tasks) {
+			const pid = parentIdOf(task);
+			if (pid !== null && pid !== task.id && byId.has(pid)) {
+				const list = childrenMap.get(pid);
+				if (list !== undefined) list.push(task);
+				else childrenMap.set(pid, [task]);
+			} else {
+				roots.push(task);
+			}
+		}
+
+		roots.sort(compareWbs);
+		for (const list of childrenMap.values()) {
+			list.sort(compareWbs);
+		}
+
+		const rollupCache = new Map<
+			string,
+			{
+				readonly from: string | null;
+				readonly to: string | null;
+				readonly progress: number;
+				readonly descendantCount: number;
+			}
+		>();
+
+		function computeRollup(
+			task: TimelineTask,
+			visiting: Set<string>
+		): {
+			readonly from: string | null;
+			readonly to: string | null;
+			readonly progress: number;
+			readonly descendantCount: number;
+		} {
+			const cached = rollupCache.get(task.id);
+			if (cached !== undefined) return cached;
+			const ownFrom = parseIsoDate(task.schedule_range?.from);
+			const ownTo = parseIsoDate(task.schedule_range?.to) ?? ownFrom;
+			const ownPct = Math.round(toNumber(task.progress_pct));
+			const kids = childrenMap.get(task.id) ?? [];
+			if (kids.length === 0 || visiting.has(task.id)) {
+				const leaf = { from: ownFrom, to: ownTo, progress: ownPct, descendantCount: 0 };
+				rollupCache.set(task.id, leaf);
+				return leaf;
+			}
+			visiting.add(task.id);
+			let minFrom = ownFrom;
+			let maxTo = ownTo;
+			let sumPct = 0;
+			let countedKids = 0;
+			let desc = 0;
+			for (const kid of kids) {
+				const r = computeRollup(kid, visiting);
+				desc += 1 + r.descendantCount;
+				if (r.from !== null && (minFrom === null || r.from < minFrom)) minFrom = r.from;
+				if (r.to !== null && (maxTo === null || r.to > maxTo)) maxTo = r.to;
+				sumPct += r.progress;
+				countedKids += 1;
+			}
+			visiting.delete(task.id);
+			const rolledPct =
+				ownPct > 0 || countedKids === 0 ? ownPct : Math.round(sumPct / Math.max(1, countedKids));
+			const res = { from: minFrom, to: maxTo, progress: rolledPct, descendantCount: desc };
+			rollupCache.set(task.id, res);
+			return res;
+		}
+
+		const visibleRows: TreeRow[] = [];
+		const visited = new Set<string>();
+
+		function walk(task: TimelineTask, depth: number): void {
+			if (visited.has(task.id)) return;
+			visited.add(task.id);
+			const kids = childrenMap.get(task.id) ?? [];
+			const rollup = computeRollup(task, new Set());
+			visibleRows.push({
+				task,
+				depth,
+				childCount: kids.length,
+				effectiveRange:
+					rollup.from !== null ? { from: rollup.from, to: rollup.to } : task.schedule_range,
+				effectiveProgress: rollup.progress
+			});
+			if (kids.length > 0 && !collapsed[task.id]) {
+				for (const kid of kids) {
+					walk(kid, depth + 1);
+				}
+			}
+		}
+
+		for (const root of roots) {
+			walk(root, 0);
+		}
+		// Safety net for any cycle-orphaned task so nothing ever disappears
+		for (const task of tasks) {
+			if (!visited.has(task.id)) walk(task, 0);
+		}
+
+		return visibleRows;
+	});
 
 	const bounds = $derived.by(() => {
 		const dates: string[] = [];
@@ -360,146 +495,203 @@
 	{:else}
 		<Surface tone="card" padding="md" radius="control">
 			<Scroll axis="x" name={t('timeline.programme_axis')}>
-				<Stack gap="sm" divided>
-					<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="end">
-						<span class="text-overline">{t('timeline.work_package')}</span>
-						<div class="relative h-6">
-							{#each monthTicks as tick (tick.label + tick.pct)}
-								<span
-									class="absolute bottom-0 -translate-x-1/2 text-micro tabular-nums text-muted-foreground"
-									style={`left: ${tick.pct}%`}
-								>
-									{tick.label}
-								</span>
-							{/each}
-						</div>
-					</Grid>
-
-					{#if changeMarkers.length > 0}
-						<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="center">
-							<span class="text-micro text-muted-foreground">{t('timeline.change_markers')}</span>
+				<div class="pr-6">
+					<Stack gap="sm" divided>
+						<Grid tracks="18rem minmax(28rem, 1fr)" gap="md" align="end">
+							<span class="text-overline">{t('timeline.work_package')}</span>
 							<div class="relative h-6">
+								{#each monthTicks as tick (tick.label + tick.pct)}
+									<span
+										class="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-micro tabular-nums text-muted-foreground"
+										style={`left: ${tick.pct}%`}
+									>
+										{tick.label}
+									</span>
+								{/each}
+							</div>
+						</Grid>
+
+						{#if changeMarkers.length > 0}
+							<Grid tracks="18rem minmax(28rem, 1fr)" gap="md" align="center">
+								<span class="text-micro text-muted-foreground">{t('timeline.change_markers')}</span>
+								<div class="relative h-6">
+									<div
+										class="pointer-events-none absolute inset-y-0 w-px bg-primary"
+										style={`left: ${scrubPct}%`}
+									></div>
+									{#each changeMarkers as vo (vo.id)}
+										<button
+											type="button"
+											title={`${vo.contract_number ?? ''} ${vo.title} (${vo.signed_date})`}
+											class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-micro {vo.passed
+												? 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text'
+												: 'border-border bg-muted text-muted-foreground'}"
+											style={`left: ${vo.pct}%`}
+											onclick={() => open_record('contracts', vo.id)}
+										>
+											{vo.contract_number ?? t('timeline.vo_fallback')}
+										</button>
+									{/each}
+								</div>
+							</Grid>
+						{/if}
+
+						{#each hierarchy as row (row.task.id)}
+							{@const task = row.task}
+							{@const isSummary = row.childCount > 0}
+							{@const pos = row.effectiveRange?.from
+								? positionOf(row.effectiveRange.from, row.effectiveRange.to)
+								: null}
+							{@const actualPct = row.effectiveProgress}
+							{@const plannedPct = pos ? plannedPctAt(pos.startDay, pos.endDay, currentDay) : 0}
+							{@const behind = plannedPct - actualPct >= 15 && task.status !== 'done'}
+							{@const barLabel = `${task.task_code ? `${task.task_code} · ` : ''}${task.title} (${actualPct}%)`}
+							<Grid tracks="18rem minmax(28rem, 1fr)" gap="md" align="center">
 								<div
-									class="pointer-events-none absolute inset-y-0 w-px bg-primary"
-									style={`left: ${scrubPct}%`}
-								></div>
-								{#each changeMarkers as vo (vo.id)}
+									class="flex min-w-0 items-start gap-1.5"
+									style={row.depth > 0 ? `padding-left: ${row.depth * 1.15}rem` : undefined}
+								>
+									{#if isSummary}
+										<button
+											type="button"
+											aria-label={collapsed[task.id] ? 'Expand' : 'Collapse'}
+											aria-expanded={!collapsed[task.id]}
+											class="mt-0.5 grid size-4 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+											onclick={() => toggleCollapse(task.id)}
+										>
+											<Icon
+												name={collapsed[task.id] ? 'lucide:chevron-right' : 'lucide:chevron-down'}
+												class="size-3.5"
+											/>
+										</button>
+									{:else if row.depth > 0}
+										<Icon
+											name="lucide:corner-down-right"
+											class="mt-0.5 size-3.5 shrink-0 text-muted-foreground/60"
+										/>
+									{:else}
+										<span class="mt-0.5 size-4 shrink-0" aria-hidden="true"></span>
+									{/if}
+
 									<button
 										type="button"
-										title={`${vo.contract_number ?? ''} ${vo.title} (${vo.signed_date})`}
-										class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-1.5 py-0.5 text-micro {vo.passed
-											? 'border-tone-warning-border bg-tone-warning-bg text-tone-warning-text'
-											: 'border-border bg-muted text-muted-foreground'}"
-										style={`left: ${vo.pct}%`}
-										onclick={() => open_record('contracts', vo.id)}
+										class="min-w-0 flex-1 text-left hover:underline"
+										onclick={() => open_record('tasks', task.id)}
 									>
-										{vo.contract_number ?? t('timeline.vo_fallback')}
-									</button>
-								{/each}
-							</div>
-						</Grid>
-					{/if}
-
-					{#each tasks as task (task.id)}
-						{@const pos = task.schedule_range?.from
-							? positionOf(task.schedule_range.from, task.schedule_range.to)
-							: null}
-						{@const actualPct = Math.round(toNumber(task.progress_pct))}
-						{@const plannedPct = pos ? plannedPctAt(pos.startDay, pos.endDay, currentDay) : 0}
-						{@const behind = plannedPct - actualPct >= 15 && task.status !== 'done'}
-						{@const barLabel = `${task.task_code ? `${task.task_code} · ` : ''}${task.title} (${actualPct}%)`}
-						<Grid tracks="15rem minmax(28rem, 1fr)" gap="md" align="center">
-							<button
-								type="button"
-								class="min-w-0 text-left hover:underline"
-								onclick={() => open_record('tasks', task.id)}
-							>
-								<Stack gap="xs">
-									<Inline gap="xs" align="center">
-										{#if task.is_milestone}
-											<Icon name="lucide:diamond" class="size-3 text-tone-warning-text" />
-										{/if}
-										<span class="truncate text-label">
-											{#if task.task_code}{`${task.task_code} · `}{/if}{task.title}
-										</span>
-									</Inline>
-									<Inline gap="xs" class="text-micro text-muted-foreground">
-										{#if task.is_milestone}
-											<span class="text-tone-warning-text">{t('timeline.milestone_badge')}</span>
-											<span aria-hidden="true">·</span>
-										{/if}
-										{#if task.trade_specialty}
-											<span>
-												{enum_text(task.trade_specialty, {
-													t: rawT,
-													model: 'tasks',
-													field: 'trade_specialty'
-												})}
-											</span>
-											<span aria-hidden="true">·</span>
-										{/if}
-										<span class="tabular-nums">{actualPct}%</span>
-										{#if behind}
-											<span class="text-destructive">
-												{t('timeline.behind_plan', { planned: plannedPct })}
-											</span>
-										{/if}
-									</Inline>
-								</Stack>
-							</button>
-
-							<div class="relative h-7">
-								{#each monthTicks as tick (tick.label + tick.pct)}
-									<div
-										class="pointer-events-none absolute inset-y-0 w-px bg-border"
-										style={`left: ${tick.pct}%`}
-									></div>
-								{/each}
-								<div
-									class="pointer-events-none absolute inset-y-0 w-px border-l border-dashed border-muted-foreground"
-									style={`left: ${todayPct}%`}
-								></div>
-								<div
-									class="pointer-events-none absolute inset-y-0 z-10 w-0.5 bg-primary"
-									style={`left: ${scrubPct}%`}
-								></div>
-
-								{#if pos}
-									{#if task.is_milestone}
-										<button
-											type="button"
-											aria-label={barLabel}
-											title={`${task.title} (${task.schedule_range?.from ?? ''})`}
-											class="absolute top-1/2 z-20 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-inset border-2 transition-transform hover:scale-125 {task.status ===
-											'done'
-												? 'border-tone-success-border bg-tone-success-text'
-												: 'border-tone-warning-border bg-tone-warning-text'}"
-											style={`left: ${pos.left}%`}
-											onclick={() => open_record('tasks', task.id)}
-										></button>
-									{:else}
-										<button
-											type="button"
-											aria-label={barLabel}
-											class="absolute top-1 h-5 rounded-control border text-left transition-colors hover:brightness-95 {barTone(
-												task.status
-											)}"
-											style={`left: ${pos.left}%; width: ${pos.width}%`}
-											onclick={() => open_record('tasks', task.id)}
-										>
+										<Stack gap="xs">
+											<Inline gap="xs" align="center">
+												{#if task.is_milestone}
+													<Icon
+														name="lucide:diamond"
+														class="size-3 shrink-0 text-tone-warning-text"
+													/>
+												{/if}
+												<span class="truncate text-label {isSummary ? 'font-medium' : ''}">
+													{#if task.task_code}{`${task.task_code} · `}{/if}{task.title}
+												</span>
+												{#if isSummary}
+													<Badge variant="outline" class="shrink-0 whitespace-nowrap">
+														{row.childCount}
+													</Badge>
+												{/if}
+											</Inline>
 											<div
-												class="h-full rounded-inset {fillTone(task.status)}"
-												style={`width: ${actualPct}%`}
-											></div>
-										</button>
+												class="flex flex-wrap items-center gap-x-1.5 text-micro text-muted-foreground"
+											>
+												{#if task.is_milestone}
+													<span class="whitespace-nowrap text-tone-warning-text">
+														{t('timeline.milestone_badge')}
+													</span>
+													<span aria-hidden="true">·</span>
+												{/if}
+												{#if task.trade_specialty}
+													<span class="whitespace-nowrap">
+														{enum_text(task.trade_specialty, {
+															t: rawT,
+															model: 'tasks',
+															field: 'trade_specialty'
+														})}
+													</span>
+													<span aria-hidden="true">·</span>
+												{/if}
+												<span class="whitespace-nowrap tabular-nums">{actualPct}%</span>
+												{#if behind}
+													<span class="whitespace-nowrap text-destructive">
+														{t('timeline.behind_plan', { planned: plannedPct })}
+													</span>
+												{/if}
+											</div>
+										</Stack>
+									</button>
+								</div>
+
+								<div class="relative h-7">
+									{#each monthTicks as tick (tick.label + tick.pct)}
+										<div
+											class="pointer-events-none absolute inset-y-0 w-px bg-border"
+											style={`left: ${tick.pct}%`}
+										></div>
+									{/each}
+									<div
+										class="pointer-events-none absolute inset-y-0 w-px border-l border-dashed border-muted-foreground"
+										style={`left: ${todayPct}%`}
+									></div>
+									<div
+										class="pointer-events-none absolute inset-y-0 z-10 w-0.5 bg-primary"
+										style={`left: ${scrubPct}%`}
+									></div>
+
+									{#if pos}
+										{#if task.is_milestone}
+											<button
+												type="button"
+												aria-label={barLabel}
+												title={`${task.title} (${task.schedule_range?.from ?? ''})`}
+												class="absolute top-1/2 z-20 size-3.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-inset border-2 transition-transform hover:scale-125 {task.status ===
+												'done'
+													? 'border-tone-success-border bg-tone-success-text'
+													: 'border-tone-warning-border bg-tone-warning-text'}"
+												style={`left: ${pos.left}%`}
+												onclick={() => open_record('tasks', task.id)}
+											></button>
+										{:else if isSummary}
+											<button
+												type="button"
+												aria-label={barLabel}
+												class="absolute top-2 h-3 rounded-sm border border-primary/50 bg-primary/15 text-left transition-colors hover:brightness-95"
+												style={`left: ${pos.left}%; width: ${pos.width}%`}
+												onclick={() => open_record('tasks', task.id)}
+											>
+												<div
+													class="h-full rounded-sm bg-primary/70"
+													style={`width: ${actualPct}%`}
+												></div>
+											</button>
+										{:else}
+											<button
+												type="button"
+												aria-label={barLabel}
+												class="absolute top-1 h-5 rounded-control border text-left transition-colors hover:brightness-95 {barTone(
+													task.status
+												)}"
+												style={`left: ${pos.left}%; width: ${pos.width}%`}
+												onclick={() => open_record('tasks', task.id)}
+											>
+												<div
+													class="h-full rounded-inset {fillTone(task.status)}"
+													style={`width: ${actualPct}%`}
+												></div>
+											</button>
+										{/if}
+									{:else}
+										<span class="text-micro text-muted-foreground">{t('timeline.unscheduled')}</span
+										>
 									{/if}
-								{:else}
-									<span class="text-micro text-muted-foreground">{t('timeline.unscheduled')}</span>
-								{/if}
-							</div>
-						</Grid>
-					{/each}
-				</Stack>
+								</div>
+							</Grid>
+						{/each}
+					</Stack>
+				</div>
 			</Scroll>
 		</Surface>
 	{/if}

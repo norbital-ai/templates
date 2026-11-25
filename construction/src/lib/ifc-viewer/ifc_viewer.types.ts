@@ -73,10 +73,139 @@ export interface ViewerVector3 {
 	x: number;
 	y: number;
 	z: number;
+	set(x: number, y: number, z: number): this;
+	sub(v: ViewerVector3): this;
+	length(): number;
 }
 
 export interface ViewerVector3Constructor {
 	new (x?: number, y?: number, z?: number): ViewerVector3;
+}
+
+export interface ViewerMatrix4 {
+	fromArray(array: readonly number[]): this;
+}
+
+export interface ViewerMatrix4Constructor {
+	new (): ViewerMatrix4;
+}
+
+export interface ViewerBufferAttribute {
+	readonly count: number;
+}
+
+export interface ViewerBufferAttributeConstructor {
+	new (array: Float32Array | Uint32Array, itemSize: number): ViewerBufferAttribute;
+}
+
+export interface ViewerBufferGeometry {
+	setAttribute(name: string, attribute: ViewerBufferAttribute): this;
+	setIndex(index: ViewerBufferAttribute): this;
+	applyMatrix4(matrix: ViewerMatrix4): this;
+	computeVertexNormals(): void;
+	dispose(): void;
+}
+
+export interface ViewerBufferGeometryConstructor {
+	new (): ViewerBufferGeometry;
+}
+
+export interface ViewerEdgesGeometry {
+	dispose(): void;
+}
+
+export interface ViewerEdgesGeometryConstructor {
+	new (geometry: ViewerBufferGeometry, thresholdAngle?: number): ViewerEdgesGeometry;
+}
+
+export interface ViewerMaterial {
+	dispose(): void;
+}
+
+export interface ViewerMeshStandardMaterialConstructor {
+	new (params: {
+		color: ViewerColor;
+		transparent?: boolean;
+		opacity?: number;
+		side?: number;
+		roughness?: number;
+		metalness?: number;
+	}): ViewerMaterial;
+}
+
+export interface ViewerLineBasicMaterialConstructor {
+	new (params: { color: number; transparent?: boolean; opacity?: number }): ViewerMaterial;
+}
+
+export interface ViewerObject3D {
+	readonly position: ViewerVector3;
+	add(object: ViewerObject3D): this;
+	remove(object: ViewerObject3D): this;
+	lookAt(x: number, y: number, z: number): void;
+}
+
+export interface ViewerGroupConstructor {
+	new (): ViewerObject3D;
+}
+
+export interface ViewerMeshConstructor {
+	new (geometry: ViewerBufferGeometry, material: ViewerMaterial): ViewerObject3D;
+}
+
+export interface ViewerLineSegmentsConstructor {
+	new (geometry: ViewerEdgesGeometry, material: ViewerMaterial): ViewerObject3D;
+}
+
+export interface ViewerScene extends ViewerObject3D {
+	background: ViewerColor | null;
+}
+
+export interface ViewerSceneConstructor {
+	new (): ViewerScene;
+}
+
+export interface ViewerPerspectiveCamera extends ViewerObject3D {
+	near: number;
+	far: number;
+	updateProjectionMatrix(): void;
+}
+
+export interface ViewerPerspectiveCameraConstructor {
+	new (fov?: number, aspect?: number, near?: number, far?: number): ViewerPerspectiveCamera;
+}
+
+export interface ViewerLightConstructor {
+	new (skyOrColor: number, groundOrIntensity?: number, intensity?: number): ViewerObject3D;
+}
+
+export interface ViewerBox3 {
+	readonly min: ViewerVector3;
+	readonly max: ViewerVector3;
+	isEmpty(): boolean;
+	setFromObject(object: ViewerObject3D): this;
+	getCenter(target: ViewerVector3): ViewerVector3;
+	getSize(target: ViewerVector3): ViewerVector3;
+}
+
+export interface ViewerBox3Constructor {
+	new (): ViewerBox3;
+}
+
+export interface ViewerWebGLRenderer {
+	readonly domElement: HTMLCanvasElement;
+	setSize(width: number, height: number, updateStyle?: boolean): void;
+	setPixelRatio(ratio: number): void;
+	render(scene: ViewerScene, camera: ViewerPerspectiveCamera): void;
+	dispose(): void;
+}
+
+export interface ViewerWebGLRendererConstructor {
+	new (params: {
+		antialias?: boolean;
+		preserveDrawingBuffer?: boolean;
+		alpha?: boolean;
+		powerPreference?: 'default' | 'high-performance' | 'low-power';
+	}): ViewerWebGLRenderer;
 }
 
 export interface ViewerPlane {
@@ -89,10 +218,11 @@ export interface ViewerPlaneConstructor {
 
 export interface ViewerColor {
 	setStyle(style: string): this;
+	setRGB(r: number, g: number, b: number): this;
 }
 
 export interface ViewerColorConstructor {
-	new (style?: string): ViewerColor;
+	new (style?: string | number): ViewerColor;
 }
 
 interface ViewerSceneObject {
@@ -275,9 +405,57 @@ export interface ViewerThreeModule {
 	Color: ViewerColorConstructor;
 	Vector3: ViewerVector3Constructor;
 	Plane: ViewerPlaneConstructor;
+	Matrix4: ViewerMatrix4Constructor;
+	BufferAttribute: ViewerBufferAttributeConstructor;
+	BufferGeometry: ViewerBufferGeometryConstructor;
+	EdgesGeometry: ViewerEdgesGeometryConstructor;
+	MeshStandardMaterial: ViewerMeshStandardMaterialConstructor;
+	LineBasicMaterial: ViewerLineBasicMaterialConstructor;
+	Group: ViewerGroupConstructor;
+	Mesh: ViewerMeshConstructor;
+	LineSegments: ViewerLineSegmentsConstructor;
+	Scene: ViewerSceneConstructor;
+	PerspectiveCamera: ViewerPerspectiveCameraConstructor;
+	HemisphereLight: ViewerLightConstructor;
+	DirectionalLight: ViewerLightConstructor;
+	Box3: ViewerBox3Constructor;
+	WebGLRenderer: ViewerWebGLRendererConstructor;
+	DoubleSide: number;
 }
 
 export type ViewerLocateFileHandler = (path: string, prefix: string) => string;
+
+export interface WebIfcColor {
+	readonly x: number;
+	readonly y: number;
+	readonly z: number;
+	readonly w: number;
+}
+
+export interface WebIfcPlacedGeometry {
+	readonly color: WebIfcColor;
+	readonly geometryExpressID: number;
+	readonly flatTransformation: readonly number[];
+}
+
+export interface WebIfcVector<T> {
+	size(): number;
+	get(index: number): T;
+}
+
+export interface WebIfcFlatMesh {
+	readonly geometries: WebIfcVector<WebIfcPlacedGeometry>;
+	readonly expressID: number;
+	delete(): void;
+}
+
+export interface WebIfcGeometry {
+	GetVertexData(): number;
+	GetVertexDataSize(): number;
+	GetIndexData(): number;
+	GetIndexDataSize(): number;
+	delete(): void;
+}
 
 export interface ViewerIfcApi {
 	Init(
@@ -285,6 +463,15 @@ export interface ViewerIfcApi {
 		forceSingleThread?: boolean
 		// repository-health:allow EFF2 -- web-ifc requires its patched initialization hook to preserve the vendor's native Promise contract.
 	): Promise<void>;
+	OpenModel(
+		data: Uint8Array,
+		settings?: { COORDINATE_TO_ORIGIN?: boolean; USE_FAST_BOOLS?: boolean }
+	): number;
+	CloseModel(modelID: number): void;
+	GetFlatMesh(modelID: number, expressID: number): WebIfcFlatMesh;
+	GetGeometry(modelID: number, geometryExpressID: number): WebIfcGeometry;
+	GetVertexArray(ptr: number, size: number): Float32Array;
+	GetIndexArray(ptr: number, size: number): Uint32Array;
 }
 
 export interface ViewerIfcApiConstructor {

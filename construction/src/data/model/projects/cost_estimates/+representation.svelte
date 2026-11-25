@@ -21,7 +21,11 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect, Option, Schema } from 'effect';
 	import { toNumber } from '../../../../lib/commercial.js';
-	import { extractBimFromFile, extractBimFromUrl } from '../../../../lib/ifc-viewer/ifc_takeoff.js';
+	import {
+		extractBimFromFile,
+		extractBimFromUrl,
+		type BimTakeoffProgress
+	} from '../../../../lib/ifc-viewer/ifc_takeoff.js';
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'cost_estimates'>; ctx: PageContext } = $props();
@@ -70,6 +74,20 @@
 		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
 	});
 
+	function formatProgress(progress: BimTakeoffProgress): string {
+		if (progress.phase === 'snapshots') {
+			return t('bim_costing.snapshots_progress', {
+				done: progress.done,
+				total: progress.total,
+				captured: progress.captured
+			});
+		}
+		return t('bim_costing.streaming_progress', {
+			percent: progress.percent,
+			assets: progress.rawAssets
+		});
+	}
+
 	function triggerReanalyze(): void {
 		if (!record || record.bim_file_id == null || streaming || analyze.pending) return;
 		const bimFileId = record.bim_file_id;
@@ -79,10 +97,7 @@
 			streaming = true;
 			fork(
 				extractBimFromUrl(ctx.file_url(linkedFileRef), (progress) => {
-					streamNotice = t('bim_costing.streaming_progress', {
-						percent: progress.percent,
-						assets: progress.rawAssets
-					});
+					streamNotice = formatProgress(progress);
 				}).pipe(
 					Effect.match({
 						onFailure: (error) => {
@@ -95,6 +110,7 @@
 							streamNotice = t('bim_costing.streaming_done', {
 								assets: res.extracted.total_asset_count,
 								archetypes: res.extracted.archetypes.length,
+								visuals: res.visualCapturedCount,
 								ms: res.durationMs
 							});
 							analyze.run(
@@ -139,10 +155,7 @@
 		streaming = true;
 		fork(
 			extractBimFromFile(file, (progress) => {
-				streamNotice = t('bim_costing.streaming_progress', {
-					percent: progress.percent,
-					assets: progress.rawAssets
-				});
+				streamNotice = formatProgress(progress);
 			}).pipe(
 				Effect.match({
 					onFailure: (error) => {
@@ -155,6 +168,7 @@
 						streamNotice = t('bim_costing.streaming_done', {
 							assets: res.extracted.total_asset_count,
 							archetypes: res.extracted.archetypes.length,
+							visuals: res.visualCapturedCount,
 							ms: res.durationMs
 						});
 						analyze.run(

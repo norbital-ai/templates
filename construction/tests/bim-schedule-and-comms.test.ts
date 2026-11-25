@@ -6,8 +6,11 @@ import type { Ai } from '@norbital-ai/bolt/engine';
 import {
 	buildBimCostEstimate,
 	createIfcStepStreamParser,
+	extractFromParsedModel,
 	parseIfcStep,
-	rankCandidateMatrixRules
+	rankCandidateMatrixRules,
+	UNKNOWN_CATALOG_CHOICE,
+	type ArchetypeDecision
 } from '../src/lib/bim-pipeline.js';
 import { parseMsProjectXml, parsePrimaveraXer } from '../src/lib/schedule-parsers.js';
 import { fixtureId, recordOf, rowsOf, workspace as acquireWorkspace } from './test-runtime.js';
@@ -67,6 +70,14 @@ const routeSystem1: Ai['Service']['ask'] = (request) =>
 				}
 				if (question.type === 'choice') {
 					const keys = Object.keys(question.criteria);
+					if (keys.includes(UNKNOWN_CATALOG_CHOICE)) {
+						const instr = String(question.instructions ?? '').toLowerCase();
+						const choice =
+							instr.includes('panelboard') && keys.includes('ELEC-PANEL')
+								? 'ELEC-PANEL'
+								: UNKNOWN_CATALOG_CHOICE;
+						return [id, { type: 'choice' as const, choice, confidence: 0.95, probabilities: {} }];
+					}
 					const choice =
 						id === 'relevance'
 							? 'useful'
@@ -80,16 +91,52 @@ const routeSystem1: Ai['Service']['ask'] = (request) =>
 		)
 	}));
 
-it('parses IFC STEP assets, enforces currency-matched Costing Matrix classification, and parses P6/MSP schedules', () => {
+it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on System 1 decisions, and parses P6/MSP schedules', () => {
 	const parsed = parseIfcStep(SAMPLE_IFC);
 	expect(parsed.schema).toBe('IFC2X3');
 	expect(parsed.storeys).toEqual(['Level 1', 'Roof']);
 	expect(parsed.assets.length).toBe(5);
 
+	const extracted = extractFromParsedModel(parsed);
+	const aiDecisions: Record<string, ArchetypeDecision> = {};
+	for (const arch of extracted.archetypes) {
+		if (arch.ifc_class === 'IFCFLOWCONTROLLER') {
+			aiDecisions[arch.archetype_id] = {
+				matrix_code: 'ELEC-PANEL',
+				method: 'ai_sys1',
+				confidence: 0.96,
+				reason: 'System 1 matched panelboard'
+			};
+		} else if (arch.family.toLowerCase().includes('receptacle')) {
+			aiDecisions[arch.archetype_id] = {
+				matrix_code: 'ELEC-RECEP',
+				method: 'ai_sys1',
+				confidence: 0.93,
+				reason: 'System 1 matched receptacle'
+			};
+		} else if (arch.ifc_class === 'IFCROOF') {
+			aiDecisions[arch.archetype_id] = {
+				matrix_code: 'ROOF-SEAM',
+				method: 'ai_sys1',
+				confidence: 0.94,
+				reason: 'System 1 matched metal standing seam roof'
+			};
+		} else {
+			// Explicitly test that wrong-currency code is rejected by currency enforcement
+			aiDecisions[arch.archetype_id] = {
+				matrix_code: 'ELEC-RECEP-USD',
+				method: 'ai_sys1',
+				confidence: 0.91,
+				reason: 'Wrong-currency code must stay unmatched'
+			};
+		}
+	}
+
 	const estimate = buildBimCostEstimate({
 		parsed,
 		currency: 'SGD',
 		contingency_pct: '5',
+		ai_decisions: aiDecisions,
 		matrix: [
 			{
 				code: 'ELEC-PANEL',
@@ -886,6 +933,7 @@ it.effect(
 );
 
 it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk boundaries, skipping geometry and collapsing 10k+ elements into compact archetypes', () => {
+	// 18-storey HDB + playground + 2-layer double sliding door + strict deduplication test
 	const lines: string[] = [
 		'ISO-10303-21;',
 		'HEADER;',
@@ -900,8 +948,13 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 		"#10= IFCMATERIAL('Concrete C40');",
 		"#11= IFCMATERIAL('EPDM Pour-in-Place Rubber');",
 		"#12= IFCMATERIAL('Galvanised Steel 304');",
+		"#13= IFCMATERIAL('Tempered Glass');",
+		"#14= IFCMATERIAL('Anodised Aluminium');",
+		'#15= IFCMATERIALLAYER(#13,12.,$,$,$,$,$);',
+		'#16= IFCMATERIALLAYER(#14,50.,$,$,$,$,$);',
+		"#17= IFCMATERIALLAYERSET((#15,#16),'2-Layer Sliding Door Assembly',$);",
 		"#20= IFCWALLTYPE('0WT1',$,'Basic Wall: RC Shear Wall 200mm G40',$,$,(#30),$,$,$,.SHEAR.);",
-		"#21= IFCDOORTYPE('0DT1',$,'Household Shelter Blast-Resistant Door',$,$,(#31),$,$,$,.DOOR.);",
+		"#21= IFCDOORTYPE('0DT1',$,'Balcony Double Sliding Door',$,$,(#31),$,$,$,.DOOR.,.DOUBLE_DOOR_SLIDING.);",
 		"#30= IFCPROPERTYSET('0PS1',$,'Pset_WallCommon',$,(#32,#33));",
 		"#31= IFCPROPERTYSET('0PS2',$,'Pset_DoorCommon',$,(#34));",
 		"#32= IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.T.),$);",
@@ -947,7 +1000,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 	const doorIds: number[] = [];
 	const sprinklerIds: number[] = [];
 
-	// 18 storeys × (400 RC walls + 80 shelter doors + 80 sprinklers) = 10,080 elements
+	// 18 storeys × (400 RC walls + 80 individually named balcony sliding doors + 80 sprinklers) = 10,080 elements
 	for (const sid of storeyIds) {
 		const floorEls: number[] = [];
 		for (let i = 0; i < 400; i++) {
@@ -962,8 +1015,9 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 			const eid = nextId++;
 			doorIds.push(eid);
 			floorEls.push(eid);
+			// Distinct per-instance names without colons (`Door-L01-001` .. `Door-L18-1440`) sharing IFCDOORTYPE #21 MUST dedupe to 1 archetype!
 			lines.push(
-				`#${eid}= IFCDOOR('D${eid}',$,'HS-Blast-Door:${eid}',$,'Blast Door',$,$,'${eid}');`
+				`#${eid}= IFCDOOR('D${eid}',$,'Door-L${sid}-${i + 1}',$,'Sliding Door',$,$,'${eid}');`
 			);
 		}
 		for (let i = 0; i < 80; i++) {
@@ -971,7 +1025,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 			sprinklerIds.push(eid);
 			floorEls.push(eid);
 			lines.push(
-				`#${eid}= IFCFIRESUPPRESSIONTERMINAL('S${eid}',$,'Concealed Pendent Head:${eid}',$,$,$,$,'${eid}',.SPRINKLER.);`
+				`#${eid}= IFCFIRESUPPRESSIONTERMINAL('S${eid}',$,'Concealed Pendent Head-${i + 1}',$,$,$,$,'${eid}',.SPRINKLER.);`
 			);
 		}
 		const relId = nextId++;
@@ -1002,11 +1056,12 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 		`#${liftRel}= IFCRELCONTAINEDINSPATIALSTRUCTURE('RL',$,$,$,(#${lift1},#${lift2},#${coffeeId}),#${roofId});`
 	);
 
-	// Type, material, and quantity relations
+	// Type, material layer set, and quantity relations
 	lines.push(
 		`#${nextId++}= IFCRELDEFINESBYTYPE('RTW',$,$,$,(${wallIds.map((id) => `#${id}`).join(',')}),#20);`,
 		`#${nextId++}= IFCRELDEFINESBYTYPE('RTD',$,$,$,(${doorIds.map((id) => `#${id}`).join(',')}),#21);`,
 		`#${nextId++}= IFCRELASSOCIATESMATERIAL('RMW',$,$,$,(#20),#10);`,
+		`#${nextId++}= IFCRELASSOCIATESMATERIAL('RMD',$,$,$,(#21),#17);`,
 		`#${nextId++}= IFCRELASSOCIATESMATERIAL('RME',$,$,$,(#${epdmId}),#11);`,
 		`#${nextId++}= IFCRELASSOCIATESMATERIAL('RMS',$,$,$,(#${slideId}),#12);`,
 		`#${nextId++}= IFCRELDEFINESBYPROPERTIES('RQW',$,$,$,(${wallIds.map((id) => `#${id}`).join(',')}),#${wallQtoId});`,
@@ -1031,7 +1086,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 	expect(extracted.schema).toBe('IFC4');
 	expect(extracted.total_asset_count).toBe(10_085);
 	expect(extracted.storeys).toHaveLength(19); // 18 levels + Roof
-	// Collapsed 10,085 elements into just 7 unique archetypes!
+	// Collapsed 10,085 elements (including 1,440 individually-named sliding doors & 1,440 numbered sprinklers) into 7 unique archetypes!
 	expect(extracted.archetypes).toHaveLength(7);
 	// Skipped > 75% geometry statements cleanly
 	expect(stats.statements_scanned).toBeGreaterThan(50_000);
@@ -1039,7 +1094,14 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 	// Fast even for 50k+ STEP statements
 	expect(elapsedMs).toBeLessThan(3_000);
 
-	// Verify rich Type + Material + Property extraction on RC Shear Wall & Playground EPDM
+	// Verify rich Type + OperationType + 2-Layer MaterialLayerSet + representative_express_id extraction
+	const doorArch = extracted.archetypes.find((a) => a.ifc_class === 'IFCDOOR');
+	expect(doorArch?.total_count).toBe(1_440);
+	expect(doorArch?.operation_type).toBe('DOUBLE_DOOR_SLIDING');
+	expect(doorArch?.layer_count).toBe(2);
+	expect(doorArch?.material_layers).toEqual(['Tempered Glass (12mm)', 'Anodised Aluminium (50mm)']);
+	expect(doorArch?.representative_express_id).toBe(doorIds[0]);
+
 	const wallArch = extracted.archetypes.find((a) => a.ifc_class === 'IFCWALLSTANDARDCASE');
 	expect(wallArch?.type_name).toBe('Basic Wall: RC Shear Wall 200mm G40');
 	expect(wallArch?.predefined_type).toBe('SHEAR');
@@ -1111,84 +1173,76 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 });
 
 it.effect(
-	'intelligently classifies pre-extracted large BIM archetypes via Tier 1 rules + batched System 1 & System 2 AI with exact BigDecimal pricing',
+	'routes ALL deduplicated BIM archetypes through Jev System 1 with isolated multi-angle asset images (no Tier 1 bypass) and unknown_unseen_catalog handling',
 	() =>
 		Effect.gen(function* () {
-			const bimSys1: Ai['Service']['ask'] = (request) =>
-				Effect.sync(() => ({
-					cost_usd: 0,
-					provider: 'test',
-					answers: Object.fromEntries(
-						Object.entries(request.questions).map(([id, question]) => {
-							if (question.type !== 'choice') {
-								return [id, { type: 'noul' as const, noul: 0 }];
-							}
-							const text = String(question.instructions ?? '').toLowerCase();
-							// Confident System 1 hit for passenger lift (no shared keyword with matrix!)
-							if (text.includes('kone monospace')) {
-								return [
-									id,
-									{
-										type: 'choice' as const,
-										choice: 'MEP-LIFT-PASS',
-										confidence: 0.93,
-										probabilities: {}
-									}
-								];
-							}
-							// Confident System 1 hit for playground safety cushion
-							if (text.includes('epdm')) {
-								return [
-									id,
-									{
-										type: 'choice' as const,
-										choice: 'CIV-PLAY-EPDM',
-										confidence: 0.88,
-										probabilities: {}
-									}
-								];
-							}
-							// Borderline low confidence on blast shelter door -> triggers Tier 3 System 2 QS review
-							if (text.includes('blast')) {
-								return [
-									id,
-									{
-										type: 'choice' as const,
-										choice: 'ARC-DOOR-HS',
-										confidence: 0.52,
-										probabilities: {}
-									}
-								];
-							}
-							// Confident none for loose countertop appliance -> stays unmatched without System 2 call
-							return [
-								id,
-								{
-									type: 'choice' as const,
-									choice: 'none',
-									confidence: 0.94,
-									probabilities: {}
-								}
-							];
-						})
-					)
-				}));
+			const TINY_JPEG_DATA_URL =
+				'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==';
 
-			const sys2BimTurn = {
-				content: JSON.stringify({
-					classifications: [
-						{
-							archetype_id: 'A3',
-							matrix_code: 'ARC-DOOR-HS',
-							confidence: 0.91,
-							reason: '2HR fire-rated blast door maps to SCDF household shelter door rate.'
+			const recordedCalls: Array<{
+				readonly ifcClass: string;
+				readonly imageCount: number;
+				readonly angles: readonly string[];
+				readonly firstCriterion: string;
+			}> = [];
+
+			const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
+				value !== null && typeof value === 'object' && !Array.isArray(value)
+					? Object.fromEntries(Object.entries(value))
+					: {};
+
+			const bimSys1: Ai['Service']['ask'] = (request) =>
+				Effect.sync(() => {
+					const stateObj = asRecord(request.state);
+					const assetObj = asRecord(stateObj['asset']);
+					const viewsArr = Array.isArray(stateObj['asset_views']) ? stateObj['asset_views'] : [];
+					const angles: string[] = [];
+					let imageCount = 0;
+					for (const item of viewsArr) {
+						const viewObj = asRecord(item);
+						if (typeof viewObj['angle'] === 'string') angles.push(viewObj['angle']);
+						const imgObj = asRecord(viewObj['image']);
+						if (imgObj['type'] === 'image_url') {
+							imageCount++;
 						}
-					]
-				}),
-				tool_calls: [],
-				finish: 'stop' as const,
-				usage: { input: 0, output: 0 }
-			};
+					}
+					const classifyQ = request.questions['classify'];
+					const firstCriterion =
+						classifyQ?.type === 'choice' ? (Object.keys(classifyQ.criteria)[0] ?? '') : '';
+					const ifcClass = String(assetObj['ifc_class'] ?? '');
+					const opType = String(assetObj['operation_type'] ?? '');
+					const family = String(assetObj['family'] ?? '').toLowerCase();
+					recordedCalls.push({ ifcClass, imageCount, angles, firstCriterion });
+
+					let choice: string = UNKNOWN_CATALOG_CHOICE;
+					let confidence = 0.94;
+					if (ifcClass === 'IFCWALLSTANDARDCASE') {
+						choice = 'STR-RC-WALL';
+						confidence = 0.95;
+					} else if (ifcClass === 'IFCTRANSPORTELEMENT') {
+						choice = 'MEP-LIFT-PASS';
+						confidence = 0.93;
+					} else if (ifcClass === 'IFCDOOR' && opType === 'DOUBLE_DOOR_SLIDING') {
+						choice = 'ARC-DOOR-SLIDE';
+						confidence = 0.92;
+					} else if (ifcClass === 'IFCGEOGRAPHICELEMENT' || family.includes('epdm')) {
+						choice = 'CIV-PLAY-EPDM';
+						confidence = 0.89;
+					}
+
+					return {
+						cost_usd: 0,
+						provider: 'test',
+						answers: {
+							classify: {
+								type: 'choice' as const,
+								choice,
+								confidence,
+								probabilities: {}
+							}
+						}
+					};
+				});
 
 			const t = yield* acquireWorkspace({
 				root,
@@ -1196,9 +1250,7 @@ it.effect(
 				fakes: {
 					ai: {
 						sys_1: bimSys1,
-						cassette: {
-							default: [sys2BimTurn]
-						}
+						cassette: {}
 					}
 				}
 			});
@@ -1261,13 +1313,13 @@ it.effect(
 						active: true
 					},
 					{
-						code: 'ARC-DOOR-HS',
-						name: 'SCDF Household Shelter Door',
+						code: 'ARC-DOOR-SLIDE',
+						name: '2-Layer Double Sliding Balcony Door',
 						category: 'bim_asset',
 						discipline: 'architecture',
 						trade_specialty: 'general',
 						ifc_classes: ['IFCDOOR'],
-						match_keywords: ['household shelter'],
+						match_keywords: ['sliding door'],
 						unit: 'ea',
 						quantity_basis: 'count',
 						currency: 'SGD',
@@ -1280,14 +1332,16 @@ it.effect(
 			if (setup.kind !== 'committed') throw new Error('Setup failed');
 			const projectId = recordOf(setup.records, 'projects').id;
 
-			// Submit browser-streamed compact ExtractedBimModel (simulating a 250 MiB 18-storey HDB IFC)
+			const views3 = [TINY_JPEG_DATA_URL, TINY_JPEG_DATA_URL, TINY_JPEG_DATA_URL];
+
+			// Submit browser-streamed deduplicated archetypes WITH isolated multi-angle visual renders
 			const runRes = yield* runAutomation(
 				t,
 				admin.run(
 					'analyze_bim_file',
 					{
 						project_id: projectId,
-						title: 'HDB 18-Storey Federated BIM — Cost Estimate',
+						title: 'HDB 18-Storey Federated BIM — Visual System 1 Cost Estimate',
 						contingency_pct: 5,
 						extracted_model: {
 							schema: 'IFC4',
@@ -1297,93 +1351,123 @@ it.effect(
 							archetypes: [
 								{
 									archetype_id: 'A1',
+									representative_express_id: 101,
+									representative_part_ids: [],
 									ifc_class: 'IFCWALLSTANDARDCASE',
 									family: 'Basic Wall',
 									type_name: 'RC Shear Wall 200mm G40',
 									object_type: null,
 									predefined_type: 'SHEAR',
+									operation_type: null,
 									classification_code: null,
 									classification_name: null,
 									materials: ['Concrete C40'],
+									material_layers: ['Concrete C40 (200mm)'],
+									layer_count: 1,
 									properties: ['LoadBearing=true'],
 									sample_names: ['Basic Wall:RC-200'],
 									total_count: 100,
 									has_length: false,
 									has_area: true,
 									has_volume: false,
-									has_weight: false
+									has_weight: false,
+									visual_views: views3
 								},
 								{
 									archetype_id: 'A2',
+									representative_express_id: 201,
+									representative_part_ids: [],
 									ifc_class: 'IFCTRANSPORTELEMENT',
 									family: 'KONE MonoSpace 1000kg',
 									type_name: null,
 									object_type: 'MRL Car',
 									predefined_type: 'ELEVATOR',
+									operation_type: null,
 									classification_code: null,
 									classification_name: null,
 									materials: [],
+									material_layers: [],
+									layer_count: 0,
 									properties: [],
 									sample_names: ['KONE MonoSpace 1000kg:L1'],
 									total_count: 2,
 									has_length: false,
 									has_area: false,
 									has_volume: false,
-									has_weight: false
+									has_weight: false,
+									visual_views: views3
 								},
 								{
 									archetype_id: 'A3',
+									representative_express_id: 301,
+									representative_part_ids: [],
 									ifc_class: 'IFCDOOR',
-									family: 'HS-Blast-Door',
-									type_name: 'Blast-Resistant 2HR Door',
+									family: 'Generic Door',
+									type_name: 'D-09',
 									object_type: null,
 									predefined_type: 'DOOR',
+									operation_type: 'DOUBLE_DOOR_SLIDING',
 									classification_code: null,
 									classification_name: null,
-									materials: ['Steel'],
-									properties: ['FireRating=2HR'],
-									sample_names: ['HS-Blast-Door:01'],
+									materials: ['Tempered Glass', 'Anodised Aluminium'],
+									material_layers: ['Tempered Glass (12mm)', 'Anodised Aluminium (50mm)'],
+									layer_count: 2,
+									properties: [],
+									sample_names: ['Door-L01-01'],
 									total_count: 1,
 									has_length: false,
 									has_area: false,
 									has_volume: false,
-									has_weight: false
+									has_weight: false,
+									visual_views: views3
 								},
 								{
 									archetype_id: 'A4',
+									representative_express_id: 401,
+									representative_part_ids: [],
 									ifc_class: 'IFCGEOGRAPHICELEMENT',
 									family: 'EPDM Pour-in-Place Cushion',
 									type_name: null,
 									object_type: 'Outdoor Play Mat',
 									predefined_type: null,
+									operation_type: null,
 									classification_code: null,
 									classification_name: null,
 									materials: ['EPDM Rubber'],
+									material_layers: [],
+									layer_count: 0,
 									properties: [],
 									sample_names: ['EPDM Pour-in-Place Cushion:ZoneA'],
 									total_count: 1,
 									has_length: false,
 									has_area: true,
 									has_volume: false,
-									has_weight: false
+									has_weight: false,
+									visual_views: views3
 								},
 								{
 									archetype_id: 'A5',
+									representative_express_id: 501,
+									representative_part_ids: [],
 									ifc_class: 'IFCELECTRICAPPLIANCE',
-									family: 'Portable Coffee Machine',
+									family: 'Bespoke Kinetic Sculpture',
 									type_name: null,
-									object_type: 'Countertop',
+									object_type: 'Art Feature',
 									predefined_type: null,
+									operation_type: null,
 									classification_code: null,
 									classification_name: null,
 									materials: [],
+									material_layers: [],
+									layer_count: 0,
 									properties: [],
-									sample_names: ['Portable Coffee Machine:Pantry'],
+									sample_names: ['Sculpture-01'],
 									total_count: 1,
 									has_length: false,
 									has_area: false,
 									has_volume: false,
-									has_weight: false
+									has_weight: false,
+									visual_views: views3
 								}
 							],
 							buckets: [
@@ -1477,18 +1561,29 @@ it.effect(
 				})
 			)(runRes.output);
 
-			// 100 walls (rule) + 2 lifts (sys1) + 1 shelter door (sys2) + 1 EPDM (sys1) = 104 classified (4 via AI), 1 unmatched
+			// EXACTLY 5 System 1 calls for 5 deduplicated archetypes (ALL went through System 1 — even RC Shear Wall! Never 105!)
+			expect(recordedCalls).toHaveLength(5);
+			for (const call of recordedCalls) {
+				expect(call.imageCount).toBe(3);
+				expect(call.angles).toEqual([
+					'front_three_quarter',
+					'front_elevation',
+					'side_rear_three_quarter'
+				]);
+				expect(call.firstCriterion).toBe(UNKNOWN_CATALOG_CHOICE);
+			}
+
+			// 100 walls + 2 lifts + 1 double sliding door + 1 EPDM = 104 classified (ALL 104 via ai_sys1), 1 unknown_unseen_catalog
 			expect(out.bim_asset_count).toBe(105);
 			expect(out.archetype_count).toBe(5);
 			expect(out.classified_asset_count).toBe(104);
-			expect(out.ai_classified_count).toBe(4);
+			expect(out.ai_classified_count).toBe(104);
 			expect(out.unmatched_asset_count).toBe(1);
 			// 1000*200 (200,000) + 2*180,000 (360,000) + 1*2,500 (2,500) + 300*150 (45,000) = 607,500.00; +5% = 637,875.00
 			expect(out.bim_subtotal).toBe('607500.00');
 			expect(out.total_estimate).toBe('637875.00');
-			expect(t.fakes.ai?.remaining()).toEqual({ default: 0 });
 
-			// Verify persisted takeoff provenance (rule vs ai_sys1 vs ai_sys2 vs unmatched)
+			// Verify ALL matched lines carry `ai_sys1` visual provenance and the unseen item carries Unknown / Unseen Catalog reason
 			const savedEst = rowsOf(
 				yield* admin.query({
 					cost_estimates: {
@@ -1510,12 +1605,15 @@ it.effect(
 				)
 			)(savedEst?.['bim_assets']);
 
-			expect(lines.find((l) => l.matrix_code === 'STR-RC-WALL')?.match_method).toBe('rule');
+			expect(lines.find((l) => l.matrix_code === 'STR-RC-WALL')?.match_method).toBe('ai_sys1');
 			expect(lines.find((l) => l.matrix_code === 'MEP-LIFT-PASS')?.match_method).toBe('ai_sys1');
 			expect(lines.find((l) => l.matrix_code === 'CIV-PLAY-EPDM')?.match_method).toBe('ai_sys1');
-			const hsLine = lines.find((l) => l.matrix_code === 'ARC-DOOR-HS');
-			expect(hsLine?.match_method).toBe('ai_sys2');
-			expect(hsLine?.match_reason).toContain('SCDF household shelter');
-			expect(lines.find((l) => l.status === 'unmatched')?.matrix_code ?? null).toBeNull();
+			const doorLine = lines.find((l) => l.matrix_code === 'ARC-DOOR-SLIDE');
+			expect(doorLine?.match_method).toBe('ai_sys1');
+			expect(doorLine?.match_reason).toContain('3 angles');
+			const unknownLine = lines.find((l) => l.status === 'unmatched');
+			expect(unknownLine?.matrix_code ?? null).toBeNull();
+			expect(unknownLine?.match_method).toBe('ai_sys1');
+			expect(unknownLine?.match_reason).toContain('Unknown / Unseen Catalog');
 		}).pipe(Effect.scoped)
 );

@@ -13,7 +13,10 @@
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { extractBimFromUrl } from '../../../../lib/ifc-viewer/ifc_takeoff.js';
+	import {
+		extractBimFromUrl,
+		type BimTakeoffProgress
+	} from '../../../../lib/ifc-viewer/ifc_takeoff.js';
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'project_files'>; ctx: PageContext } = $props();
@@ -32,6 +35,20 @@
 	let streamError = $state<string | null>(null);
 	let streaming = $state(false);
 
+	function formatProgress(progress: BimTakeoffProgress): string {
+		if (progress.phase === 'snapshots') {
+			return ctx.t('bim_costing.snapshots_progress', {
+				done: progress.done,
+				total: progress.total,
+				captured: progress.captured
+			});
+		}
+		return ctx.t('bim_costing.streaming_progress', {
+			percent: progress.percent,
+			assets: progress.rawAssets
+		});
+	}
+
 	function triggerAnalyze(): void {
 		if (!record || record.file == null || streaming || analyze.pending) return;
 		streamError = null;
@@ -40,10 +57,7 @@
 		const url = ctx.file_url(record.file);
 		fork(
 			extractBimFromUrl(url, (progress) => {
-				streamNotice = ctx.t('bim_costing.streaming_progress', {
-					percent: progress.percent,
-					assets: progress.rawAssets
-				});
+				streamNotice = formatProgress(progress);
 			}).pipe(
 				Effect.match({
 					onFailure: (error) => {
@@ -56,6 +70,7 @@
 						streamNotice = ctx.t('bim_costing.streaming_done', {
 							assets: res.extracted.total_asset_count,
 							archetypes: res.extracted.archetypes.length,
+							visuals: res.visualCapturedCount,
 							ms: res.durationMs
 						});
 						analyze.run(

@@ -14,10 +14,10 @@ Generic contractor workspace (`norbital_construction`) for both main contractors
     - `cost_estimates/` (`owned: true`) — BIM classified asset takeoff (`bim_takeoff`) + editable non-BIM `additional_costs` (`priced_lines`) + `baselined_locked`
   - `project_messages/` — WhatsApp & email intake inbox routed into projects
   - `cost_matrix/` (Configuration) — quantifiable IFC asset & additional-cost rate matrix with `+matrix.sync.ts`
-  - `contacts/` (Configuration) — subcontractors by `trade_specialty`, suppliers, clients & consultants (WhatsApp phone & email)
+  - `contacts/` (Operations → Business Partners) — customers/clients, vendors/suppliers, subcontractors by `trade_specialty` & consultants (WhatsApp phone & email)
   - `communication_settings/` (Configuration) — personal WhatsApp/email intake & extraction rules
 - **Integration (1):** `src/integration/autodesk_acc/+integration.ts` (OAuth 2.0 to Autodesk Platform Services / ACC).
-- **Apps (2):** `operations` (`projects`, `messages`) and `configuration` (`connections`, `contacts`, `cost_matrix`).
+- **Apps (2):** `operations` (`projects`, `partners`, `messages`) and `configuration` (`cost_matrix`, `connections`).
 - **Automations (7):** `sync_messages`, `classify_messages`, `reclassify_messages`, `extract_project_updates`, `analyze_bim_file`, `generate_payment_claim`, `daily_project_digest`.
 - **Libraries:** `commercial.ts`, `bim-pipeline.ts`, `schedule-parsers.ts`, `trades.ts`, `zones.ts`, `ProjectTimeline.svelte`, `ifc-viewer/`, `conversations.ts`, `message-import.ts`, `MyConnections.svelte`.
 

@@ -7,13 +7,13 @@ export default messages({
 		'Live GPS fleet map, vehicle telemetry, dispatched routes, and operational alerts.',
 	'app.operations.page_live': 'Live Map',
 	'app.operations.live_description':
-		'Real-time GPS positions, vehicle speeds, active route trajectories, and ETAs.',
+		'Real-time GPS positions, vehicle telemetry, route trajectories, and live operational alerts.',
 	'app.operations.page_vehicles': 'Vehicles',
 	'app.operations.vehicles_description':
 		'Fleet register with transponder IDs, live speed, heading, destination, and fuel.',
-	'app.operations.page_routes': 'Routes',
+	'app.operations.page_routes': 'Dispatch & Routes',
 	'app.operations.routes_description':
-		'Dispatched trips tracking origins, destinations, waypoints, timing, and ETAs.',
+		'Day-to-day dispatch schedule and route register tracking vehicles, windows, and ETAs.',
 	'app.operations.page_alerts': 'Alerts',
 	'app.operations.alerts_description':
 		'Overspeed, geofence entry/exit, offline transponder, and route delay exceptions.',
@@ -33,9 +33,11 @@ export default messages({
 	'app.configuration.drivers_description':
 		'Manage fleet driver profiles, license classes, expiries, and assignments.',
 
-	// Live Map
+	// Live Map & Daily Dispatch
 	'app.live.map_title': 'Live Fleet Map',
-	'app.live.routes_title': 'Active Dispatch',
+	'app.live.alerts_title': 'Live Alerts',
+	'app.live.no_active_alerts': 'All clear — no open or acknowledged fleet alerts.',
+	'app.live.routes_title': 'Dispatch Schedule',
 	'app.live.no_active_routes': 'No planned or en-route trips right now.',
 	'app.live.routes_load_error': 'Unable to load active route overlays.',
 	'app.live.overlay_eta': 'ETA {minutes} min',
@@ -45,6 +47,23 @@ export default messages({
 	'app.live.action_check_health': 'Check transponder health',
 	'app.live.action_check_health_desc':
 		'Detect vehicles with stale GPS fixes (>30 min) and raise offline alerts.',
+	'dispatch.tab_daily': 'Day-to-Day Schedule',
+	'dispatch.tab_all': 'All Routes',
+	'dispatch.prev_day': 'Previous day',
+	'dispatch.next_day': 'Next day',
+	'dispatch.today': 'Today',
+	'dispatch.jump_today': 'Jump to today',
+	'dispatch.new_dispatch': 'New dispatch',
+	'dispatch.loading': 'Loading daily dispatch schedule…',
+	'dispatch.empty_day_title': 'No dispatches scheduled for this day',
+	'dispatch.empty_day_hint':
+		'No vehicle trips are scheduled on {day}. Switch days or create a new dispatch.',
+	'dispatch.stat_total': 'Dispatches',
+	'dispatch.stat_active': 'Dispatched / En route',
+	'dispatch.stat_planned': 'Planned',
+	'dispatch.stat_completed': 'Arrived / Completed',
+	'dispatch.stat_distance': 'Planned distance',
+	'dispatch.stops_count': '{count} stop(s)',
 
 	// Connections & Integrations
 	'connections.help':

@@ -57,7 +57,9 @@
 			case 'rate_missing':
 				return t('bim_costing.status_rate_missing');
 			default:
-				return t('bim_costing.status_unmatched');
+				return row.match_method === 'ai_sys1'
+					? t('bim_costing.status_unknown_catalog')
+					: t('bim_costing.status_unmatched');
 		}
 	}
 
@@ -94,33 +96,42 @@
 			<table class="w-full text-left text-sm">
 				<thead>
 					<tr class="border-b border-border text-micro text-muted-foreground">
-						<th class="py-1.5 pr-3">{t('bim_costing.col_matrix')}</th>
+						<th class="py-1.5 pr-3 whitespace-nowrap">{t('bim_costing.col_matrix')}</th>
 						<th class="py-1.5 pr-3">{t('bim_costing.col_classification')}</th>
-						<th class="py-1.5 pr-3">{t('bim_costing.col_storey')}</th>
-						<th class="py-1.5 pr-3 text-right">{t('bim_costing.col_elements')}</th>
-						<th class="py-1.5 pr-3 text-right">{t('bim_costing.col_measured')}</th>
-						<th class="py-1.5 pr-3 text-right">{t('bim_costing.col_waste')}</th>
-						<th class="py-1.5 pr-3 text-right">{t('bim_costing.col_rate')}</th>
-						<th class="py-1.5 pr-3 text-right">{t('bim_costing.col_amount')}</th>
-						<th class="py-1.5">{t('bim_costing.col_match')}</th>
+						<th class="py-1.5 pr-3 whitespace-nowrap">{t('bim_costing.col_storey')}</th>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_elements')}</th
+						>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_measured')}</th
+						>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_waste')}</th>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_rate')}</th>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_amount')}</th>
+						<th class="py-1.5 whitespace-nowrap">{t('bim_costing.col_match')}</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-border">
 					{#each rows as row, idx (row.asset_key)}
 						<tr>
-							<td class="py-1.5 pr-3 font-mono text-xs">{row.matrix_code ?? '—'}</td>
-							<td class="py-1.5 pr-3">
+							<td class="py-2 pr-3 font-mono text-xs whitespace-nowrap">{row.matrix_code ?? '—'}</td
+							>
+							<td class="py-2 pr-3 min-w-52">
 								<div class="font-medium">{row.classification}</div>
 								<div class="text-micro text-muted-foreground">{row.ifc_class}</div>
 								{#if row.match_reason}
 									<div class="text-micro text-muted-foreground">{row.match_reason}</div>
 								{/if}
 							</td>
-							<td class="py-1.5 pr-3">{row.storey}</td>
-							<td class="py-1.5 pr-3 text-right tabular-nums">{row.element_count}</td>
-							<td class="py-1.5 pr-3 text-right tabular-nums">{row.measured_qty} {row.unit}</td>
-							<td class="py-1.5 pr-3 text-right tabular-nums">{row.waste_factor_pct}%</td>
-							<td class="py-1.5 pr-3 text-right tabular-nums">
+							<td class="py-2 pr-3 whitespace-nowrap">{row.storey}</td>
+							<td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap"
+								>{row.element_count}</td
+							>
+							<td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap"
+								>{row.measured_qty} {row.unit}</td
+							>
+							<td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap"
+								>{row.waste_factor_pct}%</td
+							>
+							<td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap">
 								{#if view.mode === 'edit'}
 									<Input
 										aria-label={t('bim_costing.col_rate')}
@@ -132,9 +143,12 @@
 									{row.unit_rate}
 								{/if}
 							</td>
-							<td class="py-1.5 pr-3 text-right font-medium tabular-nums">{row.amount}</td>
-							<td class="py-1.5">
-								<Badge variant={statusTone(row)}>{statusLabel(row)}</Badge>
+							<td class="py-2 pr-3 text-right font-medium tabular-nums whitespace-nowrap"
+								>{row.amount}</td
+							>
+							<td class="py-2 whitespace-nowrap">
+								<Badge variant={statusTone(row)} class="whitespace-nowrap">{statusLabel(row)}</Badge
+								>
 							</td>
 						</tr>
 					{/each}

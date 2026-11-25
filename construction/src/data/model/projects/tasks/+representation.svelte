@@ -4,8 +4,12 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
+		Form,
 		Picker,
+		RecordShell,
 		Section,
+		Sheet,
+		Table,
 		use_record_controller,
 		type FieldEditor,
 		type RecordView
@@ -14,10 +18,11 @@
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'tasks'>; ctx: PageContext } = $props();
+	const t: PageContext['t'] = (...args) => ctx.t(...args);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const linksSummary = $derived(
 		record?.bim_express_ids?.length
-			? ctx.t('tasks.bim_linked_count', { count: record.bim_express_ids.length })
+			? t('tasks.bim_linked_count', { count: record.bim_express_ids.length })
 			: undefined
 	);
 
@@ -38,6 +43,9 @@
 		if (id === null) return null;
 		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
 	});
+
+	let createSubtaskOpen = $state(false);
+	const canCreateTask = $derived(ctx.catalog?.tasks?.create !== undefined);
 </script>
 
 {#snippet parentTaskEditor(field: FieldEditor)}
@@ -79,12 +87,13 @@
 	/>
 {/snippet}
 
-<RecordForm {ctx} {view} subtitle={['trade_specialty', 'status', 'priority']}>
-	<Section icon="lucide:list-checks" first name="task" title={ctx.t('section.task')}>
+{#snippet taskSections()}
+	<Section icon="lucide:list-checks" first name="task" title={t('section.task')}>
 		<Grid minimum="card">
 			<Field {ctx} name="task_code" />
 			<Field {ctx} name="wbs_path" />
 			<Field {ctx} name="title" />
+			<Field {ctx} name="parent_task_id" editor={parentTaskEditor} />
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />
 			{/if}
@@ -107,12 +116,11 @@
 	<Section
 		icon="lucide:link"
 		name="programme"
-		title={ctx.t('section.programme_and_links')}
+		title={t('section.programme_and_links')}
 		default_open={false}
 		{...linksSummary ? { summary: linksSummary } : {}}
 	>
 		<Grid minimum="card">
-			<Field {ctx} name="parent_task_id" editor={parentTaskEditor} />
 			<Field {ctx} name="contract_id" editor={contractEditor} />
 			<Field {ctx} name="assignee" />
 			<Field {ctx} name="subcontractor_id" />
@@ -122,4 +130,73 @@
 			<Column span="all"><Field {ctx} name="attachments" /></Column>
 		</Grid>
 	</Section>
-</RecordForm>
+{/snippet}
+
+{#snippet subtasksTab()}
+	{#if record}
+		<Table
+			{ctx}
+			of="tasks"
+			key={`task:subtasks:${record.id}`}
+			where={{ parent_task_id: { eq: record.id } }}
+			order_by={{ wbs_path: 'asc' }}
+			toolbar={{
+				title: t('tasks.subtasks_tab'),
+				new: canCreateTask ? () => (createSubtaskOpen = true) : false
+			}}
+			columns={[
+				'task_code',
+				'wbs_path',
+				'title',
+				'is_milestone',
+				'trade_specialty',
+				'status',
+				'progress_pct',
+				'schedule_range'
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#if record}
+	<RecordShell
+		{ctx}
+		of="tasks"
+		mode={view.mode}
+		id={record.id}
+		subtitle={['trade_specialty', 'status', 'priority']}
+		tabs={[
+			{
+				name: 'subtasks',
+				title: t('tasks.subtasks_tab'),
+				icon: 'lucide:git-branch',
+				body: subtasksTab
+			}
+		]}
+	>
+		<Form {ctx} of="tasks" mode={view.mode} id={record.id} {record} size="content">
+			{@render taskSections()}
+		</Form>
+	</RecordShell>
+{:else}
+	<RecordForm {ctx} {view} subtitle={['trade_specialty', 'status', 'priority']}>
+		{@render taskSections()}
+	</RecordForm>
+{/if}
+
+<Sheet open={createSubtaskOpen} on_open_change={(open) => !open && (createSubtaskOpen = false)}>
+	{#if createSubtaskOpen && record}
+		<RecordShell
+			{ctx}
+			of="tasks"
+			mode="create"
+			values={{
+				project_id: record.project_id,
+				parent_task_id: record.id,
+				trade_specialty: record.trade_specialty,
+				...(record.contract_id != null ? { contract_id: record.contract_id } : {})
+			}}
+			on_done={() => (createSubtaskOpen = false)}
+		/>
+	{/if}
+</Sheet>

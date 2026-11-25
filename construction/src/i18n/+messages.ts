@@ -8,13 +8,13 @@ export default messages({
 	'app.operations.page_projects': 'Projects',
 	'app.operations.projects_description':
 		'Manage main-contractor and subcontractor contracts, cashflow, schedules, and BIM.',
+	'app.operations.page_partners': 'Business Partners',
 	'app.operations.page_messages': 'Messages',
 	'app.operations.messages_description':
 		'Synced WhatsApp and email site coordination feed for automatic extraction.',
 
 	'app.configuration.title': 'Configuration',
-	'app.configuration.description':
-		'Manage WhatsApp, email, and Autodesk links, subcontractors, and costing matrix.',
+	'app.configuration.description': 'Manage WhatsApp, email, and Autodesk links and costing matrix.',
 
 	// Connections
 	'connections.title': 'Connections',
@@ -33,16 +33,28 @@ export default messages({
 	'connections.kind.autodesk_acc': 'Autodesk ACC',
 	'connections.intake_rules_title': 'Intake & auto-extraction',
 
-	// Contacts & Cost Matrix pages
-	'contacts.title': 'Contacts & Subcontractors',
-	'contacts.description':
-		'Subcontractors, suppliers, clients, and consultants for contracts and routing.',
+	// Business Partners & Cost Matrix pages
+	'partners.title': 'Business Partners',
+	'partners.description':
+		'Customers/clients, material vendors, and trade subcontractors linked to orders, transactions, and tasks.',
+	'partners.tab_all': 'All partners',
+	'partners.tab_customers': 'Customers',
+	'partners.tab_vendors': 'Vendors',
+	'partners.tab_subcontractors': 'Subcontractors',
+	'partners.orders_tab': 'Orders & Contracts',
+	'partners.transactions_tab': 'Transactions (DO / Invoices)',
+	'partners.tasks_tab': 'Assigned Tasks',
+	'contacts.title': 'Business Partners',
+	'contacts.description': 'Customers, material vendors, trade subcontractors, and consultants.',
 	'cost_matrix.title': 'Costing Matrix',
 	'cost_matrix.description':
 		'Quantifiable unit rates mapped to BIM IFC asset classes and non-BIM allowances.',
 
 	// Project Hub tabs
-	'project.tab_bim_issues': 'BIM & Issues',
+	'project.tab_bim': 'BIM',
+	'project.tab_commercial': 'Commercial',
+	'bim.tab_model_issues': '3D Model & Issues',
+	'tasks.subtasks_tab': 'Sub-tasks',
 
 	// Co-located spatial zones
 	'zones.code': 'Zone code (e.g. L01)',
@@ -73,14 +85,16 @@ export default messages({
 	'bim_costing.estimates_title': 'Cost Estimations',
 	'bim_costing.run_pipeline': 'Run BIM takeoff & costing',
 	'bim_costing.run_pipeline_desc':
-		'Stream the IFC model, classify asset types via rules + AI against the Costing Matrix, and compute BIM + non-BIM totals.',
+		'Stream & deduplicate the IFC model, render isolated multi-angle 3D snapshots per unique asset, and classify via Jev System 1 against the Costing Matrix.',
 	'bim_costing.scan_local_ifc': 'Scan large local IFC',
 	'bim_costing.scan_local_ifc_desc':
-		'Stream any local .ifc file (including 100+ MiB multi-storey models) in your browser and send compact archetype buckets for AI costing.',
+		'Stream any local .ifc file (including 100+ MiB multi-storey models) in your browser, render isolated multi-angle asset snapshots, and send unique archetypes to Jev System 1.',
 	'bim_costing.streaming_progress':
 		'Streaming IFC in browser ({percent}%) · {assets} elements found…',
+	'bim_costing.snapshots_progress':
+		'Rendering isolated multi-angle 3D snapshots ({done}/{total} unique assets · {captured} captured)…',
 	'bim_costing.streaming_done':
-		'Extracted {assets} elements ({archetypes} unique types) in {ms} ms — running AI costing…',
+		'Extracted {assets} elements ({archetypes} unique types · {visuals} visual snapshots) in {ms} ms — classifying via System 1…',
 	'bim_costing.reanalyze_bim': 'Re-run BIM takeoff',
 	'bim_costing.coverage': 'Matrix coverage',
 	'bim_costing.unmatched_badge': '{count} unmatched',
@@ -103,6 +117,7 @@ export default messages({
 	'bim_costing.status_rule_matched': 'Rule',
 	'bim_costing.status_override': 'Override',
 	'bim_costing.status_rate_missing': 'No rate',
+	'bim_costing.status_unknown_catalog': 'Unknown catalog',
 	'bim_costing.status_unmatched': 'Unmatched',
 
 	// Project files & revisions
@@ -155,8 +170,14 @@ export default messages({
 	'commercial.projected_margin': 'Projected margin',
 	'commercial.margin_pct_value': '{pct}%',
 	'commercial.overall_progress': 'Overall progress',
-	'commercial.tab_contracts': 'Contracts & VOs',
-	'commercial.tab_documents': 'PO / DO / Invoices',
+	'commercial.tab_contracts': 'Orders & Contracts',
+	'commercial.tab_documents': 'Transactions (DO / Invoices)',
+	'commercial.tab_so': 'Sales Orders (SO)',
+	'commercial.tab_po': 'Purchase Orders (PO)',
+	'commercial.tab_vo': 'Variation Orders (VO)',
+	'commercial.tab_transactions': 'Transactions (DO / Invoices)',
+	'commercial.new_do': 'New Delivery Order (DO)',
+	'commercial.new_invoice': 'New Invoice',
 	'commercial.col_code': 'Code',
 	'commercial.col_item': 'Description',
 
@@ -447,15 +468,15 @@ export default messages({
 	'models.cost_estimates.fields.status.superseded': 'Superseded',
 
 	// Models — Contacts
-	'models.contacts.label': 'Contacts & Subcontractors',
-	'models.contacts.singular': 'Contact',
+	'models.contacts.label': 'Business Partners',
+	'models.contacts.singular': 'Business Partner',
 	'models.contacts.fields.project_id': 'Default Project',
 	'models.contacts.fields.email_key': 'Normalized Email',
 	'models.contacts.fields.phone_key': 'Normalized Phone',
 	'models.contacts.fields.role.subcontractor': 'Subcontractor',
-	'models.contacts.fields.role.supplier': 'Supplier',
+	'models.contacts.fields.role.supplier': 'Vendor / Supplier',
 	'models.contacts.fields.role.main_contractor': 'Main Contractor',
-	'models.contacts.fields.role.client': 'Client',
+	'models.contacts.fields.role.client': 'Customer / Client',
 	'models.contacts.fields.role.consultant': 'Consultant',
 	'models.contacts.fields.role.architect': 'Architect',
 	'models.contacts.fields.role.qs': 'Quantity Surveyor',

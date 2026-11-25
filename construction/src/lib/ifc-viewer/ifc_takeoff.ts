@@ -1,19 +1,25 @@
 import { Effect, Result, Schema } from 'effect';
 import takeoffWorkerUrl from './ifc_takeoff.worker.ts?worker&url';
+import { renderIsolatedAssetSnapshots, type BimSnapshotProgress } from './ifc_asset_snapshots.js';
 import { fetchEffect, messageOf } from './ifc_viewer.types.js';
 import type { ExtractedBimModel } from '../bim-step-stream.js';
 
 export type BimStreamProgress = {
+	readonly phase: 'streaming';
 	readonly percent: number;
 	readonly bytesRead: number;
 	readonly totalBytes: number;
 	readonly rawAssets: number;
 };
 
+export type BimTakeoffProgress =
+	BimStreamProgress | ({ readonly phase: 'snapshots' } & BimSnapshotProgress);
+
 export type BimStreamResult = {
 	readonly extracted: ExtractedBimModel;
 	readonly durationMs: number;
 	readonly statementsScanned: number;
+	readonly visualCapturedCount: number;
 };
 
 class BimStreamError extends Schema.TaggedError<BimStreamError>()('BimStreamError', {
@@ -35,14 +41,19 @@ const WorkerErrorSchema = Schema.Struct({
 
 const ExtractedArchetypeSchema = Schema.Struct({
 	archetype_id: Schema.String,
+	representative_express_id: Schema.Number,
+	representative_part_ids: Schema.Array(Schema.Number),
 	ifc_class: Schema.String,
 	family: Schema.String,
 	type_name: Schema.NullOr(Schema.String),
 	object_type: Schema.NullOr(Schema.String),
 	predefined_type: Schema.NullOr(Schema.String),
+	operation_type: Schema.NullOr(Schema.String),
 	classification_code: Schema.NullOr(Schema.String),
 	classification_name: Schema.NullOr(Schema.String),
 	materials: Schema.Array(Schema.String),
+	material_layers: Schema.Array(Schema.String),
+	layer_count: Schema.Number,
 	properties: Schema.Array(Schema.String),
 	sample_names: Schema.Array(Schema.String),
 	total_count: Schema.Number,
@@ -112,8 +123,15 @@ function runWorkerRequest(
 	request:
 		| { readonly type: 'extract-file'; readonly file: File }
 		| { readonly type: 'extract-url'; readonly url: string },
-	onProgress?: (progress: BimStreamProgress) => void
-): Effect.Effect<BimStreamResult, BimStreamError> {
+	onProgress?: (progress: BimTakeoffProgress) => void
+): Effect.Effect<
+	{
+		readonly extracted: ExtractedBimModel;
+		readonly durationMs: number;
+		readonly statementsScanned: number;
+	},
+	BimStreamError
+> {
 	return Effect.callback((send) => {
 		worker.onmessage = (event: MessageEvent<unknown>) => {
 			const decoded = Schema.decodeUnknownOption(WorkerMessageSchema)(event.data);
@@ -121,6 +139,7 @@ function runWorkerRequest(
 			const msg = decoded.value;
 			if (msg.type === 'progress') {
 				onProgress?.({
+					phase: 'streaming',
 					percent: msg.percent,
 					bytesRead: msg.bytesRead,
 					totalBytes: msg.totalBytes,
@@ -162,33 +181,74 @@ function runWorkerRequest(
 	});
 }
 
+function attachIsolatedVisuals(
+	source: File | string,
+	streamed: {
+		readonly extracted: ExtractedBimModel;
+		readonly durationMs: number;
+		readonly statementsScanned: number;
+	},
+	onProgress?: (progress: BimTakeoffProgress) => void
+): Effect.Effect<BimStreamResult, never> {
+	return Effect.gen(function* () {
+		const started = performance.now();
+		const archetypesWithVisuals = yield* renderIsolatedAssetSnapshots(
+			source,
+			streamed.extracted.archetypes,
+			(snap) => {
+				onProgress?.({ phase: 'snapshots', ...snap });
+			}
+		);
+		const visualCapturedCount = archetypesWithVisuals.filter(
+			(a) => a.visual_views != null && a.visual_views.length > 0
+		).length;
+		return {
+			extracted: {
+				...streamed.extracted,
+				archetypes: archetypesWithVisuals
+			},
+			durationMs: Math.round(streamed.durationMs + (performance.now() - started)),
+			statementsScanned: streamed.statementsScanned,
+			visualCapturedCount
+		};
+	});
+}
+
 /**
  * Streams a local browser `File` (arbitrarily large 50–500+ MiB IFC models) in 4 MiB chunks
- * inside a dedicated Web Worker and returns the compact bucketed `ExtractedBimModel`.
+ * inside a dedicated Web Worker, deduplicates into unique asset archetypes, and renders isolated
+ * multi-angle 3D snapshots of ONLY each unique asset for Jev System 1 visual classification.
  */
 export function extractBimFromFile(
 	file: File,
-	onProgress?: (progress: BimStreamProgress) => void
+	onProgress?: (progress: BimTakeoffProgress) => void
 ): Effect.Effect<BimStreamResult, BimStreamError> {
 	return Effect.acquireUseRelease(
 		createTakeoffWorker,
 		(worker) => runWorkerRequest(worker, { type: 'extract-file', file }, onProgress),
 		(worker) => Effect.sync(() => worker.terminate())
-	).pipe(Effect.scoped);
+	).pipe(
+		Effect.scoped,
+		Effect.flatMap((streamed) => attachIsolatedVisuals(file, streamed, onProgress))
+	);
 }
 
 /**
- * Streams an uploaded IFC file URL (e.g., 8–20 MiB stored `project_files.file.url`) inside a
- * dedicated Web Worker and returns the compact bucketed `ExtractedBimModel`.
+ * Streams an uploaded IFC file URL inside a dedicated Web Worker, deduplicates into unique asset
+ * archetypes, and renders isolated multi-angle 3D snapshots of ONLY each unique asset for Jev
+ * System 1 visual classification.
  */
 export function extractBimFromUrl(
 	url: string,
-	onProgress?: (progress: BimStreamProgress) => void
+	onProgress?: (progress: BimTakeoffProgress) => void
 ): Effect.Effect<BimStreamResult, BimStreamError> {
 	const resolved = new URL(url, window.location.href).href;
 	return Effect.acquireUseRelease(
 		createTakeoffWorker,
 		(worker) => runWorkerRequest(worker, { type: 'extract-url', url: resolved }, onProgress),
 		(worker) => Effect.sync(() => worker.terminate())
-	).pipe(Effect.scoped);
+	).pipe(
+		Effect.scoped,
+		Effect.flatMap((streamed) => attachIsolatedVisuals(resolved, streamed, onProgress))
+	);
 }

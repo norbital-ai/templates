@@ -30,13 +30,18 @@
 		Spinner,
 		Surface,
 		Table,
+		Tabs,
 		open_record,
 		use_act,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { extractBimFromFile, extractBimFromUrl } from '../../../lib/ifc-viewer/ifc_takeoff.js';
+	import {
+		extractBimFromFile,
+		extractBimFromUrl,
+		type BimTakeoffProgress
+	} from '../../../lib/ifc-viewer/ifc_takeoff.js';
 	import {
 		Bound,
 		Cluster,
@@ -109,6 +114,8 @@
 					where: { project_id: { eq: record.id } },
 					fields: [
 						'task_code',
+						'wbs_path',
+						'parent_task_id',
 						'title',
 						'is_milestone',
 						'trade_specialty',
@@ -118,7 +125,7 @@
 						'schedule_range',
 						'bim_express_ids'
 					],
-					order_by: { task_code: 'asc' },
+					order_by: { wbs_path: 'asc' },
 					limit: 500
 				},
 				contracts: {
@@ -242,8 +249,15 @@
 		| { kind: 'issue'; values: Record<string, unknown> }
 		| { kind: 'file' }
 		| { kind: 'task' }
-		| { kind: 'contract' }
-		| { kind: 'document' }
+		| {
+				kind: 'contract';
+				direction: 'upstream' | 'downstream';
+				contract_type: 'main_contract' | 'subcontract' | 'variation_order';
+		  }
+		| {
+				kind: 'document';
+				doc_type?: 'delivery_order' | 'invoice' | 'progress_claim' | 'purchase_order';
+		  }
 		| { kind: 'estimate' };
 
 	let createSheet = $state<CreateSheet>(null);
@@ -254,6 +268,20 @@
 	let bimStreamError = $state<string | null>(null);
 	let localIfcInput = $state<HTMLInputElement | null>(null);
 
+	function formatBimProgress(progress: BimTakeoffProgress): string {
+		if (progress.phase === 'snapshots') {
+			return t('bim_costing.snapshots_progress', {
+				done: progress.done,
+				total: progress.total,
+				captured: progress.captured
+			});
+		}
+		return t('bim_costing.streaming_progress', {
+			percent: progress.percent,
+			assets: progress.rawAssets
+		});
+	}
+
 	function triggerProjectIfcTakeoff(): void {
 		if (!activeIfc || !activeIfc.file || bimStreaming || bimAnalyze.pending) return;
 		bimStreamError = null;
@@ -261,10 +289,7 @@
 		bimStreaming = true;
 		fork(
 			extractBimFromUrl(ctx.file_url(activeIfc.file), (progress) => {
-				bimStreamNotice = t('bim_costing.streaming_progress', {
-					percent: progress.percent,
-					assets: progress.rawAssets
-				});
+				bimStreamNotice = formatBimProgress(progress);
 			}).pipe(
 				Effect.match({
 					onFailure: (error) => {
@@ -277,6 +302,7 @@
 						bimStreamNotice = t('bim_costing.streaming_done', {
 							assets: res.extracted.total_asset_count,
 							archetypes: res.extracted.archetypes.length,
+							visuals: res.visualCapturedCount,
 							ms: res.durationMs
 						});
 						bimAnalyze.run(
@@ -308,10 +334,7 @@
 		const baseTitle = file.name.replace(/\.ifc$/i, '').trim() || 'Local BIM Model';
 		fork(
 			extractBimFromFile(file, (progress) => {
-				bimStreamNotice = t('bim_costing.streaming_progress', {
-					percent: progress.percent,
-					assets: progress.rawAssets
-				});
+				bimStreamNotice = formatBimProgress(progress);
 			}).pipe(
 				Effect.match({
 					onFailure: (error) => {
@@ -324,6 +347,7 @@
 						bimStreamNotice = t('bim_costing.streaming_done', {
 							assets: res.extracted.total_asset_count,
 							archetypes: res.extracted.archetypes.length,
+							visuals: res.visualCapturedCount,
 							ms: res.durationMs
 						});
 						bimAnalyze.run(
@@ -518,6 +542,7 @@
 				columns={[
 					'task_code',
 					'wbs_path',
+					'parent_task_id',
 					'title',
 					'trade_specialty',
 					'subcontractor_id',
@@ -829,24 +854,130 @@
 	{/if}
 {/snippet}
 
-{#snippet contractsTab()}
+{#snippet bimTab()}
+	<Tabs
+		level={2}
+		tabs={[
+			{
+				name: 'model',
+				title: t('bim.tab_model_issues'),
+				icon: 'lucide:box',
+				body: bimIssuesTab
+			},
+			{
+				name: 'estimates',
+				title: t('bim_costing.estimates_title'),
+				icon: 'lucide:calculator',
+				body: estimatesTab
+			},
+			{
+				name: 'files',
+				title: t('project_files.register_title'),
+				icon: 'lucide:file-box',
+				body: filesTab
+			}
+		]}
+	/>
+{/snippet}
+
+{#snippet salesOrdersTab()}
 	{#if id}
 		<Table
 			{ctx}
 			of="contracts"
-			key={`project:contracts:${id}`}
-			where={{ project_id: { eq: id } }}
+			key={`project:so:${id}`}
+			where={{
+				project_id: { eq: id },
+				direction: { eq: 'upstream' },
+				contract_type: { ne: 'variation_order' }
+			}}
 			order_by={{ updated_at: 'desc' }}
 			toolbar={{
-				title: t('commercial.tab_contracts'),
-				new: ctx.catalog?.contracts?.create ? () => (createSheet = { kind: 'contract' }) : false
+				title: t('commercial.tab_so'),
+				new: ctx.catalog?.contracts?.create
+					? () =>
+							(createSheet = {
+								kind: 'contract',
+								direction: 'upstream',
+								contract_type: 'main_contract'
+							})
+					: false
+			}}
+			columns={[
+				'contract_number',
+				'title',
+				'contract_type',
+				'contact_id',
+				'status',
+				'contract_value',
+				'signed_date'
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet purchaseOrdersTab()}
+	{#if id}
+		<Table
+			{ctx}
+			of="contracts"
+			key={`project:po:${id}`}
+			where={{
+				project_id: { eq: id },
+				direction: { eq: 'downstream' },
+				contract_type: { ne: 'variation_order' }
+			}}
+			order_by={{ updated_at: 'desc' }}
+			toolbar={{
+				title: t('commercial.tab_po'),
+				new: ctx.catalog?.contracts?.create
+					? () =>
+							(createSheet = {
+								kind: 'contract',
+								direction: 'downstream',
+								contract_type: 'subcontract'
+							})
+					: false
+			}}
+			columns={[
+				'contract_number',
+				'title',
+				'contract_type',
+				'trade_specialty',
+				'contact_id',
+				'status',
+				'contract_value',
+				'signed_date'
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet variationOrdersTab()}
+	{#if id}
+		<Table
+			{ctx}
+			of="contracts"
+			key={`project:vo:${id}`}
+			where={{ project_id: { eq: id }, contract_type: { eq: 'variation_order' } }}
+			order_by={{ updated_at: 'desc' }}
+			toolbar={{
+				title: t('commercial.tab_vo'),
+				new: ctx.catalog?.contracts?.create
+					? () =>
+							(createSheet = {
+								kind: 'contract',
+								direction: 'upstream',
+								contract_type: 'variation_order'
+							})
+					: false
 			}}
 			columns={[
 				'contract_number',
 				'title',
 				'direction',
-				'contract_type',
 				'trade_specialty',
+				'parent_contract_id',
 				'contact_id',
 				'status',
 				'contract_value',
@@ -856,19 +987,33 @@
 	{/if}
 {/snippet}
 
-{#snippet documentsTab()}
+{#snippet transactionsTab()}
 	{#if id}
 		<Table
 			{ctx}
 			of="commercial_documents"
-			key={`project:docs:${id}`}
+			key={`project:tx:${id}`}
 			where={{ project_id: { eq: id } }}
 			order_by={{ issue_date: 'desc' }}
 			toolbar={{
-				title: t('commercial.tab_documents'),
+				title: t('commercial.tab_transactions'),
 				actions:
 					ctx.catalog?.commercial_documents?.create !== undefined
 						? [
+								{
+									icon: 'lucide:truck',
+									name: t('commercial.new_do'),
+									run: () => {
+										createSheet = { kind: 'document', doc_type: 'delivery_order' };
+									}
+								},
+								{
+									icon: 'lucide:receipt',
+									name: t('commercial.new_invoice'),
+									run: () => {
+										createSheet = { kind: 'document', doc_type: 'invoice' };
+									}
+								},
 								{
 									icon: 'lucide:file-plus-2',
 									name: t('commercial.draft_claim'),
@@ -878,7 +1023,7 @@
 							]
 						: [],
 				new: ctx.catalog?.commercial_documents?.create
-					? () => (createSheet = { kind: 'document' })
+					? () => (createSheet = { kind: 'document', doc_type: 'invoice' })
 					: false
 			}}
 			columns={[
@@ -886,6 +1031,7 @@
 				'doc_type',
 				'direction',
 				'external_reference',
+				'contract_id',
 				'contact_id',
 				'status',
 				'match_status',
@@ -895,6 +1041,38 @@
 			]}
 		/>
 	{/if}
+{/snippet}
+
+{#snippet commercialTab()}
+	<Tabs
+		level={2}
+		tabs={[
+			{
+				name: 'so',
+				title: t('commercial.tab_so'),
+				icon: 'lucide:arrow-down-left',
+				body: salesOrdersTab
+			},
+			{
+				name: 'po',
+				title: t('commercial.tab_po'),
+				icon: 'lucide:arrow-up-right',
+				body: purchaseOrdersTab
+			},
+			{
+				name: 'vo',
+				title: t('commercial.tab_vo'),
+				icon: 'lucide:file-diff',
+				body: variationOrdersTab
+			},
+			{
+				name: 'transactions',
+				title: t('commercial.tab_transactions'),
+				icon: 'lucide:receipt',
+				body: transactionsTab
+			}
+		]}
+	/>
 {/snippet}
 
 {#if record}
@@ -912,34 +1090,16 @@
 				body: programmeTab
 			},
 			{
-				name: 'bim_issues',
-				title: t('project.tab_bim_issues'),
+				name: 'bim',
+				title: t('project.tab_bim'),
 				icon: 'lucide:box',
-				body: bimIssuesTab
+				body: bimTab
 			},
 			{
-				name: 'estimates',
-				title: t('bim_costing.estimates_title'),
-				icon: 'lucide:calculator',
-				body: estimatesTab
-			},
-			{
-				name: 'files',
-				title: t('project_files.register_title'),
-				icon: 'lucide:file-box',
-				body: filesTab
-			},
-			{
-				name: 'contracts',
-				title: t('commercial.tab_contracts'),
-				icon: 'lucide:file-signature',
-				body: contractsTab
-			},
-			{
-				name: 'documents',
-				title: t('commercial.tab_documents'),
+				name: 'commercial',
+				title: t('project.tab_commercial'),
 				icon: 'lucide:banknote',
-				body: documentsTab
+				body: commercialTab
 			}
 		]}
 	>
@@ -1094,7 +1254,12 @@
 			{ctx}
 			of="contracts"
 			mode="create"
-			values={{ project_id: id, currency: record?.currency ?? 'SGD' }}
+			values={{
+				project_id: id,
+				direction: createSheet.direction,
+				contract_type: createSheet.contract_type,
+				currency: record?.currency ?? 'SGD'
+			}}
 			on_done={() => (createSheet = null)}
 		/>
 	{:else if createSheet?.kind === 'document' && id}
@@ -1102,7 +1267,11 @@
 			{ctx}
 			of="commercial_documents"
 			mode="create"
-			values={{ project_id: id, currency: record?.currency ?? 'SGD' }}
+			values={{
+				project_id: id,
+				...(createSheet.doc_type ? { doc_type: createSheet.doc_type } : {}),
+				currency: record?.currency ?? 'SGD'
+			}}
 			on_done={() => (createSheet = null)}
 		/>
 	{:else if createSheet?.kind === 'estimate' && id}

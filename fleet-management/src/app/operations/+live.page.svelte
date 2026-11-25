@@ -7,7 +7,7 @@
 	const t = ctx.t;
 	const canRefreshEta = $derived(ctx.catalog?.routes?.update !== undefined);
 	const canCheckHealth = $derived(ctx.catalog?.vehicles?.update !== undefined);
-	const dispatchActions = $derived([
+	const dashboardActions = $derived([
 		...(canRefreshEta
 			? [
 					{
@@ -95,7 +95,7 @@
 			status="status"
 			badge="current_speed_kmh"
 			fields={['vehicle_name', 'driver_id', 'destination_label', 'heading_deg']}
-			labels="always"
+			labels="hover"
 			{overlays}
 			where={{ last_location: { is_null: false } }}
 			toolbar={{ title: t('app.live.map_title'), new: false }}
@@ -103,31 +103,24 @@
 	{/if}
 {/snippet}
 
-{#snippet noActiveRoutes()}
-	<EmptyState variant="inset" title={t('app.live.no_active_routes')} />
+{#snippet noActiveAlerts()}
+	<EmptyState variant="inset" title={t('app.live.no_active_alerts')} />
 {/snippet}
 
-{#snippet activeDispatch()}
+{#snippet liveAlerts()}
 	<Table
 		{ctx}
-		of="routes"
-		key="live_routes"
-		empty={noActiveRoutes}
-		where={{ status: { in: ['planned', 'dispatched', 'en_route'] } }}
-		order_by={{ planned_departure: 'asc' }}
+		of="fleet_alerts"
+		key="live_alerts"
+		empty={noActiveAlerts}
+		where={{ status: { in: ['open', 'acknowledged'] } }}
+		order_by={{ recorded_at: 'desc' }}
 		toolbar={{
-			title: t('app.live.routes_title'),
-			...(dispatchActions.length > 0 ? { actions: dispatchActions } : {})
+			title: t('app.live.alerts_title'),
+			new: false,
+			...(dashboardActions.length > 0 ? { actions: dashboardActions } : {})
 		}}
-		columns={[
-			'route_number',
-			'vehicle_id',
-			'driver_id',
-			'destination_name',
-			'status',
-			'eta_minutes',
-			'planned_arrival'
-		]}
+		columns={['severity', 'alert_type', 'vehicle_id', 'status', 'summary', 'recorded_at']}
 	/>
 {/snippet}
 
@@ -141,7 +134,7 @@
 		ratio="wide"
 		collapse="switch"
 		start={liveMap}
-		end={activeDispatch}
-		switch_labels={[t('app.live.map_title'), t('app.live.routes_title')]}
+		end={liveAlerts}
+		switch_labels={[t('app.live.map_title'), t('app.live.alerts_title')]}
 	/>
 </AppShell>

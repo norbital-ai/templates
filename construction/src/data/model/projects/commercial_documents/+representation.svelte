@@ -4,8 +4,12 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import {
 		Field,
+		Form,
 		Picker,
+		RecordShell,
 		Section,
+		Sheet,
+		Table,
 		use_record_controller,
 		type FieldEditor,
 		type RecordView
@@ -14,6 +18,7 @@
 	import RecordForm from '../../../../lib/record-form.svelte';
 
 	let { view, ctx }: { view: RecordView<'commercial_documents'>; ctx: PageContext } = $props();
+	const t: PageContext['t'] = (...args) => ctx.t(...args);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const controller = use_record_controller();
 	const liveForm = $derived(controller?.current ?? null);
@@ -32,6 +37,9 @@
 		if (id === null) return null;
 		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
 	});
+
+	let createLinkedType = $state<'delivery_order' | 'invoice' | null>(null);
+	const canCreateTx = $derived(ctx.catalog?.commercial_documents?.create !== undefined);
 </script>
 
 {#snippet contractEditor(field: FieldEditor)}
@@ -73,13 +81,8 @@
 	/>
 {/snippet}
 
-<RecordForm {ctx} {view} subtitle={['doc_type', 'direction', 'status']}>
-	<Section
-		icon="lucide:banknote"
-		first
-		name="document"
-		title={ctx.t('section.commercial_document')}
-	>
+{#snippet docSections()}
+	<Section icon="lucide:banknote" first name="document" title={t('section.commercial_document')}>
 		<Grid minimum="card">
 			<Field {ctx} name="doc_type" />
 			<Field {ctx} name="direction" />
@@ -100,7 +103,7 @@
 		</Grid>
 	</Section>
 
-	<Section icon="lucide:receipt" name="amounts" title={ctx.t('section.amounts_and_matching')}>
+	<Section icon="lucide:receipt" name="amounts" title={t('section.amounts_and_matching')}>
 		<Grid minimum="card">
 			<Field {ctx} name="currency" />
 			<Field {ctx} name="subtotal" />
@@ -125,7 +128,7 @@
 	<Section
 		icon="lucide:paperclip"
 		name="supporting"
-		title={ctx.t('section.supporting_docs')}
+		title={t('section.supporting_docs')}
 		default_open={false}
 	>
 		<Grid minimum="card">
@@ -134,4 +137,98 @@
 			<Column span="all"><Field {ctx} name="attachments" /></Column>
 		</Grid>
 	</Section>
-</RecordForm>
+{/snippet}
+
+{#snippet linkedTransactionsTab()}
+	{#if record}
+		<Table
+			{ctx}
+			of="commercial_documents"
+			key={`doc:linked:${record.id}`}
+			where={{ parent_document_id: { eq: record.id } }}
+			order_by={{ issue_date: 'desc' }}
+			toolbar={{
+				title: t('commercial.tab_transactions'),
+				actions: canCreateTx
+					? [
+							{
+								icon: 'lucide:truck',
+								name: t('commercial.new_do'),
+								run: () => {
+									createLinkedType = 'delivery_order';
+								}
+							},
+							{
+								icon: 'lucide:receipt',
+								name: t('commercial.new_invoice'),
+								run: () => {
+									createLinkedType = 'invoice';
+								}
+							}
+						]
+					: [],
+				new: false
+			}}
+			columns={[
+				'document_number',
+				'doc_type',
+				'external_reference',
+				'status',
+				'match_status',
+				'total_amount',
+				'net_amount',
+				'delivery_date',
+				'due_date'
+			]}
+		/>
+	{/if}
+{/snippet}
+
+{#if record && record.doc_type === 'purchase_order'}
+	<RecordShell
+		{ctx}
+		of="commercial_documents"
+		mode={view.mode}
+		id={record.id}
+		subtitle={['doc_type', 'direction', 'status']}
+		tabs={[
+			{
+				name: 'linked',
+				title: t('commercial.tab_transactions'),
+				icon: 'lucide:receipt',
+				body: linkedTransactionsTab
+			}
+		]}
+	>
+		<Form {ctx} of="commercial_documents" mode={view.mode} id={record.id} {record} size="content">
+			{@render docSections()}
+		</Form>
+	</RecordShell>
+{:else}
+	<RecordForm {ctx} {view} subtitle={['doc_type', 'direction', 'status']}>
+		{@render docSections()}
+	</RecordForm>
+{/if}
+
+<Sheet
+	open={createLinkedType !== null}
+	on_open_change={(open) => !open && (createLinkedType = null)}
+>
+	{#if createLinkedType !== null && record}
+		<RecordShell
+			{ctx}
+			of="commercial_documents"
+			mode="create"
+			values={{
+				project_id: record.project_id,
+				...(record.contract_id != null ? { contract_id: record.contract_id } : {}),
+				...(record.contact_id != null ? { contact_id: record.contact_id } : {}),
+				parent_document_id: record.id,
+				direction: record.direction,
+				doc_type: createLinkedType,
+				currency: record.currency
+			}}
+			on_done={() => (createLinkedType = null)}
+		/>
+	{/if}
+</Sheet>

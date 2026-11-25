@@ -1,7 +1,7 @@
 # Service Scheduling — source reference
 
 Authoritative inventory of models, policies, apps, automations, and integrations in
-`templates/on-demand-services`.
+`templates/scheduling`.
 
 ## Models (13)
 

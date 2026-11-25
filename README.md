@@ -6,18 +6,18 @@ forks cleanly into a tenant workspace.
 
 ## Template gallery
 
-| Template                                        | Directory             | Handle                       | Purpose                                                                                                                   |
-| ----------------------------------------------- | --------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [**Blank**](./blank/)                           | `blank/`              | `norbital_blank`             | Minimal starter with one read-only `notes` model and no prebuilt apps                                                     |
-| [**Construction Operations**](./construction/)  | `construction/`       | `norbital_construction`      | Main & subcontractor PMS: BIM IFC takeoff & costing, Autodesk/P6/MSP planning, contracts, PO/DO/invoices, WhatsApp/email  |
-| [**CRM**](./crm/)                               | `crm/`                | `norbital_hq`                | Lead-to-client CRM: Apollo/CSV import, multi-channel intake, meeting voice profiles, AI SOW extraction, PDF agreements    |
-| [**Field Operations**](./field-operations/)     | `field-operations/`   | `norbital_field_operations`  | Daily site dispatch, contractor job reporting, WhatsApp Envoy and mechanical + AI photo integrity review                  |
-| [**Fleet Management**](./fleet-management/)     | `fleet-management/`   | `norbital_fleet_management`  | Real-time GPS transponder tracking, live vehicle map, route dispatch & ETAs, circular geofences and telemetry alerts      |
-| [**HRMS**](./hrms/)                             | `hrms/`               | `norbital_hr`                | Multi-country HR, attendance, leave and payroll with sealed dated jurisdiction law and an append-only ledger              |
-| [**Portfolio Manager**](./portfolio-manager/)   | `portfolio-manager/`  | `norbital_portfolio_manager` | Family-office book with multi-currency valuation, technical signals and a cited daily agent PDF report                    |
-| [**Service Scheduling**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`         | Generic appointment booking & dispatch: customer portal, runtime service catalog, route-aware matching and GPS ETA alerts |
-| [**Trade Operations**](./trade-operations/)     | `trade-operations/`   | `norbital_trade_operations`  | Order-centered B2B sales & purchasing with pricing floors, bilingual contracts, credit releases and Kingdee KIS sync      |
-| [**Treasury**](./treasury/)                     | `treasury/`           | `norbital_treasury`          | Bank credit facilities, drawdowns, AI-read bank advices, PO/invoice checks, locked month-ends and FX hedging              |
+| Template                                       | Directory            | Handle                       | Purpose                                                                                                                   |
+| ---------------------------------------------- | -------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [**Blank**](./blank/)                          | `blank/`             | `norbital_blank`             | Minimal starter with one read-only `notes` model and no prebuilt apps                                                     |
+| [**Construction Operations**](./construction/) | `construction/`      | `norbital_construction`      | Main & subcontractor PMS: BIM IFC takeoff & costing, Autodesk/P6/MSP planning, contracts, PO/DO/invoices, WhatsApp/email  |
+| [**CRM**](./crm/)                              | `crm/`               | `norbital_hq`                | Lead-to-client CRM: Apollo/CSV import, multi-channel intake, meeting voice profiles, AI SOW extraction, PDF agreements    |
+| [**Field Operations**](./field-operations/)    | `field-operations/`  | `norbital_field_operations`  | Daily site dispatch, contractor job reporting, WhatsApp Envoy and mechanical + AI photo integrity review                  |
+| [**Fleet Management**](./fleet-management/)    | `fleet-management/`  | `norbital_fleet_management`  | Real-time GPS transponder tracking, live vehicle map, route dispatch & ETAs, circular geofences and telemetry alerts      |
+| [**HRMS**](./hrms/)                            | `hrms/`              | `norbital_hr`                | Multi-country HR, attendance, leave and payroll with sealed dated jurisdiction law and an append-only ledger              |
+| [**Portfolio Manager**](./portfolio-manager/)  | `portfolio-manager/` | `norbital_portfolio_manager` | Family-office book with multi-currency valuation, technical signals and a cited daily agent PDF report                    |
+| [**Service Scheduling**](./scheduling/)        | `scheduling/`        | `norbital_scheduling`        | Generic appointment booking & dispatch: customer portal, runtime service catalog, route-aware matching and GPS ETA alerts |
+| [**Trade Operations**](./trade-operations/)    | `trade-operations/`  | `norbital_trade_operations`  | Order-centered B2B sales & purchasing with pricing floors, bilingual contracts, credit releases and Kingdee KIS sync      |
+| [**Treasury**](./treasury/)                    | `treasury/`          | `norbital_treasury`          | Bank credit facilities, drawdowns, AI-read bank advices, PO/invoice checks, locked month-ends and FX hedging              |
 
 **Directory vs handle:** The directory name controls the public URL (`norbital.ai/templates/<directory>`);
 the handle (`norbital.template.json`'s `key`) is the stable catalogue identity. They may differ and stay
@@ -118,7 +118,7 @@ bun run check                  # full local and CI gate
 | Fleet Management        | [Overview](fleet-management/README.md) · [Docs](fleet-management/docs/README.md) · [Source reference](fleet-management/docs/source-reference.md)                                                             |
 | HRMS                    | [Overview](hrms/README.md) · [Docs](hrms/docs/README.md)                                                                                                                                                     |
 | Portfolio Manager       | [Overview](portfolio-manager/README.md) · [Screenshot](portfolio-manager/docs/screenshots/application.webp)                                                                                                  |
-| Service Scheduling      | [Overview](on-demand-services/README.md) · [Docs](on-demand-services/docs/README.md) · [Source reference](on-demand-services/docs/source-reference.md)                                                       |
+| Service Scheduling      | [Overview](scheduling/README.md) · [Docs](scheduling/docs/README.md) · [Source reference](scheduling/docs/source-reference.md)                                                                               |
 | Trade Operations        | [Overview](trade-operations/README.md) · [Docs](trade-operations/docs/README.md) · [Source reference](trade-operations/docs/0003-source-reference.md)                                                        |
 | Treasury                | [Overview](treasury/README.md) · [Docs](treasury/docs/README.md) · [Reference](treasury/docs/reference.md) · [Source reference](treasury/docs/source-reference.md)                                           |
 

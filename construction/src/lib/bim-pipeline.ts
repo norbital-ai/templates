@@ -1,15 +1,15 @@
 /**
- * Pure TypeScript BIM IFC takeoff, archetype classification, candidate matrix ranking, and exact
- * `BigDecimal` Costing Matrix pricing pipeline.
+ * Pure TypeScript BIM IFC takeoff, archetype candidate ranking, and exact `BigDecimal` Costing
+ * Matrix pricing pipeline.
  *
  * Designed for both small server-parsed IFCs (<= 8 MiB) and huge browser-streamed multi-storey
  * federated BIM models (e.g., 18-storey HDB + playground + MEP, 50–500+ MiB):
- * 1. Streaming IFC STEP parser (`bim-step-stream.ts`) skips ~95% geometry lines and collapses
- *    100k+ instances into compact unique asset archetypes + `(archetype, storey)` buckets.
- * 2. Tier 1 deterministic matching resolves exact classification-code, IFC-class + keyword, and
- *    unambiguous class-only matrix rules in microseconds.
- * 3. `rankCandidateMatrixRules` & `describeArchetypeForAi` prepare bounded, high-signal batches
- *    for Bolt's System 1 (`ctx.ai.sys_1.decide`) and System 2 (`ctx.ai.sys_2.infer`) classifiers.
+ * 1. Streaming IFC STEP parser (`bim-step-stream.ts`) skips ~95% geometry lines and strictly
+ *    deduplicates 100k+ instances into unique asset archetypes + `(archetype, storey)` buckets.
+ * 2. Browser snapshot renderer (`ifc_asset_snapshots.ts`) renders isolated multi-angle 3D studio
+ *    images of ONLY each unique asset (never the full building).
+ * 3. `rankCandidateMatrixRules` & `describeArchetypeForAi` prepare bounded candidate catalogs
+ *    (with `unknown_unseen_catalog` always offered first) for Jev System 1 (`ctx.ai.sys_1.decide`).
  * 4. Exact `BigDecimal` pricing aggregates matched & unmatched buckets per storey with wastage,
  *    non-BIM additional costings, and contingency.
  */
@@ -73,9 +73,11 @@ export type CostMatrixRule = {
 
 export type MatchMethod = 'rule' | 'ai_sys1' | 'ai_sys2' | 'override';
 
+export const UNKNOWN_CATALOG_CHOICE = 'unknown_unseen_catalog' as const;
+
 export type ArchetypeDecision = {
-	readonly matrix_code: string;
-	readonly method: 'rule' | 'ai_sys1' | 'ai_sys2';
+	readonly matrix_code: string | null;
+	readonly method: 'ai_sys1';
 	readonly confidence: number;
 	readonly reason: string;
 };
@@ -234,8 +236,10 @@ function archetypeHaystack(arch: BimArchetype): {
 		arch.type_name ?? '',
 		arch.object_type ?? '',
 		arch.predefined_type ?? '',
+		arch.operation_type ?? '',
 		arch.classification_code ?? '',
 		arch.classification_name ?? '',
+		...arch.material_layers,
 		...arch.materials,
 		...arch.properties,
 		...arch.sample_names
@@ -247,92 +251,9 @@ function archetypeHaystack(arch: BimArchetype): {
 }
 
 /**
- * Tier 1 deterministic classification of one unique BIM archetype against active currency-matched
- * `cost_matrix` rules.
- *
- * Rules with explicit `match_keywords` require at least one keyword hit (against normalized text
- * so `Fire-Rated` matches `fire rated`). A catch-all class-only rule (no `match_keywords`) matches
- * deterministically ONLY when no keyword-specialized rules compete for that same IFC class; if
- * specialized rules exist for that class and none hit, the archetype is left for Tier 2/3 AI so
- * the model can semantically disambiguate instead of blindly falling into a generic bucket.
- */
-export function matchArchetypeDeterministic(
-	archetype: BimArchetype,
-	rules: readonly CostMatrixRule[]
-): ArchetypeDecision | null {
-	const bimRules = rules.filter((r) => r.active && r.category === 'bim_asset');
-	if (bimRules.length === 0) return null;
-
-	const { raw, normalized } = archetypeHaystack(archetype);
-	const clsCode = archetype.classification_code?.trim().toLowerCase() ?? null;
-
-	// Track whether any keyword-specialized rule targets this archetype's exact IFC class
-	const hasSpecializedClassRule = bimRules.some((r) => {
-		const classes = r.ifc_classes.map((c) => c.trim().toUpperCase()).filter(Boolean);
-		const keywords = r.match_keywords.map((k) => k.trim()).filter(Boolean);
-		return classes.includes(archetype.ifc_class) && keywords.length > 0;
-	});
-
-	let best: { rule: CostMatrixRule; score: number; reason: string } | null = null;
-	for (const rule of bimRules) {
-		const classes = rule.ifc_classes.map((c) => c.trim().toUpperCase()).filter(Boolean);
-		const classMatch = classes.length === 0 || classes.includes(archetype.ifc_class);
-		if (!classMatch) continue;
-
-		const keywords = rule.match_keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
-		let kwHits = 0;
-		const matchedKws: string[] = [];
-		for (const kw of keywords) {
-			const normKw = kw
-				.replace(/[_:/\\-]+/g, ' ')
-				.replace(/\s+/g, ' ')
-				.trim();
-			if (raw.includes(kw) || (normKw.length > 0 && normalized.includes(normKw))) {
-				kwHits++;
-				if (matchedKws.length < 3) matchedKws.push(kw);
-			}
-		}
-
-		// Exact Uniclass / Uniformat / CP83 classification code or matrix code match
-		const codeHit =
-			clsCode !== null &&
-			clsCode.length >= 3 &&
-			(rule.code.toLowerCase() === clsCode ||
-				keywords.some((kw) => kw === clsCode || clsCode.includes(kw)));
-
-		if (keywords.length > 0 && kwHits === 0 && !codeHit) continue;
-		if (keywords.length === 0 && classes.length === 0) continue;
-		// Defer generic class-only catch-all to AI when specialized keyword rules exist for the class
-		if (keywords.length === 0 && hasSpecializedClassRule) continue;
-
-		const score =
-			(codeHit ? 30 : 0) +
-			(classes.length > 0 ? 10 : 0) +
-			kwHits * 5 +
-			(keywords.length > 0 ? 2 : 0);
-		if (best === null || score > best.score) {
-			const reason = codeHit
-				? `Matched classification code ${archetype.classification_code} to ${rule.code}`
-				: matchedKws.length > 0
-					? `Matched ${archetype.ifc_class} + keywords (${matchedKws.join(', ')})`
-					: `Matched IFC class ${archetype.ifc_class}`;
-			best = { rule, score, reason };
-		}
-	}
-
-	if (best === null) return null;
-	return {
-		matrix_code: best.rule.code,
-		method: 'rule',
-		confidence: best.score >= 17 ? 0.98 : 0.9,
-		reason: best.reason
-	};
-}
-
-/**
- * Selects the top `maxCandidates` active `bim_asset` Costing Matrix rules most relevant to a batch
- * of BIM archetypes, keeping System 1 (`<= 255` choices) and System 2 prompts focused and fast
- * even when a workspace carries hundreds of Costing Matrix items.
+ * Selects the top `maxCandidates` active `bim_asset` Costing Matrix rules most relevant to one or
+ * more BIM archetypes, keeping Jev System 1 (`<= 255` choices) focused and fast even when a
+ * workspace carries hundreds of Costing Matrix items.
  */
 export function rankCandidateMatrixRules(
 	archetypes: readonly BimArchetype[],
@@ -347,7 +268,7 @@ export function rankCandidateMatrixRules(
 		archetypes.map((a) =>
 			inferDiscipline(
 				a.ifc_class,
-				`${a.family} ${a.type_name ?? ''} ${a.materials.join(' ')} ${a.sample_names.join(' ')}`
+				`${a.family} ${a.type_name ?? ''} ${a.operation_type ?? ''} ${a.materials.join(' ')} ${a.sample_names.join(' ')}`
 			)
 		)
 	);
@@ -383,7 +304,7 @@ export function rankCandidateMatrixRules(
 	return scored.slice(0, maxCandidates).map((entry) => entry.rule);
 }
 
-/** Builds a compact, information-dense textual description of one BIM archetype for AI classification. */
+/** Builds a compact, information-dense textual description of one BIM archetype for Jev System 1. */
 export function describeArchetypeForAi(arch: BimArchetype): string {
 	const qtys: string[] = ['count'];
 	if (arch.has_length) qtys.push('length(m)');
@@ -398,13 +319,18 @@ export function describeArchetypeForAi(arch: BimArchetype): string {
 		...(arch.object_type && arch.object_type !== arch.family && arch.object_type !== arch.type_name
 			? [`object_type="${arch.object_type}"`]
 			: []),
+		...(arch.operation_type ? [`operation=${arch.operation_type}`] : []),
 		...(arch.predefined_type ? [`predefined=${arch.predefined_type}`] : []),
 		...(arch.classification_code || arch.classification_name
 			? [
 					`classification="${[arch.classification_code, arch.classification_name].filter(Boolean).join(' ')}"`
 				]
 			: []),
-		...(arch.materials.length > 0 ? [`materials=[${arch.materials.join(', ')}]`] : []),
+		...(arch.material_layers.length > 0
+			? [`layers(${arch.layer_count})=[${arch.material_layers.join(' | ')}]`]
+			: arch.materials.length > 0
+				? [`materials=[${arch.materials.join(', ')}]`]
+				: []),
 		...(arch.properties.length > 0 ? [`props=[${arch.properties.join('; ')}]`] : []),
 		...(arch.sample_names.length > 0 ? [`samples=[${arch.sample_names.join(' | ')}]`] : []),
 		`instances=${arch.total_count}`,
@@ -429,9 +355,9 @@ function measureBucket(bucket: BimStoreyBucket, basis: CostMatrixRule['quantity_
 }
 
 /**
- * Classifies and prices an `ExtractedBimModel` against the active currency-matched `cost_matrix`,
- * combining Tier 1 deterministic rules with optional Tier 2/3 AI archetype decisions, computing
- * exact `BigDecimal` amounts, wastage, non-BIM additional costings, and contingency.
+ * Prices an `ExtractedBimModel` against the active currency-matched `cost_matrix` using Jev
+ * System 1 archetype decisions (no Tier 1 keyword rule bypass), computing exact `BigDecimal`
+ * amounts, wastage, non-BIM additional costings, and contingency.
  */
 export function buildBimCostEstimateFromExtracted(input: {
 	readonly extracted: ExtractedBimModel;
@@ -449,27 +375,16 @@ export function buildBimCostEstimateFromExtracted(input: {
 		activeCurrencyMatrix.filter((r) => r.category === 'bim_asset').map((r) => [r.code, r] as const)
 	);
 
-	// Resolve one decision per unique archetype (deterministic first, then AI decision if valid)
+	// Resolve one System 1 decision per unique archetype (matched catalog rule or explicit unknown_unseen_catalog)
 	const archetypeById = new Map(
 		input.extracted.archetypes.map((a) => [a.archetype_id, a] as const)
 	);
-	const decisions = new Map<string, { rule: CostMatrixRule; decision: ArchetypeDecision }>();
+	const decisions = new Map<string, { rule: CostMatrixRule | null; decision: ArchetypeDecision }>();
 	for (const arch of input.extracted.archetypes) {
-		const deterministic = matchArchetypeDeterministic(arch, activeCurrencyMatrix);
-		if (deterministic !== null) {
-			const rule = ruleByCode.get(deterministic.matrix_code);
-			if (rule !== undefined) {
-				decisions.set(arch.archetype_id, { rule, decision: deterministic });
-				continue;
-			}
-		}
 		const ai = input.ai_decisions?.[arch.archetype_id];
-		if (ai !== undefined) {
-			const rule = ruleByCode.get(ai.matrix_code);
-			if (rule !== undefined) {
-				decisions.set(arch.archetype_id, { rule, decision: ai });
-			}
-		}
+		if (ai === undefined) continue;
+		const rule = ai.matrix_code !== null ? (ruleByCode.get(ai.matrix_code) ?? null) : null;
+		decisions.set(arch.archetype_id, { rule, decision: ai });
 	}
 
 	const grouped = new Map<
@@ -508,7 +423,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 
 		if (rule !== null) {
 			classifiedCount += bucket.element_count;
-			if (decision !== null && (decision.method === 'ai_sys1' || decision.method === 'ai_sys2')) {
+			if (decision !== null && decision.method === 'ai_sys1') {
 				aiClassifiedCount += bucket.element_count;
 			}
 		} else {
@@ -519,7 +434,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 		const qty = toDecimal(measureBucket(bucket, basis));
 		const key = rule
 			? `${rule.code}::${bucket.storey}`
-			: `UNMATCHED::${arch.ifc_class}::${arch.family}::${bucket.storey}`;
+			: `UNMATCHED::${arch.archetype_id}::${bucket.storey}`;
 
 		const rate = rule ? toDecimal(rule.unit_rate) : ZERO;
 		const status: 'matched' | 'unmatched' | 'rate_missing' =
@@ -533,18 +448,10 @@ export function buildBimCostEstimateFromExtracted(input: {
 				if (existing.express_ids.length >= 25) break;
 				existing.express_ids.push(eid);
 			}
-			// Keep AI provenance visible if any merged archetype was AI-matched
-			if (
-				existing.match_method === 'rule' &&
-				decision !== null &&
-				(decision.method === 'ai_sys1' || decision.method === 'ai_sys2')
-			) {
-				existing.match_method = decision.method;
-				existing.match_confidence = decision.confidence;
-				existing.match_reason = decision.reason;
-			}
 		} else {
-			const label = rule ? rule.name : `${arch.type_name ?? arch.family} (Unclassified)`;
+			const label = rule
+				? rule.name
+				: `${arch.type_name ?? arch.family} (${decision !== null ? 'Unknown / Unseen Catalog' : 'Unclassified'})`;
 			grouped.set(key, {
 				ifc_class: arch.ifc_class,
 				classification: label,
