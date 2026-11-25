@@ -8,12 +8,12 @@
 
 <AppShell
 	icon="lucide:table-2"
-	title={ctx.t('cost_matrix.title')}
-	description={ctx.t('cost_matrix.description')}
+	title={ctx.t('item_matrix.title')}
+	description={ctx.t('item_matrix.description')}
 >
 	<Table
 		{ctx}
-		of="cost_matrix"
+		of="item_matrix"
 		initial_filter={{ active: { eq: true } }}
 		order_by={{ code: 'asc' }}
 		page_size={100}
@@ -27,6 +27,7 @@
 			'unit',
 			'quantity_basis',
 			'unit_rate',
+			'carbon_factor',
 			'waste_factor_pct',
 			'active'
 		]}

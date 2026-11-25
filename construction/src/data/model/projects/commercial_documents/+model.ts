@@ -224,7 +224,7 @@ export default model('commercial_documents', {
 					: {}),
 				...(lineCodes.length > 0
 					? {
-							cost_matrix: {
+							item_matrix: {
 								where: { code: { in: lineCodes } },
 								fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 								limit: lineCodes.length + 10,
@@ -241,7 +241,7 @@ export default model('commercial_documents', {
 			});
 
 			const matrixByCode = new Map<string, CatalogItemRef>(
-				('cost_matrix' in lookup ? lookup.cost_matrix.rows : []).map((m) => [m.code, m] as const)
+				('item_matrix' in lookup ? lookup.item_matrix.rows : []).map((m) => [m.code, m] as const)
 			);
 			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>(
 				('cost_estimates' in lookup ? lookup.cost_estimates.rows : []).map(
@@ -376,7 +376,7 @@ export default model('commercial_documents', {
 				lineCodes.length === 0
 					? null
 					: yield* ctx.query({
-							cost_matrix: {
+							item_matrix: {
 								where: { code: { in: lineCodes } },
 								fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 								limit: lineCodes.length + 10,
@@ -390,7 +390,7 @@ export default model('commercial_documents', {
 							}
 						});
 			const matrixByCode = new Map<string, CatalogItemRef>(
-				(catalogLookup?.cost_matrix.rows ?? []).map((m) => [m.code, m] as const)
+				(catalogLookup?.item_matrix.rows ?? []).map((m) => [m.code, m] as const)
 			);
 			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>(
 				(catalogLookup?.cost_estimates.rows ?? []).map(

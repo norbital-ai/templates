@@ -35,9 +35,9 @@ const splitTokens = (raw: string | null | undefined): string[] =>
 		.filter(Boolean);
 
 /**
- * Bulk XLSX / CSV import and export for the quantifiable Costing Matrix.
+ * Bulk XLSX / CSV import and export for the Item Matrix.
  */
-export default sync('cost_matrix', 'matrix', {
+export default sync('item_matrix', 'matrix', {
 	with: 'file',
 	parser: ['xlsx', 'csv'],
 	schema: {
@@ -53,6 +53,7 @@ export default sync('cost_matrix', 'matrix', {
 		currency: { kind: 'currency', optional: true },
 		unit_rate: { kind: 'text' },
 		waste_factor_pct: { kind: 'text', optional: true },
+		carbon_factor: { kind: 'text', optional: true },
 		active: { kind: 'bool', optional: true }
 	},
 	read: function* ({ records }) {
@@ -72,13 +73,14 @@ export default sync('cost_matrix', 'matrix', {
 					currency: r.currency ?? ('SGD' as const),
 					unit_rate: r.unit_rate.trim() || '0',
 					waste_factor_pct: r.waste_factor_pct?.trim() || '0',
+					carbon_factor: r.carbon_factor?.trim() || '0',
 					active: r.active ?? true
 				}))
 		};
 	},
 	write: function* (_input, ctx) {
-		const { cost_matrix } = yield* ctx.query({
-			cost_matrix: {
+		const { item_matrix } = yield* ctx.query({
+			item_matrix: {
 				fields: [
 					'code',
 					'name',
@@ -92,13 +94,14 @@ export default sync('cost_matrix', 'matrix', {
 					'currency',
 					'unit_rate',
 					'waste_factor_pct',
+					'carbon_factor',
 					'active'
 				],
 				order_by: { code: 'asc' },
 				limit: 10000
 			}
 		});
-		return cost_matrix.rows.map((r) => ({
+		return item_matrix.rows.map((r) => ({
 			code: r.code,
 			name: r.name,
 			category: r.category,
@@ -111,6 +114,7 @@ export default sync('cost_matrix', 'matrix', {
 			currency: r.currency,
 			unit_rate: r.unit_rate,
 			waste_factor_pct: r.waste_factor_pct,
+			carbon_factor: r.carbon_factor,
 			active: r.active
 		}));
 	}

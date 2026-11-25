@@ -3,7 +3,7 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, RecordForm, type RecordView, Section } from '@norbital-ai/ui';
 
-	let { view, ctx }: { view: RecordView<'cost_matrix'>; ctx: PageContext } = $props();
+	let { view, ctx }: { view: RecordView<'item_matrix'>; ctx: PageContext } = $props();
 </script>
 
 <RecordForm {ctx} {view} subtitle={['category', 'discipline', 'unit']}>
@@ -25,6 +25,7 @@
 			<Field {ctx} name="currency" />
 			<Field {ctx} name="unit_rate" />
 			<Field {ctx} name="waste_factor_pct" />
+			<Field {ctx} name="carbon_factor" />
 			<Field {ctx} name="rate_basis" />
 			<Field {ctx} name="validity" />
 		</Grid>

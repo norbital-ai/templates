@@ -34,7 +34,7 @@ export type ResolveCatalogLinesResult =
 
 /**
  * Validates and normalizes commercial line items (contracts, variations, DO, Invoice, Claim) against the
- * Costing Matrix catalog and optional project BIM takeoff buckets so no free-text codes or units
+ * Item Matrix catalog and optional project BIM takeoff buckets so no free-text codes or units
  * can enter commercial records.
  */
 export function resolveCatalogLines(input: {

@@ -34,7 +34,7 @@
 					"inverse": "adhoc_costs",
 					"kind": "ref",
 					"on_delete": "restrict",
-					"to": "cost_matrix"
+					"to": "item_matrix"
 				},
 				"contact_id": {
 					"inverse": "adhoc_costs",
@@ -1022,6 +1022,11 @@
 					"default": 0,
 					"kind": "money"
 				},
+				"carbon_total": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
 				"classified_asset_count": {
 					"default": 0,
 					"kind": "int",
@@ -1139,171 +1144,6 @@
 						"project_id"
 					],
 					"name": "one_per_project"
-				}
-			]
-		},
-		"cost_matrix": {
-			"audit": true,
-			"check": {
-				"valid_rate": {
-					"unit_rate": {
-						"gte": 0
-					}
-				},
-				"valid_waste": {
-					"waste_factor_pct": {
-						"gte": 0,
-						"lte": 100
-					}
-				}
-			},
-			"fields": {
-				"active": {
-					"default": true,
-					"kind": "bool"
-				},
-				"category": {
-					"default": "bim_asset",
-					"kind": "enum",
-					"values": [
-						"bim_asset",
-						"additional_cost"
-					]
-				},
-				"code": {
-					"kind": "text"
-				},
-				"currency": {
-					"default": "SGD",
-					"kind": "currency"
-				},
-				"discipline": {
-					"default": "mep",
-					"kind": "enum",
-					"values": [
-						"architecture",
-						"structural",
-						"mep",
-						"civil",
-						"preliminaries",
-						"general"
-					]
-				},
-				"ifc_classes": {
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
-				"match_keywords": {
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
-				"name": {
-					"kind": "text"
-				},
-				"notes": {
-					"kind": "text",
-					"optional": true
-				},
-				"quantity_basis": {
-					"default": "count",
-					"kind": "enum",
-					"values": [
-						"count",
-						"length",
-						"area",
-						"volume",
-						"weight",
-						"lump_sum",
-						"pct_of_bim"
-					]
-				},
-				"rate_basis": {
-					"default": "benchmark",
-					"kind": "enum",
-					"values": [
-						"tender",
-						"benchmark",
-						"subcon_quote",
-						"assumption"
-					]
-				},
-				"trade_specialty": {
-					"default": "general",
-					"kind": "enum",
-					"values": [
-						"general",
-						"civil_earthworks",
-						"piling",
-						"structural",
-						"roofing",
-						"facade",
-						"waterproofing",
-						"flooring",
-						"finishing",
-						"mne",
-						"electrical",
-						"plumbing",
-						"hvac",
-						"fire_protection",
-						"elv_security",
-						"landscaping"
-					]
-				},
-				"unit": {
-					"default": "ea",
-					"kind": "enum",
-					"values": [
-						"ea",
-						"m",
-						"m2",
-						"m3",
-						"kg",
-						"ls",
-						"month",
-						"pct"
-					]
-				},
-				"unit_rate": {
-					"currency": "currency",
-					"default": 0,
-					"kind": "money"
-				},
-				"validity": {
-					"kind": "period",
-					"of": "date",
-					"optional": true
-				},
-				"waste_factor_pct": {
-					"default": 0,
-					"kind": "decimal",
-					"scale": 1
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"category",
-						"active"
-					]
-				}
-			],
-			"record_label": "record.code + ' · ' + record.name",
-			"search": {
-				"text": [
-					"code",
-					"name",
-					"notes"
-				]
-			},
-			"unique": [
-				{
-					"fields": [
-						"code"
-					],
-					"import_key": true,
-					"name": "code"
 				}
 			]
 		},
@@ -1505,6 +1345,181 @@
 					"description"
 				]
 			}
+		},
+		"item_matrix": {
+			"audit": true,
+			"check": {
+				"valid_carbon": {
+					"carbon_factor": {
+						"gte": 0
+					}
+				},
+				"valid_rate": {
+					"unit_rate": {
+						"gte": 0
+					}
+				},
+				"valid_waste": {
+					"waste_factor_pct": {
+						"gte": 0,
+						"lte": 100
+					}
+				}
+			},
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"carbon_factor": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 3
+				},
+				"category": {
+					"default": "bim_asset",
+					"kind": "enum",
+					"values": [
+						"bim_asset",
+						"additional_cost"
+					]
+				},
+				"code": {
+					"kind": "text"
+				},
+				"currency": {
+					"default": "SGD",
+					"kind": "currency"
+				},
+				"discipline": {
+					"default": "mep",
+					"kind": "enum",
+					"values": [
+						"architecture",
+						"structural",
+						"mep",
+						"civil",
+						"preliminaries",
+						"general"
+					]
+				},
+				"ifc_classes": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"match_keywords": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"quantity_basis": {
+					"default": "count",
+					"kind": "enum",
+					"values": [
+						"count",
+						"length",
+						"area",
+						"volume",
+						"weight",
+						"lump_sum",
+						"pct_of_bim"
+					]
+				},
+				"rate_basis": {
+					"default": "benchmark",
+					"kind": "enum",
+					"values": [
+						"tender",
+						"benchmark",
+						"subcon_quote",
+						"assumption"
+					]
+				},
+				"trade_specialty": {
+					"default": "general",
+					"kind": "enum",
+					"values": [
+						"general",
+						"civil_earthworks",
+						"piling",
+						"structural",
+						"roofing",
+						"facade",
+						"waterproofing",
+						"flooring",
+						"finishing",
+						"mne",
+						"electrical",
+						"plumbing",
+						"hvac",
+						"fire_protection",
+						"elv_security",
+						"landscaping"
+					]
+				},
+				"unit": {
+					"default": "ea",
+					"kind": "enum",
+					"values": [
+						"ea",
+						"m",
+						"m2",
+						"m3",
+						"kg",
+						"ls",
+						"month",
+						"pct"
+					]
+				},
+				"unit_rate": {
+					"currency": "currency",
+					"default": 0,
+					"kind": "money"
+				},
+				"validity": {
+					"kind": "period",
+					"of": "date",
+					"optional": true
+				},
+				"waste_factor_pct": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 1
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"category",
+						"active"
+					]
+				}
+			],
+			"record_label": "record.code + ' · ' + record.name",
+			"search": {
+				"text": [
+					"code",
+					"name",
+					"notes"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"code"
+					],
+					"import_key": true,
+					"name": "code"
+				}
+			]
 		},
 		"project_files": {
 			"audit": true,

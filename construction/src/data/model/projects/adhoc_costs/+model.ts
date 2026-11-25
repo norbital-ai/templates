@@ -36,16 +36,16 @@ function computeAmount(
 
 export default model('adhoc_costs', {
 	description:
-		'Catalog-backed non-BIM project ad-hoc and preliminary costs (mobilisation, craneage, hoarding, permits, testing & commissioning, temporary works, overheads). Every entry references an active non-BIM Costing Matrix catalog item so units and cashflow stay measurable.',
+		'Catalog-backed non-BIM project ad-hoc and preliminary costs (mobilisation, craneage, hoarding, permits, testing & commissioning, temporary works, overheads). Every entry references an active non-BIM Item Matrix catalog item so units and cashflow stay measurable.',
 	icon: 'lucide:receipt-text',
 	record_label:
 		"record.cost_number != null ? record.cost_number + ' · ' + record.title : record.title",
 	fields: {
 		cost_number: { kind: 'seq', pattern: 'ADH-{yyyy}-{000}', per: ['project_id'] },
-		/** Mandatory Costing Matrix catalog item (category = additional_cost) governing unit and currency. */
+		/** Mandatory Item Matrix catalog item (category = additional_cost) governing unit and currency. */
 		catalog_item_id: {
 			kind: 'ref',
-			to: 'cost_matrix',
+			to: 'item_matrix',
 			inverse: 'adhoc_costs',
 			on_delete: 'restrict'
 		},
@@ -102,13 +102,13 @@ export default model('adhoc_costs', {
 		transform: function* (changes, ctx) {
 			const catalogIds = [...new Set(changes.map(({ after }) => after.catalog_item_id))];
 			const catalogs = (yield* ctx.query({
-				cost_matrix: {
+				item_matrix: {
 					where: { id: { in: catalogIds } },
 					fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 					limit: catalogIds.length + 10,
 					as_of: 'act'
 				}
-			})).cost_matrix.rows;
+			})).item_matrix.rows;
 			const catalogById = new Map(catalogs.map((c) => [c.id, c] as const));
 
 			const out = [];
@@ -150,13 +150,13 @@ export default model('adhoc_costs', {
 				catalogIds.length === 0
 					? []
 					: (yield* ctx.query({
-							cost_matrix: {
+							item_matrix: {
 								where: { id: { in: catalogIds } },
 								fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 								limit: catalogIds.length + 10,
 								as_of: 'act'
 							}
-						})).cost_matrix.rows;
+						})).item_matrix.rows;
 			const catalogById = new Map(catalogs.map((c) => [c.id, c] as const));
 
 			const out = [];

@@ -172,7 +172,7 @@ export default model('contracts', {
 			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>();
 			if (codes.length > 0) {
 				const lookup = yield* ctx.query({
-					cost_matrix: {
+					item_matrix: {
 						where: { code: { in: codes } },
 						fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 						limit: codes.length + 10,
@@ -189,7 +189,7 @@ export default model('contracts', {
 							}
 						: {})
 				});
-				for (const m of lookup.cost_matrix.rows) matrixByCode.set(m.code, m);
+				for (const m of lookup.item_matrix.rows) matrixByCode.set(m.code, m);
 				if ('cost_estimates' in lookup) {
 					for (const est of lookup.cost_estimates.rows) {
 						bimByProject.set(est.project_id, est.bim_assets ?? []);
@@ -239,7 +239,7 @@ export default model('contracts', {
 			const bimByProject = new Map<string, readonly BimTakeoffBucketRef[]>();
 			if (codes.length > 0) {
 				const lookup = yield* ctx.query({
-					cost_matrix: {
+					item_matrix: {
 						where: { code: { in: codes } },
 						fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate', 'active'],
 						limit: codes.length + 10,
@@ -256,7 +256,7 @@ export default model('contracts', {
 							}
 						: {})
 				});
-				for (const m of lookup.cost_matrix.rows) matrixByCode.set(m.code, m);
+				for (const m of lookup.item_matrix.rows) matrixByCode.set(m.code, m);
 				if ('cost_estimates' in lookup) {
 					for (const est of lookup.cost_estimates.rows) {
 						bimByProject.set(est.project_id, est.bim_assets ?? []);

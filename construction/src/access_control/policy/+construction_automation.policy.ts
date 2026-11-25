@@ -16,7 +16,7 @@ export default policy({
 		issues: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		project_files: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		cost_estimates: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
-		cost_matrix: { outputs: { default: {} } },
+		item_matrix: { outputs: { default: {} } },
 		contacts: { outputs: { default: {} } },
 		communication_settings: { outputs: { default: {} } },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} },

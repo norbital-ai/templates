@@ -22,7 +22,7 @@
 
 	const catalogQuery = $derived(
 		ctx.query({
-			cost_matrix: {
+			item_matrix: {
 				where: { active: { eq: true }, category: { eq: 'additional_cost' } },
 				fields: ['code', 'name', 'unit', 'currency', 'unit_rate'],
 				limit: 500
@@ -31,7 +31,7 @@
 	);
 
 	const catalogById = $derived(
-		new Map((catalogQuery.current?.cost_matrix.rows ?? []).map((c) => [String(c.id), c] as const))
+		new Map((catalogQuery.current?.item_matrix.rows ?? []).map((c) => [String(c.id), c] as const))
 	);
 
 	function handleCatalogPick(
@@ -61,7 +61,7 @@
 {#snippet catalogEditor(field: FieldEditor)}
 	<Picker
 		{ctx}
-		of="cost_matrix"
+		of="item_matrix"
 		id={field.id}
 		where={{ active: { eq: true }, category: { eq: 'additional_cost' } }}
 		value={typeof field.value === 'string' ? field.value : null}

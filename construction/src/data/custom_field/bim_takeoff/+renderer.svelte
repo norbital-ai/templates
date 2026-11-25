@@ -106,6 +106,7 @@
 						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_waste')}</th>
 						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_rate')}</th>
 						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_amount')}</th>
+						<th class="py-1.5 pr-3 text-right whitespace-nowrap">{t('bim_costing.col_carbon')}</th>
 						<th class="py-1.5 whitespace-nowrap">{t('bim_costing.col_match')}</th>
 					</tr>
 				</thead>
@@ -146,6 +147,7 @@
 							<td class="py-2 pr-3 text-right font-medium tabular-nums whitespace-nowrap"
 								>{row.amount}</td
 							>
+							<td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap">{row.carbon}</td>
 							<td class="py-2 whitespace-nowrap">
 								<Badge variant={statusTone(row)} class="whitespace-nowrap">{statusLabel(row)}</Badge
 								>

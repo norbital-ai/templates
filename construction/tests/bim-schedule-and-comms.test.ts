@@ -91,7 +91,7 @@ const routeSystem1: Ai['Service']['ask'] = (request) =>
 		)
 	}));
 
-it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on System 1 decisions, and parses P6/MSP schedules', () => {
+it('parses IFC STEP assets, enforces currency-matched Item Matrix pricing on System 1 decisions, and parses P6/MSP schedules', () => {
 	const parsed = parseIfcStep(SAMPLE_IFC);
 	expect(parsed.schema).toBe('IFC2X3');
 	expect(parsed.storeys).toEqual(['Level 1', 'Roof']);
@@ -151,6 +151,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'SGD',
 				unit_rate: '10000.00',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -166,6 +167,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'USD',
 				unit_rate: '9999.00',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -181,6 +183,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'SGD',
 				unit_rate: '100.00',
 				waste_factor_pct: '10',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -196,6 +199,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'SGD',
 				unit_rate: '200.00',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -211,6 +215,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'SGD',
 				unit_rate: '10',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -226,6 +231,7 @@ it('parses IFC STEP assets, enforces currency-matched Costing Matrix pricing on 
 				currency: 'SGD',
 				unit_rate: '5000.00',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			}
 		]
@@ -372,7 +378,7 @@ it.effect(
 						]
 					}
 				],
-				'cost_matrix.create': [
+				'item_matrix.create': [
 					{
 						code: 'ELEC-PANEL',
 						name: '400A Panelboard',
@@ -635,18 +641,18 @@ it.effect(
 				)
 			).toHaveLength(0);
 
-			// 3. File syncs: cost_matrix.matrix CSV + tasks.schedule_file Primavera P6 (.xer)
+			// 3. File syncs: item_matrix.matrix CSV + tasks.schedule_file Primavera P6 (.xer)
 			const matrixCsv = [
 				'code,name,category,discipline,trade_specialty,unit,quantity_basis,currency,unit_rate,waste_factor_pct,ifc_classes,match_keywords,active',
 				'ROOF-SYN,Standing Seam Roof,bim_asset,architecture,roofing,m2,area,SGD,220.00,5.0,IFCROOF,roof,true'
 			].join('\n');
-			const matrixUpload = yield* admin.upload('cost_matrix.$import.matrix', {
+			const matrixUpload = yield* admin.upload('item_matrix.$import.matrix', {
 				name: 'matrix.csv',
 				mime: 'text/csv',
 				bytes: new TextEncoder().encode(matrixCsv)
 			});
 			if (matrixUpload.kind !== 'committed') throw new Error('Matrix CSV upload failed');
-			const matrixSync = yield* admin.sync_control('cost_matrix', 'matrix', {
+			const matrixSync = yield* admin.sync_control('item_matrix', 'matrix', {
 				mode: 'import',
 				file: matrixUpload.output.id
 			});
@@ -668,13 +674,13 @@ it.effect(
 
 			const importedMatrix = rowsOf(
 				yield* admin.query({
-					cost_matrix: {
+					item_matrix: {
 						where: { code: { eq: 'ROOF-SYN' } },
 						fields: ['code', 'currency', 'unit_rate', 'trade_specialty'],
 						limit: 5
 					}
 				}),
-				'cost_matrix'
+				'item_matrix'
 			);
 			expect(importedMatrix).toHaveLength(1);
 			expect(importedMatrix[0]?.['currency']).toBe('SGD');
@@ -1227,6 +1233,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 				currency: 'SGD',
 				unit_rate: '240.00',
 				waste_factor_pct: '5',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -1242,6 +1249,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 				currency: 'SGD',
 				unit_rate: '165.00',
 				waste_factor_pct: '3',
+				carbon_factor: '0',
 				active: true
 			},
 			{
@@ -1257,6 +1265,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 				currency: 'SGD',
 				unit_rate: '50.00',
 				waste_factor_pct: '0',
+				carbon_factor: '0',
 				active: true
 			}
 		],
@@ -1358,7 +1367,7 @@ it.effect(
 						currency: 'SGD'
 					}
 				],
-				'cost_matrix.create': [
+				'item_matrix.create': [
 					{
 						code: 'STR-RC-WALL',
 						name: 'Reinforced Concrete Shear Wall 200mm',

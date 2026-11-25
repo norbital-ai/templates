@@ -5,7 +5,7 @@ export default app({
 	description: 'app.configuration.description',
 	icon: 'lucide:settings-2',
 	pages: {
-		cost_matrix: { title: 'cost_matrix.title', icon: 'lucide:table-2' },
+		item_matrix: { title: 'item_matrix.title', icon: 'lucide:table-2' },
 		connections: { title: 'connections.title', icon: 'lucide:plug' }
 	}
 });

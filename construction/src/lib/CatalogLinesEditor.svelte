@@ -32,7 +32,7 @@
 
 	const catalogQuery = $derived(
 		ctx.query({
-			cost_matrix: {
+			item_matrix: {
 				where: { active: { eq: true } },
 				fields: ['code', 'name', 'category', 'unit', 'currency', 'unit_rate'],
 				order_by: { code: 'asc' },
@@ -163,8 +163,8 @@
 			}
 		}
 
-		// 3. Active Costing Matrix catalog (BIM asset catalog & Ad-hoc cost catalog)
-		for (const item of data.cost_matrix.rows) {
+		// 3. Active Item Matrix catalog (BIM asset catalog & Ad-hoc cost catalog)
+		for (const item of data.item_matrix.rows) {
 			const rate = moneyStr(toDecimal(item.unit_rate));
 			const isBim = item.category === 'bim_asset';
 			out.push({

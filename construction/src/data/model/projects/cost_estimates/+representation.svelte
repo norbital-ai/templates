@@ -17,7 +17,7 @@
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
-	import { toNumber } from '../../../../lib/commercial.js';
+	import { formatCarbon, toNumber } from '../../../../lib/commercial.js';
 	import {
 		extractBimFromFile,
 		extractBimFromUrl,
@@ -240,6 +240,12 @@
 						<span class="text-sm font-medium tabular-nums text-primary">
 							<Show {ctx} kind={money} value={record.total_estimate} row={record} />
 						</span>
+					</Stack>
+				{/if}
+				{#if toNumber(record.carbon_total) !== 0}
+					<Stack gap="xs">
+						<span class="text-meta">{t('bim_costing.carbon_total')}</span>
+						<span class="text-label tabular-nums">{formatCarbon(record.carbon_total)}</span>
 					</Stack>
 				{/if}
 			</Grid>

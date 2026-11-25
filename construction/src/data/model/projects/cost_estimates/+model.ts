@@ -14,7 +14,7 @@ const editableColumns = [
 
 export default model('cost_estimates', {
 	description:
-		'Single BIM cost estimation per project built by classifying IFC assets from the project BIM model against the Costing Matrix.',
+		'Single BIM cost estimation per project built by classifying IFC assets from the project BIM model against the Item Matrix.',
 	icon: 'lucide:calculator',
 	record_label:
 		"record.estimate_number != null ? record.estimate_number + ' · ' + record.title : record.title",
@@ -35,12 +35,14 @@ export default model('cost_estimates', {
 		bim_asset_count: { kind: 'int', min: 0, default: 0 },
 		classified_asset_count: { kind: 'int', min: 0, default: 0 },
 		unmatched_asset_count: { kind: 'int', min: 0, default: 0 },
-		/** Quantified BIM asset takeoff lines classified and cross-checked against `cost_matrix`. */
+		/** Quantified BIM asset takeoff lines classified and cross-checked against `item_matrix`. */
 		bim_assets: { kind: 'custom', of: 'bim_takeoff', optional: true },
 		bim_subtotal: { kind: 'money', currency: 'currency', default: 0 },
 		contingency_pct: { kind: 'decimal', scale: 2, default: 5 },
 		contingency_amount: { kind: 'money', currency: 'currency', default: 0 },
 		total_estimate: { kind: 'money', currency: 'currency', default: 0 },
+		/** Embodied carbon of the takeoff, in kgCO2e: each line's priced quantity × its item's carbon factor. */
+		carbon_total: { kind: 'decimal', scale: 2, default: 0 },
 		analyzed_at: { kind: 'instant', optional: true },
 		notes: { kind: 'text', format: 'markdown', optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'cost_estimates', owned: true }
@@ -80,7 +82,8 @@ export default model('cost_estimates', {
 					...(computed.bim_assets ? { bim_assets: computed.bim_assets } : {}),
 					bim_subtotal: computed.bim_subtotal,
 					contingency_amount: computed.contingency_amount,
-					total_estimate: computed.total_estimate
+					total_estimate: computed.total_estimate,
+					carbon_total: computed.carbon_total
 				};
 			});
 		}
@@ -103,7 +106,8 @@ export default model('cost_estimates', {
 					...(computed.bim_assets ? { bim_assets: computed.bim_assets } : {}),
 					bim_subtotal: computed.bim_subtotal,
 					contingency_amount: computed.contingency_amount,
-					total_estimate: computed.total_estimate
+					total_estimate: computed.total_estimate,
+					carbon_total: computed.carbon_total
 				};
 			});
 		}

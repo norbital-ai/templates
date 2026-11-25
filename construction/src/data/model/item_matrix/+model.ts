@@ -14,15 +14,16 @@ const columns = [
 	'currency',
 	'unit_rate',
 	'waste_factor_pct',
+	'carbon_factor',
 	'rate_basis',
 	'validity',
 	'active',
 	'notes'
 ] as const;
 
-export default model('cost_matrix', {
+export default model('item_matrix', {
 	description:
-		'Quantifiable Costing Matrix mapping IFC building/MEP asset classifications and non-BIM allowances to exact unit rates, measurement bases, and wastage factors.',
+		'Item Matrix mapping IFC building/MEP asset classifications and non-BIM allowances to exact unit rates, measurement bases, wastage factors, and embodied carbon factors.',
 	icon: 'lucide:table-2',
 	record_label: "record.code + ' · ' + record.name",
 	fields: {
@@ -61,6 +62,8 @@ export default model('cost_matrix', {
 		currency: { kind: 'currency', default: 'SGD' },
 		unit_rate: { kind: 'money', currency: 'currency', default: 0 },
 		waste_factor_pct: { kind: 'decimal', scale: 1, default: 0 },
+		/** Embodied carbon per one `unit` of the item, in kgCO2e. */
+		carbon_factor: { kind: 'decimal', scale: 3, default: 0 },
 		rate_basis: {
 			kind: 'enum',
 			values: ['tender', 'benchmark', 'subcon_quote', 'assumption'],
@@ -73,6 +76,7 @@ export default model('cost_matrix', {
 	constraints: {
 		code: { unique: ['code'], import_key: true },
 		valid_rate: { check: { unit_rate: { gte: 0 } } },
+		valid_carbon: { check: { carbon_factor: { gte: 0 } } },
 		valid_waste: { check: { waste_factor_pct: { gte: 0, lte: 100 } } }
 	},
 	indexes: {

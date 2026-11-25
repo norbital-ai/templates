@@ -50,7 +50,7 @@ const ZERO = BigDecimal.fromBigInt(0n);
 const HUNDRED = BigDecimal.fromBigInt(100n);
 const STREAM_CHUNK_BYTES = 2 * 1024 * 1024;
 
-export type CostMatrixRule = {
+export type MatrixItem = {
 	readonly code: string;
 	readonly name: string;
 	readonly category: 'bim_asset' | 'additional_cost';
@@ -64,6 +64,8 @@ export type CostMatrixRule = {
 	readonly currency: string;
 	readonly unit_rate: DecimalLike;
 	readonly waste_factor_pct: DecimalLike;
+	/** Embodied carbon per one `unit`, in kgCO2e. */
+	readonly carbon_factor: DecimalLike;
 	readonly active: boolean;
 	readonly notes?: string | null;
 };
@@ -94,6 +96,10 @@ export type BimTakeoffLine = {
 	readonly waste_factor_pct: string;
 	readonly priced_qty: string;
 	readonly amount: string;
+	/** kgCO2e per unit, copied from the matrix item. */
+	readonly carbon_factor: string;
+	/** `priced_qty` × `carbon_factor`, in kgCO2e. */
+	readonly carbon: string;
 	readonly status: 'matched' | 'unmatched' | 'rate_missing' | 'override';
 	readonly match_method?: MatchMethod | null;
 	readonly match_confidence?: number | null;
@@ -246,15 +252,15 @@ function archetypeHaystack(arch: BimArchetype): {
 }
 
 /**
- * Selects the top `maxCandidates` active `bim_asset` Costing Matrix rules most relevant to one or
+ * Selects the top `maxCandidates` active `bim_asset` Item Matrix rules most relevant to one or
  * more BIM archetypes, keeping Jev System 1 (`<= 255` choices) focused and fast even when a
- * workspace carries hundreds of Costing Matrix items.
+ * workspace carries hundreds of Item Matrix items.
  */
 export function rankCandidateMatrixRules(
 	archetypes: readonly BimArchetype[],
-	rules: readonly CostMatrixRule[],
+	rules: readonly MatrixItem[],
 	maxCandidates: number
-): readonly CostMatrixRule[] {
+): readonly MatrixItem[] {
 	const activeBim = rules.filter((r) => r.active && r.category === 'bim_asset');
 	if (activeBim.length <= maxCandidates) return activeBim;
 
@@ -334,7 +340,7 @@ export function describeArchetypeForAi(arch: BimArchetype): string {
 	return parts.join(', ');
 }
 
-function measureBucket(bucket: BimStoreyBucket, basis: CostMatrixRule['quantity_basis']): number {
+function measureBucket(bucket: BimStoreyBucket, basis: MatrixItem['quantity_basis']): number {
 	switch (basis) {
 		case 'length':
 			return bucket.length_m + Math.max(0, bucket.element_count - bucket.length_measured_count);
@@ -350,13 +356,13 @@ function measureBucket(bucket: BimStoreyBucket, basis: CostMatrixRule['quantity_
 }
 
 /**
- * Prices an `ExtractedBimModel` against the active currency-matched `cost_matrix` using Jev
+ * Prices an `ExtractedBimModel` against the active currency-matched `item_matrix` using Jev
  * System 1 archetype decisions (no Tier 1 keyword rule bypass), computing exact `BigDecimal`
  * amounts, wastage, and contingency for the project's single BIM cost estimate.
  */
 export function buildBimCostEstimateFromExtracted(input: {
 	readonly extracted: ExtractedBimModel;
-	readonly matrix: readonly CostMatrixRule[];
+	readonly matrix: readonly MatrixItem[];
 	readonly currency: string;
 	readonly ai_decisions?: Readonly<Record<string, ArchetypeDecision>>;
 	readonly contingency_pct?: DecimalLike;
@@ -373,7 +379,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 	const archetypeById = new Map(
 		input.extracted.archetypes.map((a) => [a.archetype_id, a] as const)
 	);
-	const decisions = new Map<string, { rule: CostMatrixRule | null; decision: ArchetypeDecision }>();
+	const decisions = new Map<string, { rule: MatrixItem | null; decision: ArchetypeDecision }>();
 	for (const arch of input.extracted.archetypes) {
 		const ai = input.ai_decisions?.[arch.archetype_id];
 		if (ai === undefined) continue;
@@ -395,6 +401,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 			matrix_code: string | null;
 			unit_rate: DecimalLike;
 			waste_factor_pct: DecimalLike;
+			carbon_factor: DecimalLike;
 			status: 'matched' | 'unmatched' | 'rate_missing';
 			match_method: MatchMethod | null;
 			match_confidence: number | null;
@@ -463,6 +470,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 				matrix_code: rule ? rule.code : null,
 				unit_rate: rule ? rule.unit_rate : '0',
 				waste_factor_pct: rule ? rule.waste_factor_pct : '0',
+				carbon_factor: rule ? rule.carbon_factor : '0',
 				status,
 				match_method: decision?.method ?? null,
 				match_confidence: decision !== null ? Math.round(decision.confidence * 100) / 100 : null,
@@ -486,6 +494,8 @@ export function buildBimCostEstimateFromExtracted(input: {
 				mode: 'half-from-zero'
 			});
 			bimSubtotal = BigDecimal.sum(bimSubtotal, amountDec);
+			const carbonFactor = BigDecimal.max(ZERO, toDecimal(g.carbon_factor));
+			const carbon = BigDecimal.multiply(pricedQtyDec, carbonFactor);
 			return {
 				asset_key: assetKey,
 				ifc_class: g.ifc_class,
@@ -501,6 +511,8 @@ export function buildBimCostEstimateFromExtracted(input: {
 				waste_factor_pct: formatTrimmed(wastePct, 1),
 				priced_qty: formatTrimmed(pricedQtyDec, 3),
 				amount: moneyStr(amountDec),
+				carbon_factor: formatTrimmed(carbonFactor, 3),
+				carbon: formatTrimmed(carbon, 2),
 				status: g.status,
 				...(g.match_method !== null ? { match_method: g.match_method } : {}),
 				...(g.match_confidence !== null ? { match_confidence: g.match_confidence } : {}),
@@ -527,12 +539,12 @@ export function buildBimCostEstimateFromExtracted(input: {
 }
 
 /**
- * Classifies every asset in a `ParsedIfcModel` against the quantifiable `cost_matrix`
+ * Classifies every asset in a `ParsedIfcModel` against the quantifiable `item_matrix`
  * (convenience wrapper over `extractFromParsedModel` + `buildBimCostEstimateFromExtracted`).
  */
 export function buildBimCostEstimate(input: {
 	readonly parsed: ParsedIfcModel;
-	readonly matrix: readonly CostMatrixRule[];
+	readonly matrix: readonly MatrixItem[];
 	readonly currency: string;
 	readonly ai_decisions?: Readonly<Record<string, ArchetypeDecision>>;
 	readonly contingency_pct?: DecimalLike;
@@ -546,7 +558,7 @@ export function buildBimCostEstimate(input: {
 	});
 }
 
-/** Recomputes totals on a `cost_estimates` row whenever `bim_assets` or `contingency_pct` change. */
+/** Recomputes money and embodied-carbon totals on a `cost_estimates` row whenever `bim_assets` or `contingency_pct` change. */
 export function recomputeCostEstimateTotals(input: {
 	readonly bim_assets: readonly BimTakeoffLine[] | null | undefined;
 	readonly contingency_pct: DecimalLike;
@@ -558,11 +570,13 @@ export function recomputeCostEstimateTotals(input: {
 	readonly bim_subtotal: string;
 	readonly contingency_amount: string;
 	readonly total_estimate: string;
+	readonly carbon_total: string;
 } {
 	let bimAssetCount = 0;
 	let classifiedCount = 0;
 	let unmatchedCount = 0;
 	let bimSubtotal = ZERO;
+	let carbonTotal = ZERO;
 
 	const normalizedBim = input.bim_assets?.map((line) => {
 		bimAssetCount += line.element_count;
@@ -583,13 +597,18 @@ export function recomputeCostEstimateTotals(input: {
 			mode: 'half-from-zero'
 		});
 		bimSubtotal = BigDecimal.sum(bimSubtotal, amount);
+		const carbonFactor = BigDecimal.max(ZERO, toDecimal(line.carbon_factor));
+		const carbon = BigDecimal.multiply(pricedQty, carbonFactor);
+		carbonTotal = BigDecimal.sum(carbonTotal, carbon);
 		return {
 			...line,
 			measured_qty: formatTrimmed(measured, 3),
 			waste_factor_pct: formatTrimmed(wastePct, 1),
 			priced_qty: formatTrimmed(pricedQty, 3),
 			unit_rate: moneyStr(rate),
-			amount: moneyStr(amount)
+			amount: moneyStr(amount),
+			carbon_factor: formatTrimmed(carbonFactor, 3),
+			carbon: formatTrimmed(carbon, 2)
 		};
 	});
 
@@ -604,6 +623,7 @@ export function recomputeCostEstimateTotals(input: {
 		bim_assets: normalizedBim ?? null,
 		bim_subtotal: moneyStr(bimSubtotal),
 		contingency_amount: moneyStr(contingencyAmount),
-		total_estimate: moneyStr(totalEstimate)
+		total_estimate: moneyStr(totalEstimate),
+		carbon_total: formatTrimmed(carbonTotal, 2)
 	};
 }

@@ -56,6 +56,7 @@
 		computeCatalogCashflowBreakdown,
 		computeProjectCashflow,
 		computeProjectCommercial,
+		formatCarbon,
 		toNumber
 	} from '../../../lib/commercial.js';
 	import ProjectTimeline from '../../../lib/ProjectTimeline.svelte';
@@ -109,6 +110,7 @@
 						'contingency_pct',
 						'contingency_amount',
 						'total_estimate',
+						'carbon_total',
 						'analyzed_at'
 					],
 					limit: 1
@@ -187,7 +189,7 @@
 					fields: ['status', 'title', 'unit', 'amount', 'catalog_item_id'],
 					limit: 300
 				},
-				cost_matrix: {
+				item_matrix: {
 					fields: ['code', 'name'],
 					limit: 500
 				}
@@ -486,10 +488,19 @@
 			: null
 	);
 
+	// The chart labels each series by its key, so the keys are the translated side names.
+	const cashflowMonths = $derived(
+		(cashflow?.months ?? []).map((m) => ({
+			month: m.month,
+			[t('cashflow.series_in')]: m.inflow,
+			[t('cashflow.series_out')]: m.outflow
+		}))
+	);
+
 	const catalogCashflow = $derived.by(() => {
 		const data = commercialQuery?.current;
 		if (!data || !record) return null;
-		const matrixById = new Map(data.cost_matrix.rows.map((m) => [m.id, m] as const));
+		const matrixById = new Map(data.item_matrix.rows.map((m) => [m.id, m] as const));
 		const activeBimAssets =
 			singleEstimate && singleEstimate.status !== 'void' ? (singleEstimate.bim_assets ?? []) : [];
 		return computeCatalogCashflowBreakdown({
@@ -1140,6 +1151,10 @@
 										<Show {ctx} kind={money} value={est.total_estimate} row={est} />
 									</span>
 								</Stack>
+								<Stack gap="xs">
+									<span class="text-meta">{t('bim_costing.carbon_total')}</span>
+									<span class="text-label tabular-nums">{formatCarbon(est.carbon_total)}</span>
+								</Stack>
 							</Grid>
 						</Stack>
 					</Surface>
@@ -1360,20 +1375,23 @@
 				{ctx}
 				of={catalogLedgerRows}
 				controlled
-				toolbar={{ title: t('commercial.tab_cashflow_ledger') }}
+				toolbar={{
+					title: t('commercial.tab_cashflow_ledger'),
+					description: t('cashflow.ledger_description')
+				}}
 				columns={[
 					{ field: 'code', label: t('commercial.col_code') },
 					{ field: 'name', label: t('commercial.col_item') },
 					{ field: 'source_label', label: t('priced_lines.col_source') },
 					{
-						field: 'estimated_budget',
-						label: t('commercial.col_budget'),
+						field: 'so_value',
+						label: t('commercial.col_so'),
 						kind: { kind: 'money', currency: 'currency' },
 						align: 'end'
 					},
 					{
-						field: 'so_value',
-						label: t('commercial.col_so'),
+						field: 'estimated_budget',
+						label: t('commercial.col_budget'),
 						kind: { kind: 'money', currency: 'currency' },
 						align: 'end'
 					},
@@ -1404,6 +1422,12 @@
 					{
 						field: 'budget_variance',
 						label: t('commercial.col_variance'),
+						kind: { kind: 'money', currency: 'currency' },
+						align: 'end'
+					},
+					{
+						field: 'net',
+						label: t('commercial.col_net'),
 						kind: { kind: 'money', currency: 'currency' },
 						align: 'end'
 					}
@@ -1454,7 +1478,10 @@
 						<Grid minimum="card" gap="md">
 							{#if toNumber(commercial.revised_contract_sum) !== 0}
 								<Stack gap="xs">
-									<span class="text-meta">{t('commercial.revised_contract_sum')}</span>
+									<Inline gap="xs" align="center">
+										<Badge variant="success">{t('cashflow.side_in')}</Badge>
+										<span class="text-meta">{t('commercial.revised_contract_sum')}</span>
+									</Inline>
 									<span class="text-label tabular-nums">
 										<Show
 											{ctx}
@@ -1467,7 +1494,10 @@
 							{/if}
 							{#if toNumber(commercial.committed_downstream) !== 0}
 								<Stack gap="xs">
-									<span class="text-meta">{t('commercial.committed_subcon')}</span>
+									<Inline gap="xs" align="center">
+										<Badge variant="warning">{t('cashflow.side_out')}</Badge>
+										<span class="text-meta">{t('commercial.committed_subcon')}</span>
+									</Inline>
 									<span class="text-label tabular-nums">
 										<Show
 											{ctx}
@@ -1480,7 +1510,10 @@
 							{/if}
 							{#if toNumber(cashflow.net_projected_cashflow) !== 0}
 								<Stack gap="xs">
-									<span class="text-meta">{t('cashflow.net_projected')}</span>
+									<Inline gap="xs" align="center">
+										<Badge variant="outline">{t('cashflow.side_net')}</Badge>
+										<span class="text-meta">{t('cashflow.net_projected')}</span>
+									</Inline>
 									<span class="text-label tabular-nums">
 										<Show
 											{ctx}
@@ -1493,7 +1526,10 @@
 							{/if}
 							{#if toNumber(commercial.projected_margin_pct) !== 0}
 								<Stack gap="xs">
-									<span class="text-meta">{t('commercial.projected_margin')}</span>
+									<Inline gap="xs" align="center">
+										<Badge variant="outline">{t('cashflow.side_net')}</Badge>
+										<span class="text-meta">{t('commercial.projected_margin')}</span>
+									</Inline>
 									<span class="text-label tabular-nums">
 										{t('commercial.margin_pct_value', { pct: commercial.projected_margin_pct })}
 									</span>
@@ -1513,10 +1549,9 @@
 					<Bound height="18rem">
 						<Chart
 							{ctx}
-							of="commercial_documents"
-							where={{ project_id: { eq: record.id }, status: { ne: 'cancelled' } }}
-							x="doc_type"
-							y="sum.net_amount"
+							of={cashflowMonths}
+							x="month"
+							y={[t('cashflow.series_in'), t('cashflow.series_out')]}
 							kind="bar"
 							title={t('cashflow.ledger_chart')}
 						/>

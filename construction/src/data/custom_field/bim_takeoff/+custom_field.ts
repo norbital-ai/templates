@@ -3,12 +3,12 @@ import { BigDecimal, Option } from 'effect';
 
 /**
  * Quantifiable BIM asset takeoff lines extracted from an IFC model and cross-checked against the
- * workspace Costing Matrix (`cost_matrix`). Each line tracks IFC class, classification, storey,
- * measured quantity, waste factor, matrix unit rate, computed amount, classification provenance
+ * workspace Item Matrix (`item_matrix`). Each line tracks IFC class, classification, storey,
+ * measured quantity, waste factor, matrix unit rate, computed amount, embodied carbon (kgCO2e), classification provenance
  * (deterministic rule vs System 1 / System 2 AI vs manual override), and sample expressIDs.
  */
 export default custom_field({
-	description: 'Quantified BIM asset classifications cross-checked against the costing matrix.',
+	description: 'Quantified BIM asset classifications cross-checked against the item matrix.',
 	shape: {
 		kind: 'object',
 		many: true,
@@ -27,6 +27,8 @@ export default custom_field({
 			waste_factor_pct: { kind: 'text' },
 			priced_qty: { kind: 'text' },
 			amount: { kind: 'text' },
+			carbon_factor: { kind: 'text' },
+			carbon: { kind: 'text' },
 			status: { kind: 'enum', values: ['matched', 'unmatched', 'rate_missing', 'override'] },
 			match_method: {
 				kind: 'enum',
@@ -44,9 +46,10 @@ export default custom_field({
 			if (
 				Option.isNone(BigDecimal.fromString(row.measured_qty.trim())) ||
 				Option.isNone(BigDecimal.fromString(row.unit_rate.trim())) ||
-				Option.isNone(BigDecimal.fromString(row.waste_factor_pct.trim()))
+				Option.isNone(BigDecimal.fromString(row.waste_factor_pct.trim())) ||
+				Option.isNone(BigDecimal.fromString(row.carbon_factor.trim()))
 			) {
-				return 'Measured quantity, unit rate, and waste factor must be valid decimal values.';
+				return 'Measured quantity, unit rate, waste factor, and carbon factor must be valid decimal values.';
 			}
 		}
 		return undefined;

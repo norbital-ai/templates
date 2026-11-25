@@ -336,7 +336,7 @@ it.effect(
 
 			// Commercial QS creates catalog items + contact + upstream & downstream contracts
 			const catalogCreate = yield* qs.act({
-				'cost_matrix.create': [
+				'item_matrix.create': [
 					{
 						code: 'ROOF-DECK',
 						name: 'Metal Roof Deck',
@@ -381,8 +381,8 @@ it.effect(
 				]
 			});
 			if (catalogCreate.kind !== 'committed') throw new Error('Catalog create failed');
-			const bimCatalogId = recordOf(catalogCreate.records, 'cost_matrix', 0).id;
-			const adhocCatalogId = recordOf(catalogCreate.records, 'cost_matrix', 2).id;
+			const bimCatalogId = recordOf(catalogCreate.records, 'item_matrix', 0).id;
+			const adhocCatalogId = recordOf(catalogCreate.records, 'item_matrix', 2).id;
 
 			// Free-text uncataloged commercial line code is refused cleanly
 			const uncatalogedContract = yield* qs

@@ -28,7 +28,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |                                     BROWSER CLIENT                                           |
 |                                                                                              |
 |  [Operations App]                         [Configuration App]                                |
-|   |- Projects -> Project Hub               |- Costing Matrix (+matrix.sync.ts XLSX/CSV)      |
+|   |- Projects -> Project Hub               |- Item Matrix (+matrix.sync.ts XLSX/CSV)      |
 |   |   |- Record (Project + Site)           |- Connections (MyConnections.svelte:             |
 |   |   |- Programme & Tasks (Timeline |     |   Personal WA/Email + Shared WA/Email/ACC +     |
 |   |   |   Table | Board icon toggle)       |   Personal Intake Rules)                        |
@@ -60,7 +60,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |     commercial_documents, adhoc_costs,          |- generate_payment_claim (mode: 'call' RPC) |
 |     tasks, issues, project_files                |- sync_messages (sys_message + */15 cron)   |
 |   Top-level: contacts, project_messages,        |- classify_messages (*/5 cron + scheduled)  |
-|     cost_matrix, communication_settings         |- reclassify_messages (contact/rule replay) |
+|     item_matrix, communication_settings         |- reclassify_messages (contact/rule replay) |
 |                                                 |- extract_project_updates (scheduled/manual)|
 |  [Pure Domain Libraries]                        |- daily_project_digest (cron 06:00 SGT)     |
 |   commercial.ts (BigDecimal), catalog-lines.ts,                                              |
@@ -68,7 +68,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |   schedule-parsers.ts (P6/MSP), zones.ts        |- tasks.schedule_file (.xer/.xml/.csv/.xlsx)|
 |                                                 |- tasks.autodesk_schedule (30min 2-way)     |
 |  [Access Control]                               |- project_files.autodesk_files (1h 2-way)   |
-|   4 Teams -> 5 Policies (rate: 600/min)         |- cost_matrix.matrix (.xlsx/.csv)           |
+|   4 Teams -> 5 Policies (rate: 600/min)         |- item_matrix.matrix (.xlsx/.csv)           |
 +----------------------+-----------------------+-----------------------+-----------------------+
                        |                       |                       |
                        v                       v                       v
@@ -87,7 +87,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 
 ## 2. Data Model & Ownership ER Diagram
 
-All 12 models live under `src/data/model/`. `projects` is the primary aggregate root with 7 owned children (`owned: true`, cascade delete). Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> cost_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted.
+All 12 models live under `src/data/model/`. `projects` is the primary aggregate root with 7 owned children (`owned: true`, cascade delete). Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> item_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted.
 
 ```text
                        +-------------------------------------------+
@@ -138,7 +138,7 @@ All 12 models live under `src/data/model/`. `projects` is the primary aggregate 
                             +-----------------------------+                              |
                                                                                          v
 +-------------------------+ +-------------------------+ +----------------------------------+
-|        contacts         | |    project_messages     | |           cost_matrix            |
+|        contacts         | |    project_messages     | |           item_matrix            |
 | full_name, company_name | | UQ (source_message)     | | UQ (code) [import_key]           |
 | role (9 enum values),   | | transport, direction,   | | category: bim_asset |            |
 | trade_specialty (16),   | | handle, detail,         | |           additional_cost        |
@@ -303,7 +303,7 @@ Each project owns **one** federated BIM model (`projects.bim_file`, up to 20 MiB
   3. analyze_bim_file Automation (concurrency: 1, policy: construction_automation)
      - Guard: refuse if existing estimate status not in ['draft', 'void']
      - No extracted_model -> ctx.files.get(bim_file, max: 4MiB) -> parseIfcStepToExtracted
-     - Filter active cost_matrix rules valid on ctx.today matching project.currency & bim_asset
+     - Filter active item_matrix rules valid on ctx.today matching project.currency & bim_asset
      - Stage 3a (Visual, <=120, 1 call/archetype):
          rankCandidateMatrixRules([arch], rules, 80) -> ctx.ai.sys_1.decide(views + attrs)
          Choice = rule.code (confidence >= 0.68) OR 'unknown_unseen_catalog'
@@ -324,7 +324,7 @@ Each project owns **one** federated BIM model (`projects.bim_file`, up to 20 MiB
 
 ### Candidate Ranking Scoring (`rankCandidateMatrixRules`)
 
-When a workspace carries more than 80 active currency-matched `bim_asset` rules in `cost_matrix`, candidate rules are scored per batch before passing choices to Jev System 1 (`<= 255` choice limit):
+When a workspace carries more than 80 active currency-matched `bim_asset` rules in `item_matrix`, candidate rules are scored per batch before passing choices to Jev System 1 (`<= 255` choice limit):
 
 - `+20` for each IFC class in `rule.ifc_classes` present in the archetype batch.
 - `+6` if `rule.discipline` matches the inferred discipline (`mep`, `structural`, `civil`, `architecture`).
@@ -385,11 +385,11 @@ When a workspace carries more than 80 active currency-matched `bim_asset` rules 
 
 ## 6. Catalog-Wired Pricing, 3-Way Matching & Commercial Cashflow Ledger
 
-All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commercial.ts`) with `half-from-zero` rounding (scale 2 for money, scale 3 for quantities, scale 1 for percentages). **Free-text money lines are prohibited** across commercial records: every line item in `contracts` and `commercial_documents` and every row in `adhoc_costs` must resolve against `cost_matrix` (and optionally a non-void project `cost_estimates.bim_assets` bucket).
+All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commercial.ts`) with `half-from-zero` rounding (scale 2 for money, scale 3 for quantities, scale 1 for percentages). **Free-text money lines are prohibited** across commercial records: every line item in `contracts` and `commercial_documents` and every row in `adhoc_costs` must resolve against `item_matrix` (and optionally a non-void project `cost_estimates.bim_assets` bucket).
 
 ```text
   +-----------------------------+          +-----------------------------------+
-  |  cost_matrix (active=true)  |          |  cost_estimates (status != void)  |
+  |  item_matrix (active=true)  |          |  cost_estimates (status != void)  |
   |  - category: bim_asset      |          |  - bim_assets[] (matched buckets  |
   |  - category: additional_cost|          |    with matrix_code, storey, qty, |
   +--------------+--------------+          |    unit_rate, sample_express_ids) |
@@ -402,11 +402,11 @@ All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commerci
   Picker priority:                                            Mandatory catalog_item_id
    1. Linked Parent Contract / PO lines (1-click Copy)        (on_delete: restrict)
    2. Project BIM Takeoff Assets (storey + expressIDs)        - Refuses if !active or
-   3. BIM Asset Catalog (cost_matrix)                           category != 'additional_cost'
-   4. Ad-hoc Cost Catalog (cost_matrix)                       - Locks currency & unit to catalog
+   3. BIM Asset Catalog (item_matrix)                           category != 'additional_cost'
+   4. Ad-hoc Cost Catalog (item_matrix)                       - Locks currency & unit to catalog
                                                               - Defaults unit_rate from catalog
   Server validation (contracts & commercial_documents):       - amount = round(qty * rate, 2)
-   - Query cost_matrix + cost_estimates (as_of: 'act')        - status -> incurred stamps date
+   - Query item_matrix + cost_estimates (as_of: 'act')        - status -> incurred stamps date
    - Unknown code -> refuse errors.line_requires_catalog
    - Canonicalizes source, unit, description, storey,
      bim_asset_key, bim_express_ids
@@ -456,6 +456,8 @@ All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commerci
      - `invoiced_outflow`: Non-cancelled outflow `invoice` / negated `credit_note` lines + `incurred` `adhoc_costs`.
      - `paid_outflow`: `paid` outflow `invoice` / negated `credit_note` lines + `incurred` `adhoc_costs`.
      - `budget_variance`: `estimated_budget - po_committed`.
+     - `net`: `so_value - po_committed`.
+   - Column labels state the side: `so_value` is money in from the client; budget, commitments, deliveries, billed and paid are money out to subcontractors, suppliers and ad-hoc costs; `net` is in less committed out.
 
 ---
 
@@ -599,7 +601,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 | construction_commercial                                                                      |
 |  projects: Update currency only (contract terms live on contracts)                           |
 |  Create/Update (all moves): contracts, commercial_documents, cost_estimates                  |
-|  CRUD: adhoc_costs, cost_matrix | Create/Update: contacts                                    |
+|  CRUD: adhoc_costs, item_matrix | Create/Update: contacts                                    |
 |  Automations: generate_payment_claim, analyze_bim_file, sweep_bim_costing                    |
 +----------------------------------------------------------------------------------------------+
 | construction_connections                                                                     |
@@ -610,12 +612,12 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 | construction_automation (system-only; bound to all 8 automations & both Autodesk ACC syncs)  |
 |  projects: read + update ['bim_summary', 'bim_costing_dirty']                                |
 |  contracts, commercial_documents, tasks, issues, project_files, cost_estimates: R/C/U (all)  |
-|  project_messages: R/C/U | adhoc_costs, cost_matrix, contacts, comm_settings, sys_*: read    |
+|  project_messages: R/C/U | adhoc_costs, item_matrix, contacts, comm_settings, sys_*: read    |
 +----------------------------------------------------------------------------------------------+
 ```
 
 ### Key Governance Details
 
 - **Client & Consultant Isolation (`client_consultant`):** Receives only `construction_read` — read-only access to the Operations app with zero write grants, zero Configuration app access, and zero visibility into `sys_integration` or `communication_settings`.
-- **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or costing matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks, BIM files, or site issues.
+- **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or item matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks, BIM files, or site issues.
 - **Personal Account Ownership (`construction_connections`):** Both policy verdicts and model transforms enforce that members can only create, edit, or delete their own `whatsapp` or `email` `sys_integration` accounts (`errors.personal_accounts_only`) and their own `communication_settings` row (`errors.intake_not_own`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are created by administrators.

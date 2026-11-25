@@ -42,6 +42,15 @@ export function formatTrimmed(value: BigDecimal.BigDecimal, scale: number): stri
 
 export const moneyStr = (value: BigDecimal.BigDecimal): string => formatFixed(value, 2);
 
+/** Embodied carbon for display: kgCO2e below one tonne, tCO2e from there up. */
+export function formatCarbon(kg: DecimalLike): string {
+	const value = toDecimal(kg);
+	const tonne = BigDecimal.fromBigInt(1000n);
+	return BigDecimal.isLessThan(value, tonne)
+		? `${formatTrimmed(value, 0)} kgCO₂e`
+		: `${formatTrimmed(divSafe(value, tonne), 1)} tCO₂e`;
+}
+
 const nonNegative = (value: BigDecimal.BigDecimal): BigDecimal.BigDecimal =>
 	BigDecimal.max(ZERO, value);
 
@@ -532,11 +541,13 @@ export type CatalogCashflowRow = {
 	readonly invoiced_outflow: string;
 	readonly paid_outflow: string;
 	readonly budget_variance: string;
+	/** Money in less money out committed: `so_value` − `po_committed`. */
+	readonly net: string;
 };
 
 /**
  * Reconciles BIM takeoff budget, catalog-backed ad-hoc costs, client contract value, subcontract commitments,
- * verified DO deliveries, and billed/paid outflows per Costing Matrix catalog code.
+ * verified DO deliveries, and billed/paid outflows per Item Matrix catalog code.
  */
 export function computeCatalogCashflowBreakdown(input: {
 	readonly bim_assets: readonly {
@@ -691,7 +702,8 @@ export function computeCatalogCashflowBreakdown(input: {
 				delivered_value: moneyStr(a.delivered),
 				invoiced_outflow: moneyStr(a.invoicedOut),
 				paid_outflow: moneyStr(a.paidOut),
-				budget_variance: moneyStr(variance)
+				budget_variance: moneyStr(variance),
+				net: moneyStr(BigDecimal.subtract(a.so, a.po))
 			};
 		});
 

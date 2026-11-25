@@ -10,7 +10,7 @@
  *   `IFCPOLYLOOP`, `IFCFACE`, etc.) on the entity name check without slicing arguments.
  * - Captures rich semantic metadata (IFC*TYPE names, PredefinedType, IFCMATERIAL layer/constituent
  *   sets, Uniclass/Uniformat/CP83 classification refs, and key Pset traits like FireRating,
- *   LoadBearing, IsExternal) needed for intelligent AI Costing Matrix classification.
+ *   LoadBearing, IsExternal) needed for intelligent AI Item Matrix classification.
  * - Aggregates tens or hundreds of thousands of instances into compact unique asset archetypes
  *   and `(archetype, storey)` quantity buckets (~30–180 KiB JSON even for 150k+ elements).
  */
