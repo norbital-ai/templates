@@ -343,6 +343,98 @@
 					"party": "EMPLOYEE",
 					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 					"conversion": "return ctx.entry.quantity;"
+				},
+				"STATUTORY_ADJUSTMENT": {
+					"references": [
+						{
+							"title": "CPF Act 1953 s.7 and Income Tax Act 1947 s.45: a statutory correction decided outside the run is deducted on this row."
+						}
+					],
+					"description": "Tax or a contribution under-deducted or decided outside the run, deducted from the employee's pay at the amount entered; the statutory schemes are not re-run.",
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "NET",
+					"direction": "DEDUCT",
+					"party": "EMPLOYEE",
+					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+					"conversion": "return ctx.entry.quantity;"
+				},
+				"AWS": {
+					"references": [
+						{
+							"title": "CPF Act 1953 First Schedule; CPF Board, What constitutes wages for CPF contributions — Annual Wage Supplement (13th-month payment) is an Additional Wage",
+							"locator": "First Schedule",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						},
+						{
+							"title": "MOM, Itemised pay slips — Annual Wage Supplement is itemised as an additional payment",
+							"url": "https://www.mom.gov.sg/employment-practices/salary/itemised-payslips",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"description": "Annual Wage Supplement (13th-month bonus); paid in full as keyed; Additional Wages for CPF and SDL.",
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "ADDITIONAL_WAGES",
+					"direction": "ADD",
+					"party": "EMPLOYEE",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;"
+				},
+				"COMMISSION": {
+					"references": [
+						{
+							"title": "CPF Act 1953 First Schedule; CPF Board, What constitutes wages for CPF contributions — monthly commission granted wholly or exclusively in respect of employment in that month is an Ordinary Wage",
+							"locator": "First Schedule",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"description": "Monthly sales or performance commission earned for the salary month; Ordinary Wages for CPF (subject to the monthly OW ceiling) and SDL.",
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "ORDINARY_WAGES",
+					"direction": "ADD",
+					"party": "EMPLOYEE",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;"
+				},
+				"COMMISSION_ADDITIONAL": {
+					"references": [
+						{
+							"title": "CPF Act 1953 First Schedule; CPF Board, What constitutes wages for CPF contributions — commission paid at intervals exceeding one month (quarterly, half-yearly or yearly) is an Additional Wage",
+							"locator": "First Schedule",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"description": "Non-monthly (quarterly, half-yearly or annual) commission paid at intervals exceeding one month; Additional Wages for CPF (subject to the yearly AW ceiling) and SDL.",
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "ADDITIONAL_WAGES",
+					"direction": "ADD",
+					"party": "EMPLOYEE",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;"
+				},
+				"COMMUNITY_CHEST": {
+					"references": [
+						{
+							"title": "Employment Act 1968 s.27(1)(i); CPF Board — voluntary monthly employee donation to Community Chest (SGSHARE) deducted with written consent and remitted together with monthly CPF contributions",
+							"locator": "EA s.27(1)(i)",
+							"url": "https://web.archive.org/web/20260829081617/https://sso.agc.gov.sg/Act/EmA1968",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"description": "Voluntary monthly donation to Community Chest (SGSHARE) deducted with the employee's written consent and remitted via CPF Board alongside CPF and SHG contributions.",
+					"lookup": {},
+					"off_cycle_eligible": false,
+					"subtotal": "NET",
+					"direction": "DEDUCT",
+					"party": "EMPLOYEE",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;"
 				}
 			},
 			"workplace_case_catalog": {
@@ -2491,13 +2583,61 @@
 					"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 					"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
 					"include_in_rate": false
+				},
+				"TRANSPORT_ALLOWANCE": {
+					"description": "Fixed monthly transport/travel allowance for a monthly-rated employee, prorated by the month's paid working days (EA s.20A). Excluded from Employment Act s.2(1) gross rate of pay (so omitted from exit leave encashment), but attracts CPF and SDL as Ordinary Wages (CPF Act First Schedule).",
+					"lookup": {},
+					"references": [
+						{
+							"title": "Employment Act 1968 s.2(1) (gross rate of pay excludes travel allowance); CPF Act 1953 s.2(1) and First Schedule (fixed monthly cash allowance is an Ordinary Wage)",
+							"locator": "EA s.2(1); CPFA s.2(1)",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"subtotal": "ORDINARY_WAGES",
+					"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
+					"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.TRANSPORT_ALLOWANCE.amount', 0);\nreturn (typeof amount === 'number' ? amount : get(amount, 'value', 0)) * ctx.paid_share;",
+					"include_in_rate": false
+				},
+				"MEAL_ALLOWANCE": {
+					"description": "Fixed monthly meal/food allowance for a monthly-rated employee, prorated by the month's paid working days (EA s.20A). Excluded from Employment Act s.2(1) gross rate of pay (so omitted from exit leave encashment), but attracts CPF and SDL as Ordinary Wages (CPF Act First Schedule).",
+					"lookup": {},
+					"references": [
+						{
+							"title": "Employment Act 1968 s.2(1) (gross rate of pay excludes food allowance); CPF Act 1953 s.2(1) and First Schedule (fixed monthly cash allowance is an Ordinary Wage)",
+							"locator": "EA s.2(1); CPFA s.2(1)",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"subtotal": "ORDINARY_WAGES",
+					"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
+					"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.MEAL_ALLOWANCE.amount', 0);\nreturn (typeof amount === 'number' ? amount : get(amount, 'value', 0)) * ctx.paid_share;",
+					"include_in_rate": false
+				},
+				"HOUSING_ALLOWANCE": {
+					"description": "Fixed monthly housing/accommodation allowance for a monthly-rated employee, prorated by the month's paid working days (EA s.20A). Excluded from Employment Act s.2(1) gross rate of pay (so omitted from exit leave encashment), but attracts CPF and SDL as Ordinary Wages (CPF Act First Schedule).",
+					"lookup": {},
+					"references": [
+						{
+							"title": "Employment Act 1968 s.2(1) (gross rate of pay excludes housing allowance); CPF Act 1953 s.2(1) and First Schedule (fixed monthly cash allowance is an Ordinary Wage)",
+							"locator": "EA s.2(1); CPFA s.2(1)",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"subtotal": "ORDINARY_WAGES",
+					"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
+					"conversion": "const amount = get(ctx.subject, 'employment.terms.allowances.HOUSING_ALLOWANCE.amount', 0);\nreturn (typeof amount === 'number' ? amount : get(amount, 'value', 0)) * ctx.paid_share;",
+					"include_in_rate": false
 				}
 			},
 			"statutory_contribution_catalog": {
 				"CPF_AW": {
 					"kind": "TAX",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"lookup": {},
 					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
 					"employee_amount": "return 0;",
@@ -2513,7 +2653,7 @@
 				"CPF": {
 					"kind": "CONTRIBUTION",
 					"depends_on": ["CPF_AW"],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"employer_cost_subtotal": "NET",
 					"lookup": {
 						"rounding_step": 1,
@@ -2553,7 +2693,7 @@
 				"CDAC": {
 					"kind": "CONTRIBUTION",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"lookup": {
 						"brackets": [
 							{
@@ -2579,7 +2719,7 @@
 						],
 						"races": ["CHINESE", "SINO INDIAN", "SINO JAPANESE", "SINO KADAZAN"]
 					},
-					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.CDAC.shg_opted_out', false) !== true;",
+					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nconst rawRace = String(get(facts, 'race', ''))\n\t.trim()\n\t.toUpperCase()\n\t.split(' ')\n\t.filter((part) => part !== '')\n\t.join(' ');\nconst primaryRace = rawRace.split('-')[0].split('/')[0].trim();\nconst raceMatched =\n\tctx.lookup.races.includes(rawRace) ||\n\tctx.lookup.races.includes(rawRace.split('-').join(' ')) ||\n\tctx.lookup.races.includes(primaryRace);\nif (!raceMatched) return false;\nreturn get(facts, 'statutory.CDAC.shg_opted_out', false) !== true;",
 					"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.statutory_parameters;\nconst declared = get(\n\tfacts,\n\t'statutory.CDAC.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('CDAC.employee');",
 					"employer_amount": "return 0;",
 					"references": [
@@ -2603,7 +2743,7 @@
 				"ECF": {
 					"kind": "CONTRIBUTION",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"lookup": {
 						"brackets": [
 							{
@@ -2645,7 +2785,7 @@
 							"ANGLO THAI"
 						]
 					},
-					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.ECF.shg_opted_out', false) !== true;",
+					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nconst rawRace = String(get(facts, 'race', ''))\n\t.trim()\n\t.toUpperCase()\n\t.split(' ')\n\t.filter((part) => part !== '')\n\t.join(' ');\nconst primaryRace = rawRace.split('-')[0].split('/')[0].trim();\nconst raceMatched =\n\tctx.lookup.races.includes(rawRace) ||\n\tctx.lookup.races.includes(rawRace.split('-').join(' ')) ||\n\tctx.lookup.races.includes(primaryRace);\nif (!raceMatched) return false;\nreturn get(facts, 'statutory.ECF.shg_opted_out', false) !== true;",
 					"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.statutory_parameters;\nconst declared = get(\n\tfacts,\n\t'statutory.ECF.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('ECF.employee');",
 					"employer_amount": "return 0;",
 					"references": [
@@ -2669,7 +2809,7 @@
 				"MBMF": {
 					"kind": "CONTRIBUTION",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"lookup": {
 						"brackets": [
 							{
@@ -2704,9 +2844,10 @@
 								"up_to": null,
 								"amount": 26
 							}
-						]
+						],
+						"exempt_institutions": ["ITE", "NP", "NTU", "NUS", "NYP", "RP", "SMU", "SP", "TP"]
 					},
-					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\n// MUIS student-pay basis: the approved-training exemption carries no MOE-subsidy condition (unlike CPF and the other funds)\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nif (get(facts, 'religion', '') !== 'ISLAM') return false;\nreturn get(facts, 'statutory.MBMF.shg_opted_out', false) !== true;",
+					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\n// MUIS student-pay basis: approved training at one of the nine named local institutions (no MOE-subsidy condition)\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nconst institution = get(facts, 'student_training_institution', '');\nif (approved && ctx.lookup.exempt_institutions.includes(institution)) return false;\nconst religion = String(get(facts, 'religion', '')).trim().toUpperCase();\nif (religion !== 'ISLAM' && religion !== 'MUSLIM') return false;\nreturn get(facts, 'statutory.MBMF.shg_opted_out', false) !== true;",
 					"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.statutory_parameters;\nconst declared = get(\n\tfacts,\n\t'statutory.MBMF.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('MBMF.employee');",
 					"employer_amount": "return 0;",
 					"references": [
@@ -2731,7 +2872,7 @@
 				"SINDA": {
 					"kind": "CONTRIBUTION",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"lookup": {
 						"brackets": [
 							{
@@ -2797,10 +2938,12 @@
 							"MAHRATTA",
 							"MANIPURI",
 							"MARATHI",
-							"RAJPUT"
+							"RAJPUT",
+							"GOANESE",
+							"TELEGU"
 						]
 					},
-					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nconst terms = ctx.subject.employment.terms;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(terms, 'residency_status', '');\nconst pass = get(terms, 'work_authorisation_category', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status) && pass !== 'EMPLOYMENT_PASS') return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.SINDA.shg_opted_out', false) !== true;",
+					"eligibility": "const facts = ctx.subject.employment.statutory_parameters;\nconst terms = ctx.subject.employment.terms;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(terms, 'residency_status', '');\nconst pass = get(terms, 'work_authorisation_category', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status) && pass !== 'EMPLOYMENT_PASS') return false;\nconst rawRace = String(get(facts, 'race', ''))\n\t.trim()\n\t.toUpperCase()\n\t.split(' ')\n\t.filter((part) => part !== '')\n\t.join(' ');\nconst primaryRace = rawRace.split('-')[0].split('/')[0].trim();\nconst raceMatched =\n\tctx.lookup.races.includes(rawRace) ||\n\tctx.lookup.races.includes(rawRace.split('-').join(' ')) ||\n\tctx.lookup.races.includes(primaryRace);\nif (!raceMatched) return false;\nreturn get(facts, 'statutory.SINDA.shg_opted_out', false) !== true;",
 					"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.statutory_parameters;\nconst declared = get(\n\tfacts,\n\t'statutory.SINDA.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('SINDA.employee');",
 					"employer_amount": "return 0;",
 					"references": [
@@ -2824,7 +2967,7 @@
 				"SDL": {
 					"kind": "CONTRIBUTION",
 					"depends_on": [],
-					"subtotal": "GROSS",
+					"subtotal": "NET",
 					"employer_cost_subtotal": "NET",
 					"lookup": {
 						"exempt_institutions": [
@@ -2863,7 +3006,7 @@
 				"WHT_NR_DIRECTOR": {
 					"kind": "TAX",
 					"depends_on": [],
-					"subtotal": "DIRECTOR_FEES",
+					"subtotal": "NET",
 					"lookup": {
 						"rate": 0.24
 					},
@@ -2884,7 +3027,7 @@
 				"WHT_NR_ENTERTAINER": {
 					"kind": "TAX",
 					"depends_on": [],
-					"subtotal": "ENTERTAINER_FEES",
+					"subtotal": "NET",
 					"lookup": {
 						"rate": 0.15
 					},
@@ -3132,12 +3275,20 @@
 									}
 								}
 							}
+						},
+						"payslip": {
+							"where": {
+								"payroll_run_id": {
+									"eq": "ctx.entry.id"
+								}
+							},
+							"fields": ["breakdown"]
 						}
 					},
-					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst shgCodes = ['CDAC', 'ECF', 'MBMF', 'SINDA'];\nconst hasShg = get(ctx, 'reads.payslip', []).some((slip) =>\n\tget(slip, 'breakdown.statutory', []).some((s) => shgCodes.includes(s.code) && Number(get(s, 'employee', 0)) > 0)\n);\nif (!hasShg) return false;\nconst key = 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "const run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id\n}];"
+					"effects": "const run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nconst shgCodes = ['CDAC', 'ECF', 'MBMF', 'SINDA'];\nconst total = sum(\n\tget(ctx, 'reads.payslip', []).flatMap((slip) =>\n\t\tget(slip, 'breakdown.statutory', [])\n\t\t\t.filter((s) => shgCodes.includes(s.code))\n\t\t\t.map((s) => Number(get(s, 'employee', 0)))\n\t)\n);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title + ': $' + round(total, 0.01, 'HALF_UP').toFixed(2),\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id\n}];"
 				},
 				"NR_DIRECTOR_WITHHOLDING": {
 					"description": "Raise the IR37 withholding task on non-resident director fees.",
@@ -3294,7 +3445,7 @@
 							}
 						}
 					},
-					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employment', []).filter((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\tif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))) return false;\n\treturn get(contract, 'terms.work_authorisation_category', '') !== 'EMPLOYMENT_PASS';\n});\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+					"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employment', []).filter((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\tif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))) return false;\n\treturn ['WORK_PERMIT', 'S_PASS'].includes(get(contract, 'terms.work_authorisation_category', ''));\n});\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 					"target_collection": "obligation",
 					"target_action": "create",
 					"effects": "const run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(run.salary_coverage.to, ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:FOREIGN_WORKER_LEVY:' + run.id\n}];"
@@ -5280,7 +5431,7 @@
 						},
 						"annual_due_month": "12",
 						"service_months": 12,
-						"bonus_codes": ["bonus"],
+						"bonus_codes": ["bonus", "AWS"],
 						"weeks_per_year": 52
 					},
 					"references": [
@@ -6394,11 +6545,11 @@
 					},
 					"race": {
 						"type": "string",
-						"description": "The employee’s race as CPF records it (for example CHINESE, MALAY, INDIAN, EURASIAN): the CDAC, ECF and SINDA self-help-group funds read it (CPF Act 1953 s.77(1)(p))."
+						"description": "Employee's race as recorded on NRIC/FIN (case-insensitive; e.g. CHINESE, MALAY, INDIAN, EURASIAN, or a double-barrelled NRIC race such as CHINESE-INDIAN whose first component determines the Self-Help Group under CPF Board rules)."
 					},
 					"religion": {
 						"type": "string",
-						"description": "The employee’s religion (ISLAM for a Muslim employee): the Mosque Building and Mendaki Fund (MBMF) reads it."
+						"description": "Employee's religion (case-insensitive; ISLAM or MUSLIM triggers Mosque Building and Mendaki Fund [MBMF] deduction unless opted out)."
 					},
 					"annual_leave_unpaid_service_policy": {
 						"type": "string",
@@ -6667,6 +6818,35 @@
 					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 					"conversion": "return ctx.entry.quantity;",
 					"description": "Official per-diem reimbursement."
+				},
+				"DENTAL_CLAIM": {
+					"lookup": {},
+					"references": [
+						{
+							"title": "CPF Act 1953 s.2(1); CPF (Wages — Excluded Payments) Notification 2019 — medical and dental expense reimbursement is not wages",
+							"locator": "s.2(1)",
+							"url": "https://web.archive.org/web/20250402130904/https://sso.agc.gov.sg//Act/CPFA1953",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"subtotal": "NET",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;",
+					"description": "Dental expense reimbursement; excluded from CPF and SDL wages."
+				},
+				"EXPENSE_REIMBURSEMENT": {
+					"lookup": {},
+					"references": [
+						{
+							"title": "CPF Board, What constitutes wages for CPF contributions — reimbursement of actual official business or transport expenses incurred in the course of employment is not wages",
+							"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"subtotal": "NET",
+					"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+					"conversion": "return ctx.entry.quantity;",
+					"description": "Official business, transport or client expense reimbursement up to actual expenditure; excluded from CPF and SDL wages."
 				}
 			},
 			"loan_catalog": {
@@ -7386,6 +7566,19 @@
 					],
 					"description": "Hospitalisation leave for a work injury, paid as WICA medical leave wages.",
 					"paid_share": "// WICA 2019 First Schedule para.4(1): full average monthly earnings for up to 60 days of hospitalisation leave, two-thirds from day 61, to one year from the accident.\nif (ctx.event != null && calendar_completed_months(ctx.event.on, ctx.as_of) >= ctx.lookup.max_months) return 0;\nreturn ctx.used < ctx.lookup.days ? 1 : 2 / 3;"
+				},
+				"COMPASSIONATE_LEAVE": {
+					"lookup": {
+						"unit": "DAY"
+					},
+					"references": [
+						{
+							"title": "Employment Act 1968 (no statutory compassionate leave — contractual employer grant, paid as a normal day)",
+							"url": "https://web.archive.org/web/20260829081617/https://sso.agc.gov.sg/Act/EmA1968",
+							"effective_from": "2025-12-01"
+						}
+					],
+					"description": "Compassionate leave granted by the employer (for example on bereavement); a day taken is paid as a normal day. The Employment Act 1968 prescribes no statutory entitlement, so days follow company policy."
 				}
 			}
 		}

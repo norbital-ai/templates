@@ -275,7 +275,8 @@ export const statutory_contribution_catalog = {
 	MBMF: Schema.Struct({
 		brackets: Schema.Array(
 			Schema.Struct({ amount: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
-		)
+		),
+		exempt_institutions: Schema.Array(Schema.String)
 	}),
 	MEDICAL: Schema.Struct({
 		regions: Schema.Array(

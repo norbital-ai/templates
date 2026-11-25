@@ -384,6 +384,21 @@
 						}
 					],
 					"description": "No-pay leave settled by hand: gives back unpaid days an earlier payslip already took, so no day is deducted twice."
+				},
+				"STATUTORY_ADJUSTMENT": {
+					"references": [
+						{
+							"title": "EPF Act 1991, SOCSO Act 1969, EIS Act 2017 and Income Tax Act 1967: a statutory correction decided outside the run is deducted on this row."
+						}
+					],
+					"description": "Tax or a contribution under-deducted or decided outside the run, deducted from the employee's pay at the amount entered; the statutory schemes are not re-run.",
+					"lookup": {},
+					"off_cycle_eligible": true,
+					"subtotal": "NET",
+					"direction": "DEDUCT",
+					"party": "EMPLOYEE",
+					"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+					"conversion": "return ctx.entry.quantity;"
 				}
 			},
 			"workplace_case_catalog": {

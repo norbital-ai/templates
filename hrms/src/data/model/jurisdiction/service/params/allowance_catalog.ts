@@ -75,6 +75,7 @@ export const allowance_catalog = {
 	transport: Schema.Struct({
 		allowance: Schema.String
 	}),
+	TRANSPORT_ALLOWANCE: Schema.Struct({}),
 	TRAVEL_ALLOWANCE: Schema.Struct({}),
 	WORK_EXPENSE_ALLOWANCE: Schema.Struct({})
 } as const;
