@@ -1,6 +1,6 @@
 # Fleet Management — Workflows & Architecture
 
-![Fleet Management live map and active dispatch](screenshots/application.webp)
+![Fleet Management live map and alerts](screenshots/application.webp)
 
 ## Operational workflows
 
@@ -13,9 +13,10 @@
   - Live `max_speed_recorded_kmh` and `eta_minutes` updates to any active `routes` record for that vehicle.
   - `fleet_alerts.create` rows whenever vehicle or active geofence speed limits are exceeded (`overspeed`) or an alerted geofence boundary is crossed (`geofence_enter` / `geofence_exit`).
 
-### 2. Live Fleet Map & Dispatch (`Live Map`, `Vehicles`, `Routes`)
+### 2. Live Fleet Map, Live Alerts & Day-to-Day Schedule (`Live Map`, `Vehicles`, `Routes`)
 
-- **Live Map** pairs the native `<Map>` (all vehicles with GPS fixes, live status, speed badges, and route trajectory overlays from current GPS fix to active destination) with the active dispatch `<Table>` and one-click toolbar actions (`Refresh live ETAs`, `Check transponder health`).
+- **Live Map** pairs the native `<Map>` (all vehicles with GPS fixes, hover tooltips that dismiss on pointer leave, click-to-expand detail cards, live status/speed badges, and active route trajectory overlays) with the **Live Alerts** exception panel and one-click toolbar actions (`Refresh live ETAs`, `Check transponder health`).
+- **Routes** provides a **Day-to-Day Schedule** view alongside the full route ledger so dispatchers can step through daily planned and active dispatches cleanly.
 - Opening any vehicle opens a 5-tab **Vehicle Hub** (`Record`, `Live Position`, `Telemetry Stream`, `Routes`, `Alerts`) hosted natively by `RecordShell` with scoped creation sheets for child routes and alerts.
 - Dispatching a route (`dispatched` / `en_route`) automatically writes `destination_label` and `destination_location` onto the assigned vehicle (and clears the previous vehicle on reassignment); completing or cancelling clears them and sets the vehicle back to `available`.
 

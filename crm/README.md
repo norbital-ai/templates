@@ -7,6 +7,24 @@ agreements. Leads and clients share one deduplicated company table, multi-channe
 recorded meetings flow into a unified activity timeline, AI extracts structured job scopes from filed
 evidence, and versioned agreement templates preview, send and archive as PDFs.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Professional Services
+- **Bolt capabilities:** `data_modeling`, `channel_integrations`, `third_party_saas`, `ai_classification`, `browser_automation`, `document_intelligence`, `scheduled_automations`
+
+## How it works
+
+1. **Lead capture & web research:** Leads arrive manually, via CSV/XLSX or through the `apollo`
+   integration, deduplicated on company key and contact email. `research_lead` runs cited web research
+   (`ctx.web`), matches against `products` and proposes outreach cohorts.
+2. **Multi-channel intake & meetings:** Personal WhatsApp/Gmail, workspace channels (Telegram, Slack,
+   Discord, Email) and two-way `google_calendar` sync feed `activities`. `classify_messages` and
+   `activities_file` route PIC messages onto jobs; `transcribe_meeting` and `meeting_notes` turn meeting
+   audio into diarized minutes and follow-ups.
+3. **Scope synthesis & commitment gating:** `update_requirements` distills structured job scopes from
+   filed evidence without overwriting human edits. Versioned `template_documents` render to A4 PDFs, and
+   a company converts from lead to client only when a signed commitment document is filed.
+
 ## Key capabilities
 
 - **Unified lead-to-client directory:** Import leads by hand, CSV/XLSX or **Apollo** (deduplicated by

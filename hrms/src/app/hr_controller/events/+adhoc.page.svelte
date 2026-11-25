@@ -16,27 +16,22 @@
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 
-	const held = $derived.by(() =>
-		scope.id == null
-			? null
-			: ctx.query({
-					employment: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employee_number', 'entity_id', 'effective_range'],
-						limit: 10000
-					},
-					adhoc_catalog_entry: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_code', 'quantity', 'description', 'incurred_on'],
-						limit: 10000
-					}
-				})
-	);
-
 	const importAdhoc = entryImport(ctx, scope, laws, {
 		action: 'adhoc_catalog_entry.create',
 		label: () => ctx.t('app.adhoc.title'),
-		held: () => held?.current,
+		load: (companyId) =>
+			ctx.query({
+				employment: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['employee_number', 'entity_id', 'effective_range'],
+					limit: 10000
+				},
+				adhoc_catalog_entry: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['employment_id', 'catalog_code', 'quantity', 'description', 'incurred_on'],
+					limit: 10000
+				}
+			}),
 		build: (grids, current, party) => {
 			const parsed = parseAdhocSheet(grids, {
 				...party,

@@ -10,6 +10,14 @@
 		"apps": 4,
 		"automations": 17
 	},
+	"capabilities": [
+		"data_modeling",
+		"complex_business_logic",
+		"workflow_approvals",
+		"document_intelligence",
+		"third_party_saas",
+		"scheduled_automations"
+	],
 	"tags": ["Treasury", "Purchasing", "Bank facilities"],
 	"name_zh": "资金管理",
 	"description_zh": "银行额度、提款、费用、供应商、采购订单与月末结算工作区。",

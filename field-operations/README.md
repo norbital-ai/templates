@@ -7,6 +7,23 @@ assign contractors, monitor progress on a live kanban and site map, and verify p
 through deterministic integrity checks and bounded AI suspicion reviews — without cluttering dispatch
 with costing or payroll.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Construction
+- **Bolt capabilities:** `data_modeling`, `channel_integrations`, `ai_classification`, `complex_files`, `gps_geospatial`, `scheduled_automations`
+
+## How it works
+
+1. **Daily dispatch:** Controllers create or bulk-import dated `job_assignments` linked to geolocated
+   `sites`, assigning contractors on the dispatch board and site map.
+2. **Field reporting:** Contractors update only their own jobs in the Contractor Workspace or through the
+   paired WhatsApp Envoy (`field_ops_whatsapp`), attaching site completion photos.
+3. **Deterministic forensics → AI review:** Every uploaded `photo_evidence` row fires
+   `inspect_photo_evidence` (SHA-256 exact hash, 256-bit PDQ perceptual near-duplicate hash, scene vector
+   and EXIF GPS distance check). `review_job_assignment_suspicion` evaluates the facts and visual sample,
+   writes an immutable `suspicion_reviews` row, and opens `suspicious_activity_logs` only controllers can
+   see and resolve.
+
 ## Key capabilities
 
 - **Daily dispatch board & route planner:** Group a day's jobs into **Pending** and **Completed** beside

@@ -6,6 +6,11 @@
 薪酬核算和法定义务。司法辖区的法律是按日期生效的数据；引擎不包含任何
 特定国家的计算。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 人力资源（Human Resources）
+- **Bolt 能力标签：** `data_modeling`、`complex_business_logic`、`workflow_approvals`、`browser_automation`、`document_intelligence`、`self_service_portal`、`scheduled_automations`
+
 ## 应用与角色
 
 人事主管组持有主管应用；员工自助是独立的应用。考勤终端是无界面外框的考勤设备。

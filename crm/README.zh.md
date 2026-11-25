@@ -4,6 +4,17 @@
 
 覆盖从线索获取到签约交付全周期的公司 CRM 与项目运营工作区。线索与客户共用同一张去重公司表，多渠道客户消息与会议录音汇入统一活动时间线，AI 自动从归档证据中提取项目工作范围（SOW），可版本化的文档模板支持实时预览、PDF 发送与签署归档。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 专业服务（Professional Services）
+- **Bolt 能力标签：** `data_modeling`、`channel_integrations`、`third_party_saas`、`ai_classification`、`browser_automation`、`document_intelligence`、`scheduled_automations`
+
+## 系统运作方式
+
+1. **线索入库与网络调研：** 支持手动、CSV/XLSX 与 `apollo` 集成导入并自动去重；`research_lead` 通过 `ctx.web` 执行带出处的网络调研并匹配产品目录与外联批次。
+2. **多渠道消息与会议沉淀：** WhatsApp、邮件、Telegram、Slack、Discord 与 `google_calendar` 双向同步汇入统一 `activities`；`classify_messages` 自动路由至项目，`transcribe_meeting` 与 `meeting_notes` 生成会议纪要与跟进事项。
+3. **需求提取与签约闭环：** `update_requirements` 从归档证据中提炼结构化工作范围并保留人工修订；版本化 `template_documents` 生成 PDF 协议，上传签署件后线索正式转为客户。
+
 ## 核心能力
 
 - **统一线索与客户目录：** 支持手动录入、CSV/XLSX 或 **Apollo** 导入线索（按域名、标准化公司键与联系人邮箱去重）；新线索自动执行带引用的网络调研、匹配产品目录、生成潜在项目提案并编入 Apollo 外联批次。

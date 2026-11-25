@@ -10,6 +10,7 @@
 		"apps": 0,
 		"automations": 0
 	},
+	"capabilities": ["data_modeling"],
 	"tags": ["Starter", "Blank"],
 	"name_zh": "空白",
 	"description_zh": "一个带有单一笔记模型的空白工作区，可由工作区智能体继续构建。",

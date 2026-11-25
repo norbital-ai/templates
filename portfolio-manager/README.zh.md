@@ -4,6 +4,17 @@
 
 面向家族办公室与财务团队的投资组合追踪与每日研究工作区。统一记录股票、基金、现金与授信额度，自动计算行情估值与技术信号，并由定时智能体每日生成带完整出处引用的组合日报——汇总净资产、资产配置、币种敞口及逐仓建议。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 金融（Finance）
+- **Bolt 能力标签：** `data_modeling`、`browser_automation`、`ai_classification`、`document_intelligence`、`channel_integrations`、`scheduled_automations`
+
+## 系统运作方式
+
+1. **多币种持仓台账：** `holding` 统一管理证券、基金、现金与负值授信额度，并存放行情估值、技术指标与研究来源。
+2. **每日自动行情与浏览器调研：** `portfolio_agent` 每日 08:00 拉取报价与汇率、计算技术信号，并通过 `ctx.web` / `ctx.browser` 浏览市场与重仓资讯，生成严格带出处的逐仓建议。
+3. **日报归档与多渠道投递：** 写入不可变当日 `report`，通过 `ctx.convert.record` 渲染 PDF 并投递至应用内与已部署使者的 WhatsApp、Telegram、Slack 或 Discord 频道。
+
 ## 核心能力
 
 - **统一多币种持仓簿：** 在同一 `holding` 表中管理证券、基金、现金（`cash`）与授信融资（`loan`，由 `loan_is_owed` 约束 ≤ 0），有行情标的按实时报价与当日汇率估值（自动处理伦敦便士及贵金属期货），无报价标的按最新对账单快照与应计利息估值。

@@ -10,7 +10,12 @@ let chosen = $state<Id<'entity'> | null>(null);
  */
 export function companyScope(ctx: Pick<PageContext, 'query'>) {
 	const entities = $derived(
-		ctx.query({ entity: { fields: ['code', 'name', 'settings_code'], order_by: { name: 'asc' } } })
+		ctx.query({
+			entity: {
+				fields: ['code', 'name', 'settings_code', 'time_zone'],
+				order_by: { name: 'asc' }
+			}
+		})
 	);
 	const list = $derived(entities.current?.entity.rows ?? []);
 	const company = $derived(list.find((row) => row.id === chosen) ?? list[0] ?? null);

@@ -4,6 +4,17 @@
 
 面向各类上门与预约制服务企业的通用预约、人员排程与路径感知调度工作区——适用于暖通空调、水电维修、保洁、汽车美容、设备维保或任意按次排程的现场服务团队。客户可通过在线门户或调度台预约服务，系统结合技能、工作时段与路程缓冲自动匹配服务人员，并全程跟踪班前确认、实时 GPS 预计到达与完工记录。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 现场与本地服务（Field & Local Services）
+- **Bolt 能力标签：** `data_modeling`、`self_service_portal`、`gps_geospatial`、`third_party_saas`、`channel_integrations`、`scheduled_automations`
+
+## 系统运作方式
+
+1. **门户或调度台下单：** 客户通过手机号验证的自助预约门户（或由调度员代录）选择运行时配置的 `services` 与每 15 分钟刷新的可用档期 `openings`。
+2. **路程感知派单：** `bookings_book` 与 `appointments_recommend` 综合人员技能、班次、休假与 `google_routes` 车程缓存（含直线回退）按最小绕行与负载均衡自动匹配服务人员。
+3. **班前确认、实时到达预警与通知：** `shift_watch` 推送出勤确认，`eta_watch` 监测实时 GPS 标记 `eta_risk` 并支持调度一键改派，`deliver_notices` 通过 WhatsApp 与邮件同步客户通知。
+
 ## 核心能力
 
 - **客户自助预约门户：** 支持嵌入官网的手机号验证门户（**在线预约**与**我的预约**），涵盖地址定位、重复周期、偏好人员选择、实时档期询价、`.ics` 日历导出及自动成单或转调度跟进。

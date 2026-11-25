@@ -10,6 +10,14 @@
 		"apps": 1,
 		"automations": 1
 	},
+	"capabilities": [
+		"data_modeling",
+		"browser_automation",
+		"ai_classification",
+		"document_intelligence",
+		"channel_integrations",
+		"scheduled_automations"
+	],
 	"tags": ["Finance", "Portfolio", "Family office"],
 	"name_zh": "投资组合管理",
 	"description_zh": "面向家族办公室的投资组合：每个持仓及其研究，以及由智能体每日撰写的报告，包含总额、配置和逐仓建议。",

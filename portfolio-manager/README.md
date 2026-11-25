@@ -7,6 +7,23 @@ position — equities, funds, cash balances and credit facilities — alongside 
 technical signals and thesis notes, while a scheduled agent publishes one cited daily report with totals,
 allocation, FX exposure and a decision call for every holding.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Finance
+- **Bolt capabilities:** `data_modeling`, `browser_automation`, `ai_classification`, `document_intelligence`, `channel_integrations`, `scheduled_automations`
+
+## How it works
+
+1. **Multi-currency book:** Every security, fund, cash balance and credit facility lives in `holding`,
+   storing cost, quantity, user-supplied research sources and agent-calculated prices and technical
+   signals.
+2. **Daily scheduled research & valuation:** At 08:00 daily (or on demand), `portfolio_agent` fetches
+   market quotes and FX rates, computes technical indicators, browses market and top-holding news via
+   `ctx.web` / `ctx.browser`, and synthesizes strictly cited per-position calls.
+3. **Immutable report & PDF delivery:** The agent writes one immutable daily `report`, renders its
+   record view to PDF (`ctx.convert.record`) and delivers it in-app and across deployed Envoy chat
+   channels (`whatsapp`, `telegram`, `slack`, `discord`).
+
 ## Key capabilities
 
 - **Unified multi-currency book:** Track securities, funds, cash balances and credit facilities (`loan`,

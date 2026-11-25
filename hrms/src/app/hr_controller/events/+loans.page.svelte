@@ -19,32 +19,29 @@
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 
-	const held = $derived.by(() =>
-		scope.id == null
-			? null
-			: ctx.query({
-					employment: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employee_number', 'entity_id', 'effective_range'],
-						limit: 10000
-					},
-					loan_catalog_entry: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_code', 'quantity', 'repayment_period'],
-						limit: 10000
-					},
-					loan_catalog_entry_repayment: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'loan_id', 'amount', 'paid_on'],
-						limit: 10000
-					}
-				})
-	);
+	const loadHeld = (companyId: NonNullable<typeof scope.id>) =>
+		ctx.query({
+			employment: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['employee_number', 'entity_id', 'effective_range'],
+				limit: 10000
+			},
+			loan_catalog_entry: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['employment_id', 'catalog_code', 'quantity', 'repayment_period'],
+				limit: 10000
+			},
+			loan_catalog_entry_repayment: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['employment_id', 'loan_id', 'amount', 'paid_on'],
+				limit: 10000
+			}
+		});
 
 	const importLoans = entryImport(ctx, scope, laws, {
 		action: 'loan_catalog_entry.create',
 		label: () => ctx.t('app.loans.title'),
-		held: () => held?.current,
+		load: loadHeld,
 		build: (grids, current, party) => {
 			const parsed = parseLoanSheet(grids, {
 				...party,
@@ -72,7 +69,7 @@
 	const importRepayments = entryImport(ctx, scope, laws, {
 		action: 'loan_catalog_entry_repayment.create',
 		label: () => ctx.t('v2.repayments'),
-		held: () => held?.current,
+		load: loadHeld,
 		build: (grids, current, party) => {
 			const parsed = parseRepaymentSheet(grids, {
 				...party,

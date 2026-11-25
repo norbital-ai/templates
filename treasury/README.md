@@ -7,6 +7,25 @@ bank credit facilities. Treasury tracks bank limits, sublimits and fee rules, mo
 earmark to settlement with AI-read bank advices, manages FX hedges and fixings, and coordinates purchase
 orders, supplier invoices and facility requisitions with Purchasing and Finance.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Finance
+- **Bolt capabilities:** `data_modeling`, `complex_business_logic`, `workflow_approvals`, `document_intelligence`, `third_party_saas`, `scheduled_automations`
+
+## How it works
+
+1. **Facility hierarchy & drawdown ledger:** Banks, facilities, sublimits and fee rules define available
+   headroom and day-count accrual rules (`Actual/360`, `Actual/365`). Purchasing raises `purchase_order`
+   rows and facility packs (`facility_form_pack` via `pdf-lib`); Finance earmarks and tracks `drawdown`
+   obligations from `earmark → applied → active → settled`.
+2. **Document intelligence & native approval:** Uploading bank advices, supplier POs, facility forms or
+   FX term sheets runs OCR/AI extraction automations (`bank_document_read`, `purchase_order_read`,
+   `fx_document_read`), verifies interest and debit arithmetic, and submits advice updates through native
+   `ctx.approve` Treasury review.
+3. **Daily FX feed, alerts & month-end close:** `fx_rates_fetch` pulls weekday official rates via
+   `mas_rates`, `daily_alerts` runs at 08:00 for maturities and headroom breaches, and `month_end_lock`
+   freezes historical snapshots so closed periods never drift.
+
 ## Key capabilities
 
 - **Bank facilities & drawdown lifecycle:** Manage multi-bank credit limits, sublimits, fee rules,

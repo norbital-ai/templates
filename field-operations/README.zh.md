@@ -4,6 +4,17 @@
 
 专注于现场派单与施工证据核验的作业工作区。调度员可按日排布现场任务、指派承包商、通过看板与地图掌握进度，并借助确定性照片完整性校验与有界 AI 存疑复核验证完工凭证，而不混杂造价或薪酬模块。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 建筑施工（Construction）
+- **Bolt 能力标签：** `data_modeling`、`channel_integrations`、`ai_classification`、`complex_files`、`gps_geospatial`、`scheduled_automations`
+
+## 系统运作方式
+
+1. **按日派单：** 调度员在地图与看板中创建或批量导入关联定位站点（`sites`）的 `job_assignments` 并指派承包商。
+2. **现场回报：** 承包商在受角色隔离的承包商工作台或 WhatsApp 使者（`field_ops_whatsapp`）提交完工进度与现场照片。
+3. **确定性取证与 AI 复核：** 每张照片上传即触发 `inspect_photo_evidence`（SHA-256、256 位 PDQ 感知哈希、场景向量与 EXIF 定位校验）；`review_job_assignment_suspicion` 综合证据写入不可变 `suspicion_reviews`，仅由调度员可见并处置 `suspicious_activity_logs`。
+
 ## 核心能力
 
 - **按日调度看板与路线规划：** 将当日任务按**待处理**与**已完成**分组并与现场地图并排呈现，支持最多 5 个站点排线并跳转 Google 地图导航，支持 CSV/XLSX 工单批量校验与去重导入。

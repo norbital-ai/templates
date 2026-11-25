@@ -10,6 +10,15 @@
 		"apps": 2,
 		"automations": 21
 	},
+	"capabilities": [
+		"data_modeling",
+		"channel_integrations",
+		"third_party_saas",
+		"ai_classification",
+		"browser_automation",
+		"document_intelligence",
+		"scheduled_automations"
+	],
 	"tags": ["CRM", "Leads", "Activities", "Documents", "Personal connections"],
 	"name_zh": "客户关系管理",
 	"description_zh": "公司客户关系管理：从线索到客户的一张公司表（CSV 与 Apollo 导入，按域名和邮箱去重）、带出处的网络调研、自动挑选的外联与按销售节奏推送的跟进；来自 WhatsApp、邮件、Telegram、Slack 和 Discord 的联系人消息汇成一条活动时间线，图片和语音读入每个项目的需求与决定；可配置的文档、外联邮件与调研提示模板目录并生成 PDF；会议录音转写与纪要；与 Google 日历双向同步。",

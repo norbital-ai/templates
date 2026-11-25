@@ -4,6 +4,17 @@
 
 以订单为核心的 B2B 贸易、分销与制造商务工作区，内置与**金蝶 KIS** SQL Server 的双向集成。报价单、销售订单与采购订单共用同一协议模型：确认同步后原位成为受管 ERP 订单，出库单、发票、收付款、批次库存、信用拦截与毛利分析均直接关联回原订单。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 贸易与制造（Trading & Manufacturing）
+- **Bolt 能力标签：** `data_modeling`、`complex_business_logic`、`workflow_approvals`、`third_party_saas`、`document_intelligence`、`scheduled_automations`
+
+## 系统运作方式
+
+1. **统一订单与底价审批：** 销售与采购在 `orders` + `order_lines` 录入报价、销单与采单；低于 `pricing_floors` 的明细或草稿删除通过原生 `ctx.approve` 自动流转商务经理审批。
+2. **金蝶 KIS 双向同步：** 20 余个 `+kingdee.sync.ts` 同步管道按有界行版本窗口拉取基础资料、批次库存、出库、发票、收付款与账龄，并将确认订单通过幂等出箱写回 ERP。
+3. **信用放行、合同与毛利：** 信用拦截出库单经 `商务经理 → 财务` 两级审批并核验金蝶 `t_Log`；支持中英双语 PDF 合同生成，并按批次加权成本与 CEL 佣金规则自动核算毛利与提成。
+
 ## 核心能力
 
 - **统一销售与采购协议：** 在同一模型（`orders` + `order_lines`）管理内外贸报价、销售与采购订单，支持底价校验与经理审批、中英双语可定制 PDF 合同预览与批量导出（含可选自定义打印 HTML 与电子公章），以及 CSV/XLSX 订单导入导出。

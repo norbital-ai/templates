@@ -5,6 +5,20 @@
 A minimal Norbital Bolt starter with one read-only example model (`notes`), no apps and no automations —
 designed as a clean foundation for building a custom workspace from scratch or with the workspace agent.
 
+## Industry & Bolt capabilities
+
+- **Industry:** General
+- **Bolt capabilities:** `data_modeling`
+
+## How it works
+
+1. **Minimal declarative shell:** `src/+workspace.ts` declares the workspace time zone and locale, while
+   `src/data/model/notes/+model.ts` demonstrates one minimal Bolt record model.
+2. **Filesystem conventions:** Add models under `src/data/model/`, apps under `src/app/`, policies under
+   `src/access_control/`, automations under `src/automation/` and custom connectors under `src/integration/`.
+3. **Interactive authoring:** Run `bolt check` and `bolt build` locally or author changes directly through
+   Norbius in Workspace Studio.
+
 ## Apps and roles
 
 None. `src/+workspace.ts` declares only the time zone and locale, with no authored teams or policies. The

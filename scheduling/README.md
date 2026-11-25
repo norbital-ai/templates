@@ -8,6 +8,23 @@ delivering scheduled services on site. Customers book online or through the desk
 matched automatically with travel and turnaround buffers, and operations tracks every shift through live
 GPS ETAs and completion.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Field & Local Services
+- **Bolt capabilities:** `data_modeling`, `self_service_portal`, `gps_geospatial`, `third_party_saas`, `channel_integrations`, `scheduled_automations`
+
+## How it works
+
+1. **Self-service or desk intake:** Customers book recurring or one-off services through the phone-verified
+   **Booking portal** (or operations books on their behalf), choosing from runtime-configured `services`
+   and live slot `openings` refreshed every 15 minutes (`publish_openings`).
+2. **Travel-aware matching:** `bookings_book` and `appointments_recommend` score active `providers` by
+   skills, working hours, time off, driving time (`google_routes` cache with Haversine fallback) and
+   turnaround buffer, minimizing added detour and balancing weekly load.
+3. **Shift check-ins, live ETAs & notices:** `shift_watch` prompts pre-shift confirmations, `eta_watch`
+   tracks live provider GPS positions to flag `eta_risk` for one-click dispatch recovery, and
+   `deliver_notices` sends WhatsApp and synced email updates.
+
 ## Key capabilities
 
 - **Self-service booking portal:** Embeddable phone-verified customer portal (`Book online` and

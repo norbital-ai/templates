@@ -2,7 +2,7 @@
 	"schema_version": 1,
 	"key": "norbital_hr",
 	"name": "HRMS",
-	"industry": "Human resources",
+	"industry": "Human Resources",
 	"description": "Multi-country HR and payroll: law as dated changes, an append-only ledger, a linear subtotal chain and statutory obligations.",
 	"visibility": "public",
 	"counts": {
@@ -10,6 +10,15 @@
 		"apps": 9,
 		"automations": 6
 	},
+	"capabilities": [
+		"data_modeling",
+		"complex_business_logic",
+		"workflow_approvals",
+		"browser_automation",
+		"document_intelligence",
+		"self_service_portal",
+		"scheduled_automations"
+	],
 	"tags": ["HR", "Finance", "Approvals"],
 	"name_zh": "人力资源管理",
 	"description_zh": "多国人力资源与薪酬管理：按日期变更的法律、只追加的流水账、线性小计链和法定合规义务。",

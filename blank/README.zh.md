@@ -4,6 +4,17 @@
 
 极简 Norbital Bolt 起步模板：仅含一个只读示例模型（`notes`），不含预置应用与自动化，适合从零手写或由工作区智能体快速搭建定制工作区。
 
+## 行业与 Bolt 核心能力
+
+- **适用行业：** 通用（General）
+- **Bolt 能力标签：** `data_modeling`
+
+## 系统运作方式
+
+1. **极简声明骨架：** `src/+workspace.ts` 声明时区与语言区域，`src/data/model/notes/+model.ts` 给出最小数据模型示例。
+2. **约定式扩展：** 按 Bolt 目录约定陆续添加模型、应用页面、团队策略、自动化与外部集成。
+3. **本地或 Studio 构建：** 通过 `bolt check` / `bolt build` 校验构建，或由工作区智能体在 Workspace Studio 直接生成与发布。
+
 ## 应用与角色
 
 无。`src/+workspace.ts` 仅声明时区与语言区域，未预置团队或策略；添加首个应用后，工作区外壳会自动提供默认主题与导航。

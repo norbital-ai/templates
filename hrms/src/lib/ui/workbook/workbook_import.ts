@@ -173,7 +173,9 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 	options: {
 		readonly action: A extends Callable ? A : Callable;
 		readonly recordLabel: string;
-		buildPayload(grids: WorkbookGrids): ActInput<A>;
+		buildPayload(
+			grids: WorkbookGrids
+		): ActInput<A> | Effect.Effect<ActInput<A>, WorkbookImportError>;
 		importedCount?(payload: ActInput<A>, output: ActOutput<A>): number;
 		overwritten?(output: ActOutput<A>): readonly string[];
 		warnings?(output: ActOutput<A>): readonly string[];
@@ -186,7 +188,9 @@ export const runWorkbookImport = Effect.fnUntraced(function* <const A extends st
 			Effect.try({
 				try: () => options.buildPayload(grids),
 				catch: workbookImportError
-			}),
+			}).pipe(
+				Effect.flatMap((result) => (Effect.isEffect(result) ? result : Effect.succeed(result)))
+			),
 		submit: (payload) =>
 			Effect.gen(function* () {
 				const outcome = yield* ctx.act(only(options.action, payload));

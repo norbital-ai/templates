@@ -6,6 +6,11 @@ A multi-country HR and payroll workspace for employment records, rosters, leave,
 payroll runs and statutory obligations. Jurisdiction law is dated data; the engine holds no
 country-specific calculation.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Human Resources
+- **Bolt capabilities:** `data_modeling`, `complex_business_logic`, `workflow_approvals`, `browser_automation`, `document_intelligence`, `self_service_portal`, `scheduled_automations`
+
 ## Apps and roles
 
 The HR controller group holds the controller apps; employee self-service is its own app. The kiosk

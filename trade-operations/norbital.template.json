@@ -2,7 +2,7 @@
 	"schema_version": 1,
 	"key": "norbital_trade_operations",
 	"name": "Trade Operations",
-	"industry": "Trading and Manufacturing",
+	"industry": "Trading & Manufacturing",
 	"description": "Order-centered B2B trading, distribution and manufacturing commerce with approved pricing and contracts, purchasing, fulfillment and ERP-synced models.",
 	"visibility": "public",
 	"counts": {
@@ -10,6 +10,14 @@
 		"apps": 6,
 		"automations": 1
 	},
+	"capabilities": [
+		"data_modeling",
+		"complex_business_logic",
+		"workflow_approvals",
+		"third_party_saas",
+		"document_intelligence",
+		"scheduled_automations"
+	],
 	"tags": ["Trading", "Manufacturing", "Distribution", "Sales", "Procurement"],
 	"name_zh": "贸易运营",
 	"description_zh": "以订单为核心的商务工作区，审批合同与定价，整合采购、履约和ERP同步模型。",

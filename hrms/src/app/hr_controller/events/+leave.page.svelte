@@ -15,28 +15,23 @@
 	const laws = pageLaws(ctx, () => (scope.company == null ? [] : [scope.company.settings_code]));
 	let creating = $state(false);
 
-	const held = $derived.by(() =>
-		scope.id == null
-			? null
-			: ctx.query({
-					employment: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employee_number', 'entity_id', 'effective_range'],
-						limit: 10000
-					},
-					leave_catalog_entry: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_code'],
-						limit: 10000,
-						leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
-					}
-				})
-	);
-
 	const importLeave = entryImport(ctx, scope, laws, {
 		action: 'leave_catalog_entry.create',
 		label: () => ctx.t('app.leave.title'),
-		held: () => held?.current,
+		load: (companyId) =>
+			ctx.query({
+				employment: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['employee_number', 'entity_id', 'effective_range'],
+					limit: 10000
+				},
+				leave_catalog_entry: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['employment_id', 'catalog_code'],
+					limit: 10000,
+					leave_catalog_entry_day: { fields: ['incurred_on', 'part'] }
+				}
+			}),
 		build: (grids, current, party) => {
 			const parsed = parseLeaveSheet(grids, {
 				...party,

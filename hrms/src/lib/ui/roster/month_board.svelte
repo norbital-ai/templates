@@ -5,7 +5,15 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { cn, CustomView, open_record, RecordShell, Sheet, toast } from '@norbital-ai/ui';
+	import {
+		cn,
+		CustomView,
+		open_record,
+		RecordShell,
+		Sheet,
+		toast,
+		virtual_list
+	} from '@norbital-ai/ui';
 	import { Scroll } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { DateTime, Effect } from 'effect';
@@ -56,6 +64,7 @@
 			readonly id: Id<'entity'>;
 			readonly name: string;
 			readonly settings_code: string;
+			readonly time_zone?: string | null;
 		};
 		/** The first and last day shown, both inclusive. */
 		from: string;
@@ -71,7 +80,8 @@
 
 	const companyId = $derived(company.id);
 	const dates = $derived(datesBetween(from, to));
-	const stints = $derived(
+	// Keyed by company only so month changes hit the live cache and never refetch stints or shift definitions.
+	const companyData = $derived(
 		ctx.query({
 			employment: {
 				where: { entity_id: { eq: companyId } },
@@ -80,72 +90,71 @@
 				limit: 10000,
 				employee_id: { fields: ['name'] },
 				terms: { fields: ['effective_from', 'shift_pattern_id', 'clears'], limit: 10000 }
+			},
+			shift_definition: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['code', 'variant'],
+				limit: 10000
+			},
+			shift_pattern: {
+				where: { entity_id: { eq: companyId } },
+				fields: ['pattern', 'effective_range'],
+				limit: 10000
 			}
 		})
 	);
-	const ids = $derived((stints.current?.employment.rows ?? []).map((row) => row.id));
-	const data = $derived.by(() =>
-		ids.length === 0
-			? null
-			: ctx.query({
-					roster_entry: {
-						where: {
-							employment_id: { in: [...ids] },
-							work_date: { gte: from, lte: to }
-						},
-						fields: [
-							'employment_id',
-							'work_date',
-							'shift_definition_id',
-							'planned_overtime_intervals',
-							'overtime_as_time_off',
-							'actual_worked_intervals',
-							'findings',
-							'consent',
-							'payroll_run_id'
-						],
-						limit: 10000
-					},
-					shift_definition: {
-						where: { entity_id: { eq: companyId } },
-						fields: ['code', 'variant'],
-						limit: 10000
-					},
-					shift_pattern: {
-						where: { entity_id: { eq: companyId } },
-						fields: ['pattern', 'effective_range'],
-						limit: 10000
-					},
-					holiday: {
-						where: {
-							entity_id: { eq: companyId },
-							published_at: { is_null: false },
-							employee_id: { is_null: true },
-							date: { gte: from, lte: to }
-						},
-						fields: ['date', 'name'],
-						limit: 10000
-					},
-					leave_catalog_entry: {
-						where: { employment_id: { in: [...ids] } },
-						fields: ['employment_id', 'catalog_code'],
-						limit: 10000,
-						leave_catalog_entry_day: {
-							fields: ['incurred_on', 'part'],
-							limit: 10000
-						}
-					}
-				})
-	);
-	const zone = $derived(
-		ctx.query({ entity: { where: { id: { eq: companyId } }, fields: ['time_zone'], limit: 1 } })
+	// Keyed by company + month; fires in parallel with companyData (no waterfall) and bounds leave to the visible month.
+	const monthData = $derived(
+		ctx.query({
+			roster_entry: {
+				where: {
+					employment_id: { is: { entity_id: { eq: companyId } } },
+					work_date: { gte: from, lte: to }
+				},
+				fields: [
+					'employment_id',
+					'work_date',
+					'shift_definition_id',
+					'planned_overtime_intervals',
+					'overtime_as_time_off',
+					'actual_worked_intervals',
+					'findings',
+					'consent',
+					'payroll_run_id'
+				],
+				limit: 10000
+			},
+			holiday: {
+				where: {
+					entity_id: { eq: companyId },
+					published_at: { is_null: false },
+					employee_id: { is_null: true },
+					date: { gte: from, lte: to }
+				},
+				fields: ['date', 'name'],
+				limit: 10000
+			},
+			leave_catalog_entry: {
+				where: {
+					entity_id: { eq: companyId },
+					leave_catalog_entry_day: { some: { incurred_on: { gte: from, lte: to } } }
+				},
+				fields: ['employment_id', 'catalog_code'],
+				limit: 10000,
+				leave_catalog_entry_day: {
+					where: { incurred_on: { gte: from, lte: to } },
+					fields: ['incurred_on', 'part'],
+					limit: 10000
+				}
+			}
+		})
 	);
 	const stintById = $derived(
-		new Map((stints.current?.employment.rows ?? []).map((row) => [String(row.id), row]))
+		new Map((companyData.current?.employment.rows ?? []).map((row) => [String(row.id), row]))
 	);
 	const entriesByEmployment = $derived.by(() => {
 		const grouped = new Map<string, BoardEntry[]>();
-		for (const entry of data?.current?.roster_entry.rows ?? []) {
+		for (const entry of monthData.current?.roster_entry.rows ?? []) {
 			const employment = String(entry.employment_id);
 			const list = grouped.get(employment) ?? [];
 			list.push({
@@ -167,9 +176,9 @@
 	const people = $derived.by(() => {
 		const byPerson = new Map<
 			string,
-			NonNullable<typeof stints.current>['employment']['rows'][number][]
+			NonNullable<typeof companyData.current>['employment']['rows'][number][]
 		>();
-		for (const stint of stints.current?.employment.rows ?? []) {
+		for (const stint of companyData.current?.employment.rows ?? []) {
 			const range = stint.effective_range;
 			// nobody stays on the board past the month they left
 			if (String(range.from) > to || (range.to != null && String(range.to) < from)) continue;
@@ -227,12 +236,13 @@
 	const byId = $derived(new Map(people.map((person) => [person.id, person])));
 	const entries = $derived(people.flatMap((person) => person.entries));
 	const locked = $derived(new Set(people.filter((person) => person.locked).map((p) => p.id)));
-	const timeZone = $derived(
-		zone.current?.entity.rows[0]?.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-	);
+	const timeZone = $derived(company.time_zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 	const holidayByDate = $derived(
 		new Map(
-			(data?.current?.holiday.rows ?? []).map((row) => [String(row.date).slice(0, 10), row.name])
+			(monthData.current?.holiday.rows ?? []).map((row) => [
+				String(row.date).slice(0, 10),
+				row.name
+			])
 		)
 	);
 	const days = $derived(
@@ -240,10 +250,10 @@
 			dates,
 			people,
 			entries,
-			shifts: data?.current?.shift_definition.rows ?? [],
-			patterns: data?.current?.shift_pattern.rows ?? [],
-			holidays: data?.current?.holiday.rows ?? [],
-			leave: (data?.current?.leave_catalog_entry.rows ?? []).map((row) => ({
+			shifts: companyData.current?.shift_definition.rows ?? [],
+			patterns: companyData.current?.shift_pattern.rows ?? [],
+			holidays: monthData.current?.holiday.rows ?? [],
+			leave: (monthData.current?.leave_catalog_entry.rows ?? []).map((row) => ({
 				...row,
 				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
 					date: String(child.incurred_on),
@@ -255,10 +265,28 @@
 			today
 		})
 	);
-	const loading = $derived(
-		stints.current === undefined || (ids.length > 0 && data?.current === undefined)
+	const loading = $derived(companyData.current === undefined || monthData.current === undefined);
+	const error = $derived(companyData.error?.message ?? monthData.error?.message);
+
+	let filteredIds = $state.raw<readonly string[] | null>(null);
+	const activeRows = $derived(
+		filteredIds === null ? people : filteredIds.flatMap((id) => byId.get(id) ?? [])
 	);
-	const error = $derived(stints.error?.message ?? data?.error?.message);
+	const win = virtual_list({
+		count: () => activeRows.length,
+		key: (i) => activeRows[i]?.id ?? String(i),
+		estimate: 61,
+		threshold: 20,
+		overscan: 6
+	});
+	function syncShown(shown: readonly { readonly id: unknown }[]) {
+		return () => {
+			const sameAsAll =
+				shown.length === people.length &&
+				shown.every((row, index) => String(row.id) === people[index]?.id);
+			filteredIds = sameAsAll ? null : shown.map((row) => String(row.id));
+		};
+	}
 
 	function openDay(day: Day, person: BoardPerson) {
 		if (!day.employed) return;
@@ -370,7 +398,8 @@
 		}}
 	>
 		{#snippet children(shown)}
-			{@render board(shown.flatMap((row) => byId.get(String(row.id)) ?? []))}
+			<div class="contents" {@attach syncShown(shown)}></div>
+			{@render board(activeRows)}
 		{/snippet}
 		{#snippet empty()}
 			{#if !loading}<p class="text-sm text-muted-foreground">{ctx.t('v2.no_rosters')}</p>{/if}
@@ -434,8 +463,13 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each rows as person (person.id)}
-					<tr>
+				{#if win.on}
+					<tr aria-hidden="true" {@attach win.anchor}>
+						<td colspan={dates.length + 1} style="height:{win.before}px;padding:0;border:0"></td>
+					</tr>
+				{/if}
+				{#each win.slice(rows) as person (person.id)}
+					<tr {@attach win.measure(person.id)}>
 						<th
 							scope="row"
 							class="sticky left-0 z-10 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
@@ -475,6 +509,11 @@
 						{/each}
 					</tr>
 				{/each}
+				{#if win.on && win.after > 0}
+					<tr aria-hidden="true">
+						<td colspan={dates.length + 1} style="height:{win.after}px;padding:0;border:0"></td>
+					</tr>
+				{/if}
 			</tbody>
 		</table>
 	</Scroll>

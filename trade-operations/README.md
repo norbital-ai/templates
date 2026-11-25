@@ -7,6 +7,24 @@ SQL Server integration. Quotations, sales orders and purchase orders share one u
 a quotation confirms and syncs into a live ERP order without moving tables, while deliveries, invoices,
 payments, stock lots, credit holds and margins stay reconciled back to each order.
 
+## Industry & Bolt capabilities
+
+- **Industry:** Trading & Manufacturing
+- **Bolt capabilities:** `data_modeling`, `complex_business_logic`, `workflow_approvals`, `third_party_saas`, `document_intelligence`, `scheduled_automations`
+
+## How it works
+
+1. **Unified commercial orders & pricing guardrails:** Sales and Procurement author quotations, sales
+   orders and purchase orders in `orders` + `order_lines`. Policy write guards check live `pricing_floors`
+   and route below-floor deals or sales draft deletions through native `ctx.approve` manager reviews.
+2. **Two-way Kingdee KIS ERP sync:** Over 20 `+kingdee.sync.ts` model pipelines poll master data, stock
+   lots, deliveries, receipts, invoices, payments and aging over bounded SQL Server rowversion windows,
+   while confirmed SO/PO creations and amendments push back through an idempotent outbox.
+3. **Credit control, contracts & margins:** Credit-blocked deliveries route through two-step
+   `commercial_managers` → `finance` credit-release approvals verified against Kingdee `t_Log`; bilingual
+   EN/ZH contracts render to printable PDFs, and reports reconcile sales against lot-weighted inventory
+   costs and CEL commission rules.
+
 ## Key capabilities
 
 - **Unified sales & purchasing agreements:** Manage domestic and foreign quotations, sales orders and

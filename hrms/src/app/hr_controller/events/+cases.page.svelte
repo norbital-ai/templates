@@ -20,23 +20,6 @@
 	);
 	let creating = $state<'workplace_case_catalog_entry' | null>(null);
 
-	const held = $derived.by(() =>
-		scope.id == null
-			? null
-			: ctx.query({
-					workplace_case_catalog_entry: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['entity_id', 'employment_id', 'kind', 'opened_on'],
-						limit: 10000
-					},
-					employment: {
-						where: { entity_id: { eq: scope.id } },
-						fields: ['employee_number', 'entity_id', 'effective_range'],
-						limit: 10000
-					}
-				})
-	);
-
 	const entities = $derived(
 		scope.entities.map((row) => ({
 			id: row.id,
@@ -49,7 +32,19 @@
 	const importCases = entryImport(ctx, scope, laws, {
 		action: 'workplace_case_catalog_entry.create',
 		label: () => t('app.cases.title'),
-		held: () => held?.current,
+		load: (companyId) =>
+			ctx.query({
+				workplace_case_catalog_entry: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['entity_id', 'employment_id', 'kind', 'opened_on'],
+					limit: 10000
+				},
+				employment: {
+					where: { entity_id: { eq: companyId } },
+					fields: ['employee_number', 'entity_id', 'effective_range'],
+					limit: 10000
+				}
+			}),
 		build: (grids, current, party) => {
 			const parsed = parseCaseSheet(grids, {
 				...party,
