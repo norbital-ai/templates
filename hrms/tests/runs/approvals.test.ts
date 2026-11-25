@@ -5,6 +5,7 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Caller, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../../src/data/model/payroll_run/service/payslip_breakdown.ts';
+import { isJsonObject, jsonObject } from '../../src/lib/foundation.ts';
 import { idOf } from '../../src/lib/reads.ts';
 import { run } from '../amendment_kit.ts';
 import {
@@ -628,5 +629,154 @@ describe('a request and the payroll run', () => {
 			const [paid] = yield* claims(t);
 			assert.equal(paid?.payroll_run_id, runs.find((row) => row.period === '2026-03')?.id);
 		}).pipe(Effect.provide(live(seed, '2026-04-28T02:00:00.000Z')))
+	);
+});
+
+describe('payroll payment approval and employee isolation', () => {
+	const managerAndExec = [
+		staff(44, 'Boss', 'manager'),
+		staff(45, 'Exec', 'senior_management'),
+		staff(46, 'Other', 'employee')
+	];
+	const otherProfId = uuid(146);
+	const otherBalId = uuid(147);
+	const otherEmpId = uuid(148);
+	const withClone = (
+		rows: readonly Record<string, unknown>[] | undefined,
+		patch: Record<string, unknown>
+	) => {
+		const list = rows ?? [];
+		const first = list[0];
+		return first === undefined ? list : [...list, { ...first, ...patch }];
+	};
+	const multiSeed = {
+		...seed,
+		sys_user: [...seed.sys_user, ...managerAndExec],
+		employee_profile: withClone(base.employee_profile, { id: otherProfId, user_id: uuid(46) }),
+		employee_balance: withClone(base.employee_balance, {
+			id: otherBalId,
+			employee_id: otherProfId
+		}),
+		employment: withClone(base.employment, { id: otherEmpId, employee_id: otherProfId }),
+		contract_terms: withClone(base.contract_terms, { id: uuid(149), employment_id: otherEmpId }),
+		statutory_parameters: withClone(base.statutory_parameters, {
+			id: uuid(150),
+			employment_id: otherEmpId
+		})
+	};
+
+	it.live(
+		'hr_controller runs payroll directly, marking PAID requires L1 manager/HR manager approval, rejection restores UNPAID, and employees see only own payslips',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const { me, lead, payroll, chief } = yield* people(t);
+				const boss = yield* t.as(yield* t.sign_in('boss@example.test'));
+				const exec = yield* t.as(yield* t.sign_in('exec@example.test'));
+
+				// HR controller creates 2026-02 run directly, but marking PAID requires approval
+				const made = yield* payroll.act({
+					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]
+				});
+				assert.equal(made.kind, 'committed');
+				const [feb] = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
+				assert.ok(feb !== undefined);
+				const asked = yield* payroll.act({
+					'payroll_run.update': [{ target: feb, set: { state: 'PAID' } }]
+				});
+				assert.equal(asked.kind, 'pending_approval');
+
+				// While provisional PAID waits, edits to that period are held and non-approvers cannot decide
+				assert.match(
+					yield* refusal(
+						payroll.act({
+							'adhoc_catalog_entry.create': [
+								{
+									entity_id: ENTITY,
+									employment_id: STINT,
+									catalog_code: 'BONUS',
+									description: 'Bonus',
+									quantity: '100',
+									incurred_on: '2026-02-15'
+								}
+							]
+						})
+					),
+					/holds this person and is not paid yet/
+				);
+				assert.match(yield* refusal(approve(payroll, asked.request_id)), /Only the approver/);
+				assert.match(yield* refusal(approve(lead, asked.request_id)), /Only the approver/);
+
+				// Rejection cleanly restores UNPAID; resubmission + L1 manager approval locks PAID
+				yield* boss.approvals.decide(asked.request_id, { decision: 'reject', reason: 'Recheck' });
+				const [reopened] = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
+				assert.ok(reopened !== undefined);
+				assert.equal(reopened.state, 'UNPAID');
+				const asked2 = yield* payroll.act({
+					'payroll_run.update': [{ target: reopened, set: { state: 'PAID' } }]
+				});
+				assert.equal(asked2.kind, 'pending_approval');
+				yield* approve(boss, asked2.request_id);
+				const [paid] = (yield* storedQuery(t, { payroll_run: { limit: 10 } })).payroll_run.rows;
+				assert.ok(paid !== undefined);
+				assert.equal(paid.state, 'PAID');
+				assert.ok(
+					(yield* refusal(chief.act({ 'payroll_run.delete': [{ target: paid }] }))).length > 0
+				);
+
+				// L1 manager reads HR controller data (all payslips) without payroll write rights; senior_management marks PAID directly
+				const bossRead = yield* boss.query({
+					payslip: { fields: ['id', 'employee_id'], limit: 10 }
+				});
+				const bossSlips =
+					bossRead.payslip !== undefined && 'rows' in bossRead.payslip ? bossRead.payslip.rows : [];
+				assert.equal(bossSlips.length, 2);
+				assert.ok(
+					(yield* refusal(
+						boss.act({
+							'payroll_run.create': [{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }]
+						})
+					)).length > 0
+				);
+				yield* payroll.act({
+					'payroll_run.create': [{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }]
+				});
+				const [mar] = (yield* storedQuery(t, {
+					payroll_run: { where: { period: { eq: '2026-03' } }, limit: 1 }
+				})).payroll_run.rows;
+				assert.ok(mar !== undefined);
+				assert.equal(
+					(yield* exec.act({ 'payroll_run.update': [{ target: mar, set: { state: 'PAID' } }] }))
+						.kind,
+					'committed'
+				);
+
+				// Employees see only their own payslips even through nested payroll_run.payslips
+				const own = yield* me.query({
+					employee_profile: { fields: ['id'], limit: 10 },
+					payroll_run: {
+						fields: ['id', 'period'],
+						payslips: { fields: ['id', 'employee_id'], limit: 10 },
+						limit: 10
+					}
+				});
+				const ownProfiles =
+					own.employee_profile !== undefined && 'rows' in own.employee_profile
+						? own.employee_profile.rows
+						: [];
+				const ownRuns =
+					own.payroll_run !== undefined && 'rows' in own.payroll_run ? own.payroll_run.rows : [];
+				assert.equal(ownProfiles.length, 1);
+				const ownFirst = ownProfiles[0];
+				assert.ok(ownFirst !== undefined);
+				const ownId = jsonObject(ownFirst).id;
+				const leaked = ownRuns.flatMap((entry) => {
+					const slips = jsonObject(entry).payslips;
+					if (!Array.isArray(slips)) return [];
+					return slips.filter((s: unknown) => isJsonObject(s) && s.employee_id !== ownId);
+				});
+				assert.deepEqual(leaked, []);
+			}).pipe(Effect.provide(live(multiSeed, '2026-03-28T02:00:00.000Z')))
 	);
 });

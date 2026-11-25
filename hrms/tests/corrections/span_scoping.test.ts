@@ -131,7 +131,10 @@ describe('amendment read scoping', () => {
 					assert.equal(reused in spanReq, false, `${reused} is reused from own run`);
 				// entry window stops at the end of 2026 rather than spanning all of 2027
 				const rosterWhere = objectValue(objectValue(spanReq.roster_entry).where);
-				const workDate = objectValue(rosterWhere.work_date);
+				const rosterClauses = Array.isArray(rosterWhere.or) ? rosterWhere.or.map(objectValue) : [];
+				const workDate = objectValue(
+					rosterClauses.find((clause) => 'work_date' in clause)?.work_date
+				);
 				assert.equal(workDate.gte, '2026-01-01');
 				assert.equal(workDate.lte, '2026-12-31');
 
@@ -214,11 +217,15 @@ describe('amendment read scoping', () => {
 				const rosterOr = objectValue(objectValue(spanReq.roster_entry).where).or;
 				assert.ok(Array.isArray(rosterOr) && rosterOr.length === 2, 'two separate entry buckets');
 				const [firstBucket, secondBucket] = rosterOr.map(objectValue);
-				assert.deepEqual(objectValue(firstBucket?.work_date), {
+				const workDateOf = (bucket: JsonObject | undefined) => {
+					const clauses = Array.isArray(bucket?.or) ? bucket.or.map(objectValue) : [];
+					return objectValue(clauses.find((clause) => 'work_date' in clause)?.work_date);
+				};
+				assert.deepEqual(workDateOf(firstBucket), {
 					gte: '2026-01-01',
 					lte: '2026-12-31'
 				});
-				assert.deepEqual(objectValue(secondBucket?.work_date), {
+				assert.deepEqual(workDateOf(secondBucket), {
 					gte: '2027-12-01',
 					lte: '2027-12-31'
 				});

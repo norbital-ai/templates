@@ -77,6 +77,7 @@ export const leave_catalog = {
 		unit: Schema.optional(Schema.String)
 	}),
 	ANNUAL_LEAVE_DOMESTIC: Schema.Struct({
+		entitlement: Schema.String,
 		grant_days: Schema.Number,
 		service_months: Schema.Number,
 		window: Schema.String
@@ -151,7 +152,9 @@ export const leave_catalog = {
 			)
 		),
 		entitlement: Schema.optional(Schema.String),
-		per_child_days_by_region: Schema.optional(Schema.Array(Schema.Union([]))),
+		per_child_days_by_region: Schema.optional(
+			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
+		),
 		service_bands: Schema.optional(
 			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
 		),
@@ -176,11 +179,7 @@ export const leave_catalog = {
 	}),
 	ELDER_CARE_LEAVE: Schema.Struct({
 		days_by_region: Schema.Array(
-			Schema.Struct({
-				days: Schema.Number,
-				only_child_days: Schema.Number,
-				region: Schema.String
-			})
+			Schema.Struct({ days: Schema.Number, only_child_days: Schema.Number, region: Schema.String })
 		),
 		entitlement: Schema.String
 	}),
@@ -195,7 +194,10 @@ export const leave_catalog = {
 		recipient_threshold: Schema.Number
 	}),
 	FAMILY_CARE_LEAVE: Schema.Struct({
-		days: Schema.optional(Schema.Number)
+		days: Schema.optional(Schema.Number),
+		grant_days: Schema.optional(Schema.Number),
+		unit: Schema.optional(Schema.String),
+		window: Schema.optional(Schema.String)
 	}),
 	FAMILY_PLANNING_LEAVE: Schema.Struct({
 		days_by_surgery_by_region: Schema.Array(
@@ -220,6 +222,7 @@ export const leave_catalog = {
 		window: Schema.String
 	}),
 	FOREIGN_NATIONAL_LEAVE: Schema.Struct({
+		entitlement: Schema.String,
 		grant_days: Schema.Number,
 		window: Schema.String
 	}),
@@ -370,6 +373,7 @@ export const leave_catalog = {
 		window: Schema.optional(Schema.String)
 	}),
 	MATERNITY_LEAVE_EXTENSION: Schema.Struct({
+		eligibility: Schema.Struct({ gender: Schema.String }),
 		grant_days: Schema.Number,
 		opened_by: Schema.Struct({ BIRTH_EXTENSION: Schema.Struct({}) }),
 		window: Schema.String
@@ -422,16 +426,24 @@ export const leave_catalog = {
 		days_by_region: Schema.optional(
 			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
 		),
+		eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
 		requires_by_region: Schema.optional(
 			Schema.Array(Schema.Struct({ region: Schema.String, requires: Schema.String }))
-		)
+		),
+		unit: Schema.optional(Schema.String)
 	}),
 	MENSTRUAL_LEAVE_UNPAID: Schema.Struct({}),
 	MILITARY_LEAVE: Schema.Struct({
 		grant_days: Schema.Number,
 		window: Schema.String
 	}),
-	MISCARRIAGE_LEAVE: Schema.Struct({}),
+	MISCARRIAGE_LEAVE: Schema.Struct({
+		eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
+		grant_days: Schema.optional(Schema.Number),
+		opened_by: Schema.optional(Schema.Struct({ MISCARRIAGE: Schema.Struct({}) })),
+		unit: Schema.optional(Schema.String),
+		window: Schema.optional(Schema.String)
+	}),
 	NATIONAL_SERVICE_LEAVE: Schema.Struct({
 		unit: Schema.String
 	}),
@@ -491,7 +503,9 @@ export const leave_catalog = {
 		max_events: Schema.optional(Schema.Number),
 		opened_by: Schema.optional(
 			Schema.Struct({
+				ADOPTION: Schema.optional(Schema.Struct({})),
 				CHILD_BIRTH: Schema.Struct({}),
+				MISCARRIAGE: Schema.optional(Schema.Struct({})),
 				PREGNANCY_TERMINATION: Schema.optional(Schema.Struct({}))
 			})
 		),
@@ -544,7 +558,7 @@ export const leave_catalog = {
 		eligibility_months: Schema.Number,
 		entitlement: Schema.String,
 		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
+		opened_by: Schema.Struct({ ADOPTION: Schema.Struct({}), CHILD_BIRTH: Schema.Struct({}) }),
 		window: Schema.String
 	}),
 	SICK_LEAVE: Schema.Struct({
@@ -621,8 +635,14 @@ export const leave_catalog = {
 	SUSPENSION_PENDING_DISCIPLINE: Schema.Struct({}),
 	TRAINING_LEAVE: Schema.Struct({}),
 	UNION_DUTY_LEAVE: Schema.Struct({}),
-	UNPAID_INFANT_CARE_LEAVE: Schema.Struct({}),
+	UNPAID_INFANT_CARE_LEAVE: Schema.Struct({
+		child_age_limit_years: Schema.Number,
+		eligibility_months: Schema.Number,
+		grant_days: Schema.Number,
+		window: Schema.String
+	}),
 	VAWC_LEAVE: Schema.Struct({
+		eligibility: Schema.Struct({ gender: Schema.String }),
 		grant_days: Schema.Number,
 		opened_by: Schema.Struct({ VAWC: Schema.Struct({}) }),
 		window: Schema.String
@@ -648,6 +668,7 @@ export const leave_catalog = {
 		opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) })
 	}),
 	YOUNG_WORKER_TRAINING_LEAVE: Schema.Struct({
+		entitlement: Schema.String,
 		grant_days: Schema.Number,
 		window: Schema.String
 	})

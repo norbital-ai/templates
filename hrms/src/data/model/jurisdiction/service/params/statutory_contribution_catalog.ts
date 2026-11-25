@@ -106,6 +106,7 @@ export const statutory_contribution_catalog = {
 		optional_rate: Schema.Number
 	}),
 	IIT: Schema.Struct({
+		annual_bonus_separate_active: Schema.Boolean,
 		deductible_schemes: Schema.Array(Schema.String),
 		deductions: Schema.Struct({
 			annual_standard: Schema.Number,
@@ -122,9 +123,18 @@ export const statutory_contribution_catalog = {
 			personal_pension_annual: Schema.Number,
 			qualification_annual: Schema.Number,
 			shared_share: Schema.Number
-		})
+		}),
+		foreign_exemption_active: Schema.Boolean
 	}),
-	IIT_ANNUAL_BONUS: Schema.Struct({}),
+	IIT_ANNUAL_BONUS: Schema.Struct({
+		annual_bonus_separate_active: Schema.Boolean
+	}),
+	IIT_EARLY_RETIREMENT: Schema.Struct({
+		annual_standard: Schema.Number
+	}),
+	IIT_INTERNAL_RETIREMENT: Schema.Struct({
+		monthly_standard: Schema.Number
+	}),
 	IIT_SEVERANCE: Schema.Struct({}),
 	INCOME_TAX: Schema.Struct({
 		annual_exemption_per_person: Schema.optional(Schema.Number),
@@ -151,10 +161,7 @@ export const statutory_contribution_catalog = {
 		bonus_rate_ko: Schema.optional(
 			Schema.Array(
 				Schema.Array(
-					Schema.Struct({
-						rate: Schema.Number,
-						up_to: Schema.Union([Schema.Null, Schema.Number])
-					})
+					Schema.Struct({ rate: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
 				)
 			)
 		),
@@ -166,10 +173,7 @@ export const statutory_contribution_catalog = {
 		dependant_monthly_deduction: Schema.optional(Schema.Number),
 		hei_daily_tax: Schema.optional(
 			Schema.Array(
-				Schema.Struct({
-					amount: Schema.Number,
-					up_to: Schema.Union([Schema.Null, Schema.Number])
-				})
+				Schema.Struct({ amount: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
 			)
 		),
 		hei_excess: Schema.optional(
@@ -194,10 +198,7 @@ export const statutory_contribution_catalog = {
 		),
 		otsu_monthly_tax: Schema.optional(
 			Schema.Array(
-				Schema.Struct({
-					amount: Schema.Number,
-					up_to: Schema.Union([Schema.Null, Schema.Number])
-				})
+				Schema.Struct({ amount: Schema.Number, up_to: Schema.Union([Schema.Null, Schema.Number]) })
 			)
 		),
 		otsu_small_salary_ceiling: Schema.optional(Schema.Number),
@@ -421,7 +422,6 @@ export const statutory_contribution_catalog = {
 	}),
 	PIT_TAXABLE_INCOME: Schema.Struct({
 		housing_exempt_ratio: Schema.Number,
-		// absent until the statute fixes one: a lookup key holds a value or is not there
 		meal_allowance_cap: Schema.optional(Schema.Number)
 	}),
 	PND1: Schema.Struct({
@@ -535,7 +535,8 @@ export const statutory_contribution_catalog = {
 		sdl_rate: Schema.Number
 	}),
 	SEVERANCE_TAX: Schema.Struct({
-		rate: Schema.Number
+		rate: Schema.Number,
+		withholding_exemption: Schema.Number
 	}),
 	SEVERANCE_TAX_NON_RESIDENT: Schema.Struct({}),
 	SI: Schema.Struct({

@@ -41,7 +41,10 @@ export default policy({
 		holiday: {
 			outputs: {
 				default: {
-					where: { entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } } }
+					where: {
+						entity_id: { is: { employment: { some: OWN_EMPLOYMENT } } },
+						or: [{ employee_id: { is_null: true } }, { employee_id: { is: OWN_EMPLOYEE } }]
+					}
 				}
 			}
 		},
@@ -107,7 +110,10 @@ export default policy({
 		payslip: { outputs: { default: { where: { employee_id: { is: OWN_EMPLOYEE } } } } },
 		payroll_run: {
 			outputs: {
-				default: { where: { payslips: { some: { employee_id: { is: OWN_EMPLOYEE } } } } }
+				default: {
+					where: { payslips: { some: { employee_id: { is: OWN_EMPLOYEE } } } },
+					payslips: { where: { employee_id: { is: OWN_EMPLOYEE } } }
+				}
 			}
 		},
 		roster_entry: {

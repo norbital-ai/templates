@@ -20,10 +20,44 @@ const BLOCKS = [
 const PROTECTED = new Set(['code', 'previous']);
 const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
 
-/** An official host: government, tax or social-security domains of the workspace's jurisdictions. */
+/** Official statutory, judicial, central-bank and national-insurer hosts outside `.gov`/`.go` ccTLDs. */
+const OFFICIAL_STATUTORY_HOSTS = new Set([
+	// CN: Shanghai Housing Provident Fund Management Center
+	'shzfgjj.cn',
+	// ID: Constitutional Court of Indonesia (Mahkamah Konstitusi RI)
+	'mkri.id',
+	// JP: Japan Health Insurance Association (Kyokai Kenpo)
+	'kyoukaikenpo.or.jp',
+	// PH: Office of the National Administrative Register (ONAR, EO 292 Book VII ch.2 s.3)
+	'naro.law.upd.edu.ph',
+	// SG: Tripartite Alliance Limited & statutory Self-Help Group trustees
+	'tal.sg',
+	'cdac.org.sg',
+	'sinda.org.sg',
+	'mendaki.org.sg',
+	'eurasians.sg',
+	// TH: Bank of Thailand, PDPC, SEC (Provident Fund)
+	'bot.or.th',
+	'pdpc.or.th',
+	'sec.or.th',
+	// VN: Government Portal, National Database of Legal Documents (MOJ), National Assembly
+	'chinhphu.vn',
+	'vbpl.vn',
+	'quochoi.vn'
+]);
+
+const matchesOfficialHost = (hostname: string): boolean => {
+	const host = hostname.toLowerCase();
+	if (/\.(gov|go)(\.[a-z]{2}|\.taipei)?$/.test(host)) return true;
+	for (const allowed of OFFICIAL_STATUTORY_HOSTS)
+		if (host === allowed || host.endsWith(`.${allowed}`)) return true;
+	return false;
+};
+
+/** An official host: government, tax, judicial or statutory social-security domains of the workspace's jurisdictions. */
 export const officialSource = (url: string): boolean => {
 	const parsed = URL.parse(url);
-	return parsed?.protocol === 'https:' && /\.(gov|go)(\.[a-z]{2})?$/.test(parsed.hostname);
+	return parsed?.protocol === 'https:' && matchesOfficialHost(parsed.hostname);
 };
 /** The host a source lives on, empty for what is not a URL; sources move page by page, rarely host by host. */
 export const hostOf = (url: string): string => URL.parse(url)?.hostname ?? '';

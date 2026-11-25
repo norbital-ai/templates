@@ -267,6 +267,7 @@ describe('statutory research planning', () => {
 			{ references: [{ title: 'A', url: 'https://www.cpf.gov.sg/a' }, { title: 'B' }] },
 			{ references: [{ title: 'C', url: 'https://www.cpf.gov.sg/c' }] },
 			{ references: [{ title: 'D', url: 'https://vanban.chinhphu.vn/d' }] },
+			{ references: [{ title: 'D2', url: 'https://example-blog.example/d2' }] },
 			{ references: [{ title: 'E', url: 'https://web.archive.org/e' }] },
 			{ references: [{ title: 'F', url: 'https://www.mom.gov.sg/f' }] },
 			// an archived copy is cited where the host refuses a reader: the host is no source either
@@ -283,7 +284,8 @@ describe('statutory research planning', () => {
 			referenceSources(rows, ['https://www.mom.gov.sg']).map((row) => [row.url, row.status]),
 			[
 				['https://www.cpf.gov.sg', 'ACTIVE'],
-				['https://vanban.chinhphu.vn', 'PROPOSED']
+				['https://vanban.chinhphu.vn', 'ACTIVE'],
+				['https://example-blog.example', 'PROPOSED']
 			]
 		);
 	});

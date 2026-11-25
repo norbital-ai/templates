@@ -554,3 +554,174 @@ describe('a ten-day schedule with a cutoff', () => {
 			}
 		);
 });
+
+describe('monthly cutoff boundaries and cancelled-exit tail release', () => {
+	const CUTOFF = {
+		frequency: 'MONTHLY',
+		business_day: 'PREVIOUS',
+		non_working_weekdays: [0, 6],
+		short_month: 'LAST_DAY',
+		pay_days: [31],
+		pay_cutoff_day: 21
+	};
+	const monthly = (effective_range: {
+		readonly from: string;
+		readonly to: string | null;
+	}): Seed => {
+		const seed = pack('MY', 'Asia/Kuala_Lumpur', packTerms(30_000, 'MANUAL_LABOUR'), {}, [], []);
+		return {
+			...seed,
+			pay_group: (seed.pay_group ?? []).map((row) => ({ ...row, payment_schedule: CUTOFF })),
+			employment: (seed.employment ?? []).map((row) => ({ ...row, effective_range })),
+			contract_terms: (seed.contract_terms ?? []).map((row) => ({
+				...row,
+				effective_from: effective_range.from
+			})),
+			statutory_parameters: (seed.statutory_parameters ?? []).map((row) => ({
+				...row,
+				effective_from: effective_range.from
+			}))
+		};
+	};
+	const pay = (t: Kit, period: string) =>
+		Effect.gen(function* () {
+			yield* run(t, period);
+			const ran = yield* runOf(t, period);
+			assert.ok(ran !== undefined);
+			yield* (yield* t.as(t.admin)).act({
+				'payroll_run.update': [{ target: ran, set: { state: 'PAID' } }]
+			});
+			yield* t.run_due();
+		});
+
+	it.live(
+		'post-cutoff entry belongs to next cycle (never held by unpaid prior run or falsely amending paid prior run), and cross-tax-year late claim lands in January',
+		() => {
+			const seed = monthly({ from: '2025-11-01', to: null });
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				// Dec unpaid: 2025-12-25 is in Jan's attendance (2025-12-21..2026-01-20), never held by Dec
+				yield* run(t, '2025-12');
+				yield* admin.act({
+					'roster_entry.create': [
+						{
+							employment_id: STINT,
+							work_date: '2025-12-26',
+							shift_definition_id: idOf('shift_definition', WORK)
+						}
+					]
+				});
+				const dec = yield* runOf(t, '2025-12');
+				assert.ok(dec !== undefined);
+				yield* admin.act({ 'payroll_run.update': [{ target: dec, set: { state: 'PAID' } }] });
+				yield* t.run_due();
+				// Post-cutoff claim after Dec paid amends nothing in Dec
+				yield* admin.act({
+					'claim_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: STINT,
+							catalog_code: 'MEDICAL_CLAIM',
+							quantity: '100',
+							incurred_on: '2025-12-22'
+						}
+					]
+				});
+				assert.deepEqual(
+					(yield* storedQuery(t, { pay_amendment: { limit: 10 } })).pay_amendment.rows,
+					[]
+				);
+
+				// Pay Jan, then add a late claim dated 2025-12-25: must amend 2026-01 (not 2025-12) and carry into 2026-02
+				yield* pay(t, '2026-01');
+				yield* admin.act({
+					'claim_catalog_entry.create': [
+						{
+							entity_id: ENTITY,
+							employment_id: STINT,
+							catalog_code: 'MEDICAL_CLAIM',
+							quantity: '150',
+							incurred_on: '2025-12-25'
+						}
+					]
+				});
+				const open = (yield* storedQuery(t, { pay_amendment: { limit: 10 } })).pay_amendment.rows;
+				assert.deepEqual(
+					open.map((row) => row.period),
+					['2026-01']
+				);
+				yield* run(t, '2026-02');
+				const feb = yield* slipOf(t, '2026-02');
+				assert.deepEqual(
+					feb?.lines
+						.filter((line) => line.code === 'MEDICAL_CLAIM' && line.period === '2026-01')
+						.map((line) => line.amount),
+					[150]
+				);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-28T02:00:00.000Z' })));
+		}
+	);
+
+	it.live(
+		'cancelling a paid leaver exit releases exit-tail loan repayments so the next run reverses Jan and deducts+re-seals them in Feb',
+		() => {
+			const LOAN = uuid(980);
+			const REPAY = uuid(981);
+			const base = monthly({ from: '2025-12-01', to: '2026-01-28' });
+			const seed: Seed = {
+				...base,
+				loan_catalog_entry: [
+					{
+						id: LOAN,
+						entity_id: ENTITY,
+						employment_id: uuid(6),
+						catalog_code: 'LOAN_RECOVERY_FESTIVE_ADVANCE',
+						quantity: 600,
+						repayment_period: { from: '2026-01-01', to: '2026-06-30' }
+					}
+				],
+				loan_catalog_entry_repayment: [
+					{
+						id: REPAY,
+						entity_id: ENTITY,
+						employment_id: uuid(6),
+						loan_id: LOAN,
+						amount: 200,
+						paid_on: '2026-01-25'
+					}
+				]
+			};
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const admin = yield* t.as(t.admin);
+				yield* pay(t, '2026-01');
+				assert.equal(lineOf(yield* slipOf(t, '2026-01'), 'LOAN_RECOVERY_FESTIVE_ADVANCE'), 200);
+				// Cancel exit so 2026-01-25 moves out of Jan's attendance (cutoff 20) into Feb's (21 Jan–20 Feb)
+				const [stint] = (yield* storedQuery(t, { employment: { limit: 1 } })).employment.rows;
+				assert.ok(stint !== undefined);
+				yield* admin.act({
+					'employment.update': [
+						{ target: stint, set: { effective_range: { from: '2025-12-01', to: null } } }
+					]
+				});
+				yield* t.run_due();
+				yield* run(t, '2026-02');
+				const feb = yield* slipOf(t, '2026-02');
+				assert.deepEqual(
+					feb?.lines
+						.filter((line) => line.code === 'LOAN_RECOVERY_FESTIVE_ADVANCE')
+						.map((line) => [line.period ?? null, line.direction, line.amount]),
+					[
+						[null, 'DEDUCT', 200],
+						['2026-01', 'ADD', 200]
+					]
+				);
+				const febId = (yield* runIds(t)).get('2026-02');
+				const [repay] = (yield* storedQuery(t, { loan_catalog_entry_repayment: { limit: 5 } }))
+					.loan_catalog_entry_repayment.rows;
+				assert.equal(repay?.payroll_run_id, febId);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-28T02:00:00.000Z' })));
+		}
+	);
+});

@@ -139,7 +139,16 @@ export const adhoc_catalog = {
 	MINIMUM_WAGE_ARREARS: Schema.Struct({
 		business_400: Schema.Number
 	}),
-	NATURA: Schema.Struct({}),
+	NATURA: Schema.Struct({
+		accounts: Schema.Array(
+			Schema.Struct({
+				account: Schema.String,
+				code: Schema.String,
+				measure: Schema.String,
+				operation: Schema.String
+			})
+		)
+	}),
 	NIGHT_DUTY_ALLOWANCE: Schema.Struct({
 		limit_per_unit: Schema.Number
 	}),
@@ -234,8 +243,8 @@ export const adhoc_catalog = {
 			DEATH: Schema.Number,
 			DEBT_SUSPENSION_LOSS: Schema.Number,
 			DEBT_SUSPENSION_NO_LOSS: Schema.Number,
-			EFFICIENCY_ACTUAL_LOSS: Schema.Number,
-			EFFICIENCY_PREVENT_LOSS: Schema.Number,
+			EFFICIENCY_ACTUAL_LOSS: Schema.optional(Schema.Number),
+			EFFICIENCY_PREVENT_LOSS: Schema.optional(Schema.Number),
 			EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT: Schema.Number,
 			FORCE_MAJEURE_CLOSURE: Schema.Number,
 			FORCE_MAJEURE_NO_CLOSURE: Schema.Number,

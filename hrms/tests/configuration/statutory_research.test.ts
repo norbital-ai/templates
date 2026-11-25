@@ -8,7 +8,11 @@ import { JobResult, TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { lawOn } from '../../src/data/model/jurisdiction/service/law.ts';
 import { isJsonObject } from '../../src/lib/foundation.ts';
-import { FAMILIES, WHOLE_ROW } from '../../src/data/model/statutory_finding/service/research.ts';
+import {
+	FAMILIES,
+	WHOLE_ROW,
+	officialSource
+} from '../../src/data/model/statutory_finding/service/research.ts';
 import { idOf } from '../../src/lib/reads.ts';
 import { lawAt, refusal, seedLaw, storedQuery, storedReader, workspace } from '../kit.ts';
 
@@ -522,4 +526,31 @@ describe('statutory research', () => {
 				})
 			)
 	);
+
+	it('recognises official statutory hosts across all 9 jurisdictions and rejects archives/unofficial hosts', () => {
+		for (const url of [
+			'https://www.hasil.gov.my',
+			'https://vanban.chinhphu.vn/default.aspx',
+			'https://vbpl.vn/TW/Pages/home.aspx',
+			'https://quochoi.vn/',
+			'https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/',
+			'https://www.sec.or.th/',
+			'https://www.pdpc.or.th/',
+			'https://www.bot.or.th/',
+			'https://www.tal.sg/',
+			'https://www.shzfgjj.cn/',
+			'https://naro.law.upd.edu.ph/',
+			'https://bola.gov.taipei/',
+			'https://www.mkri.id/'
+		])
+			assert.equal(officialSource(url), true, `expected official: ${url}`);
+		for (const url of [
+			'http://www.hasil.gov.my',
+			'https://web.archive.org/web/2025/https://sso.agc.gov.sg/',
+			'https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html',
+			'https://www.hukumonline.com/',
+			'https://example.com/news'
+		])
+			assert.equal(officialSource(url), false, `expected unofficial: ${url}`);
+	});
 });

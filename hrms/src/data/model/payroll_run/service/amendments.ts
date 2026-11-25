@@ -1,6 +1,6 @@
 import type { CarriedWrites, WriteCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect, Predicate } from 'effect';
-import { Refusal, type JsonObject } from '../../../../lib/foundation.js';
+import { isJsonObject, Refusal, type JsonObject } from '../../../../lib/foundation.js';
 import { attendanceOf } from './pay_cycle.js';
 import { idOf, idsOf, objectValue, queryRows, type Reader } from '../../../../lib/reads.js';
 
@@ -55,7 +55,10 @@ const windowsOf = (payslips: readonly JsonObject[], schedules: ReadonlyMap<strin
 		const attendance =
 			run.kind !== 'ON_CYCLE' || schedule === undefined ? salary : attendanceOf(schedule, salary);
 		// a leaver's last run also prices attendance and entries after its cutoff up to their last day
-		const last = objectValue(objectValue(slip.employment_id).effective_range).to;
+		const last =
+			isJsonObject(slip.employment_id) && isJsonObject(slip.employment_id.effective_range)
+				? slip.employment_id.effective_range.to
+				: null;
 		const attendanceTo =
 			typeof last === 'string' && last > attendance.to && last <= salary.to ? last : attendance.to;
 		return [
@@ -547,7 +550,11 @@ export const paidUnder = Effect.fn('payroll.paidUnder')(function* (
 	where: JsonObject
 ) {
 	const { payroll_run: runs = [] } = yield* queryRows(read, {
-		payroll_run: { where: { ...where, state: { eq: 'PAID' } }, fields: ['run_number'], limit: 100 }
+		payroll_run: {
+			where: { ...where, state: { eq: 'PAID' } },
+			fields: ['run_number', 'state'],
+			limit: 100
+		}
 	});
 	return runs.some((run) => finalized(run));
 });

@@ -2,84 +2,88 @@
 
 What law the public seed carries for each of its nine jurisdictions: the changes of law, the contributions and taxes, the leave types, the overtime rules, the other catalogue rows, and the rules and tasks the law registers. How these rows are used is in [the architecture](0001-hrms-calculation-architecture.md) and [the mechanisms, run through](0008-mechanisms-walkthrough.md).
 
-The tables were read from the 53 dated changes of `seed/public/jurisdiction/**`. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
+The tables were read from the 72 dated changes of `seed/public/jurisdiction/**`. Each country is shown as its law stands after its last change; "Value changed" gives the dates inside the seeded window from which a row's values differ.
 
 ## China (CN)
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 4 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 6 later changes. Rows whose values differ from the law before each:
 
-- From 2026-01-01: rules `BUSINESS_CASE_DOCUMENT_REQUIRED`, `BUSINESS_CASE_SIGNED_CONSENT`, `BUSINESS_CASE_SUBJECT_AND_REFERENCE`, `CONTRACT_CATEGORIES`, `FIXED_TERM_REQUEST_DATES` and 20 more; shared `lookup`.
-- From 2026-07-01: statutory `MAJOR_MEDICAL`, `MEDICAL`, `PENSION`, `UNEMPLOYMENT`; leave `SICK_LEAVE`; rules `RETIREMENT_AGE_REACHED`; effects `OVER_AGE_AGREEMENT`; shared `lookup`.
+- From 2026-01-01: shared `lookup`.
+- From 2026-07-01: statutory `MAJOR_MEDICAL`, `MEDICAL`, `PENSION`; rules `RETIREMENT_AGE_REACHED`; effects `OVER_AGE_AGREEMENT`; shared `lookup`.
 - From 2026-08-15: leave `SICK_LEAVE`.
 - From 2026-09-01: statutory `MAJOR_MEDICAL`, `MEDICAL`; shared `lookup`.
+- From 2027-03-01: statutory `MEDICAL`.
+- From 2028-01-01: statutory `IIT`, `IIT_ANNUAL_BONUS`; effects `DISABLED_EMPLOYMENT_FUND`.
 
 ### Conversions and subtotal chain
 
-Currency CNY. Tax year starts in month 1. Day rate `FIXED ÷ 21.75`, hour rate `FIXED ÷ 174`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
+Currency CNY. Tax year starts in month 1. Day rate `FIXED`, hour rate `FIXED`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
 
-Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ANNUAL_BONUS_WAGES` → `ADDITIONAL_WAGES` → `FOREIGN_ALLOWANCES` → `GROSS` → `SEVERANCE` → `FINAL_PAY` → `NET`.
+Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ANNUAL_BONUS_WAGES` → `ADDITIONAL_WAGES` → `FOREIGN_ALLOWANCES` → `GROSS` → `SEVERANCE` → `EARLY_RETIREMENT` → `INTERNAL_RETIREMENT` → `FINAL_PAY` → `NET`.
 
 ### Contributions and taxes
 
-| Code                | Kind         | What it is                                                                                             | Employee | Employer | Below zero | First reference on the row                                                                                  | Value changed          |
-| ------------------- | ------------ | ------------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ----------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `PENSION`           | contribution | Pension: employee 8%, employer 16% of the declared base (si_contribution_base), or of this month's…    | yes      | yes      | stops      | 社会保险法 第十二条、第六十条; 国办发〔2019〕13号 (单位16%, 个人8%); 上海2026年度基数7546… (+1 more)        | 2026-07-01             |
-| `MEDICAL`           | contribution | Medical insurance, maternity included: Shanghai employer 9%, Kunming employer 7.9%, employee 2%, on…   | yes      | yes      | stops      | 社会保险法 第二十三条; 沪医保规〔2026〕2号 (2026-03-01至2027-02-28, 单位9%含生育,… (+2 more)                | 2026-07-01, 2026-09-01 |
-| `MAJOR_MEDICAL`     | contribution | Supplementary insurance for large medical expenses: a fixed monthly amount for each person, set by…    | yes      | yes      | stops      | 昆明市医疗保障局2026-09标准: 大额医疗费用补助单位44.03元/人/月, 个人1元/人/月 (基数4403–2…                  | 2026-07-01, 2026-09-01 |
-| `UNEMPLOYMENT`      | contribution | Unemployment insurance: Shanghai 0.5% employer and 0.5% employee, Kunming 0.7% employer and 0.3% em…   | yes      | yes      | stops      | 社会保险法 第四十四条; 失业保险条例; 沪人社规〔2024〕25号 (0.5%/0.5%, 至2025-12-31)… (+1 more)              | 2026-07-01             |
-| `WORK_INJURY`       | contribution | Work-injury insurance contribution for the pay period.                                                 | no       | yes      | stops      | 社会保险法 第三十三条; 工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率0.2%–1.9%; 上海实… (+1 more)   | —                      |
-| `HPF`               | contribution | Housing provident fund: the employee and the employer each pay the company's chosen percentage of t…   | yes      | yes      | stops      | 住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–3773… (+1 more)         | —                      |
-| `HPF_SUPPLEMENTARY` | contribution | Supplementary housing provident fund contribution.                                                     | yes      | yes      | stops      | 沪公积金管委会〔2026〕3号: 补充住房公积金比例1%–5%, 基数2740–37731. 未申报缴存基数时以本月实… (+1 more)     | —                      |
-| `UNION_FUND`        | contribution | Trade union fund, paid by the employer only: 2% of the employee's total wages, bonuses included (工会… | no       | yes      | stops      | 工会法 第四十三条: 工会经费为全部职工工资总额的2%; 上海市工会条例 第四十一条 (建会筹备组织); 云南省实施《…  | —                      |
-| `IIT`               | tax          | Employee income tax withheld from the month’s taxable wages.                                           | yes      | no       | stops      | 个人所得税法 第六条、第十一条; 国家税务总局公告2018年第61号 第六条: 累计预扣法按本扣缴义务人本年累计收入、… | —                      |
-| `IIT_ANNUAL_BONUS`  | tax          | Tax on the annual bonus, withheld separately from monthly wages.                                       | yes      | no       | stops      | 财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知 (财税〔2018〕164号) 第一条第(一)项: 以…     | —                      |
-| `IIT_SEVERANCE`     | tax          | Tax on severance paid, withheld separately.                                                            | yes      | no       | stops      | 财税〔2018〕164号 第五条第(一)项: 个人与用人单位解除劳动关系取得一次性补偿收入 (包括经济补偿金、生活补助…   | —                      |
+| Code                      | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                                                                        | Value changed                      |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `PENSION`                 | contribution | Pension: employee 8%, employer 16% of the declared base (si_contribution_base), or of this mont… | yes      | yes      | stops      | 社会保险法 第十二条、第六十条 (+1 more)                                                                                           | 2026-07-01                         |
+| `MEDICAL`                 | contribution | Medical insurance, maternity included: Shanghai employer 9%, Kunming employer 7.9%, employee 2%… | yes      | yes      | stops      | Shanghai Healthcare Security Admin Hu Yibao Gui [2026] 2 expiry, Hu Yib…                                                          | 2026-07-01, 2026-09-01, 2027-03-01 |
+| `MAJOR_MEDICAL`           | contribution | Supplementary insurance for large medical expenses: a fixed monthly amount for each person, set… | yes      | yes      | stops      | 昆明市医疗保障局2026-09标准, Statutory provision                                                                                  | 2026-07-01, 2026-09-01             |
+| `UNEMPLOYMENT`            | contribution | Unemployment insurance: Shanghai 0.5% employer and 0.5% employee, Kunming 0.7% employer and 0.3… | yes      | yes      | stops      | 社会保险法 第四十四条; 失业保险条例; 沪人社规〔2024〕25号 (0.5%/0.5%, 至2025-12-31); 人社部发〔2025〕… (+1 more)                  | —                                  |
+| `WORK_INJURY`             | contribution | Work-injury insurance contribution for the pay period.                                           | no       | yes      | stops      | 社会保险法 第三十三条; 工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率0.2%–1.9%; 上海实习生及超龄人员单险种参保… (+1 more) | —                                  |
+| `HPF`                     | contribution | Housing provident fund: the employee and the employer each pay the company's chosen percentage…  | yes      | yes      | stops      | 住房公积金管理条例 第十六条至第十八条; 沪公积金管委会〔2026〕3号 (2026-07-01起 2740–37731, 5%–7%); 昆… (+1 more)                  | —                                  |
+| `HPF_SUPPLEMENTARY`       | contribution | Supplementary housing provident fund contribution.                                               | yes      | yes      | stops      | 沪公积金管委会〔2026〕3号: 补充住房公积金比例1%–5%, 基数2740–37731. 未申报缴存基数时以本月实际基本工资为基数, 不按… (+1 more)     | —                                  |
+| `UNION_FUND`              | contribution | Trade union fund, paid by the employer only: 2% of the employee's total wages, bonuses included… | no       | yes      | stops      | 工会法 第四十三条: 工会经费为全部职工工资总额的2%; 上海市工会条例 第四十一条 (建会筹备组织); 云南省实施《工会法》办法 第二十七条… | —                                  |
+| `IIT`                     | tax          | Employee income tax withheld from the month’s taxable wages.                                     | yes      | no       | stops      | MOF/STA Announcement 2023 No. 30 sunset, Ann. 2023-30 (to 2027-12-31) (+1 more)                                                   | 2028-01-01                         |
+| `IIT_ANNUAL_BONUS`        | tax          | Tax on the annual bonus, withheld separately from monthly wages.                                 | yes      | no       | stops      | MOF/STA Announcement 2023 No. 30 sunset, Ann. 2023-30 (to 2027-12-31)                                                             | 2028-01-01                         |
+| `IIT_SEVERANCE`           | tax          | Tax on severance paid, withheld separately.                                                      | yes      | no       | stops      | 财税〔2018〕164号 第五条第(一)项                                                                                                  | —                                  |
+| `IIT_EARLY_RETIREMENT`    | tax          | Separate IIT on early-retirement lump sum divided by remaining years to statutory retirement ag… | yes      | no       | stops      | MOF/STA Caishui [2018] 164 art.5(2)                                                                                               | —                                  |
+| `IIT_INTERNAL_RETIREMENT` | tax          | IIT on internal-retirement lump sum using remaining months to statutory retirement age to find…  | yes      | no       | stops      | MOF/STA Caishui [2018] 164 art.5(3); Guoshuifa [1999] 58                                                                          | —                                  |
 
 ### Leave
 
-| Code                          | Entitlement                                                                                                   | A day taken                  | Value changed          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------- |
-| `ANNUAL_LEAVE`                | 5–15 days by length of service; own statutory test; calendar year                                             | full pay, cashable           | —                      |
-| `BEREAVEMENT_LEAVE`           | 1 days; opened by `BEREAVEMENT`; per event                                                                    | full pay                     | —                      |
-| `CHILDCARE_LEAVE`             | days by region; own statutory test; calendar year                                                             | full pay                     | —                      |
-| `ELDER_CARE_LEAVE`            | days by region; own statutory test; calendar year                                                             | full pay                     | —                      |
-| `FAMILY_PLANNING_LEAVE`       | days by region; own statutory test; opened by `ABORTION_13W_PLUS`, `ABORTION_UNDER_13W` and 8 more; per event | paid share by the row’s rule | —                      |
-| `HOME_LEAVE_PARENTS`          | 20 days; block of 12 months of service                                                                        | full pay                     | —                      |
-| `HOME_LEAVE_PARENTS_BIENNIAL` | 45 days; block of 24 months of service                                                                        | full pay                     | —                      |
-| `HOME_LEAVE_PARENTS_MARRIED`  | 20 days; block of 48 months of service                                                                        | full pay                     | —                      |
-| `HOME_LEAVE_SPOUSE`           | 30 days; block of 12 months of service                                                                        | full pay                     | —                      |
-| `MARRIAGE_EXTENSION`          | days by region; own statutory test; opened by `MARRIAGE`; per event                                           | full pay                     | —                      |
-| `MARRIAGE_LEAVE`              | 1 days; opened by `MARRIAGE`; per event                                                                       | full pay                     | —                      |
-| `MATERNITY_EXTENSION`         | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | paid share 0                 | —                      |
-| `MATERNITY_LEAVE`             | 98 days; own statutory test; opened by `ADDITIONAL_BABY`, `CHILD_BIRTH` and 3 more; per event                 | paid share 0                 | —                      |
-| `MENSTRUAL_LEAVE`             | days by region; calendar year                                                                                 | full pay                     | —                      |
-| `NPL`                         | no limit                                                                                                      | paid share 0                 | —                      |
-| `NURSING_BREAK`               | no limit                                                                                                      | full pay                     | —                      |
-| `NURSING_LEAVE`               | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | paid share by the row’s rule | —                      |
-| `PATERNITY_LEAVE`             | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | full pay                     | —                      |
-| `PERSONAL_LEAVE_PAID`         | no limit                                                                                                      | full pay                     | —                      |
-| `PRENATAL_CHECKUP`            | no limit                                                                                                      | full pay                     | —                      |
-| `PRENATAL_LEAVE`              | days by region; own statutory test; opened by `PREGNANCY`; per event                                          | paid share by the row’s rule | —                      |
-| `SICK_LEAVE`                  | opened by `ILLNESS`                                                                                           | paid share by the row’s rule | 2026-07-01, 2026-08-15 |
-| `SOCIAL_ACTIVITY`             | no limit                                                                                                      | full pay                     | —                      |
-| `WORK_INJURY_LEAVE`           | no limit                                                                                                      | full pay                     | —                      |
+| Code                          | Entitlement                                                                                                   | A day taken                  | Value changed |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------- | ------------- |
+| `ANNUAL_LEAVE`                | 5–15 days by length of service; own statutory test; calendar year; carries one window                         | full pay, cashable           | —             |
+| `BEREAVEMENT_LEAVE`           | 1 days; opened by `BEREAVEMENT`; per event                                                                    | full pay                     | —             |
+| `CHILDCARE_LEAVE`             | days by region; own statutory test                                                                            | full pay                     | —             |
+| `ELDER_CARE_LEAVE`            | days by region; own statutory test                                                                            | full pay                     | —             |
+| `FAMILY_PLANNING_LEAVE`       | days by region; own statutory test; opened by `ABORTION_13W_PLUS`, `ABORTION_UNDER_13W` and 8 more; per event | paid share by the row’s rule | —             |
+| `HOME_LEAVE_PARENTS`          | 20 days; calendar year                                                                                        | full pay                     | —             |
+| `HOME_LEAVE_PARENTS_BIENNIAL` | 45 days                                                                                                       | full pay                     | —             |
+| `HOME_LEAVE_PARENTS_MARRIED`  | 20 days                                                                                                       | full pay                     | —             |
+| `HOME_LEAVE_SPOUSE`           | 30 days; calendar year                                                                                        | full pay                     | —             |
+| `MARRIAGE_EXTENSION`          | days by region; own statutory test; opened by `MARRIAGE`; per event                                           | full pay                     | —             |
+| `MARRIAGE_LEAVE`              | 1 days; opened by `MARRIAGE`; per event                                                                       | full pay                     | —             |
+| `MATERNITY_EXTENSION`         | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | paid share 0                 | —             |
+| `MATERNITY_LEAVE`             | 98 days; own statutory test; opened by `ADDITIONAL_BABY`, `CHILD_BIRTH` and 3 more; per event                 | paid share 0                 | —             |
+| `MENSTRUAL_LEAVE`             | days by region                                                                                                | full pay                     | —             |
+| `NPL`                         | no limit                                                                                                      | paid share 0                 | —             |
+| `NURSING_BREAK`               | no limit                                                                                                      | full pay                     | —             |
+| `NURSING_LEAVE`               | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | paid share by the row’s rule | —             |
+| `PATERNITY_LEAVE`             | days by region; own statutory test; opened by `CHILD_BIRTH`; per event                                        | full pay                     | —             |
+| `PERSONAL_LEAVE_PAID`         | no limit                                                                                                      | full pay                     | —             |
+| `PRENATAL_CHECKUP`            | no limit                                                                                                      | full pay                     | —             |
+| `PRENATAL_LEAVE`              | days by region; own statutory test; opened by `PREGNANCY`; per event                                          | paid share by the row’s rule | —             |
+| `SICK_LEAVE`                  | opened by `ILLNESS`                                                                                           | paid share by the row’s rule | 2026-08-15    |
+| `SOCIAL_ACTIVITY`             | no limit                                                                                                      | full pay                     | —             |
+| `WORK_INJURY_LEAVE`           | no limit                                                                                                      | full pay                     | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                     | What it pays                                                                                                   | Numbers on the row | Value changed |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `OVERTIME`               | Normal working-day overtime hours, paid at the statutory multiplier.                                           | multiplier 1.5     | —             |
-| `COMPREHENSIVE_OVERTIME` | Overtime beyond the approved comprehensive-hours review, paid at the statutory multiplier.                     | multiplier 1.5     | —             |
-| `REST_DAY_WORK`          | Hours worked on a rest day, paid at the statutory rest-day multiplier or the employer's higher rest-day hourl… | multiplier 2       | —             |
-| `HOLIDAY_WORK`           | Hours worked on a statutory holiday, paid at the statutory holiday multiplier.                                 | multiplier 3       | —             |
+| Code                     | What it pays                                                                                                 | Numbers on the row | Value changed |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------ | ------------- |
+| `OVERTIME`               | Normal working-day overtime hours, paid at the statutory multiplier.                                         | multiplier 1.5     | —             |
+| `COMPREHENSIVE_OVERTIME` | Overtime beyond the approved comprehensive-hours review, paid at the statutory multiplier.                   | multiplier 1.5     | —             |
+| `REST_DAY_WORK`          | Hours worked on a rest day, paid at the statutory rest-day multiplier or the employer's higher rest-day hou… | multiplier 2       | —             |
+| `HOLIDAY_WORK`           | Hours worked on a statutory holiday, paid at the statutory holiday multiplier.                               | multiplier 3       | —             |
 
 Roster warnings (`ROSTER_OVERTIME_DAILY`): daily hours 11; daily overtime hours 3; monthly overtime hours 36; consecutive days 6; weekly rest days 1.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
-- **Allowance** (9): `CHILDCARE_SUBSIDY`, `FIXED_ALLOWANCE`, `FOREIGN_CHILD_EDUCATION_ALLOWANCE`, `FOREIGN_HOUSING_ALLOWANCE`, `FOREIGN_LANGUAGE_ALLOWANCE`, `HIGH_TEMPERATURE_ALLOWANCE`, `MEAL_SUBSIDY_OUT`, `ONLY_CHILD_ALLOWANCE`, `TRAVEL_ALLOWANCE`. Of these, 3 count in the wage a day or hour rate divides.
+- **Allowance** (9): `CHILDCARE_SUBSIDY`, `FIXED_ALLOWANCE`, `FOREIGN_CHILD_EDUCATION_ALLOWANCE`, `FOREIGN_HOUSING_ALLOWANCE`, `FOREIGN_LANGUAGE_ALLOWANCE`, `HIGH_TEMPERATURE_ALLOWANCE`, `MEAL_SUBSIDY_OUT`, `ONLY_CHILD_ALLOWANCE`, `TRAVEL_ALLOWANCE`. Of these, 1 count in the wage a day or hour rate divides.
 - **Claim** (1): `HOME_LEAVE_TRAVEL`. Of these, 0 have a yearly limit.
 - **Ad hoc** (15): `ANNUAL_BONUS`, `BONUS`, `DAMAGE_COMPENSATION_DEDUCTION`, `EARLY_RETIREMENT_LUMP_SUM`, `ECONOMIC_COMPENSATION`, `INTERNAL_RETIREMENT_LUMP_SUM`, `MATERNITY_ALLOWANCE_PASSTHROUGH`, `MATERNITY_TOPUP`, `NON_COMPETE_COMPENSATION`, `PAY_IN_LIEU_OF_NOTICE`, `STATUTORY_REFUND`, `UNLAWFUL_TERMINATION_COMPENSATION`, `WAGE_ARREARS_PENALTY`, `WORK_INJURY_DISABILITY_ALLOWANCE`, `WORK_INJURY_DISABILITY_SUBSIDY`. Of these, 10 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (0): none.
@@ -115,43 +119,45 @@ Roster warnings (`ROSTER_OVERTIME_DAILY`): daily hours 11; daily overtime hours 
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 3 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
 - From 2026-01-01: statutory `PPH21_DTP`; rules `SECTOR_MINIMUM_WAGE`; shared `lookup`.
-- From 2026-03-01: statutory `JKK`, `JP`.
-- From 2026-10-28: leave `JOINT_LEAVE`, `LONG_LEAVE`; ad hoc `PESANGON`, `UPMK`; rules `DAILY_MINIMUM_WAGE`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_AGE`, `MINIMUM_WAGE_FLOOR`, `PKWT_MAXIMUM_TERM` and 1 more.
+- From 2026-02-01: statutory `JKK`.
+- From 2026-03-01: statutory `JP`.
+- From 2026-10-28: leave `JOINT_LEAVE`, `LONG_LEAVE`, `MENSTRUAL_LEAVE`; ad hoc `PESANGON`, `UANG_PISAH`, `UPMK`; rules `DAILY_MINIMUM_WAGE`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_AGE`, `MINIMUM_WAGE_FLOOR`, `PKWT_MAXIMUM_TERM` and 2 more; effects `K3_SMK3_P2K3`, `LKS_BIPARTIT_FORMATION`.
+- From 2028-01-01: statutory `JP`.
 
 ### Conversions and subtotal chain
 
-Currency IDR. Tax year starts in month 1. Day rate `YEAR`, hour rate `FIXED ÷ 173`, proration `DAY_RATE`, rounding `HALF_UP` to 0 places. Year-to-date totals restart per `JURISDICTION`.
+Currency IDR. Tax year starts in month 1. Day rate `YEAR`, hour rate `FIXED`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIONAL_WAGES` → `SEVERANCE` → `PENSION_BENEFIT` → `GROSS` → `NET`.
 
 ### Contributions and taxes
 
-| Code                     | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                    | Value changed |
-| ------------------------ | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ------------------------------------------------------------- | ------------- |
-| `JHT`                    | contribution | BPJS old-age savings (JHT): 2% from the employee and 3.7% from the employer on the monthly wage, wh… | yes      | yes      | stops      | PP 46/2015 (+6 more)                                          | —             |
-| `JP`                     | contribution | BPJS pension (JP): 1% from the employee and 2% from the employer on the monthly wage (basic pay plu… | yes      | yes      | stops      | PP 45/2015 (+5 more)                                          | 2026-03-01    |
-| `JKK`                    | contribution | BPJS work accident insurance (JKK), paid by the employer only: 0.24% to 1.74% of the monthly wage b… | no       | yes      | stops      | PP 44/2015 (+5 more)                                          | 2026-03-01    |
-| `JKM`                    | contribution | BPJS death insurance (JKM), paid by the employer only: 0.30% of the monthly wage (PP 44/2015 art.18… | no       | yes      | stops      | PP 44/2015 (+7 more)                                          | —             |
-| `KESEHATAN`              | contribution | BPJS health insurance: 1% from the employee and 4% from the employer on the monthly wage, between t… | yes      | yes      | stops      | Perpres 82/2018 (+6 more)                                     | —             |
-| `JKP`                    | contribution | BPJS job loss insurance (JKP)                                                                        | no       | no       | stops      | PP 37/2021 as amended by PP 6/2025 (+5 more)                  | —             |
-| `PPH21`                  | tax          | Income tax withheld from the employee (PPh 21)                                                       | yes      | no       | refund     | PP 58/2023, art.2–3, art.3(4)–(6) (+11 more)                  | —             |
-| `PPH21_DTP`              | tax          | PPh 21 borne by the government in 2026 for employees of the labour-intensive industries listed, on…  | yes      | yes      | refund     | PMK 105/2025                                                  | 2026-01-01    |
-| `PPH21_FINAL_SEVERANCE`  | tax          | Final income tax on severance pay paid at once or within two calendar years, by its own rate ladder… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                          | —             |
-| `PPH21_FINAL_PENSION`    | tax          | Final income tax on a pension benefit, old-age savings or JHT paid at once or within two calendar y… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                          | —             |
-| `PPH21_BUKAN_PEGAWAI`    | tax          | Income tax on fees paid to an individual who is not an employee: the yearly rates on 50% of each pa… | yes      | no       | refund     | PMK 168/2023, arts.12(3)–(4), 13 (+2 more)                    | —             |
-| `PPH26`                  | tax          | Income tax on pay to a non-resident: 20% of the gross amount, final, or the tax treaty rate where a… | yes      | no       | stops      | UU 36/2008 (PPh) (+2 more)                                    | —             |
-| `DKPTKA`                 | contribution | The monthly compensation an employer pays for employing a foreign worker: USD 100 for each position… | no       | yes      | stops      | PP 34/2021, arts.1 angka 7, 23, 25                            | —             |
-| `PPH21_BENEFIT_NONFINAL` | tax          | Income tax on severance or pension instalments paid from the third year after the first payment: th… | yes      | no       | refund     | PP 68/2009; PMK 16/PMK.03/2010 (+1 more)                      | —             |
-| `PPH21_EMPLOYER_BORNE`   | tax          | Where the contract says the employer bears the income tax, moves the month's PPh 21 from the employ… | yes      | yes      | refund     | UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP); PMK 1… | —             |
+| Code                     | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                         | Value changed          |
+| ------------------------ | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ---------------------------------------------------------------------------------- | ---------------------- |
+| `JHT`                    | contribution | BPJS old-age savings (JHT): 2% from the employee and 3.7% from the employer on the monthly wage… | yes      | yes      | stops      | PP 46/2015, art.16, art.17(1)–(5), art.2(1), art.4(2)–(3), art.9(2), ar… (+6 more) | —                      |
+| `JP`                     | contribution | BPJS pension (JP): 1% from the employee and 2% from the employer on the monthly wage (basic pay… | yes      | yes      | stops      | PP 45/2015 art.15(3) — JP Pension Age 60 from 2028                                 | 2026-03-01, 2028-01-01 |
+| `JKK`                    | contribution | BPJS work accident insurance (JKK), paid by the employer only: 0.24% to 1.74% of the monthly wa… | no       | yes      | stops      | PP 44/2015 arts.16, 19, 54 — JKK standard risk rates (+1 more)                     | 2026-02-01             |
+| `JKM`                    | contribution | BPJS death insurance (JKM), paid by the employer only: 0.30% of the monthly wage (PP 44/2015 ar… | no       | yes      | stops      | PP 44/2015, art.18(1), art.19(1)–(5), art.4(1), art.8(2)–(3), art.10(4)… (+7 more) | —                      |
+| `KESEHATAN`              | contribution | BPJS health insurance: 1% from the employee and 4% from the employer on the monthly wage, betwe… | yes      | yes      | stops      | Perpres 82/2018, art.30 as amended, art.1 angka 2, art.2, art.5(3)–(4),… (+7 more) | —                      |
+| `JKP`                    | contribution | BPJS job loss insurance (JKP). It is funded by the government and by part of the JKK contributi… | no       | no       | stops      | PP 37/2021 as amended by PP 6/2025, art.11(7)–(8), art.43, art.4, art.I… (+5 more) | —                      |
+| `PPH21`                  | tax          | Income tax withheld from the employee (PPh 21). Each month the monthly rate table for the emplo… | yes      | no       | refund     | PP 58/2023, art.2–3, art.3(4)–(6) (+12 more)                                       | —                      |
+| `PPH21_DTP`              | tax          | PPh 21 borne by the government in 2026 for employees of the labour-intensive industries listed,… | yes      | yes      | refund     | PMK 105/2025, arts.2–6, Lampiran A (KLU list) and B (worked examples)              | 2026-01-01             |
+| `PPH21_FINAL_SEVERANCE`  | tax          | Final income tax on severance pay paid at once or within two calendar years, by its own rate la… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                                               | —                      |
+| `PPH21_FINAL_PENSION`    | tax          | Final income tax on a pension benefit, old-age savings or JHT paid at once or within two calend… | yes      | no       | refund     | PP 68/2009, arts.2(2), 5–7 (+1 more)                                               | —                      |
+| `PPH21_BUKAN_PEGAWAI`    | tax          | Income tax on fees paid to an individual who is not an employee: the yearly rates on 50% of eac… | yes      | no       | refund     | PMK 168/2023, arts.12(3)–(4), 13 (+2 more)                                         | —                      |
+| `PPH26`                  | tax          | Income tax on pay to a non-resident: 20% of the gross amount, final, or the tax treaty rate whe… | yes      | no       | stops      | UU 36/2008 (PPh), art.26(1)(d), art.2(4), art.21(1), art.21(5a) (+2 more)          | —                      |
+| `DKPTKA`                 | contribution | The monthly compensation an employer pays for employing a foreign worker: USD 100 for each posi… | no       | yes      | stops      | UU 27/2026 arts.62(4)(c), 70(2)(g); PP 34/2021 — DKPTKA & RPTKA Exempti…           | —                      |
+| `PPH21_BENEFIT_NONFINAL` | tax          | Income tax on severance or pension instalments paid from the third year after the first payment… | yes      | no       | refund     | PP 68/2009; PMK 16/PMK.03/2010, PP 68/2009 art.6; PMK 16/PMK.03/2010 ar… (+1 more) | —                      |
+| `PPH21_EMPLOYER_BORNE`   | tax          | Where the contract says the employer bears the income tax, moves the month's PPh 21 from the em… | yes      | yes      | refund     | UU 7/1983 on Income Tax as amended by UU 7/2021 (HPP); PMK 168/2023, UU…           | —                      |
 
 ### Leave
 
 | Code                          | Entitlement                                                       | A day taken                  | Value changed |
 | ----------------------------- | ----------------------------------------------------------------- | ---------------------------- | ------------- |
-| `ANNUAL_LEAVE`                | 12 days; service year; carries one window, at most 5              | full pay, cashable           | —             |
+| `ANNUAL_LEAVE`                | 12 days; service year                                             | full pay, cashable           | —             |
 | `BEREAVEMENT_HOUSEHOLD_LEAVE` | 1 days; opened by `BEREAVEMENT_HOUSEHOLD`; per event              | full pay                     | —             |
 | `BEREAVEMENT_LEAVE`           | 2 days; opened by `BEREAVEMENT`; per event                        | full pay                     | —             |
 | `CHILD_BAPTISM_LEAVE`         | 2 days; opened by `CHILD_BAPTISM`; per event                      | full pay                     | —             |
@@ -160,16 +166,16 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIO
 | `COMPANY_TRAINING_LEAVE`      | no limit                                                          | full pay                     | —             |
 | `EMPLOYER_IDLE`               | no limit                                                          | full pay                     | —             |
 | `JOINT_LEAVE`                 | no limit                                                          | full pay                     | 2026-10-28    |
-| `LONG_LEAVE`                  | 30 days; block of 60 months of service                            | full pay                     | 2026-10-28    |
+| `LONG_LEAVE`                  | 30 days                                                           | full pay                     | 2026-10-28    |
 | `MARRIAGE_LEAVE`              | 3 days; opened by `MARRIAGE`; per event                           | full pay                     | —             |
 | `MATERNITY_LEAVE`             | 90 days; opened by `BIRTH_COMPLICATION`, `CHILD_BIRTH`; per event | paid share by the row’s rule | —             |
 | `MEDICAL_LEAVE`               | opened by `LONG_ILLNESS`                                          | paid share by the row’s rule | —             |
-| `MENSTRUAL_LEAVE`             | no limit                                                          | full pay                     | —             |
-| `MISCARRIAGE_LEAVE`           | no limit                                                          | full pay                     | —             |
+| `MENSTRUAL_LEAVE`             | no limit                                                          | full pay                     | 2026-10-28    |
+| `MISCARRIAGE_LEAVE`           | 45 days; opened by `MISCARRIAGE`; per event                       | full pay                     | —             |
 | `NPL`                         | no limit                                                          | paid share 0                 | —             |
 | `PATERNITY_EXTENSION_LEAVE`   | 3 days; opened by `CHILD_BIRTH`; per event                        | full pay                     | —             |
-| `PATERNITY_LEAVE`             | 2 days; opened by `CHILD_BIRTH`; per event                        | full pay                     | —             |
-| `PUBLIC_HOLIDAY_IN_LIEU`      | none by default; HR grants each day; calendar year                | full pay                     | —             |
+| `PATERNITY_LEAVE`             | 2 days; opened by `CHILD_BIRTH`, `MISCARRIAGE`; per event         | full pay                     | —             |
+| `PUBLIC_HOLIDAY_IN_LIEU`      | 0 days                                                            | full pay                     | —             |
 | `RELIGIOUS_DUTY_LEAVE`        | no limit                                                          | full pay                     | —             |
 | `STATE_DUTY_LEAVE`            | no limit                                                          | full pay                     | —             |
 | `SUSPENSION`                  | no limit                                                          | full pay                     | —             |
@@ -180,15 +186,15 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIO
 
 | Code       | What it pays                                                         | Numbers on the row                        | Value changed |
 | ---------- | -------------------------------------------------------------------- | ----------------------------------------- | ------------- |
-| `OVERTIME` | Normal working-day overtime hours, paid at the statutory multiplier. | short_day_hours 5, wage_floor_factor 0.75 | —             |
+| `OVERTIME` | Normal working-day overtime hours, paid at the statutory multiplier. | wage_floor_factor 0.75, short_day_hours 5 | —             |
 
-Roster warnings (`ROSTER_UNDER_13`): daily hours 8; daily overtime hours 4; monthly overtime hours 78; consecutive days 6; weekly rest days 1.
+Roster warnings (`ROSTER_UNDER_13`): daily hours 8; daily overtime hours 4; consecutive days 5; weekly rest days 2.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
 - **Allowance** (3): `CAR_ALLOWANCE`, `HOUSE_ALLOWANCE`, `SPECIAL_ALLOWANCE`. Of these, 3 count in the wage a day or hour rate divides.
 - **Claim** (2): `MEDICAL_CLAIM`, `SWAB_TEST_REIMBURSEMENT`. Of these, 0 have a yearly limit.
-- **Ad hoc** (27): `BANKRUPTCY_ESTATE`, `BONUS_THR`, `COMPENSATION`, `COURT_GARNISHMENT`, `DEDUCTION`, `DETENTION_FAMILY_AID`, `EMPLOYER_PAID_BENEFIT`, `KESEHATAN_TERMINATION_MONTH_EMPLOYEE`, `KESEHATAN_TERMINATION_MONTH_EMPLOYER`, `LATE_THR_FINE`, `LATE_WAGE_FINE`, `MEDICAL_ALLOWANCE`, `NATURA`, `NON_EMPLOYEE_FEE`, `PENSION_LUMPSUM`, `PENSION_OFFSET`, `PESANGON`, `PKWT_COMPENSATION`, `PKWT_EARLY_TERMINATION`, `PKWT_EARLY_TERMINATION_BY_WORKER`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `THR`, `THR_HOLIDAY`, `UANG_PISAH`, `UPH_TRAVEL_HOME`, `UPMK`. Of these, 16 may run off-cycle, 0 post to a balance account (statutory corrections) and 3 are employer cost.
+- **Ad hoc** (27): `BANKRUPTCY_ESTATE`, `BONUS_THR`, `COMPENSATION`, `COURT_GARNISHMENT`, `DEDUCTION`, `DETENTION_FAMILY_AID`, `EMPLOYER_PAID_BENEFIT`, `KESEHATAN_TERMINATION_MONTH_EMPLOYEE`, `KESEHATAN_TERMINATION_MONTH_EMPLOYER`, `LATE_THR_FINE`, `LATE_WAGE_FINE`, `MEDICAL_ALLOWANCE`, `NATURA`, `NON_EMPLOYEE_FEE`, `PENSION_LUMPSUM`, `PENSION_OFFSET`, `PESANGON`, `PKWT_COMPENSATION`, `PKWT_EARLY_TERMINATION`, `PKWT_EARLY_TERMINATION_BY_WORKER`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `THR`, `THR_HOLIDAY`, `UANG_PISAH`, `UPH_TRAVEL_HOME`, `UPMK`. Of these, 16 may run off-cycle, 0 post to a balance account (statutory corrections) and 4 are employer cost.
 - **Loan** (1): `STAFF_LOAN`.
 - **Work event** (4): `EMPLOYER_CAUSED`, `FORCE_MAJEURE`, `STRIKE_NORMATIVE`, `STRIKE_OTHER`.
 - **Workplace case** (9): `BENEFIT_SERVICE_RECORD`, `CROSS_BORDER_WORK_RECORD`, `EXTERNAL_WAGE_RECORD`, `PERSONAL_DATA_ACCESS_REQUEST`, `PERSONAL_DATA_BREACH`, `PERSONAL_DATA_CONSENT_WITHDRAWAL`, `PERSONAL_DATA_CORRECTION_REQUEST`, `PERSONAL_DATA_RESTRICTION_REQUEST`, `WORKER_HEALTH_EXAMINATION_COMPLETED`.
@@ -201,11 +207,11 @@ Roster warnings (`ROSTER_UNDER_13`): daily hours 8; daily overtime hours 4; mont
 
 ### Registered effects: the tasks raised
 
-43 effects; every one writes `obligation.create`.
+45 effects; every one writes `obligation.create`.
 
 - **`adhoc_catalog_entry`** on create (1): `LATE_THR_FINE`.
 - **`employment`** on create, update (11): `BPJS_KESEHATAN_REGISTRATION`, `BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE`, `BPJS_KETENAGAKERJAAN_REGISTRATION`, `BPJS_KETENAGAKERJAAN_WAGE_CHANGE`, `FOREIGN_WORKER_COMPANION_TRAINING`, `FOREIGN_WORKER_RPTKA_DKPTKA`, `PKWT_REGISTRATION`, `PKWT_TERM_END_COMPENSATION` and 3 more.
-- **`employment`** on exit (5): `BPJS_KETENAGAKERJAAN_EXIT_REPORT`, `JKP_PHK_NOTIFICATION`, `PERSONAL_DATA_DISPOSAL`, `PPH21_BPA1_EXIT`, `TERMINATION_REPORT`.
+- **`employment`** on exit (7): `BPJS_KESEHATAN_POST_PHK_COVERAGE`, `BPJS_KETENAGAKERJAAN_EXIT_REPORT`, `JKP_PHK_NOTIFICATION`, `PERSONAL_DATA_DISPOSAL`, `PHK_ADVANCE_WRITTEN_NOTICE`, `PPH21_BPA1_EXIT`, `TERMINATION_REPORT`.
 - **`entity`** on update (1): `BPJS_KETENAGAKERJAAN_ENTITY_CHANGE`.
 - **`entity_change`** on create, update (1): `WLKP_ESTABLISHMENT_REPORT`.
 - **`leave_catalog_entry`** on create (2): `LONG_ILLNESS_REMINDER`, `WORK_ACCIDENT_REPORT`.
@@ -215,13 +221,15 @@ Roster warnings (`ROSTER_UNDER_13`): daily hours 8; daily overtime hours 4; mont
 
 ### Employer pay methods
 
+- `health_billing`: `KESEHATAN`.
+- `overtime_hour_basis`: `OVERTIME`.
 - `rest_day_hourly_multiplier`: `OVERTIME`.
 
 ## Japan (JP)
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 7 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 17 later changes. Rows whose values differ from the law before each:
 
 - From 2026-01-01: statutory `INCOME_TAX`.
 - From 2026-03-01: shared `lookup`.
@@ -229,75 +237,85 @@ The whole law from 2025-12-01, then 7 later changes. Rows whose values differ fr
 - From 2026-07-01: effects `DISABILITY_EMPLOYMENT_REPORT`.
 - From 2026-10-01: effects `HARASSMENT_PREVENTION_2026_AMENDMENT`, `SHORT_TIME_COVERAGE`.
 - From 2026-12-01: statutory `YEAR_END_ADJUSTMENT`.
-- From 2027-01-01: statutory `INCOME_TAX`.
+- From 2027-01-01: statutory `INCOME_TAX`; effects `STATUTORY_RETURNS_E_FILING`.
+- From 2027-09-01: shared `lookup`.
+- From 2027-10-01: effects `SHORT_TIME_COVERAGE`.
+- From 2028-01-01: statutory `YEAR_END_ADJUSTMENT`.
+- From 2028-04-01: effects `STRESS_CHECK`.
+- From 2028-09-01: shared `lookup`.
+- From 2028-10-01: effects `EI_COVERAGE_HOURS`.
+- From 2029-09-01: shared `lookup`.
+- From 2029-10-01: effects `SHORT_TIME_COVERAGE`.
+- From 2032-10-01: effects `SHORT_TIME_COVERAGE`.
+- From 2035-10-01: effects `SHORT_TIME_COVERAGE`.
 
 ### Conversions and subtotal chain
 
-Currency JPY. Tax year starts in month 1. Day rate `HOUR`, hour rate `CONTRACT_WEEKLY`, proration `WORKING_DAYS`, rounding `HALF_UP` to 0 places. Year-to-date totals restart per `JURISDICTION`.
+Currency JPY. Tax year starts in month 1. Day rate `HOUR`, hour rate `CONTRACT_WEEKLY`, proration `WORKING_DAYS`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `JURISDICTION`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `NON_TAXABLE_PAY` → `ORDINARY_WAGES` → `LONG_PERIOD_BONUS` → `ADDITIONAL_WAGES` → `RETIREMENT_UNDECLARED` → `RETIREMENT` → `FINAL_PAY` → `SOCIAL_INSURANCE_REFUND` → `NET`.
 
 ### Contributions and taxes
 
-| Code                      | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                                              | Value changed                      |
-| ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `HEALTH`                  | contribution | Health insurance premium (with nursing care insurance from age 40): the standard monthly remunerati… | yes      | yes      | stops      | 健康保険法, 40条、41〜43条、45条、156条、160条、161条、167条                                            | —                                  |
-| `HEALTH_BONUS`            | contribution | Health insurance premium on a bonus: the bonus, rounded down to 1,000 yen and up to 5,730,000 yen i… | yes      | yes      | refund     | 健康保険法, 45条、156条、167条2項 (+1 more)                                                             | 2026-04-01                         |
-| `CHILD_SUPPORT`           | contribution | Child and childcare support levy, collected with the health insurance premium from the April 2026 p… | yes      | yes      | stops      | 健康保険法; 子ども・子育て支援法, 健保法156条1項、160条の2、161条; 子ども・子育て支援法71条の3          | new 2026-04-01                     |
-| `CHILD_SUPPORT_BONUS`     | contribution | Child and childcare support levy on a bonus, on the same standard bonus amount and yearly cap as he… | yes      | yes      | refund     | 健康保険法, 156条1項、160条の2 (+1 more)                                                                | new 2026-04-01                     |
-| `PENSION`                 | contribution | Employees' pension premium: 18.3% of the standard monthly remuneration (88,000–650,000), shared equ… | yes      | yes      | stops      | 厚生年金保険法, 9条、14条5項、19条1項、20条、24条の4、81条4項、82条、84条                               | —                                  |
-| `PENSION_BONUS`           | contribution | Employees' pension premium on a bonus: 18.3% of the bonus, up to 1,500,000 yen in a payment month,…  | yes      | yes      | refund     | 厚生年金保険法, 24条の4、81条、84条2項 (+1 more)                                                        | —                                  |
-| `CHILD_CONTRIBUTION`      | contribution | Child and childcare contribution, paid by the employer only: 0.36% of the standard monthly remunera… | no       | yes      | stops      | 子ども・子育て支援法; 子ども・子育て支援法施行令, 69〜71条; 71条2項                                     | —                                  |
-| `EI`                      | contribution | Employment insurance premium on the wages paid, at the worker's and the employer's rates for the ty… | yes      | yes      | refund     | 労働保険の保険料の徴収等に関する法律, 11条、12条4項、31条                                               | —                                  |
-| `EI_BONUS`                | contribution | Employment insurance premium on a bonus, at the same rates as on wages; the worker's share is deduc… | yes      | yes      | refund     | 労働保険の保険料の徴収等に関する法律; 雇用保険法, 徴収法11条、31条; 雇用保険法4条4項                    | —                                  |
-| `WORKERS_ACCIDENT`        | contribution | Workers' accident compensation insurance premium, paid by the employer only: the rate for the type…  | no       | yes      | stops      | 労働者災害補償保険法; 労働保険の保険料の徴収等に関する法律, 労災保険法3条; 徴収法11〜12条、12条3項      | —                                  |
-| `ASBESTOS_LEVY`           | contribution | General contribution for asbestos health damage relief, paid by the employer only: 0.02 per 1,000 o… | no       | yes      | stops      | 石綿による健康被害の救済に関する法律; 同法施行令, 35条、37条                                            | —                                  |
-| `INCOME_TAX`              | tax          | Employee income tax withheld for the pay period.                                                     | yes      | no       | refund     | 所得税法; 復興財源確保法; 防衛財源確保法, 所得税法183条、185条、186条; 復興財源確保法28〜31条 (+1 more) | 2026-01-01, 2026-04-01, 2027-01-01 |
-| `YEAR_END_ADJUSTMENT`     | tax          | Year-end adjustment: at the last salary payment of the year, or when an employee leaves in the case… | yes      | no       | refund     | 所得税法, 190〜193条 (+2 more)                                                                          | 2026-12-01                         |
-| `RETIREMENT_TAX`          | tax          | Income tax withheld on a retirement allowance: the retirement income deduction for the years of ser… | yes      | no       | stops      | 所得税法, 30条（退職所得）、89条（税率）、203条（源泉徴収）                                             | —                                  |
-| `RESIDENT_TAX_RETIREMENT` | tax          | Resident tax on a retirement allowance, withheld when it is paid: municipal 6% and prefectural 4% o… | yes      | no       | stops      | 地方税法, 50条の5（退職所得の分離課税）、328条の5（特別徴収）                                           | —                                  |
-| `RESIDENT_TAX`            | tax          | Individual resident tax deducted each month from June to the following May, in the amounts the muni… | yes      | no       | stops      | 地方税法, 321条の3、321条の4、321条の5                                                                  | —                                  |
+| Code                      | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                                               | Value changed                      |
+| ------------------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `HEALTH`                  | contribution | Health insurance premium (with nursing care insurance from age 40): the standard monthly remune… | yes      | yes      | stops      | 健康保険法, 40条、41〜43条、45条、156条、160条、161条、167条                                             | —                                  |
+| `HEALTH_BONUS`            | contribution | Health insurance premium on a bonus: the bonus, rounded down to 1,000 yen and up to 5,730,000 y… | yes      | yes      | refund     | 健康保険法, 45条、156条、167条2項 (+1 more)                                                              | 2026-04-01                         |
+| `PENSION`                 | contribution | Employees' pension premium: 18.3% of the standard monthly remuneration (88,000–650,000), shared… | yes      | yes      | stops      | 年金制度改正法 (令和7年法律第74号) — Pension Grade 35 (JPY 750,000), eff. 2029-09-01                     | —                                  |
+| `PENSION_BONUS`           | contribution | Employees' pension premium on a bonus: 18.3% of the bonus, up to 1,500,000 yen in a payment mon… | yes      | yes      | refund     | 厚生年金保険法, 24条の4、81条、84条2項 (+1 more)                                                         | —                                  |
+| `CHILD_CONTRIBUTION`      | contribution | Child and childcare contribution, paid by the employer only: 0.36% of the standard monthly remu… | no       | yes      | stops      | 子ども・子育て支援法; 子ども・子育て支援法施行令, 69〜71条; 71条2項                                      | —                                  |
+| `EI`                      | contribution | Employment insurance premium on the wages paid, at the worker's and the employer's rates for th… | yes      | yes      | refund     | 労働保険の保険料の徴収等に関する法律, 11条、12条4項、31条                                                | —                                  |
+| `EI_BONUS`                | contribution | Employment insurance premium on a bonus, at the same rates as on wages; the worker's share is d… | yes      | yes      | refund     | 労働保険の保険料の徴収等に関する法律; 雇用保険法, 徴収法11条、31条; 雇用保険法4条4項                     | —                                  |
+| `WORKERS_ACCIDENT`        | contribution | Workers' accident compensation insurance premium, paid by the employer only: the rate for the t… | no       | yes      | stops      | 労働者災害補償保険法; 労働保険の保険料の徴収等に関する法律, 労災保険法3条; 徴収法11〜12条、12条3項       | —                                  |
+| `ASBESTOS_LEVY`           | contribution | General contribution for asbestos health damage relief, paid by the employer only: 0.02 per 1,0… | no       | yes      | stops      | 石綿による健康被害の救済に関する法律; 同法施行令, 35条、37条                                             | —                                  |
+| `INCOME_TAX`              | tax          | Employee income tax withheld for the pay period.                                                 | yes      | no       | refund     | 所得税法; 復興財源確保法; 防衛財源確保法, 所得税法183条、185条、186条; 復興財源確保法28〜31条 (+1 more)  | 2026-01-01, 2026-04-01, 2027-01-01 |
+| `YEAR_END_ADJUSTMENT`     | tax          | Year-end adjustment: at the last salary payment of the year, or when an employee leaves in the…  | yes      | no       | refund     | 令和8年度税制改正 (措置法 arts.29の4, 41の16の2) — 2028 Sunset, eff. 2028-01-01                          | 2026-12-01, 2028-01-01             |
+| `RETIREMENT_TAX`          | tax          | Income tax withheld on a retirement allowance: the retirement income deduction for the years of… | yes      | no       | stops      | 所得税法, 30条（退職所得）、89条（税率）、203条（源泉徴収）                                              | —                                  |
+| `RESIDENT_TAX_RETIREMENT` | tax          | Resident tax on a retirement allowance, withheld when it is paid: municipal 6% and prefectural…  | yes      | no       | stops      | 地方税法, 50条の5（退職所得の分離課税）、328条の5（特別徴収）                                            | —                                  |
+| `RESIDENT_TAX`            | tax          | Individual resident tax deducted each month from June to the following May, in the amounts the…  | yes      | no       | stops      | 地方税法, 321条の3、321条の4、321条の5                                                                   | —                                  |
+| `CHILD_SUPPORT_BONUS`     | contribution | Child and childcare support levy on a bonus, on the same standard bonus amount and yearly cap a… | yes      | yes      | refund     | 健康保険法, 156条1項、160条の2 (+2 more)                                                                 | new 2026-04-01                     |
+| `CHILD_SUPPORT`           | contribution | Child and childcare support levy, collected with the health insurance premium from the April 20… | yes      | yes      | stops      | 健康保険法; 子ども・子育て支援法, 健保法156条1項、160条の2、161条; 子ども・子育て支援法71条の3 (+1 more) | new 2026-04-01                     |
 
 ### Leave
 
-| Code                            | Entitlement                                                                           | A day taken  | Value changed |
-| ------------------------------- | ------------------------------------------------------------------------------------- | ------------ | ------------- |
-| `ANNUAL_LEAVE`                  | 10–20 days by length of service; own statutory test; service year; carries one window | full pay     | —             |
-| `ANNUAL_LEAVE_HOURS`            | no limit; draws on `ANNUAL_LEAVE`                                                     | full pay     | —             |
-| `CHILDCARE_LEAVE`               | no limit                                                                              | paid share 0 | —             |
-| `CHILD_NURSING_LEAVE`           | own statutory test; calendar year                                                     | paid share 0 | —             |
-| `CIVIC_DUTY_LEAVE`              | no limit                                                                              | paid share 0 | —             |
-| `FAMILY_CARE_DAYS`              | own statutory test; calendar year                                                     | paid share 0 | —             |
-| `FAMILY_CARE_LEAVE`             | no limit                                                                              | paid share 0 | —             |
-| `MATERNAL_HEALTH_CHECK`         | no limit                                                                              | paid share 0 | —             |
-| `MENSTRUAL_LEAVE`               | no limit                                                                              | paid share 0 | —             |
-| `NPL`                           | no limit                                                                              | paid share 0 | —             |
-| `NURSING_TIME`                  | no limit                                                                              | paid share 0 | —             |
-| `OCCUPATIONAL_INJURY_ABSENCE`   | no limit                                                                              | paid share 0 | —             |
-| `POSTNATAL_LEAVE`               | no limit                                                                              | paid share 0 | —             |
-| `POSTNATAL_PATERNITY_LEAVE`     | no limit                                                                              | paid share 0 | —             |
-| `PRENATAL_LEAVE`                | no limit                                                                              | paid share 0 | —             |
-| `SICKNESS_ABSENCE`              | no limit                                                                              | paid share 0 | —             |
-| `SUBSTITUTE_LEAVE_FOR_OVERTIME` | none by default; HR grants each day; calendar year                                    | full pay     | —             |
+| Code                            | Entitlement                                                       | A day taken  | Value changed |
+| ------------------------------- | ----------------------------------------------------------------- | ------------ | ------------- |
+| `ANNUAL_LEAVE`                  | 10–20 days by length of service; own statutory test; service year | full pay     | —             |
+| `ANNUAL_LEAVE_HOURS`            | no limit                                                          | full pay     | —             |
+| `CHILDCARE_LEAVE`               | no limit                                                          | paid share 0 | —             |
+| `CHILD_NURSING_LEAVE`           | own statutory test                                                | paid share 0 | —             |
+| `CIVIC_DUTY_LEAVE`              | no limit                                                          | paid share 0 | —             |
+| `FAMILY_CARE_DAYS`              | own statutory test                                                | paid share 0 | —             |
+| `FAMILY_CARE_LEAVE`             | no limit                                                          | paid share 0 | —             |
+| `MATERNAL_HEALTH_CHECK`         | no limit                                                          | paid share 0 | —             |
+| `MENSTRUAL_LEAVE`               | no limit                                                          | paid share 0 | —             |
+| `NPL`                           | no limit                                                          | paid share 0 | —             |
+| `NURSING_TIME`                  | no limit                                                          | paid share 0 | —             |
+| `OCCUPATIONAL_INJURY_ABSENCE`   | no limit                                                          | paid share 0 | —             |
+| `POSTNATAL_LEAVE`               | no limit                                                          | paid share 0 | —             |
+| `POSTNATAL_PATERNITY_LEAVE`     | no limit                                                          | paid share 0 | —             |
+| `PRENATAL_LEAVE`                | no limit                                                          | paid share 0 | —             |
+| `SICKNESS_ABSENCE`              | no limit                                                          | paid share 0 | —             |
+| `SUBSTITUTE_LEAVE_FOR_OVERTIME` | 0 days                                                            | full pay     | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                    | What it pays                                                                                                       | Numbers on the row                                    | Value changed |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------- |
-| `WITHIN_HOURS_OVERTIME` | Approved overtime past the planned shift that stays within 8 hours a day and 40 a week (法内残業): paid at the or… | multiplier 1                                          | —             |
-| `OVERTIME`              | Statutory overtime (past 8 hours a day or 40 a week), the first 60 hours of the month: paid at 125% of the ho…     | multiplier 1.25                                       | —             |
-| `OVERTIME_OVER_60`      | Statutory overtime past 60 hours in the month: paid at 150% of the hourly rate.                                    | multiplier 1.5                                        | —             |
-| `REST_DAY_WORK`         | Every hour worked on the statutory weekly rest day: paid at 135% of the hourly rate, or the employer's higher…     | multiplier 1.35                                       | —             |
-| `NIGHT_WORK`            | Every hour worked between 22:00 and 05:00: a further 25% of the hourly rate, on top of any overtime or rest-d…     | multiplier 0.25                                       | —             |
-| `OVERTIME_SUBSTITUTED`  | Deducts the extra 25% on four overtime hours for each hour of substitute leave taken instead of the over-60-h…     | multiplier 0.25, overtime_hours_per_substitute_hour 4 | —             |
+| Code                    | What it pays                                                                                                    | Numbers on the row                                    | Value changed |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------- |
+| `WITHIN_HOURS_OVERTIME` | Approved overtime past the planned shift that stays within 8 hours a day and 40 a week (法内残業): paid at the… | multiplier 1                                          | —             |
+| `OVERTIME`              | Statutory overtime (past 8 hours a day or 40 a week), the first 60 hours of the month: paid at 125% of the…     | multiplier 1.25                                       | —             |
+| `OVERTIME_OVER_60`      | Statutory overtime past 60 hours in the month: paid at 150% of the hourly rate.                                 | multiplier 1.5                                        | —             |
+| `REST_DAY_WORK`         | Every hour worked on the statutory weekly rest day: paid at 135% of the hourly rate, or the employer's high…    | multiplier 1.35                                       | —             |
+| `NIGHT_WORK`            | Every hour worked between 22:00 and 05:00: a further 25% of the hourly rate, on top of any overtime or rest…    | multiplier 0.25                                       | —             |
+| `OVERTIME_SUBSTITUTED`  | Deducts the extra 25% on four overtime hours for each hour of substitute leave taken instead of the over-60…    | overtime_hours_per_substitute_hour 4, multiplier 0.25 | —             |
 
 Roster warnings (`ROSTER_DAILY_8H`): monthly overtime hours 45; consecutive days 6; weekly rest days 1.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
-- **Allowance** (6): `ATTENDANCE_ALLOWANCE`, `COMMUTING_ALLOWANCE_TAXABLE`, `COMMUTING_ALLOWANCE`, `FAMILY_ALLOWANCE`, `FIXED_ALLOWANCE`, `HOUSING_ALLOWANCE`. Of these, 2 count in the wage a day or hour rate divides.
+- **Allowance** (6): `ATTENDANCE_ALLOWANCE`, `COMMUTING_ALLOWANCE`, `COMMUTING_ALLOWANCE_TAXABLE`, `FAMILY_ALLOWANCE`, `FIXED_ALLOWANCE`, `HOUSING_ALLOWANCE`. Of these, 2 count in the wage a day or hour rate divides.
 - **Claim** (2): `BUSINESS_TRAVEL`, `EXPENSE_REIMBURSEMENT`. Of these, 0 have a yearly limit.
-- **Ad hoc** (18): `BONUS_OVER_SIX_MONTHS`, `BONUS`, `COMMUTER_PASS`, `DISCIPLINARY_DEDUCTION`, `DISMISSAL_NOTICE_ALLOWANCE`, `INJURY_WAITING_COMPENSATION`, `LATE_WAGE_INTEREST`, `NIGHT_DUTY_ALLOWANCE`, `NIGHT_MEAL_CASH`, `RETIREMENT_ALLOWANCE_UNDECLARED`, `RETIREMENT_ALLOWANCE`, `SHUTDOWN_ALLOWANCE`, `SOCIAL_INSURANCE_ADJUSTMENT`, `SOCIAL_INSURANCE_REFUND`, `SPECIAL_ALLOWANCE`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `WAGE_ADJUSTMENT`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
+- **Ad hoc** (18): `BONUS`, `BONUS_OVER_SIX_MONTHS`, `COMMUTER_PASS`, `DISCIPLINARY_DEDUCTION`, `DISMISSAL_NOTICE_ALLOWANCE`, `INJURY_WAITING_COMPENSATION`, `LATE_WAGE_INTEREST`, `NIGHT_DUTY_ALLOWANCE`, `NIGHT_MEAL_CASH`, `RETIREMENT_ALLOWANCE`, `RETIREMENT_ALLOWANCE_UNDECLARED`, `SHUTDOWN_ALLOWANCE`, `SOCIAL_INSURANCE_ADJUSTMENT`, `SOCIAL_INSURANCE_REFUND`, `SPECIAL_ALLOWANCE`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `WAGE_ADJUSTMENT`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (3): `EMERGENCY_ADVANCE`, `SALARY_ADVANCE`, `STAFF_LOAN`.
 - **Work event** (6): `EMPLOYER_CAUSED`, `FORCE_MAJEURE`, `GOVERNMENT_ORDER`, `LOCKOUT`, `STRIKE`, `WRONGFUL_WORK_REFUSAL`.
 - **Workplace case** (11): `CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST`, `CHILDCARE_NO_OVERTIME_REQUEST`, `CHILDCARE_OVERTIME_LIMIT_REQUEST`, `DATA_BREACH`, `DEPENDANT_CHANGE`, `DIGITAL_WAGE_PAYMENT_CONSENT`, `EMPLOYMENT_CERTIFICATE_REQUEST`, `PREGNANCY_WORK_LIMIT_REQUEST`, `RETIREMENT_INCOME_DECLARATION`, `SHORT_TIME_COVERAGE_NOTICE`, `SHORT_TIME_VOLUNTARY_APPROVAL`.
@@ -312,11 +330,12 @@ Roster warnings (`ROSTER_DAILY_8H`): monthly overtime hours 45; consecutive days
 
 ### Registered effects: the tasks raised
 
-108 effects; every one writes `obligation.create`.
+110 effects; every one writes `obligation.create`.
 
 - **`adhoc_catalog_entry`** on create (2): `BONUS_PAYMENT_REPORT`, `RETIREMENT_INCOME_SLIP`.
-- **`employment`** on create, update (20): `ANNUAL_LEAVE_FIVE_DAY_DESIGNATION`, `ANNUAL_LEAVE_REGISTER`, `CARE_INFORMATION_AT_40`, `CONTINUED_EMPLOYMENT_CONFIRMATION`, `EMPLOYMENT_INSURANCE_ACQUISITION`, `HEALTH_CHECK_AT_HIRE`, `HEALTH_LOSS_AT_75`, `INDEFINITE_CONVERSION_NOTICE` and 12 more.
+- **`employment`** on create, update (21): `ANNUAL_LEAVE_FIVE_DAY_DESIGNATION`, `ANNUAL_LEAVE_REGISTER`, `CARE_INFORMATION_AT_40`, `CONTINUED_EMPLOYMENT_CONFIRMATION`, `EMPLOYMENT_INSURANCE_ACQUISITION`, `HEALTH_CHECK_AT_HIRE`, `HEALTH_LOSS_AT_75`, `INDEFINITE_CONVERSION_NOTICE` and 13 more.
 - **`employment`** on exit (8): `EMPLOYMENT_INSURANCE_LOSS`, `FINAL_WAGES_ON_REQUEST`, `LEAVER_WITHHOLDING_SLIP`, `NON_RENEWAL_NOTICE`, `PERSONAL_DATA_DISPOSAL`, `RECORDS_RETENTION`, `RESIDENT_TAX_TRANSFER`, `SOCIAL_INSURANCE_LOSS`.
+- **`entity_change`** on create (1): `FLEXIBLE_WORK_MEASURES_3YO`.
 - **`entity_change`** on create, update (11): `CHILDCARE_ENVIRONMENT_MEASURES`, `EMPLOYMENT_INSURANCE_ESTABLISHMENT`, `HARASSMENT_PREVENTION_2026_AMENDMENT`, `HARASSMENT_PREVENTION_MEASURES`, `LABOUR_INSURANCE_ESTABLISHMENT`, `LABOUR_INSURANCE_OFFICE_CHANGE`, `LABOUR_INSURANCE_PROVISIONAL_DECLARATION`, `PAYROLL_OFFICE_OPENING` and 3 more.
 - **`leave_catalog_entry`** on create (10): `CARE_INDIVIDUAL_NOTICE`, `CARE_LEAVE_BENEFIT_APPLICATION`, `CHILDCARE_BENEFIT_APPLICATION`, `CHILDCARE_END_GRADE_CHANGE`, `CHILDCARE_INDIVIDUAL_NOTICE`, `CHILDCARE_PREMIUM_EXEMPTION`, `MATERNITY_END_GRADE_CHANGE`, `MATERNITY_PREMIUM_EXEMPTION` and 2 more.
 - **`loan_catalog_entry`** on create (1): `EMERGENCY_PAYMENT`.
@@ -339,8 +358,8 @@ The whole law from 2025-12-01, then 7 later changes. Rows whose values differ fr
 - From 2026-06-01: statutory `PCB`, `SKBBK`, `SOCSO`; effects `SOCSO_EIS_MONTHLY_CONTRIBUTION`; shared `lookup`.
 - From 2026-07-08: statutory `SKBBK`.
 - From 2027-01-01: statutory `HRDF`.
-- From 2028-06-01: statutory `SKBBK` (second phase, 1.00%).
-- From 2031-06-01: statutory `SKBBK` (third phase, 1.25%).
+- From 2028-06-01: statutory `SKBBK`.
+- From 2031-06-01: statutory `SKBBK`.
 
 ### Conversions and subtotal chain
 
@@ -350,58 +369,58 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `REGULAR_PAY` → `EXEMPT_ALL
 
 ### Contributions and taxes
 
-| Code              | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                                    | Value changed                                      |
-| ----------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `EPF`             | contribution | Employees Provident Fund contribution for Malaysian citizens, and for permanent residents and pre-1… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Parts A and E (+13 more) | —                                                  |
-| `EPF_PR`          | contribution | Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected before… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Part C (+12 more)        | —                                                  |
-| `EPF_NON_CITIZEN` | contribution | Employees Provident Fund contribution for a non-citizen.                                             | yes      | yes      | refund     | Employees Provident Fund (Amendment) Act 2025 (Act A1760), s.10, Part F para 2 (+9 more)      | —                                                  |
-| `SOCSO`           | contribution | Social security (PERKESO) contribution on the month's wages, from the contribution table: about 0.5… | yes      | yes      | refund     | Employees’ Social Security Act 1969 (Act 4) (+8 more)                                         | 2026-06-01                                         |
-| `SKBBK`           | contribution | Contribution to the social security scheme for injuries outside work, paid by the employee only, fr… | yes      | no       | refund     | Employees’ Social Security (Amendment) Act 2026 (Act A1788) (+8 more)                         | new 2026-06-01, 2026-07-08, 2028-06-01, 2031-06-01 |
-| `EIS`             | contribution | Employment Insurance System contribution on the month's wages up to RM6,000, from the contribution…  | yes      | yes      | refund     | Employment Insurance System Act 2017 (Act 800) (+7 more)                                      | —                                                  |
-| `PCB`             | tax          | Monthly tax deduction from the employee's pay: the year's tax is worked out from pay to date, relie… | yes      | no       | stops      | Income Tax Act 1967 (Act 53) (+17 more)                                                       | 2026-06-01                                         |
-| `HRDF`            | contribution | Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances; no…  | no       | yes      | stops      | HRD Corp Employers' Circular 01/2026 (+10 more)                                               | 2026-01-01, 2027-01-01                             |
+| Code              | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                          | Value changed                                      |
+| ----------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ----------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `EPF`             | contribution | Employees Provident Fund contribution for Malaysian citizens, and for permanent residents and p… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Pa… (+13 more) | —                                                  |
+| `EPF_PR`          | contribution | Employees Provident Fund contribution for a permanent resident, or a non-citizen who elected be… | yes      | yes      | refund     | Employees Provident Fund Act 1991 (Act 452), s.43 and Third Schedule Pa… (+12 more) | —                                                  |
+| `EPF_NON_CITIZEN` | contribution | Employees Provident Fund contribution for a non-citizen.                                         | yes      | yes      | refund     | Employees Provident Fund (Amendment) Act 2025 (Act A1760), s.10, Part F… (+9 more)  | —                                                  |
+| `SOCSO`           | contribution | Social security (PERKESO) contribution on the month's wages, from the contribution table: about… | yes      | yes      | refund     | Employees' Social Security (Amendment) Act 2026 (Act A1788), Act A1788;…            | 2026-06-01                                         |
+| `EIS`             | contribution | Employment Insurance System contribution on the month's wages up to RM6,000, from the contribut… | yes      | yes      | refund     | Employment Insurance System Act 2017 (Act 800), First Schedule paras 8-… (+7 more)  | —                                                  |
+| `PCB`             | tax          | Monthly tax deduction from the employee's pay: the year's tax is worked out from pay to date, r… | yes      | no       | stops      | Income Tax Act 1967 (Act 53), ss.6A, 7(1), 46(1)(n), 47, 48, 107(2); Sc… (+17 more) | 2026-06-01                                         |
+| `HRDF`            | contribution | Employer's HRD levy on the month's wages of Malaysian citizens (basic pay and fixed allowances;… | no       | yes      | stops      | P.U.(A) 13/2026 & HRD Corp Employers' Circular 01/2026, 1 Jan – 31 Dec… (+1 more)   | 2026-01-01, 2027-01-01                             |
+| `SKBBK`           | contribution | Contribution to the social security scheme for injuries outside work, paid by the employee only… | yes      | no       | refund     | Act A1788 & P.U.(B) 196/2026 — SKBBK Phase 3 (1.25%), Third Schedule Pa…            | new 2026-06-01, 2026-07-08, 2028-06-01, 2031-06-01 |
 
 ### Leave
 
-| Code                           | Entitlement                                                                                                    | A day taken        | Value changed |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `ANNUAL_LEAVE`                 | 8–16 days by length of service; own statutory test; service year; carries one window, company days capped at 5 | full pay, cashable | —             |
-| `COMPASSIONATE_LEAVE`          | no limit                                                                                                       | full pay           | —             |
-| `COURT_CUSTODY_ABSENCE`        | no limit                                                                                                       | paid share 0       | —             |
-| `EMERGENCY_LEAVE`              | no limit                                                                                                       | full pay           | —             |
-| `HOSPITALIZATION_LEAVE`        | 60 days; own statutory test; calendar year                                                                     | full pay           | —             |
-| `MATERNITY_LEAVE`              | 98 days; own statutory test; opened by `CHILD_BIRTH`; per event                                                | full pay           | —             |
-| `MATERNITY_LEAVE_NO_ALLOWANCE` | 98 days; own statutory test; opened by `CHILD_BIRTH`, `CHILD_BIRTH_NO_ALLOWANCE`; per event                    | paid share 0       | —             |
-| `MEDICAL_LEAVE`                | 14–22 days by length of service; own statutory test; calendar year                                             | full pay           | —             |
-| `NATIONAL_SERVICE_LEAVE`       | no limit                                                                                                       | paid share 0       | —             |
-| `NPL`                          | no limit                                                                                                       | paid share 0       | —             |
-| `PATERNITY_LEAVE`              | 7 days; own statutory test; opened by `CHILD_BIRTH`; per event                                                 | full pay           | —             |
-| `PUBLIC_HOLIDAY_IN_LIEU`       | none by default; HR grants each day; calendar year                                                             | full pay, cashable | —             |
+| Code                           | Entitlement                                                                                 | A day taken        | Value changed |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | ------------------ | ------------- |
+| `ANNUAL_LEAVE`                 | 8–16 days by length of service; own statutory test; service year                            | full pay, cashable | —             |
+| `COMPASSIONATE_LEAVE`          | no limit                                                                                    | full pay           | —             |
+| `COURT_CUSTODY_ABSENCE`        | no limit                                                                                    | paid share 0       | —             |
+| `EMERGENCY_LEAVE`              | no limit                                                                                    | full pay           | —             |
+| `HOSPITALIZATION_LEAVE`        | 60 days; own statutory test; calendar year                                                  | full pay           | —             |
+| `MATERNITY_LEAVE`              | 98 days; own statutory test; opened by `CHILD_BIRTH`; per event                             | full pay           | —             |
+| `MATERNITY_LEAVE_NO_ALLOWANCE` | 98 days; own statutory test; opened by `CHILD_BIRTH`, `CHILD_BIRTH_NO_ALLOWANCE`; per event | paid share 0       | —             |
+| `MEDICAL_LEAVE`                | 14–22 days by length of service; own statutory test; calendar year                          | full pay           | —             |
+| `NATIONAL_SERVICE_LEAVE`       | no limit                                                                                    | paid share 0       | —             |
+| `NPL`                          | no limit                                                                                    | paid share 0       | —             |
+| `PATERNITY_LEAVE`              | 7 days; own statutory test; opened by `CHILD_BIRTH`; per event                              | full pay           | —             |
+| `PUBLIC_HOLIDAY_IN_LIEU`       | 0 days                                                                                      | full pay, cashable | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                | What it pays                                                                                                   | Numbers on the row                                                    | Value changed |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------- |
-| `OVERTIME`          | Overtime beyond normal hours on a working day, and every hour on an off day: 1.5 × the hourly ordinary rate o… | part_time_premium 1, standard_premium 1.5                             | —             |
-| `REST_DAY_WORK`     | Work within normal hours on a rest day                                                                         | half_day_hours_factor 0.5, monthly_full_day 1, monthly_half_day 0.5,… | —             |
-| `REST_DAY_OVERTIME` | Hours beyond normal hours on a rest day: 2 × the hourly ordinary rate of pay (Employment Act 1955 s.60(3)(c))… | part_time_premium 1.5, rest_day_premium 2                             | —             |
-| `HOLIDAY_WORK`      | Work within normal hours on a paid public holiday: two days' wages at the ordinary rate of pay on top of the…  | holiday_work_days 2                                                   | —             |
-| `HOLIDAY_OVERTIME`  | Hours beyond normal hours on a paid public holiday: 3 × the hourly ordinary rate of pay (Employment Act 1955…  | holiday_premium 3, part_time_premium 2                                | —             |
+| Code                | What it pays                                                                                                 | Numbers on the row                                                                                      | Value changed |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ------------- |
+| `OVERTIME`          | Overtime beyond normal hours on a working day, and every hour on an off day: 1.5 × the hourly ordinary rate… | standard_premium 1.5, part_time_premium 1                                                               | —             |
+| `REST_DAY_WORK`     | Work within normal hours on a rest day. Monthly-rated: half a day's wages for up to half the normal hours,…  | monthly_half_day 0.5, monthly_full_day 1, other_half_day 1, other_full_day 2, half_day_hours_factor 0.5 | —             |
+| `REST_DAY_OVERTIME` | Hours beyond normal hours on a rest day: 2 × the hourly ordinary rate of pay (Employment Act 1955 s.60(3)(c… | rest_day_premium 2, part_time_premium 1.5                                                               | —             |
+| `HOLIDAY_WORK`      | Work within normal hours on a paid public holiday: two days' wages at the ordinary rate of pay on top of th… | holiday_work_days 2                                                                                     | —             |
+| `HOLIDAY_OVERTIME`  | Hours beyond normal hours on a paid public holiday: 3 × the hourly ordinary rate of pay (Employment Act 195… | holiday_premium 3, part_time_premium 2                                                                  | —             |
 
-Roster warnings (`ROSTER_DAILY_TOTAL`): daily hours 12; daily overtime hours 4; monthly overtime hours 104 on WORK, OFF days; consecutive days 6; weekly rest days 1.
+Roster warnings (`ROSTER_DAILY_TOTAL`): daily hours 12; daily overtime hours 4; monthly overtime hours {'hours': 104, 'day_types': ['WORK', 'OFF']}; consecutive days 6; weekly rest days 1.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
 - **Allowance** (5): `CHILDCARE_ALLOWANCE`, `MEAL_ALLOWANCE`, `ONCALL`, `PARKING_ALLOWANCE`, `SUA`. Of these, 5 count in the wage a day or hour rate divides.
-- **Claim** (3): `DENTAL_CLAIM`, `MEDICAL_CLAIM_DIRECT`, `MEDICAL_CLAIM`. Of these, 2 have a yearly limit.
-- **Ad hoc** (20): `ACCOMMODATION_RENT`, `BONUS`, `COMMISSION_IRREGULAR`, `COMMISSION_MONTHLY`, `CP38_INSTALMENT`, `EXCELLENCE_AWARD`, `INCENTIVE_OT`, `LAYOFF_BENEFIT`, `LONG_SERVICE_AWARD`, `NOTICE_IN_LIEU`, `NOTICE_INDEMNITY`, `PAYEE_PAYMENT`, `PIECE_HOLIDAY_OVERTIME`, `PIECE_HOLIDAY_WORK`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `TASK_MONTHLY_WAGE`, `TERMINATION_BENEFIT`, `TRAVEL_OFFICIAL`, `ZAKAT`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
+- **Claim** (3): `DENTAL_CLAIM`, `MEDICAL_CLAIM`, `MEDICAL_CLAIM_DIRECT`. Of these, 2 have a yearly limit.
+- **Ad hoc** (20): `ACCOMMODATION_RENT`, `BONUS`, `COMMISSION_IRREGULAR`, `COMMISSION_MONTHLY`, `CP38_INSTALMENT`, `EXCELLENCE_AWARD`, `INCENTIVE_OT`, `LAYOFF_BENEFIT`, `LONG_SERVICE_AWARD`, `NOTICE_INDEMNITY`, `NOTICE_IN_LIEU`, `PAYEE_PAYMENT`, `PIECE_HOLIDAY_OVERTIME`, `PIECE_HOLIDAY_WORK`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `TASK_MONTHLY_WAGE`, `TERMINATION_BENEFIT`, `TRAVEL_OFFICIAL`, `ZAKAT`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (3): `APPROVED_HOUSING_LOAN`, `LOAN_RECOVERY_AIR_TICKET`, `LOAN_RECOVERY_FESTIVE_ADVANCE`.
 - **Work event** (1): `EMPLOYER_SHUTDOWN`.
 - **Workplace case** (7): `EMPLOYEE_DEATH_NOTICE`, `FLEXIBLE_WORKING_REQUEST`, `NON_BANK_WAGE_PAYMENT_REQUEST`, `OVERSEAS_DEPARTURE_NOTICE`, `PERSONAL_DATA_BREACH`, `SEXUAL_HARASSMENT_COMPLAINT`, `WORKPLACE_ACCIDENT`.
 
 ### Registered rules: what a write is refused for
 
-- **`employment`** (13): `CHILD_EMPLOYMENT`, `CHILD_LIGHT_WORK_AGE`, `CONTRACT_CATEGORIES`, `LABOUR_ORDINANCE_TERRITORY`, `MINIMUM_WAGE_DAILY`, `MINIMUM_WAGE_HOURLY_PART_TIME`, `MINIMUM_WAGE_HOURLY`, `MINIMUM_WAGE_MONTHLY`, `MINOR_HAZARDOUS_WORK`, `MINOR_PROHIBITED_EMPLOYMENT`, `NORMAL_HOURS_WEEK`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`, `WAGE_PAYMENT_METHOD`.
+- **`employment`** (13): `CHILD_EMPLOYMENT`, `CHILD_LIGHT_WORK_AGE`, `CONTRACT_CATEGORIES`, `LABOUR_ORDINANCE_TERRITORY`, `MINIMUM_WAGE_DAILY`, `MINIMUM_WAGE_HOURLY`, `MINIMUM_WAGE_HOURLY_PART_TIME`, `MINIMUM_WAGE_MONTHLY`, `MINOR_HAZARDOUS_WORK`, `MINOR_PROHIBITED_EMPLOYMENT`, `NORMAL_HOURS_WEEK`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`, `WAGE_PAYMENT_METHOD`.
 - **`entity_change`** (2): `HRD_LIABILITY_EVENT_DATE_REQUIRED`, `WAGE_PERIOD`.
 - **`leave_catalog_entry`** (2): `ANNUAL_LEAVE_SERVICE`, `PATERNITY_QUALIFYING_SERVICE`.
 - **`roster_entry`** (2): `ROSTER_CONTINUOUS_HOURS`, `ROSTER_DAILY_TOTAL`.
@@ -409,14 +428,16 @@ Roster warnings (`ROSTER_DAILY_TOTAL`): daily hours 12; daily overtime hours 4; 
 
 ### Registered effects: the tasks raised
 
-51 effects; every one writes `obligation.create`.
+54 effects; every one writes `obligation.create`.
 
+- **`employment`** on create (1): `FOREIGN_EMPLOYEE_PRIOR_APPROVAL`.
 - **`employment`** on create, update (12): `CP22_NEW_EMPLOYEE`, `CP58_AGENT_STATEMENT`, `EPF_EMPLOYEE_REGISTRATION`, `FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE`, `FOREIGN_EMPLOYEE_PARTICULARS`, `FOREIGN_WORKER_LEVY`, `FOREIGN_WORKER_MEDICAL_EXAMINATION`, `PDPA_PRIVACY_NOTICE` and 4 more.
 - **`employment`** on exit (10): `CP22A_CESSATION_AND_WITHHOLDING`, `CP58_AGENT_STATEMENT_ON_EXIT`, `FOREIGN_DOMESTIC_TERMINATION_NOTICE`, `FOREIGN_EMPLOYEE_TERMINATION_NOTICE`, `MATERNITY_PROTECTION_REVIEW`, `PERSONAL_DATA_DISPOSAL`, `RETIREMENT_AGE_REVIEW`, `RETRENCHMENT_NOTIFICATION` and 2 more.
 - **`entity_change`** on create, update (8): `EPF_CESSATION_NOTICE`, `EPF_EMPLOYER_REGISTRATION`, `HRD_CESSATION_NOTICE`, `HRD_EMPLOYER_REGISTRATION`, `PDPA_DPO_APPOINTMENT`, `PERKESO_CESSATION_NOTICE`, `SEXUAL_HARASSMENT_NOTICE`, `SOCSO_EIS_EMPLOYER_REGISTRATION`.
 - **`payroll_run`** on create (13): `EA_FORM`, `EMPLOYEE_REGISTER`, `EPF_MONTHLY_CONTRIBUTION`, `FORM_E_CP8D`, `HRD_LEVY_MONTHLY`, `OVERTIME_REST_HOLIDAY_WAGES_DEADLINE`, `PAYSLIP_ISSUE`, `PCB_REMITTANCE` and 5 more.
+- **`payslip`** on create (1): `DEDUCTION_CEILING`.
 - **`workplace_case_catalog_entry`** on create (3): `PDPA_BREACH_COMMISSIONER_NOTICE`, `SEXUAL_HARASSMENT_INQUIRY`, `SOCSO_ACCIDENT_REPORT`.
-- **`workplace_case_catalog_entry`** on create, update (2): `CP21_LEAVING_MALAYSIA`, `FLEXIBLE_WORKING_REPLY`.
+- **`workplace_case_catalog_entry`** on create, update (3): `CP21_LEAVING_MALAYSIA`, `EMPLOYEE_DEATH_NOTICE`, `FLEXIBLE_WORKING_REPLY`.
 - **`workplace_case_catalog_entry`** on update (3): `PDPA_BREACH_DATA_SUBJECT_NOTICE`, `SEXUAL_HARASSMENT_DG_INQUIRY_REPORT`, `SEXUAL_HARASSMENT_FINDING_ACTION`.
 
 ### Employer pay methods
@@ -428,9 +449,11 @@ Roster warnings (`ROSTER_DAILY_TOTAL`): daily hours 12; daily overtime hours 4; 
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 1 later change. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 3 later changes. Rows whose values differ from the law before each:
 
-- From 2026-01-06: statutory `WTAX`; shared `lookup`.
+- From 2026-01-06: statutory `WTAX`; leave `ANNUAL_LEAVE`; allowance `DEPENDANT_MEDICAL_ALLOWANCE`, `LAUNDRY_ALLOWANCE`, `meal`; claim `DENTAL_CLAIM`, `MEDICAL_CLAIM`; ad hoc `ACHIEVEMENT_AWARD`, `CBA_PRODUCTIVITY`, `CHRISTMAS_GIFT`, `MEDICAL_ASSISTANCE`, `OT_MEAL_ALLOWANCE` and 1 more; shared `lookup`.
+- From 2026-11-20: shared `lookup`.
+- From 2026-11-22: shared `lookup`.
 
 ### Conversions and subtotal chain
 
@@ -440,23 +463,23 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `BASIC_AFTER_UNPAID_LEAVE` �
 
 ### Contributions and taxes
 
-| Code               | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                                          | Value changed |
-| ------------------ | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | --------------------------------------------------------------------------------------------------- | ------------- |
-| `SSS`              | contribution | Social Security System contribution on the monthly salary credit (the month's pay rounded to the ne… | yes      | yes      | refund     | Republic Act 11199 (Social Security Act of 2018), ss.4(a)(9), 8(i), 9(a), 11, 12-B(a), 18 (+5 more) | —             |
-| `SSS_MPF`          | contribution | SSS Mandatory Provident Fund: the SSS rates, employee 5% and employer 10%, on the part of the month… | yes      | yes      | refund     | Republic Act 11199 (Social Security Act of 2018), s.4(a)(2) (+5 more)                               | —             |
-| `SSS_EC`           | contribution | Employees' Compensation contribution, paid by the employer only: ₱10 a month where the salary credi… | no       | yes      | stops      | Presidential Decree 626 (Employees Compensation) as amended (+6 more)                               | —             |
-| `PHIC`             | contribution | PhilHealth premium: 5% of the monthly basic salary, between ₱10,000 and ₱100,000, shared equally by… | yes      | yes      | stops      | Republic Act 11223 (Universal Health Care Act), section 10 (+5 more)                                | —             |
-| `HDMF`             | contribution | Pag-IBIG Fund contribution on the month's pay up to ₱10,000: the employee pays 2% (1% on pay of ₱1,… | yes      | yes      | refund     | Republic Act 9679, ss.6-7 (+5 more)                                                                 | —             |
-| `WTAX_TAXABLE_PAY` | tax          | A record of the run's taxable regular pay, kept so that a later run in the same month taxes its pay… | no       | yes      | stops      | Revenue Regulations 11-2018, s.2.79(B)(3)                                                           | —             |
-| `WTAX`             | tax          | Income tax withheld on compensation: the withholding table for the pay period applied to taxable pa… | yes      | no       | refund     | Revenue Regulations 29-2025 amending RR 2-98 (+10 more)                                             | 2026-01-06    |
-| `FBT`              | tax          | Fringe benefit tax on benefits given to managerial and supervisory employees, paid by the employer:… | no       | yes      | stops      | National Internal Revenue Code (as amended by RA 10963), section 33 (+1 more)                       | —             |
+| Code               | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                          | Value changed |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ----------------------------------------------------------------------------------- | ------------- |
+| `SSS`              | contribution | Social Security System contribution on the monthly salary credit (the month's pay rounded to th… | yes      | yes      | refund     | Republic Act 11199 (Social Security Act of 2018), ss.4(a)(9), 8(i), 9(a… (+6 more)  | —             |
+| `SSS_MPF`          | contribution | SSS Mandatory Provident Fund: the SSS rates, employee 5% and employer 10%, on the part of the m… | yes      | yes      | refund     | Republic Act 11199 (Social Security Act of 2018), s.4(a)(2) (+5 more)               | —             |
+| `SSS_EC`           | contribution | Employees' Compensation contribution, paid by the employer only: ₱10 a month where the salary c… | no       | yes      | stops      | Presidential Decree 626 (Employees Compensation) as amended, Art.168 (c… (+7 more)  | —             |
+| `PHIC`             | contribution | PhilHealth premium: 5% of the monthly basic salary, between ₱10,000 and ₱100,000, shared equall… | yes      | yes      | stops      | Republic Act No. 11223 (Universal Health Care Act) s.10 (+4 more)                   | —             |
+| `HDMF`             | contribution | Pag-IBIG Fund contribution on the month's pay up to ₱10,000: the employee pays 2% (1% on pay of… | yes      | yes      | refund     | Republic Act No. 9679 (HDMF Law of 2009) ss.6–7 (+3 more)                           | —             |
+| `WTAX_TAXABLE_PAY` | tax          | A record of the run's taxable regular pay, kept so that a later run in the same month taxes its… | no       | yes      | stops      | Revenue Regulations 11-2018, s.2.79(B)(3)                                           | —             |
+| `WTAX`             | tax          | Income tax withheld on compensation: the withholding table for the pay period applied to taxabl… | yes      | no       | refund     | Revenue Regulations 29-2025 amending RR 2-98, s.1(c), (d), (g), amendin… (+10 more) | 2026-01-06    |
+| `FBT`              | tax          | Fringe benefit tax on benefits given to managerial and supervisory employees, paid by the emplo… | no       | yes      | stops      | National Internal Revenue Code (as amended by RA 10963), section 33 (+1 more)       | —             |
 
 ### Leave
 
 | Code                         | Entitlement                                                                               | A day taken        | Value changed |
 | ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `ANNUAL_LEAVE`               | 5 days; own statutory test; service year, accrues and never lapses                        | full pay, cashable | —             |
-| `ANNUAL_LEAVE_DOMESTIC`      | 5 days; service year                                                                      | full pay           | —             |
+| `ANNUAL_LEAVE`               | 5 days; own statutory test                                                                | full pay, cashable | 2026-01-06    |
+| `ANNUAL_LEAVE_DOMESTIC`      | 5 days; own statutory test; service year                                                  | full pay           | —             |
 | `COMPASSIONATE_LEAVE`        | no limit                                                                                  | paid share 0       | —             |
 | `EMERGENCY_LEAVE`            | no limit                                                                                  | paid share 0       | —             |
 | `HOSPITALIZATION_LEAVE`      | no limit                                                                                  | paid share 0       | —             |
@@ -466,23 +489,23 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `BASIC_AFTER_UNPAID_LEAVE` �
 | `MEDICAL_LEAVE`              | no limit                                                                                  | paid share 0       | —             |
 | `NPL`                        | no limit                                                                                  | paid share 0       | —             |
 | `PATERNITY_LEAVE`            | 7 days; own statutory test; opened by `CHILD_BIRTH`, `PREGNANCY_TERMINATION`; per event   | full pay           | —             |
-| `PUBLIC_HOLIDAY_IN_LIEU`     | none by default; HR grants each day; calendar year                                        | full pay           | —             |
+| `PUBLIC_HOLIDAY_IN_LIEU`     | 0 days                                                                                    | full pay           | —             |
 | `SOLO_PARENT_LEAVE`          | 7 days; own statutory test; calendar year                                                 | full pay           | —             |
 | `SPECIAL_LEAVE_FOR_WOMEN`    | 60 days; opened by `GYNECOLOGICAL_SURGERY`; per event                                     | full pay           | —             |
 | `VAWC_LEAVE`                 | 10 days; opened by `VAWC`; per event                                                      | full pay           | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                       | What it pays                                                                                                   | Numbers on the row | Value changed |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `OVERTIME`                 | Hours beyond the contract's normal daily hours, at the hour rate × 125% on an ordinary day, 169% on a rest or… | —                  | —             |
-| `REST_DAY_WORK`            | Hours worked on a scheduled rest day that is not a holiday, up to the normal daily hours, at 130% of the hour… | —                  | —             |
-| `OFF_DAY_WORK`             | Hours worked on the second non-working day of a five-day week, up to the normal daily hours, at 100% of the h… | —                  | —             |
-| `HOLIDAY_WORK`             | Hours worked on a regular holiday, up to the normal daily hours, at 200% of the hour rate (260% on the rest d… | —                  | —             |
-| `SPECIAL_HOLIDAY_WORK`     | Hours worked on a special non-working day, up to the normal daily hours, at 130% of the hour rate (150% on th… | —                  | —             |
-| `NIGHT_SHIFT_DIFFERENTIAL` | 10% of the hour's own rate for each hour worked between 10 p.m. and 6 a.m.: the day's multiple, or the overti… | multiplier 0.1     | —             |
-| `DOUBLE_HOLIDAY_UNWORKED`  | One more day's pay (100% of the day rate) for an unworked double regular holiday; a daily-paid employee on un… | —                  | —             |
-| `DAILY_HOLIDAY_PAY`        | One day's pay (100% of the day rate) for each unworked regular holiday, for a daily-paid employee not on unpa… | —                  | —             |
+| Code                       | What it pays                                                                                                 | Numbers on the row | Value changed |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------ | ------------- |
+| `OVERTIME`                 | Hours beyond the contract's normal daily hours, at the hour rate × 125% on an ordinary day, 169% on a rest…  | —                  | —             |
+| `REST_DAY_WORK`            | Hours worked on a scheduled rest day that is not a holiday, up to the normal daily hours, at 130% of the ho… | —                  | —             |
+| `OFF_DAY_WORK`             | Hours worked on the second non-working day of a five-day week, up to the normal daily hours, at 100% of the… | —                  | —             |
+| `HOLIDAY_WORK`             | Hours worked on a regular holiday, up to the normal daily hours, at 200% of the hour rate (260% on the rest… | —                  | —             |
+| `SPECIAL_HOLIDAY_WORK`     | Hours worked on a special non-working day, up to the normal daily hours, at 130% of the hour rate (150% on…  | —                  | —             |
+| `NIGHT_SHIFT_DIFFERENTIAL` | 10% of the hour's own rate for each hour worked between 10 p.m. and 6 a.m.: the day's multiple, or the over… | multiplier 0.1     | —             |
+| `DOUBLE_HOLIDAY_UNWORKED`  | One more day's pay (100% of the day rate) for an unworked double regular holiday; a daily-paid employee on…  | —                  | —             |
+| `DAILY_HOLIDAY_PAY`        | One day's pay (100% of the day rate) for each unworked regular holiday, for a daily-paid employee not on un… | —                  | —             |
 
 Roster warnings (`ROSTER_WARNINGS`): daily hours 12; consecutive days 6; weekly rest days 1.
 
@@ -490,7 +513,7 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; consecutive days 6; weekly 
 
 - **Allowance** (10): `DEPENDANT_MEDICAL_ALLOWANCE`, `LAUNDRY_ALLOWANCE`, `allowance`, `communication`, `corporate_duty_allowance`, `duty_allowance`, `leader`, `meal`, `position`, `transport`. Of these, 0 count in the wage a day or hour rate divides.
 - **Claim** (2): `DENTAL_CLAIM`, `MEDICAL_CLAIM`. Of these, 0 have a yearly limit.
-- **Ad hoc** (37): `ACHIEVEMENT_AWARD`, `bonus`, `CBA_PRODUCTIVITY`, `CHRISTMAS_BONUS`, `CHRISTMAS_GIFT`, `COMMISSION`, `FRINGE_BENEFIT`, `HAZARD_PAY`, `HDMF_MP2`, `HDMF_VOLUNTARY`, `KASAMBAHAY_FORFEITURE`, `KASAMBAHAY_INDEMNITY`, `LOSS_DAMAGE_DEDUCTION`, `MATERNITY_SALARY_DIFFERENTIAL`, `MEDICAL_ASSISTANCE`, `OT_MEAL_ALLOWANCE`, `PHIC_ADJUSTMENT`, `PHIC_EMPLOYER_ADJUSTMENT`, `PHIC_EMPLOYER_REFUND`, `PHIC_REFUND`, `PREMIUM_PAY`, `PROTECTION_ORDER_SUPPORT`, `RETIREMENT_PAY`, `RETIREMENT_PAY_QUALIFIED_PLAN`, `RETIREMENT_PAY_TAXABLE`, `SEPARATION_PAY`, `SEPARATION_PAY_TAXABLE`, `SERVICE_CHARGE_SHARE`, `SSS_ADJUSTMENT`, `SSS_EMPLOYER_ADJUSTMENT`, `SSS_MATERNITY_BENEFIT`, `SSS_SICKNESS_BENEFIT`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `THIRTEENTH_MONTH_PAY`, `UNIFORM_ALLOWANCE`, `UNION_DUES`. Of these, 19 may run off-cycle, 0 post to a balance account (statutory corrections) and 4 are employer cost.
+- **Ad hoc** (37): `ACHIEVEMENT_AWARD`, `CBA_PRODUCTIVITY`, `CHRISTMAS_BONUS`, `CHRISTMAS_GIFT`, `COMMISSION`, `FRINGE_BENEFIT`, `HAZARD_PAY`, `HDMF_MP2`, `HDMF_VOLUNTARY`, `KASAMBAHAY_FORFEITURE`, `KASAMBAHAY_INDEMNITY`, `LOSS_DAMAGE_DEDUCTION`, `MATERNITY_SALARY_DIFFERENTIAL`, `MEDICAL_ASSISTANCE`, `OT_MEAL_ALLOWANCE`, `PHIC_ADJUSTMENT`, `PHIC_EMPLOYER_ADJUSTMENT`, `PHIC_EMPLOYER_REFUND`, `PHIC_REFUND`, `PREMIUM_PAY`, `PROTECTION_ORDER_SUPPORT`, `RETIREMENT_PAY`, `RETIREMENT_PAY_QUALIFIED_PLAN`, `RETIREMENT_PAY_TAXABLE`, `SEPARATION_PAY`, `SEPARATION_PAY_TAXABLE`, `SERVICE_CHARGE_SHARE`, `SSS_ADJUSTMENT`, `SSS_EMPLOYER_ADJUSTMENT`, `SSS_MATERNITY_BENEFIT`, `SSS_SICKNESS_BENEFIT`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `THIRTEENTH_MONTH_PAY`, `UNIFORM_ALLOWANCE`, `UNION_DUES`, `bonus`. Of these, 19 may run off-cycle, 0 post to a balance account (statutory corrections) and 4 are employer cost.
 - **Loan** (4): `LOAN_RECOVERY_COMPANY`, `LOAN_RECOVERY_PAGIBIG_CALAMITY`, `LOAN_RECOVERY_PAGIBIG_SALARY`, `LOAN_RECOVERY_SSS_SALARY`.
 - **Work event** (5): `BONA_FIDE_SUSPENSION`, `FORCE_MAJEURE`, `LOCKOUT`, `STRIKE`, `WORK_STOPPAGE_ORDER`.
 - **Workplace case** (13): `BENEFIT_SERVICE_RECORD`, `BIR_2316_DELIVERED`, `CROSS_BORDER_WORK_RECORD`, `DANGEROUS_OCCURRENCE`, `EMPLOYMENT_CERTIFICATE_REQUEST`, `EXTERNAL_WAGE_RECORD`, `FINAL_COMPENSATION_PAYMENT`, `FLEXIBLE_WORK_ARRANGEMENT`, `PERSONAL_DATA_BREACH`, `SOLO_PARENT_FLEXIBLE_SCHEDULE`, `SUSPENSION_EXTENSION`, `TELECOMMUTING_PROGRAM`, `WORK_ACCIDENT`.
@@ -509,28 +532,29 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; consecutive days 6; weekly 
 - **`employment`** on create, update (10): `ALIEN_EMPLOYMENT_PERMIT`, `BIR_EMPLOYEE_TIN_REGISTRATION`, `CAREGIVER_CONTRACT`, `COMPULSORY_RETIREMENT_AGE`, `HDMF_EMPLOYEE_REGISTRATION`, `KASAMBAHAY_CONTRACT_AND_REGISTRY`, `PHILHEALTH_EMPLOYEE_REPORT`, `PROBATIONARY_STANDARDS` and 2 more.
 - **`employment`** on exit (8): `AUTHORISED_CAUSE_TERMINATION_NOTICE`, `FINAL_PAY_RELEASE`, `HDMF_SEPARATION_REPORT`, `JUST_CAUSE_TWIN_NOTICE`, `KASAMBAHAY_TERMINATION_NOTICE`, `PERSONAL_DATA_DISPOSAL`, `PHILHEALTH_SEPARATION_REPORT`, `raise-exit-pay`.
 - **`entity_change`** on create, update (8): `BIR_WITHHOLDING_AGENT_REGISTRATION`, `DOLE_ESTABLISHMENT_REGISTRATION`, `DPO_DESIGNATION`, `HDMF_EMPLOYER_REGISTRATION`, `NPC_REGISTRATION`, `NPC_REGISTRATION_RENEWAL`, `PHILHEALTH_EMPLOYER_REGISTRATION`, `SSS_EMPLOYER_REGISTRATION`.
-- **`payroll_run`** on create (16): `ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES`, `BIR_1601C_MONTHLY_REMITTANCE`, `BIR_1603Q_FRINGE_BENEFITS`, `BIR_1604C_ANNUAL_ALPHALIST`, `BIR_2316_CERTIFICATE`, `BIR_2316_SUBSTITUTED_FILING_LIST`, `BIR_YEAR_END_ADJUSTMENT`, `DOLE_ANNUAL_EXPOSURE_DATA_REPORT` and 8 more.
+- **`payroll_run`** on create (17): `ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES`, `BIR_1601C_MONTHLY_REMITTANCE`, `BIR_1603Q_FRINGE_BENEFITS`, `BIR_1604C_ANNUAL_ALPHALIST`, `BIR_2316_CERTIFICATE`, `BIR_2316_SUBSTITUTED_FILING_LIST`, `BIR_YEAR_END_ADJUSTMENT`, `DOLE_ANNUAL_EXPOSURE_DATA_REPORT` and 9 more.
 - **`payroll_run`** on update (1): `THIRTEENTH_MONTH_FLOOR`.
-- **`workplace_case_catalog_entry`** on create (11): `BIR_2316_LEAVER_CERTIFICATE`, `CERTIFICATE_OF_EMPLOYMENT`, `DOLE_DANGEROUS_OCCURRENCE_REPORT`, `DOLE_FLEXIBLE_WORK_ARRANGEMENT_NOTICE`, `DOLE_SERIOUS_ACCIDENT_NOTICE`, `DOLE_SUSPENSION_EXTENSION_REPORT`, `DOLE_TELECOMMUTING_NOTICE`, `DOLE_WORK_ACCIDENT_REPORT` and 3 more.
+- **`workplace_case_catalog_entry`** on create (10): `BIR_2316_LEAVER_CERTIFICATE`, `CERTIFICATE_OF_EMPLOYMENT`, `DOLE_DANGEROUS_OCCURRENCE_REPORT`, `DOLE_FLEXIBLE_WORK_ARRANGEMENT_NOTICE`, `DOLE_SERIOUS_ACCIDENT_NOTICE`, `DOLE_SUSPENSION_EXTENSION_REPORT`, `DOLE_TELECOMMUTING_NOTICE`, `NPC_BREACH_FULL_REPORT` and 2 more.
 
 ### Employer pay methods
 
+- `benefit_exclusion`: `WTAX`.
+- `contribution_split`: `HDMF`, `PHIC`, `SSS`, `SSS_EC`, `SSS_MPF`.
+- `night_differential_basis`: `NIGHT_SHIFT_DIFFERENTIAL`.
 - `overtime_hour_basis`: `HOLIDAY_WORK`, `NIGHT_SHIFT_DIFFERENTIAL`, `OFF_DAY_WORK`, `OVERTIME`, `REST_DAY_WORK`, `SPECIAL_HOLIDAY_WORK`.
 - `rest_day_hourly_multiplier`: `OVERTIME`, `REST_DAY_WORK`.
-- `night_differential_basis`: `NIGHT_SHIFT_DIFFERENTIAL`.
-- `contribution_split`: `HDMF`, `PHIC`, `SSS_EC`, `SSS_MPF`, `SSS`.
-- `benefit_exclusion`: `WTAX`.
 
 ## Singapore (SG)
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 8 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 9 later changes. Rows whose values differ from the law before each:
 
-- From 2026-01-01: leave `SHARED_PARENTAL_LEAVE`; shared `lookup`.
-- From 2026-07-01: effects `LQS_WAGE_FLOOR`, `REEMPLOYMENT_OFFER`; shared `lookup`.
+- From 2026-01-01: statutory `CPF`; shared `lookup`.
+- From 2026-04-01: leave `SHARED_PARENTAL_LEAVE`.
+- From 2026-07-01: effects `LQS_WAGE_FLOOR`; shared `lookup`; employee statutory parameters.
 - From 2026-09-01: shared `lookup`.
-- From 2027-01-01: shared `lookup`.
+- From 2027-01-01: effects `EP_SPASS_QUALIFYING_SALARY`; shared `lookup`.
 - From 2027-07-01: shared `lookup`.
 - From 2027-09-01: shared `lookup`.
 - From 2028-01-01: shared `lookup`.
@@ -538,73 +562,73 @@ The whole law from 2025-12-01, then 8 later changes. Rows whose values differ fr
 
 ### Conversions and subtotal chain
 
-Currency SGD. Tax year starts in month 1. Day rate `YEAR`, hour rate `CONTRACT_HOURS`, proration `WORKING_DAYS`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `JURISDICTION`.
+Currency SGD. Tax year starts in month 1. Day rate `YEAR`, hour rate `CONTRACT_HOURS`, proration `WORKING_DAYS`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIONAL_WAGES` → `GROSS` → `DIRECTOR_FEES` → `ENTERTAINER_FEES` → `NET`.
 
 ### Contributions and taxes
 
-| Code                 | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                         | Value changed |
-| -------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------------------- | ------------- |
-| `CPF_AW`             | tax          | A record of the additional wages (bonuses and other irregular pay) that attracted CPF, kept for the… | no       | yes      | stops      | CPF Board: Additional Wage ceiling; estimate the year's Ord…                       | —             |
-| `CPF`                | contribution | Central Provident Fund contribution for citizens and permanent residents, by age band and years of…  | yes      | yes      | stops      | CPF Board, What are the changes to the CPF contribution rat…, rate table (+2 more) | —             |
-| `CDAC`               | contribution | Monthly contribution to the Chinese Development Assistance Council fund, deducted from the employee… | yes      | no       | stops      | CDAC Rules 1992 r.2; CPF Board, Contributions to self-help…, r.2 (+1 more)         | —             |
-| `ECF`                | contribution | Monthly contribution to the Eurasian Community Fund, deducted from the employee by the band of the…  | yes      | no       | stops      | CPF (Contributions to Community Fund — Eurasian Association…, r.2 (+1 more)        | —             |
-| `MBMF`               | contribution | Monthly contribution to the Mosque Building and Mendaki Fund, deducted from the employee by the ban… | yes      | no       | stops      | Mosque Building and Mendaki Fund Rules; CPF Board, Contribu…, MBMF (+1 more)       | —             |
-| `SINDA`              | contribution | Monthly contribution to the Singapore Indian Development Association fund, deducted from the employ… | yes      | no       | stops      | SINDA Fund Rules; CPF Act 1953 s.76(3); CPF Board, Contribu…, s.76(3) (+1 more)    | —             |
-| `SDL`                | contribution | Skills Development Levy, paid by the employer only: 0.25% of the month's total wages, at least $2 a… | no       | yes      | stops      | Skills Development Levy Act 1979 ss.2–4 — 0.25% of wages, m…, ss.2–4               | —             |
-| `WHT_NR_DIRECTOR`    | tax          | Withholding tax of 24% on director's fees paid to a non-resident director (Income Tax Act 1947 s.45… | yes      | no       | stops      | Income Tax Act 1947 s.45; IRAS — 24% withholding on directo…, s.45                 | —             |
-| `WHT_NR_ENTERTAINER` | tax          | Withholding tax of 15% on the gross income of a non-resident public entertainer (Income Tax Act 194… | yes      | no       | stops      | Income Tax Act 1947 s.45; IRAS — 15% withholding on the gro…, s.45                 | —             |
+| Code                 | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                         | Value changed |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ---------------------------------------------------------------------------------- | ------------- |
+| `CPF_AW`             | tax          | A record of the additional wages (bonuses and other irregular pay) that attracted CPF, kept for… | no       | yes      | stops      | CPF Act 1953 First Schedule; CPF Board AW Ceiling Examples (+1 more)               | —             |
+| `CPF`                | contribution | Central Provident Fund contribution for citizens and permanent residents, by age band and years… | yes      | yes      | stops      | CPF Board, What are the changes to the CPF contribution rates for senio… (+2 more) | 2026-01-01    |
+| `CDAC`               | contribution | Monthly contribution to the Chinese Development Assistance Council fund, deducted from the empl… | yes      | no       | stops      | CDAC Rules 1992 r.2; CPF Board, Contributions to self-help groups (+1 more)        | —             |
+| `ECF`                | contribution | Monthly contribution to the Eurasian Community Fund, deducted from the employee by the band of…  | yes      | no       | stops      | CPF (Contributions to Community Fund, r.2 (+1 more)                                | —             |
+| `MBMF`               | contribution | Monthly contribution to the Mosque Building and Mendaki Fund, deducted from the employee by the… | yes      | no       | stops      | Mosque Building and Mendaki Fund Rules; CPF Board, Contributions to sel… (+2 more) | —             |
+| `SINDA`              | contribution | Monthly contribution to the Singapore Indian Development Association fund, deducted from the em… | yes      | no       | stops      | SINDA Fund Rules; CPF Act 1953 s.76(3); CPF Board, Contributions to sel… (+1 more) | —             |
+| `SDL`                | contribution | Skills Development Levy, paid by the employer only: 0.25% of the month's total wages, at least…  | no       | yes      | stops      | Skills Development Levy Act 1979 s.3 (+2 more)                                     | —             |
+| `WHT_NR_DIRECTOR`    | tax          | Withholding tax of 24% on director's fees paid to a non-resident director (Income Tax Act 1947…  | yes      | no       | stops      | Income Tax Act 1947 s.45; IRAS — 24% withholding on director fees paid…            | —             |
+| `WHT_NR_ENTERTAINER` | tax          | Withholding tax of 15% on the gross income of a non-resident public entertainer (Income Tax Act… | yes      | no       | stops      | Income Tax Act 1947 s.45; IRAS — 15% withholding on the gross income of…           | —             |
 
 ### Leave
 
-| Code                                | Entitlement                                                                          | A day taken                  | Value changed |
-| ----------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------- | ------------- |
-| `ADOPTION_LEAVE`                    | 84 days; opened by `ADOPTION`; per event                                             | full pay                     | —             |
-| `ANNUAL_LEAVE`                      | 8–14 days by length of service; service year; carries one window                     | full pay, cashable           | —             |
-| `ANNUAL_LEAVE_PART_TIME`            | 8–14 days by length of service; own statutory test; service year; carries one window | full pay, cashable           | —             |
-| `CHILDCARE_LEAVE`                   | 2–6 days by length of service; own statutory test; calendar year                     | full pay                     | —             |
-| `COMPASSIONATE_LEAVE`               | contractual employer grant                                                           | full pay                     | —             |
-| `HOSPITALIZATION_LEAVE`             | 15–60 days by length of service; calendar year                                       | full pay                     | —             |
-| `HOSPITALIZATION_LEAVE_PART_TIME`   | 15–60 days by length of service; own statutory test; calendar year                   | full pay                     | —             |
-| `MATERNITY_LEAVE`                   | 112 days; opened by `CHILD_BIRTH`; per event                                         | full pay                     | —             |
-| `NPL`                               | no limit                                                                             | paid share 0                 | —             |
-| `NS_LEAVE`                          | no limit                                                                             | paid share 0                 | —             |
-| `PATERNITY_LEAVE`                   | 28 days; opened by `CHILD_BIRTH`; per event                                          | full pay                     | —             |
-| `PUBLIC_HOLIDAY_IN_LIEU`            | none by default; HR grants each day; one window for the whole employment             | full pay                     | —             |
-| `SHARED_PARENTAL_LEAVE`             | 70 days; own statutory test; opened by `CHILD_BIRTH`; per event                      | full pay                     | 2026-01-01    |
-| `SICK_LEAVE`                        | 5–14 days by length of service; calendar year                                        | full pay                     | —             |
-| `SICK_LEAVE_PART_TIME`              | 5–14 days by length of service; own statutory test; calendar year                    | full pay                     | —             |
-| `UNPAID_INFANT_CARE_LEAVE`          | no limit                                                                             | paid share 0                 | —             |
-| `WORK_INJURY_HOSPITALISATION_LEAVE` | opened by `WORK_ACCIDENT`                                                            | paid share by the row’s rule | —             |
-| `WORK_INJURY_MEDICAL_LEAVE`         | opened by `WORK_ACCIDENT`                                                            | paid share by the row’s rule | —             |
+| Code                                | Entitlement                                                                 | A day taken                  | Value changed |
+| ----------------------------------- | --------------------------------------------------------------------------- | ---------------------------- | ------------- |
+| `ADOPTION_LEAVE`                    | 84 days; opened by `ADOPTION`; per event                                    | full pay                     | —             |
+| `ANNUAL_LEAVE`                      | 8–14 days by length of service; service year                                | full pay, cashable           | —             |
+| `ANNUAL_LEAVE_PART_TIME`            | 8–14 days by length of service; own statutory test; service year            | full pay, cashable           | —             |
+| `CHILDCARE_LEAVE`                   | 2–6 days by length of service; own statutory test; calendar year            | full pay                     | —             |
+| `COMPASSIONATE_LEAVE`               | no limit                                                                    | full pay                     | —             |
+| `HOSPITALIZATION_LEAVE`             | 15–60 days by length of service; calendar year                              | full pay                     | —             |
+| `HOSPITALIZATION_LEAVE_PART_TIME`   | 15–60 days by length of service; own statutory test; calendar year          | full pay                     | —             |
+| `MATERNITY_LEAVE`                   | 112 days; opened by `CHILD_BIRTH`; per event                                | full pay                     | —             |
+| `NPL`                               | no limit                                                                    | paid share 0                 | —             |
+| `NS_LEAVE`                          | no limit                                                                    | paid share 0                 | —             |
+| `PATERNITY_LEAVE`                   | 28 days; opened by `ADOPTION`, `CHILD_BIRTH`; per event                     | full pay                     | —             |
+| `PUBLIC_HOLIDAY_IN_LIEU`            | 0 days                                                                      | full pay                     | —             |
+| `SHARED_PARENTAL_LEAVE`             | 70 days; own statutory test; opened by `ADOPTION`, `CHILD_BIRTH`; per event | full pay                     | 2026-04-01    |
+| `SICK_LEAVE`                        | 5–14 days by length of service; calendar year                               | full pay                     | —             |
+| `SICK_LEAVE_PART_TIME`              | 5–14 days by length of service; own statutory test; calendar year           | full pay                     | —             |
+| `UNPAID_INFANT_CARE_LEAVE`          | 12 days; calendar year                                                      | paid share 0                 | —             |
+| `WORK_INJURY_HOSPITALISATION_LEAVE` | opened by `WORK_ACCIDENT`                                                   | paid share by the row’s rule | —             |
+| `WORK_INJURY_MEDICAL_LEAVE`         | opened by `WORK_ACCIDENT`                                                   | paid share by the row’s rule | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                             | What it pays                                                                                                   | Numbers on the row                                                     | Value changed |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------- |
-| `OVERTIME`                       | Overtime on a working day, and rest-day hours past the normal day: 1.5 × the hourly basic rate (12 × monthly…  | full_time_weekly_hours 44, manual_monthly_ceiling 4500, multiplier 1.… | —             |
-| `PART_TIME_EXTRA_HOURS`          | Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate (… | multiplier 1                                                           | —             |
-| `PART_TIME_OVERTIME`             | Part-time hours past the comparable full-timer’s day, at 1.5 × the hourly basic rate (PT Regulations).         | multiplier 1.5                                                         | —             |
-| `REST_DAY_WORK`                  | Work on a rest day, paid at the employer-request rate: one day’s basic pay for up to half the normal hours, t… | employer_request_days_above_half 2, employer_request_days_up_to_half…  | —             |
-| `PART_TIME_REST_DAY_EXTRA_HOURS` | Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate o… | multiplier 1                                                           | —             |
-| `PART_TIME_REST_DAY_OVERTIME`    | Part-time hours past the comparable full-timer’s day on a rest day, at 1.5 × the hourly basic rate (PT Regula… | multiplier 1.5                                                         | —             |
-| `HOLIDAY_WORK`                   | A public holiday worked: one extra day’s basic pay for each holiday worked, on top of the salary (EA s.88(4)). | holiday_work_days 1                                                    | —             |
+| Code                             | What it pays                                                                                                 | Numbers on the row                                                                                                                                      | Value changed |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `OVERTIME`                       | Overtime on a working day, and rest-day hours past the normal day: 1.5 × the hourly basic rate (12 × monthl… | multiplier 1.5, non_workman_hourly_cap 13.6, weeks_per_year 52, full_time_weekly_hours 44, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600  | —             |
+| `PART_TIME_EXTRA_HOURS`          | Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate… | multiplier 1, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600                                                                               | —             |
+| `PART_TIME_OVERTIME`             | Part-time hours past the comparable full-timer’s day, at 1.5 × the hourly basic rate (PT Regulations).       | multiplier 1.5, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600, nonmanual_ot_salary_cap 2600                                               | —             |
+| `REST_DAY_WORK`                  | Work on a rest day, paid at the employer-request rate: one day’s basic pay for up to half the normal hours,… | half_day_divisor 2, employer_request_days_up_to_half 1, employer_request_days_above_half 2, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600 | —             |
+| `PART_TIME_REST_DAY_EXTRA_HOURS` | Part-time hours past the agreed day and up to the comparable full-timer’s day, at 1 × the hourly basic rate… | multiplier 1, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600                                                                               | —             |
+| `PART_TIME_REST_DAY_OVERTIME`    | Part-time hours past the comparable full-timer’s day on a rest day, at 1.5 × the hourly basic rate (PT Regu… | multiplier 1.5, manual_monthly_ceiling 4500, nonmanual_monthly_ceiling 2600, nonmanual_ot_salary_cap 2600                                               | —             |
+| `HOLIDAY_WORK`                   | A public holiday worked: one extra day’s basic pay for each holiday worked, on top of the salary (EA s.88(4… | holiday_work_days 1                                                                                                                                     | —             |
 
-Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 3; monthly overtime hours 72; consecutive days 6; weekly rest days 1.
+Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; monthly overtime hours 72; consecutive days 6; weekly rest days 1.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
 - **Allowance** (6): `FIXED_MONTHLY`, `HOUSING_ALLOWANCE`, `MEAL_ALLOWANCE`, `PT_ANNUAL_HOURLY_AW`, `PT_ANNUAL_HOURLY_OW`, `TRANSPORT_ALLOWANCE`. Of these, 0 count in the wage a day or hour rate divides.
 - **Claim** (5): `DENTAL_CLAIM`, `EXPENSE_REIMBURSEMENT`, `MEDICAL_CONSULTATION_FEE`, `MEDICAL_TREATMENT_REIMBURSEMENT`, `PER_DIEM_OFFICIAL_REIMBURSEMENT`. Of these, 0 have a yearly limit.
-- **Ad hoc** (22): `ACCOMMODATION_RECOVERY`, `AMENITIES_RECOVERY`, `APPROVED_DAMAGE_RECOVERY`, `AWS`, `bonus`, `COMMISSION`, `COMMISSION_ADDITIONAL`, `COMMUNITY_CHEST`, `CONSENT_EMPLOYEE_BENEFIT`, `COOPERATIVE_DUES`, `CPF_MISSED_SHARE_RECOVERY`, `DAMAGE_RECOVERY`, `DIRECTOR_GENERAL_MEETING_FEE`, `EMPLOYMENT_ASSISTANCE_PAYMENT`, `FOOD_ABSENCE_COST`, `NOTICE_BREACH_COMPENSATION_RECOVERY`, `NR_PUBLIC_ENTERTAINER_FEE`, `PRIOR_WAGE_CASH_REPAYMENT`, `RETRENCHMENT_BENEFIT`, `SALARY_IN_LIEU_OF_NOTICE`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
+- **Ad hoc** (22): `ACCOMMODATION_RECOVERY`, `AMENITIES_RECOVERY`, `APPROVED_DAMAGE_RECOVERY`, `AWS`, `COMMISSION`, `COMMISSION_ADDITIONAL`, `COMMUNITY_CHEST`, `CONSENT_EMPLOYEE_BENEFIT`, `COOPERATIVE_DUES`, `CPF_MISSED_SHARE_RECOVERY`, `DAMAGE_RECOVERY`, `DIRECTOR_GENERAL_MEETING_FEE`, `EMPLOYMENT_ASSISTANCE_PAYMENT`, `FOOD_ABSENCE_COST`, `NOTICE_BREACH_COMPENSATION_RECOVERY`, `NR_PUBLIC_ENTERTAINER_FEE`, `PRIOR_WAGE_CASH_REPAYMENT`, `RETRENCHMENT_BENEFIT`, `SALARY_IN_LIEU_OF_NOTICE`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `bonus`. Of these, 11 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (5): `FESTIVE_ADVANCE`, `SALARY_ADVANCE`, `SALARY_OVERPAYMENT`, `TRAVEL_ADVANCE`, `UNEARNED_BENEFIT_RECOVERY`.
 - **Work event** (5): `EMPLOYER_SHUTDOWN`, `GOVERNMENT_ORDER`, `LOCKOUT`, `NATURAL_DISASTER`, `STRIKE`.
 - **Workplace case** (21): `BENEFIT_SERVICE_RECORD`, `CROSS_BORDER_WORK_RECORD`, `DANGEROUS_OCCURRENCE`, `DATA_BREACH`, `EMPLOYMENT_CONTRACT_BREACH_DISPUTE`, `EXTERNAL_WAGE_RECORD`, `FLEXIBLE_WORK_REQUEST`, `NOTICE_PAY_DISPUTE`, `NOTICE_PERIOD_EXTENSION_AGREEMENT`, `OCCUPATIONAL_DISEASE_DIAGNOSIS`, `OVERSEAS_DEPARTURE_NOTICE`, `PERSONAL_DATA_ACCESS_REQUEST`, `PERSONAL_DATA_CORRECTION_REQUEST`, `PUBLIC_WORKPLACE_FATALITY`, `PUBLIC_WORKPLACE_HOSPITAL_TREATMENT`, `REEMPLOYMENT_OBLIGATION_TRANSFER_AGREEMENT`, `RETRENCHMENT_EMPLOYEE_NOTICE`, `WORK_ACCIDENT_FATAL`, `WORK_ACCIDENT_LIGHT_DUTY`, `WORK_ACCIDENT_SUBSEQUENT_DEATH`, `YOUNG_PERSON_REST_DAY_PERMISSION`.
 
 ### Registered rules: what a write is refused for
 
-- **`employment`** (3): `CONTRACT_CATEGORIES`, `RESIDENCY_SINCE_REQUIRED`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`.
+- **`employment`** (4): `CONTRACT_CATEGORIES`, `RESIDENCY_SINCE_REQUIRED`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`, `YOUNG_PERSON_MINIMUM_AGE`.
 - **`entity_change`** (1): `SHARED_STRUCTURED_ENTITY_INPUTS`.
 - **`leave_catalog_entry`** (1): `SICK_WITHIN_HOSPITALISATION`.
 - **`roster_entry`** (6): `ROSTER_CONSECUTIVE_HOURS`, `ROSTER_DAILY_12_HOURS`, `ROSTER_YOUNG_BREAK`, `ROSTER_YOUNG_DAILY_HOURS`, `ROSTER_YOUNG_NIGHT_WORK`, `ROSTER_YOUNG_REST_DAY`.
@@ -612,7 +636,7 @@ Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 
 
 ### Registered effects: the tasks raised
 
-65 effects; every one writes `obligation.create`.
+66 effects; every one writes `obligation.create`.
 
 - **`adhoc_catalog_entry`** on create (1): `CPF_CONDITIONAL_WAGE_REFUND`.
 - **`employment`** on create, update (7): `KEY_EMPLOYMENT_TERMS`, `PDPA_CONSENT_PURPOSE_NOTIFICATION`, `WORK_INJURY_COMPENSATION_INSURANCE`, `WORK_PASS_IN_FORCE`, `WORK_PASS_MEDICAL_INSURANCE`, `WORK_PERMIT_SECURITY_BOND`, `YOUNG_PERSON_NOTIFICATION`.
@@ -621,14 +645,13 @@ Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 
 - **`leave_catalog_entry`** on create (3): `GOVERNMENT_PAID_LEAVE_CLAIM`, `NS_MAKE_UP_PAY_CLAIM`, `WORK_ACCIDENT_REPORT`.
 - **`payroll_run`** on create (12): `ANNUAL_EMPLOYMENT_INCOME_RETURN`, `CHILDCARE_LEAVE_CLAIM`, `CPF_MONTHLY_SUBMISSION_AND_PAYMENT`, `CPF_SUBMISSION_NUMBER`, `FOREIGN_WORKER_LEVY`, `LQS_WAGE_FLOOR`, `NR_DIRECTOR_WITHHOLDING`, `NR_ENTERTAINER_WITHHOLDING` and 4 more.
 - **`payroll_run`** on update (2): `CPF_AW_YEAR_END_RECALCULATION`, `ITEMISED_PAYSLIP`.
-- **`payslip`** on create (24): `ACCOMMODATION_DEDUCTION_LIMIT`, `DAILY_HOURS_LIMIT`, `DAILY_RATE_WORKING_WEEK_MISSING`, `DAMAGE_DEDUCTION_LIMIT`, `DEDUCTION_LIMIT`, `INSTALMENT_LIMIT`, `IR21_ADDITIONAL_PAYMENT_HOLD`, `IR21_DEPARTURE_PAY_HOLD` and 16 more.
+- **`payslip`** on create (25): `ACCOMMODATION_DEDUCTION_LIMIT`, `DAILY_HOURS_LIMIT`, `DAILY_RATE_WORKING_WEEK_MISSING`, `DAMAGE_DEDUCTION_LIMIT`, `DEDUCTION_LIMIT`, `EP_SPASS_QUALIFYING_SALARY`, `INSTALMENT_LIMIT`, `IR21_ADDITIONAL_PAYMENT_HOLD` and 17 more.
 - **`workplace_case_catalog_entry`** on create (7): `FLEXIBLE_WORK_REQUEST_DECISION`, `OCCUPATIONAL_DISEASE_REPORT`, `PDPA_ACCESS_CORRECTION_REPLY`, `PDPA_BREACH_ASSESSMENT`, `SUBSEQUENT_WORK_DEATH_NOTIFICATION`, `WORK_INCIDENT_CASE_REPORT`, `WORK_INCIDENT_NOTIFICATION`.
 - **`workplace_case_catalog_entry`** on create, update (3): `IR21_LEAVING_SINGAPORE`, `PDPA_BREACH_NOTIFICATION`, `RETRENCHMENT_NOTIFICATION`.
 
 ### Employer pay methods
 
-- `overtime_hour_basis`: `OVERTIME`.
-- `rest_day_hourly_multiplier`: `OVERTIME`, `PART_TIME_EXTRA_HOURS`, `PART_TIME_OVERTIME`, `PART_TIME_REST_DAY_EXTRA_HOURS`, `PART_TIME_REST_DAY_OVERTIME`, `REST_DAY_WORK`.
+- `rest_day_hourly_multiplier`: `PART_TIME_EXTRA_HOURS`, `PART_TIME_OVERTIME`, `PART_TIME_REST_DAY_EXTRA_HOURS`, `PART_TIME_REST_DAY_OVERTIME`, `REST_DAY_WORK`.
 
 ## Thailand (TH)
 
@@ -636,28 +659,28 @@ Roster warnings (`ROSTER_DAILY_12_HOURS`): daily hours 12; daily overtime hours 
 
 The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
-- From 2025-12-07: statutory `PND1`; leave `CHILD_CARE_LEAVE`, `MATERNITY_LEAVE`, `PATERNITY_LEAVE`.
+- From 2025-12-07: leave `CHILD_CARE_LEAVE`, `MATERNITY_LEAVE`, `MATERNITY_LEAVE_SSO`, `PATERNITY_LEAVE`.
 - From 2026-01-01: statutory `SSO`.
-- From 2027-01-01: statutory `EWF`; workplace case `EQUIVALENT_WELFARE_BENEFICIARY_REQUEST`, `EQUIVALENT_WELFARE_EMPLOYMENT_END`, `EQUIVALENT_WELFARE_FIRST_WITHHOLDING`, `EQUIVALENT_WELFARE_INSPECTION_REQUEST`, `EQUIVALENT_WELFARE_SETUP`; effects `EWF_REMITTANCE`, `EWF_WELFARE_ACCOUNT_DISCLOSURE`, `EWF_WELFARE_ACCOUNT_INSPECTION`, `EWF_WELFARE_ACCOUNT_RETURN`, `EWF_WELFARE_BENEFICIARY_WITHDRAWAL` and 1 more.
-- From 2029-01-01: statutory `SSO` (wage ceiling 20,000 baht).
-- From 2032-01-01: statutory `SSO` (wage ceiling 23,000 baht).
+- From 2027-01-01: statutory `EWF`; workplace cases `EQUIVALENT_WELFARE_BENEFICIARY_REQUEST`, `EQUIVALENT_WELFARE_EMPLOYMENT_END`, `EQUIVALENT_WELFARE_FIRST_WITHHOLDING`, `EQUIVALENT_WELFARE_INSPECTION_REQUEST`, `EQUIVALENT_WELFARE_SETUP`; effects `EWF_REMITTANCE`, `EWF_WELFARE_ACCOUNT_DISCLOSURE`, `EWF_WELFARE_ACCOUNT_INSPECTION`, `EWF_WELFARE_ACCOUNT_RETURN`, `EWF_WELFARE_BENEFICIARY_WITHDRAWAL` and 1 more.
+- From 2029-01-01: statutory `SSO`.
+- From 2032-01-01: statutory `EWF`, `SSO`.
 
 ### Conversions and subtotal chain
 
-Currency THB. Tax year starts in month 1. Day rate `FIXED ÷ 30`, hour rate `CONTRACT_HOURS`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
+Currency THB. Tax year starts in month 1. Day rate `FIXED`, hour rate `CONTRACT_HOURS`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `EMPLOYER`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIONAL_WAGES` → `GROSS` → `NOTICE_PAY` → `SEVERANCE` → `FINAL_PAY` → `NET`.
 
 ### Contributions and taxes
 
-| Code             | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                   | Value changed                      |
-| ---------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------------- | ---------------------------------- |
-| `SSO`            | contribution | Social security contribution: 5% each from the employee and the employer on the month's wage, count… | yes      | yes      | stops      | Social Security Act B.E. 2533 (1990), ss.33, 46, 47 (+2 more)                | 2026-01-01, 2029-01-01, 2032-01-01 |
-| `WCF`            | contribution | Workmen's Compensation Fund contribution, paid by the employer only: the rate for the company's bus… | no       | yes      | stops      | Workmen's Compensation Act B.E. 2537 (1994) ss.5, 44-45; Mi…                 | —                                  |
-| `PVD`            | contribution | Provident fund contribution at the rates in the company's registered fund rules: 2% to 15% of wages… | yes      | yes      | stops      | Provident Fund Act B.E. 2530 (1987) s.10 (as amended by Act…, s.10 (+1 more) | —                                  |
-| `PND1`           | tax          | Income tax withheld from pay: the year's regular pay is projected, expenses (50%, up to 100,000 bah… | yes      | no       | stops      | Revenue Code ss.40(1), 42 bis, 47, 48, 50(1); Revenue Depar… (+5 more)       | 2025-12-07                         |
-| `PND1_SEVERANCE` | tax          | Income tax on a lump sum paid on leaving after at least five years of service, taxed apart from oth… | yes      | no       | stops      | Revenue Code s.48(5), s.48(5) (+2 more)                                      | —                                  |
-| `EWF`            | contribution | Employee Welfare Fund contribution: 0.25% of the month’s ordinary wages each from the employee and…  | yes      | yes      | stops      | Labour Protection Act B.E. 2541 (1998) ss.126-131; Minister… (+2 more)       | new 2027-01-01                     |
+| Code             | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                         | Value changed                      |
+| ---------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ---------------------------------------------------------------------------------- | ---------------------------------- |
+| `SSO`            | contribution | Social security contribution: 5% each from employee and employer on monthly wage between 1,650…  | yes      | yes      | stops      | Ministerial Regulation B.E. 2568 on SSO insured wage ceiling (23,000 TH…           | 2026-01-01, 2029-01-01, 2032-01-01 |
+| `WCF`            | contribution | Workmen's Compensation Fund contribution, paid by the employer only: the rate for the company's… | no       | yes      | stops      | Workmen's Compensation Act B.E. 2537 (1994) ss.5, 44-45, WCA ss.5, 44-4…           | —                                  |
+| `PVD`            | contribution | Provident fund contribution at the rates in the company's registered fund rules: 2% to 15% of w… | yes      | yes      | stops      | Provident Fund Act B.E. 2530 (1987) s.10 (as amended by Act No. 4 B.E.… (+1 more)  | —                                  |
+| `PND1`           | tax          | Income tax withheld from pay: the year's regular pay is projected, expenses (50%, up to 100,000… | yes      | no       | stops      | Revenue Code ss.40(1), 42 bis, 47, 48, 50(1); Revenue Department Instru… (+5 more) | —                                  |
+| `PND1_SEVERANCE` | tax          | Income tax on a lump sum paid on leaving after at least five years of service, taxed apart from… | yes      | no       | stops      | Revenue Code s.48(5) (+2 more)                                                     | —                                  |
+| `EWF`            | contribution | Employee Welfare Fund contribution: 0.50% of the month's ordinary wages each from the employee…  | yes      | yes      | stops      | Royal Decree B.E. 2569 & Ministerial Regulation B.E. 2568 on EWF contri…           | new 2027-01-01, 2032-01-01         |
 
 ### Leave
 
@@ -666,19 +689,19 @@ Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `ORDINARY_WAGES` → `ADDITIO
 | `ANNUAL_LEAVE`                | 6 days; service year                                   | full pay, cashable | —              |
 | `CHILD_CARE_LEAVE`            | 15 days; opened by `CHILD_BIRTH`; per event            | paid share 0.5     | new 2025-12-07 |
 | `MATERNITY_LEAVE`             | 60 days; opened by `CHILD_BIRTH`; per event            | full pay           | 2025-12-07     |
-| `MATERNITY_LEAVE_SSO`         | no limit                                               | paid share 0       | —              |
+| `MATERNITY_LEAVE_SSO`         | no limit                                               | paid share 0       | 2025-12-07     |
 | `MILITARY_LEAVE`              | 60 days; calendar year                                 | full pay           | —              |
 | `NPL`                         | no limit                                               | paid share 0       | —              |
 | `PATERNITY_LEAVE`             | 15 days; opened by `CHILD_BIRTH`; per event            | full pay           | new 2025-12-07 |
 | `PERSONAL_BUSINESS_LEAVE`     | 3 days; calendar year                                  | full pay           | —              |
-| `PUBLIC_HOLIDAY_IN_LIEU`      | none by default; HR grants each day; calendar year     | full pay           | —              |
+| `PUBLIC_HOLIDAY_IN_LIEU`      | 0 days                                                 | full pay           | —              |
 | `SICK_LEAVE`                  | 30 days; calendar year                                 | full pay           | —              |
 | `SICK_LEAVE_UNPAID`           | no limit                                               | paid share 0       | —              |
 | `STERILISATION_LEAVE`         | no limit                                               | full pay           | —              |
 | `SUSPENSION`                  | 7 days; opened by `DISCIPLINARY_SUSPENSION`; per event | paid share 0.5     | —              |
 | `TRAINING_LEAVE`              | no limit                                               | paid share 0       | —              |
 | `WORK_INJURY_LEAVE`           | no limit                                               | paid share 0       | —              |
-| `YOUNG_WORKER_TRAINING_LEAVE` | 30 days; calendar year                                 | full pay           | —              |
+| `YOUNG_WORKER_TRAINING_LEAVE` | 30 days; own statutory test; calendar year             | full pay           | —              |
 
 ### Overtime, rest-day and holiday work
 
@@ -692,7 +715,7 @@ Roster warnings (`NORMAL_HOURS`): daily hours 12; daily overtime hours 4; monthl
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
-- **Allowance** (2): `BENEFIT_IN_KIND`, `FIXED_ALLOWANCE`. Of these, 2 count in the wage a day or hour rate divides.
+- **Allowance** (2): `BENEFIT_IN_KIND`, `FIXED_ALLOWANCE`. Of these, 1 count in the wage a day or hour rate divides.
 - **Claim** (1): `TRAVEL_REIMBURSEMENT`. Of these, 0 have a yearly limit.
 - **Ad hoc** (13): `BONUS`, `HOLIDAY_NOT_GRANTED`, `LATE_PAYMENT_INTEREST`, `MINIMUM_WAGE_ARREARS`, `PAY_IN_LIEU_OF_NOTICE`, `RELOCATION_NOTICE_IN_LIEU`, `SECURITY_DEPOSIT`, `SEVERANCE_PAY`, `SPECIAL_SEVERANCE_RELOCATION`, `SPECIAL_SEVERANCE_TECHNOLOGY`, `STATUTORY_REFUND`, `SUSPENSION_BACK_PAY`, `TECHNOLOGY_NOTICE_IN_LIEU`. Of these, 12 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (1): `WELFARE_LOAN`.
@@ -704,16 +727,16 @@ Roster warnings (`NORMAL_HOURS`): daily hours 12; daily overtime hours 4; monthl
 - **`employment`** (5): `CHILD_EMPLOYMENT`, `CONTRACT_CATEGORIES`, `MINIMUM_WAGE_FLOOR`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`, `SKILL_STANDARD_WAGE`.
 - **`entity_change`** (1): `SHARED_STRUCTURED_ENTITY_INPUTS`.
 - **`leave_catalog_entry`** (1): `WORK_INJURY_DAY_REQUIRED`.
-- **`roster_entry`** (3): `NORMAL_HOURS`, `REST_BREAK`, `ROSTER_REST_BREAK`.
+- **`roster_entry`** (6): `NORMAL_HOURS`, `REST_BREAK`, `ROSTER_PRE_OVERTIME_BREAK`, `ROSTER_REST_BREAK`, `ROSTER_WEEKLY_OVERTIME_CAP`, `ROSTER_YOUNG_AND_PREGNANT`.
 - **`workplace_case_catalog_entry`** (4): `BUSINESS_CASE_DOCUMENT_REQUIRED`, `BUSINESS_CASE_EFFECTIVE_INTERVAL`, `BUSINESS_CASE_SIGNED_CONSENT`, `DEDUCTION_CONSENT_DISTINCT_SCOPE`.
 
 ### Registered effects: the tasks raised
 
 52 effects; every one writes `obligation.create`.
 
-- **`employment`** on create, update (9): `EMPLOYEE_REGISTER_PAYROLL_UPDATE`, `EMPLOYEE_REGISTER`, `FOREIGN_WORKER_HIRE_NOTIFICATION`, `PDPA_PRIVACY_NOTICE`, `PDPA_SENSITIVE_DATA_CONSENT`, `SKILL_DEVELOPMENT_REGISTRATION`, `SSO_REGISTRATION`, `WORK_RULES` and 1 more.
-- **`employment`** on exit (10): `FINAL_PAY`, `FOREIGN_WORKER_EXIT_NOTIFICATION`, `PERSONAL_DATA_DISPOSAL`, `RECORDS_RETENTION`, `RETIREMENT_SEVERANCE`, `SECURITY_DEPOSIT_RETURN`, `SSO_EXIT_NOTIFICATION`, `TECHNOLOGY_REDUNDANCY_NOTICE` and 2 more.
 - **`employee_profile`** on update (1): `EMPLOYEE_REGISTER_UPDATE`.
+- **`employment`** on create, update (9): `EMPLOYEE_REGISTER`, `EMPLOYEE_REGISTER_PAYROLL_UPDATE`, `FOREIGN_WORKER_HIRE_NOTIFICATION`, `PDPA_PRIVACY_NOTICE`, `PDPA_SENSITIVE_DATA_CONSENT`, `SKILL_DEVELOPMENT_REGISTRATION`, `SSO_REGISTRATION`, `WORK_RULES` and 1 more.
+- **`employment`** on exit (10): `FINAL_PAY`, `FOREIGN_WORKER_EXIT_NOTIFICATION`, `PERSONAL_DATA_DISPOSAL`, `RECORDS_RETENTION`, `RETIREMENT_SEVERANCE`, `SECURITY_DEPOSIT_RETURN`, `SSO_EXIT_NOTIFICATION`, `TECHNOLOGY_REDUNDANCY_NOTICE` and 2 more.
 - **`entity_change`** on create, update (3): `EMPLOYER_REGISTRATION`, `PDPA_PROCESSING_RECORDS`, `WCF_CLOSING_WAGE_STATEMENT`.
 - **`leave_catalog_entry`** on create (1): `WORK_INJURY_NOTIFICATION`.
 - **`payroll_run`** on create (15): `DISABLED_EMPLOYMENT_QUOTA`, `EMPLOYMENT_CONDITIONS_REPORT`, `EWF_REMITTANCE`, `PND1_FILING`, `PND1_KOR_ANNUAL`, `PVD_REMITTANCE`, `SKILL_DEVELOPMENT_COURSE_CERTIFICATION`, `SKILL_DEVELOPMENT_FUND_PAYMENT` and 7 more.
@@ -728,85 +751,87 @@ Roster warnings (`NORMAL_HOURS`): daily hours 12; daily overtime hours 4; monthl
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 4 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
 
-- From 2026-01-01: statutory `INCOME_TAX`, `LABOR_PENSION`, `OCC_INJURY`; leave `PARENTAL_LEAVE_BY_DAY`; rules `MINIMUM_WAGE_HOURLY`; effects `PARENTAL_LEAVE_INSURANCE_CONTINUATION`; shared `lookup`.
-- From 2026-04-01: statutory `LABOR_PENSION_RESERVE`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
+- From 2026-01-01: statutory `INCOME_TAX`, `LABOR_PENSION`, `OCC_INJURY`; leave `FAMILY_CARE_LEAVE`, `PARENTAL_LEAVE_BY_DAY`; rules `MINIMUM_WAGE_HOURLY`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`, `PARENTAL_LEAVE_INSURANCE_CONTINUATION`; shared `lookup`.
+- From 2026-04-01: statutory `LABOR_PENSION_RESERVE`.
+- From 2026-07-01: effects `WORKPLACE_BULLYING_COMPLAINT_CHANNEL`, `WORKPLACE_BULLYING_PREVENTION_RULES`.
 - From 2026-10-01: leave `MARRIAGE_LEAVE`; rules `MARRIAGE_LEAVE_DAYS`; effects `FOREIGN_PROFESSIONAL_PENSION_AND_EMPLOYMENT_INSURANCE`.
-- From 2027-01-01: statutory `LI`; rules `MINIMUM_WAGE_HOURLY`; shared `lookup`.
+- From 2027-01-01: statutory `LABOR_PENSION`, `LI`, `OCC_INJURY`; rules `MINIMUM_WAGE_HOURLY`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
-Currency TWD. Tax year starts in month 1. Day rate `FIXED ÷ 30`, hour rate `CONTRACT_HOURS`, proration `DAY_RATE`, rounding `HALF_UP` to 0 places. Year-to-date totals restart per `JURISDICTION`.
+Currency TWD. Tax year starts in month 1. Day rate `FIXED`, hour rate `CONTRACT_HOURS`, proration `DAY_RATE`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `JURISDICTION`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `BASIC_AFTER_PARENTAL_LEAVE` → `SALARY_INCOME` → `ORDINARY_WAGES` → `ADDITIONAL_WAGES` → `RETIREMENT` → `FINAL_PAY` → `NET`.
 
 ### Contributions and taxes
 
-| Code                         | Kind         | What it is                                                                                                          | Employee | Employer | Below zero | First reference on the row                                                                        | Value changed |
-| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ------------------------------------------------------------------------------------------------- | ------------- |
-| `LI`                         | contribution | Labour insurance premium: 12% of the insured salary grade for the days covered in the month, shared…                | yes      | yes      | stops      | 勞工保險條例, §6、§8、§9、§13–15 (+3 more)                                                        | 2027-01-01    |
-| `WAGE_ARREARS_FUND`          | contribution | Wage arrears payment fund, paid by the employer only: 0.025% of the worker's insured salary for the…                | no       | yes      | stops      | 勞動基準法, §28                                                                                   | —             |
-| `EI`                         | contribution | Employment insurance premium: 1% of the insured salary for the days covered in the month, shared 20…                | yes      | yes      | stops      | 就業保險法, §5、§8、§40                                                                           | —             |
-| `NHI`                        | contribution | National health insurance premium: 5.17% of the insured amount, 30% from the worker (with up to thr…                | yes      | yes      | stops      | 全民健康保險法; 施行細則, §18、§27、§29、§30; 細則§52 (+1 more)                                   | —             |
-| `NHI_SUPPLEMENT`             | contribution | Supplementary health insurance premium of 2.11% on the part of the year's bonuses above four times…                 | yes      | no       | stops      | 全民健康保險法, §31                                                                               | —             |
-| `NHI_PART_TIME`              | contribution | Supplementary health insurance premium of 2.11% on salary paid to a person who is not insured throu…                | yes      | no       | stops      | 全民健康保險法, §31(1)(2) (+1 more)                                                               | —             |
-| `LABOR_PENSION`              | contribution | Labour pension (new system): the employer contributes at least 6% of the worker's monthly contribut…                | yes      | yes      | stops      | 勞工退休金條例, §7–9、§14、§15、§18 (+1 more)                                                     | 2026-01-01    |
-| `OCC_INJURY`                 | contribution | Occupational accident insurance premium, paid by the employer only: the insured salary grade × the…                 | no       | yes      | stops      | 勞工職業災害保險及保護法; 施行細則, §16、§17、§19; 細則§2、§26、§28 (+1 more)                     | 2026-01-01    |
-| `INCOME_TAX`                 | tax          | Resident monthly salary withholding: by the 薪資所得扣繳稅額表 with a declared 免稅額申報表, otherwise 5% of the m… | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準; 薪資所得扣繳辦法, 所得稅法§88; 扣繳率標準§2; 扣繳辦法§6–7 (+1 more) | 2026-01-01    |
-| `INCOME_TAX_NON_RESIDENT`    | tax          | Income tax withheld on a non-resident's salary: 6% where the month's whole salary is not more than…                 | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準, 所得稅法§88; 扣繳率標準§3(1)(1)、§3(2)                              | —             |
-| `LABOR_PENSION_RESERVE`      | contribution | Labour pension reserve (old system), paid by the employer only: the company's declared rate, 2% to…                 | no       | yes      | stops      | 勞動基準法, §56(1) (+1 more)                                                                      | 2026-04-01    |
-| `INCOME_TAX_BONUS`           | tax          | Income tax withheld on a resident's bonus or other non-monthly pay: 5% of the payment once it reach…                | yes      | no       | stops      | 薪資所得扣繳辦法, §6–7                                                                            | —             |
-| `SEVERANCE_TAX`              | tax          | Income tax withheld on a resident's severance or retirement payment: 6% of the part above the fixed…                | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準, 所得稅法§14(1)(9)、§88; 扣繳率標準§2                                | —             |
-| `WELFARE_FUND`               | contribution | Employees' welfare fund: 0.5% of the worker's monthly salary, deducted only where the company has s…                | yes      | no       | stops      | 職工福利金條例, §2(1)(3)                                                                          | —             |
-| `SEVERANCE_TAX_NON_RESIDENT` | tax          | Income tax withheld on a non-resident's severance or retirement payment: 18% of the part above the…                 | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準, 所得稅法§14(1)(9)、§88; 扣繳率標準§2                                | —             |
+| Code                         | Kind         | What it is                                                                                                      | Employee | Employer | Below zero | First reference on the row                                                                                  | Value changed          |
+| ---------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ----------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `LI`                         | contribution | Labour insurance premium: 12% of the insured salary grade for the days covered in the month, sh…                | yes      | yes      | stops      | 勞工保險條例 §13; 勞動部 115-11-17 勞動保2字第1150092891號令 — 116年勞保費率與分級表, 12% ordina… (+1 more) | 2027-01-01             |
+| `WAGE_ARREARS_FUND`          | contribution | Wage arrears payment fund, paid by the employer only: 0.025% of the worker's insured salary for…                | no       | yes      | stops      | 勞動基準法, §28                                                                                             | —                      |
+| `EI`                         | contribution | Employment insurance premium: 1% of the insured salary for the days covered in the month, share…                | yes      | yes      | stops      | 就業保險法, §5、§8、§40                                                                                     | —                      |
+| `NHI`                        | contribution | National health insurance premium: 5.17% of the insured amount, 30% from the worker (with up to…                | yes      | yes      | stops      | 全民健康保險法; 施行細則, §18、§27、§29、§30; 細則§52 (+1 more)                                             | —                      |
+| `NHI_SUPPLEMENT`             | contribution | Supplementary health insurance premium of 2.11% on the part of the year's bonuses above four ti…                | yes      | no       | stops      | 全民健康保險法, §31                                                                                         | —                      |
+| `NHI_PART_TIME`              | contribution | Supplementary health insurance premium of 2.11% on salary paid to a person who is not insured t…                | yes      | no       | stops      | 全民健康保險法, §31(1)(2) (+1 more)                                                                         | —                      |
+| `LABOR_PENSION`              | contribution | Labour pension (new system): the employer contributes at least 6% of the worker's monthly contr…                | yes      | yes      | stops      | 勞動部 115-11-20 勞動福3字第1150154418號令 — 116年勞工退休金月提繳分級表, Grade 26: 30,300 →…               | 2026-01-01, 2027-01-01 |
+| `OCC_INJURY`                 | contribution | Occupational accident insurance premium, paid by the employer only: the insured salary grade ×…                 | no       | yes      | stops      | 勞動部 115-11-17 勞動保3字第1150093467號令 — 116年職災保險投保薪資分級表, 20 grades (30,900–7…              | 2026-01-01, 2027-01-01 |
+| `INCOME_TAX`                 | tax          | Resident monthly salary withholding: by the 薪資所得扣繳稅額表 with a declared 免稅額申報表, otherwise 5% of t… | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準; 薪資所得扣繳辦法, 所得稅法§88; 扣繳率標準§2; 扣繳辦法§6–7 (+1 more)           | 2026-01-01             |
+| `INCOME_TAX_NON_RESIDENT`    | tax          | Income tax withheld on a non-resident's salary: 6% where the month's whole salary is not more t…                | yes      | no       | stops      | 所得稅法; 各類所得扣繳率標準, 所得稅法§88; 扣繳率標準§3(1)(1)、§3(2)                                        | —                      |
+| `LABOR_PENSION_RESERVE`      | contribution | Labour pension reserve (old system), paid by the employer only: the company's declared rate, 2%…                | no       | yes      | stops      | 勞動基準法, §56(1) (+1 more)                                                                                | 2026-04-01             |
+| `INCOME_TAX_BONUS`           | tax          | Income tax withheld on a resident's bonus or other non-monthly pay: 5% of the payment once it r…                | yes      | no       | stops      | 薪資所得扣繳辦法, §6–7                                                                                      | —                      |
+| `SEVERANCE_TAX`              | tax          | Income tax withheld on a resident's severance or retirement payment: 6% of the part above the f…                | yes      | no       | stops      | 所得稅法 §14(1)(9), §88; 各類所得扣繳率標準 §2(1)(10), §13(1), 所得稅法 §14(1)(9); 扣繳率標準… (+1 more)    | —                      |
+| `WELFARE_FUND`               | contribution | Employees' welfare fund: 0.5% of the worker's monthly salary, deducted only where the company h…                | yes      | no       | stops      | 職工福利金條例, §2(1)(3)                                                                                    | —                      |
+| `SEVERANCE_TAX_NON_RESIDENT` | tax          | Income tax withheld on a non-resident's severance or retirement payment: 18% of the part above…                 | yes      | no       | stops      | 所得稅法 §14(1)(9), §88; 各類所得扣繳率標準 §3(1)(10), 所得稅法 §14(1)(9); 扣繳率標準 §3(1)(1…              | —                      |
 
 ### Leave
 
-| Code                        | Entitlement                                                         | A day taken                  | Value changed  |
-| --------------------------- | ------------------------------------------------------------------- | ---------------------------- | -------------- |
-| `ANNUAL_LEAVE`              | 3–30 days by length of service; service year                        | full pay, cashable           | —              |
-| `BEREAVEMENT_LEAVE`         | no limit                                                            | full pay                     | —              |
-| `BREASTFEEDING_TIME`        | no limit                                                            | full pay                     | —              |
-| `CHILDCARE_REDUCED_HOURS`   | no limit                                                            | paid share 0                 | —              |
-| `COMPENSATORY_TIME_OFF`     | none by default; HR grants each day; service year; counted in hours | full pay                     | —              |
-| `FAMILY_CARE_LEAVE`         | no limit                                                            | paid share 0                 | —              |
-| `HOSPITALISED_SICK_LEAVE`   | no limit                                                            | paid share by the row’s rule | —              |
-| `INDIGENOUS_RITUAL_HOLIDAY` | 3 days; calendar year                                               | full pay                     | —              |
-| `JOB_SEARCH_LEAVE`          | no limit                                                            | full pay                     | —              |
-| `MARRIAGE_LEAVE`            | 14 days; opened by `MARRIAGE`; per event                            | full pay                     | 2026-10-01     |
-| `MATERNITY_LEAVE`           | no limit                                                            | paid share by the row’s rule | —              |
-| `MENSTRUAL_LEAVE`           | no limit                                                            | paid share by the row’s rule | —              |
-| `MENSTRUAL_LEAVE_UNPAID`    | no limit                                                            | paid share 0                 | —              |
-| `NATURAL_DISASTER_ABSENCE`  | no limit                                                            | paid share 0                 | —              |
-| `OCCUPATIONAL_INJURY_LEAVE` | no limit                                                            | full pay                     | —              |
-| `OFFICIAL_LEAVE`            | no limit                                                            | full pay                     | —              |
-| `PARENTAL_LEAVE`            | no limit                                                            | paid share 0                 | —              |
-| `PARENTAL_LEAVE_BY_DAY`     | 30 days; opened by `CHILD_BIRTH`; per event                         | paid share 0                 | new 2026-01-01 |
-| `PATERNITY_LEAVE`           | 7 days; opened by `CHILD_BIRTH`; per event                          | full pay                     | —              |
-| `PERSONAL_LEAVE`            | no limit                                                            | paid share 0                 | —              |
-| `PRENATAL_CHECKUP_LEAVE`    | 7 days; opened by `PREGNANCY`; per event                            | full pay                     | —              |
-| `PUBLIC_HOLIDAY_IN_LIEU`    | none by default; HR grants each day; calendar year                  | full pay                     | —              |
-| `SICK_LEAVE`                | 30 days; calendar year                                              | paid share by the row’s rule | —              |
-| `SICK_LEAVE_SUSPENSION`     | no limit                                                            | paid share 0                 | —              |
-| `SICK_LEAVE_UNPAID`         | no limit                                                            | paid share 0                 | —              |
-| `STATUTORY_REST_IN_LIEU`    | none by default; HR grants each day; calendar year                  | full pay                     | —              |
+| Code                        | Entitlement                                  | A day taken                  | Value changed  |
+| --------------------------- | -------------------------------------------- | ---------------------------- | -------------- |
+| `ANNUAL_LEAVE`              | 3–30 days by length of service; service year | full pay, cashable           | —              |
+| `BEREAVEMENT_LEAVE`         | no limit                                     | full pay                     | —              |
+| `BREASTFEEDING_TIME`        | no limit                                     | full pay                     | —              |
+| `CHILDCARE_REDUCED_HOURS`   | no limit                                     | paid share 0                 | —              |
+| `COMPENSATORY_TIME_OFF`     | 0 days; service year                         | full pay                     | —              |
+| `FAMILY_CARE_LEAVE`         | 7 days; calendar year                        | paid share 0                 | 2026-01-01     |
+| `HOSPITALISED_SICK_LEAVE`   | no limit                                     | paid share by the row’s rule | —              |
+| `INDIGENOUS_RITUAL_HOLIDAY` | 3 days; calendar year                        | full pay                     | —              |
+| `JOB_SEARCH_LEAVE`          | no limit                                     | full pay                     | —              |
+| `MARRIAGE_LEAVE`            | 14 days; opened by `MARRIAGE`; per event     | full pay                     | 2026-10-01     |
+| `MATERNITY_LEAVE`           | no limit                                     | paid share by the row’s rule | —              |
+| `MENSTRUAL_LEAVE`           | no limit                                     | paid share by the row’s rule | —              |
+| `MENSTRUAL_LEAVE_UNPAID`    | no limit                                     | paid share 0                 | —              |
+| `NATURAL_DISASTER_ABSENCE`  | no limit                                     | paid share 0                 | —              |
+| `NPL`                       | no limit                                     | paid share 0                 | —              |
+| `OCCUPATIONAL_INJURY_LEAVE` | no limit                                     | full pay                     | —              |
+| `OFFICIAL_LEAVE`            | no limit                                     | full pay                     | —              |
+| `PARENTAL_LEAVE`            | no limit                                     | paid share 0                 | —              |
+| `PARENTAL_LEAVE_BY_DAY`     | 30 days; opened by `CHILD_BIRTH`; per event  | paid share 0                 | new 2026-01-01 |
+| `PATERNITY_LEAVE`           | 7 days; opened by `CHILD_BIRTH`; per event   | full pay                     | —              |
+| `PERSONAL_LEAVE`            | no limit                                     | paid share 0                 | —              |
+| `PRENATAL_CHECKUP_LEAVE`    | 7 days; opened by `PREGNANCY`; per event     | full pay                     | —              |
+| `PUBLIC_HOLIDAY_IN_LIEU`    | 0 days                                       | full pay                     | —              |
+| `SICK_LEAVE`                | 30 days; calendar year                       | paid share by the row’s rule | —              |
+| `SICK_LEAVE_SUSPENSION`     | no limit                                     | paid share 0                 | —              |
+| `SICK_LEAVE_UNPAID`         | no limit                                     | paid share 0                 | —              |
+| `STATUTORY_REST_IN_LIEU`    | 0 days                                       | full pay                     | —              |
 
 ### Overtime, rest-day and holiday work
 
-| Code                  | What it pays                                                                                                        | Numbers on the row | Value changed |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `OVERTIME`            | Working-day overtime: the hourly wage × 1⅓ for each day’s first two overtime hours and × 1⅔ for every further…      | —                  | —             |
-| `STATUTORY_REST_WORK` | A 例假 worked: one further day’s wage for each such day (an hourly worker: their hours up to normal hours), or…     | —                  | —             |
-| `REST_DAY_WORK`       | Work on a 休息日: the hourly wage × 1⅓ for the first two hours, × 1⅔ to the eighth and × 2⅔ from the ninth (勞基法… | multiplier 2.66667 | —             |
-| `HOLIDAY_WORK`        | A published holiday worked: one further day’s wage for each such day; an hourly worker is paid their hours up…      | —                  | —             |
-| `HOLIDAY_OVERTIME`    | Hours past the shift on a published holiday (past the eighth on a planned off day): the hourly wage × 1⅓ for…       | —                  | —             |
+| Code                  | What it pays                                                                                                      | Numbers on the row            | Value changed |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------- |
+| `OVERTIME`            | Working-day overtime: the hourly wage × 1⅓ for each day’s first two overtime hours and × 1⅔ for every furth…      | —                             | —             |
+| `STATUTORY_REST_WORK` | A 例假 worked: one further day’s wage for each such day (an hourly worker: their hours up to normal hours), o…    | —                             | —             |
+| `REST_DAY_WORK`       | Work on a 休息日: the hourly wage × 1⅓ for the first two hours, × 1⅔ to the eighth and × 2⅔ from the ninth (勞基… | multiplier 2.6666666666666665 | —             |
+| `HOLIDAY_WORK`        | A published holiday worked: one further day’s wage for each such day; an hourly worker is paid their hours…       | —                             | —             |
+| `HOLIDAY_OVERTIME`    | Hours past the shift on a published holiday (past the eighth on a planned off day): the hourly wage × 1⅓ fo…      | —                             | —             |
 
 Roster warnings (`ROSTER_DAILY_HOURS_CAP`): daily hours 12; daily overtime hours 4; monthly overtime hours 46; consecutive days 6; weekly rest days 2.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
-- **Allowance** (3): `FULL_ATTENDANCE_BONUS`, `MEAL_ALLOWANCE_TAXABLE`, `MEAL_ALLOWANCE`. Of these, 3 count in the wage a day or hour rate divides.
+- **Allowance** (3): `FULL_ATTENDANCE_BONUS`, `MEAL_ALLOWANCE`, `MEAL_ALLOWANCE_TAXABLE`. Of these, 3 count in the wage a day or hour rate divides.
 - **Claim** (1): `BUSINESS_EXPENSE_REIMBURSEMENT`. Of these, 0 have a yearly limit.
 - **Ad hoc** (30): `COURT_GARNISHMENT`, `FOOD_LODGING`, `INDIGENOUS_RITUAL_DAY_WORK`, `NON_COMPETE_COMPENSATION`, `NON_COMPETE_LUMP_SUM`, `NOTICE_PAY`, `OCC_DEATH_COMPENSATION`, `OCC_DEATH_FUNERAL`, `OCC_DISABILITY_G01`, `OCC_DISABILITY_G02`, `OCC_DISABILITY_G03`, `OCC_DISABILITY_G04`, `OCC_DISABILITY_G05`, `OCC_DISABILITY_G06`, `OCC_DISABILITY_G07`, `OCC_DISABILITY_G08`, `OCC_DISABILITY_G09`, `OCC_DISABILITY_G10`, `OCC_DISABILITY_G11`, `OCC_DISABILITY_G12`, `OCC_DISABILITY_G13`, `OCC_DISABILITY_G14`, `OCC_DISABILITY_G15`, `OCC_INJURY_LUMP_SUM`, `OCC_INJURY_MEDICAL`, `OCC_INJURY_OFFSET`, `RETIREMENT_PAY`, `SEVERANCE_PAY`, `STATUTORY_REFUND`, `bonus`. Of these, 7 may run off-cycle, 0 post to a balance account (statutory corrections) and 0 are employer cost.
 - **Loan** (1): `SALARY_ADVANCE`.
@@ -821,10 +846,10 @@ Roster warnings (`ROSTER_DAILY_HOURS_CAP`): daily hours 12; daily overtime hours
 
 ### Registered effects: the tasks raised
 
-60 effects; every one writes `obligation.create`.
+62 effects; every one writes `obligation.create`.
 
-- **`employment`** on create, update (9): `EMPLOYMENT_CONTRACT_TERMS`, `LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT`, `LABOUR_PENSION_REGISTRATION`, `NHI_ENROLMENT`, `OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT`, `PERSONAL_DATA_COLLECTION_NOTICE`, `SEXUAL_HARASSMENT_COMPLAINT_CHANNEL`, `SEXUAL_HARASSMENT_PREVENTION_RULES` and 1 more.
-- **`employment`** on exit (19): `FINAL_WAGE_SETTLEMENT`, `FOREIGN_WORKER_SEPARATION_NOTICE`, `INSURANCE_PENSION_RECORDS_RETENTION`, `INVOLUNTARY_SEPARATION_CERTIFICATE`, `LABOUR_EMPLOYMENT_INSURANCE_WITHDRAWAL`, `LABOUR_PENSION_DEREGISTRATION`, `LAYOFF_REPORT`, `MASS_LAYOFF_PLAN_ENTITY` and 11 more.
+- **`employment`** on create, update (11): `EMPLOYMENT_CONTRACT_TERMS`, `LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT`, `LABOUR_PENSION_REGISTRATION`, `NHI_ENROLMENT`, `OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT`, `PERSONAL_DATA_COLLECTION_NOTICE`, `SEXUAL_HARASSMENT_COMPLAINT_CHANNEL`, `SEXUAL_HARASSMENT_PREVENTION_RULES` and 3 more.
+- **`employment`** on exit (19): `FINAL_WAGE_SETTLEMENT`, `FOREIGN_WORKER_SEPARATION_NOTICE`, `INSURANCE_PENSION_RECORDS_RETENTION`, `INVOLUNTARY_SEPARATION_CERTIFICATE`, `LABOUR_EMPLOYMENT_INSURANCE_WITHDRAWAL`, `LABOUR_PENSION_DEREGISTRATION`, `LAYOFF_REPORT`, `MASS_LAYOFF_PLAN` and 11 more.
 - **`entity`** on update (2): `LI_UNIT_CHANGE`, `NHI_UNIT_CHANGE`.
 - **`leave_catalog_entry`** on create, update (1): `PARENTAL_LEAVE_INSURANCE_CONTINUATION`.
 - **`obligation`** on update (4): `INSURANCE_PREMIUM_LATE_SURCHARGE`, `LABOUR_PENSION_LATE_SURCHARGE`, `NHI_LATE_SURCHARGE`, `WITHHOLDING_TAX_LATE_SURCHARGE`.
@@ -841,74 +866,75 @@ Roster warnings (`ROSTER_DAILY_HOURS_CAP`): daily hours 12; daily overtime hours
 
 ### Changes of law
 
-The whole law from 2025-12-01, then 5 later changes. Rows whose values differ from the law before each:
+The whole law from 2025-12-01, then 6 later changes. Rows whose values differ from the law before each:
 
 - From 2026-01-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UI`; rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; effects `DPD_BREACH_NOTIFICATION`, `DPD_CONSENT_AND_NOTICE`, `DPD_DELETION_ON_REQUEST`, `DPD_IMPACT_ASSESSMENT`, `DPD_SENSITIVE_DATA_PERSONNEL` and 8 more; shared `lookup`.
 - From 2026-04-15: effects `PIT_WITHHOLDING_DECLARATION`.
 - From 2026-05-16: statutory `UNION_FEE`; effects `UNION_FEE_REMITTANCE`.
 - From 2026-07-01: statutory `PIT`, `PIT_PENSION_DEDUCTION`, `PIT_TAXABLE_INCOME`, `UNION_DUES`; leave `PUBLIC_HOLIDAY`; effects `DEPENDANT_TAX_REGISTRATION`, `PIT_TAX_REGISTRATION`; shared `lookup`.
+- From 2026-12-05: effects `FOREIGN_WORKER_REPORT_393`, `WORK_AUTHORISATION_APPLICATION_393`, `WORK_AUTHORISATION_EXEMPT_NOTICE_393`, `WORK_AUTHORISATION_EXPIRY_INPUTS_393`, `WORK_AUTHORISATION_EXTENSION_393` and 4 more.
 - From 2027-01-01: rules `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`; shared `lookup`.
 
 ### Conversions and subtotal chain
 
-Currency VND. Tax year starts in month 1. Day rate `WORKING_DAYS`, hour rate `CONTRACT_HOURS`, proration `WORKING_DAYS`, rounding `HALF_UP` to 0 places. Year-to-date totals restart per `JURISDICTION`.
+Currency VND. Tax year starts in month 1. Day rate `WORKING_DAYS`, hour rate `CONTRACT_HOURS`, proration `WORKING_DAYS`, rounding `HALF_UP` to 2 places. Year-to-date totals restart per `JURISDICTION`.
 
 Chain: `BASIC` → `PRORATED` → `PAID_BASIC` → `MEAL_PAY` → `WORK_EXPENSE_PAY` → `HOUSING_PAY` → `PENSION_PAY` → `PIT_EXEMPT_PAY` → `ORDINARY_WAGES` → `ADDITIONAL_WAGES` → `FINAL_PAY` → `NET`.
 
 ### Contributions and taxes
 
-| Code                    | Kind         | What it is                                                                                           | Employee | Employer | Below zero | First reference on the row                                                               | Value changed          |
-| ----------------------- | ------------ | ---------------------------------------------------------------------------------------------------- | -------- | -------- | ---------- | ---------------------------------------------------------------------------------------- | ---------------------- |
-| `SI`                    | contribution | Social insurance: 8% from the employee and 17.5% from the employer on the monthly salary, capped at… | yes      | yes      | refund     | Law 41/2024 arts.31(1)(b), 37(2): use actual qualifying sto… (+14 more)                  | —                      |
-| `HI`                    | contribution | Health insurance: 1.5% from the employee and 3% from the employer on the monthly salary, capped at…  | yes      | yes      | refund     | Health Insurance Law art.12(1)(c)-(d), amended by Law 51/20… (+14 more)                  | —                      |
-| `UI`                    | contribution | Unemployment insurance: 1% from the employee and 1% from the employer on the monthly wage, capped a… | yes      | yes      | refund     | Law on Employment 74/2025/QH15 (Luật Việc làm), arts.31–33, art.34(1)(b), (2) (+11 more) | 2026-01-01             |
-| `UNION_FEE`             | contribution | Trade union fee, paid by the employer only: 2% of the salary on which social insurance is paid, whe… | no       | yes      | stops      | Law on Trade Unions 50/2024/QH15 (Luật Công đoàn), art.29(1)(b) (+9 more)                | 2026-05-16             |
-| `PIT_TAXABLE_INCOME`    | tax          | Taxable income carried into income tax.                                                              | no       | yes      | stops      | Decree 253/2026/NĐ-CP art.8(2)(g), (h), art.26, arts.46, 51… (+1 more)                   | 2026-01-01, 2026-07-01 |
-| `PIT_PENSION_DEDUCTION` | tax          | A record of the voluntary pension and life insurance contributions that may be taken off taxable in… | no       | yes      | stops      | Decree 253/2026/NĐ-CP art.46(2)(a), arts.69(1)(a), 70(2): p…                             | 2026-01-01, 2026-07-01 |
-| `PIT`                   | tax          | Personal income tax withheld from pay                                                                | yes      | yes      | refund     | Resident salary withholding (Decree 253/2026/NĐ-CP art.50(1… (+11 more)                  | 2026-01-01, 2026-07-01 |
-| `UNION_DUES`            | contribution | Union membership dues, deducted from union members only: 0.5% of the salary on which social insuran… | yes      | no       | refund     | Law on Trade Unions 50/2024/QH15 (Luật Công đoàn), art.29 (+11 more)                     | 2026-07-01             |
+| Code                    | Kind         | What it is                                                                                       | Employee | Employer | Below zero | First reference on the row                                                          | Value changed          |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------------------ | -------- | -------- | ---------- | ----------------------------------------------------------------------------------- | ---------------------- |
+| `SI`                    | contribution | Social insurance: 8% from the employee and 17.5% from the employer on the monthly salary, cappe… | yes      | yes      | refund     | Law 41/2024 arts.31(1)(b), 37(2) (+14 more)                                         | —                      |
+| `HI`                    | contribution | Health insurance: 1.5% from the employee and 3% from the employer on the monthly salary, capped… | yes      | yes      | refund     | Health Insurance Law art.12(1)(c)-(d), amended by Law 51/2024, effectiv… (+14 more) | —                      |
+| `UI`                    | contribution | Unemployment insurance: 1% from the employee and 1% from the employer on the monthly wage, capp… | yes      | yes      | refund     | Law on Employment 74/2025/QH15 (Luật Việc làm), arts.31–33, art.34(1)(b… (+11 more) | 2026-01-01             |
+| `UNION_FEE`             | contribution | Trade union fee, paid by the employer only: 2% of the salary on which social insurance is paid,… | no       | yes      | stops      | Law on Trade Unions 50/2024/QH15 (Luật Công đoàn), art.29(1)(b) (+9 more)           | 2026-05-16             |
+| `PIT_TAXABLE_INCOME`    | tax          | Taxable income carried into income tax.                                                          | no       | yes      | stops      | Decree 253/2026/NĐ-CP art.8(2)(g), (h), art.26, arts.46, 51 (+1 more)               | 2026-01-01, 2026-07-01 |
+| `PIT_PENSION_DEDUCTION` | tax          | A record of the voluntary pension and life insurance contributions that may be taken off taxabl… | no       | yes      | stops      | Decree 253/2026/NĐ-CP art.46(2)(a), arts.69(1)(a), 70(2)                            | 2026-01-01, 2026-07-01 |
+| `PIT`                   | tax          | Personal income tax withheld from pay. A resident's taxable income for the month, after insuran… | yes      | yes      | refund     | Resident salary withholding (Decree 253/2026/NĐ-CP art.50(1), Statutory… (+11 more) | 2026-01-01, 2026-07-01 |
+| `UNION_DUES`            | contribution | Union membership dues, deducted from union members only: 0.5% of the salary on which social ins… | yes      | no       | refund     | Law on Trade Unions 50/2024/QH15 (Luật Công đoàn), art.29 (+11 more)                | 2026-07-01             |
 
 ### Leave
 
-| Code                            | Entitlement                                                        | A day taken        | Value changed |
-| ------------------------------- | ------------------------------------------------------------------ | ------------------ | ------------- |
-| `ANNUAL_LEAVE`                  | 12–22 days by length of service; own statutory test; calendar year | full pay, cashable | —             |
-| `BEREAVEMENT_LEAVE`             | 3 days; opened by `BEREAVEMENT`; per event                         | full pay           | —             |
-| `BEREAVEMENT_LEAVE_UNPAID`      | no limit                                                           | paid share 0       | —             |
-| `CHILD_MARRIAGE_LEAVE`          | 1 days; opened by `CHILD_MARRIAGE`; per event                      | full pay           | —             |
-| `CHILD_SICK_CARE`               | no limit                                                           | paid share 0       | —             |
-| `CONTRACEPTION_LEAVE`           | no limit                                                           | paid share 0       | —             |
-| `CONVALESCENCE_LEAVE`           | no limit                                                           | paid share 0       | —             |
-| `FOREIGN_NATIONAL_LEAVE`        | 2 days; calendar year                                              | full pay           | —             |
-| `MARRIAGE_LEAVE`                | 3 days; opened by `MARRIAGE`; per event                            | full pay           | —             |
-| `MATERNITY_LEAVE`               | no limit                                                           | paid share 0       | —             |
-| `MISCARRIAGE_LEAVE`             | no limit                                                           | paid share 0       | —             |
-| `NPL`                           | no limit                                                           | paid share 0       | —             |
-| `OCCUPATIONAL_ACCIDENT_LEAVE`   | no limit                                                           | full pay           | —             |
-| `PATERNITY_LEAVE`               | no limit                                                           | paid share 0       | —             |
-| `PRENATAL_CHECKUP`              | no limit                                                           | paid share 0       | —             |
-| `PUBLIC_HOLIDAY`                | 12 days; calendar year                                             | full pay           | 2026-07-01    |
-| `PUBLIC_HOLIDAY_IN_LIEU`        | none by default; HR grants each day; calendar year                 | full pay           | —             |
-| `SICK_LEAVE`                    | no limit                                                           | paid share 0       | —             |
-| `STOPPAGE_WORKER_FAULT`         | no limit                                                           | paid share 0       | —             |
-| `SUSPENSION_PENDING_DISCIPLINE` | no limit                                                           | paid share 0.5     | —             |
+| Code                            | Entitlement                                                                 | A day taken        | Value changed |
+| ------------------------------- | --------------------------------------------------------------------------- | ------------------ | ------------- |
+| `ANNUAL_LEAVE`                  | 12+ days by length of service (uncapped); own statutory test; calendar year | full pay, cashable | —             |
+| `BEREAVEMENT_LEAVE`             | 3 days; opened by `BEREAVEMENT`; per event                                  | full pay           | —             |
+| `BEREAVEMENT_LEAVE_UNPAID`      | no limit                                                                    | paid share 0       | —             |
+| `CHILD_MARRIAGE_LEAVE`          | 1 days; opened by `CHILD_MARRIAGE`; per event                               | full pay           | —             |
+| `CHILD_SICK_CARE`               | no limit                                                                    | paid share 0       | —             |
+| `CONTRACEPTION_LEAVE`           | no limit                                                                    | paid share 0       | —             |
+| `CONVALESCENCE_LEAVE`           | no limit                                                                    | paid share 0       | —             |
+| `FOREIGN_NATIONAL_LEAVE`        | 2 days; own statutory test; calendar year                                   | full pay           | —             |
+| `MARRIAGE_LEAVE`                | 3 days; opened by `MARRIAGE`; per event                                     | full pay           | —             |
+| `MATERNITY_LEAVE`               | no limit                                                                    | paid share 0       | —             |
+| `MISCARRIAGE_LEAVE`             | no limit                                                                    | paid share 0       | —             |
+| `NPL`                           | no limit                                                                    | paid share 0       | —             |
+| `OCCUPATIONAL_ACCIDENT_LEAVE`   | no limit                                                                    | full pay           | —             |
+| `PATERNITY_LEAVE`               | no limit                                                                    | paid share 0       | —             |
+| `PRENATAL_CHECKUP`              | no limit                                                                    | paid share 0       | —             |
+| `PUBLIC_HOLIDAY`                | 12 days; calendar year                                                      | full pay           | 2026-07-01    |
+| `PUBLIC_HOLIDAY_IN_LIEU`        | 0 days                                                                      | full pay           | —             |
+| `SICK_LEAVE`                    | no limit                                                                    | paid share 0       | —             |
+| `STOPPAGE_WORKER_FAULT`         | no limit                                                                    | paid share 0       | —             |
+| `SUSPENSION_PENDING_DISCIPLINE` | no limit                                                                    | paid share 0.5     | —             |
 
 ### Overtime, rest-day and holiday work
 
-| Code                | What it pays                                                                                                   | Numbers on the row | Value changed |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------ | ------------- |
-| `OVERTIME`          | Clocked overtime hours on a working or off day that is neither a weekly rest day nor a holiday, at 150% of th… | multiplier 1.5     | —             |
-| `REST_DAY_OVERTIME` | Every hour worked on a weekly rest day that is not a holiday, at 200% of the normal hour, or the employer's h… | —                  | —             |
-| `HOLIDAY_WORK`      | Every hour worked on a public holiday or paid day off, at 300% of the normal hour on top of the holiday's own… | multiplier 3       | —             |
-| `NIGHT_WORK`        | Every clocked hour between 22:00 and 06:00, normal or overtime, earns 30% of the normal hour on top of its pa… | multiplier 0.3     | —             |
-| `NIGHT_OVERTIME`    | Overtime hours worked between 22:00 and 06:00 add 20% of that day's daytime hour wage: 100% on a normal day,…  | multiplier 0.2     | —             |
+| Code                | What it pays                                                                                                 | Numbers on the row | Value changed |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------ | ------------- |
+| `OVERTIME`          | Clocked overtime hours on a working or off day that is neither a weekly rest day nor a holiday, at 150% of…  | multiplier 1.5     | —             |
+| `REST_DAY_OVERTIME` | Every hour worked on a weekly rest day that is not a holiday, at 200% of the normal hour, or the employer's… | —                  | —             |
+| `HOLIDAY_WORK`      | Every hour worked on a public holiday or paid day off, at 300% of the normal hour on top of the holiday's o… | multiplier 3       | —             |
+| `NIGHT_WORK`        | Every clocked hour between 22:00 and 06:00, normal or overtime, earns 30% of the normal hour on top of its…  | multiplier 0.3     | —             |
+| `NIGHT_OVERTIME`    | Overtime hours worked between 22:00 and 06:00 add 20% of that day's daytime hour wage: 100% on a normal day… | multiplier 0.2     | —             |
 
 Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; monthly overtime hours 40; consecutive days 6; weekly rest days 1.
 
 ### Allowance, claim, ad hoc, loan, work event and workplace case rows
 
 - **Allowance** (5): `FIXED_ALLOWANCE`, `HOUSING`, `INSURANCE_EQUIVALENT`, `MEAL_ALLOWANCE`, `WORK_EXPENSE_ALLOWANCE`. Of these, 1 count in the wage a day or hour rate divides.
-- **Claim** (0): none.
+- **Claim** (0): none. Of these, 0 have a yearly limit.
 - **Ad hoc** (16): `BONUS`, `EMPLOYEE_UNLAWFUL_TERMINATION`, `EMPLOYER_PENSION_CONTRIBUTION`, `JOB_LOSS_ALLOWANCE`, `LATE_WAGE_COMPENSATION`, `NON_ACCUMULATING_INSURANCE`, `OCCUPATIONAL_ACCIDENT_COMPENSATION`, `OCCUPATIONAL_ACCIDENT_MEDICAL`, `PROPERTY_DAMAGE_COMPENSATION`, `SEVERANCE_ALLOWANCE`, `STATUTORY_ADJUSTMENT`, `STATUTORY_REFUND`, `SUSPENSION_SETTLEMENT`, `TRAINING_COST_REFUND`, `TRAINING_SUPPORT`, `UNLAWFUL_TERMINATION_COMPENSATION`. Of these, 9 may run off-cycle, 0 post to a balance account (statutory corrections) and 3 are employer cost.
 - **Loan** (1): `SALARY_ADVANCE`.
 - **Work event** (5): `COWORKER_FAULT`, `EMPLOYER_FAULT`, `OBJECTIVE_CAUSE`, `STRIKE_NON_PARTICIPANT`, `STRIKE_PARTICIPANT`.
@@ -917,7 +943,7 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 ### Registered rules: what a write is refused for
 
 - **`adhoc_catalog_entry`** (1): `DAMAGE_DEDUCTION_CEILING`.
-- **`employment`** (9): `ANNUAL_SERVICE_EXIT_REVIEW`, `CONTRACT_CATEGORIES`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`, `PROBATION_PERIOD`, `PROBATION_WAGE`, `REGION_REQUIRED`, `SHARED_ORIGINAL_AGREEMENT_INTENT`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`.
+- **`employment`** (10): `ANNUAL_SERVICE_EXIT_REVIEW`, `CONTRACT_CATEGORIES`, `HOURLY_MINIMUM_WAGE`, `MINIMUM_WAGE_FLOOR`, `PROBATION_ONCE_AND_SHORT_CONTRACT`, `PROBATION_PERIOD`, `PROBATION_WAGE`, `REGION_REQUIRED`, `SHARED_ORIGINAL_AGREEMENT_INTENT`, `SHARED_STRUCTURED_EMPLOYEE_INPUTS`.
 - **`entity_change`** (1): `OPERATIONS_EVENT_DATE_REQUIRED`.
 - **`leave_catalog_entry`** (1): `ENCASHMENT_PRIOR_WAGE_REVIEW`.
 - **`roster_entry`** (14): `MINOR_WORKING_TIME`, `OVERTIME_ANNUAL_CAP`, `OVERTIME_DAILY_CAP`, `OVERTIME_MONTHLY_CAP`, `PREGNANT_OR_INFANT_NIGHT_OVERTIME`, `ROSTER_MATERNITY_NIGHT_OVERTIME`, `ROSTER_MINOR_WORKING_TIME`, `ROSTER_NORMAL_HOURS_DAY`, `ROSTER_NORMAL_HOURS_WEEK`, `ROSTER_OVERTIME_DAY`, `ROSTER_SHIFT_CHANGE_REST`, `ROSTER_UNDER_13`, `ROSTER_WARNINGS`, `WEEKLY_REST`.
@@ -942,7 +968,7 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 ## How to read the tables
 
-- **Changes of law.** How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2032-01-01).
+- **Changes of law.** How changes fold into the law on a day is in [the architecture](0001-hrms-calculation-architecture.md#3-the-law-by-date). A change already enacted is seeded in advance, so some changes are dated in the future (the latest on 2035-10-01).
 - **Rounding.** Every law rounds the day rate before it multiplies the days, except the Philippines, which rounds only the amount (`rounding.day_rate: AMOUNT`).
 - **A run reads only its own law.** A payroll run reads the catalogues of its own jurisdiction's law on its pay date, never another country's.
 - **Contributions and taxes.** "Employee" and "Employer" say whether the row computes that side. "Below zero" says what the row does when a month's figure comes out negative: `refund` pays a refund line because its statute has the employer repay; `stops` stops at zero and the next run nets it. "First reference on the row" is the first of the row's own `references`; the row holds the full list, with locators, quotes and links.
@@ -953,19 +979,25 @@ Roster warnings (`ROSTER_WARNINGS`): daily hours 12; daily overtime hours 4; mon
 
 ## Not enforced by the seed
 
-The seed carries no row for these, so nothing computes or enforces them.
+The seed carries no row or schema input for these, so nothing computes or enforces them.
 
-| Jurisdiction | Not enforced                                                                                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CN           | No rule caps a shift template's ordinary hours at eight a day. No registered rule in any jurisdiction checks a shift definition                                                                                     |
-| CN           | No row values an equity incentive or applies its separate tax method                                                                                                                                                |
-| MY           | No row values a benefit in kind or living accommodation for the monthly tax deduction (PCB)                                                                                                                         |
-| MY           | No row adjusts a results-paid worker's month with no results (Minimum Wages Order 2024 para 5(2))                                                                                                                   |
-| PH           | No claim row carries a yearly limit, so a medical claim is not held to one                                                                                                                                          |
-| PH           | The 13th-month task compares one twelfth of the year's basic pay with 13th-month pay and cash bonuses together, the one figure the balance holds for them, and counts no maternity salary differential as basic pay |
-| SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row                                          |
-| SG           | No row records the employer's recovery of work-injury medical costs from its insurer                                                                                                                                |
-| All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                                                            |
+| Jurisdiction | Not enforced                                                                                                                                                                                                                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CN           | No rule caps a shift template's ordinary hours at eight a day. No registered rule in any jurisdiction checks a shift definition                                                                                                                                                                                                                |
+| CN           | No row values an equity incentive or applies its separate tax method                                                                                                                                                                                                                                                                           |
+| CN           | Shanghai childcare leave uses a calendar year window rather than each child's birth-anniversary year (周年); elastic retirement (人社部发〔2024〕94号) early/delayed elections are not modelled                                                                                                                                                |
+| ID           | Day-rate divisor uses `YEAR` (÷21.67/÷26) rather than week-dependent fixed `÷21/÷25` (PP 36/2021 art.17(1)); Dana Cadangan Pesangon (UU 27/2026 art.253) awaits its implementing PP; 2027 UMP/UMK await complete provincial decrees                                                                                                            |
+| JP           | Commuting allowance non-taxable car-tier amounts beyond the 2025-11-20 order and unenacted FY2027 tax-reform bills await enactment                                                                                                                                                                                                             |
+| MY           | No row values a benefit in kind or living accommodation for the monthly tax deduction (PCB); 15% REP/Knowledge Worker/C-Suite special tax schemes and joint-assessment working spouse are not modelled; Finance Bill 2026 (Budget 2027) awaits Royal Assent                                                                                    |
+| MY           | No row adjusts a results-paid worker's month with no results (Minimum Wages Order 2024 para 5(2))                                                                                                                                                                                                                                              |
+| PH           | No claim row carries a yearly limit, so a medical claim is not held to one                                                                                                                                                                                                                                                                     |
+| PH           | The 13th-month task compares one twelfth of the year's basic pay with 13th-month pay and cash bonuses together, the one figure the balance holds for them, and counts no maternity salary differential as basic pay                                                                                                                            |
+| SG           | The Government's reimbursement of government-paid leave is not computed or recorded as money. An effect raises the task to claim it; the employee is paid by the leave row                                                                                                                                                                     |
+| SG           | No row records the employer's recovery of work-injury medical costs from its insurer; `REST_DAY_WORK` prices employer-requested work (EA s.37(3)) because `roster_entry` carries no request-initiator flag for employee-requested work (s.37(2))                                                                                               |
+| TH           | `TEMPORARY_CESSATION` 75% stoppage pay (LPA s.75 para 1) and the ≥13 public-holiday entity check (LPA s.29) are not computed automatically; PND1 self health + life insurance combined ฿100k cap is entered in `other_annual_deductions`                                                                                                       |
+| TW           | 2027 (116年) NHI insured salary grade table awaits MOHW promulgation; `INDIGENOUS_RITUAL_HOLIDAY` is not auto-gated because employee records carry no indigenous-status/tribe field                                                                                                                                                            |
+| VN           | Social-insurance-funded leave day caps (sick/maternity/paternity/child-sick/prenatal/miscarriage/convalescence) are tracked by BHXH benefit claims rather than enforced on `leave_catalog`; menstrual (30m) and nursing (60m) in-shift breaks and max-2 consecutive fixed-term contracts / art.37 termination protection are not auto-enforced |
+| All          | A change of law not yet enacted is not seeded. Research files it as a finding with its dated changes, and they are in force once HR confirms the finding                                                                                                                                                                                       |
 
 ## How it is verified
 

@@ -78,22 +78,32 @@ export const overtime_catalog = {
 		overtime_hours_per_substitute_hour: Schema.Number
 	}),
 	PART_TIME_EXTRA_HOURS: Schema.Struct({
+		manual_monthly_ceiling: Schema.Number,
 		multiplier: Schema.Number,
+		nonmanual_monthly_ceiling: Schema.Number,
 		past_full_time: Schema.Boolean,
 		rest_day: Schema.Boolean
 	}),
 	PART_TIME_OVERTIME: Schema.Struct({
+		manual_monthly_ceiling: Schema.Number,
 		multiplier: Schema.Number,
+		nonmanual_monthly_ceiling: Schema.Number,
+		nonmanual_ot_salary_cap: Schema.Number,
 		past_full_time: Schema.Boolean,
 		rest_day: Schema.Boolean
 	}),
 	PART_TIME_REST_DAY_EXTRA_HOURS: Schema.Struct({
+		manual_monthly_ceiling: Schema.Number,
 		multiplier: Schema.Number,
+		nonmanual_monthly_ceiling: Schema.Number,
 		past_full_time: Schema.Boolean,
 		rest_day: Schema.Boolean
 	}),
 	PART_TIME_REST_DAY_OVERTIME: Schema.Struct({
+		manual_monthly_ceiling: Schema.Number,
 		multiplier: Schema.Number,
+		nonmanual_monthly_ceiling: Schema.Number,
+		nonmanual_ot_salary_cap: Schema.Number,
 		past_full_time: Schema.Boolean,
 		rest_day: Schema.Boolean
 	}),

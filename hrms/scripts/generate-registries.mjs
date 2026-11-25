@@ -9,8 +9,12 @@ const applied = (state, patch, depth) => {
 	const next = { ...state };
 	for (const [key, value] of Object.entries(patch)) {
 		if (value === null) delete next[key];
-		else if (depth > 1 && typeof value === 'object' && !Array.isArray(value))
-			next[key] = applied(next[key] ?? {}, value, depth - 1);
+		else if (
+			(depth > 1 || (depth === 1 && key === 'lookup')) &&
+			typeof value === 'object' &&
+			!Array.isArray(value)
+		)
+			next[key] = applied(next[key] ?? {}, value, depth === 1 ? 0 : depth - 1);
 		else next[key] = value;
 	}
 	return next;

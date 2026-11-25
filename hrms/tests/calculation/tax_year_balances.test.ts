@@ -242,10 +242,10 @@ describe('a benefit', () => {
 				assert.ok(first > 0);
 				assert.notEqual(second, first);
 				assert.deepEqual(yield* posted(t, 'PENSION_BENEFIT', 'SEVERANCE', `${TAX}.employee`), [
-					`ID.Y.2026-01-01 ${PAID}`,
-					`ID.Y.2027-01-01 ${PAID}`,
-					`ID.Y.2026-01-01 ${first}`,
-					`ID.Y.2027-01-01 ${second}`
+					`ID.${ENTITY}.Y.2026-01-01 ${PAID}`,
+					`ID.${ENTITY}.Y.2027-01-01 ${PAID}`,
+					`ID.${ENTITY}.Y.2026-01-01 ${first}`,
+					`ID.${ENTITY}.Y.2027-01-01 ${second}`
 				]);
 			}).pipe(Effect.provide(workspace({ seed, now: '2027-04-20T02:00:00.000Z' })));
 		}
@@ -283,8 +283,8 @@ describe('a statutory row below zero with a refund route', () => {
 					);
 					assert.ok(
 						Math.abs(
-							(accounts.statutory?.[`${code}.employee`]?.['ID.Y.2026-01-01']?.['paid'] ?? 0) -
-								charged
+							(accounts.statutory?.[`${code}.employee`]?.[`ID.${ENTITY}.Y.2026-01-01`]?.['paid'] ??
+								0) - charged
 						) < 0.01
 					);
 				}

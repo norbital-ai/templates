@@ -34,6 +34,7 @@ export const allowance_catalog = {
 	FOREIGN_LANGUAGE_ALLOWANCE: Schema.Struct({}),
 	FULL_ATTENDANCE_BONUS: Schema.Struct({}),
 	HIGH_TEMPERATURE_ALLOWANCE: Schema.Struct({
+		km_daily: Schema.Number,
 		monthly: Schema.Number,
 		months: Schema.Array(Schema.Number),
 		region: Schema.String
