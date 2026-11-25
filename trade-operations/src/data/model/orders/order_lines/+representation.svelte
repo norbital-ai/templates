@@ -46,6 +46,7 @@
 	});
 	const layout = $derived(
 		header &&
+			header.currency &&
 			currentTemplate(
 				layouts.current?.document_templates.rows ?? [],
 				contractKind(header.direction),
@@ -54,7 +55,7 @@
 	);
 	// the floor book a sales line is priced against, read as the order stands
 	const floorRead = $derived(
-		header?.direction === 'sales'
+		header?.direction === 'sales' && header.currency && ctx.catalog?.pricing_floors
 			? ctx.query({
 					pricing_floors: {
 						where: { currency: { eq: header.currency }, effective_on: { lte: header.ordered_on } },
@@ -76,15 +77,14 @@
 	function floorState(form: FormState) {
 		const book = floorRead?.current;
 		const productId = form.id<'products'>('product');
-		const quantity = form.get('quantity');
-		if (!book || !header || !productId || quantity == null || String(quantity) === '') return null;
+		if (!book || !header || !productId) return null;
 		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
 		const unitValue = view.mode !== 'create' ? view.record.unit : form.get('unit');
 		const lineUnit = typeof unitValue === 'string' && unitValue !== '' ? unitValue : undefined;
 		const floor = floorFor(
 			header,
 			book.warehouses.rows[0]?.group_code,
-			{ product: productId, quantity: String(quantity), ...(lineUnit ? { unit: lineUnit } : {}) },
+			{ product: productId, ...(lineUnit ? { unit: lineUnit } : {}) },
 			book.pricing_floors.rows
 		);
 		const floorNet =

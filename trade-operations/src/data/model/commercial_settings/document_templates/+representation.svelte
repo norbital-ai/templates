@@ -36,12 +36,12 @@
 				'locale',
 				'title',
 				'layout',
+				'status',
 				'body',
 				'print_layout',
 				'print_fields',
 				'letterhead',
-				'contract_stamp',
-				'status'
+				'contract_stamp'
 			],
 			wide: ['body', 'print_layout', 'print_fields', 'letterhead', 'contract_stamp'],
 			body: placeholders

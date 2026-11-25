@@ -172,7 +172,6 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 								currency: 'CNY',
 								group_code: 'WEST',
 								effective_on: '2026-10-01',
-								minimum_quantity: '0',
 								unit: '吨',
 								floor_price: '22000',
 								tax_inclusive: false
@@ -236,7 +235,6 @@ layer(shared(), { excludeTestServices: true })('commercial review', (test) => {
 								currency: 'EUR',
 								group_code: 'WEST',
 								effective_on: '2026-10-01',
-								minimum_quantity: '0',
 								unit: 'box',
 								floor_price: '100',
 								tax_inclusive: false

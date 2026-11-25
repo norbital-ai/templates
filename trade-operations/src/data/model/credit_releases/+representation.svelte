@@ -1,22 +1,18 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
-		Badge,
 		Button,
 		Combobox,
 		Input,
 		Label,
-		RecordShell,
-		Show,
 		Textarea,
-		enum_text,
 		format,
 		use_act,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { isAdvanceSettlement } from '../../../lib/credit-release.js';
-	import RecordLink from '../../../lib/ui/record-link.svelte';
+	import RecordForm from '../../../lib/ui/record-form.svelte';
 
 	let {
 		view,
@@ -35,7 +31,6 @@
 			Boolean(ctx.catalog?.credit_releases?.update)
 	);
 	const save = use_act(ctx);
-	const words: { t(key: string): string } = ctx;
 
 	let route = $state<'one_time' | 'permanent'>('one_time');
 	let proposedLimit = $state('');
@@ -67,18 +62,11 @@
 			}
 		);
 	}
-
-	const moneyKind = { kind: 'money', currency: 'currency', optional: true } as const;
-	const statusKind = {
-		kind: 'enum',
-		values: ['blocked', 'approved', 'released', 'cleared', 'superseded', 'withdrawn', 'bypassed']
-	} as const;
-	const routeKind = { kind: 'enum', values: ['one_time', 'permanent'], optional: true } as const;
 </script>
 
-{#snippet details(shown: RecordView<'credit_releases'>)}
-	{#if shown.mode !== 'create'}
-		{@const rec = shown.record}
+{#snippet noticesAndRequest()}
+	{#if view.mode !== 'create'}
+		{@const rec = view.record}
 		<Stack gap="md">
 			{#if rec.status === 'approved'}
 				<Surface tone="subtle" padding="sm" radius="control">
@@ -110,145 +98,6 @@
 					</p>
 				</Surface>
 			{/if}
-
-			<Grid as="dl" gap="md">
-				<div>
-					<dt class="text-label">{ctx.t('models.credit_releases.fields.bill_number')}</dt>
-					<dd class="tabular-nums">{rec.bill_number}</dd>
-				</div>
-				<div>
-					<dt class="text-label">{ctx.t('models.credit_releases.fields.status')}</dt>
-					<dd>
-						<Show {ctx} kind={statusKind} value={rec.status} name="status" row={rec} />
-					</dd>
-				</div>
-				<div>
-					<dt class="text-label">{ctx.t('models.credit_releases.fields.party')}</dt>
-					<dd><RecordLink {ctx} of="parties" id={String(rec.party)} /></dd>
-				</div>
-				{#if rec.order}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.order')}</dt>
-						<dd><RecordLink {ctx} of="orders" id={String(rec.order)} /></dd>
-					</div>
-				{/if}
-				{#if rec.delivery}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.delivery')}</dt>
-						<dd><RecordLink {ctx} of="transactions" id={String(rec.delivery)} /></dd>
-					</div>
-				{/if}
-				{#if rec.bill_on}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.bill_on')}</dt>
-						<dd><Show {ctx} kind={{ kind: 'date', optional: true }} value={rec.bill_on} /></dd>
-					</div>
-				{/if}
-				{#if rec.settlement_name}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.settlement_name')}</dt>
-						<dd>{rec.settlement_name}</dd>
-					</div>
-				{/if}
-				{#if rec.block_reasons?.length}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.block_reasons')}</dt>
-						<dd>
-							<Inline as="span" gap="xs">
-								{#each rec.block_reasons as item (item)}
-									<Badge variant="outline">
-										{enum_text(item, {
-											t: (key) => words.t(key),
-											model: 'credit_releases',
-											field: 'block_reasons'
-										})}
-									</Badge>
-								{/each}
-							</Inline>
-						</dd>
-					</div>
-				{/if}
-				{#if commercial}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.bill_amount')}</dt>
-						<dd class="tabular-nums">
-							<Show {ctx} kind={moneyKind} value={rec.bill_amount} row={rec} />
-						</dd>
-					</div>
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.credit_limit')}</dt>
-						<dd class="tabular-nums">
-							<Show {ctx} kind={moneyKind} value={rec.credit_limit} row={rec} />
-						</dd>
-					</div>
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.credit_used')}</dt>
-						<dd class="tabular-nums">
-							<Show {ctx} kind={moneyKind} value={rec.credit_used} row={rec} />
-						</dd>
-					</div>
-					{#if rec.over_limit != null}
-						<div>
-							<dt class="text-label">{ctx.t('models.credit_releases.fields.over_limit')}</dt>
-							<dd class="tabular-nums">
-								<Show {ctx} kind={moneyKind} value={rec.over_limit} row={rec} />
-							</dd>
-						</div>
-					{/if}
-					{#if rec.overdue_days != null}
-						<div>
-							<dt class="text-label">{ctx.t('models.credit_releases.fields.overdue_days')}</dt>
-							<dd class="tabular-nums">{rec.overdue_days}</dd>
-						</div>
-					{/if}
-					{#if rec.oldest_overdue_bill}
-						<div>
-							<dt class="text-label">
-								{ctx.t('models.credit_releases.fields.oldest_overdue_bill')}
-							</dt>
-							<dd class="tabular-nums">{rec.oldest_overdue_bill}</dd>
-						</div>
-					{/if}
-				{/if}
-				{#if rec.route}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.route')}</dt>
-						<dd><Show {ctx} kind={routeKind} value={rec.route} name="route" row={rec} /></dd>
-					</div>
-				{/if}
-				{#if commercial && rec.proposed_limit != null}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.proposed_limit')}</dt>
-						<dd class="tabular-nums">
-							<Show {ctx} kind={moneyKind} value={rec.proposed_limit} row={rec} />
-						</dd>
-					</div>
-				{/if}
-				{#if commercial && rec.reason}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.reason')}</dt>
-						<dd>{rec.reason}</dd>
-					</div>
-				{/if}
-				{#if rec.released_by}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.released_by')}</dt>
-						<dd>{rec.released_by}</dd>
-					</div>
-				{/if}
-				{#if rec.released_at}
-					<div>
-						<dt class="text-label">{ctx.t('models.credit_releases.fields.released_at')}</dt>
-						<dd>
-							<Show {ctx} kind={{ kind: 'instant', optional: true }} value={rec.released_at} />
-						</dd>
-					</div>
-				{/if}
-				<div>
-					<dt class="text-label">{ctx.t('models.credit_releases.fields.observed_at')}</dt>
-					<dd><Show {ctx} kind={{ kind: 'instant' }} value={rec.observed_at} /></dd>
-				</div>
-			</Grid>
 
 			{#if canRequest}
 				<Surface tone="subtle" padding="md" radius="control">
@@ -317,10 +166,37 @@
 	{/if}
 {/snippet}
 
-<RecordShell
+<RecordForm
 	{ctx}
-	of="credit_releases"
-	mode={view.mode}
-	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}
-	children={details}
+	{view}
+	readonly
+	after_form={noticesAndRequest}
+	sections={[
+		{
+			name: 'credit_release',
+			fields: [
+				'bill_number',
+				'status',
+				'party',
+				'order',
+				'delivery',
+				'bill_on',
+				'settlement_name',
+				'block_reasons',
+				'bill_amount',
+				'credit_limit',
+				'credit_used',
+				'over_limit',
+				'overdue_days',
+				'oldest_overdue_bill',
+				'route',
+				'proposed_limit',
+				'released_by',
+				'released_at',
+				'observed_at',
+				'reason'
+			],
+			wide: ['reason']
+		}
+	]}
 />

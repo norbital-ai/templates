@@ -55,7 +55,6 @@
 </script>
 
 <script lang="ts">
-	import { translated } from './message.js';
 	/**
 	 * A model's record view: the record frame with its subtitle, and the form in its sections; `status`
 	 * offers the moves out of the stored state (the kit's form never edits a state). A record in a final state (no moves
@@ -64,7 +63,6 @@
 	import {
 		Combobox,
 		Field,
-		Show,
 		Form,
 		Section,
 		open_record,
@@ -140,31 +138,16 @@
 )}
 	{@const props = {
 		...(readonlyField ? { readonly: true } : {}),
-		...(wide ? { class: 'col-span-full' } : {})
+		...(wide ? { wide: true } : {})
 	}}
 	{#snippet readonlyValue()}{#if viewers[name]}{@render viewers[name]!(form)}{/if}{/snippet}
 	{#if values[name] != null && !editable_presets.includes(name)}
 		<!-- the parent scoping this create: fixed, not asked -->
-	{:else if readonlyField}
-		{@const stored = form.spec.fields.find((field) => field.name === name)}
-		{#if stored && form.readable(name) && !stored.kind.hidden}
-			<Stack gap="xs" class={wide ? 'col-span-full' : undefined} data-field={name}>
-				<span class="text-label">{translated(ctx, `models.${view.model}.fields.${name}`)}</span>
-				{#if viewers[name]}{@render viewers[name]!(form)}{:else}<Show
-						{ctx}
-						readonly
-						kind={stored.kind}
-						value={form.get(name)}
-						row={form.row}
-						{...stored.relation ? { relation: stored.relation } : {}}
-					/>{/if}
-			</Stack>
-		{/if}
-	{:else if editors[name]}
+	{:else if editors[name] && !readonlyField}
 		<Field {ctx} {name} {...props} {...viewers[name] ? { view: readonlyValue } : {}}>
 			{#snippet editor(field)}{@render editors[name]!(form, field)}{/snippet}
 		</Field>
-	{:else if name === 'status' && cells}
+	{:else if name === 'status' && cells && !readonlyField}
 		<!-- a state moves along its edges: the stored state and the moves out of it -->
 		<Field {ctx} {name} {...props}>
 			{#snippet editor(field)}

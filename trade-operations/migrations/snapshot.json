@@ -852,16 +852,6 @@
 				}
 			},
 			"fields": {
-				"commission_basis_unit": {
-					"kind": "text",
-					"optional": true
-				},
-				"commission_factor": {
-					"kind": "decimal",
-					"min": 0,
-					"optional": true,
-					"scale": 6
-				},
 				"currency": {
 					"kind": "currency"
 				},
@@ -977,6 +967,56 @@
 		},
 		"orders": {
 			"audit": true,
+			"computed": {
+				"active": {
+					"expr": {
+						"and": [
+							{
+								"not": {
+									"field": "archived"
+								}
+							},
+							{
+								"ne": [
+									{
+										"coalesce": [
+											{
+												"json_text": [
+													{
+														"field": "kingdee"
+													},
+													"status"
+												]
+											},
+											""
+										]
+									},
+									"void"
+								]
+							},
+							{
+								"ne": [
+									{
+										"coalesce": [
+											{
+												"json_text": [
+													{
+														"field": "kingdee"
+													},
+													"closed"
+												]
+											},
+											"false"
+										]
+									},
+									"true"
+								]
+							}
+						]
+					},
+					"kind": "bool"
+				}
+			},
 			"fields": {
 				"archived": {
 					"default": false,
@@ -1489,12 +1529,6 @@
 					"min": 0,
 					"optional": true
 				},
-				"minimum_quantity": {
-					"default": 0,
-					"kind": "decimal",
-					"min": 0,
-					"scale": 3
-				},
 				"product": {
 					"inverse": "pricing_floors",
 					"kind": "ref",
@@ -1537,8 +1571,7 @@
 						"product",
 						"group_code",
 						"currency",
-						"effective_on",
-						"minimum_quantity"
+						"effective_on"
 					],
 					"import_key": true,
 					"name": "natural_key"
@@ -1579,16 +1612,6 @@
 				"category": {
 					"kind": "text",
 					"optional": true
-				},
-				"commission_basis_unit": {
-					"kind": "text",
-					"optional": true
-				},
-				"commission_factor": {
-					"kind": "decimal",
-					"min": 0,
-					"optional": true,
-					"scale": 6
 				},
 				"currency": {
 					"kind": "currency"
@@ -4269,6 +4292,10 @@
 					"kind": "text",
 					"optional": true
 				},
+				"group_name": {
+					"kind": "text",
+					"optional": true
+				},
 				"name": {
 					"kind": "text"
 				},
@@ -4294,7 +4321,8 @@
 				"text": [
 					"name",
 					"external_code",
-					"group_code"
+					"group_code",
+					"group_name"
 				]
 			},
 			"unique": [

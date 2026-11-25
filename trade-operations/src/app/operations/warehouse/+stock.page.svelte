@@ -98,16 +98,6 @@
 						numeric: true,
 						scale: 2
 					},
-					{
-						field: 'commission_factor',
-						label: ctx.t('models.products.fields.commission_factor'),
-						numeric: true,
-						scale: 6
-					},
-					{
-						field: 'commission_basis_unit',
-						label: ctx.t('models.products.fields.commission_basis_unit')
-					},
 					{ field: 'active', label: ctx.t('models.products.fields.active') }
 				]
 	);
@@ -145,8 +135,6 @@
 							'currency',
 							'unit_price',
 							'tax_rate',
-							'commission_factor',
-							'commission_basis_unit',
 							'active'
 						],
 						limit: 10000

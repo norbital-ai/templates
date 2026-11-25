@@ -32,9 +32,7 @@ export default policy({
 			outputs: { default: {} }
 		},
 		products: {
-			outputs: { default: {} },
-			// the rest mirrors Kingdee
-			update: { fields: ['commission_factor', 'commission_basis_unit'] }
+			outputs: { default: {} }
 		},
 		warehouses: {
 			outputs: { default: {} }

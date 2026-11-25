@@ -127,8 +127,7 @@ test.live('a line keeps the floor in force on its order date; the refuse rule ho
 					effective_on: day,
 					floor_price: index === 0 ? '3.27' : '5.45',
 					tax_inclusive: true,
-					tax_rate: '9',
-					minimum_quantity: '0'
+					tax_rate: '9'
 				}))
 			})
 		);

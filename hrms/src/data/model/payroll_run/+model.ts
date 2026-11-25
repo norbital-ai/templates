@@ -231,6 +231,18 @@ export default model('payroll_run', {
 				// a row another run sealed is not paid twice
 				if ([...pays].some((id) => attached.has(id)) || [...carries].some((id) => !open.has(id)))
 					return yield* ctx.refuse('errors.payroll_run_already_attached', { row: index });
+				const deferredSince = offCycle
+					? undefined
+					: prior
+							.filter((entry) => entry.kind === 'ON_CYCLE' && entry.period < row.period)
+							.map(
+								(entry) =>
+									attendanceOf(schedule, {
+										from: String(entry.salary_coverage.from),
+										to: String(entry.salary_coverage.to)
+									}).from
+							)
+							.toSorted()[0];
 				runs.push({
 					id: row.id,
 					row: {
@@ -246,7 +258,10 @@ export default model('payroll_run', {
 					),
 					frame: offCycle
 						? { attendance: cycle, pays, carries }
-						: { attendance: attendanceOf(schedule, cycle) }
+						: {
+								attendance: attendanceOf(schedule, cycle),
+								...(deferredSince === undefined ? {} : { deferredSince })
+							}
 				});
 			}
 			// fixed once the loop is done: the reads below close over it

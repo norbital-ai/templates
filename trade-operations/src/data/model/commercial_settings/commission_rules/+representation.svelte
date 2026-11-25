@@ -17,7 +17,6 @@
 	let quantity = $state('1000');
 	let net = $state('2000');
 	let floor = $state('1');
-	let factor = $state('0.001');
 	let product = $state('');
 	let unit = $state('kg');
 	let party = $state('');
@@ -43,7 +42,6 @@
 					quantity: BigDecimal.format(BigDecimal.fromStringUnsafe(quantity)),
 					net: BigDecimal.format(BigDecimal.fromStringUnsafe(net)),
 					...(floor ? { floor_net: BigDecimal.format(BigDecimal.fromStringUnsafe(floor)) } : {}),
-					...(factor ? { factor: BigDecimal.format(BigDecimal.fromStringUnsafe(factor)) } : {}),
 					product_code: product,
 					unit,
 					party_code: party,
@@ -125,12 +123,6 @@
 					ctx.t('models.order_lines.fields.floor_net'),
 					floor,
 					(next) => (floor = next)
-				)}
-				{@render input(
-					'commission-preview-factor',
-					ctx.t('models.products.fields.commission_factor'),
-					factor,
-					(next) => (factor = next)
 				)}
 				{@render input(
 					'commission-preview-product',

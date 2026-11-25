@@ -524,6 +524,10 @@
 					"kind": "date",
 					"optional": true
 				},
+				"dock_undertime": {
+					"default": false,
+					"kind": "bool"
+				},
 				"documents": {
 					"accept": [
 						"application/pdf",

@@ -155,11 +155,20 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		};
 	};
 	// one period a run, whoever asks: the people it is worked out again for are priced together
+	const earliestAttendanceByGroup = new Map<string, string>();
 	const orderedPeriods = paidRuns
 		.toSorted((a, b) => orderOf(a).localeCompare(orderOf(b)))
 		.flatMap((run) => {
 			const period = periodOfRun(run);
-			return period === undefined ? [] : [period];
+			if (period === undefined) return [];
+			const groupId = String(run.pay_group_id);
+			const deferredSince = earliestAttendanceByGroup.get(groupId);
+			const attFrom = period.frame.attendance.from;
+			if (deferredSince === undefined || attFrom < deferredSince)
+				earliestAttendanceByGroup.set(groupId, attFrom);
+			return deferredSince === undefined
+				? [period]
+				: [{ ...period, frame: { ...period.frame, deferredSince } }];
 		});
 	const periodByKey = new Map(orderedPeriods.map((period) => [period.key, period] as const));
 	const periodsByGroup = Map.groupBy(orderedPeriods, (period) => String(period.run.pay_group_id));
@@ -640,14 +649,30 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	};
 	// someone left for the next run waits whole: their late entries wait with them
 	const candidateSet = new Set(candidates);
+	const waitingEmployees = new Set(candidates.filter((employee) => !peopleSet.has(employee)));
 	const leftOut = new Set<string>(
 		late
 			.filter((row) => {
 				const employee = employeeOf.get(String(row.employment_id));
-				return employee !== undefined && candidateSet.has(employee) && !peopleSet.has(employee);
+				return employee !== undefined && waitingEmployees.has(employee);
 			})
 			.map((row) => String(row.id))
 	);
+	for (const row of own.data.leave_catalog_entry ?? []) {
+		if (row.encashment === true) continue;
+		const employee = employeeOf.get(String(row.employment_id));
+		if (employee === undefined || !waitingEmployees.has(employee)) continue;
+		for (const child of Array.isArray(row.leave_catalog_entry_day)
+			? row.leave_catalog_entry_day
+			: [])
+			if (
+				isJsonObject(child) &&
+				child.payroll_run_id == null &&
+				typeof child.incurred_on === 'string' &&
+				child.incurred_on < ownFrom
+			)
+				leftOut.add(String(child.id));
+	}
 	for (const employee of people) {
 		const paid = periodsOf.get(employee) ?? [];
 		for (const row of openByEmployee.get(employee) ?? []) {
@@ -886,13 +911,21 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	);
 	const carriedPay = new Map<string, Record<string, number>>();
 	const kinds = new Map<string, string>();
+	const claimedLeaveDays = new Set<string>();
 	const turns = unique([...again.values()].flat()).toSorted((a, b) =>
 		a.order.localeCompare(b.order)
 	);
 	for (const period of turns) {
 		const who = people.filter((employee) => againIds.get(employee)?.has(period.id) ?? false);
-		const result = yield* priced(period, who, { backPay: yield* backPay(period, who) });
+		const result = yield* priced(period, who, {
+			backPay: yield* backPay(period, who),
+			leftOut: claimedLeaveDays
+		});
 		attach(result.attaches);
+		for (const id of result.attaches.leave_day ?? []) {
+			claimedLeaveDays.add(id);
+			leftOut.add(id);
+		}
 		const dueByEmployee = new Map(
 			result.payslips.map((slip) => [slip.employee_id, slip.breakdown] as const)
 		);
@@ -992,6 +1025,12 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 					'paid_on',
 					releasedRepayment
 				);
+			}
+			// release any leave slot this period previously sealed that it dropped on recalculation (e.g., cancelled exit,
+			// early return from full-unpaid month, or prior-window tail deferred when a month becomes full-unpaid)
+			const periodCovFrom = String(objectValue(period.run.salary_coverage).from);
+			const releaseFullUnpaidPrior = result.fullUnpaid.has(employee);
+			if (period.closes > until || releaseFullUnpaidPrior) {
 				for (const row of indexed.leaveByEmployee.get(employee) ?? []) {
 					if (row.encashment === true) continue;
 					const days = Array.isArray(row.leave_catalog_entry_day)
@@ -1002,7 +1041,9 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 						if (
 							String(child.payroll_run_id) === period.id &&
 							typeof child.incurred_on === 'string' &&
-							child.incurred_on > until
+							!result.pricedLeaveDays.has(String(child.id)) &&
+							(child.incurred_on > until ||
+								(releaseFullUnpaidPrior && child.incurred_on < periodCovFrom))
 						) {
 							released.add(`leave_day/${String(child.id)}`);
 							releasedLeaveDay.add(String(child.id));

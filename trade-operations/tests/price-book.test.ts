@@ -24,9 +24,9 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 			.rows[0];
 		if (!product?.unit) throw new Error('Fixture product required');
 		const header =
-			'Ledger ID,Product code,Warehouse region,Effective date,Currency,Unit,Minimum quantity,Floor price,Tax inclusive,Tax rate (%)';
+			'Ledger ID,Product code,Warehouse region,Effective date,Currency,Unit,Floor price,Tax inclusive,Tax rate (%)';
 		const row = (code: string, amount: string) =>
-			`kingdee,${code},WEST,2026-10-01,SGD,${product.unit},5,${amount},true,9`;
+			`kingdee,${code},WEST,2026-10-01,SGD,${product.unit},${amount},true,9`;
 		const load = (contents: string) =>
 			Effect.gen(function* () {
 				const upload = yield* actor.upload('pricing_floors.$import.price_book', {
@@ -104,8 +104,7 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 					unit: product.unit,
 					floor_price: '15',
 					tax_inclusive: false,
-					tax_rate: '0',
-					minimum_quantity: '5'
+					tax_rate: '0'
 				}
 			]
 		});
@@ -116,7 +115,7 @@ it.live('imports atomically and refuses stale price book changes at the write bo
 			(yield* actor.query(priceBookRead('WEST', 'SGD', '2026-11'))).pricing_floors.rows
 		).toMatchObject([{ effective_on: '2026-11-01', floor_price: '15' }]);
 		expect(
-			(yield* actor.query(priceBookDefaultsRead('WEST', 'SGD', PRODUCT, '5'))).pricing_floors.rows
+			(yield* actor.query(priceBookDefaultsRead('WEST', 'SGD', PRODUCT))).pricing_floors.rows
 		).toMatchObject([{ unit: product.unit, tax_inclusive: false, tax_rate: '0' }]);
 		const catalog = yield* actor.query(priceBookCatalogRead);
 		expect(priceBookMonths(catalog, 'WEST', 'SGD')).toEqual(['2026-11', '2026-10']);

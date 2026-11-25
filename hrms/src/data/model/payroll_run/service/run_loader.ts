@@ -63,6 +63,8 @@ export interface RunFrame {
 	readonly carried?: ReadonlyMap<string, Readonly<Record<string, number>>>;
 	/** Agreed terms are read as they were signed by this day. The run's pay date when left out. */
 	readonly termsAsOf?: string;
+	/** Earliest attendance start of prior on-cycle runs of this pay group: bounds pickup of deferred unpaid leave slots. */
+	readonly deferredSince?: string;
 }
 
 export const refOf = (value: unknown) => String(isJsonObject(value) ? value.id : value);
@@ -136,7 +138,7 @@ export const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	read: Reader,
 	run: JsonObject,
-	{ attendance, pays }: RunFrame,
+	{ attendance, pays, deferredSince }: RunFrame,
 	jurisdiction: string
 ) {
 	const coverage = objectValue(run.salary_coverage);
@@ -146,6 +148,11 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	const own = { entity_id: { eq: company } };
 	// to the salary period's end: a leaver's last run pays what falls after its attendance, up to their last day
 	const window = { gte: attendance.from, lte: closes };
+	const leaveFrom =
+		pays === undefined && deferredSince !== undefined && deferredSince < attendance.from
+			? deferredSince
+			: attendance.from;
+	const leaveWindow = { gte: leaveFrom, lte: closes };
 	const unsealed = { payroll_run_id: { is_null: true } };
 	// An on-cycle run takes what is due; an off-cycle run takes the entries HR named (`pays`). One filter says both: the
 	// named ids, or the unpaid rows up to a day, and whichever does not apply matches nothing.
@@ -186,7 +193,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			// a leave entry keeps the stint it was raised on; its open slots still belong to this run
 			{
 				leave_catalog_entry: {
-					some: { leave_catalog_entry_day: { some: { ...unsealed, incurred_on: window } } }
+					some: { leave_catalog_entry_day: { some: { ...unsealed, incurred_on: leaveWindow } } }
 				}
 			},
 			{ leave_catalog_entry: { some: pendingLeave } },
@@ -259,11 +266,23 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 				where: { ...own, repayments: { some: repaid } },
 				limit: 10000
 			},
-			// a leave with a slot in this window, or one still pending
+			// a leave with a slot in this window, an unsealed deferred slot from a prior run, or one still pending
 			leave_catalog_entry: {
 				where: {
 					...own,
-					or: [{ leave_catalog_entry_day: { some: { incurred_on: window } } }, pendingLeave]
+					or: [
+						{ leave_catalog_entry_day: { some: { incurred_on: window } } },
+						...(leaveFrom < attendance.from
+							? [
+									{
+										leave_catalog_entry_day: {
+											some: { ...unsealed, incurred_on: { gte: leaveFrom, lt: attendance.from } }
+										}
+									}
+								]
+							: []),
+						pendingLeave
+					]
 				},
 				limit: 10000,
 				leave_catalog_entry_day: {

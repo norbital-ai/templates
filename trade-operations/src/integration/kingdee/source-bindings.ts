@@ -153,12 +153,21 @@ export const bindings = {
 		table: { schema: 'dbo', name: 't_Item' },
 		alias: 'warehouses',
 		key: 'external_code',
-		columns: ['external_code', 'source_number', 'name', 'group_code', 'deleted', 'unused'],
+		columns: [
+			'external_code',
+			'source_number',
+			'name',
+			'group_code',
+			'group_name',
+			'deleted',
+			'unused'
+		],
 		fields: {
 			external_code: column('warehouses', 'FItemID'),
 			source_number: column('warehouses', 'FNumber'),
 			name: column('warehouses', 'FName'),
 			group_code: column('parent', 'FNumber'),
+			group_name: column('parent', 'FName'),
 			deleted: column('warehouses', 'FDeleted'),
 			unused: column('warehouses', 'FUnUsed')
 		},
@@ -424,6 +433,7 @@ export function normalizeSourceRow(
 		...row,
 		...common,
 		name: text('name'),
-		group_code: text('group_code', true)
+		group_code: text('group_code', true),
+		group_name: text('group_name', true)
 	};
 }

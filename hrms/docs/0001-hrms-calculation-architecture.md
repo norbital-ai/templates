@@ -73,7 +73,7 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 ### Company methods
 
 - The employer's method applies where it pays at least the law, otherwise the law: "keep it to the company's calculated rates UNLESS it is not compliant".
-- The methods are the company's `pay_methods`, by date, each floored at the statute per day or shift. With `CONTRACT_WEEKLY`, Malaysia's holiday-worked pay is the clocked shift hours × 2 × the company's hour, without the Act's two-day floor:
+- The methods are the company's `pay_methods`, by date, each floored at the statute per day or shift. With `CONTRACT_WEEKLY`, Malaysia's holiday-worked pay is the exact clocked shift hours × 2 × the company's hour, floored at the Act's two days at the ordinary rate of pay (owner, 2026-11-26):
 
 | Method                       | Values                                | Meaning                                                                                                                                                                                   |
 | ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -99,11 +99,11 @@ The owner's design. Every agent reads it first and wires around it. Only the own
 
 ### Basic checkpoints
 
-- `BASIC` is the contract salary. `PRORATED` is `BASIC` less joiner and leaver proration and `ABS`. `PAID_BASIC` is `PRORATED` less the `NPL` catalogue lines.
+- `BASIC` is the contract salary. `PRORATED` is `BASIC` less joiner and leaver proration and `ABS`. `PAID_BASIC` is `PRORATED` less the `NPL` catalogue lines and, when `employee_profile.dock_undertime` is enabled (default `false`), the proportional `UNDERTIME` deduction for exact unworked shift minutes floored to the currency minor unit (toggling `dock_undertime` amends paid periods automatically; owner, 2026-11-26).
 - Everything else (allowances, overtime, claims, ad hoc, loans) points after `PAID_BASIC`. `ORDINARY_WAGES` and every statutory base read the reduced amount.
 - `NPL` is a catalogue line at `PAID_BASIC`, never a `NET` deduction and never folded into `BASIC`. `ABS` and contract-date proration are system adjustments with no catalogue.
 - Day rate: Malaysia uses `YEAR` (monthly × 12 ÷ (52 × contract days a week)). A fixed divisor remains only where a jurisdiction names it.
-- On `CALENDAR_DAYS` proration only the days actually absent are deducted: a rest day inside a stretch stays paid.
+- On `CALENDAR_DAYS` proration only the days actually absent are deducted for partial-month absences: a rest day inside a stretch stays paid. When every scheduled non-holiday working day of a salary period is 100% unpaid (zero worked days and zero paid-leave days), 100% of that period's basic salary is deducted (`PAID_BASIC = 0`, `paid_share = 0`), post-cutoff unpaid leave slots of that period seal to that run, prior-window earned pay stands, and on non-exit runs prior-window unpaid leave slots defer to the next working month (owner, 2026-11-26).
 - An "incentive (OT)" paid outside attendance is an ad hoc entry on the `INCENTIVE_OT` row. In Malaysia it is EPF, SOCSO and EIS wages, and PCB taxes it in the month as additional remuneration. Attendance overtime excludes incentive hours; the roster's planned overtime is cleared on those days.
 - The salary listing export reads saved payslips: one column per catalogue item and party, in stable order along the subtotal chain, with signed corrections combined in that column. Gross, tax withheld (CP38 included), net and employer costs use saved totals. A line-details sheet keeps each line's own period, quantity, direction and subtotal. Exporting neither prices a line again nor changes the payroll engine. The export names no jurisdiction's catalogue codes (owner, 2026-11-16).
 

@@ -44,7 +44,7 @@
 		{ctx}
 		of="orders"
 		where={{ direction: { eq: direction } }}
-		hidden_where={{ archived: { eq: false } }}
+		initial_filter={{ active: { eq: true } }}
 		columns={[
 			'number',
 			'title',

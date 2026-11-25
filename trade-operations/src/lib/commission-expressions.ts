@@ -1,6 +1,7 @@
 import type { Row } from '@norbital-ai/bolt';
 import { BigDecimal, Predicate, Result } from 'effect';
 import { compile, context, evaluate, formula, type Id, type ReadAnswer } from '@norbital-ai/bolt';
+import { unitRatio } from './commercial.js';
 
 export const DEFAULT_COMMISSION_EXPRESSION =
 	'basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)';
@@ -146,6 +147,15 @@ export function commissionPreview(
 	const rule = answer.commission_rules.rows[0];
 	if (!rule) return null;
 	const evaluated = Result.try(() => {
+		const derivedFactor =
+			sample.factor !== undefined
+				? sample.factor
+				: rule.basis_unit && sample.unit
+					? (() => {
+							const ratio = unitRatio(sample.unit, rule.basis_unit);
+							return ratio && BigDecimal.isPositive(ratio) ? BigDecimal.format(ratio) : null;
+						})()
+					: null;
 		const result = evaluateCommission(
 			rule.eligibility_expression,
 			rule.amount_expression,
@@ -153,7 +163,7 @@ export function commissionPreview(
 				quantity: sample.quantity,
 				net: sample.net,
 				floor_net: sample.floor_net ?? null,
-				factor: sample.factor ?? null,
+				factor: derivedFactor,
 				product_code: sample.product_code ?? '',
 				product_name: '',
 				unit: sample.unit ?? '',

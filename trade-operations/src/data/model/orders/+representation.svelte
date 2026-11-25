@@ -71,7 +71,7 @@
 					activities: {
 						where: { order: { eq: id } },
 						fields: ['title', 'kind', 'due_on', 'done', 'notes'],
-						order_by: { due_on: 'desc' }
+						order_by: [{ due_on: 'desc' }, { id: 'desc' }]
 					}
 				})
 	);
@@ -90,11 +90,11 @@
 	const orderActivityEntries = $derived<TimelineEntry[]>(
 		(orderActivities?.current?.activities.rows ?? []).map((row) => ({
 			key: row.id,
+			group: format({ kind: 'date' }, row.due_on, { locale: ctx.locale }),
 			icon: activityIcon(row.kind),
 			...(row.done ? { tone: 'success' as const } : {}),
 			title: row.title,
 			line: [
-				format({ kind: 'date' }, row.due_on, { locale: ctx.locale }),
 				enum_text(row.kind, {
 					t: (key) => activityWords.t(key),
 					model: 'activities',
@@ -429,29 +429,41 @@
 {#snippet tradeDetails(form: FormState, field?: FieldEditor)}
 	{@const data = tradeValue(form.get('trade'))}
 	{@const kind = data.kind === 'foreign' ? 'foreign' : 'domestic'}
-	<Stack gap="md">
-		{#if field}
-			<Combobox
-				options={kinds.map((value) => ({ value, label: ctx.t(`component.order_${value}`) }))}
-				value={kind}
-				aria-label={ctx.t('models.orders.fields.trade')}
-				disabled={field.disabled}
-				on_change={(next) => {
-					if (next && next !== kind) field.on_change({ kind: next });
-				}}
-			/>
-		{:else}
-			<span class="font-medium">{ctx.t(`component.order_${kind}`)}</span>
-		{/if}
+	<Grid gap="md" minimum="compact">
+		<Stack gap="xs" data-field="trade-kind">
+			{#if field}
+				<Combobox
+					options={kinds.map((value) => ({ value, label: ctx.t(`component.order_${value}`) }))}
+					value={kind}
+					aria-label={ctx.t('models.orders.fields.trade')}
+					disabled={field.disabled}
+					on_change={(next) => {
+						if (next && next !== kind) field.on_change({ kind: next });
+					}}
+				/>
+			{:else}
+				<span class="text-xs font-medium text-muted-foreground"
+					>{ctx.t('models.orders.fields.trade')}</span
+				>
+				<span class="text-sm font-medium">{ctx.t(`component.order_${kind}`)}</span>
+			{/if}
+		</Stack>
 		{#each Object.entries(orderTrade.arms[kind]) as [name, descriptor] (name)}
 			{@const id = (field?.id ?? 'trade') + '-' + name}
 			{@const value = data[name] ?? null}
 			{@const change = (next: Value) =>
 				field?.on_change({ ...tradeValue(form.get('trade')), [name]: next })}
-			<Stack gap="xs">
-				<label for={id} class="text-xs font-medium text-muted-foreground"
-					>{translated(ctx, `models.orders.fields.${name}`)}</label
-				>
+			{@const wideSub = name === 'other_terms' || (field !== undefined && name === 'shipment')}
+			<Stack gap="xs" class={wideSub ? 'col-span-full' : undefined} data-field={`trade-${name}`}>
+				{#if field}
+					<label for={id} class="text-xs font-medium text-muted-foreground"
+						>{translated(ctx, `models.orders.fields.${name}`)}</label
+					>
+				{:else}
+					<span class="text-xs font-medium text-muted-foreground"
+						>{translated(ctx, `models.orders.fields.${name}`)}</span
+					>
+				{/if}
 				{#if !field}<Show {ctx} kind={descriptor} {value} readonly />
 				{:else if name === 'shipment'}{@render shipment(form, field, value, change, id)}
 				{:else}<Editor
@@ -465,7 +477,7 @@
 					/>{/if}
 			</Stack>
 		{/each}
-	</Stack>
+	</Grid>
 {/snippet}
 {#snippet printDetails(form: FormState, field: FieldEditor)}
 	<PrintDetails
@@ -584,7 +596,9 @@
 		of="orders"
 		relation="lines"
 		{...id ? { id } : {}}
-		columns={['product', 'quantity', 'unit', 'unit_price', 'discount_pct', 'tax_rate', 'total']}
+		columns={commercial
+			? ['product', 'quantity', 'unit', 'unit_price', 'discount_pct', 'tax_rate', 'total']
+			: ['product', 'quantity', 'unit']}
 	/>
 {/snippet}
 {#snippet fulfillment()}{#if id}<Table
@@ -609,14 +623,13 @@
 {#snippet activity()}{#if id}
 		<Scroll name={ctx.t('models.activities.label')} size="fill" inset>
 			<Stack gap="md">
-				<Inline align="center" justify="between">
-					<h3 class="text-sm font-medium">{ctx.t('models.activities.label')}</h3>
-					{#if ctx.catalog?.activities?.create && !archived}
+				{#if ctx.catalog?.activities?.create && !archived}
+					<Inline align="center" justify="end">
 						<Button variant="outline" onclick={() => openCreate('activities', { order: id })}>
 							{ctx.t('component.new_activity')}
 						</Button>
-					{/if}
-				</Inline>
+					</Inline>
+				{/if}
 				<Timeline entries={orderActivityEntries} label={ctx.t('models.activities.label')}>
 					{#snippet empty()}
 						<EmptyState title={ctx.t('component.activities_empty')} />
@@ -765,7 +778,8 @@
 					'party',
 					'owner',
 					'notes'
-				]
+				],
+				wide: ['notes']
 			},
 			{
 				name: 'contract',
@@ -780,13 +794,13 @@
 					'tax_inclusive',
 					'valid_from',
 					'payment_terms',
-					'trade',
 					'packaging',
 					'payment_method',
 					'buyer_contact',
 					'customer_po_no',
 					'delivery_address',
 					'logistics_handler',
+					'trade',
 					'print_values'
 				],
 				readonlyFields: draft ? [] : ['ordered_on', 'currency', 'payment_terms'],

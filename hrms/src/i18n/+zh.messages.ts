@@ -63,6 +63,8 @@ export default messages({
 	'app.payroll.line.proration': '薪资折算扣除',
 	'app.payroll.line.proration_hint': '从月基本薪资中扣除入职前、离职后未工作天数或缺勤天数。',
 	'app.payroll.line.npl': '无薪假',
+	'app.payroll.line.undertime': '缺勤分钟扣款',
+	'app.payroll.line.undertime_hint': '按比例扣除排班内未工作分钟，向下取整至最小货币单位。',
 	'app.payroll.line.exit_encashment': '离职折现',
 	'app.payroll.line.leave_encashment': '年假折现',
 	'app.payroll.line.overtaken_leave': '超休假期扣回',
@@ -444,6 +446,9 @@ export default messages({
 	'models.employee_profile.fields.cumulative_service': '累计全部任职期间',
 	'models.employee_profile.help.cumulative_service':
 		'工龄计入在本雇主处的每一段任职，包括重新雇用。关闭时只计当前连续的一段任职，即法定连续工龄。',
+	'models.employee_profile.fields.dock_undertime': '扣除缺勤分钟',
+	'models.employee_profile.help.dock_undertime':
+		'按比例分钟费率（向下取整至最小货币单位）从应发基本薪资中扣除排班内的未工作分钟（迟到或早退）。更改此开关后，下次发薪运行将自动重算已付周期。',
 	'models.employment.label': '雇佣',
 	'models.employment.singular': '雇佣',
 	'models.employment.fields.employee_number': '员工编号',

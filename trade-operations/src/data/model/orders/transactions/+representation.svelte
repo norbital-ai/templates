@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Button, RecordShell, Table, Show, type RecordView } from '@norbital-ai/ui';
-	import RecordLink from '../../../../lib/ui/record-link.svelte';
-	import { Bound, Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Button, Table, type RecordView } from '@norbital-ai/ui';
+	import { Bound, Cluster, Stack } from '@norbital-ai/ui/layout';
+	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	let {
 		view,
 		ctx
@@ -10,50 +10,18 @@
 		view: RecordView<'transactions'>;
 		ctx: PageContext;
 	} = $props();
-	const fields = [
-		{ name: 'reference', kind: { kind: 'text' } },
-		{ name: 'kind', kind: { kind: 'enum', values: ['invoice', 'delivery'] } },
-		{ name: 'status', kind: { kind: 'enum', values: ['draft', 'issued', 'void'] } },
-		{ name: 'currency', kind: { kind: 'currency' } },
-		{ name: 'issued_on', kind: { kind: 'date', optional: true } },
-		{ name: 'due_on', kind: { kind: 'date', optional: true } },
-		{ name: 'total', kind: { kind: 'money', currency: 'currency', optional: true } },
-		{ name: 'source_updated_at', kind: { kind: 'instant' } }
-	] as const;
 </script>
 
-{#snippet details(shown: RecordView<'transactions'>)}
-	{#if shown.mode !== 'create'}
+{#snippet extras()}
+	{#if view.mode !== 'create'}
 		<Stack gap="md">
-			<Grid as="dl" gap="md">
-				{#if shown.record.order}<div>
-						<dt class="text-label">
-							{ctx.t('models.transactions.fields.order')}
-						</dt>
-						<dd><RecordLink {ctx} of="orders" id={String(shown.record.order)} /></dd>
-					</div>{/if}
-				{#each fields as field (field.name)}<div>
-						<dt class="text-label">
-							{ctx.t(`models.transactions.fields.${field.name}`)}
-						</dt>
-						<dd>
-							<Show
-								{ctx}
-								kind={field.kind}
-								value={shown.record[field.name]}
-								name={field.name}
-								row={shown.record}
-							/>
-						</dd>
-					</div>{/each}
-			</Grid>
-			{#if shown.record.items}<Bound size="viewport"
+			{#if view.record.items}<Bound size="viewport"
 					><Table
 						{ctx}
-						of={shown.record.items}
+						of={view.record.items}
 						columns={[
 							{ field: 'product_name', label: ctx.t('models.order_lines.fields.product_name') },
-							...(shown.record.items.some((item) => item.lot_number != null)
+							...(view.record.items.some((item) => item.lot_number != null)
 								? [
 										{
 											field: 'lot_number' as const,
@@ -74,7 +42,7 @@
 								kind: { kind: 'decimal', scale: 4, optional: true },
 								align: 'end'
 							},
-							...(shown.record.items.some((item) => item.unit_cost != null)
+							...(view.record.items.some((item) => item.unit_cost != null)
 								? [
 										{
 											field: 'unit_cost' as const,
@@ -88,24 +56,46 @@
 						toolbar={{ new: false, title: ctx.t('section.lines') }}
 					/></Bound
 				>{/if}
-			<h3>{ctx.t('component.transaction_documents')}</h3>
-			{#if shown.record.documents?.length}
-				<Cluster gap="sm">
-					{#each shown.record.documents as document (document.sha256)}<Button
-							variant="outline"
-							href={document.url}
-							target="_blank"
-							rel="noopener noreferrer">{document.name}</Button
-						>{/each}
-				</Cluster>
-			{:else}<p>{ctx.t('component.transaction_documents_pending')}</p>{/if}
+			{#if view.record.documents !== undefined}
+				<h3 class="text-sm font-medium">{ctx.t('component.transaction_documents')}</h3>
+				{#if view.record.documents?.length}
+					<Cluster gap="sm">
+						{#each view.record.documents as document (document.sha256)}<Button
+								variant="outline"
+								href={document.url}
+								target="_blank"
+								rel="noopener noreferrer">{document.name}</Button
+							>{/each}
+					</Cluster>
+				{:else}<p class="text-sm text-muted-foreground">
+						{ctx.t('component.transaction_documents_pending')}
+					</p>{/if}
+			{/if}
 		</Stack>
 	{/if}
 {/snippet}
-<RecordShell
+
+<!-- a Kingdee mirror: only its sync writes it -->
+<RecordForm
 	{ctx}
-	of="transactions"
-	mode={view.mode}
-	{...view.mode !== 'create' ? { id: view.record.id } : { values: view.values }}
-	children={details}
+	{view}
+	readonly
+	readonly_reason={ctx.t('component.kingdee_readonly')}
+	after_form={extras}
+	sections={[
+		{
+			name: 'transaction',
+			fields: [
+				'order',
+				'reference',
+				'kind',
+				'status',
+				'currency',
+				'issued_on',
+				'due_on',
+				'total',
+				'source_updated_at'
+			]
+		}
+	]}
 />

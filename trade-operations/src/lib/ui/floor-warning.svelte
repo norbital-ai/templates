@@ -25,15 +25,14 @@
 			unit = String(form.row.unit ?? ''),
 			currency = String(form.row.currency ?? ''),
 			price = String(form.row.floor_price ?? ''),
-			tax_rate = String(form.row.tax_rate ?? '0'),
-			quantity = String(form.row.minimum_quantity ?? '0');
+			tax_rate = String(form.row.tax_rate ?? '0');
 		if (
 			!product ||
 			!unit ||
 			!Intl.supportedValuesOf('currency').includes(currency) ||
 			!price ||
 			!ctx.catalog?.stock_snapshots ||
-			[price, tax_rate, quantity].some((value) => Option.isNone(BigDecimal.fromString(value)))
+			[price, tax_rate].some((value) => Option.isNone(BigDecimal.fromString(value)))
 		)
 			return null;
 		return {
@@ -43,7 +42,7 @@
 			price,
 			tax_inclusive: form.row.tax_inclusive === true,
 			tax_rate,
-			quantity
+			quantity: '0'
 		};
 	});
 	// the product's lots are read once per product; the comparison follows the edited price

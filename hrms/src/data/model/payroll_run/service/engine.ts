@@ -16,6 +16,7 @@ import {
 	catalogByCode,
 	eligible,
 	evaluateNumber,
+	floorMinor,
 	heldBalance,
 	id,
 	line,
@@ -276,7 +277,31 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 				),
 			0
 		);
-	const abs_amount = Math.min(periodBasic - proration_amount, absent);
+	const hasProrated = chain.some((row) => text(row, 'code') === 'PRORATED');
+	const hasPaidBasic = chain.some((row) => text(row, 'code') === 'PAID_BASIC');
+	// When every scheduled non-holiday working day in the period's salary coverage is 100% unpaid, basic pay for the
+	// period is zero: the last unpaid leave entry covering days in this period absorbs the remaining basic at PAID_BASIC,
+	// or PRORATED absorbs it via abs_amount when the full-period absence has no unpaid leave entry.
+	const lastCurrentUnpaidLeave =
+		input.full_period_unpaid === true && hasPaidBasic
+			? (input.entries.leave_catalog_entry ?? [])
+					.filter((raw) => {
+						if (raw.payroll_run_id != null || raw.encashment === true) return false;
+						const catalog = leaveRows.get(String(raw.catalog_code));
+						if (catalog === undefined) return false;
+						return slotsOf(raw).some(
+							(slot) =>
+								slot.date >= coverage.from &&
+								slot.date <= coverage.to &&
+								shareOf(catalog, raw, slot) < 1
+						);
+					})
+					.at(-1)
+			: undefined;
+	const abs_amount =
+		input.full_period_unpaid === true && lastCurrentUnpaidLeave === undefined
+			? Math.max(0, periodBasic - proration_amount)
+			: Math.min(periodBasic - proration_amount, absent);
 	// a no-pay day takes the same share of the salary: an allowance that reads `ctx.paid_share` loses its own share
 	// on its own line, so the wage the day rate divides (allowances included) is not what the line deducts
 	// a no-pay day is priced at the salary of the version in force on its date, a day before a raise at the old salary
@@ -310,8 +335,6 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 		run: input.run,
 		as_of: coverage.to
 	});
-	const hasProrated = chain.some((row) => text(row, 'code') === 'PRORATED');
-	const hasPaidBasic = chain.some((row) => text(row, 'code') === 'PAID_BASIC');
 	const openingPay =
 		salary === undefined
 			? 0
@@ -492,17 +515,19 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 						if (existing === undefined) unpaidByUnit.set(key, { unit, share });
 						else existing.share += share;
 					}
-					const unpaidAmount = [...unpaidByUnit.values()].reduce(
+					const rawUnpaidAmount = [...unpaidByUnit.values()].reduce(
 						(total, { unit, share }) => total + perDay(Number((share * unit).toFixed(10))),
 						0
 					);
-					// no-pay days take what the basic still holds, never more
+					// no-pay days take what the basic still holds, never more; a full-period unpaid month clears remaining basic
 					const room = Math.max(
 						0,
 						previousValue +
 							computed +
 							subtotalLines.reduce((total, l) => total + signed(l.direction, l.amount), 0)
 					);
+					const unpaidAmount =
+						raw === lastCurrentUnpaidLeave ? Math.max(rawUnpaidAmount, room) : rawUnpaidAmount;
 					if (unpaidAmount > 0 && room > 0)
 						subtotalLines.push(
 							line({
@@ -579,6 +604,66 @@ export function calculatePayroll(given: PayrollInput): PayrollResult {
 					})
 				);
 			}
+		}
+
+		if (
+			code === 'PAID_BASIC' &&
+			input.run.kind !== 'OFF_CYCLE' &&
+			input.employee.dock_undertime === true &&
+			salary !== undefined &&
+			salary.amount > 0
+		) {
+			const fallbackNormalHours = rateOf(input).hoursPerDay;
+			let totalUndertimeMinutes = 0;
+			let rawUndertime = 0;
+			for (const day of input.work?.days ?? []) {
+				const mins = Number(day.undertime_minutes ?? 0);
+				if (!(mins > 0)) continue;
+				const date = String(day.date);
+				const dayVersion = (input.employed ?? []).find(
+					(held) =>
+						isJsonObject(held.terms) && held.from <= date && (held.to === null || date <= held.to)
+				);
+				const normalHours =
+					dayVersion !== undefined &&
+					isJsonObject(dayVersion.terms) &&
+					typeof dayVersion.terms.normal_hours_per_day === 'number' &&
+					dayVersion.terms.normal_hours_per_day > 0
+						? dayVersion.terms.normal_hours_per_day
+						: fallbackNormalHours;
+				const denomMinutes = Math.max(Number(day.scheduled_shift_minutes ?? 0), normalHours * 60);
+				if (!(denomMinutes > 0)) continue;
+				const dayRateOnDate =
+					nplUnitOn(date) *
+					(salary.basis === 'DAY_RATE' ? 1 : ownMonthWeight(input, coverage, salary.basis, date));
+				totalUndertimeMinutes += mins;
+				rawUndertime += (dayRateOnDate / denomMinutes) * mins;
+			}
+			const undertimeAmount = floorMinor(input.settings, rawUndertime);
+			const room = Math.max(
+				0,
+				previousValue +
+					computed +
+					subtotalLines.reduce((total, l) => total + signed(l.direction, l.amount), 0)
+			);
+			const docked = round(input.settings, Math.min(undertimeAmount, room));
+			if (docked > 0)
+				subtotalLines.push(
+					line({
+						code: 'UNDERTIME',
+						label: 'Undertime',
+						subtotal,
+						amount: docked,
+						direction: 'DEDUCT',
+						party: 'EMPLOYEE',
+						incurred_on: coverage.to,
+						coverage,
+						source: { code: 'UNDERTIME' },
+						model: 'roster_entry',
+						quantity: Math.round((totalUndertimeMinutes / 60) * 10000) / 10000,
+						unit: 'HOUR'
+					})
+				);
 		}
 
 		const loanCatalog = catalogByCode(input.loan_catalog);

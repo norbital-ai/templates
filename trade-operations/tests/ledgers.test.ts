@@ -1,4 +1,4 @@
-import { fixtureId, firstRow, sameDecimal } from './test-runtime.js';
+import { fixtureId, firstRow } from './test-runtime.js';
 import { Context, Effect, Exit, Layer, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { DatabaseRequest, type DatabaseResult } from '@norbital-ai/bolt/engine';
@@ -45,7 +45,7 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 	'kingdee ledgers',
 	(test) => {
 		test.effect(
-			'a physical source edit updates only its ledger, keeps local product settings, and orders cannot mix ledgers',
+			'a physical source edit updates only its ledger, and orders cannot mix ledgers',
 			() =>
 				Effect.gen(function* () {
 					const { t, second, records } = yield* Ledgers;
@@ -62,14 +62,6 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 							})
 							.pipe(Effect.map((answer) => answer.products));
 					const original = firstRow((yield* read(first)).rows);
-					yield* (yield* t.as(t.admin)).act({
-						'products.update': [
-							{
-								target: yield* t.at('products', original.id),
-								set: { commission_factor: '1.25', commission_basis_unit: 'kg' }
-							}
-						]
-					});
 					records.first['/products'] = (records.first['/products'] ?? []).map((row) => {
 						return {
 							...Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(row),
@@ -80,10 +72,8 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 					const updated = firstRow((yield* read(first)).rows);
 					expect(updated).toMatchObject({
 						id: original.id,
-						spec: 'Changed source grade',
-						commission_basis_unit: 'kg'
+						spec: 'Changed source grade'
 					});
-					expect(sameDecimal(updated.commission_factor, '1.25')).toBe(true);
 					expect(firstRow((yield* read(second)).rows)).toMatchObject({
 						name: 'Second resin',
 						spec: 'A'

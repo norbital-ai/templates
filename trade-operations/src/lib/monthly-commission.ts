@@ -10,7 +10,7 @@ import {
 	type ReportOrder
 } from './reports.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
-import { hash, numeric } from './commercial.js';
+import { hash, numeric, unitRatio } from './commercial.js';
 type MonthlyOrder = ReportOrder;
 /** The fields a statement's sign-off compares (the board and the statement create read them). */
 const statementFields = [
@@ -128,21 +128,18 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 							},
 							// the board's detail, outside the signed snapshot: each line, its basis quantity and why it is pending
 							lines: current.snapshot.lines.map((line) => {
-								const factor = order.lines.find((row) => row.id === line.order_line);
+								const orderLine = order.lines.find((row) => row.id === line.order_line);
+								const ratio =
+									orderLine && line.basis_unit ? unitRatio(orderLine.unit, line.basis_unit) : null;
 								return {
 									...line,
 									order: order.id,
 									number: order.number,
 									basis_quantity:
-										factor?.commission_factor &&
-										factor.commission_basis_unit === line.basis_unit &&
-										BigDecimal.isPositive(BigDecimal.fromStringUnsafe(factor.commission_factor))
+										ratio && BigDecimal.isPositive(ratio)
 											? BigDecimal.format(
 													BigDecimal.round(
-														BigDecimal.multiply(
-															BigDecimal.fromStringUnsafe(line.quantity),
-															BigDecimal.fromStringUnsafe(factor.commission_factor)
-														),
+														BigDecimal.multiply(BigDecimal.fromStringUnsafe(line.quantity), ratio),
 														{ scale: 3 }
 													)
 												)

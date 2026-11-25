@@ -92,6 +92,8 @@ export interface PayrollInput {
 	 * item's own catalogue code, source and subtotal.
 	 */
 	readonly back_pay?: readonly BackPayLine[];
+	/** Every scheduled non-holiday working day in this period's salary coverage is 100% unpaid (zero worked or paid-leave days). */
+	readonly full_period_unpaid?: boolean;
 }
 
 /** Overtime a run owes as time off: its hours, on the leave row that takes them, in the window of the day worked. */
@@ -255,6 +257,15 @@ export const round = (settings: JsonObject, value: number): number => {
 		BigDecimal.round(BigDecimal.fromNumberUnsafe(value), {
 			scale: rule.scale,
 			mode: roundingModes[rule.mode]
+		})
+	);
+};
+export const floorMinor = (settings: JsonObject, value: number): number => {
+	const rule = rounding(settings);
+	return BigDecimal.toNumberUnsafe(
+		BigDecimal.round(BigDecimal.fromNumberUnsafe(value), {
+			scale: rule.scale,
+			mode: 'to-zero'
 		})
 	);
 };
@@ -440,6 +451,7 @@ export const paidShare = (
 	basis: unknown,
 	unpaid: ReadonlyMap<string, number>
 ): number => {
+	if (input.full_period_unpaid === true) return 0;
 	const counted = basisDays(input, coverage, basis);
 	const unpaidDays = [...unpaid].reduce(
 		(total, [date, value]) =>

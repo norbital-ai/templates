@@ -1,14 +1,10 @@
 {
 	"snapshot": "215d3326dfd251bc818102841095e09adca52a3738b7070bf997a08316f191f8",
 	"files": {
-		"0001_initial.sql": "3f55ff86c1d37b953480fa37721815e26d357ae04b7fa6c77ad46ac2bbf4f439",
-		"0002_schema.sql": "12efb49b0d7931aace9b92b36230a1c3783986b99fb26f2e7d67da40c7a87692",
-		"0003_schema.sql": "daec4e99e6bf8702c4cae6a2b9d74160153a16df30ffcf728ade99215e8b71b2"
+		"0001_initial.sql": "1e01e99e81655a3d1339885c8d1402e7e36afe15bb84b9df333bf12e56c0582e"
 	},
 	"physical": {
 		"": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-		"0001_initial.sql": "7eb14ef2aed582820536fa28aafb04942764aacc4ccb8b75bfe7fe300d3b2284",
-		"0002_schema.sql": "6d76b7b3448c26ff54d7497cb89a702e46bf681b1a0fa5cedd3d5d12f143dbab",
-		"0003_schema.sql": "70dc5f408c68f2b075d816deac70bff0768f9d7124ec5b9bfec2b0f5b652db43"
+		"0001_initial.sql": "70dc5f408c68f2b075d816deac70bff0768f9d7124ec5b9bfec2b0f5b652db43"
 	}
 }

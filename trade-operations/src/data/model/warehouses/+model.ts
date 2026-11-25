@@ -14,6 +14,10 @@ export default model('warehouses', {
 			kind: 'text',
 			optional: true
 		},
+		group_name: {
+			kind: 'text',
+			optional: true
+		},
 		active: {
 			kind: 'bool',
 			default: true
@@ -26,13 +30,14 @@ export default model('warehouses', {
 	// the ledger's name and connection: the dashboard judges each ledger's health through its warehouses
 	outputs: { default: { fields: 'all', source: { fields: ['name', 'active', 'status'] } } },
 	constraints: { source_code: { unique: ['source', 'external_code'], import_key: true } },
-	indexes: { search: { text: ['name', 'external_code', 'group_code'] } },
+	indexes: { search: { text: ['name', 'external_code', 'group_code', 'group_name'] } },
 	create: {
 		fields: [
 			'external_code',
 			'source_number',
 			'name',
 			'group_code',
+			'group_name',
 			'active',
 			'source_updated_at',
 			'source'
@@ -44,6 +49,7 @@ export default model('warehouses', {
 			'source_number',
 			'name',
 			'group_code',
+			'group_name',
 			'active',
 			'source_updated_at',
 			'source'

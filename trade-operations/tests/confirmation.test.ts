@@ -110,7 +110,6 @@ const syncWorkspace = (floor_rule: 'warn' | 'approve' | 'refuse' = 'warn') =>
 					group_code: 'EAST',
 					currency: 'SGD',
 					effective_on: '2026-10-01',
-					minimum_quantity: '0',
 					unit: 'kg',
 					floor_price: '1.5',
 					tax_inclusive: false,

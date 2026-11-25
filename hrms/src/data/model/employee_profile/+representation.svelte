@@ -87,7 +87,8 @@
 		'gender',
 		'birth_city',
 		'bank',
-		'cumulative_service'
+		'cumulative_service',
+		'dock_undertime'
 	] as const;
 	const stintIds = $derived(read.stints.map((stint) => stint.id));
 	const entityIds = $derived([...new Set(read.stints.map((stint) => stint.entity_id))]);
@@ -135,7 +136,7 @@
 					title={t('person.section_particulars')}
 				>
 					<Columns count={2}>
-						{#each ['date_of_birth', 'identity_number', 'gender', 'birth_city', 'bank', 'cumulative_service'] as name (name)}<Field
+						{#each ['date_of_birth', 'identity_number', 'gender', 'birth_city', 'bank', 'cumulative_service', 'dock_undertime'] as name (name)}<Field
 								{ctx}
 								{name}
 							/>{/each}

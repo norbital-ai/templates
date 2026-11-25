@@ -93,6 +93,40 @@ export const spanMinutes = (spans: readonly Span[]): number =>
 export const awardedMinutes = (planned: readonly Span[], clock: readonly Span[]): number =>
 	spanMinutes(overlapSpans(planned, clock));
 
+/**
+ * The shift spans a worker is expected to work on a day, accounting for half-day or full-day leave.
+ * On a standard two-part shift separated by one unpaid break, AM leave covers the first part and PM leave covers the
+ * second; otherwise half-day leave splits the shift's net work duration in half.
+ */
+export const expectedShiftSpans = (
+	spans: readonly Span[],
+	amLeave: boolean,
+	pmLeave: boolean
+): readonly Span[] => {
+	if (amLeave && pmLeave) return [];
+	if (!amLeave && !pmLeave) return spans;
+	if (spans.length === 2 && spans[0] !== undefined && spans[1] !== undefined)
+		return pmLeave ? [spans[0]] : [spans[1]];
+	const totalMs = spans.reduce((total, span) => total + (span.end - span.start), 0);
+	if (totalMs <= 0) return [];
+	const halfMs = totalMs / 2;
+	const out: Span[] = [];
+	let seen = 0;
+	for (const span of spans) {
+		const len = span.end - span.start;
+		if (pmLeave) {
+			if (seen >= halfMs) break;
+			const take = Math.min(len, halfMs - seen);
+			if (take > 0) out.push({ start: span.start, end: span.start + take });
+		} else if (seen + len > halfMs) {
+			const skip = Math.max(0, halfMs - seen);
+			out.push({ start: span.start + skip, end: span.end });
+		}
+		seen += len;
+	}
+	return out;
+};
+
 /** The published holidays observed on a day. */
 export function holidaysForDay(
 	day: string,

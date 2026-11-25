@@ -439,10 +439,9 @@ transforms (for `refuse`).
   Filter pricing_floors:
    product == line.product  AND  currency == order.currency  AND  group_code == wh.group_code
    AND effective_on <= order.ordered_on
-   AND minimum_quantity <= comparableQty  (SI mass: kg/kgs/.. <-> t/mt/tonne/.. factor 1000)
        |
        v
-  Rank candidates: latest effective_on DESC, tie-break highest minimum_quantity DESC
+  Rank candidates: latest effective_on DESC (one row per product/group_code/currency/day)
        |
        v
   Convert winner.floor_net (computed: round(tax_incl ? price/(1+tax_rate/100) : price, 8))
@@ -691,8 +690,9 @@ optimistic content hashing so managers cannot acknowledge stale numbers.
   For each fact line, build CEL context (engine: cel-decimal-v1, exact BigDecimal, min/max):
    - quantity       = abs(fact.quantity)
    - net            = abs(booked_net)   [adjusted by order.freight_treatment]
-   - basis_quantity = quantity * commission_factor
-   - spread         = (net / quantity - floor_net) / commission_factor    (scale=18)
+   - ratio          = unitRatio(line.unit, rule.basis_unit)  (SI mass: kg <-> t)
+   - basis_quantity = quantity * ratio
+   - spread         = (net / quantity - floor_net) / ratio    (scale=18)
    - Default amount_expression:
        basis_quantity * (rule.fixed_rate + max(spread, 0) * rule.spread_pct / 100)
    - If fact.kind == 'return' --> BigDecimal.negate(amount)
@@ -700,7 +700,7 @@ optimistic content hashing so managers cannot acknowledge stale numbers.
        v
   Line status classification:
    - resolved | ineligible (0)
-   - Unresolved blockers: rule_missing | floor_missing | conversion_missing |
+   - Unresolved blockers: rule_missing | floor_missing |
                           unit_mismatch | expression_error
        |
        v
@@ -827,8 +827,7 @@ policies (`kingdee_sync` and `source_health`) execute background syncs and healt
 |                   |                    |   lot costs, AR/AP, PO listing); published tmpls.   |
 |                   |                    | WRITE: direct SO/PO create/update/confirm/draft-del;|
 |                   |                    |   approves Sales floor & draft-delete holds;        |
-|                   |                    |   creates commission_statements; updates product    |
-|                   |                    |   commission_factor/basis_unit; non-primary contacts|
+|                   |                    |   creates commission_statements; non-primary contacts|
 |                   |                    |   credit_releases.update -> requires Finance signoff|
 +-------------------+--------------------+-----------------------------------------------------+
 | Finance           | operations         | READ: ALL orders, lines, files (read-only) + ALL    |
@@ -852,7 +851,6 @@ policies (`kingdee_sync` and `source_health`) execute background syncs and healt
 |                   |                    | WRITE: document_templates create/edit/publish;      |
 |                   |                    |   pricing_floors & commission_rules create/update;  |
 |                   |                    |   commercial_settings (freight_treatment,floor_rule)|
-|                   |                    |   products (commission_factor, basis_unit).         |
 +-------------------+--------------------+-----------------------------------------------------+
 | (System)          | (none - syncs)     | kingdee_sync: writes all 19 ERP mirrors + orders    |
 | -> kingdee_sync   |                    |   (draft->confirmed) + order_lines; on              |

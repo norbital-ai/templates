@@ -136,21 +136,10 @@ test.live(
 		})
 );
 
-test.live('a manager edits SKU commission settings but not source-owned product fields', () =>
+test.live('a manager cannot edit source-owned product fields', () =>
 	Effect.gen(function* () {
 		const t = yield* workspace();
 		const manager = yield* t.as(t.member(['manager']));
-		committed(
-			'products',
-			yield* manager.act({
-				'products.update': [
-					{
-						target: yield* t.at('products', PRODUCT),
-						set: { commission_factor: '0.002', commission_basis_unit: 't' }
-					}
-				]
-			})
-		);
 		expect(
 			yield* direct(t, manager.authority, {
 				model: 'products',

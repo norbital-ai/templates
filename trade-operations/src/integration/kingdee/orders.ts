@@ -373,14 +373,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 		},
 		products: {
 			where: { source: { eq: instance } },
-			fields: [
-				'external_code',
-				'name',
-				'spec',
-				'unit',
-				'commission_basis_unit',
-				'commission_factor'
-			]
+			fields: ['external_code', 'name', 'spec', 'unit']
 		}
 	});
 	const state = (line: { readonly id: string }) =>
@@ -480,17 +473,7 @@ export const readKingdeeOrderLines = Effect.fnUntraced(function* (
 					tax: fitScale(entry.tax, 2),
 					total: fitScale(entry.total, 2),
 					floor_net: changedItem ? null : (line?.floor_net ?? null),
-					floor_on: changedItem ? null : (line?.floor_on ?? null),
-					commission_basis_unit: changedItem
-						? (product?.commission_basis_unit ?? null)
-						: line
-							? line.commission_basis_unit
-							: (product?.commission_basis_unit ?? null),
-					commission_factor: changedItem
-						? (product?.commission_factor ?? null)
-						: line
-							? line.commission_factor
-							: (product?.commission_factor ?? null)
+					floor_on: changedItem ? null : (line?.floor_on ?? null)
 				});
 			}
 			for (const line of order.lines)

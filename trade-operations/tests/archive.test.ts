@@ -37,12 +37,67 @@ layer(shared(), { excludeTestServices: true })('order archive', (test) => {
 						.rows[0]
 				).toMatchObject({
 					archived: true,
+					active: false,
 					status: 'confirmed',
 					payment_terms: before.payment_terms,
 					total: before.total
 				});
 				expect(yield* evidence()).toEqual(retained);
 			})
+	);
+
+	test.effect('orders.active excludes archived, voided, and closed Kingdee orders', () =>
+		Effect.gen(function* () {
+			const t = yield* Trade;
+			const as = yield* t.as(t.admin);
+			const own = yield* draft(t);
+			const activeOf = () =>
+				as
+					.query({
+						orders: { where: { id: { eq: own.order } }, fields: ['active'], limit: 1 }
+					})
+					.pipe(Effect.map((answer) => answer.orders.rows[0]?.active));
+			expect(yield* activeOf()).toBe(true);
+
+			const setKingdee = (status: 'draft' | 'issued' | 'void', closed: boolean) =>
+				t.db.write({
+					text: 'UPDATE orders SET kingdee = $1::jsonb WHERE id = $2',
+					params: [
+						JSON.stringify({
+							fid: '1001',
+							reference: 'SO-1001',
+							status,
+							closed,
+							version: '1',
+							exchange_rate: '1'
+						}),
+						own.order
+					]
+				});
+
+			// Kingdee status = 'issued', closed = false stays active
+			yield* setKingdee('issued', false);
+			expect(yield* activeOf()).toBe(true);
+
+			// Kingdee status = 'void' becomes inactive
+			yield* setKingdee('void', false);
+			expect(yield* activeOf()).toBe(false);
+
+			// Kingdee closed = true becomes inactive
+			yield* setKingdee('issued', true);
+			expect(yield* activeOf()).toBe(false);
+
+			// Unclosed non-void order archived = true becomes inactive
+			yield* setKingdee('issued', false);
+			expect(yield* activeOf()).toBe(true);
+			committed(
+				'orders',
+				yield* as.act({
+					'orders.update': [{ target: yield* t.at('orders', own.order), set: { archived: true } }]
+				})
+			);
+			expect(yield* activeOf()).toBe(false);
+		})
 	);
 
 	test.effect('an archived draft is read-only until unarchived and needs no status reason', () =>

@@ -25,6 +25,7 @@ export {
 	entryPostings,
 	entryRead,
 	knownOf,
+	lawOf,
 	runPostings,
 	type Known
 } from './entry_postings.js';

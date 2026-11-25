@@ -558,15 +558,31 @@ export const sliceOf = (
 				.filter(isJsonObject)
 				.map((child) =>
 					// a cash-out's dates are placeholders: one no run has taken is the next run's own, and one this period's
-					// run took is this period's
+					// run took is this period's. A deferred prior-window unpaid slot sealed by this run (`lateHere`) or still
+					// open/released from `deferredSince` on is opened for this period to price.
 					belongs('leave_day', child, carrierSet) &&
-					(row.encashment === true ? child.payroll_run_id != null : inside(child.incurred_on))
+					(row.encashment === true
+						? child.payroll_run_id != null
+						: inside(child.incurred_on) ||
+							lateHere(child, employee, child.incurred_on) ||
+							(period.frame.deferredSince !== undefined &&
+								typeof child.incurred_on === 'string' &&
+								child.incurred_on >= period.frame.deferredSince &&
+								child.incurred_on < from &&
+								(child.payroll_run_id == null || released.has(`leave_day/${String(child.id)}`))))
 						? opened('leave_day', child)
 						: // a slot another period priced stays sealed: this one neither prices nor reads it
 							{ ...child, payroll_run_id: child.payroll_run_id ?? 'other' }
 				);
-			if (days.some((child) => child.payroll_run_id === null))
-				leaves.push({ ...opened('leave', row), leave_catalog_entry_day: days });
+			// also keep a leave entry whose slots inside this window were sealed by another period (e.g., prior full-unpaid
+			// tail) so those dates are recognized as leave rather than unexcused ABS
+			const hasOpen = days.some((child) => child.payroll_run_id === null);
+			if (hasOpen || (row.encashment !== true && days.some((child) => inside(child.incurred_on))))
+				leaves.push({
+					...opened('leave', row),
+					...(hasOpen ? {} : { payroll_run_id: 'other' }),
+					leave_catalog_entry_day: days
+				});
 		}
 	}
 	const group = indexed.payGroupById.get(String(period.run.pay_group_id));

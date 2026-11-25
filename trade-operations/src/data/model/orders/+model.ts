@@ -154,6 +154,12 @@ export default model('orders', {
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		source_order_key: { kind: 'text', optional: true, hidden: true },
 		archived: { kind: 'bool', default: false },
+		/** Active operational order: neither locally archived nor voided/closed in Kingdee. */
+		active: {
+			kind: 'bool',
+			computed:
+				'!archived && coalesce(json_text(kingdee, "status"), "") != "void" && coalesce(json_text(kingdee, "closed"), "false") != "true"'
+		},
 		// `confirmed`: synced to Kingdee, once; from then on the order and its SO or PO stay in step
 		status: {
 			kind: 'state',

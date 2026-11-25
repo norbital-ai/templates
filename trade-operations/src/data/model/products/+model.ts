@@ -39,22 +39,12 @@ export default model('products', {
 			min: 0,
 			max: 100
 		},
-		commission_factor: {
-			kind: 'decimal',
-			scale: 6,
-			optional: true,
-			min: 0
-		},
 		active: {
 			kind: 'bool',
 			default: true
 		},
 		source_updated_at: {
 			kind: 'instant'
-		},
-		commission_basis_unit: {
-			kind: 'text',
-			optional: true
 		},
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } }
 	},
@@ -109,8 +99,6 @@ export default model('products', {
 	},
 	update: {
 		fields: [
-			'commission_factor',
-			'commission_basis_unit',
 			'external_code',
 			'source_number',
 			'name',

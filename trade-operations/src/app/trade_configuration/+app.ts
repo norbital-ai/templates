@@ -6,6 +6,7 @@ export default app({
 	banner: 'app-media/configuration-resin-banner.webp',
 	pages: {
 		templates: { title: 'section.documents', icon: 'lucide:file-text' },
-		pricing_floors: { title: 'section.pricing', icon: 'lucide:chart-no-axes-combined' }
+		pricing_floors: { title: 'section.pricing', icon: 'lucide:chart-no-axes-combined' },
+		commission: { title: 'section.commission', icon: 'lucide:percent' }
 	}
 });

@@ -19,6 +19,7 @@
 				'external_code',
 				'source_number',
 				'group_code',
+				'group_name',
 				'active',
 				'source_updated_at'
 			]

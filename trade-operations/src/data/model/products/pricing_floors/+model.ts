@@ -35,12 +35,6 @@ export default model('pricing_floors', {
 			min: 0,
 			max: 100
 		},
-		minimum_quantity: {
-			kind: 'decimal',
-			scale: 3,
-			default: 0,
-			min: 0
-		},
 		/** The floor before tax: what a sales line's net unit price is held to. */
 		floor_net: {
 			kind: 'decimal',
@@ -56,7 +50,7 @@ export default model('pricing_floors', {
 	},
 	constraints: {
 		natural_key: {
-			unique: ['product', 'group_code', 'currency', 'effective_on', 'minimum_quantity'],
+			unique: ['product', 'group_code', 'currency', 'effective_on'],
 			import_key: true
 		},
 		import_revision_ephemeral: { check: { import_revision: { is_null: true } } },
@@ -83,7 +77,6 @@ export default model('pricing_floors', {
 			'floor_price',
 			'tax_inclusive',
 			'tax_rate',
-			'minimum_quantity',
 			'import_revision'
 		],
 		transform: function* (changes, ctx) {

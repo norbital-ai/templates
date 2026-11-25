@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { BigDecimal } from 'effect';
-	import { Chart, EmptyState, Show, type RecordView } from '@norbital-ai/ui';
-	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Chart, EmptyState, type RecordView } from '@norbital-ai/ui';
+	import { Bound, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
@@ -48,13 +48,12 @@
 							'currency',
 							'unit',
 							'group_code',
-							'minimum_quantity',
 							'floor_price',
 							'tax_inclusive',
 							'tax_rate'
 						],
 						order_by: { effective_on: 'desc' },
-						limit: 100
+						limit: 200
 					}
 				})
 			: null
@@ -66,7 +65,6 @@
 				currency: floor.currency,
 				unit: floor.unit,
 				group: floor.group_code,
-				threshold: floor.minimum_quantity,
 				price: floor.tax_inclusive
 					? BigDecimal.format(
 							BigDecimal.round(
@@ -91,28 +89,39 @@
 			.reverse() ?? []
 	);
 	const groups = $derived([...new Set(rows.map((r) => `${r.currency}/${r.unit}`))]);
+	/** One multi-series step chart per currency/unit, plotting each warehouse region as its own line. */
+	const floorCharts = $derived.by(() => {
+		const byUnit = new Map<string, typeof rates>();
+		for (const rate of rates) {
+			const key = `${rate.currency}/${rate.unit}`;
+			const bucket = byUnit.get(key) ?? [];
+			bucket.push(rate);
+			byUnit.set(key, bucket);
+		}
+		return [...byUnit.entries()].map(([unitKey, entries]) => {
+			const regions = [...new Set(entries.map((e) => e.group))].sort();
+			const dates = [...new Set(entries.map((e) => e.on))].sort();
+			const byDayRegion = new Map(entries.map((e) => [`${e.on}|${e.group}`, e.price]));
+			const carried = new Map<string, string>();
+			const points = dates.map((on) => {
+				const point: Record<string, string | null> = { on };
+				for (const region of regions) {
+					const fresh = byDayRegion.get(`${on}|${region}`);
+					if (fresh !== undefined) carried.set(region, fresh);
+					point[region] = carried.get(region) ?? null;
+				}
+				return point;
+			});
+			return { unitKey, regions, points };
+		});
+	});
 </script>
 
-{#snippet productDetails()}
-	{#if view.mode !== 'create'}
-		<Grid as="dl" gap="md">
-			{#each ['external_code', 'name', 'category', 'spec', 'unit', 'currency', 'unit_price', 'tax_rate', 'active'] as const as name}
-				{@const kind = ctx.catalog?.products?.fields[name]}
-				{#if kind}<div data-field={name}>
-						<dt class="text-label">
-							{ctx.t(`models.products.fields.${name}`)}
-						</dt>
-						<dd><Show {ctx} {kind} value={view.record[name]} {name} row={view.record} /></dd>
-					</div>{/if}
-			{/each}
-		</Grid>
-	{/if}
-{/snippet}
 {#snippet pricing()}
 	<Scroll name="pricing" size="fill" inset
 		><Stack gap="lg">
 			{#if id}
-				{#each groups as group}
+				{#each groups as group (group)}
 					<Bound height="20rem">
 						<Chart
 							{ctx}
@@ -148,23 +157,16 @@
 				{#if sales?.current?.source_sales_lines.next || floors?.current?.pricing_floors.next}
 					<p class="text-sm text-muted-foreground">{ctx.t('reports.product.recent_prices')}</p>
 				{/if}
-				{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
-					{@const points = rates.filter(
-						(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
-					)}
-					{@const first = points[0]}
+				{#each floorCharts as chart (chart.unitKey)}
 					<Bound height="20rem">
 						<Chart
 							{ctx}
-							of={points.map((r) => ({
-								on: r.on,
-								[ctx.t('models.pricing_floors.fields.floor_price')]: r.price
-							}))}
+							of={chart.points}
 							x="on"
-							y={ctx.t('models.pricing_floors.fields.floor_price')}
+							y={chart.regions}
 							kind="line"
 							interpolation="step"
-							title={`${ctx.t('models.pricing_floors.label')} · ${first?.group ?? ''} · ${first?.currency ?? ''}/${first?.unit ?? ''}${first && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(first.threshold)) ? ` · ≥ ${first.threshold}` : ''}`}
+							title={`${ctx.t('models.pricing_floors.label')} · ${chart.unitKey}`}
 						/>
 					</Bound>
 				{/each}
@@ -179,20 +181,30 @@
 		</Stack></Scroll
 	>
 {/snippet}
+<!-- a Kingdee mirror: only its sync writes it -->
 <RecordForm
 	{ctx}
 	{view}
+	readonly
+	readonly_reason={ctx.t('component.kingdee_readonly')}
 	sections={[
 		{
 			name: 'product',
-			fields: [],
-			body: productDetails
-		},
-		{
-			name: 'commission',
-			icon: 'lucide:percent',
-			title: ctx.t('component.commission'),
-			fields: ['commission_factor', 'commission_basis_unit']
+			fields: [
+				'external_code',
+				'source_number',
+				'name',
+				'category',
+				'spec',
+				'brand',
+				'brand_en',
+				'producing_area',
+				'unit',
+				'currency',
+				'unit_price',
+				'tax_rate',
+				'active'
+			]
 		}
 	]}
 	tabs={id && (ctx.catalog?.pricing_floors || ctx.catalog?.source_sales_lines)

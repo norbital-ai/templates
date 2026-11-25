@@ -90,28 +90,32 @@ const FEBRUARY = '2026-02-20T02:00:00.000Z';
 
 describe('employer pay methods', () => {
 	it.live(
-		'CONTRACT_WEEKLY pays a holiday worked as the clocked hours at twice the company’s hour',
+		'CONTRACT_WEEKLY pays a holiday worked at exact clocked minutes × 2 × the company’s hour, floored at EA s.60D(3)(a)’s two days',
 		() =>
 			Effect.gen(function* () {
 				const SALARY = 3120;
 				const HOLIDAY = '2026-02-08';
-				const { breakdown } = yield* slip(
-					withEmployer(
-						pack(
-							'MY',
-							'Asia/Kuala_Lumpur',
-							packTerms(SALARY, 'MANUAL_LABOUR'),
-							{},
-							[{ date: HOLIDAY, shift: WORK, hours: 5 }],
-							[{ date: HOLIDAY, kind: 'PUBLIC_HOLIDAY' }]
+				const floor = 2 * ((SALARY * 12) / (52 * 5));
+				const holidayPay = (hours: number, weeklyHours: number) =>
+					slip(
+						withEmployer(
+							pack(
+								'MY',
+								'Asia/Kuala_Lumpur',
+								{ ...packTerms(SALARY, 'MANUAL_LABOUR'), normal_hours_per_week: weeklyHours },
+								{},
+								[{ date: HOLIDAY, shift: WORK, hours }],
+								[{ date: HOLIDAY, kind: 'PUBLIC_HOLIDAY' }]
+							),
+							{ pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' } }
 						),
-						{ pay_methods: { overtime_hour_basis: 'CONTRACT_WEEKLY' } }
-					),
-					'2026-02',
-					FEBRUARY
-				);
-				// the company's hour, monthly × 12 ÷ (52 × 40 weekly hours), for each of 5 clocked hours, twice
-				assert.equal(amount(breakdown, 'HOLIDAY_WORK'), 5 * 2 * ((SALARY * 12) / (52 * 40)));
+						'2026-02',
+						FEBRUARY
+					).pipe(Effect.map(({ breakdown }) => amount(breakdown, 'HOLIDAY_WORK')));
+				// 5 h at 40 h/week (180) is below the statutory two-day floor (288): keeps the floor
+				assert.equal(yield* holidayPay(5, 40), floor);
+				// 7.75 h at 36 h/week (exact minutes, no 30-min truncation: 7.75 × 2 × 20 = 310) lifts above the floor
+				assert.equal(yield* holidayPay(7.75, 36), 7.75 * 2 * ((SALARY * 12) / (52 * 36)));
 			})
 	);
 

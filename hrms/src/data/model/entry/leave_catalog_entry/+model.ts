@@ -3,6 +3,7 @@ import { model } from '@norbital-ai/bolt';
 import { sealOnly } from '../service/entries.js';
 import { isJsonObject, jsonObject, type JsonObject } from '../../../../lib/foundation.js';
 import { amendmentsFor, refusing } from '../../payroll_run/service/amendments.js';
+import { sharesPay } from '../../payroll_run/service/rates.js';
 import {
 	assertLeft,
 	assertCashable,
@@ -10,12 +11,26 @@ import {
 	entryPostings,
 	entryRead,
 	assertWorked,
-	syncLatePosted
+	lawOf,
+	syncLatePosted,
+	type Known
 } from '../../employee_profile/employee_balance/service/service.js';
 import { tap } from '../../jurisdiction/service/taps.js';
 
+const unpaid = (known: Known, entry: JsonObject): boolean => {
+	const catalog = lawOf(known, entry)?.rows.leave_catalog.find(
+		(row) => String(row.code) === String(entry.catalog_code)
+	);
+	return catalog !== undefined && sharesPay(catalog);
+};
+
 /** The days a leave prices, and the run that priced each: a paid period holding one is worked out again. */
-const touched = (employment: unknown, days: readonly unknown[], cashOut: unknown = false) =>
+const touched = (
+	employment: unknown,
+	days: readonly unknown[],
+	cashOut: unknown = false,
+	paySharing = false
+) =>
 	days.flatMap((day) => {
 		if (!isJsonObject(day)) return [];
 		const date = day.date ?? day.incurred_on;
@@ -25,7 +40,8 @@ const touched = (employment: unknown, days: readonly unknown[], cashOut: unknown
 						employment: String(employment),
 						from: date,
 						run: day.payroll_run_id ?? null,
-						attendance: true,
+						// unpaid/partial-pay leave inside a period's salary coverage can turn that period full-unpaid or back out
+						...(paySharing && cashOut !== true ? {} : { attendance: true }),
 						// a cash-out's days are placeholders: only the run that paid it is touched
 						...(cashOut === true ? { undated: true } : {})
 					}
@@ -87,31 +103,12 @@ export default model('leave_catalog_entry', {
 			// A leave entry is its slots: an entry with none has no day to draw or price.
 			const empty = entries.findIndex((row) => !Array.isArray(row.days) || row.days.length === 0);
 			if (empty >= 0) return yield* ctx.refuse('errors.leave_entry_needs_day', { row: empty });
-			// the approving decision asks again only for what the entry posts: what it checked stands. The amendment rows
-			// need none of it: their read crosses with these, and their refusal still comes after the checks'
-			const [known, amended] = yield* Effect.all(
-				[
-					entryRead(
-						ctx.query,
-						'leave_catalog_entry',
-						entries,
-						ctx.approving ? undefined : 'create'
-					).pipe(refusing(ctx)),
-					Effect.exit(
-						amendmentsFor(
-							ctx.query,
-							entries.flatMap((entry) =>
-								touched(
-									entry.employment_id,
-									Array.isArray(entry.days) ? entry.days : [],
-									entry.encashment
-								)
-							)
-						)
-					)
-				],
-				{ concurrency: 'unbounded' }
-			);
+			const known = yield* entryRead(
+				ctx.query,
+				'leave_catalog_entry',
+				entries,
+				ctx.approving ? undefined : 'create'
+			).pipe(refusing(ctx));
 			if (!ctx.approving) {
 				// the balance checks say why in their own words: the refusal carries that text
 				yield* Effect.all([
@@ -120,11 +117,22 @@ export default model('leave_catalog_entry', {
 					assertLeft(known, entries, ctx.today)
 				]).pipe(refusing(ctx));
 			}
+			const amended = yield* amendmentsFor(
+				ctx.query,
+				entries.flatMap((entry) =>
+					touched(
+						entry.employment_id,
+						Array.isArray(entry.days) ? entry.days : [],
+						entry.encashment,
+						unpaid(known, entry)
+					)
+				)
+			);
 			return {
 				sets: changes.map((c) => c.set),
 				on_approved: {
 					...(yield* entryPostings(known, 'leave_catalog_entry', entries)),
-					...(yield* amended)
+					...amended
 				}
 			};
 		},
@@ -185,37 +193,12 @@ export default model('leave_catalog_entry', {
 			});
 			const empty = proposed.findIndex((row) => !Array.isArray(row.days) || row.days.length === 0);
 			if (empty >= 0) return yield* ctx.refuse('errors.leave_entry_needs_day', { row: empty });
-			// the amendment rows' read crosses with the checks'; their refusal still comes after the checks'
-			const [known, amended] = yield* Effect.all(
-				[
-					entryRead(
-						ctx.query,
-						'leave_catalog_entry',
-						proposed,
-						ctx.approving ? undefined : 'update'
-					).pipe(refusing(ctx)),
-					// the days it held and the days it holds now: a day removed and a day added both touch their period
-					Effect.exit(
-						amendmentsFor(ctx.query, [
-							...changes.flatMap((change) =>
-								touched(
-									change.before.employment_id,
-									slotsByEntry.get(change.before.id) ?? [],
-									change.before.encashment
-								)
-							),
-							...proposed.flatMap((entry) =>
-								touched(
-									entry.employment_id,
-									Array.isArray(entry.days) ? entry.days : [],
-									entry.encashment
-								)
-							)
-						])
-					)
-				],
-				{ concurrency: 'unbounded' }
-			);
+			const known = yield* entryRead(
+				ctx.query,
+				'leave_catalog_entry',
+				proposed,
+				ctx.approving ? undefined : 'update'
+			).pipe(refusing(ctx));
 			if (!ctx.approving) {
 				// only the days this change adds: a day already filed stands
 				yield* assertWorked(
@@ -237,11 +220,37 @@ export default model('leave_catalog_entry', {
 					changes.map((change) => jsonObject(change.before))
 				).pipe(refusing(ctx));
 			}
+			// the days it held and the days it holds now: a day removed and a day added both touch their period
+			const amended = yield* amendmentsFor(ctx.query, [
+				...changes.flatMap((change, index) => {
+					const beforeRow = jsonObject({
+						...change.before,
+						days: slotsByEntry.get(change.before.id) ?? []
+					});
+					const afterRow = proposed[index];
+					const paySharing =
+						unpaid(known, beforeRow) || (afterRow !== undefined && unpaid(known, afterRow));
+					return touched(
+						change.before.employment_id,
+						slotsByEntry.get(change.before.id) ?? [],
+						change.before.encashment,
+						paySharing
+					);
+				}),
+				...proposed.flatMap((entry) =>
+					touched(
+						entry.employment_id,
+						Array.isArray(entry.days) ? entry.days : [],
+						entry.encashment,
+						unpaid(known, entry)
+					)
+				)
+			]);
 			return {
 				sets: changes.map((c) => c.set),
 				on_approved: {
 					...(yield* entryPostings(known, 'leave_catalog_entry', proposed)),
-					...(yield* amended)
+					...amended
 				}
 			};
 		},
@@ -260,8 +269,9 @@ export default model('leave_catalog_entry', {
 			const cashOut = new Set(
 				changes.filter(({ before }) => before.encashment).map(({ before }) => before.id)
 			);
-			// the slots and their amendment rows cross with the check's reads; their refusal still comes after the check's
-			const [known, amended] = yield* Effect.all(
+			const entryById = new Map(entries.map((entry) => [String(entry.id), entry]));
+			// the slots and check reads cross together; amendment rows follow once the law for each entry is known
+			const [known, held] = yield* Effect.all(
 				[
 					entryRead(
 						ctx.query,
@@ -269,37 +279,32 @@ export default model('leave_catalog_entry', {
 						entries,
 						ctx.approving ? undefined : 'delete'
 					).pipe(refusing(ctx)),
-					Effect.exit(
-						ctx
-							.query({
-								leave_catalog_entry_day: {
-									where: { leave_entry_id: { in: changes.map((change) => change.before.id) } },
-									fields: ['leave_entry_id', 'incurred_on', 'payroll_run_id'],
-									limit: 10000
-								}
-							})
-							.pipe(
-								Effect.flatMap((held) =>
-									amendmentsFor(
-										ctx.query,
-										held.leave_catalog_entry_day.rows.flatMap((day) =>
-											touched(
-												employmentOf.get(day.leave_entry_id),
-												[day],
-												cashOut.has(day.leave_entry_id)
-											)
-										)
-									)
-								)
-							)
-					)
+					ctx.query({
+						leave_catalog_entry_day: {
+							where: { leave_entry_id: { in: changes.map((change) => change.before.id) } },
+							fields: ['leave_entry_id', 'incurred_on', 'payroll_run_id'],
+							limit: 10000
+						}
+					})
 				],
 				{ concurrency: 'unbounded' }
+			);
+			const amended = yield* amendmentsFor(
+				ctx.query,
+				held.leave_catalog_entry_day.rows.flatMap((day) => {
+					const entry = entryById.get(day.leave_entry_id);
+					return touched(
+						employmentOf.get(day.leave_entry_id),
+						[day],
+						cashOut.has(day.leave_entry_id),
+						entry !== undefined && unpaid(known, entry)
+					);
+				})
 			);
 			return {
 				on_approved: {
 					...entriesUndone(known, 'leave_catalog_entry', entries),
-					...(yield* amended)
+					...amended
 				}
 			};
 		},

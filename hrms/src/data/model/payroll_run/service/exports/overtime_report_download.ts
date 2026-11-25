@@ -470,7 +470,7 @@ const buildTargetSheet = (
 			worked: worked + timeOff > 0,
 			worked_hours: worked,
 			overtime_hours: overtime,
-			clocked_shift_hours: Math.floor(spanMinutes(overlapSpans(clock, dayPlan.spans)) / 30) / 2,
+			clocked_shift_hours: spanMinutes(overlapSpans(clock, dayPlan.spans)) / 60,
 			time_off_hours: timeOff,
 			intervals: overlapSpans(clock, [...dayPlan.spans, ...paidSpans]).map(
 				({ start: s, end: e }) => ({

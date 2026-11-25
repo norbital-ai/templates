@@ -17,14 +17,17 @@ export const registerChanged = <
 			before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
 	);
 
-/** The plain fields a formula, a rule or the ledger reads. */
-const PRICED = ['cumulative_service', 'date_of_birth', 'gender'] as const;
+/** The plain fields an entitlement rule or the ledger reads. */
+const ENTITLEMENT_PRICED = ['cumulative_service', 'date_of_birth', 'gender'] as const;
+/** Every plain field payroll reads: changing any amends paid periods. */
+const PRICED = [...ENTITLEMENT_PRICED, 'dock_undertime'] as const;
 
 /** The profile's fields a writer sets. */
 const columns = [
 	'name',
 	'source_reference',
 	'cumulative_service',
+	'dock_undertime',
 	'date_of_birth',
 	'identity_number',
 	'gender',
@@ -54,6 +57,7 @@ export default model('employee_profile', {
 		number: { kind: 'seq', pattern: 'HR-{0000}' },
 		source_reference: { kind: 'text', optional: true },
 		cumulative_service: { kind: 'bool', default: false },
+		dock_undertime: { kind: 'bool', default: false },
 		// the person's fixed particulars: a different value can only mean the old one was wrong
 		date_of_birth: { kind: 'date', optional: true },
 		identity_number: { kind: 'text', optional: true },
@@ -192,7 +196,7 @@ export default model('employee_profile', {
 		effect: function* (changes, ctx) {
 			// how service counts moves every service window and band, and a particular may move an entitlement: the
 			// person's entitlements sync again
-			const counted = changes.filter((change) => change.changed(...PRICED));
+			const counted = changes.filter((change) => change.changed(...ENTITLEMENT_PRICED));
 			if (counted.length > 0)
 				yield* ctx.schedule('ledger', { employees: counted.map(({ after }) => after.id) });
 			// s.113 register particulars only: email, phone, user_id, face, documents and location are not

@@ -25,9 +25,7 @@ const derived = [
 	'tax',
 	'total',
 	'floor_net',
-	'floor_on',
-	'commission_basis_unit',
-	'commission_factor'
+	'floor_on'
 ] as const;
 /** One line to price: its order and product, the cells the writer sent, and the stored line an update changes. */
 type Pricing = {
@@ -63,8 +61,23 @@ const priced = Effect.fnUntraced(function* (
 	const refuseBelow = settings.rows[0]?.floor_rule === 'refuse' && ctx.actor.kind !== 'system';
 	// an order created with its lines in the same act is read as the act leaves it
 	const ids = [...new Set(lines.map((l) => l.order))];
-	const orders = (yield* ctx.query({ orders: { where: { id: { in: ids } }, as_of: 'act' } })).orders
-		.rows;
+	const orders = (yield* ctx.query({
+		orders: {
+			where: { id: { in: ids } },
+			fields: [
+				'archived',
+				'status',
+				'source_order_key',
+				'ledger',
+				'currency',
+				'direction',
+				'warehouse',
+				'ordered_on',
+				'tax_inclusive'
+			],
+			as_of: 'act'
+		}
+	})).orders.rows;
 	const out: (Pick<
 		StoredRow<'order_lines'>,
 		| 'source_entry_id'
@@ -82,8 +95,6 @@ const priced = Effect.fnUntraced(function* (
 		| 'total'
 		| 'floor_net'
 		| 'floor_on'
-		| 'commission_basis_unit'
-		| 'commission_factor'
 	> &
 		Partial<Pick<StoredRow<'order_lines'>, 'print_values'>>)[] = [];
 	for (const {
@@ -205,13 +216,7 @@ const priced = Effect.fnUntraced(function* (
 				maximumFractionDigits: amounts.total.scale
 			}).format(numeric(BigDecimal.format(amounts.total))),
 			floor_net,
-			floor_on: floor?.effective_on ?? null,
-			commission_basis_unit: changedProduct
-				? product.commission_basis_unit
-				: (old?.commission_basis_unit ?? product.commission_basis_unit),
-			commission_factor: changedProduct
-				? product.commission_factor
-				: (old?.commission_factor ?? product.commission_factor)
+			floor_on: floor?.effective_on ?? null
 		});
 	}
 	return out;
@@ -281,16 +286,6 @@ export default model('order_lines', {
 		},
 		floor_on: {
 			kind: 'date',
-			optional: true
-		},
-		commission_factor: {
-			kind: 'decimal',
-			scale: 6,
-			optional: true,
-			min: 0
-		},
-		commission_basis_unit: {
-			kind: 'text',
 			optional: true
 		}
 	},

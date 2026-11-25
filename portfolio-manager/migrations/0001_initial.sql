@@ -1,4 +1,4 @@
--- 0001_initial.sql: 180 step(s), from an empty database to 925e99aae5a8d8001a2d02007754373de02def8ca44c16451502bc204e00d6f2.
+-- 0001_initial.sql: 178 step(s), from an empty database to fce04561373dd54613274213e9b6bf45e0f8f6cb3ac1f846d795412b78a91be3.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -1198,7 +1198,7 @@ create table "sys_user" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_user_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_user_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("email"::text, ''))) stored,
 	constraint "sys_user__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
-	constraint "sys_user__ck__3996db29" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
+	constraint "sys_user__ck__5ef80452" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"email_notifications":{"kind":"bool","optional":true},"locale":{"kind":"text","max":35,"optional":true},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "sys_user__ck__73877b7a" check ("kind" in ('staff', 'external', 'anonymous')),
 	constraint "sys_user__ck__cceca9d3" check (("party" is null or store_json_valid("party", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_user__ck__367d8eb4" check (isfinite("created_at")),
@@ -1228,6 +1228,7 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 	"market_value" numeric default '0'::numeric not null,
 	"value_base" numeric not null,
 	"unrealised_pl" numeric,
+	"accrued_interest" numeric,
 	"risk_rating" int,
 	"price_date" date,
 	"detail" text,
@@ -1240,6 +1241,15 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 	"price_updated_at" timestamptz,
 	"volume_ratio" numeric,
 	"movement" text,
+	"change_1w_pct" numeric,
+	"change_1m_pct" numeric,
+	"change_1y_pct" numeric,
+	"trend" text,
+	"money_flow" numeric,
+	"pressure" text,
+	"rsi" numeric,
+	"from_high_pct" numeric,
+	"volatility_pct" numeric,
 	"pnl_history" jsonb,
 	"research_summary" text,
 	"research_at" timestamptz,
@@ -1253,6 +1263,7 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 	constraint "holding__ck__d0f52e29" check ("market_value" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("market_value", 2) = "market_value"),
 	constraint "holding__ck__8429f9dc" check ("value_base" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("value_base", 2) = "value_base"),
 	constraint "holding__ck__03bd2e44" check ("unrealised_pl" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("unrealised_pl", 2) = "unrealised_pl"),
+	constraint "holding__ck__fce56b0e" check ("accrued_interest" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("accrued_interest", 2) = "accrued_interest"),
 	constraint "holding__ck__4116fea7" check ("risk_rating" >= 1 and "risk_rating" <= 5),
 	constraint "holding__ck__6a5895ae" check (isfinite("price_date")),
 	constraint "holding__ck__23ff833b" check (("documents" is null or store_json_valid("documents", '{"accept":["application/pdf","image/png","image/jpeg","text/csv"],"kind":"file","many":true,"max":"32MiB","optional":true}'::jsonb) is true)),
@@ -1263,6 +1274,15 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 	constraint "holding__ck__eaaa07d0" check (isfinite("price_updated_at")),
 	constraint "holding__ck__2c301d65" check ("volume_ratio" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("volume_ratio", 2) = "volume_ratio"),
 	constraint "holding__ck__76421106" check ("movement" in ('surge', 'active', 'normal', 'quiet')),
+	constraint "holding__ck__d55dc878" check ("change_1w_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("change_1w_pct", 2) = "change_1w_pct"),
+	constraint "holding__ck__e751f494" check ("change_1m_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("change_1m_pct", 2) = "change_1m_pct"),
+	constraint "holding__ck__ce56b03e" check ("change_1y_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("change_1y_pct", 2) = "change_1y_pct"),
+	constraint "holding__ck__3903edb9" check ("trend" in ('up', 'sideways', 'down')),
+	constraint "holding__ck__3d2d4d56" check ("money_flow" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("money_flow", 2) = "money_flow"),
+	constraint "holding__ck__8f7b16cb" check ("pressure" in ('buying', 'balanced', 'selling')),
+	constraint "holding__ck__ecc6bb62" check ("rsi" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("rsi", 2) = "rsi"),
+	constraint "holding__ck__befaec23" check ("from_high_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("from_high_pct", 2) = "from_high_pct"),
+	constraint "holding__ck__aca545c1" check ("volatility_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("volatility_pct", 2) = "volatility_pct"),
 	constraint "holding__ck__9cb2e968" check (("pnl_history" is null or store_json_valid("pnl_history", '{"fields":{"date":{"kind":"date"},"pnl":{"kind":"decimal","scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2}},"key":"date","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "holding__ck__7a32ac23" check (isfinite("research_at")),
 	constraint "holding__ck__d3f0b237" check (("insights" is null or store_json_valid("insights", '{"fields":{"headline":{"kind":"text"},"source_name":{"kind":"text","optional":true},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true}'::jsonb) is true)),
@@ -1272,13 +1292,10 @@ create table "holding" ("id" uuid primary key, revision int not null default 1, 
 -- step create:table:portfolio_settings (additive)
 create table "portfolio_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"base_currency" text not null,
-	"recipients" jsonb,
 	"benchmarks" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_portfolio_settings_4d34641e"()) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_portfolio_settings_4d34641e"(), ''))) stored,
-	"report_via" text,
 	constraint "portfolio_settings__ck__11afee8d" check ("base_currency" ~ '^[A-Z]{3}$'),
-	constraint "portfolio_settings__ck__c1c5d933" check (("recipients" is null or store_json_valid("recipients", '{"fields":{"handle":{"kind":"text"},"name":{"kind":"text","optional":true}},"key":"handle","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "portfolio_settings__ck__393079ce" check (("benchmarks" is null or store_json_valid("benchmarks", '{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true}'::jsonb) is true))
 );
 
@@ -1298,15 +1315,15 @@ create table "report" ("id" uuid primary key, revision int not null default 1, c
 	"unrealised_pl" numeric,
 	"day_change" numeric,
 	"allocation" jsonb,
+	"exposure" jsonb,
 	"fx_used" jsonb,
 	"positions" jsonb,
 	"sources" jsonb,
-	"deliveries" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_report_0685ed0d"("for_date")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_report_0685ed0d"("for_date"), '') || ' ' || coalesce("headline"::text, '') || ' ' || coalesce("summary"::text, '') || ' ' || coalesce("market_view"::text, ''))) stored,
 	constraint "report__ck__1b18f681" check (isfinite("for_date")),
 	constraint "report__ck__11afee8d" check ("base_currency" ~ '^[A-Z]{3}$'),
-	constraint "report__ck__83f2d44c" check (("markets" is null or store_json_valid("markets", '{"fields":{"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "report__ck__5c5adf28" check (("markets" is null or store_json_valid("markets", '{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "report__ck__e0b2375a" check ("net_assets" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("net_assets", 2) = "net_assets"),
 	constraint "report__ck__fb5a3ad1" check ("invested" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("invested", 2) = "invested"),
 	constraint "report__ck__520e1df1" check ("cash" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("cash", 2) = "cash"),
@@ -1314,10 +1331,10 @@ create table "report" ("id" uuid primary key, revision int not null default 1, c
 	constraint "report__ck__03bd2e44" check ("unrealised_pl" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("unrealised_pl", 2) = "unrealised_pl"),
 	constraint "report__ck__d3492642" check ("day_change" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("day_change", 2) = "day_change"),
 	constraint "report__ck__fbc49a1a" check (("allocation" is null or store_json_valid("allocation", '{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "report__ck__3a9291ab" check (("exposure" is null or store_json_valid("exposure", '{"fields":{"currency":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"currency","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "report__ck__00cf8ba0" check (("fx_used" is null or store_json_valid("fx_used", '{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true}'::jsonb) is true)),
-	constraint "report__ck__644ed397" check (("positions" is null or store_json_valid("positions", '{"fields":{"analysis":{"format":"markdown","kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text"},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true)),
+	constraint "report__ck__9fc062e2" check (("positions" is null or store_json_valid("positions", '{"fields":{"analysis":{"format":"markdown","kind":"text","optional":true},"call":{"kind":"enum","optional":true,"values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text","optional":true},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"value":{"kind":"decimal","optional":true,"scale":2},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true}'::jsonb) is true)),
 	constraint "report__ck__0685a627" check (("sources" is null or store_json_valid("sources", '{"fields":{"at":{"kind":"instant"},"publisher":{"kind":"text"},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"key":"url","kind":"object","many":true,"optional":true}'::jsonb) is true)),
-	constraint "report__ck__5586dd6b" check (("deliveries" is null or store_json_valid("deliveries", '{"kind":"ref","many":true,"optional":true,"to":"sys_message"}'::jsonb) is true)),
 	constraint "report__uq__97507803" unique ("for_date") deferrable initially immediate
 );
 
@@ -1376,19 +1393,19 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"email_notifications":{"kind":"bool","optional":true},"locale":{"kind":"text","max":35,"optional":true},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:sys_workspace (additive)
 select bolt_history_register('sys_workspace','{"check":{"singleton":{"id":{"eq":"00000000-0000-0000-0000-000000000001"}}},"fields":{"name":{"kind":"text","max":120,"optional":true},"revision":{"default":1,"kind":"int"}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:holding (additive)
-select bolt_history_register('holding','{"audit":true,"check":{"loan_is_owed":{"or":[{"asset_class":{"ne":"loan"}},{"value_base":{"lte":"0"}}]}},"fields":{"asset_class":{"default":"equity","kind":"enum","values":["equity","structured","fund","bond","metal","cash","loan","other"]},"cost_value":{"kind":"decimal","optional":true,"scale":2},"currency":{"kind":"currency"},"detail":{"kind":"text","optional":true},"documents":{"accept":["application/pdf","image/png","image/jpeg","text/csv"],"kind":"file","many":true,"max":"32MiB","optional":true},"insights":{"fields":{"headline":{"kind":"text"},"source_name":{"kind":"text","optional":true},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"instrument":{"kind":"text"},"isin":{"kind":"text","optional":true},"live_change_pct":{"kind":"decimal","optional":true,"scale":2},"live_price":{"kind":"decimal","optional":true,"scale":4},"live_value_base":{"kind":"decimal","optional":true,"scale":2},"market_value":{"default":0,"kind":"decimal","scale":2},"movement":{"kind":"enum","optional":true,"values":["surge","active","normal","quiet"]},"pnl_history":{"fields":{"date":{"kind":"date"},"pnl":{"kind":"decimal","scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2}},"key":"date","kind":"object","many":true,"optional":true},"price_date":{"kind":"date","optional":true},"price_updated_at":{"kind":"instant","optional":true},"quantity":{"default":1,"kind":"decimal","scale":4},"research_at":{"kind":"instant","optional":true},"research_direction":{"kind":"text","optional":true},"research_summary":{"format":"markdown","kind":"text","optional":true},"risk_rating":{"kind":"int","max":5,"min":1,"optional":true},"sources":{"fields":{"label":{"kind":"text"},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"symbol":{"kind":"text","optional":true},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2},"value_base":{"kind":"decimal","scale":2},"volume_ratio":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.instrument","search":{"text":["instrument","symbol","detail","research_direction","research_summary"]}}'::jsonb);
+select bolt_history_register('holding','{"audit":true,"check":{"loan_is_owed":{"or":[{"asset_class":{"ne":"loan"}},{"value_base":{"lte":"0"}}]}},"fields":{"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"asset_class":{"default":"equity","kind":"enum","values":["equity","structured","fund","bond","metal","cash","loan","other"]},"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"cost_value":{"kind":"decimal","optional":true,"scale":2},"currency":{"kind":"currency"},"detail":{"kind":"text","optional":true},"documents":{"accept":["application/pdf","image/png","image/jpeg","text/csv"],"kind":"file","many":true,"max":"32MiB","optional":true},"from_high_pct":{"kind":"decimal","optional":true,"scale":2},"insights":{"fields":{"headline":{"kind":"text"},"source_name":{"kind":"text","optional":true},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"instrument":{"kind":"text"},"isin":{"kind":"text","optional":true},"live_change_pct":{"kind":"decimal","optional":true,"scale":2},"live_price":{"kind":"decimal","optional":true,"scale":4},"live_value_base":{"kind":"decimal","optional":true,"scale":2},"market_value":{"default":0,"kind":"decimal","scale":2},"money_flow":{"kind":"decimal","optional":true,"scale":2},"movement":{"kind":"enum","optional":true,"values":["surge","active","normal","quiet"]},"pnl_history":{"fields":{"date":{"kind":"date"},"pnl":{"kind":"decimal","scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2}},"key":"date","kind":"object","many":true,"optional":true},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"price_date":{"kind":"date","optional":true},"price_updated_at":{"kind":"instant","optional":true},"quantity":{"default":1,"kind":"decimal","scale":4},"research_at":{"kind":"instant","optional":true},"research_direction":{"kind":"text","optional":true},"research_summary":{"format":"markdown","kind":"text","optional":true},"risk_rating":{"kind":"int","max":5,"min":1,"optional":true},"rsi":{"kind":"decimal","optional":true,"scale":2},"sources":{"fields":{"label":{"kind":"text"},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"symbol":{"kind":"text","optional":true},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2},"value_base":{"kind":"decimal","scale":2},"volatility_pct":{"kind":"decimal","optional":true,"scale":2},"volume_ratio":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.instrument","search":{"text":["instrument","symbol","detail","research_direction","research_summary"]}}'::jsonb);
 
 -- step create:history:schema:portfolio_settings (additive)
-select bolt_history_register('portfolio_settings','{"audit":true,"fields":{"base_currency":{"kind":"currency"},"benchmarks":{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true},"recipients":{"fields":{"handle":{"kind":"text"},"name":{"kind":"text","optional":true}},"key":"handle","kind":"object","many":true,"optional":true},"report_via":{"kind":"ref","optional":true,"to":"sys_integration"}},"record_label":"''Portfolio settings''"}'::jsonb);
+select bolt_history_register('portfolio_settings','{"audit":true,"fields":{"base_currency":{"kind":"currency"},"benchmarks":{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true}},"record_label":"''Portfolio settings''"}'::jsonb);
 
 -- step create:history:schema:report (additive)
-select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"deliveries":{"kind":"ref","many":true,"optional":true,"to":"sys_message"},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"format":"markdown","kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"format":"markdown","kind":"text","optional":true},"markets":{"fields":{"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"format":"markdown","kind":"text"},"call":{"kind":"enum","values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text"},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"sources":{"fields":{"at":{"kind":"instant"},"publisher":{"kind":"text"},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"summary":{"format":"markdown","kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"''Portfolio report · '' + string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
+select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"exposure":{"fields":{"currency":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"currency","kind":"object","many":true,"optional":true},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"format":"markdown","kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"format":"markdown","kind":"text","optional":true},"markets":{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"format":"markdown","kind":"text","optional":true},"call":{"kind":"enum","optional":true,"values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text","optional":true},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"value":{"kind":"decimal","optional":true,"scale":2},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"sources":{"fields":{"at":{"kind":"instant"},"publisher":{"kind":"text"},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"summary":{"format":"markdown","kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"''Portfolio report · '' + string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
 
 -- step create:history:schema:report_subscription (additive)
 select bolt_history_register('report_subscription','{"audit":true,"fields":{"user":{"default":{"var":"actor.id"},"kind":"ref","to":"sys_user"}},"record_label":"record.user.name","unique":[{"fields":["user"],"name":"one_per_user"}]}'::jsonb);
@@ -1431,9 +1448,6 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 
 -- step create:fk:sys_sync_row.sys_sync_row__fk__328a1493 (additive)
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
-
--- step create:fk:portfolio_settings.portfolio_settings__fk__bf92d9ec (additive)
-alter table "portfolio_settings" add constraint "portfolio_settings__fk__bf92d9ec" foreign key ("report_via") references "sys_integration" ("id") on delete restrict on update restrict;
 
 -- step create:fk:report_subscription.report_subscription__fk__f8f94a56 (additive)
 alter table "report_subscription" add constraint "report_subscription__fk__f8f94a56" foreign key ("user") references "sys_user" ("id") on delete restrict on update restrict;
@@ -1690,9 +1704,6 @@ create index "sys_sync__ix__8be7dc72" on "sys_sync" ("instance");
 -- step create:index:sys_sync_row.sys_sync_row__ix__8be7dc72 (additive)
 create index "sys_sync_row__ix__8be7dc72" on "sys_sync_row" ("instance");
 
--- step create:index:portfolio_settings.portfolio_settings__ix__4dd9fddd (additive)
-create index "portfolio_settings__ix__4dd9fddd" on "portfolio_settings" ("report_via");
-
 -- step create:index:report_subscription.report_subscription__ix__fccf4300 (additive)
 create index "report_subscription__ix__fccf4300" on "report_subscription" ("user");
 
@@ -1707,12 +1718,12 @@ create trigger bolt_audit after insert or update or delete on "holding" for each
 -- step create:engine:audit:portfolio_settings (additive)
 drop trigger if exists bolt_audit_mark on "portfolio_settings";
 drop trigger if exists bolt_audit on "portfolio_settings";
-create trigger bolt_audit after insert or update or delete on "portfolio_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["report_via","sys_integration"]]');
+create trigger bolt_audit after insert or update or delete on "portfolio_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:report (additive)
 drop trigger if exists bolt_audit_mark on "report";
 drop trigger if exists bolt_audit on "report";
-create trigger bolt_audit after insert or update or delete on "report" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["deliveries","sys_message"]]');
+create trigger bolt_audit after insert or update or delete on "report" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:report_subscription (additive)
 drop trigger if exists bolt_audit_mark on "report_subscription";

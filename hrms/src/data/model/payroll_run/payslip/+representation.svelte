@@ -25,6 +25,10 @@
 		(line.source === 'employment' && line.code === 'PRORATED') ||
 		(line.source === 'leave_catalog_entry' &&
 			line.direction === 'DEDUCT' &&
+			line.subtotal === 'PAID_BASIC') ||
+		(line.source === 'roster_entry' &&
+			line.code === 'UNDERTIME' &&
+			line.direction === 'DEDUCT' &&
 			line.subtotal === 'PAID_BASIC');
 	const signedValue = (line: Line) => (line.direction === 'DEDUCT' ? -line.amount : line.amount);
 
@@ -182,6 +186,8 @@
 		if (line.code === RECOVERY) return ctx.t('app.payroll.line.recovery_carried');
 		if (line.source === 'leave_catalog_entry' && line.code === 'NPL')
 			return ctx.t('app.payroll.line.npl');
+		if (line.source === 'roster_entry' && line.code === 'UNDERTIME')
+			return ctx.t('app.payroll.line.undertime');
 		if (line.source === 'statutory_contribution_catalog')
 			return line.code.replace(/_EMPLOYER$/, '');
 		if (line.label !== '' && line.label !== line.code) return line.label;
@@ -193,6 +199,8 @@
 		if (line.code === 'PRORATED' && line.source === 'employment')
 			return ctx.t('app.payroll.line.proration_hint');
 		if (line.code === RECOVERY) return ctx.t('app.payroll.line.recovery_carried_hint');
+		if (line.source === 'roster_entry' && line.code === 'UNDERTIME')
+			return ctx.t('app.payroll.line.undertime_hint');
 		return describe(line);
 	};
 

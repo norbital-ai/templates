@@ -17,7 +17,11 @@ export default model('order_files', {
 		fields: ['order', 'title', 'file'],
 		transform: function* (changes, ctx) {
 			const { orders } = yield* ctx.query({
-				orders: { where: { id: { in: changes.map(({ after }) => after.order) } }, as_of: 'act' }
+				orders: {
+					where: { id: { in: changes.map(({ after }) => after.order) } },
+					fields: ['archived', 'status'],
+					as_of: 'act'
+				}
 			});
 			for (const [index, { after: row }] of changes.entries()) {
 				const order = orders.rows.find((candidate) => candidate.id === row.order);

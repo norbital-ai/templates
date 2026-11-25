@@ -69,6 +69,9 @@ export default messages({
 	'app.payroll.line.proration_hint':
 		'Unworked days before joining, after leaving, or absent days deducted from monthly basic pay.',
 	'app.payroll.line.npl': 'No-pay leave',
+	'app.payroll.line.undertime': 'Undertime',
+	'app.payroll.line.undertime_hint':
+		'Proportional deduction for unworked minutes within rostered shifts, floored to the currency minor unit.',
 	'app.payroll.line.exit_encashment': 'Exit encashment',
 	'app.payroll.line.leave_encashment': 'Leave encashment',
 	'app.payroll.line.overtaken_leave': 'Over-taken leave recovery',
@@ -458,6 +461,9 @@ export default messages({
 	'models.employee_profile.fields.cumulative_service': 'Count every stint',
 	'models.employee_profile.help.cumulative_service':
 		'Service counts every stint at the employer, rehires included. Off, only the current unbroken stint counts: the statutory continuous service.',
+	'models.employee_profile.fields.dock_undertime': 'Deduct undertime minutes',
+	'models.employee_profile.help.dock_undertime':
+		'Deducts exact unworked shift minutes (late arrival or early departure) from paid basic at the proportional minute rate, floored to the minor unit. Changing this recalculates paid periods on the next run.',
 	'models.employment.label': 'Employments',
 	'models.employment.singular': 'Employment',
 	'models.employment.fields.employee_number': 'Employee number',

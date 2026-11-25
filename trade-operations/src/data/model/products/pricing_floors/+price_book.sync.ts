@@ -1,4 +1,5 @@
 import { sync, type Finding } from '@norbital-ai/bolt';
+import { unitRatio } from '../../../../lib/commercial.js';
 
 const priceBook = {
 	ledger: { kind: 'text' },
@@ -9,7 +10,6 @@ const priceBook = {
 	effective_on: { kind: 'date' },
 	currency: { kind: 'currency' },
 	unit: { kind: 'text' },
-	minimum_quantity: { kind: 'decimal', scale: 3, min: 0 },
 	floor_price: { kind: 'decimal', scale: 4, min: 0 },
 	tax_inclusive: { kind: 'bool' },
 	tax_rate: { kind: 'decimal', scale: 2, min: 0, max: 100 }
@@ -55,8 +55,8 @@ export default sync('pricing_floors', 'price_book', {
 				? 'More than one product matches this code in this ledger. Add its Kingdee item ID.'
 				: !codeMatches
 					? 'No active product matches this code and item ID in this ledger.'
-					: product.unit !== floor.unit
-						? 'Use the product’s base unit.'
+					: !product.unit || unitRatio(floor.unit, product.unit) === null
+						? 'Use a unit compatible with the product’s base unit.'
 						: null;
 			if (!message && product)
 				return [
@@ -84,7 +84,6 @@ export default sync('pricing_floors', 'price_book', {
 				effective_on,
 				currency,
 				unit,
-				minimum_quantity,
 				floor_price,
 				tax_inclusive,
 				tax_rate
@@ -100,7 +99,6 @@ export default sync('pricing_floors', 'price_book', {
 								effective_on,
 								currency,
 								unit,
-								minimum_quantity,
 								floor_price,
 								tax_inclusive,
 								tax_rate

@@ -54,6 +54,7 @@ export const STINT_FIELDS = [
 export const PROFILE_FIELDS = [
 	'id',
 	'cumulative_service',
+	'dock_undertime',
 	'date_of_birth',
 	'identity_number',
 	'gender',

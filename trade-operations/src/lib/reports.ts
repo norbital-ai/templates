@@ -16,7 +16,7 @@ import type {
 	Row,
 	Where
 } from '@norbital-ai/bolt';
-import { hash, numeric } from './commercial.js';
+import { hash, numeric, unitRatio } from './commercial.js';
 import { commercialSalesFields } from './sales-fact-fields.js';
 import { earliestReceivablesCutoff } from './receivables.js';
 import { earliestPayablesCutoff } from './payables.js';
@@ -44,9 +44,7 @@ const reportLineFields = [
 	'unit',
 	'quantity',
 	'net',
-	'floor_net',
-	'commission_factor',
-	'commission_basis_unit'
+	'floor_net'
 ] as const;
 /** The order layers the commission and sales helpers read: its party's code and its lines. */
 export const reportLayers = {
@@ -124,12 +122,8 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 		const evaluated = Result.try(() => {
 			if (rule.engine_version && rule.engine_version !== COMMISSION_ENGINE)
 				throw new Error('Unknown commission engine');
-			const factor =
-				line.commission_factor !== null &&
-				BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.commission_factor)) &&
-				line.commission_basis_unit === rule.basis_unit
-					? line.commission_factor
-					: null;
+			const ratio = rule.basis_unit ? unitRatio(line.unit, rule.basis_unit) : null;
+			const factor = ratio && BigDecimal.isPositive(ratio) ? BigDecimal.format(ratio) : null;
 			const context = commissionContext({
 				quantity,
 				net,
@@ -187,17 +181,15 @@ function commissionLines(order: ReportOrder, actual?: readonly CommissionFact[])
 		});
 		if (Result.isSuccess(evaluated)) return evaluated.success;
 		{
+			const convertible = rule.basis_unit ? unitRatio(line.unit, rule.basis_unit) !== null : false;
 			const reason =
 				rule.amount_expression && rule.amount_expression !== DEFAULT_COMMISSION_EXPRESSION
 					? ('expression_error' as const)
 					: !floorNet
 						? ('floor_missing' as const)
-						: line.commission_factor === null ||
-							  !BigDecimal.isPositive(BigDecimal.fromStringUnsafe(line.commission_factor))
-							? ('conversion_missing' as const)
-							: line.commission_basis_unit !== rule.basis_unit
-								? ('unit_mismatch' as const)
-								: ('expression_error' as const);
+						: !convertible
+							? ('unit_mismatch' as const)
+							: ('expression_error' as const);
 			return { ...base, reason };
 		}
 	});

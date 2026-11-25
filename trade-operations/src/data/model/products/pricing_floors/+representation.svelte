@@ -29,13 +29,10 @@
 				'unit',
 				'floor_price',
 				'tax_inclusive',
-				'tax_rate',
-				'minimum_quantity'
+				'tax_rate'
 			],
 			readonlyFields:
-				view.mode === 'create'
-					? []
-					: ['product', 'currency', 'group_code', 'effective_on', 'unit', 'minimum_quantity']
+				view.mode === 'create' ? [] : ['product', 'currency', 'group_code', 'effective_on', 'unit']
 		}
 	]}
 	form_actions={warning}

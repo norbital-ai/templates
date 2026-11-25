@@ -20,6 +20,7 @@ export default sync('warehouses', 'kingdee', {
 						source_number: r.text('source_number', null),
 						name: r.text('name'),
 						group_code: r.text('group_code', null),
+						group_name: r.text('group_name', null),
 						active: r.bool('active', true),
 						source_updated_at: r.instant('source_updated_at')
 					};

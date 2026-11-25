@@ -1,4 +1,4 @@
--- 0001_initial.sql: 298 step(s), from an empty database to 211056d4896962f3a889421d716af71d4c2365a2f82767bbb01e50cdc6eb1216.
+-- 0001_initial.sql: 287 step(s), from an empty database to fd38a378b6aaf5c8e527cc7df0221eba2bb3065d041da424262cde7d7e53c965.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -574,86 +574,6 @@ create or replace function "bolt_record_label_sys_workspace_93340fdd"(text) retu
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
--- step create:function:bolt_record_label_customers_93340fdd (additive)
-create or replace function "bolt_record_label_customers_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_bookings_bde560e1 (additive)
-create or replace function "bolt_record_label_bookings_bde560e1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('number', to_jsonb("number")) AS j FROM (SELECT $1 AS "number") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_visits_bde560e1 (additive)
-create or replace function "bolt_record_label_visits_bde560e1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('number', to_jsonb("number")) AS j FROM (SELECT $1 AS "number") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_customer_notices_c9b3c79d (additive)
-create or replace function "bolt_record_label_customer_notices_c9b3c79d"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['subject']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('subject', to_jsonb("subject")) AS j FROM (SELECT $1 AS "subject") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_dispatch_settings_93340fdd (additive)
-create or replace function "bolt_record_label_dispatch_settings_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_drive_times_f87133b7 (additive)
-create or replace function "bolt_record_label_drive_times_f87133b7"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['leg']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('leg', to_jsonb("leg")) AS j FROM (SELECT $1 AS "leg") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_helpers_93340fdd (additive)
-create or replace function "bolt_record_label_helpers_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
--- step create:function:bolt_record_label_services_93340fdd (additive)
-create or replace function "bolt_record_label_services_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
-		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
-		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
-		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
-			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
-		ELSE nullif(btrim(value), '') END
-		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
-
 -- step create:function:bolt_record_label_availability_requests_4fcde555 (additive)
 create or replace function "bolt_record_label_availability_requests_4fcde555"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -673,6 +593,86 @@ create or replace function "bolt_record_label_booking_requests_bde560e1"(text) r
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('number', to_jsonb("number")) AS j FROM (SELECT $1 AS "number") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_bookings_bde560e1 (additive)
+create or replace function "bolt_record_label_bookings_bde560e1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('number', to_jsonb("number")) AS j FROM (SELECT $1 AS "number") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_appointments_bde560e1 (additive)
+create or replace function "bolt_record_label_appointments_bde560e1"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['number']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('number', to_jsonb("number")) AS j FROM (SELECT $1 AS "number") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_customers_93340fdd (additive)
+create or replace function "bolt_record_label_customers_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_customer_notices_c9b3c79d (additive)
+create or replace function "bolt_record_label_customer_notices_c9b3c79d"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['subject']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('subject', to_jsonb("subject")) AS j FROM (SELECT $1 AS "subject") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_drive_times_f87133b7 (additive)
+create or replace function "bolt_record_label_drive_times_f87133b7"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['leg']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('leg', to_jsonb("leg")) AS j FROM (SELECT $1 AS "leg") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_providers_93340fdd (additive)
+create or replace function "bolt_record_label_providers_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_scheduling_settings_93340fdd (additive)
+create or replace function "bolt_record_label_scheduling_settings_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_services_93340fdd (additive)
+create or replace function "bolt_record_label_services_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:engine:bolt_history_register (additive)
 create or replace function bolt_history_register(model_name text, definition jsonb)
@@ -1271,7 +1271,7 @@ create table "sys_user" ("id" text primary key,
 	"bolt_record_label" text generated always as ("bolt_record_label_sys_user_93340fdd"("name")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_user_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("email"::text, ''))) stored,
 	constraint "sys_user__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
-	constraint "sys_user__ck__3996db29" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
+	constraint "sys_user__ck__5ef80452" check (("preferences" is null or store_json_valid("preferences", '{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"email_notifications":{"kind":"bool","optional":true},"locale":{"kind":"text","max":35,"optional":true},"sounds":{"kind":"bool","optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "sys_user__ck__73877b7a" check ("kind" in ('staff', 'external', 'anonymous')),
 	constraint "sys_user__ck__cceca9d3" check (("party" is null or store_json_valid("party", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_user__ck__367d8eb4" check (isfinite("created_at")),
@@ -1289,22 +1289,58 @@ create table "sys_workspace" ("id" text primary key,
 	constraint "sys_workspace__ck__4e7b428e" check ((coalesce("id" = '00000000-0000-0000-0000-000000000001'::text, false)))
 );
 
--- step create:table:customers (additive)
-create table "customers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:availability_requests (additive)
+create table "availability_requests" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"phone" text not null,
+	"address" text not null,
+	"preference" text default 'any'::text not null,
+	"repeat" text default 'once'::text not null,
+	"location" point,
+	"starts" text[] default '{}'::text[] not null,
+	"estimated" boolean default true not null,
+	"checked_at" timestamptz,
+	"problem" text,
+	"status" text default 'pending' not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_availability_requests_4fcde555"("address")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_availability_requests_4fcde555"("address"), ''))) stored,
+	"service" uuid not null,
+	"provider" uuid,
+	constraint "availability_requests__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
+	constraint "availability_requests__ck__eff19e9d" check (char_length("address") <= 500),
+	constraint "availability_requests__ck__3d2308ba" check ("preference" in ('any', 'preferred')),
+	constraint "availability_requests__ck__ab3e5415" check ("repeat" in ('once', 'weekly', 'fortnightly', 'monthly')),
+	constraint "availability_requests__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
+	constraint "availability_requests__ck__263873bb" check (not jsonb_path_exists(to_jsonb("starts"), 'strict $[*] ? (@.type() != "string")')),
+	constraint "availability_requests__ck__b8425ae8" check (isfinite("checked_at")),
+	constraint "availability_requests__ck__1c699336" check ("status" in ('failed', 'pending', 'ready'))
+);
+
+-- step create:table:booking_requests (additive)
+create table "booking_requests" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"number" text not null,
 	"name" text not null,
 	"phone" text not null,
 	"email" text,
 	"address" text not null,
-	"location" point,
-	"area" text,
+	"start" timestamptz not null,
+	"repeat" text default 'once'::text not null,
 	"notes" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_customers_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_customers_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("email"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
-	constraint "customers__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
-	constraint "customers__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
-	constraint "customers__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "customers__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
-	constraint "customers__uq__9dafea68" unique ("phone") deferrable initially immediate
+	"status" text default 'received' not null,
+	"outcome" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_booking_requests_bde560e1"("number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_booking_requests_bde560e1"("number"), '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
+	"service" uuid not null,
+	"availability" uuid,
+	"booking" uuid,
+	constraint "booking_requests__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
+	constraint "booking_requests__ck__4b0770d4" check (char_length("name") <= 200),
+	constraint "booking_requests__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
+	constraint "booking_requests__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+	constraint "booking_requests__ck__eff19e9d" check (char_length("address") <= 500),
+	constraint "booking_requests__ck__41d722c2" check (isfinite("start")),
+	constraint "booking_requests__ck__ab3e5415" check ("repeat" in ('once', 'weekly', 'fortnightly', 'monthly')),
+	constraint "booking_requests__ck__df51243d" check (char_length("notes") <= 2000),
+	constraint "booking_requests__ck__dc806389" check ("status" in ('booked', 'closed', 'follow_up', 'received'))
 );
 
 -- step create:table:bookings (additive)
@@ -1312,45 +1348,34 @@ create table "bookings" ("id" uuid primary key, revision int not null default 1,
 	"number" text not null,
 	"address" text not null,
 	"location" point,
-	"area" text,
 	"preference" text not null,
 	"repeat" text not null,
 	"status" text default 'active' not null,
 	"notes" text,
-	"visit_count" int default 0 not null,
+	"appointment_count" int default 0 not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_bookings_bde560e1"("number")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_bookings_bde560e1"("number"), '') || ' ' || coalesce("number"::text, ''))) stored,
 	"customer" uuid not null,
 	"service" uuid not null,
 	constraint "bookings__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
+	constraint "bookings__ck__eff19e9d" check (char_length("address") <= 500),
 	constraint "bookings__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "bookings__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
 	constraint "bookings__ck__3d2308ba" check ("preference" in ('any', 'preferred')),
 	constraint "bookings__ck__ab3e5415" check ("repeat" in ('once', 'weekly', 'fortnightly', 'monthly')),
-	constraint "bookings__ck__6d283347" check ("status" in ('active', 'cancelled'))
+	constraint "bookings__ck__6d283347" check ("status" in ('active', 'cancelled')),
+	constraint "bookings__ck__df51243d" check (char_length("notes") <= 2000)
 );
 
--- step create:table:booking_helpers (additive)
-create table "booking_helpers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"rank" int not null,
-	"booking" uuid not null,
-	"helper" uuid not null,
-	constraint "booking_helpers__ck__8e164ef7" check ("rank" >= 1 and "rank" <= 5),
-	constraint "booking_helpers__uq__ab4503ea" unique nulls not distinct ("booking", "helper") deferrable initially immediate
-);
-
--- step create:table:visits (additive)
-create table "visits" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:appointments (additive)
+create table "appointments" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"number" text not null,
 	"slot" tstzrange not null,
 	"address" text not null,
 	"location" point,
-	"area" text,
 	"skill" text not null,
 	"status" text default 'scheduled' not null,
 	"shift_check" text default 'not_due'::text not null,
 	"shift_asked_at" timestamptz,
-	"mc" boolean default false not null,
 	"eta_minutes" int,
 	"eta_checked_at" timestamptz,
 	"attention" text default 'none'::text not null,
@@ -1359,27 +1384,55 @@ create table "visits" ("id" uuid primary key, revision int not null default 1, c
 	"completed_at" timestamptz,
 	"completion_notes" text,
 	"late_cancellation" boolean default false not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_visits_bde560e1"("number")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_visits_bde560e1"("number"), '') || ' ' || coalesce("number"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_appointments_bde560e1"("number")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_appointments_bde560e1"("number"), '') || ' ' || coalesce("number"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
 	"booking" uuid not null,
-	"helper" uuid,
-	"unavailable_helper" uuid,
-	"proposed_helper" uuid,
-	constraint "visits__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
-	constraint "visits__ck__26dc33e3" check (not isempty("slot") and not lower_inf("slot")),
-	constraint "visits__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "visits__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
-	constraint "visits__ck__13927f40" check ("skill" in ('home_cleaning', 'deep_cleaning', 'move_in_out', 'post_renovation', 'office_cleaning', 'laundry_ironing', 'handyman')),
-	constraint "visits__ck__97cf9ff3" check ("status" in ('cancelled', 'done', 'in_progress', 'scheduled')),
-	constraint "visits__ck__bfc3eaf2" check ("shift_check" in ('not_due', 'asked', 'confirmed', 'no_response', 'declined')),
-	constraint "visits__ck__81a94226" check (isfinite("shift_asked_at")),
-	constraint "visits__ck__a764b151" check (isfinite("eta_checked_at")),
-	constraint "visits__ck__69cf7be7" check ("attention" in ('none', 'unassigned', 'eta_risk', 'helper_left', 'awaiting_approval')),
-	constraint "visits__ck__f9e58aa9" check (not isempty("proposed_slot") and not lower_inf("proposed_slot")),
-	constraint "visits__ck__df253602" check (isfinite("started_at")),
-	constraint "visits__ck__24d370ee" check (isfinite("completed_at")),
-	constraint "visits__ck__4c1a0f3a" check (char_length("completion_notes") <= 2000),
-	constraint "visits__ex__12f1c5d6" exclude using gist ((coalesce("helper", '00000000-0000-0000-0000-000000000000'::uuid)) with =, ("helper" is null) with =, "slot" with &&) where ("helper" is not null and "status" is distinct from 'cancelled'::text) deferrable initially immediate
+	"provider" uuid,
+	"unavailable_provider" uuid,
+	"proposed_provider" uuid,
+	constraint "appointments__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
+	constraint "appointments__ck__26dc33e3" check (not isempty("slot") and not lower_inf("slot")),
+	constraint "appointments__ck__eff19e9d" check (char_length("address") <= 500),
+	constraint "appointments__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
+	constraint "appointments__ck__b0f95cdf" check (char_length("skill") <= 80),
+	constraint "appointments__ck__a71a9c6c" check ("status" in ('cancelled', 'completed', 'in_progress', 'scheduled')),
+	constraint "appointments__ck__bfc3eaf2" check ("shift_check" in ('not_due', 'asked', 'confirmed', 'no_response', 'declined')),
+	constraint "appointments__ck__81a94226" check (isfinite("shift_asked_at")),
+	constraint "appointments__ck__a764b151" check (isfinite("eta_checked_at")),
+	constraint "appointments__ck__22b61e00" check ("attention" in ('none', 'unassigned', 'eta_risk', 'provider_inactive', 'awaiting_approval')),
+	constraint "appointments__ck__f9e58aa9" check (not isempty("proposed_slot") and not lower_inf("proposed_slot")),
+	constraint "appointments__ck__df253602" check (isfinite("started_at")),
+	constraint "appointments__ck__24d370ee" check (isfinite("completed_at")),
+	constraint "appointments__ck__4c1a0f3a" check (char_length("completion_notes") <= 2000),
+	constraint "appointments__ex__2bf510af" exclude using gist ((coalesce("provider", '00000000-0000-0000-0000-000000000000'::uuid)) with =, ("provider" is null) with =, "slot" with &&) where ("provider" is not null and "status" is distinct from 'cancelled'::text) deferrable initially immediate
+);
+
+-- step create:table:booking_providers (additive)
+create table "booking_providers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"rank" int not null,
+	"booking" uuid not null,
+	"provider" uuid not null,
+	constraint "booking_providers__ck__8e164ef7" check ("rank" >= 1 and "rank" <= 5),
+	constraint "booking_providers__uq__ca85605c" unique nulls not distinct ("booking", "provider") deferrable initially immediate
+);
+
+-- step create:table:customers (additive)
+create table "customers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"name" text not null,
+	"phone" text not null,
+	"email" text,
+	"address" text not null,
+	"location" point,
+	"notes" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_customers_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_customers_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("email"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
+	constraint "customers__ck__7cce5ac9" check (char_length("name") <= 160),
+	constraint "customers__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
+	constraint "customers__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+	constraint "customers__ck__eff19e9d" check (char_length("address") <= 500),
+	constraint "customers__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
+	constraint "customers__ck__df51243d" check (char_length("notes") <= 2000),
+	constraint "customers__uq__9dafea68" unique ("phone") deferrable initially immediate
 );
 
 -- step create:table:customer_notices (additive)
@@ -1400,46 +1453,15 @@ create table "customer_notices" ("id" uuid primary key, revision int not null de
 	"bolt_record_label" text generated always as ("bolt_record_label_customer_notices_c9b3c79d"("subject")) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_customer_notices_c9b3c79d"("subject"), '') || ' ' || coalesce("subject"::text, ''))) stored,
 	"customer" uuid not null,
-	"visit" uuid,
+	"appointment" uuid,
+	constraint "customer_notices__ck__537e4158" check (char_length("subject") <= 300),
+	constraint "customer_notices__ck__f1cdc0e4" check (char_length("body") <= 4000),
 	constraint "customer_notices__ck__c41838d0" check ("delivery" in ('queued', 'sent', 'deferred', 'delivered', 'opened', 'replied', 'bounced', 'failed')),
 	constraint "customer_notices__ck__057f376e" check (isfinite("sent_at")),
 	constraint "customer_notices__ck__9e2c1039" check (isfinite("delivered_at")),
 	constraint "customer_notices__ck__dca011d1" check (isfinite("opened_at")),
 	constraint "customer_notices__ck__7b5f8cec" check (isfinite("replied_at")),
 	constraint "customer_notices__ck__af2eebba" check (isfinite("auto_replied_at"))
-);
-
--- step create:table:helper_warnings (additive)
-create table "helper_warnings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"reason" text not null,
-	"issued_at" timestamptz not null,
-	"letter" jsonb,
-	"notes" text,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("reason"::text, ''))) stored,
-	"helper" uuid not null,
-	"visit" uuid,
-	constraint "helper_warnings__ck__039a80a0" check ("reason" in ('no_response', 'declined_without_mc')),
-	constraint "helper_warnings__ck__b60b1511" check (isfinite("issued_at")),
-	constraint "helper_warnings__ck__1b0d4151" check (("letter" is null or store_json_valid("letter", '{"accept":["application/pdf"],"kind":"file","max":"2MiB","optional":true}'::jsonb) is true))
-);
-
--- step create:table:dispatch_settings (additive)
-create table "dispatch_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"name" text default 'Dispatch'::text not null,
-	"eta_limit_minutes" int default '30'::int not null,
-	"eta_check_lead_minutes" int default '60'::int not null,
-	"shift_check_lead_minutes" int default '120'::int not null,
-	"shift_reply_minutes" int default '60'::int not null,
-	"free_change_hours" int default '24'::int not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_dispatch_settings_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_dispatch_settings_93340fdd"("name"), ''))) stored,
-	constraint "dispatch_settings__ck__786c73b3" check ("eta_limit_minutes" >= 5 and "eta_limit_minutes" <= 240),
-	constraint "dispatch_settings__ck__4446483f" check ("eta_check_lead_minutes" >= 15 and "eta_check_lead_minutes" <= 240),
-	constraint "dispatch_settings__ck__f142e450" check ("shift_check_lead_minutes" >= 30 and "shift_check_lead_minutes" <= 720),
-	constraint "dispatch_settings__ck__9f371d94" check ("shift_reply_minutes" >= 10 and "shift_reply_minutes" <= 240),
-	constraint "dispatch_settings__ck__8d366436" check ("free_change_hours" >= 0 and "free_change_hours" <= 168),
-	constraint "dispatch_settings__uq__27f44ac5" unique ("name") deferrable initially immediate,
-	constraint "dispatch_settings__ck__df42c5c1" check ((coalesce("shift_reply_minutes" < "shift_check_lead_minutes", false)))
 );
 
 -- step create:table:drive_times (additive)
@@ -1452,121 +1474,92 @@ create table "drive_times" ("id" uuid primary key, revision int not null default
 	constraint "drive_times__uq__ffaf0853" unique ("leg") deferrable initially immediate
 );
 
--- step create:table:helpers (additive)
-create table "helpers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:providers (additive)
+create table "providers" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"name" text not null,
 	"phone" text not null,
+	"email" text,
 	"skills" text[] not null,
-	"home_area" text,
 	"home_location" point,
 	"work_days" text[] not null,
 	"day_start" time not null,
 	"day_end" time not null,
 	"status" text default 'active' not null,
-	"left_on" date,
+	"inactive_since" date,
 	"last_location" point,
 	"last_location_at" timestamptz,
-	"warning_count" int default 0 not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_helpers_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_helpers_93340fdd"("name"), '') || ' ' || coalesce("name"::text, ''))) stored,
+	"bolt_record_label" text generated always as ("bolt_record_label_providers_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_providers_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("email"::text, ''))) stored,
 	"user" text,
-	constraint "helpers__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
-	constraint "helpers__ck__cdd3cd5d" check (not jsonb_path_exists(to_jsonb("skills"), 'strict $[*] ? (@.type() != "string")') and "skills" <@ array['home_cleaning', 'deep_cleaning', 'move_in_out', 'post_renovation', 'office_cleaning', 'laundry_ironing', 'handyman']::text[]),
-	constraint "helpers__ck__e3909153" check ("home_area" in ('central', 'north', 'north_east', 'east', 'west')),
-	constraint "helpers__ck__ead2bfc9" check ("home_location"[1] between -90 and 90 and "home_location"[0] between -180 and 180),
-	constraint "helpers__ck__7592fc4c" check (not jsonb_path_exists(to_jsonb("work_days"), 'strict $[*] ? (@.type() != "string")') and "work_days" <@ array['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']::text[]),
-	constraint "helpers__ck__fe4d8edc" check ("day_start" < time '24:00'),
-	constraint "helpers__ck__fce01fd6" check ("day_end" < time '24:00'),
-	constraint "helpers__ck__2cb18c1e" check ("status" in ('active', 'left')),
-	constraint "helpers__ck__6c69e4b2" check (isfinite("left_on")),
-	constraint "helpers__ck__07118c9b" check ("last_location"[1] between -90 and 90 and "last_location"[0] between -180 and 180),
-	constraint "helpers__ck__1c862404" check (isfinite("last_location_at")),
-	constraint "helpers__uq__f7773e92" unique ("user") deferrable initially immediate,
-	constraint "helpers__ck__7300625c" check ((coalesce("day_end" > "day_start", false)))
+	constraint "providers__ck__7cce5ac9" check (char_length("name") <= 160),
+	constraint "providers__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
+	constraint "providers__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+	constraint "providers__ck__b69a2eaf" check (not jsonb_path_exists(to_jsonb("skills"), 'strict $[*] ? (@.type() != "string" || @ like_regex "^.{81}" flag "s")')),
+	constraint "providers__ck__ead2bfc9" check ("home_location"[1] between -90 and 90 and "home_location"[0] between -180 and 180),
+	constraint "providers__ck__7592fc4c" check (not jsonb_path_exists(to_jsonb("work_days"), 'strict $[*] ? (@.type() != "string")') and "work_days" <@ array['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']::text[]),
+	constraint "providers__ck__fe4d8edc" check ("day_start" < time '24:00'),
+	constraint "providers__ck__fce01fd6" check ("day_end" < time '24:00'),
+	constraint "providers__ck__26d83180" check ("status" in ('active', 'inactive')),
+	constraint "providers__ck__faccb9c6" check (isfinite("inactive_since")),
+	constraint "providers__ck__07118c9b" check ("last_location"[1] between -90 and 90 and "last_location"[0] between -180 and 180),
+	constraint "providers__ck__1c862404" check (isfinite("last_location_at")),
+	constraint "providers__uq__f7773e92" unique ("user") deferrable initially immediate,
+	constraint "providers__ck__7300625c" check ((coalesce("day_end" > "day_start", false)))
 );
 
--- step create:table:helper_time_off (additive)
-create table "helper_time_off" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+-- step create:table:provider_time_off (additive)
+create table "provider_time_off" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"period" daterange not null,
 	"reason" text not null,
-	"helper" uuid not null,
-	constraint "helper_time_off__ck__ebc65b98" check (not isempty("period") and not lower_inf("period")),
-	constraint "helper_time_off__ck__520dadab" check ("reason" in ('leave', 'medical', 'other')),
-	constraint "helper_time_off__ex__556aa6fc" exclude using gist ("helper" with =, "period" with &&) deferrable initially immediate
+	"provider" uuid not null,
+	constraint "provider_time_off__ck__ebc65b98" check (not isempty("period") and not lower_inf("period")),
+	constraint "provider_time_off__ck__7a9dba54" check ("reason" in ('leave', 'sick', 'unavailable')),
+	constraint "provider_time_off__ex__88295b0a" exclude using gist ("provider" with =, "period" with &&) deferrable initially immediate
+);
+
+-- step create:table:scheduling_settings (additive)
+create table "scheduling_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"name" text default 'Scheduling'::text not null,
+	"slot_interval_minutes" int default '30'::int not null,
+	"buffer_minutes" int default '15'::int not null,
+	"booking_horizon_days" int default '14'::int not null,
+	"eta_limit_minutes" int default '30'::int not null,
+	"eta_check_lead_minutes" int default '60'::int not null,
+	"shift_check_lead_minutes" int default '120'::int not null,
+	"shift_reply_minutes" int default '60'::int not null,
+	"free_change_hours" int default '24'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_scheduling_settings_93340fdd"("name")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_scheduling_settings_93340fdd"("name"), ''))) stored,
+	constraint "scheduling_settings__ck__b8b5122d" check ("slot_interval_minutes" >= 15 and "slot_interval_minutes" <= 60),
+	constraint "scheduling_settings__ck__011136aa" check ("buffer_minutes" >= 0 and "buffer_minutes" <= 120),
+	constraint "scheduling_settings__ck__6f573dc5" check ("booking_horizon_days" >= 7 and "booking_horizon_days" <= 60),
+	constraint "scheduling_settings__ck__786c73b3" check ("eta_limit_minutes" >= 5 and "eta_limit_minutes" <= 240),
+	constraint "scheduling_settings__ck__4446483f" check ("eta_check_lead_minutes" >= 15 and "eta_check_lead_minutes" <= 240),
+	constraint "scheduling_settings__ck__f142e450" check ("shift_check_lead_minutes" >= 30 and "shift_check_lead_minutes" <= 720),
+	constraint "scheduling_settings__ck__9f371d94" check ("shift_reply_minutes" >= 10 and "shift_reply_minutes" <= 240),
+	constraint "scheduling_settings__ck__8d366436" check ("free_change_hours" >= 0 and "free_change_hours" <= 168),
+	constraint "scheduling_settings__uq__27f44ac5" unique ("name") deferrable initially immediate,
+	constraint "scheduling_settings__ck__df42c5c1" check ((coalesce("shift_reply_minutes" < "shift_check_lead_minutes", false)))
 );
 
 -- step create:table:services (additive)
 create table "services" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"name" text not null,
+	"category" text,
 	"skill" text not null,
 	"duration_minutes" int not null,
 	"price" numeric not null,
 	"description" text,
 	"active" boolean default true not null,
 	"bolt_record_label" text generated always as ("bolt_record_label_services_93340fdd"("name")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_services_93340fdd"("name"), '') || ' ' || coalesce("name"::text, ''))) stored,
-	constraint "services__ck__13927f40" check ("skill" in ('home_cleaning', 'deep_cleaning', 'move_in_out', 'post_renovation', 'office_cleaning', 'laundry_ironing', 'handyman')),
-	constraint "services__ck__e56acf6a" check ("duration_minutes" >= 30 and "duration_minutes" <= 720),
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_services_93340fdd"("name"), '') || ' ' || coalesce("name"::text, '') || ' ' || coalesce("category"::text, '') || ' ' || coalesce("skill"::text, ''))) stored,
+	constraint "services__ck__7cce5ac9" check (char_length("name") <= 160),
+	constraint "services__ck__7f99e855" check (char_length("category") <= 80),
+	constraint "services__ck__b0f95cdf" check (char_length("skill") <= 80),
+	constraint "services__ck__ac403428" check ("duration_minutes" >= 15 and "duration_minutes" <= 720),
 	constraint "services__ck__5b5e0602" check ("price" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("price", 2) = "price"),
+	constraint "services__ck__a1b3bac0" check (char_length("description") <= 1000),
 	constraint "services__uq__27f44ac5" unique ("name") deferrable initially immediate
-);
-
--- step create:table:availability_requests (additive)
-create table "availability_requests" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"phone" text not null,
-	"address" text not null,
-	"area" text,
-	"preference" text default 'any'::text not null,
-	"repeat" text default 'once'::text not null,
-	"location" point,
-	"starts" text[] default '{}'::text[] not null,
-	"estimated" boolean default true not null,
-	"checked_at" timestamptz,
-	"problem" text,
-	"status" text default 'pending' not null,
-	"bolt_record_label" text generated always as ("bolt_record_label_availability_requests_4fcde555"("address")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_availability_requests_4fcde555"("address"), ''))) stored,
-	"service" uuid not null,
-	"helper" uuid,
-	constraint "availability_requests__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
-	constraint "availability_requests__ck__eff19e9d" check (char_length("address") <= 500),
-	constraint "availability_requests__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
-	constraint "availability_requests__ck__3d2308ba" check ("preference" in ('any', 'preferred')),
-	constraint "availability_requests__ck__ab3e5415" check ("repeat" in ('once', 'weekly', 'fortnightly', 'monthly')),
-	constraint "availability_requests__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "availability_requests__ck__263873bb" check (not jsonb_path_exists(to_jsonb("starts"), 'strict $[*] ? (@.type() != "string")')),
-	constraint "availability_requests__ck__b8425ae8" check (isfinite("checked_at")),
-	constraint "availability_requests__ck__1c699336" check ("status" in ('failed', 'pending', 'ready'))
-);
-
--- step create:table:booking_requests (additive)
-create table "booking_requests" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"number" text not null,
-	"name" text not null,
-	"phone" text not null,
-	"email" text,
-	"address" text not null,
-	"area" text,
-	"start" timestamptz not null,
-	"repeat" text default 'once'::text not null,
-	"notes" text,
-	"status" text default 'received' not null,
-	"outcome" text,
-	"bolt_record_label" text generated always as ("bolt_record_label_booking_requests_bde560e1"("number")) stored,
-	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_booking_requests_bde560e1"("number"), '') || ' ' || coalesce("phone"::text, '') || ' ' || coalesce("address"::text, ''))) stored,
-	"service" uuid not null,
-	"availability" uuid,
-	"booking" uuid,
-	constraint "booking_requests__uq__268a00e8" unique nulls not distinct ("number") deferrable initially immediate,
-	constraint "booking_requests__ck__4b0770d4" check (char_length("name") <= 200),
-	constraint "booking_requests__ck__43907b08" check ("phone" ~ '^\+?[0-9][0-9 ()\-.]{2,}$'),
-	constraint "booking_requests__ck__88131100" check ("email" ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
-	constraint "booking_requests__ck__eff19e9d" check (char_length("address") <= 500),
-	constraint "booking_requests__ck__651ad380" check ("area" in ('central', 'north', 'north_east', 'east', 'west')),
-	constraint "booking_requests__ck__41d722c2" check (isfinite("start")),
-	constraint "booking_requests__ck__ab3e5415" check ("repeat" in ('once', 'weekly', 'fortnightly', 'monthly')),
-	constraint "booking_requests__ck__df51243d" check (char_length("notes") <= 2000),
-	constraint "booking_requests__ck__dc806389" check ("status" in ('booked', 'closed', 'follow_up', 'received'))
 );
 
 -- step create:table:openings (additive)
@@ -1628,49 +1621,46 @@ select bolt_history_register('sys_integration','{"fields":{"active":{"default":t
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"format":"team","kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
 
 -- step create:history:schema:sys_user (additive)
-select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"locale":{"kind":"enum","optional":true,"values":["en","zh"]},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
+select bolt_history_register('sys_user','{"check":{"admin_staff":{"or":[{"admin":{"eq":false}},{"kind":{"eq":"staff"}}]}},"computed":{"party_id":{"expr":{"json_text":[{"field":"party"},"id"]},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"active":{"default":true,"kind":"bool"},"admin":{"default":false,"kind":"bool"},"created_at":{"default":{"var":"now"},"kind":"instant"},"discord":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"kind":{"default":"staff","kind":"enum","values":["staff","external","anonymous"]},"last_seen":{"kind":"instant","optional":true},"name":{"kind":"text"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"preferences":{"default":{},"kind":"json","shape":{"fields":{"appearance":{"kind":"enum","optional":true,"values":["light","dark","system"]},"email_notifications":{"kind":"bool","optional":true},"locale":{"kind":"text","max":35,"optional":true},"sounds":{"kind":"bool","optional":true}},"kind":"object"}},"revision":{"default":1,"kind":"int"},"signup":{"default":false,"kind":"bool"},"slack":{"kind":"text","optional":true},"team":{"format":"team","kind":"text","optional":true},"telegram":{"kind":"text","optional":true}},"indexes":[{"on":[{"lower":"email"}],"unique":true},{"on":["phone_key"],"unique":true}],"key":"text","record_label":"record.name","search":{"text":["name","email"]}}'::jsonb);
 
 -- step create:history:schema:sys_workspace (additive)
 select bolt_history_register('sys_workspace','{"check":{"singleton":{"id":{"eq":"00000000-0000-0000-0000-000000000001"}}},"fields":{"name":{"kind":"text","max":120,"optional":true},"revision":{"default":1,"kind":"int"}},"key":"text","record_label":"record.name"}'::jsonb);
 
--- step create:history:schema:customers (additive)
-select bolt_history_register('customers','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"email":{"format":"email","kind":"text","optional":true},"location":{"kind":"point","optional":true},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"phone":{"format":"phone","kind":"text"}},"record_label":"record.name","search":{"text":["name","phone","email","address"]},"unique":[{"fields":["phone"],"name":"phone"}]}'::jsonb);
+-- step create:history:schema:availability_requests (additive)
+select bolt_history_register('availability_requests','{"audit":true,"fields":{"address":{"kind":"text","max":500},"checked_at":{"kind":"instant","optional":true},"estimated":{"default":true,"kind":"bool"},"location":{"kind":"point","optional":true},"phone":{"format":"phone","kind":"text"},"preference":{"default":"any","kind":"enum","values":["any","preferred"]},"problem":{"kind":"text","optional":true},"provider":{"kind":"ref","optional":true,"to":"providers"},"repeat":{"default":"once","kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"kind":"ref","to":"services"},"starts":{"default":[],"hidden":true,"kind":"text","many":true},"status":{"initial":"pending","kind":"state","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}},"locks":{"settled":{"where":{"status":{"in":["ready","failed"]}}}},"record_label":"record.address"}'::jsonb);
+
+-- step create:history:schema:booking_requests (additive)
+select bolt_history_register('booking_requests','{"audit":true,"fields":{"address":{"kind":"text","max":500},"availability":{"kind":"ref","optional":true,"to":"availability_requests"},"booking":{"kind":"ref","on_delete":"set_null","optional":true,"to":"bookings"},"email":{"format":"email","kind":"text","optional":true},"name":{"kind":"text","max":200},"notes":{"kind":"text","max":2000,"optional":true},"number":{"kind":"seq","pattern":"RQ-{yyyy}-{0000}"},"outcome":{"kind":"text","optional":true},"phone":{"format":"phone","kind":"text"},"repeat":{"default":"once","kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"kind":"ref","to":"services","where":{"active":{"eq":true}}},"start":{"kind":"instant"},"status":{"initial":"received","kind":"state","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}},"indexes":[{"on":["status"]}],"locks":{"settled":{"where":{"status":{"in":["booked","closed"]}}}},"record_label":"record.number","search":{"text":["phone","address"]}}'::jsonb);
 
 -- step create:history:schema:bookings (additive)
-select bolt_history_register('bookings','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"customer":{"inverse":"bookings","kind":"ref","to":"customers"},"location":{"kind":"point","optional":true},"notes":{"kind":"text","optional":true},"number":{"kind":"seq","pattern":"BK-{yyyy}-{0000}"},"preference":{"kind":"enum","values":["any","preferred"]},"repeat":{"kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"inverse":"bookings","kind":"ref","to":"services"},"status":{"initial":"active","kind":"state","states":{"active":{"to":["cancelled"]},"cancelled":{}}},"visit_count":{"kind":"count","of":"visits"}},"indexes":[{"on":["status"]}],"locks":{"cancelled":{"where":{"status":{"eq":"cancelled"}}}},"record_label":"record.number","search":{"text":["number","customer","service"]}}'::jsonb);
+select bolt_history_register('bookings','{"audit":true,"fields":{"address":{"kind":"text","max":500},"appointment_count":{"kind":"count","of":"appointments"},"customer":{"inverse":"bookings","kind":"ref","to":"customers"},"location":{"kind":"point","optional":true},"notes":{"kind":"text","max":2000,"optional":true},"number":{"kind":"seq","pattern":"BK-{yyyy}-{0000}"},"preference":{"kind":"enum","values":["any","preferred"]},"repeat":{"kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"inverse":"bookings","kind":"ref","to":"services"},"status":{"initial":"active","kind":"state","states":{"active":{"to":["cancelled"]},"cancelled":{}}}},"indexes":[{"on":["status"]}],"locks":{"cancelled":{"except":["appointments"],"where":{"status":{"eq":"cancelled"}}}},"record_label":"record.number","search":{"text":["number","customer","service"]}}'::jsonb);
 
--- step create:history:schema:booking_helpers (additive)
-select bolt_history_register('booking_helpers','{"audit":true,"fields":{"booking":{"inverse":"preferred_helpers","kind":"ref","owned":true,"to":"bookings"},"helper":{"inverse":"preferred_by","kind":"ref","to":"helpers"},"rank":{"kind":"int","max":5,"min":1}},"record_label":"record.booking.number + '' · '' + record.helper.name","unique":[{"fields":["booking","helper"],"name":"one_rank_per_helper"}]}'::jsonb);
+-- step create:history:schema:appointments (additive)
+select bolt_history_register('appointments','{"audit":true,"fields":{"address":{"kind":"text","max":500},"attention":{"default":"none","kind":"enum","values":["none","unassigned","eta_risk","provider_inactive","awaiting_approval"]},"booking":{"inverse":"appointments","kind":"ref","owned":true,"to":"bookings"},"completed_at":{"kind":"instant","optional":true},"completion_notes":{"kind":"text","max":2000,"optional":true},"eta_checked_at":{"kind":"instant","optional":true},"eta_minutes":{"kind":"int","optional":true},"late_cancellation":{"default":false,"kind":"bool"},"location":{"kind":"point","optional":true},"number":{"kind":"seq","pattern":"AP-{yyyy}-{00000}"},"proposed_provider":{"kind":"ref","on_delete":"set_null","optional":true,"to":"providers"},"proposed_slot":{"kind":"period","of":"instant","optional":true},"provider":{"inverse":"appointments","kind":"ref","on_delete":"set_null","optional":true,"to":"providers"},"shift_asked_at":{"kind":"instant","optional":true},"shift_check":{"default":"not_due","kind":"enum","values":["not_due","asked","confirmed","no_response","declined"]},"skill":{"kind":"text","max":80},"slot":{"kind":"period","of":"instant"},"started_at":{"kind":"instant","optional":true},"status":{"initial":"scheduled","kind":"state","states":{"cancelled":{},"completed":{"stamp":"completed_at"},"in_progress":{"stamp":"started_at","to":["completed"]},"scheduled":{"to":["in_progress","cancelled"]}}},"unavailable_provider":{"kind":"ref","on_delete":"set_null","optional":true,"to":"providers"}},"indexes":[{"on":["attention","shift_check"]}],"locks":{"finished":{"where":{"status":{"in":["completed","cancelled"]}}},"under_way":{"except":["status","completion_notes","completed_at","attention"],"where":{"status":{"eq":"in_progress"}}}},"no_overlap":[{"key":["provider"],"name":"one_appointment_at_a_time","period":"slot","where":{"provider":{"is_null":false},"status":{"ne":"cancelled"}}}],"record_label":"record.number","search":{"text":["number","address","provider","booking"]},"was":"visits"}'::jsonb);
 
--- step create:history:schema:visits (additive)
-select bolt_history_register('visits','{"audit":true,"fields":{"address":{"kind":"text"},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"attention":{"default":"none","kind":"enum","values":["none","unassigned","eta_risk","helper_left","awaiting_approval"]},"booking":{"inverse":"visits","kind":"ref","owned":true,"to":"bookings"},"completed_at":{"kind":"instant","optional":true},"completion_notes":{"kind":"text","max":2000,"optional":true},"eta_checked_at":{"kind":"instant","optional":true},"eta_minutes":{"kind":"int","optional":true},"helper":{"inverse":"visits","kind":"ref","on_delete":"set_null","optional":true,"to":"helpers"},"late_cancellation":{"default":false,"kind":"bool"},"location":{"kind":"point","optional":true},"mc":{"default":false,"kind":"bool"},"number":{"kind":"seq","pattern":"V-{yyyy}-{00000}"},"proposed_helper":{"kind":"ref","on_delete":"set_null","optional":true,"to":"helpers"},"proposed_slot":{"kind":"period","of":"instant","optional":true},"shift_asked_at":{"kind":"instant","optional":true},"shift_check":{"default":"not_due","kind":"enum","values":["not_due","asked","confirmed","no_response","declined"]},"skill":{"kind":"enum","values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]},"slot":{"kind":"period","of":"instant"},"started_at":{"kind":"instant","optional":true},"status":{"initial":"scheduled","kind":"state","states":{"cancelled":{},"done":{},"in_progress":{"to":["done"]},"scheduled":{"to":["in_progress","cancelled"]}}},"unavailable_helper":{"kind":"ref","on_delete":"set_null","optional":true,"to":"helpers"}},"indexes":[{"on":["attention","shift_check"]}],"locks":{"finished":{"where":{"status":{"in":["done","cancelled"]}}},"under_way":{"except":["status","completion_notes","completed_at","attention"],"where":{"status":{"eq":"in_progress"}}}},"no_overlap":[{"key":["helper"],"name":"one_visit_at_a_time","period":"slot","where":{"helper":{"is_null":false},"status":{"ne":"cancelled"}}}],"record_label":"record.number","search":{"text":["number","address","helper","booking"]}}'::jsonb);
+-- step create:history:schema:booking_providers (additive)
+select bolt_history_register('booking_providers','{"audit":true,"fields":{"booking":{"inverse":"preferred_providers","kind":"ref","owned":true,"to":"bookings"},"provider":{"inverse":"preferred_by","kind":"ref","to":"providers"},"rank":{"kind":"int","max":5,"min":1}},"record_label":"record.booking.number + '' · '' + record.provider.name","unique":[{"fields":["booking","provider"],"name":"one_rank_per_provider"}],"was":"booking_helpers"}'::jsonb);
+
+-- step create:history:schema:customers (additive)
+select bolt_history_register('customers','{"audit":true,"fields":{"address":{"kind":"text","max":500},"email":{"format":"email","kind":"text","optional":true},"location":{"kind":"point","optional":true},"name":{"kind":"text","max":160},"notes":{"kind":"text","max":2000,"optional":true},"phone":{"format":"phone","kind":"text"}},"record_label":"record.name","search":{"text":["name","phone","email","address"]},"unique":[{"fields":["phone"],"name":"phone"}]}'::jsonb);
 
 -- step create:history:schema:customer_notices (additive)
-select bolt_history_register('customer_notices','{"audit":true,"fields":{"auto_replied_at":{"kind":"instant","optional":true},"body":{"kind":"text"},"customer":{"inverse":"notices","kind":"ref","to":"customers"},"delivered_at":{"kind":"instant","optional":true},"delivery":{"kind":"enum","optional":true,"values":["queued","sent","deferred","delivered","opened","replied","bounced","failed"]},"delivery_presumed":{"kind":"bool","optional":true},"delivery_reason":{"kind":"text","optional":true},"opened_at":{"kind":"instant","optional":true},"replied_at":{"kind":"instant","optional":true},"reply_excerpt":{"kind":"text","optional":true},"sent_at":{"kind":"instant","optional":true},"subject":{"kind":"text"},"to_address":{"kind":"text","optional":true},"visit":{"kind":"ref","on_delete":"set_null","optional":true,"to":"visits"},"whatsapp":{"kind":"text","optional":true}},"record_label":"record.subject","search":{"text":["subject","visit"]}}'::jsonb);
-
--- step create:history:schema:helper_warnings (additive)
-select bolt_history_register('helper_warnings','{"audit":true,"fields":{"helper":{"inverse":"warnings","kind":"ref","to":"helpers"},"issued_at":{"kind":"instant"},"letter":{"accept":["application/pdf"],"kind":"file","max":"2MiB","optional":true},"notes":{"kind":"text","optional":true},"reason":{"kind":"enum","values":["no_response","declined_without_mc"]},"visit":{"kind":"ref","on_delete":"set_null","optional":true,"to":"visits"}},"indexes":[{"on":["issued_at"]}],"record_label":"record.helper.name + '' · '' + string(record.issued_at)","search":{"text":["helper","visit","reason"]}}'::jsonb);
-
--- step create:history:schema:dispatch_settings (additive)
-select bolt_history_register('dispatch_settings','{"audit":true,"check":{"reply_inside_lead":{"shift_reply_minutes":{"lt":{"field":"shift_check_lead_minutes"}}}},"fields":{"eta_check_lead_minutes":{"default":60,"kind":"int","max":240,"min":15},"eta_limit_minutes":{"default":30,"kind":"int","max":240,"min":5},"free_change_hours":{"default":24,"kind":"int","max":168,"min":0},"name":{"default":"Dispatch","kind":"text"},"shift_check_lead_minutes":{"default":120,"kind":"int","max":720,"min":30},"shift_reply_minutes":{"default":60,"kind":"int","max":240,"min":10}},"record_label":"record.name","unique":[{"fields":["name"],"name":"name"}]}'::jsonb);
+select bolt_history_register('customer_notices','{"audit":true,"fields":{"appointment":{"kind":"ref","on_delete":"set_null","optional":true,"to":"appointments"},"auto_replied_at":{"kind":"instant","optional":true},"body":{"kind":"text","max":4000},"customer":{"inverse":"notices","kind":"ref","owned":true,"to":"customers"},"delivered_at":{"kind":"instant","optional":true},"delivery":{"kind":"enum","optional":true,"values":["queued","sent","deferred","delivered","opened","replied","bounced","failed"]},"delivery_presumed":{"kind":"bool","optional":true},"delivery_reason":{"kind":"text","optional":true},"opened_at":{"kind":"instant","optional":true},"replied_at":{"kind":"instant","optional":true},"reply_excerpt":{"kind":"text","optional":true},"sent_at":{"kind":"instant","optional":true},"subject":{"kind":"text","max":300},"to_address":{"kind":"text","optional":true},"whatsapp":{"kind":"text","optional":true}},"record_label":"record.subject","search":{"text":["subject","appointment"]}}'::jsonb);
 
 -- step create:history:schema:drive_times (additive)
 select bolt_history_register('drive_times','{"audit":true,"fields":{"leg":{"hidden":true,"kind":"text"},"minutes":{"kind":"int","min":0}},"record_label":"record.leg","unique":[{"fields":["leg"],"name":"leg"}]}'::jsonb);
 
--- step create:history:schema:helpers (additive)
-select bolt_history_register('helpers','{"audit":true,"check":{"hours":{"day_end":{"gt":{"field":"day_start"}}}},"fields":{"day_end":{"kind":"time"},"day_start":{"kind":"time"},"home_area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"home_location":{"kind":"point","optional":true},"last_location":{"kind":"point","optional":true},"last_location_at":{"kind":"instant","optional":true},"left_on":{"kind":"date","optional":true},"name":{"kind":"text"},"phone":{"format":"phone","kind":"text"},"skills":{"kind":"enum","many":true,"values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]},"status":{"initial":"active","kind":"state","states":{"active":{"to":["left"]},"left":{"to":["active"]}}},"user":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_user"},"warning_count":{"kind":"count","of":"warnings"},"work_days":{"kind":"enum","many":true,"values":["sun","mon","tue","wed","thu","fri","sat"]}},"record_label":"record.name","search":{"text":["name"]},"unique":[{"fields":["user"],"name":"one_user"}]}'::jsonb);
+-- step create:history:schema:providers (additive)
+select bolt_history_register('providers','{"audit":true,"check":{"hours":{"day_end":{"gt":{"field":"day_start"}}}},"fields":{"day_end":{"kind":"time"},"day_start":{"kind":"time"},"email":{"format":"email","kind":"text","optional":true},"home_location":{"kind":"point","optional":true},"inactive_since":{"kind":"date","optional":true},"last_location":{"kind":"point","optional":true},"last_location_at":{"kind":"instant","optional":true},"name":{"kind":"text","max":160},"phone":{"format":"phone","kind":"text"},"skills":{"kind":"text","many":true,"max":80},"status":{"initial":"active","kind":"state","states":{"active":{"to":["inactive"]},"inactive":{"to":["active"]}}},"user":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_user"},"work_days":{"kind":"enum","many":true,"values":["sun","mon","tue","wed","thu","fri","sat"]}},"record_label":"record.name","search":{"text":["name","phone","email"]},"unique":[{"fields":["user"],"name":"one_user"}]}'::jsonb);
 
--- step create:history:schema:helper_time_off (additive)
-select bolt_history_register('helper_time_off','{"audit":true,"fields":{"helper":{"inverse":"time_off","kind":"ref","owned":true,"to":"helpers"},"period":{"kind":"period","of":"date"},"reason":{"kind":"enum","values":["leave","medical","other"]}},"no_overlap":[{"key":["helper"],"name":"one_absence","period":"period"}],"record_label":"record.helper.name + '' · '' + string(record.period.from)"}'::jsonb);
+-- step create:history:schema:provider_time_off (additive)
+select bolt_history_register('provider_time_off','{"audit":true,"fields":{"period":{"kind":"period","of":"date"},"provider":{"inverse":"time_off","kind":"ref","owned":true,"to":"providers"},"reason":{"kind":"enum","values":["leave","sick","unavailable"]}},"no_overlap":[{"key":["provider"],"name":"one_absence","period":"period"}],"record_label":"record.provider.name + '' · '' + string(record.period.from)","was":"helper_time_off"}'::jsonb);
+
+-- step create:history:schema:scheduling_settings (additive)
+select bolt_history_register('scheduling_settings','{"audit":true,"check":{"reply_inside_lead":{"shift_reply_minutes":{"lt":{"field":"shift_check_lead_minutes"}}}},"fields":{"booking_horizon_days":{"default":14,"kind":"int","max":60,"min":7},"buffer_minutes":{"default":15,"kind":"int","max":120,"min":0},"eta_check_lead_minutes":{"default":60,"kind":"int","max":240,"min":15},"eta_limit_minutes":{"default":30,"kind":"int","max":240,"min":5},"free_change_hours":{"default":24,"kind":"int","max":168,"min":0},"name":{"default":"Scheduling","kind":"text"},"shift_check_lead_minutes":{"default":120,"kind":"int","max":720,"min":30},"shift_reply_minutes":{"default":60,"kind":"int","max":240,"min":10},"slot_interval_minutes":{"default":30,"kind":"int","max":60,"min":15}},"record_label":"record.name","unique":[{"fields":["name"],"name":"name"}],"was":"dispatch_settings"}'::jsonb);
 
 -- step create:history:schema:services (additive)
-select bolt_history_register('services','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"description":{"kind":"text","optional":true},"duration_minutes":{"kind":"int","max":720,"min":30},"name":{"kind":"text"},"price":{"currency":"SGD","kind":"money"},"skill":{"kind":"enum","values":["home_cleaning","deep_cleaning","move_in_out","post_renovation","office_cleaning","laundry_ironing","handyman"]}},"record_label":"record.name","search":{"text":["name"]},"unique":[{"fields":["name"],"name":"name"}]}'::jsonb);
-
--- step create:history:schema:availability_requests (additive)
-select bolt_history_register('availability_requests','{"audit":true,"fields":{"address":{"kind":"text","max":500},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"checked_at":{"kind":"instant","optional":true},"estimated":{"default":true,"kind":"bool"},"helper":{"kind":"ref","optional":true,"to":"helpers"},"location":{"kind":"point","optional":true},"phone":{"format":"phone","kind":"text"},"preference":{"default":"any","kind":"enum","values":["any","preferred"]},"problem":{"kind":"text","optional":true},"repeat":{"default":"once","kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"kind":"ref","to":"services"},"starts":{"default":[],"hidden":true,"kind":"text","many":true},"status":{"initial":"pending","kind":"state","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}},"locks":{"settled":{"where":{"status":{"in":["ready","failed"]}}}},"record_label":"record.address"}'::jsonb);
-
--- step create:history:schema:booking_requests (additive)
-select bolt_history_register('booking_requests','{"audit":true,"fields":{"address":{"kind":"text","max":500},"area":{"kind":"enum","optional":true,"values":["central","north","north_east","east","west"]},"availability":{"kind":"ref","optional":true,"to":"availability_requests"},"booking":{"kind":"ref","on_delete":"set_null","optional":true,"to":"bookings"},"email":{"format":"email","kind":"text","optional":true},"name":{"kind":"text","max":200},"notes":{"kind":"text","max":2000,"optional":true},"number":{"kind":"seq","pattern":"RQ-{yyyy}-{0000}"},"outcome":{"kind":"text","optional":true},"phone":{"format":"phone","kind":"text"},"repeat":{"default":"once","kind":"enum","values":["once","weekly","fortnightly","monthly"]},"service":{"kind":"ref","to":"services","where":{"active":{"eq":true}}},"start":{"kind":"instant"},"status":{"initial":"received","kind":"state","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}},"indexes":[{"on":["status"]}],"locks":{"settled":{"where":{"status":{"in":["booked","closed"]}}}},"record_label":"record.number","search":{"text":["phone","address"]}}'::jsonb);
+select bolt_history_register('services','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"category":{"kind":"text","max":80,"optional":true},"description":{"kind":"text","max":1000,"optional":true},"duration_minutes":{"kind":"int","max":720,"min":15},"name":{"kind":"text","max":160},"price":{"currency":"USD","kind":"money"},"skill":{"kind":"text","max":80}},"record_label":"record.name","search":{"text":["name","category","skill"]},"unique":[{"fields":["name"],"name":"name"}]}'::jsonb);
 
 -- step create:history:schema:openings (additive)
 select bolt_history_register('openings','{"audit":true,"fields":{"day":{"kind":"date"},"service":{"inverse":"openings","kind":"ref","owned":true,"to":"services"},"starts":{"hidden":true,"kind":"text","many":true}},"record_label":"record.service.name + '' · '' + string(record.day)","unique":[{"fields":["service","day"],"name":"one_per_day"}]}'::jsonb);
@@ -1714,53 +1704,11 @@ alter table "sys_sync" add constraint "sys_sync__fk__328a1493" foreign key ("ins
 -- step create:fk:sys_sync_row.sys_sync_row__fk__328a1493 (additive)
 alter table "sys_sync_row" add constraint "sys_sync_row__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
 
--- step create:fk:bookings.bookings__fk__9bad1692 (additive)
-alter table "bookings" add constraint "bookings__fk__9bad1692" foreign key ("customer") references "customers" ("id") on delete restrict on update restrict;
-
--- step create:fk:bookings.bookings__fk__73d2f618 (additive)
-alter table "bookings" add constraint "bookings__fk__73d2f618" foreign key ("service") references "services" ("id") on delete restrict on update restrict;
-
--- step create:fk:booking_helpers.booking_helpers__fk__fa057e1a (additive)
-alter table "booking_helpers" add constraint "booking_helpers__fk__fa057e1a" foreign key ("booking") references "bookings" ("id") on delete cascade on update restrict;
-
--- step create:fk:booking_helpers.booking_helpers__fk__7c1e006b (additive)
-alter table "booking_helpers" add constraint "booking_helpers__fk__7c1e006b" foreign key ("helper") references "helpers" ("id") on delete restrict on update restrict;
-
--- step create:fk:visits.visits__fk__fa057e1a (additive)
-alter table "visits" add constraint "visits__fk__fa057e1a" foreign key ("booking") references "bookings" ("id") on delete cascade on update restrict;
-
--- step create:fk:visits.visits__fk__0835022c (additive)
-alter table "visits" add constraint "visits__fk__0835022c" foreign key ("helper") references "helpers" ("id") on delete set null on update restrict;
-
--- step create:fk:visits.visits__fk__722ec25d (additive)
-alter table "visits" add constraint "visits__fk__722ec25d" foreign key ("unavailable_helper") references "helpers" ("id") on delete set null on update restrict;
-
--- step create:fk:visits.visits__fk__904d5b2f (additive)
-alter table "visits" add constraint "visits__fk__904d5b2f" foreign key ("proposed_helper") references "helpers" ("id") on delete set null on update restrict;
-
--- step create:fk:customer_notices.customer_notices__fk__9bad1692 (additive)
-alter table "customer_notices" add constraint "customer_notices__fk__9bad1692" foreign key ("customer") references "customers" ("id") on delete restrict on update restrict;
-
--- step create:fk:customer_notices.customer_notices__fk__755f7828 (additive)
-alter table "customer_notices" add constraint "customer_notices__fk__755f7828" foreign key ("visit") references "visits" ("id") on delete set null on update restrict;
-
--- step create:fk:helper_warnings.helper_warnings__fk__7c1e006b (additive)
-alter table "helper_warnings" add constraint "helper_warnings__fk__7c1e006b" foreign key ("helper") references "helpers" ("id") on delete restrict on update restrict;
-
--- step create:fk:helper_warnings.helper_warnings__fk__755f7828 (additive)
-alter table "helper_warnings" add constraint "helper_warnings__fk__755f7828" foreign key ("visit") references "visits" ("id") on delete set null on update restrict;
-
--- step create:fk:helpers.helpers__fk__5ab0092a (additive)
-alter table "helpers" add constraint "helpers__fk__5ab0092a" foreign key ("user") references "sys_user" ("id") on delete set null on update restrict;
-
--- step create:fk:helper_time_off.helper_time_off__fk__522d082d (additive)
-alter table "helper_time_off" add constraint "helper_time_off__fk__522d082d" foreign key ("helper") references "helpers" ("id") on delete cascade on update restrict;
-
 -- step create:fk:availability_requests.availability_requests__fk__73d2f618 (additive)
 alter table "availability_requests" add constraint "availability_requests__fk__73d2f618" foreign key ("service") references "services" ("id") on delete restrict on update restrict;
 
--- step create:fk:availability_requests.availability_requests__fk__7c1e006b (additive)
-alter table "availability_requests" add constraint "availability_requests__fk__7c1e006b" foreign key ("helper") references "helpers" ("id") on delete restrict on update restrict;
+-- step create:fk:availability_requests.availability_requests__fk__f07909c6 (additive)
+alter table "availability_requests" add constraint "availability_requests__fk__f07909c6" foreign key ("provider") references "providers" ("id") on delete restrict on update restrict;
 
 -- step create:fk:booking_requests.booking_requests__fk__73d2f618 (additive)
 alter table "booking_requests" add constraint "booking_requests__fk__73d2f618" foreign key ("service") references "services" ("id") on delete restrict on update restrict;
@@ -1770,6 +1718,42 @@ alter table "booking_requests" add constraint "booking_requests__fk__1d088df3" f
 
 -- step create:fk:booking_requests.booking_requests__fk__b4ab4faa (additive)
 alter table "booking_requests" add constraint "booking_requests__fk__b4ab4faa" foreign key ("booking") references "bookings" ("id") on delete set null on update restrict;
+
+-- step create:fk:bookings.bookings__fk__9bad1692 (additive)
+alter table "bookings" add constraint "bookings__fk__9bad1692" foreign key ("customer") references "customers" ("id") on delete restrict on update restrict;
+
+-- step create:fk:bookings.bookings__fk__73d2f618 (additive)
+alter table "bookings" add constraint "bookings__fk__73d2f618" foreign key ("service") references "services" ("id") on delete restrict on update restrict;
+
+-- step create:fk:appointments.appointments__fk__fa057e1a (additive)
+alter table "appointments" add constraint "appointments__fk__fa057e1a" foreign key ("booking") references "bookings" ("id") on delete cascade on update restrict;
+
+-- step create:fk:appointments.appointments__fk__e600bbb5 (additive)
+alter table "appointments" add constraint "appointments__fk__e600bbb5" foreign key ("provider") references "providers" ("id") on delete set null on update restrict;
+
+-- step create:fk:appointments.appointments__fk__4d8634b3 (additive)
+alter table "appointments" add constraint "appointments__fk__4d8634b3" foreign key ("unavailable_provider") references "providers" ("id") on delete set null on update restrict;
+
+-- step create:fk:appointments.appointments__fk__08bf7f1d (additive)
+alter table "appointments" add constraint "appointments__fk__08bf7f1d" foreign key ("proposed_provider") references "providers" ("id") on delete set null on update restrict;
+
+-- step create:fk:booking_providers.booking_providers__fk__fa057e1a (additive)
+alter table "booking_providers" add constraint "booking_providers__fk__fa057e1a" foreign key ("booking") references "bookings" ("id") on delete cascade on update restrict;
+
+-- step create:fk:booking_providers.booking_providers__fk__f07909c6 (additive)
+alter table "booking_providers" add constraint "booking_providers__fk__f07909c6" foreign key ("provider") references "providers" ("id") on delete restrict on update restrict;
+
+-- step create:fk:customer_notices.customer_notices__fk__dadcbaed (additive)
+alter table "customer_notices" add constraint "customer_notices__fk__dadcbaed" foreign key ("customer") references "customers" ("id") on delete cascade on update restrict;
+
+-- step create:fk:customer_notices.customer_notices__fk__c8504687 (additive)
+alter table "customer_notices" add constraint "customer_notices__fk__c8504687" foreign key ("appointment") references "appointments" ("id") on delete set null on update restrict;
+
+-- step create:fk:providers.providers__fk__5ab0092a (additive)
+alter table "providers" add constraint "providers__fk__5ab0092a" foreign key ("user") references "sys_user" ("id") on delete set null on update restrict;
+
+-- step create:fk:provider_time_off.provider_time_off__fk__f2dc42d4 (additive)
+alter table "provider_time_off" add constraint "provider_time_off__fk__f2dc42d4" foreign key ("provider") references "providers" ("id") on delete cascade on update restrict;
 
 -- step create:fk:openings.openings__fk__e4950f9d (additive)
 alter table "openings" add constraint "openings__fk__e4950f9d" foreign key ("service") references "services" ("id") on delete cascade on update restrict;
@@ -1966,128 +1950,14 @@ create trigger store_row_rules before insert or update or delete on "sys_workspa
 -- step create:index:sys_workspace.sys_workspace__gin__73732636 (additive)
 create index "sys_workspace__gin__73732636" on "sys_workspace" using gin (bolt_search);
 
--- step create:trigger:customers.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "customers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:customers.customers__gist__bb1c4cd7 (additive)
-create index "customers__gist__bb1c4cd7" on "customers" using gist ("location");
-
--- step create:index:customers.customers__gin__73732636 (additive)
-create index "customers__gin__73732636" on "customers" using gin (bolt_search);
-
--- step create:trigger:bookings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "bookings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
-
--- step create:trigger:bookings.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "bookings" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"customer":["customer"],"location":["location"],"notes":["notes"],"preference":["preference"],"repeat":["repeat"],"service":["service"],"status":["status"]},"key":["id"],"locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"parents":[],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
-
--- step create:trigger:bookings.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "bookings" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"customer":["customer"],"location":["location"],"notes":["notes"],"preference":["preference"],"repeat":["repeat"],"service":["service"],"status":["status"]},"key":["id"],"locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"parents":[],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
-
--- step create:index:bookings.bookings__gist__bb1c4cd7 (additive)
-create index "bookings__gist__bb1c4cd7" on "bookings" using gist ("location");
-
--- step create:index:bookings.bookings__gin__73732636 (additive)
-create index "bookings__gin__73732636" on "bookings" using gin (bolt_search);
-
--- step create:index:bookings.bookings__ix__0442e781 (additive)
-create index "bookings__ix__0442e781" on "bookings" ("status");
-
--- step create:trigger:booking_helpers.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "booking_helpers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:trigger:booking_helpers.store_statement_rules_insert (additive)
-create trigger store_statement_rules_insert after insert on "booking_helpers" referencing new table as store_new for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"helper":["helper"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_helpers","table":"bookings","type":"uuid"}],"states":{}}');
-
--- step create:trigger:booking_helpers.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "booking_helpers" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"helper":["helper"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_helpers","table":"bookings","type":"uuid"}],"states":{}}');
-
--- step create:trigger:booking_helpers.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "booking_helpers" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"helper":["helper"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_helpers","table":"bookings","type":"uuid"}],"states":{}}');
-
--- step create:trigger:visits.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "visits" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"done":{},"in_progress":{"to":["done"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
-
--- step create:trigger:visits.store_statement_rules_insert (additive)
-create trigger store_statement_rules_insert after insert on "visits" referencing new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"attention":["attention"],"booking":["booking"],"completed_at":["completed_at"],"completion_notes":["completion_notes"],"eta_checked_at":["eta_checked_at"],"eta_minutes":["eta_minutes"],"helper":["helper"],"late_cancellation":["late_cancellation"],"location":["location"],"mc":["mc"],"proposed_helper":["proposed_helper"],"proposed_slot":["proposed_slot"],"shift_asked_at":["shift_asked_at"],"shift_check":["shift_check"],"skill":["skill"],"slot":["slot"],"started_at":["started_at"],"status":["status"],"unavailable_helper":["unavailable_helper"]},"key":["id"],"locks":[{"constraint":"visits__lock__05343e98","except":[],"name":"finished","sql":"(coalesce(t.\"status\" = any(array[''done''::text, ''cancelled''::text]::text[]), false))"},{"constraint":"visits__lock__14b6f299","except":["status","completion_notes","completed_at","attention"],"name":"under_way","sql":"(coalesce(t.\"status\" = ''in_progress''::text, false))"}],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"visits","table":"bookings","type":"uuid"}],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"done":{},"in_progress":{"to":["done"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
-
--- step create:trigger:visits.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "visits" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"attention":["attention"],"booking":["booking"],"completed_at":["completed_at"],"completion_notes":["completion_notes"],"eta_checked_at":["eta_checked_at"],"eta_minutes":["eta_minutes"],"helper":["helper"],"late_cancellation":["late_cancellation"],"location":["location"],"mc":["mc"],"proposed_helper":["proposed_helper"],"proposed_slot":["proposed_slot"],"shift_asked_at":["shift_asked_at"],"shift_check":["shift_check"],"skill":["skill"],"slot":["slot"],"started_at":["started_at"],"status":["status"],"unavailable_helper":["unavailable_helper"]},"key":["id"],"locks":[{"constraint":"visits__lock__05343e98","except":[],"name":"finished","sql":"(coalesce(t.\"status\" = any(array[''done''::text, ''cancelled''::text]::text[]), false))"},{"constraint":"visits__lock__14b6f299","except":["status","completion_notes","completed_at","attention"],"name":"under_way","sql":"(coalesce(t.\"status\" = ''in_progress''::text, false))"}],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"visits","table":"bookings","type":"uuid"}],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"done":{},"in_progress":{"to":["done"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
-
--- step create:trigger:visits.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "visits" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"attention":["attention"],"booking":["booking"],"completed_at":["completed_at"],"completion_notes":["completion_notes"],"eta_checked_at":["eta_checked_at"],"eta_minutes":["eta_minutes"],"helper":["helper"],"late_cancellation":["late_cancellation"],"location":["location"],"mc":["mc"],"proposed_helper":["proposed_helper"],"proposed_slot":["proposed_slot"],"shift_asked_at":["shift_asked_at"],"shift_check":["shift_check"],"skill":["skill"],"slot":["slot"],"started_at":["started_at"],"status":["status"],"unavailable_helper":["unavailable_helper"]},"key":["id"],"locks":[{"constraint":"visits__lock__05343e98","except":[],"name":"finished","sql":"(coalesce(t.\"status\" = any(array[''done''::text, ''cancelled''::text]::text[]), false))"},{"constraint":"visits__lock__14b6f299","except":["status","completion_notes","completed_at","attention"],"name":"under_way","sql":"(coalesce(t.\"status\" = ''in_progress''::text, false))"}],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":[],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"visits","table":"bookings","type":"uuid"}],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"done":{},"in_progress":{"to":["done"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
-
--- step create:index:visits.visits__gist__bb1c4cd7 (additive)
-create index "visits__gist__bb1c4cd7" on "visits" using gist ("location");
-
--- step create:index:visits.visits__gin__73732636 (additive)
-create index "visits__gin__73732636" on "visits" using gin (bolt_search);
-
--- step create:index:visits.visits__ix__bf9f9696 (additive)
-create index "visits__ix__bf9f9696" on "visits" ("attention", "shift_check");
-
--- step create:trigger:customer_notices.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "customer_notices" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:customer_notices.customer_notices__gin__73732636 (additive)
-create index "customer_notices__gin__73732636" on "customer_notices" using gin (bolt_search);
-
--- step create:trigger:helper_warnings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "helper_warnings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:helper_warnings.helper_warnings__gin__73732636 (additive)
-create index "helper_warnings__gin__73732636" on "helper_warnings" using gin (bolt_search);
-
--- step create:index:helper_warnings.helper_warnings__ix__6090f241 (additive)
-create index "helper_warnings__ix__6090f241" on "helper_warnings" ("issued_at");
-
--- step create:trigger:dispatch_settings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "dispatch_settings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:dispatch_settings.dispatch_settings__gin__73732636 (additive)
-create index "dispatch_settings__gin__73732636" on "dispatch_settings" using gin (bolt_search);
-
--- step create:trigger:drive_times.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "drive_times" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:drive_times.drive_times__gin__73732636 (additive)
-create index "drive_times__gin__73732636" on "drive_times" using gin (bolt_search);
-
--- step create:trigger:helpers.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "helpers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"active","states":{"active":{"to":["left"]},"left":{"to":["active"]}}}}}');
-
--- step create:index:helpers.helpers__gin__95aa4a34 (additive)
-create index "helpers__gin__95aa4a34" on "helpers" using gin ("skills");
-
--- step create:index:helpers.helpers__gist__d0519d21 (additive)
-create index "helpers__gist__d0519d21" on "helpers" using gist ("home_location");
-
--- step create:index:helpers.helpers__gin__8924af97 (additive)
-create index "helpers__gin__8924af97" on "helpers" using gin ("work_days");
-
--- step create:index:helpers.helpers__gist__22635a76 (additive)
-create index "helpers__gist__22635a76" on "helpers" using gist ("last_location");
-
--- step create:index:helpers.helpers__gin__73732636 (additive)
-create index "helpers__gin__73732636" on "helpers" using gin (bolt_search);
-
--- step create:trigger:helper_time_off.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "helper_time_off" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:trigger:services.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "services" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
--- step create:index:services.services__gin__73732636 (additive)
-create index "services__gin__73732636" on "services" using gin (bolt_search);
-
 -- step create:trigger:availability_requests.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "availability_requests" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"pending","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}}}');
 
 -- step create:trigger:availability_requests.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "availability_requests" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"checked_at":["checked_at"],"estimated":["estimated"],"helper":["helper"],"location":["location"],"phone":["phone"],"preference":["preference"],"problem":["problem"],"repeat":["repeat"],"service":["service"],"starts":["starts"],"status":["status"]},"key":["id"],"locks":[{"constraint":"availability_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''ready''::text, ''failed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"pending","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}}}');
+create trigger store_statement_rules_update after update on "availability_requests" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"checked_at":["checked_at"],"estimated":["estimated"],"location":["location"],"phone":["phone"],"preference":["preference"],"problem":["problem"],"provider":["provider"],"repeat":["repeat"],"service":["service"],"starts":["starts"],"status":["status"]},"key":["id"],"locks":[{"constraint":"availability_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''ready''::text, ''failed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"pending","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}}}');
 
 -- step create:trigger:availability_requests.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "availability_requests" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"checked_at":["checked_at"],"estimated":["estimated"],"helper":["helper"],"location":["location"],"phone":["phone"],"preference":["preference"],"problem":["problem"],"repeat":["repeat"],"service":["service"],"starts":["starts"],"status":["status"]},"key":["id"],"locks":[{"constraint":"availability_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''ready''::text, ''failed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"pending","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}}}');
+create trigger store_statement_rules_delete after delete on "availability_requests" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"checked_at":["checked_at"],"estimated":["estimated"],"location":["location"],"phone":["phone"],"preference":["preference"],"problem":["problem"],"provider":["provider"],"repeat":["repeat"],"service":["service"],"starts":["starts"],"status":["status"]},"key":["id"],"locks":[{"constraint":"availability_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''ready''::text, ''failed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"pending","states":{"failed":{},"pending":{"to":["ready","failed"]},"ready":{}}}}}');
 
 -- step create:index:availability_requests.availability_requests__gist__bb1c4cd7 (additive)
 create index "availability_requests__gist__bb1c4cd7" on "availability_requests" using gist ("location");
@@ -2102,16 +1972,118 @@ create index "availability_requests__gin__73732636" on "availability_requests" u
 create trigger store_row_rules before insert or update or delete on "booking_requests" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"received","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}}}');
 
 -- step create:trigger:booking_requests.store_statement_rules_update (additive)
-create trigger store_statement_rules_update after update on "booking_requests" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"availability":["availability"],"booking":["booking"],"email":["email"],"name":["name"],"notes":["notes"],"outcome":["outcome"],"phone":["phone"],"repeat":["repeat"],"service":["service"],"start":["start"],"status":["status"]},"key":["id"],"locks":[{"constraint":"booking_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''booked''::text, ''closed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"received","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}}}');
+create trigger store_statement_rules_update after update on "booking_requests" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"availability":["availability"],"booking":["booking"],"email":["email"],"name":["name"],"notes":["notes"],"outcome":["outcome"],"phone":["phone"],"repeat":["repeat"],"service":["service"],"start":["start"],"status":["status"]},"key":["id"],"locks":[{"constraint":"booking_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''booked''::text, ''closed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"received","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}}}');
 
 -- step create:trigger:booking_requests.store_statement_rules_delete (additive)
-create trigger store_statement_rules_delete after delete on "booking_requests" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"area":["area"],"availability":["availability"],"booking":["booking"],"email":["email"],"name":["name"],"notes":["notes"],"outcome":["outcome"],"phone":["phone"],"repeat":["repeat"],"service":["service"],"start":["start"],"status":["status"]},"key":["id"],"locks":[{"constraint":"booking_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''booked''::text, ''closed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"received","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}}}');
+create trigger store_statement_rules_delete after delete on "booking_requests" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"availability":["availability"],"booking":["booking"],"email":["email"],"name":["name"],"notes":["notes"],"outcome":["outcome"],"phone":["phone"],"repeat":["repeat"],"service":["service"],"start":["start"],"status":["status"]},"key":["id"],"locks":[{"constraint":"booking_requests__lock__d31e0148","except":[],"name":"settled","sql":"(coalesce(t.\"status\" = any(array[''booked''::text, ''closed''::text]::text[]), false))"}],"parents":[],"states":{"status":{"initial":"received","states":{"booked":{},"closed":{},"follow_up":{"to":["booked","closed"]},"received":{"to":["booked","follow_up"]}}}}}');
 
 -- step create:index:booking_requests.booking_requests__gin__73732636 (additive)
 create index "booking_requests__gin__73732636" on "booking_requests" using gin (bolt_search);
 
 -- step create:index:booking_requests.booking_requests__ix__0442e781 (additive)
 create index "booking_requests__ix__0442e781" on "booking_requests" ("status");
+
+-- step create:trigger:bookings.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "bookings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
+
+-- step create:trigger:bookings.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "bookings" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"customer":["customer"],"location":["location"],"notes":["notes"],"preference":["preference"],"repeat":["repeat"],"service":["service"],"status":["status"]},"key":["id"],"locks":[{"constraint":"bookings__lock__8b47045e","except":["appointments"],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"parents":[],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
+
+-- step create:trigger:bookings.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "bookings" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"customer":["customer"],"location":["location"],"notes":["notes"],"preference":["preference"],"repeat":["repeat"],"service":["service"],"status":["status"]},"key":["id"],"locks":[{"constraint":"bookings__lock__8b47045e","except":["appointments"],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"parents":[],"states":{"status":{"initial":"active","states":{"active":{"to":["cancelled"]},"cancelled":{}}}}}');
+
+-- step create:index:bookings.bookings__gist__bb1c4cd7 (additive)
+create index "bookings__gist__bb1c4cd7" on "bookings" using gist ("location");
+
+-- step create:index:bookings.bookings__gin__73732636 (additive)
+create index "bookings__gin__73732636" on "bookings" using gin (bolt_search);
+
+-- step create:index:bookings.bookings__ix__0442e781 (additive)
+create index "bookings__ix__0442e781" on "bookings" ("status");
+
+-- step create:trigger:appointments.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "appointments" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"completed":{"stamp":"completed_at"},"in_progress":{"stamp":"started_at","to":["completed"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
+
+-- step create:trigger:appointments.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "appointments" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"address":["address"],"attention":["attention"],"booking":["booking"],"completed_at":["completed_at"],"completion_notes":["completion_notes"],"eta_checked_at":["eta_checked_at"],"eta_minutes":["eta_minutes"],"late_cancellation":["late_cancellation"],"location":["location"],"proposed_provider":["proposed_provider"],"proposed_slot":["proposed_slot"],"provider":["provider"],"shift_asked_at":["shift_asked_at"],"shift_check":["shift_check"],"skill":["skill"],"slot":["slot"],"started_at":["started_at"],"status":["status"],"unavailable_provider":["unavailable_provider"]},"key":["id"],"locks":[{"constraint":"appointments__lock__05343e98","except":[],"name":"finished","sql":"(coalesce(t.\"status\" = any(array[''completed''::text, ''cancelled''::text]::text[]), false))"},{"constraint":"appointments__lock__14b6f299","except":["status","completion_notes","completed_at","attention"],"name":"under_way","sql":"(coalesce(t.\"status\" = ''in_progress''::text, false))"}],"parents":[],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"completed":{"stamp":"completed_at"},"in_progress":{"stamp":"started_at","to":["completed"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
+
+-- step create:trigger:appointments.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "appointments" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"address":["address"],"attention":["attention"],"booking":["booking"],"completed_at":["completed_at"],"completion_notes":["completion_notes"],"eta_checked_at":["eta_checked_at"],"eta_minutes":["eta_minutes"],"late_cancellation":["late_cancellation"],"location":["location"],"proposed_provider":["proposed_provider"],"proposed_slot":["proposed_slot"],"provider":["provider"],"shift_asked_at":["shift_asked_at"],"shift_check":["shift_check"],"skill":["skill"],"slot":["slot"],"started_at":["started_at"],"status":["status"],"unavailable_provider":["unavailable_provider"]},"key":["id"],"locks":[{"constraint":"appointments__lock__05343e98","except":[],"name":"finished","sql":"(coalesce(t.\"status\" = any(array[''completed''::text, ''cancelled''::text]::text[]), false))"},{"constraint":"appointments__lock__14b6f299","except":["status","completion_notes","completed_at","attention"],"name":"under_way","sql":"(coalesce(t.\"status\" = ''in_progress''::text, false))"}],"parents":[],"states":{"status":{"initial":"scheduled","states":{"cancelled":{},"completed":{"stamp":"completed_at"},"in_progress":{"stamp":"started_at","to":["completed"]},"scheduled":{"to":["in_progress","cancelled"]}}}}}');
+
+-- step create:index:appointments.appointments__gist__bb1c4cd7 (additive)
+create index "appointments__gist__bb1c4cd7" on "appointments" using gist ("location");
+
+-- step create:index:appointments.appointments__gin__73732636 (additive)
+create index "appointments__gin__73732636" on "appointments" using gin (bolt_search);
+
+-- step create:index:appointments.appointments__ix__bf9f9696 (additive)
+create index "appointments__ix__bf9f9696" on "appointments" ("attention", "shift_check");
+
+-- step create:trigger:booking_providers.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "booking_providers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:trigger:booking_providers.store_statement_rules_insert (additive)
+create trigger store_statement_rules_insert after insert on "booking_providers" referencing new table as store_new for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"provider":["provider"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":["appointments"],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_providers","table":"bookings","type":"uuid"}],"states":{}}');
+
+-- step create:trigger:booking_providers.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "booking_providers" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"provider":["provider"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":["appointments"],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_providers","table":"bookings","type":"uuid"}],"states":{}}');
+
+-- step create:trigger:booking_providers.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "booking_providers" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"booking":["booking"],"provider":["provider"],"rank":["rank"]},"key":["id"],"locks":[],"parents":[{"column":"booking","key":"id","locks":[{"constraint":"bookings__lock__8b47045e","except":["appointments"],"name":"cancelled","sql":"(coalesce(t.\"status\" = ''cancelled''::text, false))"}],"relation":"preferred_providers","table":"bookings","type":"uuid"}],"states":{}}');
+
+-- step create:trigger:customers.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "customers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:customers.customers__gist__bb1c4cd7 (additive)
+create index "customers__gist__bb1c4cd7" on "customers" using gist ("location");
+
+-- step create:index:customers.customers__gin__73732636 (additive)
+create index "customers__gin__73732636" on "customers" using gin (bolt_search);
+
+-- step create:trigger:customer_notices.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "customer_notices" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:customer_notices.customer_notices__gin__73732636 (additive)
+create index "customer_notices__gin__73732636" on "customer_notices" using gin (bolt_search);
+
+-- step create:trigger:drive_times.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "drive_times" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:drive_times.drive_times__gin__73732636 (additive)
+create index "drive_times__gin__73732636" on "drive_times" using gin (bolt_search);
+
+-- step create:trigger:providers.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "providers" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"active","states":{"active":{"to":["inactive"]},"inactive":{"to":["active"]}}}}}');
+
+-- step create:index:providers.providers__gin__95aa4a34 (additive)
+create index "providers__gin__95aa4a34" on "providers" using gin ("skills");
+
+-- step create:index:providers.providers__gist__d0519d21 (additive)
+create index "providers__gist__d0519d21" on "providers" using gist ("home_location");
+
+-- step create:index:providers.providers__gin__8924af97 (additive)
+create index "providers__gin__8924af97" on "providers" using gin ("work_days");
+
+-- step create:index:providers.providers__gist__22635a76 (additive)
+create index "providers__gist__22635a76" on "providers" using gist ("last_location");
+
+-- step create:index:providers.providers__gin__73732636 (additive)
+create index "providers__gin__73732636" on "providers" using gin (bolt_search);
+
+-- step create:trigger:provider_time_off.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "provider_time_off" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:trigger:scheduling_settings.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "scheduling_settings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:scheduling_settings.scheduling_settings__gin__73732636 (additive)
+create index "scheduling_settings__gin__73732636" on "scheduling_settings" using gin (bolt_search);
+
+-- step create:trigger:services.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "services" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:services.services__gin__73732636 (additive)
+create index "services__gin__73732636" on "services" using gin (bolt_search);
 
 -- step create:trigger:openings.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "openings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
@@ -2158,53 +2130,11 @@ create index "sys_sync__ix__8be7dc72" on "sys_sync" ("instance");
 -- step create:index:sys_sync_row.sys_sync_row__ix__8be7dc72 (additive)
 create index "sys_sync_row__ix__8be7dc72" on "sys_sync_row" ("instance");
 
--- step create:index:bookings.bookings__ix__c67c4496 (additive)
-create index "bookings__ix__c67c4496" on "bookings" ("customer");
-
--- step create:index:bookings.bookings__ix__102b9bfa (additive)
-create index "bookings__ix__102b9bfa" on "bookings" ("service");
-
--- step create:index:booking_helpers.booking_helpers__ix__e4149908 (additive)
-create index "booking_helpers__ix__e4149908" on "booking_helpers" ("booking");
-
--- step create:index:booking_helpers.booking_helpers__ix__b1ca77f6 (additive)
-create index "booking_helpers__ix__b1ca77f6" on "booking_helpers" ("helper");
-
--- step create:index:visits.visits__ix__e4149908 (additive)
-create index "visits__ix__e4149908" on "visits" ("booking");
-
--- step create:index:visits.visits__ix__b1ca77f6 (additive)
-create index "visits__ix__b1ca77f6" on "visits" ("helper");
-
--- step create:index:visits.visits__ix__b867ad56 (additive)
-create index "visits__ix__b867ad56" on "visits" ("unavailable_helper");
-
--- step create:index:visits.visits__ix__d0523071 (additive)
-create index "visits__ix__d0523071" on "visits" ("proposed_helper");
-
--- step create:index:customer_notices.customer_notices__ix__c67c4496 (additive)
-create index "customer_notices__ix__c67c4496" on "customer_notices" ("customer");
-
--- step create:index:customer_notices.customer_notices__ix__5c37fbe2 (additive)
-create index "customer_notices__ix__5c37fbe2" on "customer_notices" ("visit");
-
--- step create:index:helper_warnings.helper_warnings__ix__b1ca77f6 (additive)
-create index "helper_warnings__ix__b1ca77f6" on "helper_warnings" ("helper");
-
--- step create:index:helper_warnings.helper_warnings__ix__5c37fbe2 (additive)
-create index "helper_warnings__ix__5c37fbe2" on "helper_warnings" ("visit");
-
--- step create:index:helpers.helpers__ix__fccf4300 (additive)
-create index "helpers__ix__fccf4300" on "helpers" ("user");
-
--- step create:index:helper_time_off.helper_time_off__ix__b1ca77f6 (additive)
-create index "helper_time_off__ix__b1ca77f6" on "helper_time_off" ("helper");
-
 -- step create:index:availability_requests.availability_requests__ix__102b9bfa (additive)
 create index "availability_requests__ix__102b9bfa" on "availability_requests" ("service");
 
--- step create:index:availability_requests.availability_requests__ix__b1ca77f6 (additive)
-create index "availability_requests__ix__b1ca77f6" on "availability_requests" ("helper");
+-- step create:index:availability_requests.availability_requests__ix__dc06d8fb (additive)
+create index "availability_requests__ix__dc06d8fb" on "availability_requests" ("provider");
 
 -- step create:index:booking_requests.booking_requests__ix__102b9bfa (additive)
 create index "booking_requests__ix__102b9bfa" on "booking_requests" ("service");
@@ -2215,76 +2145,107 @@ create index "booking_requests__ix__f1d2434f" on "booking_requests" ("availabili
 -- step create:index:booking_requests.booking_requests__ix__e4149908 (additive)
 create index "booking_requests__ix__e4149908" on "booking_requests" ("booking");
 
+-- step create:index:bookings.bookings__ix__c67c4496 (additive)
+create index "bookings__ix__c67c4496" on "bookings" ("customer");
+
+-- step create:index:bookings.bookings__ix__102b9bfa (additive)
+create index "bookings__ix__102b9bfa" on "bookings" ("service");
+
+-- step create:index:appointments.appointments__ix__e4149908 (additive)
+create index "appointments__ix__e4149908" on "appointments" ("booking");
+
+-- step create:index:appointments.appointments__ix__dc06d8fb (additive)
+create index "appointments__ix__dc06d8fb" on "appointments" ("provider");
+
+-- step create:index:appointments.appointments__ix__743f0292 (additive)
+create index "appointments__ix__743f0292" on "appointments" ("unavailable_provider");
+
+-- step create:index:appointments.appointments__ix__1a4b7e3b (additive)
+create index "appointments__ix__1a4b7e3b" on "appointments" ("proposed_provider");
+
+-- step create:index:booking_providers.booking_providers__ix__e4149908 (additive)
+create index "booking_providers__ix__e4149908" on "booking_providers" ("booking");
+
+-- step create:index:booking_providers.booking_providers__ix__dc06d8fb (additive)
+create index "booking_providers__ix__dc06d8fb" on "booking_providers" ("provider");
+
+-- step create:index:customer_notices.customer_notices__ix__c67c4496 (additive)
+create index "customer_notices__ix__c67c4496" on "customer_notices" ("customer");
+
+-- step create:index:customer_notices.customer_notices__ix__908d4cd6 (additive)
+create index "customer_notices__ix__908d4cd6" on "customer_notices" ("appointment");
+
+-- step create:index:providers.providers__ix__fccf4300 (additive)
+create index "providers__ix__fccf4300" on "providers" ("user");
+
+-- step create:index:provider_time_off.provider_time_off__ix__dc06d8fb (additive)
+create index "provider_time_off__ix__dc06d8fb" on "provider_time_off" ("provider");
+
 -- step create:index:openings.openings__ix__102b9bfa (additive)
 create index "openings__ix__102b9bfa" on "openings" ("service");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['approval_request','availability_requests','booking_helpers','booking_requests','bookings','customer_notices','customers','dispatch_settings','drive_times','helper_time_off','helper_warnings','helpers','openings','services','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','sys_workspace','visits']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['appointments','approval_request','availability_requests','booking_providers','booking_requests','bookings','customer_notices','customers','drive_times','openings','provider_time_off','providers','scheduling_settings','services','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_user','sys_workspace']::text[]));
 
--- step create:engine:audit:customers (additive)
-drop trigger if exists bolt_audit_mark on "customers";
-drop trigger if exists bolt_audit on "customers";
-create trigger bolt_audit after insert or update or delete on "customers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
+-- step create:engine:audit:availability_requests (additive)
+drop trigger if exists bolt_audit_mark on "availability_requests";
+drop trigger if exists bolt_audit on "availability_requests";
+create trigger bolt_audit after insert or update or delete on "availability_requests" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["provider","providers"],["service","services"]]');
+
+-- step create:engine:audit:booking_requests (additive)
+drop trigger if exists bolt_audit_mark on "booking_requests";
+drop trigger if exists bolt_audit on "booking_requests";
+create trigger bolt_audit after insert or update or delete on "booking_requests" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["availability","availability_requests"],["booking","bookings"],["service","services"]]');
 
 -- step create:engine:audit:bookings (additive)
 drop trigger if exists bolt_audit_mark on "bookings";
 drop trigger if exists bolt_audit on "bookings";
 create trigger bolt_audit after insert or update or delete on "bookings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["customer","customers"],["service","services"]]');
 
--- step create:engine:audit:booking_helpers (additive)
-drop trigger if exists bolt_audit_mark on "booking_helpers";
-drop trigger if exists bolt_audit on "booking_helpers";
-create trigger bolt_audit after insert or update or delete on "booking_helpers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["booking","bookings"]]','[["booking","bookings"],["helper","helpers"]]');
+-- step create:engine:audit:appointments (additive)
+drop trigger if exists bolt_audit_mark on "appointments";
+drop trigger if exists bolt_audit on "appointments";
+create trigger bolt_audit after insert or update or delete on "appointments" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["booking","bookings"]]','[["booking","bookings"],["proposed_provider","providers"],["provider","providers"],["unavailable_provider","providers"]]');
 
--- step create:engine:audit:visits (additive)
-drop trigger if exists bolt_audit_mark on "visits";
-drop trigger if exists bolt_audit on "visits";
-create trigger bolt_audit after insert or update or delete on "visits" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["booking","bookings"]]','[["booking","bookings"],["helper","helpers"],["proposed_helper","helpers"],["unavailable_helper","helpers"]]');
+-- step create:engine:audit:booking_providers (additive)
+drop trigger if exists bolt_audit_mark on "booking_providers";
+drop trigger if exists bolt_audit on "booking_providers";
+create trigger bolt_audit after insert or update or delete on "booking_providers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["booking","bookings"]]','[["booking","bookings"],["provider","providers"]]');
+
+-- step create:engine:audit:customers (additive)
+drop trigger if exists bolt_audit_mark on "customers";
+drop trigger if exists bolt_audit on "customers";
+create trigger bolt_audit after insert or update or delete on "customers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:customer_notices (additive)
 drop trigger if exists bolt_audit_mark on "customer_notices";
 drop trigger if exists bolt_audit on "customer_notices";
-create trigger bolt_audit after insert or update or delete on "customer_notices" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["customer","customers"],["visit","visits"]]');
-
--- step create:engine:audit:helper_warnings (additive)
-drop trigger if exists bolt_audit_mark on "helper_warnings";
-drop trigger if exists bolt_audit on "helper_warnings";
-create trigger bolt_audit after insert or update or delete on "helper_warnings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["helper","helpers"],["visit","visits"]]');
-
--- step create:engine:audit:dispatch_settings (additive)
-drop trigger if exists bolt_audit_mark on "dispatch_settings";
-drop trigger if exists bolt_audit on "dispatch_settings";
-create trigger bolt_audit after insert or update or delete on "dispatch_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
+create trigger bolt_audit after insert or update or delete on "customer_notices" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["customer","customers"]]','[["appointment","appointments"],["customer","customers"]]');
 
 -- step create:engine:audit:drive_times (additive)
 drop trigger if exists bolt_audit_mark on "drive_times";
 drop trigger if exists bolt_audit on "drive_times";
 create trigger bolt_audit after insert or update or delete on "drive_times" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
--- step create:engine:audit:helpers (additive)
-drop trigger if exists bolt_audit_mark on "helpers";
-drop trigger if exists bolt_audit on "helpers";
-create trigger bolt_audit after insert or update or delete on "helpers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["user","sys_user"]]');
+-- step create:engine:audit:providers (additive)
+drop trigger if exists bolt_audit_mark on "providers";
+drop trigger if exists bolt_audit on "providers";
+create trigger bolt_audit after insert or update or delete on "providers" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["user","sys_user"]]');
 
--- step create:engine:audit:helper_time_off (additive)
-drop trigger if exists bolt_audit_mark on "helper_time_off";
-drop trigger if exists bolt_audit on "helper_time_off";
-create trigger bolt_audit after insert or update or delete on "helper_time_off" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["helper","helpers"]]','[["helper","helpers"]]');
+-- step create:engine:audit:provider_time_off (additive)
+drop trigger if exists bolt_audit_mark on "provider_time_off";
+drop trigger if exists bolt_audit on "provider_time_off";
+create trigger bolt_audit after insert or update or delete on "provider_time_off" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["provider","providers"]]','[["provider","providers"]]');
+
+-- step create:engine:audit:scheduling_settings (additive)
+drop trigger if exists bolt_audit_mark on "scheduling_settings";
+drop trigger if exists bolt_audit on "scheduling_settings";
+create trigger bolt_audit after insert or update or delete on "scheduling_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:services (additive)
 drop trigger if exists bolt_audit_mark on "services";
 drop trigger if exists bolt_audit on "services";
 create trigger bolt_audit after insert or update or delete on "services" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
-
--- step create:engine:audit:availability_requests (additive)
-drop trigger if exists bolt_audit_mark on "availability_requests";
-drop trigger if exists bolt_audit on "availability_requests";
-create trigger bolt_audit after insert or update or delete on "availability_requests" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["helper","helpers"],["service","services"]]');
-
--- step create:engine:audit:booking_requests (additive)
-drop trigger if exists bolt_audit_mark on "booking_requests";
-drop trigger if exists bolt_audit on "booking_requests";
-create trigger bolt_audit after insert or update or delete on "booking_requests" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["availability","availability_requests"],["booking","bookings"],["service","services"]]');
 
 -- step create:engine:audit:openings (additive)
 drop trigger if exists bolt_audit_mark on "openings";

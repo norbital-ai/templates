@@ -66,7 +66,7 @@
 		{#each fields as field (field.key)}
 			{@const fieldId = `${id ?? fallbackId}-${field.key}`}
 			{@const text = saved.get(field.key) ?? field.default_value ?? ''}
-			<Stack gap="xs">
+			<Stack gap="xs" class={field.multiline ? 'col-span-full' : undefined}>
 				{#if on_change}
 					<Label for={fieldId}>{label(field)}</Label>
 					{#if printChoices(field).length}

@@ -86,9 +86,9 @@
 		'kind',
 		'region',
 		'currency',
+		'phone',
 		'active',
-		'address',
-		'phone'
+		'address'
 	] as const;
 </script>
 
@@ -128,15 +128,19 @@
 	sections={[
 		{
 			name: 'partner',
-			fields: kingdeeFields,
+			fields: [
+				'name',
+				'external_code',
+				'kind',
+				'region',
+				'currency',
+				'phone',
+				'active',
+				'related_party',
+				'address'
+			],
 			readonlyFields: kingdeeFields,
 			wide: ['address']
-		},
-		{
-			name: 'classification',
-			icon: 'lucide:tag',
-			title: ctx.t('section.classification'),
-			fields: ['related_party']
 		},
 		{
 			name: 'sync',
@@ -146,7 +150,7 @@
 				view.mode === 'create'
 					? ''
 					: format({ kind: 'instant' }, view.record.source_updated_at, {
-							locale: ctx.locale ?? ctx.locale,
+							locale: ctx.locale,
 							...(ctx.tz == null ? {} : { zone: ctx.tz })
 						}),
 			fields: ['source_updated_at'],

@@ -28,14 +28,14 @@ at the read mirrors and the two-way order sync (SO and PO).
 
 ## 2. Application surfaces
 
-| App                    | Page(s)                          | Owns                                                                                                                                                                              |
-| ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operations → Dashboard | Dashboard                        | What needs attention: drafts to sync, order approvals, Kingdee sync failures and pending audits, overdue receivables and credit exceptions; each figure opens its table or report |
-| Operations → Orders    | Sales orders; Purchase orders    | Draft, sync to Kingdee, change, approve exceptions, print, archive and read one agreement                                                                                         |
-| Operations → Partners  | Customers and suppliers          | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                                               |
-| Operations → Warehouse | Products; Stock; Warehouses      | Product master, lots with their sellable quantities, warehouse regions                                                                                                            |
-| Operations → Analysis  | Reports                          | Sales chain and margin, purchase listing, AR and AP aging, commission board and statements, credit exceptions and credit releases                                                 |
-| Trade configuration    | Documents, Prices and commission | Each document case's layout per language; dated price book with its floor rule, floor list, CEL commission rules with freight treatment                                           |
+| App                    | Page(s)                        | Owns                                                                                                                                                                              |
+| ---------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operations → Dashboard | Dashboard                      | What needs attention: drafts to sync, order approvals, Kingdee sync failures and pending audits, overdue receivables and credit exceptions; each figure opens its table or report |
+| Operations → Orders    | Sales orders; Purchase orders  | Draft, sync to Kingdee, change, approve exceptions, print, archive and read one agreement                                                                                         |
+| Operations → Partners  | Customers and suppliers        | Parties, contacts, credit evidence, orders and agreement fulfilment                                                                                                               |
+| Operations → Warehouse | Products; Stock; Warehouses    | Product master, lots with their sellable quantities, warehouse regions                                                                                                            |
+| Operations → Analysis  | Reports                        | Sales chain and margin, purchase listing, AR and AP aging, commission board and statements, credit exceptions and credit releases                                                 |
+| Trade configuration    | Documents, Pricing, Commission | Each document case's layout per language; dated price book with floor rule, floor list, and SalesBridge `.xlsx` matrix import/export; CEL commission rules with freight treatment |
 
 The navigation is one shell; apps are capability-scoped. `operations` is the commercial application family;
 `trade_configuration` is separate and grants no commercial records.
@@ -47,8 +47,8 @@ The navigation is one shell; apps are capability-scoped. `operations` is the com
 `orders` is one record for a quotation, sales agreement or supplier commitment. `direction` is fixed at
 creation (`sales` or `purchasing`). `order_lines` are owned contract lines.
 
-The order and its lines hold the terms: header terms on `orders`, contract SKU, quantity, price, tax, floor
-and commission conversion on `order_lines`. There are no contract versions; native record history is the
+The order and its lines hold the terms: header terms on `orders`, contract SKU, quantity, price, tax and floor
+on `order_lines`. There are no contract versions; native record history is the
 audit trail of every change. Syncing to Kingdee (`status: confirmed`) stamps the commission rule in force on the
 order date (`commission`), the freight treatment (`freight_treatment`) and, for an order written to Kingdee, the
 account set and branch (`write_target`); the order also keeps the SO or PO as last read (`kingdee`). A stamp is a
@@ -103,8 +103,8 @@ draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee
   (`XS100016`, incremental `FLogID` seek); members own only the local approval columns (`approval_status`,
   `route`, `proposed_limit`, `reason`), gated by formal two-step approval (`commercial_managers` → `finance`)
   and bound to the DO's SHA-256 `content_hash`. Logistics reads it through the price-free `logistics` output.
-- `products` holds the SKU, code, category (`FComCategoryID`, class 2037), base unit, tax rate, optional price and commission settings.
-- `warehouses` holds warehouse rows and their `group_code`; a price floor is keyed by the group, not a single
+- `products` holds the SKU, code, category (`FComCategoryID`, class 2037), base unit, tax rate and optional price.
+- `warehouses` holds warehouse rows, their `group_code` and `group_name`; a price floor is keyed by the region (`group_code`), not a single
   warehouse.
 - `stock_snapshots` is the remaining-lot mirror. `source_stock_commitments` holds open source sales and purchase
   quantities, which the Stock tab sums per SKU and warehouse region into on hand, promised out, promised in and the
@@ -117,15 +117,14 @@ draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee
 `pricing_floors` is a dated book keyed by:
 
 ```text
-product · group_code · currency · effective_on · minimum_quantity
+product · group_code · currency · effective_on
 ```
 
-- A row is the floor for that exact day and quantity band. Blank days have no typed price.
-- Orders use the newest row on or before the order date whose quantity band the line meets, in the order's
-  currency and warehouse region. The floor's unit must match the line unit. `floorFor` in
+- A row is the single floor for that exact day, SKU and warehouse region (same-day revisions live in native record history). Blank days have no typed price.
+- Orders use the newest row on or before the order date in the order's currency and warehouse region. Compatible mass units (`kg` / `吨`) convert automatically via `unitRatio`. `floorFor` in
   `src/lib/commercial.ts` is the one lookup.
-- **Monthly price book** shows one row per product/band and one column per day, with inline cell editing. The
-  dated **Floor list** keeps import/export and history.
+- **Monthly price book** shows one row per product and one column per day, with inline cell editing and SalesBridge-format `.xlsx` matrix download/upload (`每日基准价格汇总`). The
+  dated **Floor list** keeps tabular import/export and history.
 - `commercial_settings.floor_rule` decides what happens to a sales line below its floor, or with none: `warn`
   (a hint; the default), `approve` (a sales rep's write waits for a Commercial Manager) or `refuse` (refused at
   write; sync also refuses a line below the floor in force then).
