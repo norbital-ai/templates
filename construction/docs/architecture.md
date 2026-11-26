@@ -41,6 +41,9 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |   |   |   |- Cashflow & Budget ledger                                                        |
 |   |   |   |- Client contracts / Subcontracts & supply -> nested VOs & Transactions           |
 |   |   |   |- Ad-hoc Costs (catalog-backed)                                                   |
+|   |   |- Sustainability                                                                      |
+|   |   |   |- Overview (embodied carbon KPIs + by-discipline chart)                           |
+|   |   |   |- Carbon by item (computeProjectCarbon)                                           |
 |   |   |- Documents (project_files register)                                                  |
 |   |- Business Partners (All | Customers | Vendors | Subcontractors)                          |
 |   |- Messages (Unified WA/Email Inbox + Sync / Classify / Extract actions)                   |

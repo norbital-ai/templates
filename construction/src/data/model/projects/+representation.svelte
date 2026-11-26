@@ -5,6 +5,7 @@
 	 * - Programme: the work breakdown as a timeline, table or board.
 	 * - BIM: the model with its issues (selecting an issue isolates its element), costing, and the model file.
 	 * - Finance: the commercial position, cost ledger, client contracts, subcontracts and ad-hoc costs.
+	 * - Sustainability: embodied carbon of the model's items and the ad-hoc costs, by discipline and by item.
 	 * - Documents: filed drawings, specifications and handover records.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -55,6 +56,7 @@
 	import {
 		computeCatalogCashflowBreakdown,
 		computeProjectCashflow,
+		computeProjectCarbon,
 		computeProjectCommercial,
 		formatCarbon,
 		toNumber
@@ -110,7 +112,6 @@
 						'contingency_pct',
 						'contingency_amount',
 						'total_estimate',
-						'carbon_total',
 						'analyzed_at'
 					],
 					limit: 1
@@ -186,11 +187,11 @@
 				},
 				adhoc_costs: {
 					where: { project_id: { eq: record.id } },
-					fields: ['status', 'title', 'unit', 'amount', 'catalog_item_id'],
+					fields: ['status', 'title', 'unit', 'qty', 'amount', 'catalog_item_id'],
 					limit: 300
 				},
 				item_matrix: {
-					fields: ['code', 'name'],
+					fields: ['code', 'name', 'discipline', 'unit', 'carbon_factor'],
 					limit: 500
 				}
 			})
@@ -497,12 +498,16 @@
 		}))
 	);
 
+	const activeBimAssets = $derived(
+		singleEstimate && singleEstimate.status !== 'void' ? (singleEstimate.bim_assets ?? []) : []
+	);
+	const matrixById = $derived(
+		new Map((commercialQuery?.current?.item_matrix.rows ?? []).map((m) => [m.id, m] as const))
+	);
+
 	const catalogCashflow = $derived.by(() => {
 		const data = commercialQuery?.current;
 		if (!data || !record) return null;
-		const matrixById = new Map(data.item_matrix.rows.map((m) => [m.id, m] as const));
-		const activeBimAssets =
-			singleEstimate && singleEstimate.status !== 'void' ? (singleEstimate.bim_assets ?? []) : [];
 		return computeCatalogCashflowBreakdown({
 			bim_assets: activeBimAssets,
 			adhoc_costs: data.adhoc_costs.rows.map((c) => {
@@ -530,6 +535,43 @@
 					? t('priced_lines.badge_catalog')
 					: t('priced_lines.badge_bim'),
 			currency: record?.currency ?? 'SGD'
+		}))
+	);
+
+	const carbon = $derived(
+		commercialQuery?.current
+			? computeProjectCarbon({
+					bim_assets: activeBimAssets,
+					adhoc_costs: commercialQuery.current.adhoc_costs.rows.map((c) => ({
+						status: c.status,
+						qty: c.qty,
+						item: matrixById.get(c.catalog_item_id) ?? null
+					}))
+				})
+			: null
+	);
+	const disciplineLabel = (value: string) =>
+		enum_text(value, { t: rawT, model: 'item_matrix', field: 'discipline' });
+	// The chart labels its series by key, so the key is the translated series name.
+	const carbonByDiscipline = $derived.by(() => {
+		const tonnes = new Map<string, number>();
+		for (const r of carbon?.rows ?? [])
+			tonnes.set(r.discipline, (tonnes.get(r.discipline) ?? 0) + toNumber(r.carbon) / 1000);
+		return [...tonnes].map(([discipline, value]) => ({
+			discipline: disciplineLabel(discipline),
+			[t('sustainability.series_carbon')]: Math.round(value * 10) / 10
+		}));
+	});
+	const carbonRows = $derived(
+		(carbon?.rows ?? []).map((r) => ({
+			...r,
+			id: r.code,
+			source_label:
+				r.source === 'adhoc_catalog'
+					? t('priced_lines.badge_catalog')
+					: t('priced_lines.badge_bim'),
+			discipline_label: disciplineLabel(r.discipline),
+			unit_label: enum_text(r.unit, { t: rawT, model: 'item_matrix', field: 'unit' })
 		}))
 	);
 
@@ -1151,10 +1193,6 @@
 										<Show {ctx} kind={money} value={est.total_estimate} row={est} />
 									</span>
 								</Stack>
-								<Stack gap="xs">
-									<span class="text-meta">{t('bim_costing.carbon_total')}</span>
-									<span class="text-label tabular-nums">{formatCarbon(est.carbon_total)}</span>
-								</Stack>
 							</Grid>
 						</Stack>
 					</Surface>
@@ -1600,6 +1638,132 @@
 	/>
 {/snippet}
 
+{#snippet sustainabilityOverviewTab()}
+	{#if record}
+		<Scroll name={t('sustainability.overview')} size="fill" inset>
+			<Stack gap="md">
+				{#if singleEstimate && (singleEstimate.status === 'void' || record.bim_costing_dirty)}
+					<Alert.Root>
+						<Alert.Title>{t('sustainability.model_out_of_date')}</Alert.Title>
+					</Alert.Root>
+				{/if}
+				{#if commercialQuery?.loading && !commercialQuery.current}
+					<Inline gap="sm" align="center" aria-busy="true">
+						<Spinner />
+						<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+					</Inline>
+				{:else if commercialQuery?.error}
+					<Alert.Root variant="destructive">
+						<Alert.Title>{commercialQuery.error.message}</Alert.Title>
+					</Alert.Root>
+				{:else if carbon && carbon.rows.length > 0}
+					<Surface tone="card" padding="md" radius="control">
+						<Stack gap="md" divided>
+							<Grid minimum="card" gap="md">
+								<Stack gap="xs">
+									<span class="text-meta">{t('sustainability.total')}</span>
+									<span class="text-sm font-medium tabular-nums text-primary">
+										{formatCarbon(carbon.total)}
+									</span>
+								</Stack>
+								{#if toNumber(carbon.model) !== 0 && toNumber(carbon.other) !== 0}
+									<Stack gap="xs">
+										<span class="text-meta">{t('sustainability.from_model')}</span>
+										<span class="text-label tabular-nums">{formatCarbon(carbon.model)}</span>
+									</Stack>
+									<Stack gap="xs">
+										<span class="text-meta">{t('sustainability.from_other')}</span>
+										<span class="text-label tabular-nums">{formatCarbon(carbon.other)}</span>
+									</Stack>
+								{/if}
+								{#if carbon.uncounted > 0}
+									<Stack gap="xs">
+										<span class="text-meta">{t('sustainability.uncounted')}</span>
+										<span class="text-label tabular-nums">{carbon.uncounted}</span>
+									</Stack>
+								{/if}
+							</Grid>
+							<Bound height="18rem">
+								<Chart
+									{ctx}
+									of={carbonByDiscipline}
+									x="discipline"
+									y={t('sustainability.series_carbon')}
+									kind="bar"
+									title={t('sustainability.chart_title')}
+								/>
+							</Bound>
+						</Stack>
+					</Surface>
+				{:else}
+					<EmptyState
+						variant="card"
+						title={t('sustainability.overview')}
+						hint={t('sustainability.empty')}
+					/>
+				{/if}
+			</Stack>
+		</Scroll>
+	{/if}
+{/snippet}
+
+{#snippet carbonItemsTab()}
+	<Table
+		{ctx}
+		of={carbonRows}
+		controlled
+		toolbar={{
+			title: t('sustainability.by_item'),
+			description: t('sustainability.by_item_description')
+		}}
+		columns={[
+			{ field: 'code', label: t('commercial.col_code') },
+			{ field: 'name', label: t('commercial.col_item') },
+			{ field: 'source_label', label: t('priced_lines.col_source') },
+			{ field: 'discipline_label', label: t('models.item_matrix.fields.discipline') },
+			{
+				field: 'quantity',
+				label: t('sustainability.col_quantity'),
+				kind: { kind: 'decimal', scale: 3 },
+				align: 'end'
+			},
+			{ field: 'unit_label', label: t('models.item_matrix.fields.unit') },
+			{
+				field: 'carbon_factor',
+				label: t('models.item_matrix.fields.carbon_factor'),
+				kind: { kind: 'decimal', scale: 3 },
+				align: 'end'
+			},
+			{
+				field: 'carbon',
+				label: t('bim_costing.col_carbon'),
+				kind: { kind: 'decimal', scale: 2 },
+				align: 'end'
+			}
+		]}
+	/>
+{/snippet}
+
+{#snippet sustainabilityTab()}
+	<Tabs
+		level={2}
+		tabs={[
+			{
+				name: 'overview',
+				title: t('sustainability.overview'),
+				icon: 'lucide:layout-dashboard',
+				body: sustainabilityOverviewTab
+			},
+			{
+				name: 'by_item',
+				title: t('sustainability.by_item'),
+				icon: 'lucide:list',
+				body: carbonItemsTab
+			}
+		]}
+	/>
+{/snippet}
+
 {#snippet documentsTab()}
 	{#if id}
 		<Table
@@ -1651,6 +1815,12 @@
 				title: t('project.tab_finance'),
 				icon: 'lucide:banknote',
 				body: financeTab
+			},
+			{
+				name: 'sustainability',
+				title: t('project.tab_sustainability'),
+				icon: 'lucide:leaf',
+				body: sustainabilityTab
 			},
 			{
 				name: 'documents',

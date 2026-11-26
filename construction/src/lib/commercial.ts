@@ -716,3 +716,127 @@ export function computeCatalogCashflowBreakdown(input: {
 		total_paid_outflow: moneyStr(totalPaid)
 	};
 }
+
+/** One Item Matrix item's embodied carbon on a project, in kgCO2e. */
+export type CarbonRow = {
+	readonly code: string;
+	readonly name: string;
+	readonly source: 'bim_asset' | 'adhoc_catalog';
+	readonly discipline: string;
+	readonly unit: string;
+	readonly quantity: string;
+	readonly carbon_factor: string;
+	readonly carbon: string;
+};
+
+/**
+ * A project's embodied carbon by Item Matrix item: each model line contributes its own `carbon`, each ad-hoc cost
+ * that is not cancelled its quantity × its item's carbon factor. `uncounted` is the lines with no item or no factor.
+ */
+export function computeProjectCarbon(input: {
+	readonly bim_assets: readonly {
+		readonly matrix_code?: string | null;
+		readonly classification: string;
+		readonly discipline: string;
+		readonly unit: string;
+		readonly priced_qty: DecimalLike;
+		readonly carbon_factor: DecimalLike;
+		readonly carbon: DecimalLike;
+		readonly status: string;
+	}[];
+	readonly adhoc_costs: readonly {
+		readonly status: string;
+		readonly qty: DecimalLike;
+		readonly item: {
+			readonly code: string;
+			readonly name: string;
+			readonly discipline: string;
+			readonly unit: string;
+			readonly carbon_factor: DecimalLike;
+		} | null;
+	}[];
+}): {
+	readonly rows: readonly CarbonRow[];
+	readonly model: string;
+	readonly other: string;
+	readonly total: string;
+	readonly uncounted: number;
+} {
+	type Acc = Omit<CarbonRow, 'quantity' | 'carbon'> & {
+		quantity: BigDecimal.BigDecimal;
+		carbon: BigDecimal.BigDecimal;
+	};
+	const byCode = new Map<string, Acc>();
+	let model = ZERO;
+	let other = ZERO;
+	let uncounted = 0;
+	const add = (
+		line: Omit<CarbonRow, 'quantity' | 'carbon'>,
+		qty: DecimalLike,
+		carbon: BigDecimal.BigDecimal
+	) => {
+		const acc = byCode.get(line.code) ?? { ...line, quantity: ZERO, carbon: ZERO };
+		acc.quantity = BigDecimal.sum(acc.quantity, toDecimal(qty));
+		acc.carbon = BigDecimal.sum(acc.carbon, carbon);
+		byCode.set(line.code, acc);
+	};
+
+	for (const line of input.bim_assets) {
+		const factor = toDecimal(line.carbon_factor);
+		if (!line.matrix_code || line.status === 'unmatched' || !BigDecimal.isPositive(factor)) {
+			uncounted += 1;
+			continue;
+		}
+		const carbon = toDecimal(line.carbon);
+		model = BigDecimal.sum(model, carbon);
+		add(
+			{
+				code: line.matrix_code,
+				name: line.classification,
+				source: 'bim_asset',
+				discipline: line.discipline,
+				unit: line.unit,
+				carbon_factor: formatTrimmed(factor, 3)
+			},
+			line.priced_qty,
+			carbon
+		);
+	}
+
+	for (const cost of input.adhoc_costs) {
+		if (cost.status === 'cancelled') continue;
+		const factor = toDecimal(cost.item?.carbon_factor);
+		if (cost.item === null || !BigDecimal.isPositive(factor)) {
+			uncounted += 1;
+			continue;
+		}
+		const carbon = BigDecimal.multiply(nonNegative(toDecimal(cost.qty)), factor);
+		other = BigDecimal.sum(other, carbon);
+		add(
+			{
+				code: cost.item.code,
+				name: cost.item.name,
+				source: 'adhoc_catalog',
+				discipline: cost.item.discipline,
+				unit: cost.item.unit,
+				carbon_factor: formatTrimmed(factor, 3)
+			},
+			cost.qty,
+			carbon
+		);
+	}
+
+	return {
+		rows: [...byCode.values()]
+			.sort((a, b) => BigDecimal.Order(b.carbon, a.carbon))
+			.map((r) => ({
+				...r,
+				quantity: formatTrimmed(r.quantity, 3),
+				carbon: formatTrimmed(r.carbon, 2)
+			})),
+		model: formatTrimmed(model, 2),
+		other: formatTrimmed(other, 2),
+		total: formatTrimmed(BigDecimal.sum(model, other), 2),
+		uncounted
+	};
+}

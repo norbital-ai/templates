@@ -5,6 +5,7 @@ import {
 	computeCatalogCashflowBreakdown,
 	computeDocumentTotals,
 	computeLinesTotals,
+	computeProjectCarbon,
 	computeProjectCashflow,
 	computeProjectCommercial,
 	evaluateThreeWayMatch
@@ -253,6 +254,53 @@ it('computes exact BigDecimal lines, 3-way match, commercial valuation, retentio
 	expect(ledger.total_po_committed).toBe('180000.00');
 	expect(ledger.total_paid_outflow).toBe('120000.00');
 	expect(ledger.rows.find((r) => r.code === 'ROOF-DECK')?.budget_variance).toBe('20000.00');
+});
+
+it('totals embodied carbon by item from model lines and live ad-hoc costs', () => {
+	const item = {
+		code: 'X-1',
+		name: 'Slab',
+		discipline: 'structural',
+		unit: 'm3',
+		carbon_factor: '300'
+	};
+	const line = { classification: 'Slab', discipline: 'structural', unit: 'm3', status: 'matched' };
+	const carbon = computeProjectCarbon({
+		bim_assets: [
+			{ ...line, matrix_code: 'X-1', priced_qty: '2', carbon_factor: '300', carbon: '600' },
+			{
+				...line,
+				matrix_code: null,
+				priced_qty: '5',
+				carbon_factor: '0',
+				carbon: '0',
+				status: 'unmatched'
+			}
+		],
+		adhoc_costs: [
+			{ status: 'approved', qty: '1.5', item },
+			{ status: 'cancelled', qty: '10', item },
+			{ status: 'draft', qty: '1', item: { ...item, code: 'Y-1', carbon_factor: '0' } }
+		]
+	});
+	expect(carbon).toEqual({
+		rows: [
+			{
+				code: 'X-1',
+				name: 'Slab',
+				source: 'bim_asset',
+				discipline: 'structural',
+				unit: 'm3',
+				quantity: '3.5',
+				carbon_factor: '300',
+				carbon: '1050'
+			}
+		],
+		model: '600',
+		other: '450',
+		total: '1050',
+		uncounted: 2
+	});
 });
 
 it.effect(
