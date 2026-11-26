@@ -115,8 +115,8 @@ describe('employer pay methods', () => {
 					).pipe(Effect.map(({ breakdown }) => amount(breakdown, 'HOLIDAY_WORK')));
 				// 5 h at 40 h/week (180) is below the statutory two-day floor (240): keeps the floor
 				assert.equal(yield* holidayPay(5, 40), floor);
-				// 7.75 h at 36 h/week (exact minutes, no 30-min truncation: 7.75 × 2 × 20 = 310) lifts above the floor
-				assert.equal(yield* holidayPay(7.75, 36), 7.75 * 2 * ((SALARY * 12) / (52 * 36)));
+				// 7.75 h at 36 h/week counts 7.5 completed half hours (7.5 × 2 × 20 = 300), above the floor
+				assert.equal(yield* holidayPay(7.75, 36), 7.5 * 2 * ((SALARY * 12) / (52 * 36)));
 			})
 	);
 
@@ -163,7 +163,7 @@ describe('employer pay methods', () => {
 	);
 
 	it.live(
-		'a rest-day multiple of 2 lifts a long rest day; a 1 h shift keeps the statute’s day, which pays more',
+		'a rest-day multiple of 2 lifts a long rest day; a 1 h shift keeps the Act’s half day, which pays more',
 		() =>
 			Effect.gen(function* () {
 				const method = { pay_methods: { rest_day_hourly_multiplier: 2 } };
@@ -176,9 +176,8 @@ describe('employer pay methods', () => {
 					yield* restDay({}, LONG_REST_DAY),
 					'REST_DAY_WORK'
 				);
-				const floor = yield* restDay({}, SHORT_REST_DAY);
-				assert.ok(floor > 0);
-				assert.equal(yield* restDay(method, SHORT_REST_DAY), floor);
+				// the Act's own half day: the month's wages / 26 (s.60I(1A)), not the pack's day
+				assert.equal(yield* restDay(method, SHORT_REST_DAY), 37.06);
 			})
 	);
 });
