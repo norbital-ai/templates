@@ -95,7 +95,8 @@ describe('employer pay methods', () => {
 			Effect.gen(function* () {
 				const SALARY = 3120;
 				const HOLIDAY = '2026-02-08';
-				const floor = 2 * ((SALARY * 12) / (52 * 5));
+				// the Act's own day: the month's wages / 26 (s.60I(1))
+				const floor = 2 * (SALARY / 26);
 				const holidayPay = (hours: number, weeklyHours: number) =>
 					slip(
 						withEmployer(
@@ -112,7 +113,7 @@ describe('employer pay methods', () => {
 						'2026-02',
 						FEBRUARY
 					).pipe(Effect.map(({ breakdown }) => amount(breakdown, 'HOLIDAY_WORK')));
-				// 5 h at 40 h/week (180) is below the statutory two-day floor (288): keeps the floor
+				// 5 h at 40 h/week (180) is below the statutory two-day floor (240): keeps the floor
 				assert.equal(yield* holidayPay(5, 40), floor);
 				// 7.75 h at 36 h/week (exact minutes, no 30-min truncation: 7.75 × 2 × 20 = 310) lifts above the floor
 				assert.equal(yield* holidayPay(7.75, 36), 7.75 * 2 * ((SALARY * 12) / (52 * 36)));
