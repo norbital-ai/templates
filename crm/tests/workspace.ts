@@ -21,6 +21,7 @@ import type { Json } from '@norbital-ai/bolt/engine';
 import { SOW_FIELDS } from '../src/lib/extracted.js';
 import { ActRefused } from '@norbital-ai/bolt/errors';
 import { documentRead, preview, render, termsKey } from '../src/lib/documents.js';
+import sys_team from '../seed/test/sys_team.json' with { type: 'json' };
 
 const root = `${process.cwd()}/`;
 type WorkspaceOptions<P extends TestPorts> = Omit<
@@ -33,7 +34,7 @@ export const workspaceServices = <P extends TestPorts = never>(options: Workspac
 
 /** One source workspace shared by a file's tests: `layer(sharedWorkspace(...))`. */
 export const sharedWorkspace = <P extends TestPorts = never>(options: WorkspaceOptions<P> = {}) =>
-	TestWorkspace.layer({ root, seed: 'none', ...options });
+	TestWorkspace.layer({ root, seed: { sys_team }, ...options });
 
 export const workspace = <P extends TestPorts = never>(options: WorkspaceOptions<P> = {}) =>
 	workspaceServices(options).pipe(Effect.map((services) => Context.get(services, TestWorkspace)));
@@ -98,11 +99,9 @@ export const member = Effect.fnUntraced(function* (
 	policies: Parameters<Kit['member']>[0],
 	over: Parameters<Kit['member']>[1] = {}
 ) {
-	const teams = Object.entries(t.manifest.teams)
-		.filter(([, team]) =>
-			('policies' in team ? team.policies : team).some((policy) => policies.includes(policy))
-		)
-		.map(([name]) => name);
+	const teams = sys_team
+		.filter((team) => team.policies.some((policy) => policies.includes(policy)))
+		.map((team) => team.id);
 	const holder = t.member(policies, { teams, ...over });
 	const row = pageOf(yield* (yield* t.as(t.admin)).query({ sys_user: {} }), 'sys_user').rows.find(
 		(row) => row.id === holder.id

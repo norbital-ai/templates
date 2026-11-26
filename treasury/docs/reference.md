@@ -155,7 +155,7 @@ Shared engine in [`src/lib/fx.ts`](../src/lib/fx.ts) supports 11 structures (`fw
 ## Attention and daily reminders
 
 Attention items are computed live from [`src/lib/attention.ts`](../src/lib/attention.ts) (no duplicate
-reminder table) and delivered to team `treasury` at 08:00 workspace time (`daily_alerts`, once per day via
+reminder table) and delivered to holders of the `treasury` policy at 08:00 workspace time (`daily_alerts`, once per day via
 `once: alerts:<today>`) whenever non-empty:
 
 - **Drawdowns:** `unclear` status; non-null `discrepancy_note`; earmarked past `expected_draw_date`; open

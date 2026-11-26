@@ -1,0 +1,4 @@
+[
+	{ "id": "operations", "name": "Operations", "policies": ["operations"] },
+	{ "id": "providers", "name": "Providers", "policies": ["provider"] }
+]

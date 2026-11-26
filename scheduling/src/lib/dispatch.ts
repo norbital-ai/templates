@@ -425,7 +425,7 @@ export const reassign = Effect.fnUntraced(function* (
 		yield* ctx.notify({
 			title: `${unassigned} appointment${unassigned === 1 ? '' : 's'} need a provider`,
 			description: appointments.map((a) => a.number).join(', '),
-			to: [{ team: 'operations' }],
+			to: [{ policy: 'operations' }],
 			once: `unassigned-${appointments
 				.map((a) => `${a.id}:${a.revision}`)
 				.sort()
@@ -483,7 +483,7 @@ export const recommend = Effect.fnUntraced(function* (
 	yield* ctx.notify({
 		title: 'Approve replacement providers',
 		description: `${appointments.length} appointment${appointments.length === 1 ? '' : 's'} need your review. Recommendations factor in travel and workload; nothing is assigned until approved.`,
-		to: [{ team: 'operations' }],
+		to: [{ policy: 'operations' }],
 		link: { model: 'appointments', id: first.id },
 		once: `recommend-${ordered.map((a) => `${a.id}:${a.revision}`).join(',')}`
 	});
@@ -543,7 +543,7 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes, loaded?: Pool)
 	});
 	yield* ctx.notify({
 		title: `Schedule optimised: ${result.moves.length} reassignment${result.moves.length === 1 ? '' : 's'}`,
-		to: [{ team: 'operations' }],
+		to: [{ policy: 'operations' }],
 		description: `Planned driving over the next ${booking_horizon_days} days is ${result.after} minutes, down from ${result.before}. Every move preserved skills, hours, time off, and travel buffers.`,
 		once: `optimise-${result.moves
 			.map((m) => `${m.appointment}:${m.to}`)

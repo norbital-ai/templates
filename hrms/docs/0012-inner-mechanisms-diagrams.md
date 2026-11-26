@@ -56,7 +56,7 @@ The workspace comprises **9 apps**, **30 models**, **3 custom fields**, **6 auto
 +==============================================================================================+
 |                           BOLT HOST ENGINE & MODEL LAYER (30 MODELS)                         |
 +==============================================================================================+
-|  Access Control (9 teams -> 10 policies; 2-step requestReview approval flow)                 |
+|  Access Control (9 seeded teams, 10 policies; 2-step requestReview approval flow)            |
 |  Model Transforms & Effects (src/data/model/**/service/)                                     |
 |   +-- Dated Fold (lib/dated.ts)          : law.ts, company.ts, person.ts                     |
 |   +-- Payroll Engine (payroll_run/svc)   : run_loader -> amended -> run_calc -> engine       |
@@ -822,7 +822,7 @@ An `employment` is one continuous stint of one person with one legal entity (`no
 ```text
   Employee submits leave_catalog_entry (create) or claim_catalog_entry (create / update)
           |
-          v  Policy verdict verifies `ownsEmployments(ctx, ...)` -> `ctx.approve(requestReview)`
+          v  Policy verdict verifies `ownsEmployments(ctx, ...)` -> `requestReview(ctx)`
   +-------------------------------------------------------------------------------------+
   |  PROVISIONAL HOLD (`$approval != null`):                                            |
   |   * Ledger NOT posted yet; pay_amendment NOT written yet; effects NOT fired yet     |
@@ -834,14 +834,14 @@ An `employment` is one continuous stint of one person with one legal entity (`no
            | Standard Path                  | Supersede Shortcut             |
            v                                | (`superseded_by`)              |
   [Step 1: Supervisor review]               |                                |
-   Teams: supervisor, manager,              |  Teams: hr_manager,            |
-          production_manager                |         senior_management      |
+   Teams holding `supervisor`               |  Teams holding `hr_manager`    |
+          or `manager`                      |         or `senior_management` |
    (no self-approval)                       |  (decides in place of steps)   |
            | approve                        |                                |
            v                                |                                |
   [Step 2: HR review]                       |                                |
-   Teams: hr_controller, hr_manager,        |                                |
-          manager_hr_controller             |                                |
+   Teams holding `hr_controller`            |                                |
+          or `hr_manager`                   |                                |
            | approve                        |                                |
            +----------------+---------------+                                |
                             v                                                |
@@ -855,9 +855,11 @@ An `employment` is one continuous stint of one person with one legal entity (`no
         Reject restores checkpoint; requester alone may withdraw.
 ```
 
-### Access-Control Authority Matrix (`src/access_control/`)
+### Access-Control Authority Matrix (`src/access_control/policy/`, `seed/public/sys_team.json`)
 
-| Team Handle             | Display Name            | Policies                        | Apps                           | Key Grants & Boundaries                                                                                                                                                                                                                                       |
+Teams are `sys_team` rows an administrator edits; these are the seeded ones. A flow's approvers and a notice's readers are the teams holding the named policy.
+
+| Seeded team id          | Display Name            | Policies                        | Apps                           | Key Grants & Boundaries                                                                                                                                                                                                                                       |
 | ----------------------- | ----------------------- | ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `employee`              | Employee                | `employee`                      | `hr_employee`                  | Own profile (`documents` update only), own stints/terms/params/dependants/balances/ledger/payslips/rosters, `entity` (`self_service` output), `holiday`, `jurisdiction*`, `pay_group`, `shift*`; leave create & claim create/update held via `requestReview`. |
 | `supervisor`            | Supervisor              | `employee`, `supervisor`        | `hr_employee`                  | Employee grants + Step 1 approval authority on `requestReview`.                                                                                                                                                                                               |
@@ -920,6 +922,6 @@ An `employment` is one continuous stint of one person with one legal entity (`no
 - **Apps (9):** `hr_controller/{dashboard,entities,events,obligations,payroll,people,settings}` (7 apps in 1 group), `hr_employee` (1), `attendance` (1 kiosk shell)
 - **Automations (6):** `invitation_profile`, `late_notice`, `ledger`, `registered_effects`, `statutory_filing`, `statutory_research`
 - **File Syncs (2):** `payroll_run.metro_bank`, `payroll_run.ocbc_fast`
-- **Teams (9):** `employee`, `supervisor`, `manager`, `senior_management`, `hr_controller`, `hr_manager`, `manager_hr_controller`, `production_manager`, `attendance_kiosk`
+- **Seeded teams (9, `seed/public/sys_team.json`):** `employee`, `supervisor`, `manager`, `senior_management`, `hr_controller`, `hr_manager`, `manager_hr_controller`, `production_manager`, `attendance_kiosk`
 - **Policies (10):** `employee`, `supervisor`, `manager`, `hr_controller`, `hr_manager`, `senior_management`, `kiosk`, `payroll_execution`, `configuration_execution`, `invitation_profile_automation`
 - **Public Seed Jurisdictions (9):** `CN`, `ID`, `JP`, `MY`, `PH`, `SG`, `TH`, `TW`, `VN` (under `seed/public/jurisdiction/<CODE>/`, seeded from 2025-12-01 with enacted dated changes)

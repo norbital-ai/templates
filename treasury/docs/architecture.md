@@ -309,7 +309,9 @@ Uploading a bank advice PDF never mutates a `drawdown` directly. Even when the A
                                             | bank_advices policy verdict on drawdown.update:
                                             | ALWAYS returns ctx.approve({
                                             |   steps: [{ name:'Treasury review',
-                                            |             teams: ['treasury'] }] })
+                                            |             teams: <teams holding the
+                                            |                     treasury policy> }] })
+                                            | (refuses errors.no_treasury_team if none)
                                             v
                          +------------------------------------+
                          |   NATIVE APPROVAL HOLD (Pending)   |
@@ -661,7 +663,7 @@ There is no separate alert or reminder table. Both the live **Attention** page (
 
 ## 10. Access Control, Isolation, and Authority Matrix
 
-Access control is strictly declarative across 4 teams (`src/access_control/team/+team.ts`) and 11 policies (`src/access_control/policy/`). Human teams never receive direct write authority for governed boundaries (bank advices and month-end closing figures); instead, they hold capability grants to trigger automations whose scoped policies enforce approvals and invariants.
+Access control is strictly declarative across 4 seeded teams (`sys_team` rows, `seed/public/sys_team.json`, edited by an administrator afterwards) and 11 policies (`src/access_control/policy/`). Human teams never receive direct write authority for governed boundaries (bank advices and month-end closing figures); instead, they hold capability grants to trigger automations whose scoped policies enforce approvals and invariants.
 
 ```text
   HUMAN TEAMS & POLICIES (4)
@@ -699,7 +701,7 @@ Access control is strictly declarative across 4 teams (`src/access_control/team/
   | bank_advices      | bank_document_read,             | Reads bank/facility/partner/line; |
   |                   | bank_document_apply,            | updates bank_document metadata;   |
   |                   | drawdown_record_advice,         | drawdown.update ALWAYS triggers   |
-  |                   | drawdown_settle                 | ctx.approve -> team 'treasury'    |
+  |                   | drawdown_settle                 | ctx.approve -> treasury holders   |
   +-------------------+---------------------------------+-----------------------------------+
   | month_end_closing | month_end_lock,                 | Sole writer allowed by month_end  |
   |                   | month_end_unlock                | transforms to write figures &     |

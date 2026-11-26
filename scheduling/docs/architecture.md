@@ -497,7 +497,7 @@ transactions so unauthenticated visitors can never enumerate provider schedules 
   |    + appointments -> alertProviders)       |  |  - booking_requests.update                 |
   |  - customer_notices.create (confirmation)  |  |    (status = 'follow_up', outcome = why)   |
   |  - booking_requests.update                 |  |  - customer_notices.create (reassurance)   |
-  |    (status = 'booked', booking = id)       |  | + ctx.notify(team: 'operations',           |
+  |    (status = 'booked', booking = id)       |  | + ctx.notify(policy: 'operations',         |
   | Portal Step 3: "Booking confirmed" + .ics  |  |   once: 'intake-<id>')                     |
   +--------------------------------------------+  | Portal Step 3: "Request received"          |
                                                   +--------------------------------------------+
@@ -550,7 +550,7 @@ repair, and soft optimization into strict phases.
   |   - if preference='preferred' & reassigned: |  |   - booking.preference = 'any'   |
   |       queue customer_notices update         |  |   - start >= now+free_change_hrs |
   |   - if unassigned > 0:                      |  |     within booking_horizon_days  |
-  |       ctx.notify(team: 'operations')        |  |  improve(pool, movable, 20 swp): |
+  |       ctx.notify(policy: 'operations')      |  |  improve(pool, movable, 20 swp): |
   |  (Optimization deferred to next sweep)      |  |   - Re-rank each stop keeping    |
   +---------------------------------------------+  |     CONTINUITY=15 hysteresis     |
                                                    |   - Move only if strictly better |
@@ -613,7 +613,7 @@ deactivation).
                           proposed_provider = best?, proposed_slot = slot?,
                           attention = best ? 'awaiting_approval' : 'unassigned',
                           shift_check = 'no_response' (if lapsed), clear eta fields
-                      ctx.notify(team: 'operations', once: recommend-...)
+                      ctx.notify(policy: 'operations', once: recommend-...)
 ```
 
 ### 8.2 Live GPS Ingestion & Per-Appointment ETA Fan-Out
@@ -652,7 +652,7 @@ deactivation).
                        : (late ? 'eta_risk' : 'none')
     6) ctx.act({ eta_minutes: eta, eta_checked_at: now, attention }, key: eta-check:<id>:<rev>)
        (catches ActConflict cleanly if row changed concurrently)
-    7) If written AND late -> ctx.notify(team: 'operations', once: eta-<id>)
+    7) If written AND late -> ctx.notify(policy: 'operations', once: eta-<id>)
 ```
 
 ### 8.3 Dispatcher Recovery & Provider Deactivation
@@ -737,7 +737,7 @@ WhatsApp message.
 
 ## 10. Access Control, Named Outputs & Rate Limits
 
-Access is enforced declaratively via two source teams (`src/access_control/team/+team.ts`),
+Access is enforced declaratively via two seeded teams (`sys_team` rows, `seed/public/sys_team.json`),
 phone-challenge customer self-signup (`src/+workspace.ts`), one public app audience, and seven
 policies (`src/access_control/policy/`). Policies never reshape rows ad hoc; narrower audiences
 receive explicitly declared named outputs on each model.

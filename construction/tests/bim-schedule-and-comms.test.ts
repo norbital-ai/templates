@@ -14,6 +14,7 @@ import {
 } from '../src/lib/bim-pipeline.js';
 import { parseMsProjectXml, parsePrimaveraXer } from '../src/lib/schedule-parsers.js';
 import { fixtureId, recordOf, rowsOf, workspace as acquireWorkspace } from './test-runtime.js';
+import sys_team from '../seed/public/sys_team.json' with { type: 'json' };
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 
@@ -1392,6 +1393,8 @@ it.effect(
 			const t = yield* acquireWorkspace({
 				root,
 				now: '2026-06-15T06:00:00.000Z',
+				// the Item Matrix proposal's reviewers are the seeded teams holding commercial authority
+				seed: { sys_team },
 				fakes: {
 					ai: {
 						sys_1: bimSys1,

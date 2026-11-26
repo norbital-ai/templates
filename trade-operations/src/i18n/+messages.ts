@@ -795,6 +795,8 @@ export default messages({
 	'errors.line_basis_locked': "An order's direction and a line's product are fixed.",
 	'errors.payment_terms': 'Set payment terms to sync to Kingdee.',
 	'errors.logistics_handler': 'Choose someone in the Logistics team.',
+	'errors.no_approver':
+		'No team can review this yet. Ask an administrator to give a team the reviewing policy.',
 	'errors.payment_terms_required': 'Choose the payment terms: Kingdee needs them on every order.',
 	'errors.kingdee_contact': 'The Kingdee contact changes in Kingdee.',
 	'errors.contact_party': "Choose one of the party's contacts.",

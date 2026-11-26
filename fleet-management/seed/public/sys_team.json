@@ -1,0 +1,13 @@
+[
+	{
+		"id": "fleet_administrators",
+		"name": "Fleet Administrators",
+		"policies": ["fleet_read", "fleet_operations", "fleet_configuration"]
+	},
+	{
+		"id": "fleet_dispatchers",
+		"name": "Fleet Dispatchers",
+		"policies": ["fleet_read", "fleet_operations"]
+	},
+	{ "id": "fleet_viewers", "name": "Fleet Viewers", "policies": ["fleet_read"] }
+]

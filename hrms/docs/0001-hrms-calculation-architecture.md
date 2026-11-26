@@ -581,7 +581,7 @@ src/lib/
   export_format_configuration/  salary listing and bank files
 src/data/model/         the models, each with its write rules
 src/automation/         the four automations
-src/access_control/     teams and policies
+src/access_control/     policies
 src/app/                HR controller apps, employee self-service
 ```
 

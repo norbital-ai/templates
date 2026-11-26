@@ -41,11 +41,12 @@ bun run format                  # Format source and documentation with Prettier
   generate the next SQL migration under `migrations/` and verify replay against a scratch database.
   Always commit generated SQL files together with `migrations/snapshot.json`,
   `migrations/migrations.lock.json`, and `migrations/physical.json`. Never commit `.norbital/`.
-- **Workspace startup & data:** A fresh workspace starts empty. Invite controllers and contractors
+- **Workspace startup & data:** A fresh workspace starts with its three teams and no records. Invite controllers and contractors
   under **Command center → People** and optionally configure the WhatsApp Envoy under **Settings →
   Envoys**. Demo environments load fixture data in memory via `seed/+seeder.ts` (which chains an
   initial `review_job_assignment_suspicion` run after seeding).
-- **Access & connections:** Teams and policies are authored in source under `src/access_control/`.
+- **Access & connections:** Policies are authored in source under `src/access_control/policy/`; teams are
+  `sys_team` rows an administrator edits, started by `seed/public/sys_team.json`.
   External channel credentials (such as WhatsApp pairing) belong to the host's **Settings →
   Integrations** sealed store and are never committed to source.
 

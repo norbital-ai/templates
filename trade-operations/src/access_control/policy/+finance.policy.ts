@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { creditReleaseManagerReview } from '../../lib/order-review.js';
+import { review } from '../../lib/order-review.js';
 export default policy({
 	description: 'Finance manages order-scoped billing and payment evidence.',
 	capabilities: { apps: ['operations'] },
@@ -71,7 +71,7 @@ export default policy({
 					);
 					return invalid >= 0
 						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
-						: ctx.approve(creditReleaseManagerReview);
+						: yield* review(ctx, 'manager');
 				}
 			}
 		},

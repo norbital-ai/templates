@@ -12,6 +12,7 @@ import {
 	PlainTimeSchema
 } from '../src/lib/geo.js';
 import { recordOf, rowsOf, workspace as acquireWorkspace } from './test-runtime.js';
+import sys_team from '../seed/public/sys_team.json' with { type: 'json' };
 
 const LinkRequestShape = Schema.Struct({
 	path: Schema.optional(Schema.String),
@@ -602,7 +603,9 @@ it.effect(
 			const t = yield* acquireWorkspace({
 				root,
 				now: '2026-06-15T09:00:00.000Z',
-				providers: [fakeHttpProvider]
+				providers: [fakeHttpProvider],
+				// the health notice goes to the seeded teams holding `fleet_operations`
+				seed: { sys_team }
 			});
 			const admin = yield* t.as(t.admin);
 			const viewer = yield* t.as(t.member(['fleet_read']));

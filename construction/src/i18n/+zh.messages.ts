@@ -855,6 +855,7 @@ export default messages({
 	'errors.intake_not_own': '您只能更新自己的消息采集规则。',
 	'errors.classification_too_long': '分类规则说明不能超过 8,000 个字符。',
 	'errors.project_not_found': '未找到对应的工程项目。',
+	'errors.no_matrix_reviewer': '没有持有商务权限的团队可审核此清单矩阵提案。',
 	'errors.claim_create_failed': '无法生成进度款申请草稿。',
 	'errors.claim_needs_main_contract': '进度款申请需要一份生效的客户合同作为计价依据。',
 	'errors.invalid_zone': '区域“{zone}”未在该项目的空间区域列表中定义。',

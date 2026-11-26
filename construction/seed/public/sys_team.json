@@ -1,0 +1,23 @@
+[
+	{
+		"id": "project_delivery",
+		"name": "Project Delivery",
+		"policies": ["construction_read", "construction_delivery", "construction_connections"]
+	},
+	{
+		"id": "commercial_qs",
+		"name": "Commercial & QS",
+		"policies": ["construction_read", "construction_commercial", "construction_connections"]
+	},
+	{ "id": "client_consultant", "name": "Client & Consultant", "policies": ["construction_read"] },
+	{
+		"id": "construction_administrators",
+		"name": "Construction Administrators",
+		"policies": [
+			"construction_read",
+			"construction_delivery",
+			"construction_commercial",
+			"construction_connections"
+		]
+	}
+]

@@ -62,7 +62,7 @@ export default policy({
 						))
 					)
 						return yield* ctx.refuse('errors.employee_own_claim_submit');
-					return ctx.approve(requestReview);
+					return yield* requestReview(ctx);
 				}
 			},
 			update: {
@@ -75,7 +75,7 @@ export default policy({
 						))
 					)
 						return yield* ctx.refuse('errors.employee_own_claim_update');
-					return ctx.approve(requestReview);
+					return yield* requestReview(ctx);
 				}
 			}
 		},
@@ -92,7 +92,7 @@ export default policy({
 						))
 					)
 						return yield* ctx.refuse('errors.employee_own_leave_request');
-					return ctx.approve(requestReview);
+					return yield* requestReview(ctx);
 				}
 			}
 		},

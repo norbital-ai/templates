@@ -297,8 +297,7 @@ Key design invariants:
               +-------------------------------------------------------+
               | STATE: OPEN (resolved_at IS NULL)                     |
               | create.effect -> ctx.notify("Suspicion raised",       |
-              |   to: [team: field_ops_controllers,                   |
-              |        team: contractor_controllers])                 |
+              |   to: [policy: field_ops_controller])                 |
               +---------------------------+---------------------------+
                                           |
                                           | Controller runs automation:
@@ -635,8 +634,8 @@ Runs under `policies: ['field_ops_controller']` for `ids: ref<sites>[]` (`min_it
 ### 8.1 Teams-to-Policies & Authority Matrix
 
 ```text
-  TEAMS (src/access_control/team/+team.ts)              POLICIES (src/access_control/policy/)
-  ----------------------------------------              -------------------------------------
+  TEAMS (sys_team rows, seed/public/sys_team.json)      POLICIES (src/access_control/policy/)
+  ------------------------------------------------      -------------------------------------
   field_ops_controllers  ("Field Operations Controllers") --+--> field_ops_controller
   contractor_controllers ("Contractor (Controller)")     ---+
   contractors            ("Contractor")                  ------> field_ops_contractor

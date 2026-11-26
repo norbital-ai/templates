@@ -11,7 +11,7 @@ export default automation({
 		if (items.length === 0) return;
 		yield* ctx.notify({
 			title: `Treasury: ${items.length} record(s) need attention`,
-			to: [{ team: 'treasury' }],
+			to: [{ policy: 'treasury' }],
 			once: `alerts:${ctx.today}`
 		});
 	}

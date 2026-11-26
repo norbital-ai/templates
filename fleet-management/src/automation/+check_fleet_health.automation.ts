@@ -87,7 +87,7 @@ export default automation({
 					.slice(0, 3)
 					.map((a) => a.summary)
 					.join(' · '),
-				to: [{ team: 'fleet_dispatchers' }, { team: 'fleet_administrators' }],
+				to: [{ policy: 'fleet_operations' }],
 				once: `fleet-offline:${ctx.today}:${vehicleKey}`
 			});
 		}

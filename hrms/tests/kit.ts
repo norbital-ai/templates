@@ -42,16 +42,22 @@ export const workspace = <P extends TestPorts = never>(
 	TestWorkspace.layer({
 		root: process.cwd(),
 		...options,
-		// a seeded person carries the number the database would have counted
-		...(typeof options.seed !== 'object' || options.seed.employee_profile === undefined
+		...(typeof options.seed !== 'object'
 			? {}
 			: {
 					seed: {
+						// the template's own teams: a seeded member's `team` and a flow's approvers are these rows
+						sys_team: rowsOf(join(process.cwd(), 'seed/public/sys_team.json')),
 						...options.seed,
-						employee_profile: options.seed.employee_profile.map((row, index) => ({
-							number: `HR-${String(index + 1).padStart(4, '0')}`,
-							...row
-						}))
+						// a seeded person carries the number the database would have counted
+						...(options.seed.employee_profile === undefined
+							? {}
+							: {
+									employee_profile: options.seed.employee_profile.map((row, index) => ({
+										number: `HR-${String(index + 1).padStart(4, '0')}`,
+										...row
+									}))
+								})
 					}
 				})
 	});

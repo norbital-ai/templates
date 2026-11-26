@@ -588,7 +588,7 @@ Runs automatically every 15 minutes (with 24-hour rest when idle) and can also b
      |     ctx.notify({
      |       title: "Fleet health: <N> vehicle transponder(s) offline",
      |       description: first 3 alert summaries joined with middle-dot separator,
-     |       to: [{ team: 'fleet_dispatchers' }, { team: 'fleet_administrators' }],
+     |       to: [{ policy: 'fleet_operations' }],
      |       once: "fleet-offline:<ctx.today>:<sorted-vehicle-ids>"
      |     })
      |     (per-day, per-vehicle-set `once` key prevents colliding alerts when distinct
@@ -601,9 +601,9 @@ Runs automatically every 15 minutes (with 24-hour rest when idle) and can also b
 
 ## 7. Access Control, Authority Matrix & Rate Limits
 
-Source declarations in `src/access_control/team/+team.ts` and `src/access_control/policy/*.policy.ts`
-implement strict separation between operations and configuration, with zero cross-team privilege
-inheritance (`parent: null` for all three teams).
+Policies in `src/access_control/policy/*.policy.ts` and the seeded `sys_team` rows
+(`seed/public/sys_team.json`, edited by an administrator afterwards) implement strict separation
+between operations and configuration; none of the three teams has a parent.
 
 ```text
   TEAMS / ACTORS              POLICIES                 CAPABILITIES & SCOPE

@@ -56,7 +56,7 @@ The workspace splits work cleanly across three runtime planes:
 |  - Commitment gate (signed_documents -> client)|  - Scope:  update_requirements            |
 |  - 2 Syncs: calendar_entries (read) +          |  - Audio:  transcribe_meeting,            |
 |    activities (write) <-> google_calendar      |    meeting_notes, save_voice              |
-|  - 1 Team (sales) + 6 Policies                 |  - Cadence: remind_follow_ups (0 9 * * *) |
+|  - 1 Seeded team + 6 Policies                  |  - Cadence: remind_follow_ups (0 9 * * *) |
 +====================+===========================+=========================+=================+
                      |                           |                         |
                      v                           v                         v
@@ -476,7 +476,7 @@ Audio capture, server transcription, local biometric voice matching, and minutes
          | Manual tag + consent click -> `meeting_speakers_save_voice(consent=T)`  |
          +-------------------------------------------------------------------------+
     6. Server validation (`+meeting_speakers_save_voice.automation.ts`, policy `crm`):
-         - `salesStarter(ctx.trigger)` required; consent required; norm > 0
+         - `salesStarter(ctx.trigger, ctx)` required; consent required; norm > 0
          - If `automatic`: server re-runs `recognise()` to verify match & non-duplicate
          - Once-per-meeting dedupe (even if diarizer splits one person across labels)
          - Running weighted mean: enrol(prev, n, next) = unit((prev*n + unit(next))/(n+1))
@@ -700,7 +700,7 @@ Unsigned agreements are **never stored as rendered text**. Both the browser prev
 
 ## 9. Access Control, Privacy Boundaries & Authority Matrix
 
-One source team (`sales`, display name `Sales`) combines two policies (`sales` + `crm`). Four background policies carry zero human team membership and are assumed exclusively by automations and syncs.
+One seeded team (`sys_team` row `sales`, name `Sales`, in `seed/public/sys_team.json`) holds two policies (`sales` + `crm`); administrators edit teams as rows. Four background policies carry zero human team membership and are assumed exclusively by automations and syncs.
 
 ```text
 +============================================================================================+
@@ -759,7 +759,8 @@ One source team (`sales`, display name `Sales`) combines two policies (`sales` +
   - `import_leads`, `research_lead`, `launch_cohort`, `sync_cohort`:
       `agent: 'confirm'` -> Norbius must ask explicit confirmation before running.
   - `activities_file`, `meeting_notes` (non-system), `meeting_speakers_save_voice`:
-      enforce `salesStarter(ctx.trigger)` in code (admin or `sales` team member / linked envoy).
+      enforce `salesStarter(ctx.trigger, ctx)` in code (admin, or a member / linked envoy of a
+      team holding `sales`).
   - `contacts` biometric privacy: `hq_automation` & `calendar_activities` only hold the `crm`
       read output, which strips all 5 `voice_*` columns at the engine query layer.
 ```

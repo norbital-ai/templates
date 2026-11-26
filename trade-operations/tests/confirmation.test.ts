@@ -13,6 +13,10 @@ const syncWorkspace = (floor_rule: 'warn' | 'approve' | 'refuse' = 'warn') =>
 		root: process.cwd(),
 		now: '2026-10-10T00:00:00Z',
 		seed: {
+			sys_team: [
+				{ id: 'logistics', name: 'Logistics', policies: ['logistics'] },
+				{ id: 'commercial_managers', name: 'Commercial Managers', policies: ['manager'] }
+			],
 			sys_integration: [
 				{
 					id: 'kingdee',
@@ -293,8 +297,12 @@ test.live('the logistics handler is one of the Logistics team', () =>
 		const sales = t.member(['sales'], { teams: ['sales'] });
 		const seller = fixtureId('sys_user', sales.id);
 		// the picker's list: a seller sees the Logistics staff, not other sellers
-		const staff = yield* (yield* t.as(sales)).query({
-			sys_user: { where: { team: { eq: 'logistics' } } }
+		const reader = yield* t.as(sales);
+		const { sys_team } = yield* reader.query({
+			sys_team: { where: { policies: { has: 'logistics' } }, fields: ['id'] }
+		});
+		const staff = yield* reader.query({
+			sys_user: { where: { team: { in: sys_team.rows.map((team) => team.id) } } }
 		});
 		expect(staff.sys_user.rows.map((u) => u.id)).toEqual([handler]);
 		const set = (logistics_handler: typeof handler) =>

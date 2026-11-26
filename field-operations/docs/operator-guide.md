@@ -7,7 +7,7 @@ sheets, reviewing photo integrity findings, exporting site handovers, and pairin
 
 | Flow                      | Operator                         | Entry and outcome                                                                                                |
 | ------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Prepare people            | Administrator                    | **Command center → People**: admit active members, assign a source team, and save a mobile number for WhatsApp.  |
+| Prepare people            | Administrator                    | **Command center → People**: admit active members, assign a team, and save a mobile number for WhatsApp.         |
 | File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.                 |
 | Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it.   |
 | Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                           |

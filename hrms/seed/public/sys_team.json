@@ -1,0 +1,19 @@
+[
+	{ "id": "employee", "name": "Employee", "policies": ["employee"] },
+	{ "id": "supervisor", "name": "Supervisor", "policies": ["employee", "supervisor"] },
+	{ "id": "manager", "name": "L1 Manager", "policies": ["employee", "manager"] },
+	{ "id": "senior_management", "name": "Senior Management", "policies": ["senior_management"] },
+	{ "id": "hr_controller", "name": "HQ Payroll HR", "policies": ["hr_controller"] },
+	{ "id": "hr_manager", "name": "HR Manager", "policies": ["hr_manager"] },
+	{
+		"id": "manager_hr_controller",
+		"name": "Manager (HR Controller)",
+		"policies": ["hr_controller"]
+	},
+	{
+		"id": "production_manager",
+		"name": "Production Manager",
+		"policies": ["employee", "supervisor"]
+	},
+	{ "id": "attendance_kiosk", "name": "Attendance Kiosk", "policies": ["kiosk"] }
+]

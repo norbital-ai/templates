@@ -1,0 +1,6 @@
+[
+	{ "id": "treasury", "name": "Treasury", "policies": ["treasury"] },
+	{ "id": "finance", "name": "Finance", "policies": ["finance"] },
+	{ "id": "purchasing", "name": "Purchasing", "policies": ["purchasing"] },
+	{ "id": "viewers", "name": "View", "policies": ["viewer"] }
+]

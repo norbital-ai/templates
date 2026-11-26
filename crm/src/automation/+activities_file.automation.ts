@@ -11,7 +11,7 @@ export default automation({
 	},
 	policies: ['crm'],
 	run: function* (input, ctx) {
-		if (!salesStarter(ctx.trigger)) return yield* ctx.refuse('errors.sales_only');
+		if (!(yield* salesStarter(ctx.trigger, ctx))) return yield* ctx.refuse('errors.sales_only');
 		const row = input.activities.findIndex(
 			(item) => item.kind !== 'message' && item.source_calendar == null
 		);

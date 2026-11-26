@@ -1,0 +1,4 @@
+[
+	{ "id": "investors", "name": "Portfolio owners", "policies": ["portfolio_manage"] },
+	{ "id": "portfolio_viewers", "name": "Portfolio viewers", "policies": ["portfolio_read"] }
+]

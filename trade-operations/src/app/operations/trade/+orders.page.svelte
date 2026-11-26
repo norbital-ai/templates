@@ -12,8 +12,8 @@
 	const canCreate = (direction: 'sales' | 'purchasing') =>
 		ctx.catalog?.orders?.create &&
 		(actor?.admin ||
-			actor?.teams.includes('commercial_managers') ||
-			actor?.teams.includes(direction === 'sales' ? 'sales' : 'procurement'));
+			ctx.policies.includes('manager') ||
+			ctx.policies.includes(direction === 'sales' ? 'sales' : 'procurement'));
 	function newOrder(direction: 'sales' | 'purchasing') {
 		openCreate('orders', { direction });
 	}
@@ -21,17 +21,15 @@
 		Boolean(
 			actor &&
 			!actor.admin &&
-			actor.teams.includes('procurement') &&
-			!actor.teams.some((team) =>
-				['sales', 'commercial_managers', 'finance', 'logistics'].includes(team)
-			)
+			ctx.policies.includes('procurement') &&
+			!ctx.policies.some((policy) => ['sales', 'manager', 'finance', 'logistics'].includes(policy))
 		)
 	);
 	const showPurchase = $derived(
 		Boolean(
 			actor?.admin ||
-			actor?.teams.some((team) =>
-				['procurement', 'commercial_managers', 'finance', 'logistics'].includes(team)
+			ctx.policies.some((policy) =>
+				['procurement', 'manager', 'finance', 'logistics'].includes(policy)
 			)
 		)
 	);

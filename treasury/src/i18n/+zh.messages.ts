@@ -70,6 +70,7 @@ export default messages({
 	'errors.advice_unmatched': '请先将通知书匹配到融资并核对数据。',
 	'errors.advice_incomplete': '通知书缺少必要数据（编号、日期或本金）。',
 	'errors.advice_type': '只能应用提款或结算通知书。',
+	'errors.no_treasury_team': '没有团队持有资金部权限，无人可审核此变更。请联系管理员分配。',
 	'errors.finance_earmarks_only': '财务只能新增和修改预留款项，其余由资金部处理。',
 	'errors.po_invoiced': '该采购订单已登记发票，请联系会计修改。',
 	'errors.form_no_attachments': '请先附上采购订单、形式发票或客户订单。',

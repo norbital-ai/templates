@@ -110,7 +110,7 @@ export default automation({
 			yield* ctx.notify({
 				title: `Portal request ${r.number} needs follow-up`,
 				description: why,
-				to: [{ team: 'operations' }],
+				to: [{ policy: 'operations' }],
 				link: { model: 'booking_requests', id: r.id },
 				once: `intake-${r.id}`
 			});

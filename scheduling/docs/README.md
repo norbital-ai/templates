@@ -44,8 +44,8 @@ bun run format                  # Format source and docs with Prettier
   scratch database. Always commit generated SQL files together with `migrations/snapshot.json`,
   `migrations/migrations.lock.json`, and `migrations/physical.json`. Never commit `.norbital/`.
 - **Test fixtures & initial workspace state:** Synthetic test rows in `seed/test/*.json` power
-  `bun run test` through `TestWorkspace.layer()`. A fresh production workspace starts empty:
-  configure services and scheduling rules in **Configuration**, link providers to `sys_user`
+  `bun run test` through `TestWorkspace.layer()`. A fresh production workspace starts with its two teams
+  (`seed/public/sys_team.json`) and no business rows: configure services and scheduling rules in **Configuration**, link providers to `sys_user`
   accounts in **Scheduling → Providers**, and optionally connect external accounts in
   **Configuration → Connections**.
 

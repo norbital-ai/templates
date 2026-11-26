@@ -1160,9 +1160,6 @@
 					"where": {
 						"active": {
 							"eq": true
-						},
-						"team": {
-							"eq": "logistics"
 						}
 					}
 				},
@@ -2694,9 +2691,10 @@
 					"optional": true
 				},
 				"team": {
-					"format": "team",
-					"kind": "text",
-					"optional": true
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "sys_team"
 				}
 			},
 			"key": "text",
@@ -2895,6 +2893,7 @@
 				},
 				"policies": {
 					"default": [],
+					"format": "policy",
 					"kind": "text",
 					"many": true
 				},
@@ -3144,9 +3143,10 @@
 					"optional": true
 				},
 				"team": {
-					"format": "team",
-					"kind": "text",
-					"optional": true
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "sys_team"
 				}
 			},
 			"indexes": [
@@ -3948,6 +3948,37 @@
 				}
 			]
 		},
+		"sys_team": {
+			"fields": {
+				"created_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"name": {
+					"kind": "text"
+				},
+				"parent": {
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "sys_team"
+				},
+				"policies": {
+					"default": [],
+					"format": "policy",
+					"kind": "text",
+					"many": true
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				}
+			},
+			"key": "text",
+			"record_label": "record.name"
+		},
 		"sys_user": {
 			"check": {
 				"admin_staff": {
@@ -4078,9 +4109,10 @@
 					"optional": true
 				},
 				"team": {
-					"format": "team",
-					"kind": "text",
-					"optional": true
+					"kind": "ref",
+					"on_delete": "restrict",
+					"optional": true,
+					"to": "sys_team"
 				},
 				"telegram": {
 					"kind": "text",

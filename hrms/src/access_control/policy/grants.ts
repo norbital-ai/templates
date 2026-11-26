@@ -1,5 +1,5 @@
-import type { ApprovalFlow, Clock, Id, WorkspaceQuery } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
+import type { Clock, Id, PolicyCtx, WorkspaceQuery } from '@norbital-ai/bolt';
+import { Array as Arr, Effect } from 'effect';
 export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' } as const;
 export const AUTOMATION_LIMITS = { act: '600/min', read: '600/min' } as const;
 export const OWN_EMPLOYEE = { user_id: { eq: { var: 'actor.id' } } } as const;
@@ -26,22 +26,51 @@ export const ownsEmployments = Effect.fn('policy.ownsEmployments')(function* (
 		got.employment.rows.every((c) => c.employee_id?.user_id === actorId)
 	);
 });
-export const requestReview: ApprovalFlow = {
-	steps: [
-		{ name: 'Supervisor review', teams: ['supervisor', 'manager', 'production_manager'] },
-		{ name: 'HR review', teams: ['hr_controller', 'hr_manager', 'manager_hr_controller'] }
-	],
-	superseded_by: ['hr_manager', 'senior_management']
-};
-export const payrollPaymentReview: ApprovalFlow = {
-	steps: [
+const SUPERSEDERS = ['hr_manager', 'senior_management'];
+/**
+ * A flow whose approvers are the teams holding each step's policies when the request opens; an HR manager or senior
+ * management may decide in any step's place. A step nobody can decide refuses the write.
+ */
+const review = Effect.fnUntraced(function* <M, V extends 'create' | 'update' | 'delete'>(
+	ctx: PolicyCtx<M, V>,
+	steps: Arr.NonEmptyReadonlyArray<{ readonly name: string; readonly policies: readonly string[] }>
+) {
+	const { sys_team } = yield* ctx.query({
+		sys_team: {
+			where: {
+				or: [...steps.flatMap((step) => step.policies), ...SUPERSEDERS].map((policy) => ({
+					policies: { has: policy }
+				}))
+			},
+			fields: ['id', 'policies']
+		}
+	});
+	const holding = (policies: readonly string[]) =>
+		sys_team.rows
+			.filter((team) => team.policies.some((policy) => policies.includes(policy)))
+			.map((team) => team.id);
+	const decided = steps.flatMap((step) => {
+		const teams = holding(step.policies);
+		return Arr.isReadonlyArrayNonEmpty(teams) ? [{ name: step.name, teams }] : [];
+	});
+	if (!Arr.isReadonlyArrayNonEmpty(decided) || decided.length !== steps.length)
+		return yield* ctx.refuse('errors.no_approver');
+	return ctx.approve({ steps: decided, superseded_by: holding(SUPERSEDERS) });
+});
+export const requestReview = <M, V extends 'create' | 'update' | 'delete'>(ctx: PolicyCtx<M, V>) =>
+	review(ctx, [
+		{ name: 'Supervisor review', policies: ['supervisor', 'manager'] },
+		{ name: 'HR review', policies: ['hr_controller', 'hr_manager'] }
+	]);
+export const payrollPaymentReview = <M, V extends 'create' | 'update' | 'delete'>(
+	ctx: PolicyCtx<M, V>
+) =>
+	review(ctx, [
 		{
 			name: 'Payroll payment approval',
-			teams: ['hr_manager', 'manager', 'senior_management']
+			policies: ['hr_manager', 'manager', 'senior_management']
 		}
-	],
-	superseded_by: ['hr_manager', 'senior_management']
-};
+	]);
 const READ = { outputs: { default: {} } } as const;
 const HISTORY = { outputs: { default: { history: true } } } as const;
 export const READ_ALL = {

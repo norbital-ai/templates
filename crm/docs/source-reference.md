@@ -89,7 +89,7 @@ All named automations run under the reserved system identity with their declared
   - [google_calendar](../src/integration/google_calendar/+integration.ts) — Calendar driver (config `calendars`, default `['primary']`).
 - **Built-in Bolt channel integrations used (5):** `whatsapp`, `email`, `telegram`, `slack`, `discord`.
 - **Named workspace connections:** None in `+workspace.ts`; all personal and workspace connections are runtime `sys_integration` rows paired in **Configuration → My connections**.
-- **Teams (1):** [sales](../src/access_control/team/+team.ts) (`Sales`, policies `['sales', 'crm']`).
+- **Seeded teams (1):** [sales](../seed/public/sys_team.json) (`Sales`, policies `['sales', 'crm']`), a `sys_team` row administrators edit.
 - **Policies (6):**
   - [crm](../src/access_control/policy/+crm.policy.ts) — shared lead pipeline, CRM records, documents, products, and outreach grants.
   - [sales](../src/access_control/policy/+sales.policy.ts) — owner-scoped personal accounts (`whatsapp`, `email`, `google_calendar`), private `calendar_entries`, personal `communication_settings`, app capabilities (`crm`, `configuration`), and 10 manual automation grants.

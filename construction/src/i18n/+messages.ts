@@ -700,6 +700,8 @@ export default messages({
 	'errors.classification_too_long':
 		'Classification instructions must be 8,000 characters or fewer.',
 	'errors.project_not_found': 'Project not found.',
+	'errors.no_matrix_reviewer':
+		'No team holds commercial authority to review this Item Matrix proposal.',
 	'errors.claim_create_failed': 'Unable to create draft progress claim.',
 	'errors.claim_needs_main_contract':
 		'A progress claim needs an active client contract to value against.',

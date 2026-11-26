@@ -1,11 +1,4 @@
-import { policy, type ApprovalFlow } from '@norbital-ai/bolt';
-
-/** A System 2 proposal for the Item Matrix waits for commercial review before it prices anything. */
-const matrixProposalReview: ApprovalFlow = {
-	steps: [
-		{ name: 'Item Matrix proposal review', teams: ['commercial_qs', 'construction_administrators'] }
-	]
-};
+import { policy } from '@norbital-ai/bolt';
 
 /** Background system authority for WhatsApp/email sync and filing, BIM costing, Autodesk syncs, and claim drafting. */
 export default policy({
@@ -26,8 +19,16 @@ export default policy({
 		item_matrix: {
 			outputs: { default: {} },
 			create: {
+				// A System 2 proposal waits for a team holding commercial authority before it prices anything.
 				verdict: function* (_changes, ctx) {
-					return ctx.approve(matrixProposalReview);
+					const { sys_team } = yield* ctx.query({
+						sys_team: { where: { policies: { has: 'construction_commercial' } }, fields: ['id'] }
+					});
+					const [first, ...rest] = sys_team.rows.map((team) => team.id);
+					if (!first) return yield* ctx.refuse('errors.no_matrix_reviewer');
+					return ctx.approve({
+						steps: [{ name: 'Item Matrix proposal review', teams: [first, ...rest] }]
+					});
 				}
 			}
 		},
@@ -36,6 +37,7 @@ export default policy({
 		communication_settings: { outputs: { default: {} } },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} },
 		sys_user: { outputs: { default: {} } },
+		sys_team: { outputs: { default: {} } },
 		sys_conversation: { outputs: { default: {} } },
 		sys_message: { outputs: { default: {} } },
 		sys_integration: { outputs: { default: {} } }

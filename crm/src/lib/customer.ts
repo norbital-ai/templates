@@ -34,11 +34,21 @@ export const projectCustomerRows = Effect.fnUntraced(function* <R>(
 	}));
 });
 
-/** Whether a run's starter may work the CRM: an administrator or a sales member (an envoy as its linked member). */
-export function salesStarter(
-	trigger: { readonly kind: 'person'; readonly actor: Actor } | { readonly kind: 'system' }
+/** Whether a run's starter may work the CRM: an administrator or a member of a team holding `sales` (an envoy as its linked member). */
+export const salesStarter = Effect.fnUntraced(function* (
+	trigger: { readonly kind: 'person'; readonly actor: Actor } | { readonly kind: 'system' },
+	ctx: WorkspaceQuery
 ) {
 	if (trigger.kind !== 'person') return false;
 	const member = trigger.actor.kind === 'envoy' ? trigger.actor.linked : trigger.actor;
-	return member?.kind === 'member' && (member.admin || member.teams.includes('sales'));
-}
+	if (member?.kind !== 'member') return false;
+	if (member.admin) return true;
+	const { sys_team } = yield* ctx.query({
+		sys_team: {
+			where: { id: { in: member.teams }, policies: { has: 'sales' } },
+			fields: ['id'],
+			limit: 1
+		}
+	});
+	return sys_team.rows.length > 0;
+});

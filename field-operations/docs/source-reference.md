@@ -6,7 +6,7 @@ not a statement that any deployed tenant runs these bytes.
 
 - **Workspace manifest (`src/+workspace.ts`):** `tz: 'Asia/Singapore'`, `locale: 'en-SG'`,
   `languages: ['en', 'zh']`, `currency: 'SGD'`, `ai.embeddings: ['scene', 'default']`
-- **Totals:** 6 models, 1 custom field, 2 applications (3 pages), 5 automations, 3 source teams,
+- **Totals:** 6 models, 1 custom field, 2 applications (3 pages), 5 automations, 3 seeded teams,
   4 policies, 0 declared source integrations.
 
 ---
@@ -111,7 +111,7 @@ No model declares `import_key: true`; bulk ingestion runs through the
 - **Indexes:** B-tree on `resolved_at`, `job_assignment_id`, `review_id`, `evidence_id`, `resolved_by`; text search on `reason`, `resolution`.
 - **Write scope:** `create` (`job_assignment_id`, `origin`, `basis`, `review_id`, `evidence_id`, `reason`); `update` (`resolution`, `resolved_at`, `resolved_by` — one-shot close only, refuses if already resolved or incomplete). No `delete` verb.
 - **Outputs:** `default` (`all` + `job_assignment_id: ['title']`, `evidence_id: ['source']`).
-- **Post-commit effects:** `create` notifies teams `field_ops_controllers` and `contractor_controllers` (`Suspicion raised`).
+- **Post-commit effects:** `create` notifies the holders of `field_ops_controller` (`Suspicion raised`).
 
 ---
 
@@ -141,13 +141,15 @@ controller starts, and 2-hour UTC retry slots.
 
 ## Teams, Policies & Rate Limits
 
-### Source Teams ([`src/access_control/team/+team.ts`](../src/access_control/team/+team.ts))
+### Seeded Teams ([`seed/public/sys_team.json`](../seed/public/sys_team.json))
 
-| Team handle              | Display name                 | Parent | Policies               |
+Teams are `sys_team` rows an administrator edits; the base seed pack starts these three.
+
+| Team id                  | Name                         | Parent | Policies               |
 | ------------------------ | ---------------------------- | ------ | ---------------------- |
-| `field_ops_controllers`  | Field Operations Controllers | `null` | `field_ops_controller` |
-| `contractor_controllers` | Contractor (Controller)      | `null` | `field_ops_controller` |
-| `contractors`            | Contractor                   | `null` | `field_ops_contractor` |
+| `field_ops_controllers`  | Field Operations Controllers | none   | `field_ops_controller` |
+| `contractor_controllers` | Contractor (Controller)      | none   | `field_ops_controller` |
+| `contractors`            | Contractor                   | none   | `field_ops_contractor` |
 
 ### Source Policies & Workspace Rate Limits ([`src/+workspace.ts`](../src/+workspace.ts))
 

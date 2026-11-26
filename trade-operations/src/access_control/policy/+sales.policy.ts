@@ -1,7 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
 import {
-	commercialReview,
-	creditReleaseReview,
 	draftOrders,
 	floorReview,
 	lineDeletes,
@@ -10,6 +8,7 @@ import {
 	orderFloorLines,
 	ordersIn,
 	ownSales,
+	review,
 	scopedOrders
 } from '../../lib/order-review.js';
 const own = {
@@ -23,7 +22,12 @@ export default policy({
 			// themselves, and the Logistics staff an order's logistics handler names
 			outputs: {
 				default: {
-					where: { or: [{ id: { eq: { var: 'actor.id' } } }, { team: { eq: 'logistics' } }] }
+					where: {
+						or: [
+							{ id: { eq: { var: 'actor.id' } } },
+							{ team: { is: { policies: { has: 'logistics' } } } }
+						]
+					}
 				}
 			}
 		},
@@ -76,7 +80,7 @@ export default policy({
 					);
 					return invalid >= 0
 						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
-						: ctx.approve(creditReleaseReview);
+						: yield* review(ctx, 'manager', 'finance');
 				}
 			}
 		},
@@ -135,7 +139,7 @@ export default policy({
 							}
 						}))
 					);
-					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
+					return (yield* floorReview(ctx, lines)) ? yield* review(ctx, 'manager') : ctx.allow();
 				}
 			},
 			// an own order's edits and its sync to Kingdee are direct; a line below its floor may need a manager
@@ -143,7 +147,7 @@ export default policy({
 				verdict: function* (changes, ctx) {
 					yield* scopedOrders(changes, ctx, ownSales(ctx), 'errors.sales_scope');
 					return (yield* floorReview(ctx, yield* orderFloorLines(ctx, changes)))
-						? ctx.approve(commercialReview)
+						? yield* review(ctx, 'manager')
 						: ctx.allow();
 				},
 				moves: 'all'
@@ -157,7 +161,7 @@ export default policy({
 					const sealed = draftOrders(befores);
 					return sealed >= 0
 						? yield* ctx.refuse('errors.order_sealed', { row: sealed })
-						: ctx.approve(commercialReview);
+						: yield* review(ctx, 'manager');
 				}
 			}
 		},
@@ -177,7 +181,7 @@ export default policy({
 						const order = orders.find((o) => o.id === after.order);
 						return order ? [{ ...after, order }] : [];
 					});
-					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
+					return (yield* floorReview(ctx, lines)) ? yield* review(ctx, 'manager') : ctx.allow();
 				}
 			},
 			update: {
@@ -193,7 +197,7 @@ export default policy({
 						const order = orders.find((o) => o.id === before.order);
 						return order ? [{ ...after, order }] : [];
 					});
-					return (yield* floorReview(ctx, lines)) ? ctx.approve(commercialReview) : ctx.allow();
+					return (yield* floorReview(ctx, lines)) ? yield* review(ctx, 'manager') : ctx.allow();
 				}
 			},
 			delete: {

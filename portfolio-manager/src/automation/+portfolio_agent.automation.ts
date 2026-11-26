@@ -586,13 +586,13 @@ export default automation({
 			{
 				title,
 				description: unlinked(headline),
-				to: [{ team: 'investors' }],
+				to: [{ policy: 'portfolio_manage' }],
 				once: `report-${ctx.today}`
 			},
 			...busy.map((line) => ({
 				title: `Movement on ${line.symbol ?? line.instrument}`,
 				description: `${line.instrument} traded at more than twice its 20-session average volume.`,
-				to: [{ team: 'investors' as const }],
+				to: [{ policy: 'portfolio_manage' as const }],
 				once: `movement-${line.id}-${ctx.today}`
 			}))
 		]);

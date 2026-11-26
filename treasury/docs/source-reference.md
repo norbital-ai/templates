@@ -97,10 +97,12 @@ Verified directly against `templates/treasury/src/` on 25 November 2026.
 | `fx_proposal_read`       | `fx_proposal` effect + seeder + manual (`treasury`)                 | `fx_reader`         | Extracts banker proposal alternatives & schedules into `proposal` `fx_deal` records                       |
 | `month_end_lock`         | Manual (`treasury`)                                                 | `month_end_closing` | Cursor-paginates full book, computes `monthEndFrom`, freezes `month_end` + `month_end_line`               |
 | `month_end_unlock`       | Manual (`treasury`)                                                 | `month_end_closing` | Unlocks a portal-closed `month_end` (refuses `excel` imports)                                             |
-| `daily_alerts`           | Cron `0 8 * * *` (`rest: '7d'`)                                     | `treasury`          | Evaluates `attention()` and notifies team `treasury` once per day if non-empty                            |
+| `daily_alerts`           | Cron `0 8 * * *` (`rest: '7d'`)                                     | `treasury`          | Evaluates `attention()` and notifies `treasury` policy holders once per day if non-empty                  |
 | `fx_rates_fetch`         | Cron `30 13 * * 1-5` (`rest: '7d'`) + manual (`treasury`)           | `fx_rates`          | Queries `mas_rates` for missing/preliminary weekdays in prior 15 days and upserts `fx_rate`               |
 
 ## Teams (4) and policies (11)
+
+Teams are `sys_team` rows an administrator edits; `seed/public/sys_team.json` seeds the four below.
 
 | Policy              | Bound to                                                                                 | Key scope & rules                                                                                                                                        |
 | ------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,7 +110,7 @@ Verified directly against `templates/treasury/src/` on 25 November 2026.
 | `finance`           | Team `finance` (Finance)                                                                 | All 4 apps, 4 automations; partner metadata, earmarked-only `drawdown` verdict, PO updates/invoices/docs                                                 |
 | `purchasing`        | Team `purchasing` (Purchasing)                                                           | `purchasing` app only, 3 automations; own POs only (`created_by == actor.id`, locked after 1st invoice), own PO docs (restricted kinds), `facility_form` |
 | `viewer`            | Team `viewers` (View)                                                                    | All 4 apps read-only across all 26 models + `facility_form_pack`                                                                                         |
-| `bank_advices`      | `bank_document_read`, `bank_document_apply`, `drawdown_record_advice`, `drawdown_settle` | `drawdown.update` verdict **always** requires `ctx.approve` by team `treasury` (`Treasury review`)                                                       |
+| `bank_advices`      | `bank_document_read`, `bank_document_apply`, `drawdown_record_advice`, `drawdown_settle` | `drawdown.update` verdict **always** requires `ctx.approve` by the teams holding `treasury` (`Treasury review`); reads `sys_team`                        |
 | `month_end_closing` | `month_end_lock`, `month_end_unlock`                                                     | Sole policy permitted by `month_end` write transforms to write closing figures and toggle `is_locked`                                                    |
 | `po_earmarks`       | `drawdown_earmark_po`                                                                    | Creates `drawdown` + `po_financing` from uncovered `purchase_order`                                                                                      |
 | `purchase_orders`   | `purchase_order_read`                                                                    | Updates blank fields & initial lines on `purchase_order`                                                                                                 |

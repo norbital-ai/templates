@@ -120,7 +120,7 @@ export default model('suspicious_activity_logs', {
 				logs.map((log) => ({
 					title: 'Suspicion raised',
 					description: `${titleOf.get(log.job_assignment_id) ?? 'An assignment'}: ${log.reason}`,
-					to: [{ team: 'field_ops_controllers' }, { team: 'contractor_controllers' }]
+					to: [{ policy: 'field_ops_controller' }]
 				}))
 			);
 		}

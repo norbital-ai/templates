@@ -17,7 +17,7 @@ state, formula, error code, and constraint below is verified directly against `s
 | 9   | Bilingual document publishing and on-demand PDF pipeline | `src/data/model/commercial_settings/document_templates/`, `src/lib/order-document.ts`          |
 | 10  | Commission rule lock, CEL evaluation and sign-off        | `src/lib/commission-expressions.ts`, `src/lib/monthly-commission.ts`, `commission_statements/` |
 | 11  | Financial analysis, as-at AR/AP aging and expense split  | `src/lib/reports.ts`, `src/lib/receivables.ts`, `src/lib/payables.ts`, `purchase-listing.ts`   |
-| 12  | Access control, output masking and separation of duties  | `src/access_control/team/+team.ts`, `src/access_control/policy/+*.policy.ts`                   |
+| 12  | Access control, output masking and separation of duties  | `seed/public/sys_team.json`, `src/access_control/policy/+*.policy.ts`                          |
 
 ---
 
@@ -795,7 +795,8 @@ Kingdee `exchange_rate` so Sales Analysis can compute margin accurately.
 
 ## 12. Access control, output masking and separation of duties
 
-Six teams map 1-to-1 to user policies (`src/access_control/team/+team.ts`). Two reserved system
+Six seeded teams hold one user policy each (`seed/public/sys_team.json`); source names policies,
+never teams, and an approval step goes to the teams holding its policy. Two reserved system
 policies (`kingdee_sync` and `source_health`) execute background syncs and health alerts.
 
 ```text

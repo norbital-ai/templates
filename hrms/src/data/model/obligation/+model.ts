@@ -55,7 +55,7 @@ export default model('obligation', {
 					.map((row) => ({
 						title: row.title,
 						description: 'The final payroll cannot recover this loan in full. Chase the remainder.',
-						to: [{ team: 'hr_controller' }, { team: 'manager_hr_controller' }],
+						to: [{ policy: 'hr_controller' }],
 						link: { model: 'obligation', id: row.id },
 						once: row.occurrence_key
 					}))

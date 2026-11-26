@@ -94,7 +94,6 @@ templates/blank/
     |   +-- +app.ts                       App manifest, navigation, shell registration
     |   +-- +<page>.page.svelte           Svelte 5 page consuming PageBolt.query / ctx.run
     +-- src/access_control/
-    |   +-- team/+team.ts                 Team hierarchy & policy handle mapping (no DB table)
     |   +-- policy/+<name>.policy.ts      Read outputs, row filters, write fields, approvals
     +-- src/automation/
     |   +-- +<name>.automation.ts         System-identity jobs (cron, event, schedule, call)
@@ -347,15 +346,15 @@ Blank ships with **0 teams**, **0 policies**, and **0 approval routes**. The dia
 |                                                                                            |
 |  Caller Identity                                                                           |
 |   +-- Workspace Admin (sys_user.admin=true, kind='staff') -> Shell/Settings/Studio control |
-|   +-- Staff / External / Anonymous (sys_user.team)        -> Bound to authored team handle |
+|   +-- Staff / External / Anonymous (sys_user.team)        -> Holds its sys_team's policies |
 |   +-- API Key (sys_api_key.team)                          -> Scoped to assigned team       |
 |   +-- Reserved System Identity (automations)              -> Declared `policies` only      |
 |                                                              (actor.* matches nothing)     |
 |                                                                                            |
 |  Blank Baseline (Today):                                                                   |
-|   0 authored teams, 0 authored policies --> `notes` has 0 write verbs (read-only)          |
+|   0 seeded teams, 0 authored policies   --> `notes` has 0 write verbs (read-only)          |
 |                                                                                            |
-|  Once Authored (src/access_control/team/+team.ts + policy/+*.policy.ts):                   |
+|  Once Authored (policy/+*.policy.ts, with sys_team rows holding the policies):             |
 |                                                                                            |
 |   Write Attempt ---> Policy Check --+--> Direct Grant -------------> Commit immediately    |
 |                                     |                                                      |

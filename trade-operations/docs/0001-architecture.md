@@ -177,7 +177,7 @@ stamp** is ticked in the preview, and in Download PDFs; a purchase contract neve
 
 ## 6. Access control
 
-Teams map to one policy each:
+The starting teams are seed rows (`seed/public/sys_team.json`) an administrator edits; each holds one policy:
 
 | Team                | Policy          | Scope                                                          |
 | ------------------- | --------------- | -------------------------------------------------------------- |

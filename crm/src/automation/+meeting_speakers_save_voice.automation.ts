@@ -13,7 +13,7 @@ export default automation({
 	},
 	policies: ['crm'],
 	run: function* (input, ctx) {
-		if (!salesStarter(ctx.trigger)) return yield* ctx.refuse('errors.sales_only');
+		if (!(yield* salesStarter(ctx.trigger, ctx))) return yield* ctx.refuse('errors.sales_only');
 		const [target, ...rest] = input.meeting_speakers;
 		if (target === undefined || rest.length > 0) return yield* ctx.refuse('errors.one_speaker');
 		if (target.voice_enrolled_at != null) return;

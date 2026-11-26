@@ -1,5 +1,5 @@
 import { policy } from '@norbital-ai/bolt';
-import { creditReleaseFinanceReview, draftOrders, lineDeletes } from '../../lib/order-review.js';
+import { draftOrders, lineDeletes, review } from '../../lib/order-review.js';
 export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
 	capabilities: { apps: ['operations'] },
@@ -56,7 +56,7 @@ export default policy({
 					);
 					return invalid >= 0
 						? yield* ctx.refuse('errors.credit_release_approval_only', { row: invalid })
-						: ctx.approve(creditReleaseFinanceReview);
+						: yield* review(ctx, 'finance');
 				}
 			}
 		},

@@ -77,6 +77,8 @@ export default messages({
 	'errors.advice_incomplete':
 		'The advice is missing figures it needs (reference, dates or principal).',
 	'errors.advice_type': 'Only a drawdown or settlement advice can be applied.',
+	'errors.no_treasury_team':
+		'No team holds the Treasury policy, so nobody can review this change. Ask an administrator to assign it.',
 	'errors.finance_earmarks_only':
 		'Finance adds and changes earmarks only; Treasury takes it from there.',
 	'errors.po_invoiced': 'This purchase order has an invoice recorded; ask Accounts to change it.',

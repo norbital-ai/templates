@@ -61,7 +61,7 @@ Follow the standard Bolt filesystem conventions as you build out the workspace:
 - **Syncs:** `src/data/model/<name>/+<sync>.sync.ts` — declared beside their model via `sync('<model>', '<sync>', { ... })`.
 - **Custom datatypes:** `src/data/custom_field/<name>/+custom_field.ts`.
 - **Applications & pages:** `src/app/<app>/+app.ts` with `+<page>.page.svelte` companions.
-- **Teams & policies:** `src/access_control/team/+team.ts` and `src/access_control/policy/+<name>.policy.ts`. Teams, policy grants, and approval flows are authored in source; the **People** surface assigns members to existing authored roles rather than editing policy definitions.
+- **Policies & teams:** `src/access_control/policy/+<name>.policy.ts`. Policy grants and approval flows are authored in source. Teams are `sys_team` rows: seed the starting ones in `seed/public/sys_team.json`, and an administrator edits them and assigns members under **Settings**.
 - **Automations:** `src/automation/+<name>.automation.ts` — executed under the reserved system identity with explicit declared `policies`.
 - **Integrations:** `src/integration/<name>/+integration.ts` (with optional `+integration.svelte`). Built-in communication channels require no custom integration declaration; all pairing and credentials are managed under **Settings → Integrations** in the host's sealed store.
 - **Localization:** `src/i18n/+messages.ts` (default language) and `src/i18n/+<lang>.messages.ts` (e.g. `+zh.messages.ts`).

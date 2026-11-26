@@ -5,7 +5,7 @@
 - **Custom fields**: `route_waypoints`.
 - **Integrations**: `gps_transponder` (HMAC-SHA256 webhook wake + HTTP polling), `google_routes` (optional traffic ETA).
 - **Automations**: `refresh_route_eta` (`mode: 'call'`), `check_fleet_health`.
-- **Teams & policies**: `fleet_administrators`, `fleet_dispatchers`, `fleet_viewers` across `fleet_read`, `fleet_operations`, `fleet_configuration`, `fleet_automation`.
+- **Seeded teams (`sys_team` rows) & policies**: `fleet_administrators`, `fleet_dispatchers`, `fleet_viewers` across `fleet_read`, `fleet_operations`, `fleet_configuration`, `fleet_automation`.
 
 ## Gates
 

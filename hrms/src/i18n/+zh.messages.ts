@@ -971,6 +971,7 @@ export default messages({
 	'errors.employee_own_claim_submit': '只能为自己的雇佣关系提交报销。',
 	'errors.employee_own_claim_update': '只能更新自己的报销。',
 	'errors.employee_own_leave_request': '只能为自己的雇佣关系申请休假。',
+	'errors.no_approver': '没有团队可以审批此申请。请管理员检查团队设置。',
 	'errors.kiosk_face_enrollment_undo': '考勤机负责录入或刷新人脸；绝不撤销批准。',
 	'models.payroll_run.syncs.ocbc_fast.schema.fields.line': '记录',
 	'models.payroll_run.syncs.metro_bank.schema.fields.line': '记录',

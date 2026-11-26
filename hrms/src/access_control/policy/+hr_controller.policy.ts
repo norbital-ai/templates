@@ -21,7 +21,7 @@ export default policy({
 				moves: 'all',
 				verdict: function* (changes, ctx) {
 					const paying = changes.some(({ after }) => after.state === 'PAID');
-					return paying ? ctx.approve(payrollPaymentReview) : ctx.allow();
+					return paying ? yield* payrollPaymentReview(ctx) : ctx.allow();
 				}
 			}
 		},

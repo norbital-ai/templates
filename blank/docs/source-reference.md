@@ -100,7 +100,7 @@ All named runs execute under the reserved system identity with explicitly declar
 
 ## Access Control, Custom Fields, and Integrations
 
-- Authored teams (`src/access_control/team/`): none.
+- Seeded teams (`seed/public/sys_team.json`): none.
 - Authored policies (`src/access_control/policy/`): none.
 - Authored approval flows: none.
 - Custom datatypes (`src/data/custom_field/`): none.

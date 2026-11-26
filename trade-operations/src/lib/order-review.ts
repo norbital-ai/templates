@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Array as Arr, Effect } from 'effect';
 import type {
 	AutomationCtx,
 	Clock,
@@ -127,25 +127,29 @@ export const linesOrders = Effect.fnUntraced(function* (
 	});
 	return orders.rows;
 });
-/** The commercial manager's review of a sales rep's write. */
-export const commercialReview = {
-	steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }]
-} as const;
-/** Two-step formal credit-release approval: Commercial Manager followed by Finance. */
-export const creditReleaseReview = {
-	steps: [
-		{ name: 'Commercial review', teams: ['commercial_managers'] },
-		{ name: 'Finance review', teams: ['finance'] }
-	]
-} as const;
-/** Finance sign-off when a Commercial Manager initiates a credit-release request. */
-export const creditReleaseFinanceReview = {
-	steps: [{ name: 'Finance review', teams: ['finance'] }]
-} as const;
-/** Commercial Manager sign-off when Finance initiates a credit-release request. */
-export const creditReleaseManagerReview = {
-	steps: [{ name: 'Commercial review', teams: ['commercial_managers'] }]
-} as const;
+const stepNames = { manager: 'Commercial review', finance: 'Finance review' } as const;
+/** An approval held for the teams holding each policy, one step per policy in order: the commercial manager's review, Finance's sign-off, or both. */
+export const review = Effect.fnUntraced(function* (
+	ctx: Pick<PolicyCtx<'orders', 'update'>, 'query' | 'approve'> & Pick<AutomationCtx, 'refuse'>,
+	first: keyof typeof stepNames,
+	...rest: readonly (keyof typeof stepNames)[]
+) {
+	const { sys_team } = yield* ctx.query({
+		sys_team: {
+			where: { or: [first, ...rest].map((policy) => ({ policies: { has: policy } })) },
+			fields: ['id', 'policies']
+		}
+	});
+	const step = Effect.fnUntraced(function* (policy: keyof typeof stepNames) {
+		const teams = sys_team.rows.flatMap((team) =>
+			team.policies.includes(policy) ? [team.id] : []
+		);
+		return Arr.isReadonlyArrayNonEmpty(teams)
+			? { name: stepNames[policy], teams }
+			: yield* ctx.refuse('errors.no_approver');
+	});
+	return ctx.approve({ steps: [yield* step(first), ...(yield* Effect.forEach(rest, step))] });
+});
 /** Only an unarchived draft order is deleted. */
 export const draftOrders = (orders: readonly Pick<Row<'orders'>, 'status' | 'archived'>[]) =>
 	orders.findIndex((order) => order.status !== 'draft' || order.archived);

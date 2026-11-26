@@ -21,7 +21,7 @@ Technical deep dive into the `norbital_construction` Bolt workspace (`templates/
 The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` default currency, bilingual `en` / `zh`, PDF conversion enabled) and splits cleanly into two runtime sides:
 
 - **Browser client (Svelte 5 + `@norbital-ai/ui` + Web Workers + WebGL):** Hosts the two apps (`operations`, `configuration`), the single-row Project Hub (`projects/+representation.svelte`), the 4D virtualized WBS timeline (`ProjectTimeline.svelte`), the catalog-only line editor (`CatalogLinesEditor.svelte`), and the BIM takeoff stack (streaming IFC STEP worker, offscreen WebGL geometry pass that measures, merges and pictures each asset, `@thatopen/components` + Three.js 3D viewport, and two-tier `.frag` cache). Large binaries (`web-ifc@0.0.77`, `three@0.185.1`, `@thatopen/*`) load from pinned CDN URLs at runtime so the workspace release stays lightweight.
-- **Bolt server & guest engine (Effect v4):** Owns 13 record models, 4 co-located custom fields, 4 syncs, 3 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 teams, 5 policies, and pure Effect `BigDecimal` commercial and BIM pricing libraries.
+- **Bolt server & guest engine (Effect v4):** Owns 13 record models, 4 co-located custom fields, 4 syncs, 3 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 seeded teams, 5 policies, and pure Effect `BigDecimal` commercial and BIM pricing libraries.
 
 ```text
 +----------------------------------------------------------------------------------------------+
@@ -395,8 +395,8 @@ Each project owns **one** federated BIM model (`projects.bim_file`, up to 20 MiB
         nothing for (<= 30 assets, pictures attached, alike assets grouped): each is one
         ctx.act of item_matrix.create (rate_basis 'assumption') + asset_mappings.update
         (item_id, source 'proposal'), held for approval by construction_automation's
-        item_matrix create verdict (flow "Item Matrix proposal review": commercial_qs,
-        construction_administrators); once approved it prices those assets from the
+        item_matrix create verdict (flow "Item Matrix proposal review": the teams holding
+        construction_commercial); once approved it prices those assets from the
         next pricing on
      - Output { priced: cost_estimate ids }
 ```
@@ -662,10 +662,10 @@ Programme tasks nest by breakdown code (`tasks.wbs_path`: `3.1.2` sits under `3.
 
 ## 9. Access Control & Authority Matrix
 
-Teams live as source declarations in `src/access_control/team/+team.ts`; policies live under `src/access_control/policy/`. `construction_read` sets the workspace rate limit (`act: 600/min`, `read: 600/min`, `agent: 100/h`).
+Teams are `sys_team` rows an administrator edits, started by the base seed pack (`seed/public/sys_team.json`); policies live under `src/access_control/policy/`. `construction_read` sets the workspace rate limit (`act: 600/min`, `read: 600/min`, `agent: 100/h`).
 
 ```text
-TEAM -> POLICY ASSIGNMENT MATRIX (src/access_control/team/+team.ts)
+TEAM -> POLICY ASSIGNMENT MATRIX (seed/public/sys_team.json)
 +-----------------------------+----------+----------+------------+-------------+
 | Team                        |   read   | delivery | commercial | connections |
 +-----------------------------+----------+----------+------------+-------------+
@@ -706,7 +706,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 |  contracts, commercial_documents, tasks, activities, project_files, cost_estimates: R/C/U    |
 |  project_messages, asset_mappings: R/C/U | adhoc_costs, contacts, comm_settings, sys_*: read |
 |  item_matrix: read + create held for approval ("Item Matrix proposal review":                |
-|               commercial_qs, construction_administrators)                                    |
+|               the teams holding construction_commercial)                                     |
 +----------------------------------------------------------------------------------------------+
 ```
 
@@ -714,6 +714,6 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 
 - **Client & Consultant Isolation (`client_consultant`):** Receives only `construction_read` — read-only access to the Operations app with zero write grants, zero Configuration app access, and zero visibility into `sys_integration` or `communication_settings`.
 - **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or item matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` and the stored takeoff (`bim_takeoff`, `bim_takeoff_views`) on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks, BIM files, or site issues; it may comment on tasks (`errors.comments_only` refuses its issues and meetings) and correct what each BIM asset is priced as (`asset_mappings.item_id`, `note`).
-- **System 2 Proposals Wait for Approval:** `analyze_bim_file`'s Item Matrix proposals are written by `construction_automation`, whose `item_matrix` create verdict returns `ctx.approve` with the **Item Matrix proposal review** flow (`commercial_qs`, `construction_administrators`); until a member approves it, the proposed item prices nothing and its assets stay unmatched.
+- **System 2 Proposals Wait for Approval:** `analyze_bim_file`'s Item Matrix proposals are written by `construction_automation`, whose `item_matrix` create verdict returns `ctx.approve` with the **Item Matrix proposal review** flow, decided by the teams holding `construction_commercial` (refused as `errors.no_matrix_reviewer` when none does); until a member approves it, the proposed item prices nothing and its assets stay unmatched.
 - **Message Filing Runs as the Writer:** `project_messages` effects file with the authority of whoever stored or requeued the message (`construction_automation` for `sync_messages`). A writer refused part of an extraction keeps the routing and records `extraction_status: failed` with the reason.
 - **Personal Account Ownership (`construction_connections`):** Both policy verdicts and model transforms enforce that members can only create, edit, or delete their own `whatsapp` or `email` `sys_integration` accounts (`errors.personal_accounts_only`) and their own `communication_settings` row (`errors.intake_not_own`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are created by administrators.

@@ -13,7 +13,7 @@ export default automation({
 	input: { meeting: { kind: 'ref', to: 'activities' } },
 	policies: ['crm'],
 	run: function* ({ meeting }, ctx) {
-		if (ctx.trigger.kind !== 'system' && !salesStarter(ctx.trigger))
+		if (ctx.trigger.kind !== 'system' && !(yield* salesStarter(ctx.trigger, ctx)))
 			return yield* ctx.refuse('errors.sales_only');
 		const [activityAnswer, recordingsAnswer] = yield* Effect.all([
 			ctx.query({

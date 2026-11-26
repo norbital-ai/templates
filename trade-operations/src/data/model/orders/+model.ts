@@ -66,11 +66,13 @@ const terms = [
 	'notes'
 ] as const;
 // what Kingdee keeps on a synced order's header: changed there, read back here
-/** An active member of the Logistics team, the only people an order's logistics handler may name. */
+/** The teams holding `logistics`: their active members are the only people an order's logistics handler may name. */
+const logisticsTeams = { where: { policies: { has: 'logistics' } }, fields: ['id'] } as const;
 const logisticsStaff = (
-	users: readonly { readonly id: string; readonly team: string | null; readonly active: boolean }[],
-	id: string
-) => users.some((u) => u.id === id && u.team === 'logistics' && u.active);
+	users: readonly Pick<Row<'sys_user'>, 'id' | 'team' | 'active'>[],
+	teams: readonly Pick<Row<'sys_team'>, 'id'>[],
+	id: Id<'sys_user'>
+) => users.some((u) => u.id === id && u.active && teams.some((team) => team.id === u.team));
 const kingdeeHeader = ['party', 'currency', 'ordered_on', 'owner', 'payment_terms'] as const;
 // what a line is priced against: a change re-prices a draft's lines (and a synced order's, which Kingdee then takes)
 const pricingBasis = ['party', 'warehouse', 'currency', 'tax_inclusive', 'ordered_on'] as const;
@@ -202,7 +204,7 @@ export default model('orders', {
 			kind: 'ref',
 			to: 'sys_user',
 			optional: true,
-			where: { team: { eq: 'logistics' }, active: { eq: true } }
+			where: { active: { eq: true } }
 		},
 		notes: {
 			kind: 'text',
@@ -331,13 +333,15 @@ export default model('orders', {
 				parties,
 				warehouses,
 				contacts,
-				sys_user: handlers
+				sys_user: handlers,
+				sys_team: teams
 			} = yield* ctx.query({
 				parties: { where: { id: { in: partyIds } } },
 				sys_user: {
 					where: { id: { in: rows.flatMap((r) => r.logistics_handler ?? []) } },
 					fields: ['team', 'active']
 				},
+				sys_team: logisticsTeams,
 				warehouses: { where: { id: { in: rows.flatMap((r) => r.warehouse ?? []) } } },
 				contacts: {
 					where: { party: { in: partyIds } },
@@ -353,7 +357,10 @@ export default model('orders', {
 				// Kingdee takes no order without its settlement method, so an order starts with one
 				if (!row.payment_terms)
 					return yield* ctx.refuse('errors.payment_terms_required', { field: 'payment_terms' });
-				if (row.logistics_handler && !logisticsStaff(handlers.rows, row.logistics_handler))
+				if (
+					row.logistics_handler &&
+					!logisticsStaff(handlers.rows, teams.rows, row.logistics_handler)
+				)
 					return yield* ctx.refuse('errors.logistics_handler', { field: 'logistics_handler' });
 				const warehouse = warehouses.rows.find((w) => w.id === row.warehouse);
 				const party = yield* admitParty(
@@ -430,12 +437,14 @@ export default model('orders', {
 				commission_rules: rules,
 				warehouses,
 				contacts,
-				sys_user: handlers
+				sys_user: handlers,
+				sys_team: teams
 			} = yield* ctx.query({
 				sys_user: {
 					where: { id: { in: changes.flatMap(({ set }) => set.logistics_handler ?? []) } },
 					fields: ['team', 'active']
 				},
+				sys_team: logisticsTeams,
 				commission_rules: { where: { active: { eq: true }, code: { eq: 'default' } } },
 				parties: { where: { id: { in: partyIds } } },
 				order_lines: { where: { order: { in: ids } } },
@@ -500,7 +509,10 @@ export default model('orders', {
 					return yield* ctx.refuse('errors.contract_validity', { field: 'valid_until' });
 				if (input.payment_terms === null)
 					return yield* ctx.refuse('errors.payment_terms_required', { field: 'payment_terms' });
-				if (input.logistics_handler && !logisticsStaff(handlers.rows, input.logistics_handler))
+				if (
+					input.logistics_handler &&
+					!logisticsStaff(handlers.rows, teams.rows, input.logistics_handler)
+				)
 					return yield* ctx.refuse('errors.logistics_handler', { field: 'logistics_handler' });
 				const metadata = Object.keys(input).every((key) =>
 					['title', 'notes', 'archived'].includes(key)

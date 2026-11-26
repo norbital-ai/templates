@@ -796,6 +796,7 @@ export default messages({
 	'errors.line_basis_locked': '订单方向和明细产品不可更改。',
 	'errors.payment_terms': '请先选择付款条款，再同步到金蝶。',
 	'errors.logistics_handler': '请选择物流团队的成员。',
+	'errors.no_approver': '暂无团队可审批。请管理员为团队授予审批权限。',
 	'errors.payment_terms_required': '请选择付款条款：金蝶的每张订单都需要。',
 	'errors.kingdee_contact': '金蝶联系人请在金蝶中修改。',
 	'errors.contact_party': '请选择该往来单位的联系人。',

@@ -83,6 +83,8 @@ export default policy({
 			delete: {}
 		},
 		// runs holding this policy name members (a follow-up's owner) by the directory
-		sys_user: { outputs: { directory: {} } }
+		sys_user: { outputs: { directory: {} } },
+		// runs holding this policy check that their starter's team holds `sales`
+		sys_team: { outputs: { default: {} } }
 	}
 });

@@ -1,0 +1,13 @@
+[
+	{
+		"id": "field_ops_controllers",
+		"name": "Field Operations Controllers",
+		"policies": ["field_ops_controller"]
+	},
+	{ "id": "contractors", "name": "Contractor", "policies": ["field_ops_contractor"] },
+	{
+		"id": "contractor_controllers",
+		"name": "Contractor (Controller)",
+		"policies": ["field_ops_controller"]
+	}
+]

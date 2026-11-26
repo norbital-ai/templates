@@ -19,7 +19,7 @@ report_subscription/
 - App: `portfolio` — `dashboard`, `reports`, `holdings`, `subscribers`, `settings`
 - Automation: `portfolio_agent` (daily, 08:00 in the workspace zone, `src/+workspace.ts` `tz`)
 - Policies: `portfolio_manage`, `portfolio_read`, `portfolio_automation`
-- Teams: `investors`, `portfolio_viewers`
+- Teams: `sys_team` rows; seeded `investors` (holds `portfolio_manage`) and `portfolio_viewers` (holds `portfolio_read`)
 - Shared modules: `src/lib/portfolio/book.ts` (the totals), `src/lib/portfolio/market.ts` (rate, quote
   and headline readers, browser research, sources and citations)
 - Record view: `src/data/model/report/+representation.svelte` is the client-facing report; the PDF sent

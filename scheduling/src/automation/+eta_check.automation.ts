@@ -82,7 +82,7 @@ export default automation({
 		if (!written || !late) return;
 		yield* ctx.notify({
 			title: `Check in with ${provider.name} about ${a.number}`,
-			to: [{ team: 'operations' }],
+			to: [{ policy: 'operations' }],
 			description:
 				eta === null
 					? 'Their mobile app has not reported a GPS position in the last 15 minutes.'

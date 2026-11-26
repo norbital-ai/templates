@@ -228,9 +228,11 @@ Custom integrations (`src/integration/`): **none** (uses built-in Envoy-deployed
 
 ## 6. Access Control (`src/access_control/`)
 
-### Teams (`src/access_control/team/+team.ts`)
+### Teams (`seed/public/sys_team.json`)
 
-| Team Handle         | Display Name        | Policies               |
+Teams are `sys_team` rows an administrator edits; these are the seeded ones.
+
+| Team Id             | Name                | Policies               |
 | ------------------- | ------------------- | ---------------------- |
 | `investors`         | `Portfolio owners`  | `['portfolio_manage']` |
 | `portfolio_viewers` | `Portfolio viewers` | `['portfolio_read']`   |
@@ -251,7 +253,7 @@ Custom integrations (`src/integration/`): **none** (uses built-in Envoy-deployed
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Agent instructions | `src/agent/+agent.md`, `src/agent/AGENTS.md`                                                                             | Norbius domain rules & writing style (6 citation/clarity rules); coding-agent source map & invariants                                                                                                                                                       |
 | Localisation       | `src/i18n/+messages.ts`, `src/i18n/+zh.messages.ts`                                                                      | Full English and Simplified Chinese labels, help text, component copy, and all 6 error keys (`errors.settings_ambiguous`, `errors.report_not_filed`, `errors.own_subscription`, `errors.already_subscribed`, `errors.loan_is_owed`, `errors.report_exists`) |
-| Seeds              | `seed/+seeder.ts`, `seed/test/holding.json`                                                                              | Optional external demo seeder (`tree: 'portfolio-manager'`); 4-line synthetic test fixture for `bolt test`                                                                                                                                                  |
+| Seeds              | `seed/+seeder.ts`, `seed/public/sys_team.json`, `seed/test/holding.json`                                                 | Optional external demo seeder (`tree: 'portfolio-manager'`); the two starting teams; 4-line synthetic test fixture for `bolt test`                                                                                                                          |
 | Tests              | `tests/market.test.ts`, `tests/research.test.ts`, `tests/portfolio.test.ts`                                              | Pure math/parsing unit tests, Effect browser/fallback tests, and full PGlite `TestWorkspace` integration tests                                                                                                                                              |
 | Migrations         | `migrations/0001_initial.sql` – `0008_schema.sql`, `snapshot.json`, `migrations.lock.json`, `physical.json`              | 8 SQL migrations capturing initial schema, field/signal additions, optional per-position report calls, and system user preference updates                                                                                                                   |
 | Static assets      | `assets/app-media/portfolio-banner.svg`, `docs/screenshots/application.webp`, `docs/screenshots/workspace-overview.webp` | App card banner and verified workspace/application screenshots                                                                                                                                                                                              |

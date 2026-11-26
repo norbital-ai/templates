@@ -64,7 +64,7 @@ Whenever a `+model.ts` schema changes, `bunx bolt build` generates the next migr
 
 ### Seeds & Test Fixtures
 
-- **Fresh workspace:** Starts empty with no public seed rows (no `seed/public/` directory).
+- **Fresh workspace:** Starts with its two teams (`seed/public/sys_team.json`) and no business rows.
 - **Automated test fixture (`seed/test/holding.json`):** Contains a synthetic 4-line book loaded automatically by `TestWorkspace.layer`:
   1. `Acme Robotics Inc` (`ACME UW`, `equity`, `USD`, qty 100, cost 10,000, market 12,000, base 12,000, P&L 2,000)
   2. `Global Bond Index Fund` (`fund`, `USD`, qty 500, cost 5,000, market 5,100, base 5,100, P&L 100)

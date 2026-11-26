@@ -7,8 +7,7 @@ import {
 } from '../../../lib/logistics.js';
 
 type Recipient =
-	| { readonly team: 'commercial_managers' | 'finance' | 'logistics' }
-	| { readonly user: Id<'sys_user'> };
+	{ readonly policy: 'manager' | 'finance' | 'logistics' } | { readonly user: Id<'sys_user'> };
 
 const syncFields = [
 	'external_code',
@@ -140,7 +139,7 @@ export default model('credit_releases', {
 			);
 			const notices = changes.flatMap(({ after }) => {
 				if (after.source_status === 'bypassed') {
-					const to: Recipient[] = [{ team: 'commercial_managers' }, { team: 'finance' }];
+					const to: Recipient[] = [{ policy: 'manager' }, { policy: 'finance' }];
 					return [
 						{
 							to,
@@ -154,8 +153,8 @@ export default model('credit_releases', {
 				if (after.source_status === 'blocked') {
 					const owner = after.order ? owners.get(after.order) : undefined;
 					const to: Recipient[] = [
-						{ team: 'commercial_managers' },
-						{ team: 'finance' },
+						{ policy: 'manager' },
+						{ policy: 'finance' },
 						...(owner ? [{ user: owner } as const] : [])
 					];
 					return [
@@ -229,8 +228,8 @@ export default model('credit_releases', {
 				const owner = after.order ? owners.get(after.order) : undefined;
 				if (before.approval_status === 'none' && after.approval_status === 'approved') {
 					const to: Recipient[] = [
-						{ team: 'finance' },
-						{ team: 'logistics' },
+						{ policy: 'finance' },
+						{ policy: 'logistics' },
 						...(owner ? [{ user: owner } as const] : [])
 					];
 					const description =
@@ -248,7 +247,7 @@ export default model('credit_releases', {
 					];
 				}
 				if (before.source_status !== 'bypassed' && after.source_status === 'bypassed') {
-					const to: Recipient[] = [{ team: 'commercial_managers' }, { team: 'finance' }];
+					const to: Recipient[] = [{ policy: 'manager' }, { policy: 'finance' }];
 					return [
 						{
 							to,
@@ -265,8 +264,8 @@ export default model('credit_releases', {
 					after.source_status === 'superseded'
 				) {
 					const to: Recipient[] = [
-						{ team: 'finance' },
-						{ team: 'logistics' },
+						{ policy: 'finance' },
+						{ policy: 'logistics' },
 						...(owner ? [{ user: owner } as const] : [])
 					];
 					return [

@@ -407,7 +407,7 @@ to 8,000 characters).
        ctx.notify({ to: subscribers, via, attachments: [pdf],
                     description: unlinked(headline) + "\n\n" + unlinked(summary),
                     once: 'report-sent-<today>' })
-   - Always notify team 'investors':
+   - Always notify holders of policy 'portfolio_manage':
        1. Summary notification  (once: 'report-<today>')
        2. Surge alerts for every holding with live.movement == 'surge' (volume >= 2x 20d avg)
           (once: 'movement-<holding.id>-<today>')
@@ -517,7 +517,8 @@ while one shared Svelte component drives both interactive reading and PDF genera
 
 ## 7. Access Control, Teams, Policies & Self-Subscription Guard
 
-Access control uses two teams (`src/access_control/team/+team.ts`) and three policies
+Access control uses two seeded teams (`sys_team` rows in `seed/public/sys_team.json`, edited by an
+administrator afterwards) and three policies
 (`src/access_control/policy/`). There are no approval flows; governance relies on strict read/write
 segregation, policy-level report immutability, row-scoped subscriber self-service, and database check
 and unique constraints.

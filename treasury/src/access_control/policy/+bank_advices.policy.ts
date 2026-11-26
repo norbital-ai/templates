@@ -4,6 +4,7 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description: 'Read bank advices and submit financing changes for Treasury approval.',
 	grants: {
+		sys_team: { outputs: { default: {} } },
 		bank: { outputs: { default: {} } },
 		facility: { outputs: { default: {} } },
 		business_partner: { outputs: { default: {} } },
@@ -12,7 +13,12 @@ export default policy({
 			outputs: { default: {} },
 			update: {
 				verdict: function* (_changes, ctx) {
-					return ctx.approve({ steps: [{ name: 'Treasury review', teams: ['treasury'] }] });
+					const { sys_team } = yield* ctx.query({
+						sys_team: { where: { policies: { has: 'treasury' } }, fields: ['id'] }
+					});
+					const [first, ...rest] = sys_team.rows.map((team) => team.id);
+					if (!first) return yield* ctx.refuse('errors.no_treasury_team');
+					return ctx.approve({ steps: [{ name: 'Treasury review', teams: [first, ...rest] }] });
 				}
 			}
 		},

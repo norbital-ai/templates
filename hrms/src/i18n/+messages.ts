@@ -893,6 +893,7 @@ export default messages({
 	'errors.employee_own_claim_submit': 'Submit a claim for your own employment.',
 	'errors.employee_own_claim_update': 'Update your own claim.',
 	'errors.employee_own_leave_request': 'Request leave on your own employment.',
+	'errors.no_approver': 'No team can decide this request. Ask an administrator to check the teams.',
 	'errors.kiosk_face_enrollment_undo':
 		'A kiosk enrols or refreshes a face; it never undoes an approval.',
 	'models.payroll_run.syncs.ocbc_fast.schema.fields.line': 'Record',
