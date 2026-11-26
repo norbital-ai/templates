@@ -1,9 +1,15 @@
-import { BigDecimal, DateTime, Option } from 'effect';
+import { BigDecimal, DateTime } from 'effect';
 import type { JsonObject, Party, Direction, Rounding, Unit } from '../../../../lib/contracts.js';
 import { ROUNDING_MODES as roundingModes, settingsConstants } from '../../../../lib/contracts.js';
 import { evaluate } from '../../jurisdiction/service/expressions.js';
 import { programOf } from '../../jurisdiction/service/programs.js';
-import { Refusal, daysIn, isJsonObject } from '../../../../lib/foundation.js';
+import {
+	Refusal,
+	daysIn,
+	isIsoDate,
+	isJsonObject,
+	monthEndOf
+} from '../../../../lib/foundation.js';
 
 export interface PayLine {
 	readonly code: string;
@@ -136,12 +142,7 @@ export const period = (run: JsonObject): { from: string; to: string } => {
 		throw new Refusal({ message: 'Payroll requires an explicit salary coverage period.' });
 	const from = coverage.from,
 		to = coverage.to;
-	if (
-		typeof from !== 'string' ||
-		typeof to !== 'string' ||
-		!Option.exists(DateTime.make(from), (d) => DateTime.formatIsoDate(d) === from) ||
-		!Option.exists(DateTime.make(to), (d) => DateTime.formatIsoDate(d) === to)
-	)
+	if (typeof from !== 'string' || typeof to !== 'string' || !isIsoDate(from) || !isIsoDate(to))
 		throw new Refusal({ message: 'Salary coverage requires actual dates.' });
 	return { from, to };
 };
@@ -156,7 +157,10 @@ export const catalogByCode = (rows: readonly JsonObject[]): ReadonlyMap<string, 
 };
 
 /** The configured chain is the whole execution plan: no implicit BASE/EARNINGS/NET stages. */
+const subtotalChains = new WeakMap<readonly JsonObject[], readonly JsonObject[]>();
 export function subtotalChain(rows: readonly JsonObject[]): readonly JsonObject[] {
+	const cached = subtotalChains.get(rows);
+	if (cached !== undefined) return cached;
 	const byCode = new Map(rows.map((row) => [text(row, 'code'), row]));
 	const next = new Map<string, JsonObject>();
 	for (const row of rows) {
@@ -183,11 +187,15 @@ export function subtotalChain(rows: readonly JsonObject[]): readonly JsonObject[
 	}
 	if (ordered.length !== rows.length)
 		throw new Refusal({ message: 'Subtotal chain is disconnected.' });
+	subtotalChains.set(rows, ordered);
 	return ordered;
 }
 
 /** Statutory dependencies are explicit scheme codes and only finalised results are visible. */
+const statutoryOrders = new WeakMap<readonly JsonObject[], readonly JsonObject[]>();
 export function statutoryOrder(rows: readonly JsonObject[]): readonly JsonObject[] {
+	const cached = statutoryOrders.get(rows);
+	if (cached !== undefined) return cached;
 	const byCode = new Map(rows.map((row) => [text(row, 'code'), row]));
 	const ordered: JsonObject[] = [];
 	const visiting = new Set<string>();
@@ -207,6 +215,7 @@ export function statutoryOrder(rows: readonly JsonObject[]): readonly JsonObject
 		ordered.push(row);
 	};
 	for (const code of [...byCode.keys()].sort()) visit(code);
+	statutoryOrders.set(rows, ordered);
 	return ordered;
 }
 
@@ -239,7 +248,10 @@ const ROUNDING_MODES: readonly Rounding['mode'][] = [
 	'TRUNCATE'
 ];
 /** Rounding is a settings field like any other constant. */
+const roundingRules = new WeakMap<object, Rounding>();
 export const rounding = (row: JsonObject): Rounding => {
+	const held = roundingRules.get(row);
+	if (held !== undefined) return held;
 	const settings = settingsConstants(row);
 	const mode = ROUNDING_MODES.find((candidate) => candidate === settings.rounding) ?? 'HALF_UP';
 	const scale =
@@ -249,9 +261,13 @@ export const rounding = (row: JsonObject): Rounding => {
 		settings.rounding_scale <= 12
 			? settings.rounding_scale
 			: 2;
-	return { mode, scale };
+	const rule: Rounding = { mode, scale };
+	roundingRules.set(row, rule);
+	return rule;
 };
 export const round = (settings: JsonObject, value: number): number => {
+	if (value === 0) return 0;
+	if (Number.isSafeInteger(value)) return value;
 	const rule = rounding(settings);
 	return BigDecimal.toNumberUnsafe(
 		BigDecimal.round(BigDecimal.fromNumberUnsafe(value), {
@@ -261,6 +277,8 @@ export const round = (settings: JsonObject, value: number): number => {
 	);
 };
 export const floorMinor = (settings: JsonObject, value: number): number => {
+	if (value === 0) return 0;
+	if (Number.isSafeInteger(value)) return value;
 	const rule = rounding(settings);
 	return BigDecimal.toNumberUnsafe(
 		BigDecimal.round(BigDecimal.fromNumberUnsafe(value), {
@@ -321,9 +339,7 @@ export type Slot = { readonly date: string; readonly part: string };
 export type SlotShare = (row: JsonObject, entry: JsonObject, slot: Slot) => number;
 export const slotsOf = (entry: JsonObject): readonly Slot[] =>
 	(Array.isArray(entry.days) ? entry.days : []).flatMap((day) =>
-		isJsonObject(day) &&
-		typeof day.date === 'string' &&
-		Option.exists(DateTime.make(day.date), (d) => DateTime.formatIsoDate(d) === day.date)
+		isJsonObject(day) && typeof day.date === 'string' && isIsoDate(day.date)
 			? [{ date: day.date, part: String(day.part) }]
 			: []
 	);
@@ -410,11 +426,8 @@ export const basisDays = (
  * pattern, since the run's projected days cover only its own window.
  */
 const monthBasisCount = (input: PayrollInput, date: string, basis: unknown): number => {
-	const at = DateTime.makeUnsafe(date);
-	const days = daysIn(
-		DateTime.formatIsoDate(DateTime.startOf(at, 'month')),
-		DateTime.formatIsoDate(DateTime.endOf(at, 'month'))
-	);
+	const ym = date.slice(0, 7);
+	const days = daysIn(`${ym}-01`, monthEndOf(ym));
 	if (basis === 'CALENDAR_DAYS' || (basis === 'DAY_RATE' && dayRateCalendar(input)))
 		return days.length;
 	const off = offDaysOf(input);
@@ -431,12 +444,7 @@ export const ownMonthWeight = (
 	basis: unknown,
 	date: string
 ): number => {
-	const paid = DateTime.makeUnsafe(coverage.from);
-	if (
-		date >= DateTime.formatIsoDate(DateTime.startOf(paid, 'month')) &&
-		date <= DateTime.formatIsoDate(DateTime.endOf(paid, 'month'))
-	)
-		return 1;
+	if (date.slice(0, 7) === coverage.from.slice(0, 7)) return 1;
 	const own = monthBasisCount(input, date, basis);
 	return own <= 0 ? 1 : monthBasisCount(input, coverage.from, basis) / own;
 };
@@ -449,7 +457,8 @@ export const paidShare = (
 	input: PayrollInput,
 	coverage: { from: string; to: string },
 	basis: unknown,
-	unpaid: ReadonlyMap<string, number>
+	unpaid: ReadonlyMap<string, number>,
+	computedBasis?: ReturnType<typeof payBasis>
 ): number => {
 	if (input.full_period_unpaid === true) return 0;
 	const counted = basisDays(input, coverage, basis);
@@ -461,7 +470,7 @@ export const paidShare = (
 	const lost = unemployedDays(input, counted) + unpaidDays;
 	// a missed day takes the statute's day rate, not a share of the period's days (PH 313/261, TW/TH ÷30, etc.)
 	if (basis === 'DAY_RATE') {
-		const { day_rate, month_wage } = payBasis(input, coverage);
+		const { day_rate, month_wage } = computedBasis ?? payBasis(input, coverage);
 		// the wage the coverage pays for: a half-month cycle pays half the month, so its day is that half's share
 		const schedule = isJsonObject(input.employer.payment_schedule)
 			? input.employer.payment_schedule
@@ -497,8 +506,16 @@ export const offDaysFor = (terms: JsonObject, employer: JsonObject): readonly nu
 		return [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - stated);
 	return scheduled;
 };
-export const isWorkingDay = (date: string, off: readonly number[]): boolean =>
-	!off.includes(DateTime.getPartUtc(DateTime.makeUnsafe(date), 'weekDay'));
+const weekdays = new Map<string, number>();
+export const isWorkingDay = (date: string, off: readonly number[]): boolean => {
+	let weekday = weekdays.get(date);
+	if (weekday === undefined) {
+		weekday = DateTime.getPartUtc(DateTime.makeUnsafe(date), 'weekDay');
+		if (weekdays.size >= 4096) weekdays.clear();
+		weekdays.set(date, weekday);
+	}
+	return !off.includes(weekday);
+};
 const numeric = (value: unknown): number =>
 	typeof value === 'number' && Number.isFinite(value) ? value : 0;
 const fixedOf = (value: JsonObject, key: string, field: string): number => {
@@ -524,7 +541,7 @@ export const rateOf = (input: PayrollInput) => {
 };
 /** The wage a day or hour rate divides: the contract salary plus the allowances its inclusion names. */
 const includedAllowances = (input: PayrollInput, terms: JsonObject): number => {
-	const rows = new Map(input.allowance.map((row) => [String(row.code), row]));
+	const rows = catalogByCode(input.allowance);
 	const allowances = isJsonObject(terms.allowances) ? terms.allowances : {};
 	let total = 0;
 	for (const [code, value] of Object.entries(allowances)) {
@@ -542,17 +559,18 @@ const includedAllowances = (input: PayrollInput, terms: JsonObject): number => {
 export const payBasis = (input: PayrollInput, coverage: { from: string; to: string }) => {
 	const { terms, amount: rate, unit, hoursPerDay, daysPerWeek, weeklyHours } = rateOf(input);
 	const off = offDaysOf(input);
-	const paid = DateTime.makeUnsafe(coverage.from);
-	const monthDays = daysIn(
-		DateTime.formatIsoDate(DateTime.startOf(paid, 'month')),
-		DateTime.formatIsoDate(DateTime.endOf(paid, 'month'))
-	);
+	const ym = coverage.from.slice(0, 7);
+	const monthStart = `${ym}-01`;
+	const monthEnd = monthEndOf(ym);
+	const monthDays = daysIn(monthStart, monthEnd);
 	const monthCalendar = monthDays.length;
 	const monthWorking = monthDays.filter((date) => isWorkingDay(date, off)).length;
-	const calendar_days = daysIn(coverage.from, coverage.to).length;
-	const working_days = daysIn(coverage.from, coverage.to).filter((date) =>
-		isWorkingDay(date, off)
-	).length;
+	const sameAsMonth = coverage.from === monthStart && coverage.to === monthEnd;
+	const coverageDays = sameAsMonth ? monthDays : daysIn(coverage.from, coverage.to);
+	const calendar_days = coverageDays.length;
+	const working_days = sameAsMonth
+		? monthWorking
+		: coverageDays.filter((date) => isWorkingDay(date, off)).length;
 	const monthly =
 		unit === 'DAILY'
 			? rate * monthWorking
@@ -604,12 +622,18 @@ export const payBasis = (input: PayrollInput, coverage: { from: string; to: stri
 	return { month_wage, day_rate, hour_rate, overtime_hour_rate, calendar_days, working_days };
 };
 /** The contract salary of a period and the basis its share follows. */
-export function salaryOf(input: PayrollInput, coverage: { from: string; to: string }) {
+export function salaryOf(
+	input: PayrollInput,
+	coverage: { from: string; to: string },
+	precomputedWorkingDays?: number
+) {
 	const { amount: rate, unit, hoursPerDay } = rateOf(input);
-	const off = offDaysOf(input);
-	const workingDays = daysIn(coverage.from, coverage.to).filter((date) =>
-		isWorkingDay(date, off)
-	).length;
+	const workingDays =
+		precomputedWorkingDays ??
+		(() => {
+			const off = offDaysOf(input);
+			return daysIn(coverage.from, coverage.to).filter((date) => isWorkingDay(date, off)).length;
+		})();
 	if (workingDays <= 0) throw new Refusal({ message: 'Working days must be positive.' });
 	const hoursPerMonth = workingDays * hoursPerDay;
 	return {

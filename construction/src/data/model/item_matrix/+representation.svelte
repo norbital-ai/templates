@@ -8,7 +8,7 @@
 
 <RecordForm {ctx} {view} subtitle={['category', 'discipline', 'unit']}>
 	<Section icon="lucide:table-2" first name="rule" title={ctx.t('section.matrix_rate')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="code" />
 			<Field {ctx} name="name" />
 			<Field {ctx} name="category" />
@@ -19,7 +19,7 @@
 	</Section>
 
 	<Section icon="lucide:calculator" name="pricing" title={ctx.t('section.quantifiable_pricing')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="unit" />
 			<Field {ctx} name="quantity_basis" />
 			<Field {ctx} name="currency" />
@@ -37,7 +37,7 @@
 		title={ctx.t('section.derived_quantity')}
 		default_open={view.mode !== 'create' && view.record.quantity_basis === 'derived'}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="derived_from" />
 			<Field {ctx} name="ratio" />
 			<Field {ctx} name="stands_in_for" />
@@ -45,9 +45,14 @@
 	</Section>
 
 	<Section icon="lucide:box" name="matching" title={ctx.t('section.bim_classification_rules')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="ifc_classes" />
 			<Field {ctx} name="match_keywords" />
+			<Field {ctx} name="system_services" />
+			<Field {ctx} name="topology_mode" />
+			<Field {ctx} name="min_size_mm" />
+			<Field {ctx} name="max_size_mm" />
+			<Field {ctx} name="insulated" />
 			<Column span="all"><Field {ctx} name="notes" /></Column>
 		</Grid>
 	</Section>

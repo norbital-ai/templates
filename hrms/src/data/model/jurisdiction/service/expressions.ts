@@ -7,7 +7,7 @@ import {
 	addMinutes
 } from '../../roster_entry/service/time_evidence.js';
 import { parse, type AnyNode, type Pattern, type Program } from 'acorn';
-import { BigDecimal, DateTime, Duration, Option, Schema } from 'effect';
+import { BigDecimal, DateTime, Schema } from 'effect';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { PHASE_ROOTS, ROUNDING_MODES, type Phase } from '../../../../lib/contracts.js';
@@ -15,6 +15,8 @@ import {
 	completedMonths,
 	getErrorMessage,
 	isDynObject,
+	isoDateMillis,
+	monthEndOf,
 	Refusal,
 	stableJson
 } from '../../../../lib/foundation.js';
@@ -31,40 +33,81 @@ const bad = (message: string): never => {
 };
 type Decimal = BigDecimal.BigDecimal;
 const isDecimal = BigDecimal.isBigDecimal;
+const NumberLiteral = Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]));
+const showFormatters = new Map<number, Intl.NumberFormat>();
+const showFormatter = (scale: number): Intl.NumberFormat => {
+	let fmt = showFormatters.get(scale);
+	if (fmt === undefined) {
+		fmt = new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: scale,
+			maximumFractionDigits: scale
+		});
+		showFormatters.set(scale, fmt);
+	}
+	return fmt;
+};
+const fixedFormatters = new Map<number, Intl.NumberFormat>();
+const fixedFormatter = (scale: number): Intl.NumberFormat => {
+	let fmt = fixedFormatters.get(scale);
+	if (fmt === undefined) {
+		fmt = new Intl.NumberFormat('en', {
+			useGrouping: false,
+			minimumFractionDigits: scale,
+			maximumFractionDigits: scale,
+			roundingMode: 'halfExpand',
+			signDisplay: 'negative'
+		});
+		fixedFormatters.set(scale, fmt);
+	}
+	return fmt;
+};
 /** A value as text: a decimal keeps its own scale (`1.20`). */
 const show = (v: unknown): string =>
-	isDecimal(v)
-		? new Intl.NumberFormat('en', {
-				useGrouping: false,
-				minimumFractionDigits: Math.max(0, v.scale),
-				maximumFractionDigits: Math.max(0, v.scale)
-			}).format(
-				Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]))(BigDecimal.format(v))
-			)
-		: String(v);
+	typeof v === 'string'
+		? v
+		: isDecimal(v)
+			? showFormatter(Math.max(0, v.scale)).format(NumberLiteral(BigDecimal.format(v)))
+			: String(v);
 const numeric = (v: unknown): number =>
-	isDecimal(v)
-		? BigDecimal.toNumberUnsafe(v)
-		: typeof v === 'number' && Number.isFinite(v)
-			? v
+	typeof v === 'number' && Number.isFinite(v)
+		? v
+		: isDecimal(v)
+			? BigDecimal.toNumberUnsafe(v)
 			: bad('Expected an actual finite number.');
-const exact = (v: unknown): Decimal => (isDecimal(v) ? v : BigDecimal.fromNumberUnsafe(numeric(v)));
+const SMALL_DECIMALS: readonly Decimal[] = Array.from({ length: 1025 }, (_, i) =>
+	BigDecimal.make(BigInt(i), 0)
+);
+const exact = (v: unknown): Decimal => {
+	if (isDecimal(v)) return v;
+	if (typeof v === 'number' && Number.isFinite(v)) {
+		if (Number.isInteger(v)) {
+			if (v >= 0 && v <= 1024) {
+				const cached = SMALL_DECIMALS[v];
+				if (cached !== undefined) return cached;
+			}
+			if (Number.isSafeInteger(v)) return BigDecimal.make(BigInt(v), 0);
+		}
+		return BigDecimal.fromNumberUnsafe(v);
+	}
+	return bad('Expected an actual finite number.');
+};
 /** `a / b` rounded to `scale`: an exact quotient to 100 digits, then rounded. */
 const divide = (a: Decimal, b: Decimal, scale: number, mode: BigDecimal.RoundingMode): Decimal =>
 	BigDecimal.round(BigDecimal.divideUnsafe(a, b), { scale, mode });
 const numericValue = (v: unknown): boolean =>
-	isDecimal(v) || (typeof v === 'number' && Number.isFinite(v));
-const compare = (a: unknown, b: unknown): number =>
-	numericValue(a) && numericValue(b)
-		? BigDecimal.Order(exact(a), exact(b))
-		: (numericValue(a) || a === Infinity || a === -Infinity) &&
-			  (numericValue(b) || b === Infinity || b === -Infinity)
-			? a === b
-				? 0
-				: a === Infinity || b === -Infinity
-					? 1
-					: -1
-			: bad('Expected comparable numeric bounds.');
+	(typeof v === 'number' && Number.isFinite(v)) || isDecimal(v);
+const compare = (a: unknown, b: unknown): number => {
+	if (typeof a === 'number' && typeof b === 'number' && !Number.isNaN(a) && !Number.isNaN(b))
+		return a < b ? -1 : a > b ? 1 : 0;
+	if (numericValue(a) && numericValue(b)) return BigDecimal.Order(exact(a), exact(b));
+	if (
+		(numericValue(a) || a === Infinity || a === -Infinity) &&
+		(numericValue(b) || b === Infinity || b === -Infinity)
+	)
+		return a === b ? 0 : a === Infinity || b === -Infinity ? 1 : -1;
+	return bad('Expected comparable numeric bounds.');
+};
 const truth = (v: unknown): boolean => (isDecimal(v) ? !BigDecimal.isZero(v) : Boolean(v));
 const materialise = (v: unknown): unknown =>
 	isDecimal(v)
@@ -90,11 +133,13 @@ const periodEnd = (value: unknown): string | null => {
 	return null;
 };
 
+const dateMillis = (v: unknown): number => {
+	const ms = isoDateMillis(text(v));
+	return ms === undefined ? bad('Expected an actual ISO calendar date.') : ms;
+};
 const date = (v: unknown): string => {
 	const value = text(v);
-	return Option.exists(DateTime.make(value), (d) => DateTime.formatIsoDate(d) === value)
-		? value
-		: bad('Expected an actual ISO calendar date.');
+	return isoDateMillis(value) !== undefined ? value : bad('Expected an actual ISO calendar date.');
 };
 const blocked = new Set(['__proto__', 'prototype', 'constructor', 'caller', 'callee', 'arguments']);
 const property = (v: unknown, key: string): unknown => {
@@ -106,9 +151,23 @@ const property = (v: unknown, key: string): unknown => {
 	if (isDynObject(v) && Object.hasOwn(v, key)) return v[key];
 	return bad(`Missing or unavailable field ${key}.`);
 };
+const pathParts = new Map<string, readonly string[]>();
+const splitPath = (key: string): readonly string[] => {
+	let parts = pathParts.get(key);
+	if (parts === undefined) {
+		parts = key.split('.');
+		if (pathParts.size >= 4096) pathParts.clear();
+		pathParts.set(key, parts);
+	}
+	return parts;
+};
 const path = (v: unknown, key: string, fallback: unknown): unknown => {
+	if (!key.includes('.')) {
+		if (blocked.has(key)) return bad('Unsafe property path.');
+		return isDynObject(v) && Object.hasOwn(v, key) ? v[key] : fallback;
+	}
 	let value = v;
-	for (const part of key.split('.')) {
+	for (const part of splitPath(key)) {
 		if (blocked.has(part)) return bad('Unsafe property path.');
 		if (!isDynObject(value) || !Object.hasOwn(value, part)) return fallback;
 		value = value[part];
@@ -125,57 +184,125 @@ const binary = (op: string, a: unknown, b: unknown): unknown => {
 			return BigDecimal.subtract(exact(a), exact(b));
 		case '*':
 			return BigDecimal.multiply(exact(a), exact(b));
-		case '/':
-			if (numeric(b) === 0) return bad('Division by zero.');
-			return divide(exact(a), exact(b), 24, 'half-from-zero');
+		case '/': {
+			const divisor = exact(b);
+			if (BigDecimal.isZero(divisor)) return bad('Division by zero.');
+			const dividend = exact(a);
+			if (BigDecimal.isZero(dividend)) return SMALL_DECIMALS[0];
+			return divide(dividend, divisor, 24, 'half-from-zero');
+		}
 		case '%':
 			return numeric(a) % numeric(b);
 		case '**':
 			return numeric(a) ** numeric(b);
 		case '===':
+			if (typeof a === 'string' && typeof b === 'string') return a === b;
+			if (
+				typeof a === 'number' &&
+				typeof b === 'number' &&
+				Number.isFinite(a) &&
+				Number.isFinite(b)
+			)
+				return a === b;
 			return numericValue(a) && numericValue(b) ? BigDecimal.equals(exact(a), exact(b)) : a === b;
 		case '!==':
+			if (typeof a === 'string' && typeof b === 'string') return a !== b;
+			if (
+				typeof a === 'number' &&
+				typeof b === 'number' &&
+				Number.isFinite(a) &&
+				Number.isFinite(b)
+			)
+				return a !== b;
 			return numericValue(a) && numericValue(b) ? !BigDecimal.equals(exact(a), exact(b)) : a !== b;
 		case '==':
-			return binary('===', a, b) || (a == null && b == null);
+			if (a == null && b == null) return true;
+			if (typeof a === 'string' && typeof b === 'string') return a === b;
+			if (
+				typeof a === 'number' &&
+				typeof b === 'number' &&
+				Number.isFinite(a) &&
+				Number.isFinite(b)
+			)
+				return a === b;
+			return numericValue(a) && numericValue(b) ? BigDecimal.equals(exact(a), exact(b)) : a === b;
 		case '!=':
-			return !(binary('===', a, b) || (a == null && b == null));
+			if (a == null && b == null) return false;
+			if (typeof a === 'string' && typeof b === 'string') return a !== b;
+			if (
+				typeof a === 'number' &&
+				typeof b === 'number' &&
+				Number.isFinite(a) &&
+				Number.isFinite(b)
+			)
+				return a !== b;
+			return numericValue(a) && numericValue(b) ? !BigDecimal.equals(exact(a), exact(b)) : a !== b;
 		case '<':
-			return typeof a === 'string' && typeof b === 'string' ? a < b : compare(a, b) < 0;
+			if (typeof a === 'string' && typeof b === 'string') return a < b;
+			if (typeof a === 'number' && typeof b === 'number' && !Number.isNaN(a) && !Number.isNaN(b))
+				return a < b;
+			return compare(a, b) < 0;
 		case '<=':
-			return typeof a === 'string' && typeof b === 'string' ? a <= b : compare(a, b) <= 0;
+			if (typeof a === 'string' && typeof b === 'string') return a <= b;
+			if (typeof a === 'number' && typeof b === 'number' && !Number.isNaN(a) && !Number.isNaN(b))
+				return a <= b;
+			return compare(a, b) <= 0;
 		case '>':
-			return typeof a === 'string' && typeof b === 'string' ? a > b : compare(a, b) > 0;
+			if (typeof a === 'string' && typeof b === 'string') return a > b;
+			if (typeof a === 'number' && typeof b === 'number' && !Number.isNaN(a) && !Number.isNaN(b))
+				return a > b;
+			return compare(a, b) > 0;
 		case '>=':
-			return typeof a === 'string' && typeof b === 'string' ? a >= b : compare(a, b) >= 0;
+			if (typeof a === 'string' && typeof b === 'string') return a >= b;
+			if (typeof a === 'number' && typeof b === 'number' && !Number.isNaN(a) && !Number.isNaN(b))
+				return a >= b;
+			return compare(a, b) >= 0;
 		default:
 			return bad(`Operator ${op} is unavailable.`);
 	}
 };
+const EMPTY_ARGS: readonly unknown[] = [];
+const emptyRecord = (): Record<string, unknown> => Object.create(null);
 class Environment {
-	readonly values = new Map<string, { value: unknown; constant: boolean }>();
+	readonly values: Record<string, unknown> = emptyRecord();
+	private mutable: Set<string> | undefined;
 	constructor(readonly parent?: Environment) {}
 	get(name: string): unknown {
-		const item = this.values.get(name);
-		return item !== undefined
-			? item.value
-			: this.parent !== undefined
-				? this.parent.get(name)
-				: bad(`Unbound reference ${name}.`);
+		let current: Environment | undefined = this;
+		while (current !== undefined) {
+			if (name in current.values) return current.values[name];
+			current = current.parent;
+		}
+		return bad(`Unbound reference ${name}.`);
+	}
+	tryGet(name: string): { readonly found: boolean; readonly value: unknown } {
+		let current: Environment | undefined = this;
+		while (current !== undefined) {
+			if (name in current.values) return { found: true, value: current.values[name] };
+			current = current.parent;
+		}
+		return { found: false, value: undefined };
 	}
 	set(name: string, value: unknown): unknown {
-		const item = this.values.get(name);
-		if (item === undefined)
-			return this.parent === undefined
-				? bad(`Unbound local ${name}.`)
-				: this.parent.set(name, value);
-		if (item.constant) return bad(`Cannot assign constant ${name}.`);
-		item.value = value;
-		return value;
+		let current: Environment | undefined = this;
+		while (current !== undefined) {
+			if (name in current.values) {
+				if (current.mutable === undefined || !current.mutable.has(name))
+					return bad(`Cannot assign constant ${name}.`);
+				current.values[name] = value;
+				return value;
+			}
+			current = current.parent;
+		}
+		return bad(`Unbound local ${name}.`);
 	}
 	declare(name: string, value: unknown, constant: boolean): void {
-		if (this.values.has(name)) bad(`Duplicate binding ${name}.`);
-		this.values.set(name, { value, constant });
+		if (name in this.values) bad(`Duplicate binding ${name}.`);
+		this.values[name] = value;
+		if (!constant) {
+			if (this.mutable === undefined) this.mutable = new Set();
+			this.mutable.add(name);
+		}
 	}
 }
 class Returned {
@@ -237,29 +364,102 @@ class Interpreter {
 		this.tick();
 		if (blocked.has(key)) return bad(`Method ${key} is unavailable.`);
 		if (Array.isArray(value)) {
-			const callback = (v: unknown, i: number) => this.call(args[0], [v, i, value]);
+			const cb = args[0];
 			switch (key) {
-				case 'map':
-					return value.map(callback);
-				case 'filter':
-					return value.filter((v, i) => truth(callback(v, i)));
-				case 'flatMap':
-					return value.flatMap(callback);
-				case 'find':
-					return value.find((v, i) => truth(callback(v, i)));
-				case 'findIndex':
-					return value.findIndex((v, i) => truth(callback(v, i)));
-				case 'some':
-					return value.some((v, i) => truth(callback(v, i)));
-				case 'every':
-					return value.every((v, i) => truth(callback(v, i)));
-				case 'reduce':
+				case 'map': {
+					const out: unknown[] = new Array(value.length);
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = value[i];
+						cbArgs[1] = i;
+						out[i] = this.call(cb, cbArgs);
+					}
+					return out;
+				}
+				case 'filter': {
+					const out: unknown[] = [];
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						const v = value[i];
+						cbArgs[0] = v;
+						cbArgs[1] = i;
+						if (truth(this.call(cb, cbArgs))) out.push(v);
+					}
+					return out;
+				}
+				case 'flatMap': {
+					const out: unknown[] = [];
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = value[i];
+						cbArgs[1] = i;
+						const res = this.call(cb, cbArgs);
+						if (Array.isArray(res)) out.push(...res);
+						else out.push(res);
+					}
+					return out;
+				}
+				case 'find': {
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						const v = value[i];
+						cbArgs[0] = v;
+						cbArgs[1] = i;
+						if (truth(this.call(cb, cbArgs))) return v;
+					}
+					return undefined;
+				}
+				case 'findIndex': {
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = value[i];
+						cbArgs[1] = i;
+						if (truth(this.call(cb, cbArgs))) return i;
+					}
+					return -1;
+				}
+				case 'some': {
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = value[i];
+						cbArgs[1] = i;
+						if (truth(this.call(cb, cbArgs))) return true;
+					}
+					return false;
+				}
+				case 'every': {
+					const cbArgs: unknown[] = [undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = value[i];
+						cbArgs[1] = i;
+						if (!truth(this.call(cb, cbArgs))) return false;
+					}
+					return true;
+				}
+				case 'reduce': {
 					if (args.length < 2) bad('Reduce requires an explicit initial value.');
-					return value.reduce((a, v, i) => this.call(args[0], [a, v, i, value]), args[1]);
-				case 'includes':
-					return value.some((v) => binary('===', v, args[0]) === true);
-				case 'indexOf':
-					return value.findIndex((v) => binary('===', v, args[0]) === true);
+					let acc = args[1];
+					const cbArgs: unknown[] = [acc, undefined, 0, value];
+					for (let i = 0; i < value.length; i++) {
+						cbArgs[0] = acc;
+						cbArgs[1] = value[i];
+						cbArgs[2] = i;
+						acc = this.call(cb, cbArgs);
+					}
+					return acc;
+				}
+				case 'includes': {
+					const target = args[0];
+					if (typeof target === 'string' || typeof target === 'boolean' || target == null)
+						return value.includes(target);
+					return value.some((v) => binary('===', v, target) === true);
+				}
+				case 'indexOf': {
+					const target = args[0];
+					if (typeof target === 'string' || typeof target === 'boolean' || target == null)
+						return value.indexOf(target);
+					return value.findIndex((v) => binary('===', v, target) === true);
+				}
 				case 'join':
 					return value.join(args[0] === undefined ? ',' : text(args[0]));
 				case 'slice':
@@ -273,12 +473,15 @@ class Interpreter {
 					return value.concat(...args);
 				case 'flat':
 					return value.flat(args[0] === undefined ? 1 : Math.min(8, numeric(args[0])));
-				case 'toSorted':
-					return value.toSorted((a, b) =>
-						args[0] === undefined
-							? show(a).localeCompare(show(b))
-							: numeric(this.call(args[0], [a, b]))
-					);
+				case 'toSorted': {
+					if (cb === undefined) return value.toSorted((a, b) => show(a).localeCompare(show(b)));
+					const cmpArgs: unknown[] = [undefined, undefined];
+					return value.toSorted((a, b) => {
+						cmpArgs[0] = a;
+						cmpArgs[1] = b;
+						return numeric(this.call(cb, cmpArgs));
+					});
+				}
 			}
 		}
 		if (numericValue(value)) {
@@ -287,17 +490,7 @@ class Interpreter {
 				const scale = args[0] === undefined ? 0 : numeric(args[0]);
 				if (!Number.isInteger(scale) || scale < 0 || scale > 12)
 					bad('Fixed decimal formatting supports 0–12 places.');
-				return new Intl.NumberFormat('en', {
-					useGrouping: false,
-					minimumFractionDigits: scale,
-					maximumFractionDigits: scale,
-					roundingMode: 'halfExpand',
-					signDisplay: 'negative'
-				}).format(
-					Schema.decodeUnknownSync(Schema.TemplateLiteral([Schema.Number]))(
-						BigDecimal.format(exact(value))
-					)
-				);
+				return fixedFormatter(scale).format(NumberLiteral(BigDecimal.format(exact(value))));
 			}
 		}
 		if (typeof value === 'string') {
@@ -398,12 +591,9 @@ class Interpreter {
 				return binary(node.operator, this.eval(node.left, env), this.eval(node.right, env));
 			case 'UnaryExpression': {
 				if (node.operator === 'typeof' && node.argument.type === 'Identifier') {
-					try {
-						const v = env.get(node.argument.name);
-						return isDecimal(v) ? 'number' : typeof v;
-					} catch {
-						return 'undefined';
-					}
+					const found = env.tryGet(node.argument.name);
+					if (!found.found) return 'undefined';
+					return isDecimal(found.value) ? 'number' : typeof found.value;
 				}
 				const v = this.eval(node.argument, env);
 				switch (node.operator) {
@@ -431,11 +621,17 @@ class Interpreter {
 			case 'ChainExpression':
 				return this.eval(node.expression, env);
 			case 'CallExpression': {
-				const args: unknown[] = [];
-				for (const a of node.arguments)
-					a.type === 'SpreadElement'
-						? args.push(...list(this.eval(a.argument, env)))
-						: args.push(this.eval(a, env));
+				let args: readonly unknown[];
+				if (node.arguments.length === 0) {
+					args = EMPTY_ARGS;
+				} else {
+					const built: unknown[] = [];
+					for (const a of node.arguments)
+						a.type === 'SpreadElement'
+							? built.push(...list(this.eval(a.argument, env)))
+							: built.push(this.eval(a, env));
+					args = built;
+				}
 				if (node.callee.type === 'MemberExpression') {
 					const value = this.eval(node.callee.object, env);
 					if ((node.optional || node.callee.optional) && value == null) return undefined;
@@ -474,17 +670,27 @@ class Interpreter {
 			case 'ArrowFunctionExpression':
 			case 'FunctionExpression': {
 				if (node.async || node.generator) bad('Async and generator expressions are unavailable.');
+				const simpleParams = node.params.every((p) => p.type === 'Identifier')
+					? node.params.map((p) => (p.type === 'Identifier' ? p.name : ''))
+					: undefined;
+				const isBlock = node.body.type === 'BlockStatement';
 				return fn((args) => {
 					const local = new Environment(env);
-					node.params.forEach((p, i) =>
-						this.bind(p, p.type === 'RestElement' ? args.slice(i) : args[i], local, true)
-					);
+					if (simpleParams !== undefined) {
+						for (let i = 0; i < simpleParams.length; i++) {
+							this.tick();
+							const name = simpleParams[i];
+							if (name !== undefined) local.declare(name, args[i], true);
+						}
+					} else {
+						for (let i = 0; i < node.params.length; i++) {
+							const p = node.params[i];
+							if (p !== undefined)
+								this.bind(p, p.type === 'RestElement' ? args.slice(i) : args[i], local, true);
+						}
+					}
 					const result = this.eval(node.body, local);
-					return result instanceof Returned
-						? result.value
-						: node.body.type === 'BlockStatement'
-							? undefined
-							: result;
+					return result instanceof Returned ? result.value : isBlock ? undefined : result;
 				});
 			}
 			case 'TemplateLiteral':
@@ -672,7 +878,10 @@ export function checkExpression(
 	visit(tree);
 }
 /** The `ctx` roots a source reads. */
+const parsedRoots = new Map<string, ReadonlySet<string>>();
 export function contextRoots(source: string): ReadonlySet<string> {
+	const held = parsedRoots.get(source);
+	if (held !== undefined) return held;
 	const roots = new Set<string>();
 	const visit = (node: unknown): void => {
 		if (Array.isArray(node)) return node.forEach(visit);
@@ -689,6 +898,7 @@ export function contextRoots(source: string): ReadonlySet<string> {
 		for (const value of Object.values(node)) visit(value);
 	};
 	visit(parseProgram(source));
+	parsedRoots.set(source, roots);
 	return roots;
 }
 const pure: Readonly<Record<string, FunctionValue>> = {
@@ -775,19 +985,11 @@ const pure: Readonly<Record<string, FunctionValue>> = {
 			throw new RangeError(`${months} is not a whole number of months`);
 		return DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(date(a[0])), { months }));
 	}),
-	month_start: fn((a) =>
-		DateTime.formatIsoDate(DateTime.startOf(DateTime.makeUnsafe(date(a[0])), 'month'))
-	),
-	month_end: fn((a) =>
-		DateTime.formatIsoDate(DateTime.endOf(DateTime.makeUnsafe(date(a[0])), 'month'))
-	),
+	month_start: fn((a) => `${date(a[0]).slice(0, 7)}-01`),
+	month_end: fn((a) => monthEndOf(date(a[0]).slice(0, 7))),
 	age_on: fn((a) => Math.floor(completedMonths(date(a[0]), date(a[1])) / 12)),
 	calendar_completed_months: fn((a) => completedMonths(date(a[0]), date(a[1]))),
-	calendar_distance_days: fn((a) =>
-		Duration.toDays(
-			DateTime.distance(DateTime.makeUnsafe(date(a[0])), DateTime.makeUnsafe(date(a[1])))
-		)
-	),
+	calendar_distance_days: fn((a) => Math.trunc((dateMillis(a[1]) - dateMillis(a[0])) / 86_400_000)),
 	bracket: fn((a) => {
 		const value = exact(a[0]),
 			bands = list(a[1]);
@@ -849,7 +1051,6 @@ const builtins = (): Environment => {
 									? best
 									: value
 						);
-					const values = a.map(numeric);
 					if (name === 'abs') return BigDecimal.abs(exact(a[0]));
 					if (name === 'floor' || name === 'ceil' || name === 'trunc')
 						return BigDecimal.round(exact(a[0]), {
@@ -858,23 +1059,15 @@ const builtins = (): Environment => {
 						});
 					switch (name) {
 						case 'min':
-							return Math.min(...values);
+							return Math.min(...a.map(numeric));
 						case 'max':
-							return Math.max(...values);
-						case 'abs':
-							return Math.abs(numeric(values[0]));
-						case 'floor':
-							return Math.floor(numeric(values[0]));
-						case 'ceil':
-							return Math.ceil(numeric(values[0]));
-						case 'trunc':
-							return Math.trunc(numeric(values[0]));
+							return Math.max(...a.map(numeric));
 						case 'round':
-							return Math.round(numeric(values[0]));
+							return Math.round(numeric(a[0]));
 						case 'pow':
-							return Math.pow(numeric(values[0]), numeric(values[1]));
+							return Math.pow(numeric(a[0]), numeric(a[1]));
 						default:
-							return Math.sqrt(numeric(values[0]));
+							return Math.sqrt(numeric(a[0]));
 					}
 				})
 			])
@@ -907,17 +1100,50 @@ const builtins = (): Environment => {
 };
 // the same check repeats for every person of a run, at the same place in the chain
 const checked = new Map<string, Set<string>>();
+const rootMeta = new WeakMap<
+	readonly string[],
+	{ readonly list: readonly string[]; readonly key: string }
+>();
+const rootsInfo = (roots: readonly string[]) => {
+	let held = rootMeta.get(roots);
+	if (held === undefined) {
+		held = { list: roots, key: roots.join() };
+		rootMeta.set(roots, held);
+	}
+	return held;
+};
+const subtotalsKeys = new WeakMap<
+	object,
+	{ readonly keys: readonly string[]; readonly joined: string }
+>();
+const EMPTY_SUBTOTALS: { readonly keys: readonly string[]; readonly joined: string } = {
+	keys: [],
+	joined: ''
+};
+const subtotalsInfo = (subtotals: unknown) => {
+	if (!isDynObject(subtotals)) return EMPTY_SUBTOTALS;
+	let held = subtotalsKeys.get(subtotals);
+	if (held === undefined) {
+		const keys = Object.keys(subtotals);
+		held = { keys, joined: keys.join() };
+		subtotalsKeys.set(subtotals, held);
+	}
+	return held;
+};
 const checkOnce = (
 	source: string,
 	phase: Phase,
-	subtotals: readonly string[],
-	roots?: readonly string[]
+	subtotals: { readonly keys: readonly string[]; readonly joined: string },
+	roots?: readonly string[],
+	rootsKey = ''
 ): void => {
-	const scope = `${phase}:${subtotals.join()}:${roots?.join() ?? ''}`;
-	const seen = checked.get(source) ?? new Set<string>();
-	if (seen.has(scope)) return;
-	checkExpression(source, phase, new Set(subtotals), roots);
-	checked.set(source, seen.add(scope));
+	const scope =
+		subtotals.joined === '' ? `${phase}::${rootsKey}` : `${phase}:${subtotals.joined}:${rootsKey}`;
+	const seen = checked.get(source);
+	if (seen !== undefined && seen.has(scope)) return;
+	checkExpression(source, phase, new Set(subtotals.keys), roots);
+	if (seen !== undefined) seen.add(scope);
+	else checked.set(source, new Set([scope]));
 };
 export function evaluateExact(
 	source: string,
@@ -927,22 +1153,21 @@ export function evaluateExact(
 	roots?: readonly string[]
 ): unknown {
 	try {
+		const allowed = rootsInfo(roots ?? PHASE_ROOTS[phase]);
+		const subtotals = Reflect.get(context, 'subtotals');
 		checkOnce(
 			source,
 			phase,
-			isDynObject(Reflect.get(context, 'subtotals'))
-				? Object.keys(Reflect.get(context, 'subtotals'))
-				: [],
-			roots
+			subtotalsInfo(subtotals),
+			roots,
+			roots === undefined ? '' : allowed.key
 		);
 		const env = new Environment(builtins());
-		env.declare(
-			'ctx',
-			Object.fromEntries(
-				Object.entries(context).filter(([k]) => (roots ?? PHASE_ROOTS[phase]).includes(k))
-			),
-			true
-		);
+		const scoped: Record<string, unknown> = {};
+		for (const k of allowed.list) {
+			if (Object.hasOwn(context, k)) scoped[k] = Reflect.get(context, k);
+		}
+		env.declare('ctx', scoped, true);
 		const result = new Interpreter().eval(parseProgram(source), env);
 		if (!(result instanceof Returned)) return bad('Expression must explicitly return its result.');
 		return result.value;

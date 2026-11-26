@@ -3,7 +3,6 @@
 	import {
 		Field,
 		Form,
-		Picker,
 		RecordShell,
 		StructuredData,
 		is_json_schema,
@@ -19,6 +18,7 @@
 	import { idOf } from '../../../../lib/reads.js';
 	import { pageLaws } from '../../../../lib/ui/law.svelte.js';
 	import CatalogField from '../../../../lib/ui/settings/catalog_field.svelte';
+	import ScopedEmploymentField from '../../../../lib/ui/person/scoped_employment_field.svelte';
 
 	let { view, ctx }: { view: RecordView<'workplace_case_catalog_entry'>; ctx: PageContext } =
 		$props();
@@ -91,19 +91,6 @@
 	});
 </script>
 
-{#snippet employmentEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="employment"
-		id={field.id}
-		{...scopedEntity === null ? {} : { where: { entity_id: { eq: idOf('entity', scopedEntity) } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
 {#snippet inputsEditor(field: FieldEditor)}
 	<StructuredData
 		{ctx}
@@ -152,12 +139,7 @@
 				<Grid minimum="card">
 					{#if record === null && fixedEntity === null}<Field {ctx} name="entity_id" />{/if}
 					<CatalogField {ctx} of="workplace_case_catalog" dated="opened_on" />
-					<Field
-						{ctx}
-						name="employment_id"
-						disabled={fixedEmployment !== null}
-						editor={employmentEditor}
-					/>
+					<ScopedEmploymentField {ctx} entityId={fixedEntity} disabled={fixedEmployment !== null} />
 					{#each ['severity', 'opened_on', 'occurred_on', 'scheduled_on', 'closed_on', 'location', 'reference'] as name (name)}<Field
 							{ctx}
 							{name}

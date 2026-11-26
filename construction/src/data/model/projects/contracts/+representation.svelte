@@ -16,8 +16,9 @@
 		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
+	import ActivityTimeline from '../../../../lib/ActivityTimeline.svelte';
 	import CatalogLinesEditor from '../../../../lib/CatalogLinesEditor.svelte';
-	import { decodePricedLines } from '../../../../lib/commercial.js';
+	import { decodePricedLines } from '../../../../services/commercial/lines.js';
 
 	let { view, ctx }: { view: RecordView<'contracts'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -101,7 +102,7 @@
 
 {#snippet contractSections()}
 	<Section icon="lucide:file-signature" first name="contract" title={t('section.contract')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="title" />
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />
@@ -121,7 +122,7 @@
 	</Section>
 
 	<Section icon="lucide:calculator" name="commercial_terms" title={t('section.commercial_terms')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="currency" />
 			<Field {ctx} name="contract_value" />
 			<Field {ctx} name="tax_rate" />
@@ -141,7 +142,7 @@
 		title={t('section.scope_and_docs')}
 		default_open={false}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
 			<Column span="all"><Field {ctx} name="scope_notes" /></Column>
 			<Column span="all"><Field {ctx} name="bim_pin" /></Column>
@@ -237,6 +238,12 @@
 	{/if}
 {/snippet}
 
+{#snippet activityTab()}
+	{#if record}
+		<ActivityTimeline {ctx} about={{ model: 'contracts', id: record.id }} />
+	{/if}
+{/snippet}
+
 {#if record}
 	<RecordShell
 		{ctx}
@@ -260,7 +267,13 @@
 							body: variationsTab
 						}
 					]
-				: [])
+				: []),
+			{
+				name: 'activity',
+				title: t('tasks.tab_activity'),
+				icon: 'lucide:activity',
+				body: activityTab
+			}
 		]}
 	>
 		<Form {ctx} of="contracts" mode={view.mode} id={record.id} {record} size="content">

@@ -11,6 +11,7 @@
 			aggregate: { count: true }
 		}
 	});
+	const hasUnfiled = $derived((unfiled.current?.project_messages.count ?? 0) > 0);
 </script>
 
 {#snippet projects()}
@@ -27,7 +28,6 @@
 			'status',
 			'schedule_range',
 			'open_task_count',
-			'open_issue_count',
 			'active_contract_count'
 		]}
 	/>
@@ -54,9 +54,11 @@
 	title={ctx.t('app.operations.page_projects')}
 	description={ctx.t('app.operations.projects_description')}
 	banner="app-media/construction_project_workspace-banner.webp"
+	variant={hasUnfiled ? 'full' : 'page'}
 >
-	{#if (unfiled.current?.project_messages.count ?? 0) > 0}
+	{#if hasUnfiled}
 		<Tabs
+			level={2}
 			tabs={[
 				{ name: 'projects', title: ctx.t('app.operations.page_projects'), body: projects },
 				{ name: 'unfiled', title: ctx.t('updates.unfiled_title'), body: unfiledMessages }

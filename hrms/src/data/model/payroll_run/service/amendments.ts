@@ -1,4 +1,4 @@
-import type { CarriedWrites, WriteCtx } from '@norbital-ai/bolt';
+import type { CarriedWrites, Id, WriteCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect, Predicate } from 'effect';
 import { isJsonObject, Refusal, type JsonObject } from '../../../../lib/foundation.js';
 import { attendanceOf } from './pay_cycle.js';
@@ -179,6 +179,36 @@ const until = (touched: readonly Touched[]) =>
 				)
 			);
 
+/** Deduplicates payslips by employee/run while merging any provisionally-PAID runs past the primary date window. */
+const mergeProvisionalSlips = Effect.fnUntraced(function* <Row extends JsonObject, E>(
+	allRuns: readonly JsonObject[],
+	initialSlips: readonly Row[],
+	fetchExtra: (
+		provisionalPaidIds: readonly Id<'payroll_run'>[]
+	) => Effect.Effect<readonly Row[], E>,
+	skipProvisional = false
+) {
+	const pendingRuns = new Set(
+		allRuns.filter((run) => !finalized(run)).map((run) => String(run.id))
+	);
+	const provisionalPaidIds = skipProvisional
+		? []
+		: idsOf(
+				'payroll_run',
+				allRuns.filter((run) => run.state === 'PAID' && run.$approval != null).map((run) => run.id)
+			);
+	const extraSlips = provisionalPaidIds.length === 0 ? [] : yield* fetchExtra(provisionalPaidIds);
+	const slips = [
+		...new Map(
+			[...initialSlips, ...extraSlips].map((slip) => [
+				`${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`,
+				slip
+			])
+		).values()
+	];
+	return { pendingRuns, slips };
+});
+
 /** The amendment rows a write on these people carries. */
 export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 	read: Reader,
@@ -201,6 +231,8 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		touched.flatMap((touch) => (touch.run == null ? [] : [touch.run]))
 	);
 	const unpaid = touched.filter((touch) => touch.unpaid === true && touch.employee !== undefined);
+	const first = since(touched);
+	const last = until(touched);
 	const known = yield* queryRows(read, {
 		employment: {
 			where: { id: { in: employments } },
@@ -210,7 +242,7 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		// root read carries `$approval` so provisional PAID runs are treated as holding, not finalized
 		payroll_run: {
 			where: {
-				salary_coverage: { overlaps: { from: since(touched), to: null } }
+				salary_coverage: { overlaps: { from: first, to: null } }
 			},
 			fields: [...RUN.fields, 'entity_id'],
 			limit: 10000
@@ -234,14 +266,14 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 				or: [
 					{
 						payroll_run_id: {
-							is: { salary_coverage: { overlaps: { from: since(touched), to: until(touched) } } }
+							is: { salary_coverage: { overlaps: { from: first, to: last } } }
 						}
 					},
 					{
 						payroll_run_id: {
 							is: {
 								state: { eq: 'UNPAID' },
-								salary_coverage: { overlaps: { from: since(touched), to: null } }
+								salary_coverage: { overlaps: { from: first, to: null } }
 							}
 						}
 					},
@@ -264,37 +296,23 @@ export const amendmentsFor = Effect.fn('payroll.amendmentsFor')(function* (
 		(known.employment ?? []).map((row) => [String(row.id), row.employee_id])
 	);
 	const allRuns = known.payroll_run ?? [];
-	const pendingRuns = new Set(
-		allRuns.filter((run) => !finalized(run)).map((run) => String(run.id))
+	const { pendingRuns, slips } = yield* mergeProvisionalSlips(
+		allRuns,
+		known.payslip ?? [],
+		(provisionalPaidIds) =>
+			queryRows(read, {
+				payslip: {
+					where: {
+						employee_id: { is: theirs },
+						payroll_run_id: { in: [...provisionalPaidIds] }
+					},
+					fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
+					limit: REACH,
+					employment_id: { fields: ['effective_range'] },
+					payroll_run_id: RUN
+				}
+			}).pipe(Effect.map((found) => found.payslip ?? []))
 	);
-	// a run provisionally marked PAID past `until(touched)` still holds its people while approval waits
-	const provisionalPaidIds = idsOf(
-		'payroll_run',
-		allRuns.filter((run) => run.state === 'PAID' && run.$approval != null).map((run) => run.id)
-	);
-	const extraSlips =
-		provisionalPaidIds.length === 0
-			? []
-			: ((yield* queryRows(read, {
-					payslip: {
-						where: {
-							employee_id: { is: theirs },
-							payroll_run_id: { in: provisionalPaidIds }
-						},
-						fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
-						limit: REACH,
-						employment_id: { fields: ['effective_range'] },
-						payroll_run_id: RUN
-					}
-				})).payslip ?? []);
-	const slips = [
-		...new Map(
-			[...(known.payslip ?? []), ...extraSlips].map((slip) => [
-				`${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`,
-				slip
-			])
-		).values()
-	];
 	const paid = new Set(
 		slips.map((slip) => `${slip.employee_id}/${String(objectValue(slip.payroll_run_id).id)}`)
 	);
@@ -468,43 +486,25 @@ export const amendmentsOf = Effect.fn('payroll.amendmentsOf')(function* (
 			limit: 10000
 		}
 	});
-	const allRuns = known.payroll_run ?? [];
-	const pendingRuns = new Set(
-		allRuns.filter((run) => !finalized(run)).map((run) => String(run.id))
-	);
-	const provisionalPaidIds =
+	const { pendingRuns, slips } = yield* mergeProvisionalSlips(
+		known.payroll_run ?? [],
+		known.payslip ?? [],
+		(provisionalPaidIds) =>
+			queryRows(read, {
+				payslip: {
+					where: {
+						entity_id: { in: entities },
+						...(named === null ? {} : { employee_id: { in: named } }),
+						payroll_run_id: { in: [...provisionalPaidIds] }
+					},
+					fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
+					limit: REACH,
+					employment_id: { fields: ['effective_range'] },
+					payroll_run_id: RUN
+				}
+			}).pipe(Effect.map((found) => found.payslip ?? [])),
 		last === null
-			? []
-			: idsOf(
-					'payroll_run',
-					allRuns
-						.filter((run) => run.state === 'PAID' && run.$approval != null)
-						.map((run) => run.id)
-				);
-	const extraSlips =
-		provisionalPaidIds.length === 0
-			? []
-			: ((yield* queryRows(read, {
-					payslip: {
-						where: {
-							entity_id: { in: entities },
-							...(named === null ? {} : { employee_id: { in: named } }),
-							payroll_run_id: { in: provisionalPaidIds }
-						},
-						fields: ['employee_id', 'entity_id', 'employment_id', 'payroll_run_id'],
-						limit: REACH,
-						employment_id: { fields: ['effective_range'] },
-						payroll_run_id: RUN
-					}
-				})).payslip ?? []);
-	const slips = [
-		...new Map(
-			[...(known.payslip ?? []), ...extraSlips].map((slip) => [
-				`${String(slip.employee_id)}/${String(objectValue(slip.payroll_run_id).id)}`,
-				slip
-			])
-		).values()
-	];
+	);
 	// a full page is one the read could not finish: the correction is too wide for one save
 	if (slips.length >= REACH) return yield* Effect.fail(new Refusal({ message: TOO_WIDE }));
 	const people = Map.groupBy(slips, (slip) => String(slip.entity_id));

@@ -22,7 +22,6 @@ const columns = [
 	'actual_range',
 	'progress_pct',
 	'bim_express_ids',
-	'latest_update',
 	'last_updated_on',
 	'source_message_id',
 	'description',
@@ -31,7 +30,7 @@ const columns = [
 
 export default model('tasks', {
 	description:
-		"Work packages and milestones of the project's work breakdown structure, synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml) and spreadsheets, with baseline vs actual progression. A BIM task builds model elements (4D); an ad hoc task is work the model does not show (scaffolding, cranage, concrete testing, collecting documents). Its activity (comments, issues, meetings) is filed under it.",
+		"Work packages and milestones of the project's work breakdown structure, synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml) and spreadsheets, with baseline vs actual progression. A BIM task builds model elements (4D); an ad hoc task is work the model does not show (scaffolding, cranage, concrete testing, collecting documents). Chronological updates live in polymorphic activities.",
 	icon: 'lucide:list-checks',
 	record_label: "record.task_code != null ? record.task_code + ' · ' + record.title : record.title",
 	fields: {
@@ -72,18 +71,10 @@ export default model('tasks', {
 		progress_pct: { kind: 'decimal', scale: 1, default: 0 },
 		/** A BIM task's IFC element expressIDs: the model isolates them when the task is selected, and the 4D timeline shows them. */
 		bim_express_ids: { kind: 'int', many: true, optional: true },
-		/** The task's issues (activities of kind `issue`) not yet closed. */
-		open_issue_count: {
-			kind: 'count',
-			of: 'activities',
-			where: { kind: { eq: 'issue' }, status: { eq: 'open' } }
-		},
-		/** Concise latest status progression note (manual or extracted from WhatsApp/email). */
-		latest_update: { kind: 'text', optional: true },
 		last_updated_on: { kind: 'date', optional: true },
 		/** The task's body: anything worth writing down, with pictures pasted in (each stored in `attachments`). */
 		description: { kind: 'text', format: 'markdown', images: 'attachments', optional: true },
-		/** Photos and documents filed under the task, by people or from messages. */
+		/** Pictures pasted into the task description or files attached from messages. */
 		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true, optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'tasks', owned: true },
 		contract_id: {
@@ -115,7 +106,7 @@ export default model('tasks', {
 	},
 	indexes: {
 		by_project_status: { on: ['project_id', 'status'] },
-		find: { text: ['task_code', 'wbs_path', 'title', 'zone', 'latest_update'] }
+		find: { text: ['task_code', 'wbs_path', 'title', 'zone'] }
 	},
 	outputs: {
 		default: {
@@ -137,9 +128,6 @@ export default model('tasks', {
 				...set,
 				...(after.baseline_range == null && after.schedule_range != null
 					? { baseline_range: after.schedule_range }
-					: {}),
-				...(after.latest_update != null && after.last_updated_on == null
-					? { last_updated_on: ctx.today }
 					: {})
 			}));
 		}
@@ -152,7 +140,7 @@ export default model('tasks', {
 			if (isRemoteSync) return changes.map(({ set }) => set);
 			return changes.map((c) => {
 				const updateDatePatch =
-					c.changed('latest_update', 'progress_pct') && !c.changed('last_updated_on')
+					c.changed('progress_pct', 'status') && !c.changed('last_updated_on')
 						? { last_updated_on: ctx.today }
 						: {};
 				if (c.changed('status') && c.after.status === 'done') {

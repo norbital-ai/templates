@@ -1,7 +1,9 @@
-import { DateTime, Effect } from 'effect';
+import { Effect } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import type { PageContext } from '@norbital-ai/bolt/page';
+import { monthEndOf } from '../../foundation.js';
+import { downloadWorkbook } from '../../../data/model/payroll_run/service/exports/xlsx_sheet.js';
 import {
 	planRosterUpload,
 	rosterMonth,
@@ -76,12 +78,7 @@ export const runRosterImport = (
 										employment_id: {
 											in: scope.employment.rows.map((row) => row.id)
 										},
-										work_date: {
-											gte: day,
-											lte: DateTime.formatIsoDateUtc(
-												DateTime.endOf(DateTime.makeUnsafe(day), 'month')
-											)
-										}
+										work_date: { gte: day, lte: monthEndOf(month) }
 									},
 									fields: [
 										'employment_id',
@@ -176,15 +173,5 @@ export const downloadRosterWorkbook = async (
 			column.numFmt = '@';
 		});
 	}
-	const bytes = await workbook.xlsx.writeBuffer();
-	const url = URL.createObjectURL(
-		new Blob([new Uint8Array(bytes)], {
-			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-		})
-	);
-	Object.assign(document.createElement('a'), {
-		href: url,
-		download: `roster-${month}.xlsx`
-	}).click();
-	URL.revokeObjectURL(url);
+	await downloadWorkbook(workbook, `roster-${month}.xlsx`);
 };

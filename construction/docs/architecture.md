@@ -20,8 +20,8 @@ Technical deep dive into the `norbital_construction` Bolt workspace (`templates/
 
 The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` default currency, bilingual `en` / `zh`, PDF conversion enabled) and splits cleanly into two runtime sides:
 
-- **Browser client (Svelte 5 + `@norbital-ai/ui` + Web Workers + WebGL):** Hosts the two apps (`operations`, `configuration`), the single-row Project Hub (`projects/+representation.svelte`), the 4D virtualized WBS timeline (`ProjectTimeline.svelte`), the catalog-only line editor (`CatalogLinesEditor.svelte`), and the BIM takeoff stack (streaming IFC STEP worker, offscreen WebGL geometry pass that measures, merges and pictures each asset, `@thatopen/components` + Three.js 3D viewport, and two-tier `.frag` cache). Large binaries (`web-ifc@0.0.77`, `three@0.185.1`, `@thatopen/*`) load from pinned CDN URLs at runtime so the workspace release stays lightweight.
-- **Bolt server & guest engine (Effect v4):** Owns 13 record models, 4 co-located custom fields, 4 syncs, 3 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 seeded teams, 5 policies, and pure Effect `BigDecimal` commercial and BIM pricing libraries.
+- **Browser client (Svelte 5 + `@norbital-ai/ui` + Web Workers + WebGL):** Hosts the two apps (`operations`, `configuration`), the thin Project Hub shell (`projects/+representation.svelte`) composed from co-located tab components (`ProjectProgrammeTab.svelte`, `ProjectBimTab.svelte`, `ProjectFinanceTab.svelte`, `ProjectSustainabilityTab.svelte`, `BimAssetReview.svelte`, `BimComplianceOrganizer.svelte`), the Linear-inspired unified Task workspace (`tasks/+representation.svelte` via intrinsic `<Split ratio="wide">` + `create_clipboard`), the always-live inline-editable BOQ renderer (`bim_takeoff/+renderer.svelte`), the 4D virtualized WBS timeline (`ProjectTimeline.svelte`), the catalog-only line editor (`CatalogLinesEditor.svelte`), and the modular 3D/takeoff service stack under `src/services/viewer/` (`IfcViewer.svelte`, `engine.ts`, `converter.ts`, `converter.worker.ts`, `takeoff.ts`, `takeoff.worker.ts`, `geometry-pass.ts`). Large binaries (`web-ifc@0.0.77`, `three@0.185.1`, `@thatopen/*`) load from pinned CDN URLs at runtime so the workspace release stays lightweight.
+- **Bolt server & guest engine (Effect v4):** Owns 15 record models (including runtime-configurable `bim_settings` and dynamic `sop_rules`), 4 co-located custom fields, 4 syncs, 3 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 seeded teams, 5 policies, and clean domain services under `src/services/commercial/` (`decimal.ts`, `lines.ts`, `analytics.ts`) and `src/services/bim/` (`schema.ts`, `config.ts`, `step-parser.ts`, `geometry.ts`, `cleanup.ts`, `pricing.ts`, `compliance.ts`, `organizer.ts`, `classifier.ts`).
 
 ```text
 +----------------------------------------------------------------------------------------------+
@@ -29,27 +29,27 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |                                                                                              |
 |  [Operations App]                         [Configuration App]                                |
 |   |- Projects -> Project Hub               |- Item Matrix (+matrix.sync.ts XLSX/CSV)      |
-|   |   |- Record (Project + Site)           |- Connections (MyConnections.svelte:             |
-|   |   |- Programme & Tasks (Timeline |     |   Personal WA/Email + Shared WA/Email/ACC +     |
-|   |   |   Table | Board icon toggle)       |   Personal Intake Rules)                        |
-|   |   |   (task: Record|Activity|Documents)|                                                 |
-|   |   |- BIM [keep_alive]                  +-------------------------------------------------+
-|   |   |   |- 3D Model & Tasks (ifc_viewer.svelte + BIM tasks table; select isolates)         |
+|   |   |- Record (Project + Site)           |- Compliance & SOP (sop_rules)                 |
+|   |   |- Programme & Tasks (Timeline |     |- BIM Rules (bim_settings singleton)           |
+|   |   |   Table | Board icon toggle)       |- Connections (Bolt <Connections>:             |
+|   |   |   (task: Record | Activity)        |   Personal WA/Email + Personal Intake Rules;  |
+|   |   |- BIM [keep_alive]                  |   Shared WA/Email/ACC in Settings)            |
+|   |   |   |- 3D Model & Tasks (IfcViewer.svelte + BIM tasks table; select isolates)          |
 |   |   |   |- BIM Costing (1:1 estimate card, status in place, one Run button)                |
+|   |   |   |- Compliance & Organizer (BCA/CORENET X scorecard + Clean IFC export)             |
 |   |   |   |- Assets (asset_mappings of the estimate's asset_signatures)                      |
 |   |   |   |- Model file (bim_version, bim_file, bim_summary)                                 |
 |   |   |- Finance                                                                             |
 |   |   |   |- Overview (KPI strip + net-amount chart)                                         |
 |   |   |   |- Cashflow & Budget ledger                                                        |
-|   |   |   |- Client contracts / Subcontracts & supply -> nested VOs & Transactions           |
+|   |   |   |- Client contracts / Subcontracts & supply -> nested VOs, Transactions & Activity |
 |   |   |   |- Ad-hoc Costs (catalog-backed)                                                   |
 |   |   |- Sustainability                                                                      |
 |   |   |   |- Overview (embodied carbon KPIs + by-discipline chart)                           |
 |   |   |   |- Carbon by item (computeProjectCarbon)                                           |
 |   |   |- Documents (project_files register)                                                  |
-|   |   |- Site updates (filed messages, Used for; Route again / Extract again)                |
 |   |- Projects page: Messages to file tab (only while review messages lack a project)         |
-|   |- Business Partners (All | Customers | Vendors | Subcontractors)                          |
+|   |- Business Partners (All | Customers | Vendors | Subcontractors; each has Activity tab)   |
 |                                                                                              |
 |  [Browser Workers & Cache]                                                                   |
 |   |- norbital-ifc-converter Worker (web-ifc WASM -> .frag) <-> L1 LRU(4) + L2 CacheStorage   |
@@ -62,19 +62,20 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 +----------------------------------------------------------------------------------------------+
 |                              BOLT SERVER / GUEST ENGINE (Effect v4)                          |
 |                                                                                              |
-|  [13 Models + Write Transforms/Effects]        [3 Automations (construction_automation)]     |
+|  [15 Models + Write Transforms/Effects]        [3 Automations (construction_automation)]     |
 |   projects (root) -> 6 owned children:          |- sync_messages (sys_message create)        |
 |     cost_estimates (1:1), contracts,            |- analyze_bim_file (projects write/manual)  |
 |     commercial_documents, adhoc_costs,          |- generate_payment_claim (mode: 'call' RPC) |
-|     tasks (owns activities), project_files                                                   |
-|   Top-level: contacts, project_messages,       [Message Filing]                              |
-|     item_matrix, communication_settings,        project_messages create/update effect:       |
-|     asset_mappings                              transcribe -> route -> extract (intake.ts)   |
-|  [Pure Domain Libraries]                                                                     |
-|   commercial.ts (BigDecimal), catalog-lines.ts, [4 Syncs]                                    |
-|   bim-pipeline.ts, bim-geometry.ts,             |- tasks.schedule_file (.xer/.xml/.csv/.xlsx)|
-|   bim-step-stream.ts, schedule-parsers.ts,      |- tasks.autodesk_schedule (30min 2-way)     |
-|   zones.ts                                      |- project_files.autodesk_files (1h 2-way)   |
+|     tasks, project_files                                                                     |
+|   Top-level: activities (polymorphic about),   [Message Filing]                              |
+|     contacts, project_messages, item_matrix,    project_messages create/update effect:       |
+|     bim_settings, sop_rules,                    transcribe -> route -> extract (intake.ts)   |
+|     communication_settings, asset_mappings                                                   |
+|  [Domain Services (src/services/)]                                                           |
+|   commercial/{decimal,lines,analytics}.ts       [4 Syncs]                                    |
+|   bim/{schema,config,step-parser,geometry,      |- tasks.schedule_file (.xer/.xml/.csv/.xlsx)|
+|     cleanup,pricing,compliance,organizer,       |- tasks.autodesk_schedule (30min 2-way)     |
+|     classifier}.ts; viewer/*; ui/*              |- project_files.autodesk_files (1h 2-way)   |
 |                                                 |- item_matrix.matrix (.xlsx/.csv)           |
 |  [Access Control]                                                                            |
 |   4 Teams -> 5 Policies (rate: 600/min)                                                      |
@@ -96,7 +97,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 
 ## 2. Data Model & Ownership ER Diagram
 
-All 13 models live under `src/data/model/`. `projects` is the primary aggregate root with 6 owned children (`owned: true`, cascade delete), and `tasks` owns its `activities`: comments, issues and meetings in one timeline. A task's `description` is Markdown edited as it reads (`images: 'attachments'`): pictures pasted, dropped or added are stored in its `attachments` and shown in place. Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> item_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted. `asset_mappings` remembers what each unique BIM asset is priced as across takeoffs and projects; `cost_estimates.asset_signatures` names the rows an estimate priced.
+All 15 models live under `src/data/model/`. `projects` is the primary aggregate root with 6 owned children (`owned: true`, cascade delete), and top-level `activities` attaches polymorphically (`about`: `projects | tasks | contracts | contacts`, `on_delete: 'cascade'`) with an auto-derived `project_id` roll-up so a project's **Activity** tab surfaces activity across the project, its tasks, and its contracts. A task's `description` is Markdown edited in a borderless, full-height, auto-focused Linear-style `RichMarkdownEditor` (`images: 'attachments'`, floating bubble menu + `/` slash commands, no static toolbar). Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> item_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted. `asset_mappings` remembers what each unique BIM asset is priced as across takeoffs and projects; `cost_estimates.asset_signatures` names the rows an estimate priced.
 
 ```text
                        +-------------------------------------------+
@@ -106,13 +107,13 @@ All 13 models live under `src/data/model/`. `projects` is the primary aggregate 
                        | client_id -> contacts (set_null)          |
                        | project_manager -> sys_user               |
                        | autodesk_project_id                       |
-                       | bim_file (<=20MiB), bim_version,          |
+                       | bim_file (<=250MiB), bim_version,         |
                        | bim_takeoff (json file), bim_takeoff_views|
-                       | bim_costing_dirty, bim_summary (json)     |
-                       | zones [project_zones], location (point),  |
+                       | bim_costing_dirty, bim_summary,           |
+                       | bim_compliance (json), zones, location    |
                        | address (text)                            |
-                       | Counts: open_task, open_issue (sum of     |
-                       | tasks'), active_contract, open_document   |
+                       | Counts: open_task, active_contract,       |
+                       |         open_document                     |
                        +---+---------------+-------+-------+-------+
                            |               |       |       |
        +-------------------+               |       |       +-------------------+
@@ -129,11 +130,11 @@ All 13 models live under `src/data/model/`. `projects` is the primary aggregate 
 | contingency_pct/amount, |                | | autodesk_urn, zone*     | | actual_range,       |
 | total_estimate          |                | +-------------------------+ | progress_pct,       |
 | analyzed_at, notes      |                |                             | bim_express_ids[],  |
-+-------------------------+                |                             | open_issue_count,   |
-                                           |                             | contract, subcon,   |
-             +-----------------------------+-------------------+         | assignee, msg,      |
-             | owned                       | owned             | owned   | owns activities     |
-             v                             v                   v         +---------------------+
++-------------------------+                |                             | contract, subcon,   |
+                                           |                             | assignee, msg       |
+             +-----------------------------+-------------------+         +---------------------+
+             | owned                       | owned             | owned
+             v                             v                   v
 +-------------------------+ +-----------------------------+ +-------------------------+
 |       contracts         | |    commercial_documents     | |      adhoc_costs        |
 | SEQ CTR-yyyy-000        | | SEQ DOC-yyyy-000            | | SEQ ADH-yyyy-000        |
@@ -165,18 +166,14 @@ All 13 models live under `src/data/model/`. `projects` is the primary aggregate 
 | hard_filter,auto_extract|                                              ^ item_id (set_null)
 | classification_sop      | +-------------------------+ +----------------+-----------------+
 +-------------------------+ |       activities        | |          asset_mappings          |
-                            | task_id -> tasks (owned)| | UQ (signature) [import_key]      |
-                            | kind: comment, issue,   | | label, ifc_class, picture,       |
-                            |       meeting           | | source: system_1 | qs | proposal,|
-                            | title, body (markdown,  | | confidence, note                 |
-                            |  images: attachments),  | +----------------------------------+
-                            | attachments[],          |
-                            | occurred_at, author,    |
+                            | about -> projects|tasks | | UQ (signature) [import_key]      |
+                            |   |contracts|contacts   | | label, ifc_class, picture,       |
+                            |   (on_delete: cascade)  | | source: system_1 | qs | proposal,|
+                            | project_id -> projects  | | confidence, note, continuity,    |
+                            | title, description,     | | service, size_mm, review_status  |
+                            | occurred_at,            | +----------------------------------+
+                            | attachments[], author,  |
                             | source_message_id       |
-                            | issue: issue_type,      |
-                            |  severity, status       |
-                            |  (open or closed)       |
-                            | meeting: attendees[]    |
                             +-------------------------+
 
 * zone validated in batch against projects.zones[].code (as_of:'act') when the parent project
@@ -274,14 +271,12 @@ Seven models declare explicit state machines, row locks, or automated write tran
   cancelled <-------------------+
   - entering in_progress (no actual_range): sets actual_range = { from: ctx.today, to: null }
   - entering done: sets progress_pct = '100', closes actual_range.to = ctx.today
-  - changing latest_update/progress_pct: auto-stamps last_updated_on = ctx.today
+  - changing progress_pct: auto-stamps last_updated_on = ctx.today
   - remote sync actor bypasses auto-stamping transforms
-  - activities: one timeline per task (kind comment | issue | meeting); an issue carries
-    issue_type, severity and status (open | closed enum, no state machine; a new issue
-    defaults to open, medium, defect), a meeting its attendees; checks keep an issue
-    complete, a meeting titled and every activity saying something; author set on create
-    to the posting member (an envoy's member for them; none when filed from a message)
-  - open_issue_count counts its open issue activities; projects.open_issue_count sums it
+  - activities: polymorphic log (`about` -> projects | tasks | contracts | contacts) with
+    auto-derived `project_id`, `title`, plain-text `description`, `occurred_at`, optional
+    `attachments`, and `author` stamped from the posting member (envoy's member for them;
+    none when filed from an incoming message)
 
 [7] project_files.status (initial: draft)
   draft <---> in_review <---> issued ---> superseded ---> archived ---> draft
@@ -304,14 +299,14 @@ Each project owns **one** federated BIM model (`projects.bim_file`, up to 20 MiB
          |               bim_takeoff_views and bim_costing_error, bim_costing_dirty = true
          +--> Effect:    query cost_estimates(project_id, status != 'void') -> set status='void'
          |
-         v  BROWSER TAKEOFF (storeProjectTakeoff, ifc_takeoff.ts)
+         v  BROWSER TAKEOFF (storeProjectTakeoff, src/services/viewer/takeoff.ts)
   Upload on the project page takes the file off right away; "Run BIM takeoff & costing"
   takes off a stored model that has no takeoff yet, else prices its takeoff again.
          |
          v
-  1. ifc_takeoff.worker.ts (Web Worker)
+  1. src/services/viewer/takeoff.worker.ts (Web Worker)
      - Streams File/URL in 4 MiB slices
-     - bim-step-stream.ts zero-regex scanner skips ~95% geometry lines
+     - src/services/bim/step-parser.ts zero-regex scanner skips ~95% geometry lines
      - Keeps 90+ ASSET_CLASSES + spatial/type/material/Pset/Qto graphs -> SI units
      - An assembly counts once, as a whole: an asset whose IfcRelAggregates parent is an
        asset (a stair's flights, a curtain wall's plates and members) is a part, kept in
@@ -322,8 +317,8 @@ Each project owns **one** federated BIM model (`projects.bim_file`, up to 20 MiB
      - Emits archetypes + [archetype, storey] buckets with every element id
          |
          v
-  2. ifc_geometry_pass.ts (web-ifc@0.0.77 + three@0.185.1, offscreen WebGL, <=250MB)
-     - Measures every element from its mesh, an assembly with all its parts (bim-geometry.ts):
+  2. src/services/viewer/geometry-pass.ts (web-ifc@0.0.77 + three@0.185.1, offscreen WebGL, <=250MB)
+     - Measures every element from its mesh, an assembly with all its parts (src/services/bim/geometry.ts + cleanup.ts):
          volume = solid volume; extents along the element's own axes
          length = longest extent, area = face of the two longest
          steel (IfcReinforcingBar/Mesh/Tendon or steel/rebar material):
@@ -405,17 +400,31 @@ Each Item Matrix item prices on its own `quantity_basis` (volume, weight, area, 
 
 ### Candidate Ranking Scoring (`rankCandidateMatrixRules`)
 
-When a workspace carries more than 80 active currency-matched, non-derived `bim_asset` rules in `item_matrix`, candidate rules are scored per batch before passing choices to System 1 (`<= 255` choice limit):
+Active currency-matched, non-derived `bim_asset` rules in `item_matrix` are scored per batch (capped at `bim_settings.max_candidates`, default 80) before passing choices to System 1 (`<= 255` choice limit):
 
-- `+20` for each IFC class in `rule.ifc_classes` present in the archetype batch.
+- `+50` for an exact canonical IFC class match (`+35` for legacy `original_ifc_class`; `-25` mismatch penalty for non-proxy rules whose `ifc_classes` exclude the archetype).
+- `+32` when `rule.system_services` matches the archetype's resolved MEP/trade service (`-28` on explicit service conflict).
+- `+22` when `arch.nominal_size_mm` falls inside `[rule.min_size_mm, rule.max_size_mm]` (`-22` when outside).
+- `+12` / `-14` for `rule.insulated` alignment (`insulated` vs `uninsulated`).
+- `+12` / `-10` for `rule.topology_mode` vs `arch.continuity` (`discontiguous`, `contiguous_linear`, `contiguous_planar`).
 - `+6` if `rule.discipline` matches the inferred discipline (`mep`, `structural`, `civil`, `architecture`).
-- `+3` for each overlapping normalized token (`>= 2` chars) across rule code, name, discipline, trade specialty, match keywords, and notes.
+- `+3` for each overlapping normalized token (`>= 2` chars) across rule code, name, discipline, trade specialty, services, match keywords, and notes.
+
+### Configurable BIM Rules, Dynamic BCA / CORENET X Compliance & Auto-Organized IFC
+
+- **`sop_rules` & `bim_settings` (Configuration → Compliance & SOP, BIM Rules):** Separate single-concern configuration pages with zero raw JSON editing:
+  - **Compliance & SOP (`src/app/configuration/+sop_rules.page.svelte`):** Declarative statutory and company tender SOP checks (`authority`: `corenet_x | bca | scdf | pub | ura | company_sop`, `scope`: `model | element | estimate`, 21 metrics including `georef_crs` SVY21/EPSG:3414, `sgpset_coverage_pct`, `min_width_mm`, `min_height_mm`, `min_thickness_mm`, `max_riser_mm`, `min_tread_mm`, `max_slope_pct`, `required_property`, `mep_untagged_pct`, `duplicate_count`, `min_classified_pct`, and multimodal `semantic_check` using wide-aperture building/storey overviews, 4-angle+neighborhood archetype screenshots, and 3D `nearby_archetypes` clearances). Automatically evaluated during `analyze_bim_file` and stored on `projects.bim_compliance`.
+  - **BIM Rules (`src/app/configuration/+bim_settings.page.svelte`):** Opens the singleton `default` profile directly in `<RecordShell header={false}>` (zero 1-row table click-through, no duplicate heading) with edit/create section-header presets (`CORENET X Strict (SG)`, `Main Contractor Tender (±1%)`, `Early Concept Budget`), visual key-value editors for `material_densities` and `service_aliases`, tolerances, cleanup toggles, `exclude_ifc_classes`, and collapsed advanced limits.
+- **BIM → Compliance & Organizer (`projects/BimComplianceOrganizer.svelte`):** Authority-filtered compliance scorecard (`SegmentedToggle`) with direct 3D isolation of non-compliant elements, automatic organization of the uploaded IFC into data-driven trade packages and storeys (`src/services/bim/organizer.ts`), and one-click **Download Clean & Organized IFC (.ifc)** stripping duplicates (cascading to aggregated parts), promoting IFC4 classes, assigning `IFCDISTRIBUTIONSYSTEM`/`IFCSYSTEM` & `IFCGROUP`, tagging `Pset_NorbitalOrganized`, and writing back live `asset_mappings` QS edits.
+- **BIM → BIM Costing Always-Live BOQ (`bim_takeoff/+renderer.svelte` & `projects/ProjectBimTab.svelte`):** Always-live inline editing of `measured_qty`, `waste_factor_pct`, `unit_rate`, `contingency_pct`, and bulk `+/- %` tender rate adjustments with live `BigDecimal` recomputation, fixed-slot `Save figures` / `Baseline` (`Reopen draft`) buttons, and one-click **Export BOQ (.csv)** — zero mode switches or layout shifts.
+- **BIM → Assets (`projects/BimAssetReview.svelte`):** Inline verification workbench over `asset_mappings` (`continuity`, `service`, `size_mm`, `review_status`, `cleanup_note`). Filter via `SegmentedToggle` (`Needs review`, `Unmatched`, `Auto-cleaned`, `Verified`, `All`); amend `item_id`, `ifc_class`, `continuity`, or `service` inline (immediately setting `source: 'qs'` + `review_status: 'verified'`), click thumbnail for full record details, jump straight to 3D isolation, bulk-verify high-confidence matches, and recalculate the estimate with zero AI calls for remembered signatures.
+- **Anti-Flicker 3D Viewer (`src/services/viewer/IfcViewer.svelte`, `engine.ts`, `converter.worker.ts`):** Strips `exclude_ifc_classes` (`IFCSPACE`, `IFCOPENINGELEMENT`) during fragment conversion (cache `norbital-ifc-fragments-v2`), enables `logarithmicDepthBuffer: true` + `polygonOffset` on fragment materials, tightens `camera.three.near`/`far` to model bounds, renders highlight/ghost overlays single-sided (`RenderedFaces.ONE`, `depthWrite: false` on ghost), and flushes LOD state on `controls` `rest`.
 
 ---
 
 ## 5. Client-Side 3D IFC Viewer & Two-Tier Fragment Cache
 
-`src/lib/ifc-viewer/ifc_viewer.svelte` embeds an interactive Three.js + `@thatopen/components` viewport inside the `keep_alive` **BIM → 3D Model & Tasks** tab. To eliminate repeated multi-second downloads and single-threaded WASM tessellation across tab switches, navigation, and page reloads, IFC-to-Fragment conversion runs in a disposable Web Worker backed by a two-tier browser cache.
+`src/services/viewer/IfcViewer.svelte` (backed by `engine.ts`) embeds an interactive Three.js + `@thatopen/components` viewport inside the `keep_alive` **BIM → 3D Model & Tasks** tab. To eliminate repeated multi-second downloads and single-threaded WASM tessellation across tab switches, navigation, and page reloads, IFC-to-Fragment conversion runs in a disposable Web Worker backed by a two-tier browser cache.
 
 ```text
   projects.bim_file URL (/api/files/<immutable-id>)
@@ -460,14 +469,14 @@ When a workspace carries more than 80 active currency-matched, non-derived `bim_
   - `inspect`: Left-click (`<= 5px` pointer drag threshold) runs `OBF.Highlighter` selection + `OBC.Raycasters` raycast to record exact 3D coordinates `(x, y, z)` and camera eye `(camera_x, camera_y, camera_z)` for the picked element, which the panel can focus.
 - **Camera Presets & Keyboard Shortcuts:** Toolbar presets (`Iso`, `Top`, `Front`, `Side`), Zoom In/Out, Fit Model (`R`), Lock/Unlock navigation, and canvas keyboard navigation (`W/S` or `ArrowUp/Down` dolly; `A/D` or `ArrowLeft/Right` horizontal truck; `Q/E` vertical truck; `Esc` clear selection).
 - **3D Section Planes:** Three independent `create_slider` axes (`cutY` Elevation, `cutX` East–West, `cutZ` North–South from `0%` to `100%`) dynamically construct Three.js `Plane` clipping cuts against `modelBounds` with a `+0.05` pad and one-click Reset.
-- **Open-Issue Highlights & Task Isolation:** The elements of BIM tasks with open issues form one **Tasks with open issues** highlight layer. Selecting a row of the BIM tasks table isolates that task's `bim_express_ids`: they take the brand colour, every other element is ghosted in a muted tone at `GHOST_OPACITY` (0.08), and the camera frames them; the 4D timeline's **Highlight N in BIM** isolates the elements active on the scrubbed date the same way, labelled **Active on** its date. Selecting the row again or **Show whole model** clears the ghost and focus styles and frames the whole model; **Open task** is the row's action.
-- **Element Tasks:** Picking an element lists the BIM tasks that build it, each with an open-issue badge, and offers **New BIM task**, prefilled with `kind: 'bim'`, the element's expressID, and its name.
+- **Task Isolation & 4D Highlights:** Selecting a row of the BIM tasks table isolates that task's `bim_express_ids`: they take the brand colour, every other element is ghosted in a muted tone at `GHOST_OPACITY` (0.08), and the camera frames them; the 4D timeline's **Highlight N in BIM** isolates the elements active on the scrubbed date the same way, labelled **Active on** its date. Selecting the row again or **Show whole model** clears the ghost and focus styles and frames the whole model; **Open task** is the row's action.
+- **Element Tasks:** Picking an element lists the BIM tasks that build it and offers **New BIM task**, prefilled with `kind: 'bim'`, the element's expressID, and its name.
 
 ---
 
 ## 6. Catalog-Wired Pricing, 3-Way Matching & Commercial Cashflow Ledger
 
-All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commercial.ts`) with `half-from-zero` rounding (scale 2 for money, scale 3 for quantities, scale 1 for percentages). **Free-text money lines are prohibited** across commercial records: every line item in `contracts` and `commercial_documents` and every row in `adhoc_costs` must resolve against `item_matrix` (and optionally a non-void project `cost_estimates.bim_assets` bucket).
+All commercial amounts and quantities use Effect `BigDecimal` (`src/services/commercial/`) with `half-from-zero` rounding (scale 2 for money, scale 3 for quantities, scale 1 for percentages). **Free-text money lines are prohibited** across commercial records: every line item in `contracts` and `commercial_documents` and every row in `adhoc_costs` must resolve against `item_matrix` (and optionally a non-void project `cost_estimates.bim_assets` bucket).
 
 ```text
   +-----------------------------+          +-----------------------------------+
@@ -516,7 +525,7 @@ All commercial amounts and quantities use Effect `BigDecimal` (`src/lib/commerci
                                 * cumulative < parent_total  -> 'partial'
 ```
 
-### Three Pure Commercial Engines (`src/lib/commercial.ts`)
+### Three Pure Commercial Engines (`src/services/commercial/analytics.ts`)
 
 1. **Contract Valuation & Progress Claim RPC (`computeProjectCommercial` + `generate_payment_claim`):**
    - Aggregates active/completed contracts into `original_contract_sum` (upstream non-VO contracts), `upstream_variations`, `revised_contract_sum = original + upstream_VOs`, `committed_downstream = downstream_base + downstream_VOs`, `projected_margin = revised - committed_downstream`, and `projected_margin_pct`.
@@ -586,17 +595,12 @@ Unstructured WhatsApp messages, voice notes, site photos, and emails are mirrore
   |     readable PDF/image/text attachments -> System 2 (ctx.ai.sys_2.infer)           |
   |   - Resolves valid task_id, contract_id, and project zone codes                    |
   |   - One ctx.act with the message's own update:                                     |
-  |       * tasks.update, one per task the message concerns: latest_update, and        |
-  |         status, progress_pct (clamped 0..100), priority, zone, trade, due date     |
-  |         (end of schedule_range) only when the message says so; file_attachments    |
-  |         adds the message's photos and documents to the task's attachments          |
+  |       * tasks.update, one per task the message concerns: status, progress_pct      |
+  |         (clamped 0..100), priority, zone, trade, due date (end of schedule_range)  |
+  |         only when the message says so; file_attachments adds message photos/docs   |
   |       * tasks.create (fallback code MSG-<id>-<seq>) for one no task matches        |
-  |       * activities.create (kind comment) per task: the update's comment (else      |
-  |         its latest_update), source_message_id, and the files when file_attachments |
-  |       * activities.create (kind issue) under its task: title, the description as   |
-  |         body, issue_type, severity, status open and the message's photos; one no   |
-  |         task covers opens an ad hoc task of its own (tasks.create, kind adhoc,     |
-  |         code MSG-<id>-<seq>)                                                       |
+  |       * activities.create (polymorphic about -> task or project): title, plain     |
+  |         description, occurred_at, source_message_id, and message attachments       |
   |       * contracts.create (draft variation_order with EOT days & attachments)       |
   |       * commercial_documents.create (draft PO/DO/Invoice/Claim/Credit Note)        |
   |       * project_messages.update (extraction_status='extracted'|'none', summary)    |
@@ -606,7 +610,7 @@ Unstructured WhatsApp messages, voice notes, site photos, and emails are mirrore
 
   Filed again (project_messages.update effect) when a write sets classification,
   extraction_status or transcription back to 'pending', or changes project_id:
-   - Site updates "Route again" / "Extract again" on selected messages.
+   - Message record "Re-extract updates" action.
    - Manual project assignment -> useful (classified_by 'manual'), extraction queued.
    - contacts.create, or contacts.update changing phone/email -> requeueMessages:
      up to 100 newest non-manual 'review'|'ignored' messages -> 'pending'.
@@ -652,8 +656,8 @@ Programme tasks nest by breakdown code (`tasks.wbs_path`: `3.1.2` sits under `3.
    - Inline 4D date scrubber (create_slider + register_control 'construction:programme-timeline')
      * Marks behind when (plannedPctAt(date) - actualPct) >= 15 & status != 'done'
      * Collects bim_express_ids[] of all tasks active on scrubDate
-   - Companion views: Table (page_size 100, Kind & Open issues columns, compact progress/update
-     cells) & Board (4 cols, 50/lane, open-issue badge on cards)
+   - Companion views: Table (page_size 100, Kind column, compact progress cells) &
+     Board (4 cols, 50/lane)
      * "Highlight N in BIM" isolates the active elements in the 3D viewer ('Active on <date>'),
        brand colour with the rest translucent, as a selected BIM task does
 ```
@@ -679,7 +683,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 +----------------------------------------------------------------------------------------------+
 | construction_read                                                                            |
 |  Apps: [operations] | Rate limit: act 600/min, read 600/min, agent 100/h                     |
-|  Read (default output): 12 models (all but communication_settings) + sys_user                |
+|  Read (default output): 14 models (all but communication_settings) + sys_user                |
 +----------------------------------------------------------------------------------------------+
 | construction_delivery                                                                        |
 |  Create/Update (all moves): projects, tasks, project_messages | CRUD: contacts, activities   |
@@ -691,9 +695,8 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 | construction_commercial                                                                      |
 |  projects: Update currency, bim_takeoff, bim_takeoff_views (contract terms on contracts)     |
 |  Create/Update (all moves): contracts, commercial_documents, cost_estimates                  |
-|  CRUD: adhoc_costs, item_matrix | Create/Update: contacts                                    |
-|  activities: Create comments only (issues and meetings refused: errors.comments_only)        |
-|  asset_mappings: Update item_id, note (a member changing item_id makes source = qs)          |
+|  CRUD: adhoc_costs, item_matrix, activities, bim_settings, sop_rules | C/U: contacts         |
+|  asset_mappings: Update item_id, note, ifc_class, continuity, service, review_status         |
 |  Automations: generate_payment_claim, analyze_bim_file                                       |
 +----------------------------------------------------------------------------------------------+
 | construction_connections                                                                     |
@@ -702,7 +705,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 |  communication_settings: OWN rows only (custom verdict + transform enforce owner == me)      |
 +----------------------------------------------------------------------------------------------+
 | construction_automation (system-only; bound to all 3 automations & both Autodesk ACC syncs)  |
-|  projects: read + update ['bim_summary', 'bim_costing_dirty', 'bim_costing_error']           |
+|  projects: read + update ['bim_summary', 'bim_compliance', 'bim_costing_dirty', 'bim_costing_error'] |
 |  contracts, commercial_documents, tasks, activities, project_files, cost_estimates: R/C/U    |
 |  project_messages, asset_mappings: R/C/U | adhoc_costs, contacts, comm_settings, sys_*: read |
 |  item_matrix: read + create held for approval ("Item Matrix proposal review":                |
@@ -713,7 +716,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 ### Key Governance Details
 
 - **Client & Consultant Isolation (`client_consultant`):** Receives only `construction_read` — read-only access to the Operations app with zero write grants, zero Configuration app access, and zero visibility into `sys_integration` or `communication_settings`.
-- **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or item matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` and the stored takeoff (`bim_takeoff`, `bim_takeoff_views`) on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks, BIM files, or site issues; it may comment on tasks (`errors.comments_only` refuses its issues and meetings) and correct what each BIM asset is priced as (`asset_mappings.item_id`, `note`).
+- **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or item matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` and the stored takeoff (`bim_takeoff`, `bim_takeoff_views`) on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks or BIM files; it may log polymorphic activities (`activities`) and correct what each BIM asset is priced as (`asset_mappings`).
 - **System 2 Proposals Wait for Approval:** `analyze_bim_file`'s Item Matrix proposals are written by `construction_automation`, whose `item_matrix` create verdict returns `ctx.approve` with the **Item Matrix proposal review** flow, decided by the teams holding `construction_commercial` (refused as `errors.no_matrix_reviewer` when none does); until a member approves it, the proposed item prices nothing and its assets stay unmatched.
 - **Message Filing Runs as the Writer:** `project_messages` effects file with the authority of whoever stored or requeued the message (`construction_automation` for `sync_messages`). A writer refused part of an extraction keeps the routing and records `extraction_status: failed` with the reason.
-- **Personal Account Ownership (`construction_connections`):** Both policy verdicts and model transforms enforce that members can only create, edit, or delete their own `whatsapp` or `email` `sys_integration` accounts (`errors.personal_accounts_only`) and their own `communication_settings` row (`errors.intake_not_own`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are created by administrators.
+- **Personal Account Ownership (`construction_connections`):** Native `capabilities.personal_connections: ['whatsapp', 'email']` restricts members to their own personal `whatsapp` or `email` `sys_integration` accounts, and policy verdicts restrict `communication_settings` to each member's own row (`errors.intake_not_own`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are managed by administrators in Settings → Integrations → Connections.

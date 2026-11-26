@@ -3673,7 +3673,7 @@
 					"effects": "// Employment Act 1968 s.21(2): Raise the overtime payment deadline task fourteen days after the covered period.\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(run.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:OVERTIME_PAYMENT_DEADLINE:' + run.id\n}];"
 				},
 				"ITEMISED_PAYSLIP": {
-					"description": "Raise an itemised payslip task for every payslip of a paid run.",
+					"description": "Raise an itemised payslip task for a paid run.",
 					"name": "Itemised payslips",
 					"lookup": {
 						"title": "Itemised payslips",
@@ -3700,15 +3700,13 @@
 					"reads": {
 						"obligation": {
 							"where": {
-								"employee_id": {
-									"is_null": false
-								},
-								"entity_id": {
+								"occurrence_key": {
 									"eq": {
-										"var": "ctx.entry.entity_id"
+										"var": "'SG:ITEMISED_PAYSLIP:' + ctx.entry.id"
 									}
 								}
-							}
+							},
+							"limit": 1
 						},
 						"holiday": {
 							"where": {
@@ -3723,23 +3721,12 @@
 									}
 								}
 							}
-						},
-						"payslip": {
-							"where": {
-								"payroll_run_id": {
-									"eq": {
-										"var": "ctx.entry.id"
-									}
-								}
-							},
-							"fields": ["id", "entity_id", "employee_id", "employment_id"],
-							"limit": 10000
 						}
 					},
-					"condition": "// Employment Act 1968 s.96 ; MOM, Itemised pay slips . The engine: Raise an itemised payslip task for every payslip of a paid run.\nreturn ctx.entry.state === 'PAID';",
+					"condition": "// Employment Act 1968 s.96 ; MOM, Itemised pay slips . The engine: Raise an itemised payslip task for a paid run.\nreturn ctx.entry.state === 'PAID';",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "// Employment Act 1968 s.96 ; MOM, Itemised pay slips . The engine: Raise an itemised payslip task for every payslip of a paid run.\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst paidOn = get(ctx.entry, 'pay_date', null) ?? ctx.entry.salary_coverage.to;\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst key = 'SG:ITEMISED_PAYSLIP:' + slip.id;\n\tif (get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key)) return [];\n\treturn [{\n\t\tentity_id: slip.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(paidOn, ctx.lookup.working_days, holidays, [0, 6]),\n\t\toccurrence_key: key\n\t}];\n});"
+					"effects": "// Employment Act 1968 s.96 ; MOM, Itemised pay slips . The engine: Raise one itemised payslip task for a paid run.\nconst key = 'SG:ITEMISED_PAYSLIP:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key)) return [];\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst paidOn = get(ctx.entry, 'pay_date', null) ?? ctx.entry.salary_coverage.to;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_working_days(paidOn, ctx.lookup.working_days, holidays, [0, 6]),\n\toccurrence_key: key\n}];"
 				},
 				"ANNUAL_EMPLOYMENT_INCOME_RETURN": {
 					"description": "Raise the IR8A/AIS annual return task for the December run.",

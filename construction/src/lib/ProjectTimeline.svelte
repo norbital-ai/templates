@@ -13,7 +13,7 @@
 	import { create_slider, create_toggle_group, register_control } from '@norbital-ai/ui/behaviors';
 	import { Scroll } from '@norbital-ai/ui/layout';
 	import { DateTime, Option } from 'effect';
-	import { toNumber, type DecimalLike } from './commercial.js';
+	import { toNumber, type DecimalLike } from '../services/commercial/decimal.js';
 	import { addCalendarDays, diffCalendarDays, parseIsoDate } from './dates.js';
 
 	type SubcontractorRef =
@@ -40,7 +40,6 @@
 		readonly progress_pct: DecimalLike;
 		readonly schedule_range: { readonly from: string; readonly to: string | null } | null;
 		readonly bim_express_ids: readonly number[] | null;
-		readonly latest_update?: string | null;
 		readonly last_updated_on?: string | null;
 	};
 
@@ -198,8 +197,7 @@
 
 	function isTaskRecentlyUpdated(task: TimelineTask): boolean {
 		const updated = parseIsoDate(task.last_updated_on);
-		if (updated !== null && updated >= recentCutoff) return true;
-		return Boolean(task.latest_update && task.latest_update.trim().length > 0 && updated === null);
+		return updated !== null && updated >= recentCutoff;
 	}
 
 	const filterCounts = $derived.by(() => {
@@ -694,7 +692,7 @@
 				</div>
 
 				<div class="flex items-center gap-1.5 text-micro tabular-nums text-muted-foreground">
-					<span class="hidden sm:inline">
+					<span>
 						{t('timeline.summary_compact', {
 							active: snapshot.active,
 							done: snapshot.done,
@@ -789,7 +787,12 @@
 						<div class="relative h-6 overflow-hidden">
 							{#each monthTicks as tick (tick.label + tick.pct)}
 								<span
-									class="absolute bottom-1 -translate-x-1/2 whitespace-nowrap text-tiny tabular-nums text-muted-foreground"
+									class="absolute bottom-1 whitespace-nowrap text-tiny tabular-nums text-muted-foreground {tick.pct <
+									4
+										? 'pl-1'
+										: tick.pct > 96
+											? '-translate-x-full pr-1'
+											: '-translate-x-1/2'}"
 									style={`left: ${tick.pct}%`}
 								>
 									{tick.label}
@@ -900,18 +903,12 @@
 										groupMode === 'subcontractor'
 											? tradeLabelOf(task.trade_specialty)
 											: subcon || tradeLabelOf(task.trade_specialty)}
-									{@const hasUpdate = Boolean(
-										task.latest_update && task.latest_update.trim().length > 0
-									)}
 									{@const barTip = [
 										codeOf(task) ? `${codeOf(task)} · ${task.title}` : task.title,
 										subcon || tradeLabelOf(task.trade_specialty),
 										`${actualPct}%`,
 										row.effectiveRange?.from
 											? `${row.effectiveRange.from}${row.effectiveRange.to ? ` → ${row.effectiveRange.to}` : ''}`
-											: '',
-										hasUpdate
-											? `${task.last_updated_on ? `[${task.last_updated_on}] ` : ''}${task.latest_update}`
 											: ''
 									]
 										.filter(Boolean)
@@ -983,12 +980,6 @@
 											>
 												{#if secondaryTag}
 													<span class="max-w-20 truncate" title={secondaryTag}>{secondaryTag}</span>
-												{/if}
-												{#if hasUpdate}
-													<span
-														class="size-1.5 shrink-0 rounded-full bg-tone-success-text"
-														title={`${task.last_updated_on ? `${task.last_updated_on}: ` : ''}${task.latest_update ?? ''}`}
-													></span>
 												{/if}
 												{#if behind}
 													<span

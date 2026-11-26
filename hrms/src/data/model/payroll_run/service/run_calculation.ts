@@ -1,18 +1,13 @@
-import { DateTime, Duration, Effect } from 'effect';
+import { Effect } from 'effect';
 import {
-	awardedMinutes,
-	expectedShiftSpans,
-	holidaysForDay,
-	overlapSpans,
-	plannedWork as plannedWorkOf,
-	scheduled,
-	spanMinutes
+	buildWorkDays,
+	closedSpans,
+	holidaysForDay
 } from '../../roster_entry/service/attendance.js';
-import { dateWeekday, intervalSpans } from '../../roster_entry/service/time_evidence.js';
-import { calculatePayroll, isWorkingDay, offDaysFor, type ProjectedDay } from './engine.js';
+import { calculatePayroll, type ProjectedDay } from './engine.js';
 import { round, sharesPay } from './rates.js';
 import type { JsonObject } from '../../../../lib/contracts.js';
-import { idOf, objectValue } from '../../../../lib/reads.js';
+import { idsOf, objectValue } from '../../../../lib/reads.js';
 import { Refusal, daysIn, isJsonObject } from '../../../../lib/foundation.js';
 import { breakdownOf } from './payslip_breakdown.js';
 import {
@@ -22,18 +17,8 @@ import {
 	viewOf
 } from '../../employee_profile/employee_balance/service/core.js';
 import { employerOn } from '../../entity/service/company.js';
-import { employmentOn, partsIn, startsOf, termsBy } from '../../employee_profile/service/person.js';
+import { employmentOn, partsIn, termsBy } from '../../employee_profile/service/person.js';
 import { covers, type CalculatedPayslip, type RunData, type RunFrame } from './run_loader.js';
-
-const WEEKDAYS = [
-	'SUNDAY',
-	'MONDAY',
-	'TUESDAY',
-	'WEDNESDAY',
-	'THURSDAY',
-	'FRIDAY',
-	'SATURDAY'
-] as const;
 
 export {
 	claimsAsPosted,
@@ -120,13 +105,13 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		roster_entry: new Set<string>()
 	};
 	const sealed = () => ({
-		leave: [...sealing.leave].map((id) => idOf('leave_catalog_entry', id)),
-		leave_day: [...sealing.leave_day].map((id) => idOf('leave_catalog_entry_day', id)),
-		claim: [...sealing.claim].map((id) => idOf('claim_catalog_entry', id)),
-		adhoc: [...sealing.adhoc].map((id) => idOf('adhoc_catalog_entry', id)),
-		repayment: [...sealing.repayment].map((id) => idOf('loan_catalog_entry_repayment', id)),
-		case: [...sealing.case].map((id) => idOf('workplace_case_catalog_entry', id)),
-		roster_entry: [...sealing.roster_entry].map((id) => idOf('roster_entry', id))
+		leave: idsOf('leave_catalog_entry', sealing.leave),
+		leave_day: idsOf('leave_catalog_entry_day', sealing.leave_day),
+		claim: idsOf('claim_catalog_entry', sealing.claim),
+		adhoc: idsOf('adhoc_catalog_entry', sealing.adhoc),
+		repayment: idsOf('loan_catalog_entry_repayment', sealing.repayment),
+		case: idsOf('workplace_case_catalog_entry', sealing.case),
+		roster_entry: idsOf('roster_entry', sealing.roster_entry)
 	});
 	const fullUnpaid = new Set<string>();
 	const pricedLeaveDays = new Set<string>();
@@ -163,10 +148,10 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			(date >= start || row.payroll_run_id == null) &&
 			// a paid period this run works out again prices its own late rows
 			frame.leftOut?.has(String(row.id)) !== true);
-	const employeeIds = [...new Set(contracts.map((row) => String(row.employee_id)))];
+	const employeeIdSet = new Set(contracts.map((row) => String(row.employee_id)));
 	// every stint of the person answers for its entries by their dates, a run pays on the one in force
 	const answering = (data.employment ?? []).filter((row) =>
-		employeeIds.includes(String(row.employee_id))
+		employeeIdSet.has(String(row.employee_id))
 	);
 	const profiles = new Map((data.employee_profile ?? []).map((row) => [String(row.id), row]));
 	const balances = new Map(
@@ -207,141 +192,31 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				])
 		).values()
 	];
-	const closedSpans = (value: unknown) =>
-		intervalSpans(
-			Array.isArray(value) ? value.filter((row) => isJsonObject(row) && row.end != null) : []
-		);
 	const shifts = new Map((data.shift_definition ?? []).map((row) => [row.id, row]));
 	const patterns = new Map((data.shift_pattern ?? []).map((row) => [row.id, row]));
-	const plan = { employer, shifts, patterns };
-	const plannedWork = (terms: JsonObject, date: string) => plannedWorkOf(terms, date, plan);
-	const zone = String(settings.timezone);
-	const planOf = (row: JsonObject) => {
-		const shift = shifts.get(row.shift_definition_id);
-		return scheduled(row, { zone, ...(shift === undefined ? {} : { shift }) });
-	};
-	const scheduledHours = ({ spans, untimed }: ReturnType<typeof planOf>) =>
-		spans.reduce(
-			(total, span) => total + Duration.toHours(Duration.millis(span.end - span.start)),
-			untimed
-		);
-	const rosterDayTypes = new Map<string, Record<string, string>>();
-	for (const row of workRows) {
-		const owner = ownerOf(row);
-		const days = rosterDayTypes.get(owner) ?? {};
-		days[String(row.work_date)] = planOf(row).day_type;
-		rosterDayTypes.set(owner, days);
-	}
-	// a holiday given only to those off on the date it replaces reads that date's plan, rostered or not: a six-day week
-	// works its Saturday, so the weekday in lieu of a Saturday holiday is not its holiday
-	const replaced = [
-		...new Set(
-			(data.holiday ?? []).flatMap((row) =>
-				typeof row.replaces === 'string' ? [row.replaces] : []
-			)
-		)
-	];
-	for (const [owner, days] of rosterDayTypes) {
-		const own = answering.find((row) => stretchOf(row) === owner);
-		if (own === undefined) continue;
-		for (const date of replaced) {
-			if (days[date] !== undefined) continue;
-			const row =
-				answering.find(
-					(contract) =>
-						contract.employee_id === own.employee_id && covers(contract.effective_range, date, date)
-				) ?? own;
-			const work = plannedWork(objectValue(row.terms), date);
-			if (work !== undefined) days[date] = work ? 'WORK' : 'OFF';
-		}
-	}
-	// a dated leave slot is not an absence: leave prices the day itself (including slots already sealed by a prior run)
-	const leaveDays = new Set<string>();
-	const leavePartsByDay = new Map<string, Set<string>>();
-	for (const entry of data.leave_catalog_entry ?? []) {
-		if (entry.encashment === true) continue;
-		const person = employeeOf.get(String(entry.employment_id));
-		for (const child of Array.isArray(entry.leave_catalog_entry_day)
-			? entry.leave_catalog_entry_day
-			: [])
-			if (isJsonObject(child) && typeof child.incurred_on === 'string') {
-				const key = `${person}:${child.incurred_on}`;
-				leaveDays.add(key);
-				const parts = leavePartsByDay.get(key) ?? new Set<string>();
-				parts.add(String(child.part));
-				leavePartsByDay.set(key, parts);
-			}
-	}
-	// each day is priced at the rates of the terms it was worked under
-	const termsOf = new Map(
-		(data.employment ?? []).map((row) => [stretchOf(row), objectValue(row.terms)])
-	);
-	const workDays = new Map<string, JsonObject[]>();
-	for (const row of workRows) {
-		const owner = ownerOf(row);
-		const days = workDays.get(owner) ?? [];
-		const date = String(row.work_date);
-		const holidays = holidaysForDay(date, {
-			holidays: data.holiday ?? [],
-			roster_day_types: rosterDayTypes.get(owner) ?? {},
-			roster_days: [],
-			employee: employeeOf.get(stintOf(owner))
-		});
-		// a makeup workday never masks the holiday it makes up for: every other kind earns its premium
-		const holiday = holidays.find((row) => row.kind !== 'MAKEUP_WORKDAY') ?? holidays[0];
-		const plan = planOf(row);
-		// the clock proves the person came and awards the plan; it never adds time of its own
-		const clock = closedSpans(row.actual_worked_intervals);
-		const planned = closedSpans(row.planned_overtime_intervals);
-		const awarded = awardedMinutes(planned, clock) / 60;
-		// overtime the worker takes as time off is owed by the hour, never also paid: the day prices none of it
-		const timeOff = row.overtime_as_time_off === true ? awarded : 0;
-		const overtime = awarded - timeOff;
-		const worked = clock.length === 0 ? 0 : scheduledHours(plan) + overtime;
-		const paidSpans = timeOff > 0 ? [] : planned;
-		// a planned work day with no clock is an absence; leave and a published holiday are not
-		const empDateKey = `${employeeOf.get(stintOf(owner))}:${date}`;
-		const absent =
-			plan.day_type === 'WORK' &&
-			clock.length === 0 &&
-			holiday === undefined &&
-			!leaveDays.has(empDateKey);
-		const leaveParts = leavePartsByDay.get(empDateKey);
-		const expected = expectedShiftSpans(
-			plan.spans,
-			leaveParts?.has('AM') === true,
-			leaveParts?.has('PM') === true
-		);
-		const scheduledShiftMinutes = spanMinutes(plan.spans);
-		const expectedMinutes = spanMinutes(expected);
-		const rawUndertime =
-			plan.day_type === 'WORK' && clock.length > 0 && holiday === undefined && expectedMinutes > 0
-				? Math.max(0, expectedMinutes - spanMinutes(overlapSpans(clock, expected)))
-				: 0;
-		const undertimeMinutes = rawUndertime > 1e-9 ? rawUndertime : 0;
-		days.push({
-			date,
-			terms: termsOf.get(owner) ?? null,
-			day_type: absent ? 'ABS' : plan.day_type,
-			scheduled_hours: absent ? 0 : scheduledHours(plan),
-			scheduled_shift_minutes: scheduledShiftMinutes,
-			undertime_minutes: undertimeMinutes,
-			holiday_kind: typeof holiday?.kind === 'string' ? holiday.kind : '',
-			worked: worked + timeOff > 0,
-			worked_hours: worked,
-			overtime_hours: overtime,
-			// the clock inside the day's own shift, to the minute
-			clocked_shift_hours: spanMinutes(overlapSpans(clock, plan.spans)) / 60,
-			time_off_hours: timeOff,
-			// epoch milliseconds: the helpers that read them take an instant either way
-			intervals: overlapSpans(clock, [...plan.spans, ...paidSpans]).map(({ start, end }) => ({
-				start,
-				end
-			})),
-			overtime_intervals: overlapSpans(paidSpans, clock).map(({ start, end }) => ({ start, end }))
-		});
-		workDays.set(owner, days);
-	}
+	const {
+		workDays,
+		rosterDayTypes,
+		holidaysByDate,
+		planOf,
+		planned: plannedWork
+	} = buildWorkDays({
+		workRows,
+		ownerOf,
+		stintOf,
+		employeeOf,
+		answeringByStretch: new Map(answering.map((row) => [stretchOf(row), row])),
+		versionOn,
+		termsOf: new Map(
+			(data.employment ?? []).map((row) => [stretchOf(row), objectValue(row.terms)])
+		),
+		holidays: data.holiday ?? [],
+		leaves: data.leave_catalog_entry ?? [],
+		shifts,
+		patterns,
+		employer,
+		zone: String(settings.timezone)
+	});
 
 	const paidLeaveMethod = isJsonObject(employer.pay_methods)
 		? employer.pay_methods.paid_leave
@@ -443,6 +318,30 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		else held.add(employment);
 	}
 
+	const workCatalog = new Map(
+		(data.work_event_catalog ?? []).map((row) => [String(row.code), row])
+	);
+	const contributionCodes = new Set(
+		(data.statutory_contribution_catalog ?? [])
+			.filter((row) => row.kind === 'CONTRIBUTION')
+			.map((row) => String(row.code))
+	);
+	const adhocRows = new Map((data.adhoc_catalog ?? []).map((row) => [String(row.code), row]));
+	const offCycleEligible =
+		pays === undefined
+			? undefined
+			: new Set(
+					(data.adhoc_catalog ?? [])
+						.filter((row) => row.off_cycle_eligible === true)
+						.map((row) => String(row.code))
+				);
+	const workRowsByEmp = Map.groupBy(
+		workRows,
+		(row) => employeeOf.get(String(row.employment_id)) ?? ''
+	);
+	const coverageDays = pays !== undefined || run.kind === 'OFF_CYCLE' ? [] : daysIn(from, to);
+	const attendanceDaysDefault = daysIn(start, end);
+	const open = (row: JsonObject) => row.sealed !== true;
 	const paid: CalculatedPayslip[] = [];
 	for (const contract of contracts) {
 		const employmentId = String(contract.id),
@@ -450,9 +349,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const employee = profiles.get(employeeId),
 			balance = balances.get(employeeId);
 		if (employee === undefined) continue;
-		const own = new Set(
-			answering.filter((row) => row.employee_id === employeeId).map((row) => String(row.id))
-		);
+		const contractsOfEmployee = answeringBy.get(employeeId) ?? [];
+		const own = new Set(contractsOfEmployee.map((row) => String(row.id)));
 		// only the person's own entries
 		const entries = (rows: readonly JsonObject[] | undefined) =>
 			ownRows(rows, own).filter((row) => pays?.has(String(row.id)) ?? true);
@@ -463,19 +361,30 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			)
 		)
 			continue;
-		const contractsOfEmployee = answering.filter((row) => row.employee_id === employeeId);
-		const contractIds = new Set(contractsOfEmployee.map((row) => String(row.id)));
-		const roster = new Map(
-			ownRows(data.roster_entry, contractIds)
-				.filter(
-					(row) => typeof row.work_date === 'string' && typeof row.shift_definition_id === 'string'
+		const lastAttended = until.get(employeeId) ?? end;
+		const employeeRoster = ownRows(data.roster_entry, own);
+		const roster = new Map<string, JsonObject>();
+		const rosterDates = new Set<string>();
+		const clockedDates = new Set<string>();
+		const allRosterDayTypes: Record<string, string> = {};
+		const checkFullUnpaid = coverageDays.length > 0;
+		for (const row of employeeRoster) {
+			if (typeof row.work_date !== 'string') continue;
+			const date = row.work_date;
+			const owner = ownerOf(row);
+			if (typeof row.shift_definition_id === 'string') roster.set(`${owner}:${date}`, row);
+			if (date >= start && date <= lastAttended) rosterDates.add(`${owner}:${date}`);
+			if (checkFullUnpaid) {
+				if (
+					Array.isArray(row.actual_worked_intervals) &&
+					row.actual_worked_intervals.length > 0 &&
+					closedSpans(row.actual_worked_intervals).length > 0
 				)
-				.map((row) => [`${ownerOf(row)}:${String(row.work_date)}`, row])
-		);
+					clockedDates.add(date);
+				allRosterDayTypes[date] = planOf(row).day_type;
+			}
+		}
 		const projected = projectedDays(contractsOfEmployee, roster);
-		const workCatalog = new Map(
-			(data.work_event_catalog ?? []).map((row) => [String(row.code), row])
-		);
 		// an event for one person is theirs under every stint of theirs; one for no one is everyone's
 		const eventKeys = new Set([...(employmentsOf.get(employeeId) ?? []), 'null', 'undefined']);
 		const workEvents = ownRows(data.work_event, eventKeys).flatMap((row) => {
@@ -490,33 +399,25 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				}
 			];
 		});
-		const leave = entries(data.leave_catalog_entry);
-		const lastAttended = until.get(employeeId) ?? end;
-		const rosterDates = new Set(
-			ownRows(data.roster_entry, contractIds)
-				.filter(
-					(row) =>
-						typeof row.work_date === 'string' &&
-						row.work_date >= start &&
-						row.work_date <= lastAttended
-				)
-				.map((row) => `${ownerOf(row)}:${String(row.work_date)}`)
-		);
-		const leaveDates = new Set(
-			ownRows(data.leave_catalog_entry, contractIds)
-				.filter((row) => row.encashment !== true)
-				.flatMap((row) =>
-					(Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
-						.filter((child) => isJsonObject(child) && typeof child.incurred_on === 'string')
-						.map((child) => String(child.incurred_on))
-				)
-		);
+		const employeeLeaves = ownRows(data.leave_catalog_entry, own);
+		const leave =
+			pays === undefined
+				? employeeLeaves
+				: employeeLeaves.filter((row) => pays.has(String(row.id)));
+		const leaveDates = new Set<string>();
+		for (const row of employeeLeaves) {
+			if (row.encashment === true) continue;
+			if (!Array.isArray(row.leave_catalog_entry_day)) continue;
+			for (const child of row.leave_catalog_entry_day)
+				if (isJsonObject(child) && typeof child.incurred_on === 'string')
+					leaveDates.add(child.incurred_on);
+		}
 		// the supplied roster is the cycle's source of truth: a planned work day it leaves out, with no leave and no
 		// published holiday, is an absence. An office worker has no roster and keeps the pattern's assumption.
 		const absences =
 			rosterDates.size === 0
 				? []
-				: daysIn(start, lastAttended)
+				: (lastAttended === end ? attendanceDaysDefault : daysIn(start, lastAttended))
 						.filter((date) => {
 							const contract = contractsOfEmployee.find((row) =>
 								covers(row.effective_range, date, date)
@@ -527,6 +428,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 							if (
 								holidaysForDay(date, {
 									holidays: data.holiday ?? [],
+									holidays_by_date: holidaysByDate,
 									roster_day_types: rosterDayTypes.get(stretchOf(contract)) ?? {},
 									roster_days: [],
 									employee: employeeId
@@ -573,31 +475,25 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		// days): basic pay for the period is zero, post-cutoff unpaid leave slots seal here so the next run never double-deducts
 		// them, and on non-exit runs prior-window unpaid slots stay open for the next working month to deduct at PAID_BASIC.
 		const zeroPaySlots = new Map<string, Set<string>>();
-		for (const row of leave) {
-			if (row.encashment === true || !isZeroPayLeaveCatalog(String(row.catalog_code))) continue;
-			for (const child of Array.isArray(row.leave_catalog_entry_day)
-				? row.leave_catalog_entry_day
-				: []) {
-				if (
-					!isJsonObject(child) ||
-					child.payroll_run_id != null ||
-					frame.leftOut?.has(String(child.id)) === true ||
-					typeof child.incurred_on !== 'string'
-				)
-					continue;
-				const parts = zeroPaySlots.get(child.incurred_on) ?? new Set<string>();
-				parts.add(String(child.part));
-				zeroPaySlots.set(child.incurred_on, parts);
+		if (checkFullUnpaid) {
+			for (const row of leave) {
+				if (row.encashment === true || !isZeroPayLeaveCatalog(String(row.catalog_code))) continue;
+				for (const child of Array.isArray(row.leave_catalog_entry_day)
+					? row.leave_catalog_entry_day
+					: []) {
+					if (
+						!isJsonObject(child) ||
+						child.payroll_run_id != null ||
+						frame.leftOut?.has(String(child.id)) === true ||
+						typeof child.incurred_on !== 'string'
+					)
+						continue;
+					const parts = zeroPaySlots.get(child.incurred_on) ?? new Set<string>();
+					parts.add(String(child.part));
+					zeroPaySlots.set(child.incurred_on, parts);
+				}
 			}
 		}
-		const clockedDates = new Set(
-			ownRows(data.roster_entry, contractIds)
-				.filter(
-					(row) =>
-						typeof row.work_date === 'string' && closedSpans(row.actual_worked_intervals).length > 0
-				)
-				.map((row) => String(row.work_date))
-		);
 		const personWorkDays = contractsOfEmployee
 			.flatMap((row) => workDays.get(stretchOf(row)) ?? [])
 			.concat(absences);
@@ -605,31 +501,23 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			personWorkDays.filter((day) => day.day_type === 'ABS').map((day) => String(day.date))
 		);
 		const projectedByDate = new Map((projected ?? []).map((day) => [day.date, day.work]));
-		const allRosterDayTypes: Record<string, string> = {};
-		for (const row of ownRows(data.roster_entry, contractIds))
-			if (typeof row.work_date === 'string')
-				allRosterDayTypes[row.work_date] = planOf(row).day_type;
-		const scheduledNonHolidayWorkDays =
-			pays !== undefined || run.kind === 'OFF_CYCLE'
-				? []
-				: daysIn(from, to).filter((date) => {
-						const active = contractsOfEmployee.find((row) =>
-							covers(row.effective_range, date, date)
-						);
-						if (active === undefined) return false;
-						const work = projectedByDate.get(date) ?? plannedWork(objectValue(active.terms), date);
-						if (work !== true) return false;
-						const dayHolidays = holidaysForDay(date, {
-							holidays: data.holiday ?? [],
-							roster_day_types: {
-								...allRosterDayTypes,
-								...(rosterDayTypes.get(stretchOf(active)) ?? {})
-							},
-							roster_days: [],
-							employee: employeeId
-						});
-						return !dayHolidays.some((h) => h.kind !== 'MAKEUP_WORKDAY');
-					});
+		const scheduledNonHolidayWorkDays = coverageDays.filter((date) => {
+			const active = contractsOfEmployee.find((row) => covers(row.effective_range, date, date));
+			if (active === undefined) return false;
+			const work = projectedByDate.get(date) ?? plannedWork(objectValue(active.terms), date);
+			if (work !== true) return false;
+			const dayHolidays = holidaysForDay(date, {
+				holidays: data.holiday ?? [],
+				holidays_by_date: holidaysByDate,
+				roster_day_types: {
+					...allRosterDayTypes,
+					...(rosterDayTypes.get(stretchOf(active)) ?? {})
+				},
+				roster_days: [],
+				employee: employeeId
+			});
+			return !dayHolidays.some((h) => h.kind !== 'MAKEUP_WORKDAY');
+		});
 		const fullPeriodUnpaid =
 			scheduledNonHolidayWorkDays.length > 0 &&
 			scheduledNonHolidayWorkDays.every((date) => {
@@ -667,10 +555,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 								child.incurred_on <= leaveEnd))
 				);
 		};
+		const dueSlotsByLeave = new Map(leave.map((row) => [row, slotsDue(row)] as const));
 		// a sealed entry still answers for its dates in later runs: only its own period's days are here
 		const leaveWithin = (rows: readonly JsonObject[]): readonly JsonObject[] =>
 			rows.flatMap((row) => {
-				const days = slotsDue(row).map((child) => ({
+				const days = (dueSlotsByLeave.get(row) ?? []).map((child) => ({
 					date: String(child.incurred_on),
 					part: String(child.part)
 				}));
@@ -679,18 +568,14 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const paysOut =
 			contract.encash_leave !== false && contract.exit_ground !== 'MISCONDUCT_DISMISSAL';
 		const hoursADay = Number(objectValue(contract.terms).normal_hours_per_day ?? 0);
+		const decodedAccounts = accountsOf(balance?.account);
 		const settled = !settles
 			? []
 			: (data.leave_catalog ?? []).flatMap((row) => {
 					if (typeof row.payout !== 'string' || row.payout.trim() === '') return [];
 					const code = String(row.code);
 					// the row's window under this run's law: a person who moved country holds the same code under another
-					const window = latestWindow(
-						accountsOf(balance?.account),
-						'leave',
-						code,
-						String(settings.code)
-					);
+					const window = latestWindow(decodedAccounts, 'leave', code, String(settings.code));
 					// a row that counts in hours settles them as days of the contract's normal day
 					const hourly = objectValue(row.lookup).unit === 'HOUR' && hoursADay > 0;
 					const days = Math.round(((window?.left ?? 0) / (hourly ? hoursADay : 1)) * 2) / 2;
@@ -746,13 +631,13 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					...(fullPeriodUnpaid ? { full_period_unpaid: true } : {}),
 					balance: {
 						account: viewOf(
-							accountsOf(balance?.account),
+							decodedAccounts,
 							totalsScope(settings, companyId),
 							Number(settings.tax_year_start_month ?? 1),
 							String(run.pay_date ?? objectValue(run.salary_coverage).to)
 						),
 						// the days each leave row's windows have used, for a `paid_share` that reads them
-						leave: accountsOf(balance?.account).leave ?? {}
+						leave: decodedAccounts.leave ?? {}
 					},
 					entries: {
 						leave_catalog_entry: [...leaveWithin(leave), ...settled.map((item) => item.entry)],
@@ -767,16 +652,14 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					},
 					work_events: workEvents,
 					...(projected === undefined ? {} : { projected_days: projected }),
-					employed: answering
-						.filter((row) => row.employee_id === employeeId)
-						.map((row) => {
-							const { from, to } = objectValue(row.effective_range);
-							return {
-								from: String(from),
-								to: to == null ? null : String(to),
-								terms: objectValue(row.terms)
-							};
-						})
+					employed: contractsOfEmployee.map((row) => {
+						const { from, to } = objectValue(row.effective_range);
+						return {
+							from: String(from),
+							to: to == null ? null : String(to),
+							terms: objectValue(row.terms)
+						};
+					})
 				}),
 			catch: (cause) =>
 				cause instanceof Refusal
@@ -798,12 +681,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const employeeStatutory = contributions.reduce((total, row) => total + row.employee, 0);
 		// An ad hoc row that posts to a scheme's employee share counts with that scheme; one that posts to a code no
 		// contribution scheme of this law holds is the employee's tax paid outside the scheme (Malaysia's CP38).
-		const contributionCodes = new Set(
-			(data.statutory_contribution_catalog ?? [])
-				.filter((row) => row.kind === 'CONTRIBUTION')
-				.map((row) => String(row.code))
-		);
-		const adhocRows = new Map((data.adhoc_catalog ?? []).map((row) => [String(row.code), row]));
 		const taxPaidOutside = result.lines
 			.filter((line) => line.source_id.model === 'adhoc_catalog_entry' && line.party === 'EMPLOYEE')
 			.reduce((total, line) => {
@@ -844,13 +721,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		});
 		// an off-cycle run prices only ad hoc entries on rows marked for it: anything else it named would be sealed
 		// and never paid
-		if (pays !== undefined) {
-			const marked = new Set(
-				(data.adhoc_catalog ?? [])
-					.filter((row) => row.off_cycle_eligible === true)
-					.map((row) => String(row.code))
-			);
-			const stray = [...claims, ...adhoc.filter((row) => !marked.has(String(row.catalog_code)))];
+		if (offCycleEligible !== undefined) {
+			const stray = [
+				...claims,
+				...adhoc.filter((row) => !offCycleEligible.has(String(row.catalog_code)))
+			];
 			if (stray.length > 0)
 				return yield* Effect.fail(
 					new Refusal({
@@ -861,9 +736,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		}
 		// a run is not a decision: what waits for approval is not paid, whoever runs it
 		if (
-			[...leave.filter((row) => slotsDue(row).length > 0), ...claims, ...adhoc].some(
-				(row) => row.$approval != null
-			)
+			[
+				...leave.filter((row) => (dueSlotsByLeave.get(row)?.length ?? 0) > 0),
+				...claims,
+				...adhoc
+			].some((row) => row.$approval != null)
 		)
 			return yield* Effect.fail(
 				new Refusal({
@@ -873,9 +750,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			);
 		// what this payslip priced is sealed by its run, and nothing else. A paid period worked out again seals only
 		// what no run had sealed (`sealed`): a row its own run priced keeps that seal
-		const open = (row: JsonObject) => row.sealed !== true;
 		for (const row of leave) {
-			const dueSlots = slotsDue(row);
+			const dueSlots = dueSlotsByLeave.get(row) ?? [];
 			for (const slot of dueSlots) pricedLeaveDays.add(String(slot.id));
 			const slots = dueSlots.filter(open);
 			if (slots.length === 0) continue;
@@ -886,14 +762,13 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		for (const row of adhoc.filter(open)) sealing.adhoc.add(String(row.id));
 		for (const row of repayments.filter(open)) sealing.repayment.add(String(row.id));
 		if (pays !== undefined) continue;
-		for (const row of data.workplace_case_catalog_entry ?? [])
+		for (const row of ownRows(data.workplace_case_catalog_entry, own))
 			if (
-				own.has(String(row.employment_id)) &&
 				String(row.opened_on) <= untilOf(row) &&
 				(row.closed_on == null || String(row.closed_on) >= start)
 			)
 				sealing.case.add(String(row.id));
-		for (const row of workRows)
+		for (const row of workRowsByEmp.get(employeeId) ?? [])
 			if (own.has(String(row.employment_id)) && row.payroll_run_id == null && open(row))
 				sealing.roster_entry.add(String(row.id));
 	}

@@ -1,10 +1,9 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { stintNames } from '../../../lib/ui/person/stint_names.svelte.js';
-	import { AppShell } from '@norbital-ai/ui/layout';
-	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { Table } from '@norbital-ai/ui';
+	import EventPage from '../../../lib/ui/events/event_page.svelte';
 	import SealedBadge from '../../../lib/ui/payroll/sealed_badge.svelte';
-	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { numberOf } from '../../../lib/foundation.js';
@@ -12,7 +11,11 @@
 		parseLoanSheet,
 		parseRepaymentSheet
 	} from '../../../data/model/entry/service/entry_workbook.js';
-	import { entryImport, plain } from '../../../lib/ui/workbook/entry_import.svelte.js';
+	import {
+		employmentQuery,
+		entryImport,
+		plain
+	} from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 	const scope = companyScope(ctx);
 	const stints = stintNames(ctx, () => scope.id);
@@ -21,11 +24,7 @@
 
 	const loadHeld = (companyId: NonNullable<typeof scope.id>) =>
 		ctx.query({
-			employment: {
-				where: { entity_id: { eq: companyId } },
-				fields: ['employee_number', 'entity_id', 'effective_range'],
-				limit: 10000
-			},
+			employment: employmentQuery(companyId),
 			loan_catalog_entry: {
 				where: { entity_id: { eq: companyId } },
 				fields: ['employment_id', 'catalog_code', 'quantity', 'repayment_period'],
@@ -106,17 +105,20 @@
 		{ctx}
 	/>{/snippet}
 
-<AppShell
+<EventPage
+	{ctx}
+	{scope}
 	title={ctx.t('app.loans.title')}
 	description={ctx.t('v2.loans_help')}
 	icon="lucide:landmark"
+	createOf="loan_catalog_entry"
+	bind:creating
 >
-	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={ctx.t('app.events.empty_scope')} />{:else}<Table
+	{#snippet children(companyId)}<Table
 			{ctx}
 			of="loan_catalog_entry"
 			key="loans"
-			where={{ entity_id: { eq: scope.id } }}
+			where={{ entity_id: { eq: companyId } }}
 			toolbar={{
 				new: () => (creating = true),
 				title: ctx.t('app.loans.title'),
@@ -132,17 +134,5 @@
 				'repayment_period',
 				{ field: 'payroll_run_id', cell: sealCell }
 			]}
-		/>{/if}
-</AppShell>
-{#if creating && scope.id !== null}<Sheet
-		open
-		on_open_change={(open) => !open && (creating = false)}
-		title={ctx.t('app.loans.title')}
-		><RecordShell
-			{ctx}
-			of="loan_catalog_entry"
-			mode="create"
-			values={{ entity_id: scope.id }}
-			on_done={() => (creating = false)}
-		/></Sheet
-	>{/if}
+		/>{/snippet}
+</EventPage>

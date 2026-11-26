@@ -8,5 +8,6 @@ import { integration } from '@norbital-ai/bolt';
 export default integration('google_calendar', {
 	description: 'Personal Google calendars and every source appointment.',
 	driver: 'calendar',
+	scope: 'personal',
 	configuration: { calendars: { kind: 'text', many: true, default: ['primary'] } }
 });

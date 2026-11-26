@@ -7,7 +7,9 @@ export default policy({
 	grants: {
 		projects: {
 			outputs: { default: {} },
-			update: { fields: ['bim_summary', 'bim_costing_dirty', 'bim_costing_error'] }
+			update: {
+				fields: ['bim_summary', 'bim_compliance', 'bim_costing_dirty', 'bim_costing_error']
+			}
 		},
 		contracts: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		commercial_documents: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
@@ -33,6 +35,8 @@ export default policy({
 			}
 		},
 		asset_mappings: { outputs: { default: {} }, create: {}, update: {} },
+		bim_settings: { outputs: { default: {} } },
+		sop_rules: { outputs: { default: {} } },
 		contacts: { outputs: { default: {} } },
 		communication_settings: { outputs: { default: {} } },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} },

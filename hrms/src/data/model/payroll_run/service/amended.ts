@@ -538,6 +538,12 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		readonly ours: boolean;
 		readonly ownPostings: () => readonly Wanted[];
 		readonly carriedEntries: () => ReturnType<typeof carriedFor>;
+		readonly lines: () => readonly JsonObject[];
+		readonly ownUnwindMoves: () => readonly Movement[];
+		readonly carriedUnwindMoves: () => readonly {
+			readonly order: string;
+			readonly moves: readonly Movement[];
+		}[];
 	};
 	const paidByEmployee = new Map<string, SlipEntry[]>();
 	const slipsByEmployee = new Map<string, SlipEntry[]>();
@@ -551,19 +557,42 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		const ours = lawCode.has(String(company.id));
 		let cachedOwn: readonly Wanted[] | undefined;
 		let cachedCarried: ReturnType<typeof carriedFor> | undefined;
+		let cachedLines: readonly JsonObject[] | undefined;
+		let cachedOwnMoves: readonly Movement[] | undefined;
+		let cachedCarriedMoves:
+			readonly { readonly order: string; readonly moves: readonly Movement[] }[] | undefined;
+		const ownPostingsOf = () => {
+			if (cachedOwn === undefined) cachedOwn = ownPostings(law, run, slip.breakdown);
+			return cachedOwn;
+		};
+		const carriedEntriesOf = () => {
+			if (cachedCarried === undefined) cachedCarried = carriedFor(slip.breakdown);
+			return cachedCarried;
+		};
+		const kept = (rows: readonly Wanted[]) => (ours ? rows : rows.filter(isMoney));
 		const entry: SlipEntry = {
 			slip,
 			run,
 			order,
 			law,
 			ours,
-			ownPostings: () => {
-				if (cachedOwn === undefined) cachedOwn = ownPostings(law, run, slip.breakdown);
-				return cachedOwn;
+			ownPostings: ownPostingsOf,
+			carriedEntries: carriedEntriesOf,
+			lines: () => {
+				if (cachedLines === undefined) cachedLines = linesOf(slip.breakdown);
+				return cachedLines;
 			},
-			carriedEntries: () => {
-				if (cachedCarried === undefined) cachedCarried = carriedFor(slip.breakdown);
-				return cachedCarried;
+			ownUnwindMoves: () => {
+				if (cachedOwnMoves === undefined) cachedOwnMoves = movements(kept(ownPostingsOf()), -1);
+				return cachedOwnMoves;
+			},
+			carriedUnwindMoves: () => {
+				if (cachedCarriedMoves === undefined)
+					cachedCarriedMoves = carriedEntriesOf().map((carriedEntry) => ({
+						order: runOrder.get(carriedEntry.run_id) ?? '',
+						moves: movements(kept(carriedEntry.postings), -1)
+					}));
+				return cachedCarriedMoves;
 			}
 		};
 		const employee = String(slip.employee_id);
@@ -587,15 +616,16 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	const stintOwner = new Map(
 		(spanData.employment ?? []).map((row) => [String(row.id), String(row.employee_id)])
 	);
-	const agreedByEmployee = Map.groupBy(
-		(spanData.contract_terms ?? []).flatMap((row) => {
-			const employee = stintOwner.get(String(row.employment_id));
-			return employee === undefined ? [] : [{ employee, row }];
-		}),
-		(entry) => entry.employee
-	);
+	const agreedByEmployee = new Map<string, JsonObject[]>();
+	for (const row of spanData.contract_terms ?? []) {
+		const employee = stintOwner.get(String(row.employment_id));
+		if (employee === undefined) continue;
+		const list = agreedByEmployee.get(employee);
+		if (list === undefined) agreedByEmployee.set(employee, [row]);
+		else list.push(row);
+	}
 	const agreedOf = (employee: string): readonly JsonObject[] =>
-		(agreedByEmployee.get(employee) ?? []).map(({ row }) => row);
+		agreedByEmployee.get(employee) ?? [];
 	/**
 	 * The person's paid on-cycle periods, oldest first: those that paid them, and those their stint was in with
 	 * nothing agreed yet (a hire signed after its first months), which a later period owes as back pay.
@@ -736,28 +766,44 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		else bucket.push({ effective_on, movement });
 	}
 	/** What this run has worked out for earlier periods so far: their postings, by person. */
-	const carried = new Map<string, { period: Period; postings: readonly Wanted[] }[]>();
+	const carried = new Map<
+		string,
+		{ readonly period: Period; readonly moves: readonly Movement[] }[]
+	>();
+	const baseAccountsByEmployee = new Map<string, Accounts>();
+	const baseAccountsOf = (employee: string): Accounts => {
+		let held = baseAccountsByEmployee.get(employee);
+		if (held === undefined) {
+			held = accountsOf(balances.get(employee)?.account);
+			baseAccountsByEmployee.set(employee, held);
+		}
+		return held;
+	};
+	const accountsAtCache = new Map<string, Accounts>();
 	/**
 	 * The balance a period saw: today's, less what was paid at or after it and what records posted after it closed, with
 	 * what this run has carried for earlier periods. Pay and contributions come off every payslip in these totals; leave
 	 * and claims, off this company's.
 	 */
 	const accountsAt = (employee: string, at: Period): Accounts => {
+		const carriedList = carried.get(employee) ?? [];
+		const cacheKey = `${employee}/${at.order}/${at.closes}/${carriedList.length}`;
+		const cached = accountsAtCache.get(cacheKey);
+		if (cached !== undefined) return cached;
 		const moves: Movement[] = [];
 		for (const slip of paidOf(employee)) {
-			const kept = (rows: readonly Wanted[]) => (slip.ours ? rows : rows.filter(isMoney));
-			if (slip.order >= at.order) moves.push(...movements(kept(slip.ownPostings()), -1));
+			if (slip.order >= at.order) moves.push(...slip.ownUnwindMoves());
 			// a carried difference is the period's it is for: one for this period or later comes off
-			for (const entry of slip.carriedEntries())
-				if ((runOrder.get(entry.run_id) ?? '') >= at.order)
-					moves.push(...movements(kept(entry.postings), -1));
+			for (const entry of slip.carriedUnwindMoves())
+				if (entry.order >= at.order) moves.push(...entry.moves);
 		}
 		// what this run carries is not in the balance yet
-		for (const entry of carried.get(employee) ?? [])
-			if (entry.period.order < at.order) moves.push(...movements(entry.postings, 1));
+		for (const entry of carriedList) if (entry.period.order < at.order) moves.push(...entry.moves);
 		for (const row of outside.get(employee) ?? [])
 			if (row.effective_on > at.closes) moves.push(row.movement);
-		return apply(accountsOf(balances.get(employee)?.account), moves);
+		const computed = apply(baseAccountsOf(employee), moves);
+		accountsAtCache.set(cacheKey, computed);
+		return computed;
 	};
 
 	// pre-index closed amendment rows once so per-period slicing and back-pay lookups are O(1)
@@ -896,10 +942,16 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 		return owed;
 	});
 
-	const attaches: Record<string, string[]> = {};
+	const attachSets = new Map<string, Set<string>>();
 	const attach = (more: Readonly<Record<string, readonly string[]>>) => {
-		for (const [layer, ids] of Object.entries(more))
-			attaches[layer] = unique([...(attaches[layer] ?? []), ...ids]);
+		for (const [layer, ids] of Object.entries(more)) {
+			let set = attachSets.get(layer);
+			if (set === undefined) {
+				set = new Set();
+				attachSets.set(layer, set);
+			}
+			for (const id of ids) set.add(id);
+		}
 	};
 	const lines = new Map<string, Line[]>();
 	const records = new Map<string, Carried[]>();
@@ -942,10 +994,10 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				known.recovered.has(`recovery:${String(paidSlip.slip.employment_id)}:${periodName}`);
 			// what was paid for it: its payslip's own lines, and what later payslips carried for it
 			const paidLines = [
-				...linesOf(paidSlip?.slip.breakdown).filter((line) => line.period === undefined),
-				...later.flatMap(({ slip }) =>
-					linesOf(slip.breakdown).filter((line) => line.period === periodName)
-				)
+				...(paidSlip === undefined
+					? []
+					: paidSlip.lines().filter((line) => line.period === undefined)),
+				...later.flatMap((entry) => entry.lines().filter((line) => line.period === periodName))
 			].filter((line) => !(settled && line.code === RECOVERY));
 			const paidPostings = [
 				...(paidSlip === undefined ? [] : paidSlip.ownPostings()),
@@ -987,8 +1039,9 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 				else prevRecords.push(nextRecord);
 			}
 			const prevCarried = carried.get(employee);
-			if (prevCarried === undefined) carried.set(employee, [{ period, postings }]);
-			else prevCarried.push({ period, postings });
+			const nextCarried = { period, moves: movements(postings, 1) };
+			if (prevCarried === undefined) carried.set(employee, [nextCarried]);
+			else prevCarried.push(nextCarried);
 			// if an exit was cancelled or moved, rows this period sealed past its active attendance cutoff drop out here
 			// and are released so the period that now owns their date prices and re-seals them
 			const until = attendanceEndOf(period, versionsOf(employee));
@@ -1057,7 +1110,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	}
 
 	// merge unclaimed released rows into this run's own read so it prices and re-seals them cleanly
-	const claimed = (layer: string) => new Set(attaches[layer] ?? []);
+	const claimed = (layer: string): ReadonlySet<string> => attachSets.get(layer) ?? new Set();
 	const mergeReleased = (
 		existing: readonly JsonObject[] | undefined,
 		extra: ReadonlyMap<string, JsonObject>,
@@ -1227,7 +1280,7 @@ export const amendedRun = Effect.fn('payroll.amendedRun')(function* (
 	);
 	return {
 		payslips,
-		attaches,
+		attaches: Object.fromEntries([...attachSets].map(([layer, ids]) => [layer, [...ids]])),
 		// a row is taken only when its person is on this run's payslips and its period was worked out: nobody else
 		// carries it, and one this run could not reach waits on
 		taken: open

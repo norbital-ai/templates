@@ -61,7 +61,7 @@ export default model('projects', {
 		/** Optional Autodesk Construction Cloud / BIM 360 project ID for schedule and document sync. */
 		autodesk_project_id: { kind: 'text', optional: true },
 		/** Single federated BIM IFC model for this project (updated in place with revision history). */
-		bim_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
+		bim_file: { kind: 'file', accept: ['*/*'], max: '250MiB', optional: true },
 		/** Revision label for the project's BIM model (e.g. P01, P04); record history keeps earlier files. */
 		bim_version: { kind: 'text', optional: true },
 		/**
@@ -71,7 +71,7 @@ export default model('projects', {
 		bim_takeoff: {
 			kind: 'file',
 			accept: ['application/json'],
-			max: '4MiB',
+			max: '16MiB',
 			optional: true,
 			hidden: true
 		},
@@ -99,7 +99,44 @@ export default model('projects', {
 					asset_count: { kind: 'int' },
 					storey_count: { kind: 'int' },
 					storeys: { kind: 'text', many: true },
-					analyzed_at: { kind: 'text' }
+					analyzed_at: { kind: 'text' },
+					upgraded_classes: { kind: 'int', optional: true },
+					propagated_services: { kind: 'int', optional: true },
+					multi_storey_splits: { kind: 'int', optional: true },
+					dropped_duplicates: { kind: 'int', optional: true }
+				}
+			}
+		},
+		/** Automatically evaluated BCA / SCDF / PUB / CORENET X & company SOP compliance scorecard. */
+		bim_compliance: {
+			kind: 'json',
+			optional: true,
+			shape: {
+				kind: 'object',
+				fields: {
+					checked_at: { kind: 'text' },
+					total_rules: { kind: 'int' },
+					pass_count: { kind: 'int' },
+					warn_count: { kind: 'int' },
+					fail_count: { kind: 'int' },
+					score_pct: { kind: 'int' },
+					findings: {
+						kind: 'object',
+						many: true,
+						fields: {
+							rule_code: { kind: 'text' },
+							rule_name: { kind: 'text' },
+							authority: { kind: 'text' },
+							severity: { kind: 'text' },
+							status: { kind: 'text' },
+							actual: { kind: 'text' },
+							expected: { kind: 'text' },
+							affected_count: { kind: 'int' },
+							clause_ref: { kind: 'text', optional: true },
+							remediation: { kind: 'text', optional: true },
+							sample_express_ids: { kind: 'int', many: true, optional: true }
+						}
+					}
 				}
 			}
 		},
@@ -115,8 +152,6 @@ export default model('projects', {
 			of: 'tasks',
 			where: { status: { in: ['todo', 'in_progress', 'blocked'] } }
 		},
-		/** Open issues across the project's tasks. */
-		open_issue_count: { kind: 'sum', of: 'tasks.open_issue_count' },
 		active_contract_count: {
 			kind: 'count',
 			of: 'contracts',
@@ -152,6 +187,7 @@ export default model('projects', {
 			'bim_takeoff',
 			'bim_takeoff_views',
 			'bim_summary',
+			'bim_compliance',
 			'bim_costing_dirty',
 			'bim_costing_error'
 		],
@@ -167,6 +203,7 @@ export default model('projects', {
 					...c.set,
 					bim_takeoff: null,
 					bim_takeoff_views: null,
+					bim_compliance: null,
 					bim_costing_error: null,
 					bim_costing_dirty: c.after.bim_file != null
 				};

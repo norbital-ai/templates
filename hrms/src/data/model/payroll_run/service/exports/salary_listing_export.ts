@@ -1,6 +1,15 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { DateTime, Option, Schema } from 'effect';
 import { PayslipBreakdown } from '../payslip_breakdown.js';
+import {
+	boxBorder,
+	monthOf,
+	solidFill,
+	styleDetailSheet,
+	styleTotalsRow,
+	uniqueSheetName,
+	type XlsxWorkbook
+} from './xlsx_sheet.js';
 
 /** A run per sheet, one signed column per catalogue item and party, plus its saved payroll totals. */
 type Person = {
@@ -27,18 +36,6 @@ export type Sheet = {
 	readonly people: readonly Person[];
 };
 
-/** `2026-10` → `OCT 2026`, a half-month `2026-10-1` → `OCT 2026 1ST HALF`. */
-const monthOf = (period: string) => {
-	const match = /^(\d{4})-(\d{2})(?:-([12]))?$/.exec(period);
-	if (match === null) return period.toUpperCase();
-	const half = match[3] === undefined ? '' : match[3] === '1' ? ' 1ST HALF' : ' 2ND HALF';
-	const month = DateTime.formatUtc(DateTime.makeUnsafe(`${match[1]}-${match[2]}-01`), {
-		locale: 'en',
-		month: 'short',
-		year: 'numeric'
-	});
-	return `${month.toUpperCase()}${half}`;
-};
 const amount = (value: unknown): number => {
 	if (value == null || (typeof value === 'string' && value.trim() === ''))
 		throw new Error('The salary listing needs every saved payslip total.');
@@ -345,23 +342,8 @@ const IDENTITY = [
 const FROZEN = 4;
 const HEAD = 4;
 
-const sheetName = (label: string, taken: Set<string>) => {
-	const base = label.replaceAll(/[\\/?*[\]:]/g, '-');
-	let name = base.slice(0, 31);
-	for (let next = 2; taken.has(name.toLowerCase()); next++) {
-		const suffix = ` (${next})`;
-		name = `${base.slice(0, 31 - suffix.length)}${suffix}`;
-	}
-	taken.add(name.toLowerCase());
-	return name;
-};
-
 /** One run's sheet, laid out as the listing. */
-const addSheet = (
-	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
-	sheet: Sheet,
-	name: string
-) => {
+const addSheet = (workbook: XlsxWorkbook, sheet: Sheet, name: string) => {
 	const columns = columnsOf(sheet);
 	const ws = workbook.addWorksheet(name, {
 		views: [{ state: 'frozen', xSplit: FROZEN, ySplit: HEAD, zoomScale: 85 }],
@@ -408,8 +390,8 @@ const addSheet = (
 				const cell = ws.getCell(row, column + 1);
 				cell.font = { bold: true, size: 10 };
 				cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: entry.fill } };
-				cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+				cell.fill = solidFill(entry.fill);
+				cell.border = boxBorder(THIN);
 			}
 		}
 	}
@@ -435,11 +417,10 @@ const addSheet = (
 			cell.value = column.value(person);
 			cell.numFmt = ACCOUNTING;
 			// the band's colour runs down its figures, so a subtotal's lines read as one block
-			cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: column.fill } };
+			cell.fill = solidFill(column.fill);
 			if (column.total) cell.font = { bold: true };
 		}
-		for (let column = 1; column <= width; column++)
-			row.getCell(column).border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+		for (let column = 1; column <= width; column++) row.getCell(column).border = boxBorder(THIN);
 	}
 
 	const last = HEAD + sheet.people.length;
@@ -454,19 +435,12 @@ const addSheet = (
 		};
 		cell.numFmt = ACCOUNTING;
 	}
-	for (let column = 1; column <= width; column++) {
-		const cell = totals.getCell(column);
-		cell.font = { bold: true };
-		cell.border = { top: THIN, bottom: { style: 'double', color: { argb: 'FF000000' } } };
-	}
+	styleTotalsRow(ws, last + 1, width, THIN);
 	ws.autoFilter = { from: { row: HEAD, column: 1 }, to: { row: last, column: width } };
 };
 
 /** Every saved line remains inspectable, including the period a correction belongs to. */
-const addDetails = (
-	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
-	sheets: readonly { sheet: Sheet; name: string }[]
-) => {
+const addDetails = (workbook: XlsxWorkbook, sheets: readonly { sheet: Sheet; name: string }[]) => {
 	const ws = workbook.addWorksheet('Line details', {
 		views: [{ state: 'frozen', xSplit: 4, ySplit: 1 }],
 		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
@@ -514,13 +488,7 @@ const addDetails = (
 				row.getCell(12).numFmt = '0.####';
 				row.getCell(14).numFmt = ACCOUNTING;
 			}
-	ws.getRow(1).height = 32;
-	ws.getRow(1).eachCell((cell) => {
-		cell.font = { bold: true };
-		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: IDENTITY_FILL } };
-		cell.alignment = { vertical: 'middle', wrapText: true };
-	});
-	ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: columns.length } };
+	styleDetailSheet(ws, columns.length, 32, IDENTITY_FILL);
 };
 
 /** The listing of these runs and their saved line details as one workbook. */
@@ -530,7 +498,7 @@ export const workbookOf = (sheets: readonly Sheet[]) => {
 	const taken = new Set<string>(['line details']);
 	const named = sheets.map((sheet) => ({
 		sheet,
-		name: sheetName(`${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`, taken)
+		name: uniqueSheetName(`${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`, taken)
 	}));
 	for (const { sheet, name } of named) addSheet(workbook, sheet, name);
 	addDetails(workbook, named);

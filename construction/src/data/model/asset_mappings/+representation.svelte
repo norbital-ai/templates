@@ -30,10 +30,11 @@
 	/>
 {/snippet}
 
-<RecordForm {ctx} {view} subtitle={['ifc_class', 'source']}>
+<RecordForm {ctx} {view} subtitle={['ifc_class', 'continuity', 'review_status']}>
 	<Section icon="lucide:shapes" first name="asset" title={ctx.t('section.asset_priced_as')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="item_id" editor={itemEditor} />
+			<Field {ctx} name="review_status" />
 			<Field {ctx} name="source" readonly />
 			<Field {ctx} name="confidence" readonly />
 			<Column span="all"><Field {ctx} name="note" /></Column>
@@ -44,11 +45,15 @@
 		icon="lucide:fingerprint"
 		name="identity"
 		title={ctx.t('section.asset_identity')}
-		default_open={false}
+		default_open={true}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="label" readonly />
-			<Field {ctx} name="ifc_class" readonly />
+			<Field {ctx} name="ifc_class" />
+			<Field {ctx} name="continuity" />
+			<Field {ctx} name="service" />
+			<Field {ctx} name="size_mm" readonly />
+			<Column span="all"><Field {ctx} name="cleanup_note" readonly /></Column>
 			<Column span="all"><Field {ctx} name="signature" readonly /></Column>
 		</Grid>
 	</Section>

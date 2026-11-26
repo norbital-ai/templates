@@ -58,7 +58,7 @@
 		{#each zones as zone, idx (idx)}
 			<Surface tone="subtle" padding="sm" radius="control">
 				<Stack gap="sm">
-					<Grid minimum="card" gap="sm">
+					<Grid minimum="compact" gap="sm">
 						<Stack gap="xs">
 							<Label for={`${uid}-zn-code-${idx}`}>{t('zones.code')}</Label>
 							<Input

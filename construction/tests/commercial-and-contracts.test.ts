@@ -3,13 +3,15 @@ import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
 import {
 	computeCatalogCashflowBreakdown,
-	computeDocumentTotals,
-	computeLinesTotals,
 	computeProjectCarbon,
 	computeProjectCashflow,
-	computeProjectCommercial,
+	computeProjectCommercial
+} from '../src/services/commercial/analytics.js';
+import {
+	computeDocumentTotals,
+	computeLinesTotals,
 	evaluateThreeWayMatch
-} from '../src/lib/commercial.js';
+} from '../src/services/commercial/lines.js';
 import { fixtureId, recordOf, rowsOf, workspace as acquireWorkspace } from './test-runtime.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -744,73 +746,65 @@ it.effect(
 			});
 			if (taskCreate.kind !== 'committed') throw new Error('Task create failed');
 			const taskRef = recordOf(taskCreate.records, 'tasks');
-			// the people working on a project comment on its tasks; a read-only viewer cannot
-			const comment = yield* delivery.act({
+			// Delivery & QS log polymorphic activities across tasks and projects; a read-only viewer cannot
+			const taskAct = yield* delivery.act({
 				'activities.create': [
-					{ task_id: taskRef.id, kind: 'comment', body: 'Deck fixings checked.' }
+					{
+						about: { model: 'tasks', id: taskRef.id },
+						title: 'Roof deck fixing check',
+						description: 'Deck fixings checked.'
+					}
 				]
 			});
-			expect(comment.kind).toBe('committed');
+			expect(taskAct.kind).toBe('committed');
 			const posted = rowsOf(
 				yield* viewer.query({
-					activities: { where: { task_id: { eq: taskRef.id } }, fields: ['author'], limit: 1 }
+					activities: {
+						where: { about: { tasks: { eq: taskRef.id } } },
+						fields: ['author', 'project_id', 'title'],
+						limit: 1
+					}
 				}),
 				'activities'
 			)[0];
 			expect(posted?.['author']).toBe(deliveryUser.id);
-			const viewerComment = yield* viewer
-				.act({
-					'activities.create': [{ task_id: taskRef.id, kind: 'comment', body: 'Looks good.' }]
-				})
-				.pipe(Effect.flip);
-			expect(viewerComment._tag).toBe('ActRefused');
-			// Commercial QS comments on tasks but raises no site issues -> verify none persisted, paired with delivery's
-			const qsIssueDenied = yield* qs
+			expect(posted?.['project_id']).toBe(projectId);
+			const viewerDenied = yield* viewer
 				.act({
 					'activities.create': [
-						{ task_id: taskRef.id, kind: 'issue', title: 'Denied issue', issue_type: 'defect' }
+						{
+							about: { model: 'tasks', id: taskRef.id },
+							title: 'Viewer note',
+							description: 'Looks good.'
+						}
 					]
 				})
 				.pipe(Effect.flip);
-			expect(qsIssueDenied).toMatchObject({ _tag: 'ActRefused', key: 'errors.comments_only' });
-			expect(
-				rowsOf(
-					yield* viewer.query({
-						activities: {
-							where: { task_id: { eq: taskRef.id }, kind: { eq: 'issue' } },
-							fields: ['title'],
-							limit: 10
-						}
-					}),
-					'activities'
-				)
-			).toHaveLength(0);
-
-			const deliveryIssueOk = yield* delivery.act({
-				'activities.create': [{ task_id: taskRef.id, kind: 'issue', title: 'Roof flashing gap' }]
+			expect(viewerDenied._tag).toBe('ActRefused');
+			// Commercial QS can also log polymorphic activities (e.g. against project)
+			const qsProjectAct = yield* qs.act({
+				'activities.create': [
+					{
+						about: { model: 'projects', id: projectId },
+						title: 'Valuation walkdown',
+						description: 'Verified roofing progress for monthly claim.'
+					}
+				]
 			});
-			expect(deliveryIssueOk.kind).toBe('committed');
+			expect(qsProjectAct.kind).toBe('committed');
+			// Project roll-up query sees both task-level and project-level activities
 			expect(
 				rowsOf(
 					yield* viewer.query({
 						activities: {
-							where: { task_id: { eq: taskRef.id }, kind: { eq: 'issue' } },
+							where: { project_id: { eq: projectId } },
 							fields: ['title'],
 							limit: 10
 						}
 					}),
 					'activities'
 				)
-			).toHaveLength(1);
-			// the task counts its open issues
-			expect(
-				rowsOf(
-					yield* viewer.query({
-						tasks: { where: { id: { eq: taskRef.id } }, fields: ['open_issue_count'], limit: 1 }
-					}),
-					'tasks'
-				)[0]?.['open_issue_count']
-			).toBe(1);
+			).toHaveLength(2);
 
 			const movedTask = yield* delivery.act({
 				'tasks.update': [{ target: taskRef, set: { status: 'in_progress' } }]

@@ -1,82 +1,64 @@
-import { Schema } from 'effect';
+import { empty, mapOf, num, numArr, optStr, str, struct } from './shared.js';
+
+const namedAllowance = struct({ allowance: str });
 
 /** Typed param schemas for allowance_catalog: required keys are required, not hidden in a side map. */
 export const allowance_catalog = {
-	allowance: Schema.Struct({
-		allowance: Schema.String
+	...mapOf(
+		[
+			'ATTENDANCE_ALLOWANCE',
+			'BENEFIT_IN_KIND',
+			'CAR_ALLOWANCE',
+			'CHILDCARE_SUBSIDY',
+			'COMMUTING_ALLOWANCE',
+			'COMMUTING_ALLOWANCE_TAXABLE',
+			'FAMILY_ALLOWANCE',
+			'FIXED_ALLOWANCE',
+			'FIXED_MONTHLY',
+			'FOREIGN_CHILD_EDUCATION_ALLOWANCE',
+			'FOREIGN_HOUSING_ALLOWANCE',
+			'FOREIGN_LANGUAGE_ALLOWANCE',
+			'FULL_ATTENDANCE_BONUS',
+			'HOUSE_ALLOWANCE',
+			'HOUSING',
+			'HOUSING_ALLOWANCE',
+			'INSURANCE_EQUIVALENT',
+			'MEAL_ALLOWANCE_TAXABLE',
+			'MEAL_SUBSIDY_OUT',
+			'ONLY_CHILD_ALLOWANCE',
+			'PT_ANNUAL_HOURLY_AW',
+			'PT_ANNUAL_HOURLY_OW',
+			'SPECIAL_ALLOWANCE',
+			'TRANSPORT_ALLOWANCE',
+			'TRAVEL_ALLOWANCE',
+			'WORK_EXPENSE_ALLOWANCE'
+		],
+		empty
+	),
+	...mapOf(
+		[
+			'allowance',
+			'CHILDCARE_ALLOWANCE',
+			'communication',
+			'corporate_duty_allowance',
+			'DEPENDANT_MEDICAL_ALLOWANCE',
+			'duty_allowance',
+			'LAUNDRY_ALLOWANCE',
+			'leader',
+			'meal',
+			'ONCALL',
+			'PARKING_ALLOWANCE',
+			'position',
+			'SUA',
+			'transport'
+		],
+		namedAllowance
+	),
+	HIGH_TEMPERATURE_ALLOWANCE: struct({
+		km_daily: num,
+		monthly: num,
+		months: numArr,
+		region: str
 	}),
-	ATTENDANCE_ALLOWANCE: Schema.Struct({}),
-	BENEFIT_IN_KIND: Schema.Struct({}),
-	CAR_ALLOWANCE: Schema.Struct({}),
-	CHILDCARE_ALLOWANCE: Schema.Struct({
-		allowance: Schema.String
-	}),
-	CHILDCARE_SUBSIDY: Schema.Struct({}),
-	communication: Schema.Struct({
-		allowance: Schema.String
-	}),
-	COMMUTING_ALLOWANCE: Schema.Struct({}),
-	COMMUTING_ALLOWANCE_TAXABLE: Schema.Struct({}),
-	corporate_duty_allowance: Schema.Struct({
-		allowance: Schema.String
-	}),
-	DEPENDANT_MEDICAL_ALLOWANCE: Schema.Struct({
-		allowance: Schema.String
-	}),
-	duty_allowance: Schema.Struct({
-		allowance: Schema.String
-	}),
-	FAMILY_ALLOWANCE: Schema.Struct({}),
-	FIXED_ALLOWANCE: Schema.Struct({}),
-	FIXED_MONTHLY: Schema.Struct({}),
-	FOREIGN_CHILD_EDUCATION_ALLOWANCE: Schema.Struct({}),
-	FOREIGN_HOUSING_ALLOWANCE: Schema.Struct({}),
-	FOREIGN_LANGUAGE_ALLOWANCE: Schema.Struct({}),
-	FULL_ATTENDANCE_BONUS: Schema.Struct({}),
-	HIGH_TEMPERATURE_ALLOWANCE: Schema.Struct({
-		km_daily: Schema.Number,
-		monthly: Schema.Number,
-		months: Schema.Array(Schema.Number),
-		region: Schema.String
-	}),
-	HOUSE_ALLOWANCE: Schema.Struct({}),
-	HOUSING: Schema.Struct({}),
-	HOUSING_ALLOWANCE: Schema.Struct({}),
-	INSURANCE_EQUIVALENT: Schema.Struct({}),
-	LAUNDRY_ALLOWANCE: Schema.Struct({
-		allowance: Schema.String
-	}),
-	leader: Schema.Struct({
-		allowance: Schema.String
-	}),
-	meal: Schema.Struct({
-		allowance: Schema.String
-	}),
-	MEAL_ALLOWANCE: Schema.Struct({
-		allowance: Schema.optional(Schema.String)
-	}),
-	MEAL_ALLOWANCE_TAXABLE: Schema.Struct({}),
-	MEAL_SUBSIDY_OUT: Schema.Struct({}),
-	ONCALL: Schema.Struct({
-		allowance: Schema.String
-	}),
-	ONLY_CHILD_ALLOWANCE: Schema.Struct({}),
-	PARKING_ALLOWANCE: Schema.Struct({
-		allowance: Schema.String
-	}),
-	position: Schema.Struct({
-		allowance: Schema.String
-	}),
-	PT_ANNUAL_HOURLY_AW: Schema.Struct({}),
-	PT_ANNUAL_HOURLY_OW: Schema.Struct({}),
-	SPECIAL_ALLOWANCE: Schema.Struct({}),
-	SUA: Schema.Struct({
-		allowance: Schema.String
-	}),
-	transport: Schema.Struct({
-		allowance: Schema.String
-	}),
-	TRANSPORT_ALLOWANCE: Schema.Struct({}),
-	TRAVEL_ALLOWANCE: Schema.Struct({}),
-	WORK_EXPENSE_ALLOWANCE: Schema.Struct({})
+	MEAL_ALLOWANCE: struct({ allowance: optStr })
 } as const;

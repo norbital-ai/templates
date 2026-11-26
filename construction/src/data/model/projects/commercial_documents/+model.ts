@@ -1,15 +1,13 @@
 import { model, type Id } from '@norbital-ai/bolt';
 import { BigDecimal } from 'effect';
 import {
+	computeDocumentTotals,
+	evaluateThreeWayMatch,
 	resolveCatalogLines,
 	type BimTakeoffBucketRef,
 	type CatalogItemRef
-} from '../../../../lib/catalog-lines.js';
-import {
-	computeDocumentTotals,
-	evaluateThreeWayMatch,
-	toDecimal
-} from '../../../../lib/commercial.js';
+} from '../../../../services/commercial/lines.js';
+import { toDecimal } from '../../../../services/commercial/decimal.js';
 import { addCalendarDays } from '../../../../lib/dates.js';
 
 const columns = [

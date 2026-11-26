@@ -17,7 +17,7 @@
 	} from '@norbital-ai/ui';
 	import { Option, Schema } from 'effect';
 	import CatalogLinesEditor from '../../../../lib/CatalogLinesEditor.svelte';
-	import { decodePricedLines } from '../../../../lib/commercial.js';
+	import { decodePricedLines } from '../../../../services/commercial/lines.js';
 
 	let { view, ctx }: { view: RecordView<'commercial_documents'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -121,7 +121,7 @@
 
 {#snippet docSections()}
 	<Section icon="lucide:banknote" first name="document" title={t('section.commercial_document')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="doc_type" />
 			<Field {ctx} name="direction" />
 			{#if record !== null}
@@ -142,7 +142,7 @@
 	</Section>
 
 	<Section icon="lucide:receipt" name="amounts" title={t('section.amounts_and_matching')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="currency" />
 			<Field {ctx} name="subtotal" />
 			<Field {ctx} name="tax_rate" />
@@ -169,7 +169,7 @@
 		title={t('section.supporting_docs')}
 		default_open={false}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
 			<Column span="all"><Field {ctx} name="description" /></Column>
 			<Column span="all"><Field {ctx} name="attachments" /></Column>

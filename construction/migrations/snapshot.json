@@ -3,60 +3,18 @@
 	"tables": {
 		"activities": {
 			"audit": true,
-			"check": {
-				"issue_complete": {
-					"or": [
-						{
-							"kind": {
-								"ne": "issue"
-							}
-						},
-						{
-							"issue_type": {
-								"is_null": false
-							},
-							"severity": {
-								"is_null": false
-							},
-							"status": {
-								"is_null": false
-							},
-							"title": {
-								"is_null": false
-							}
-						}
-					]
-				},
-				"meeting_titled": {
-					"or": [
-						{
-							"kind": {
-								"ne": "meeting"
-							}
-						},
-						{
-							"title": {
-								"is_null": false
-							}
-						}
-					]
-				},
-				"said_something": {
-					"or": [
-						{
-							"body": {
-								"is_null": false
-							}
-						},
-						{
-							"title": {
-								"is_null": false
-							}
-						}
-					]
-				}
-			},
 			"fields": {
+				"about": {
+					"inverse": "activities",
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": [
+						"projects",
+						"tasks",
+						"contracts",
+						"contacts"
+					]
+				},
 				"attachments": {
 					"accept": [
 						"*/*"
@@ -66,41 +24,14 @@
 					"max": "20MiB",
 					"optional": true
 				},
-				"attendees": {
-					"kind": "text",
-					"many": true,
-					"optional": true
-				},
 				"author": {
 					"kind": "ref",
 					"optional": true,
 					"to": "sys_user"
 				},
-				"body": {
-					"format": "markdown",
-					"images": "attachments",
+				"description": {
 					"kind": "text",
 					"optional": true
-				},
-				"issue_type": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"defect",
-						"rfi",
-						"clash",
-						"safety",
-						"snag"
-					]
-				},
-				"kind": {
-					"default": "comment",
-					"kind": "enum",
-					"values": [
-						"comment",
-						"issue",
-						"meeting"
-					]
 				},
 				"occurred_at": {
 					"default": {
@@ -108,15 +39,12 @@
 					},
 					"kind": "instant"
 				},
-				"severity": {
-					"kind": "enum",
+				"project_id": {
+					"inverse": "project_activities",
+					"kind": "ref",
+					"on_delete": "cascade",
 					"optional": true,
-					"values": [
-						"low",
-						"medium",
-						"high",
-						"critical"
-					]
+					"to": "projects"
 				},
 				"source_message_id": {
 					"inverse": "activities",
@@ -125,34 +53,30 @@
 					"optional": true,
 					"to": "project_messages"
 				},
-				"status": {
-					"kind": "enum",
-					"optional": true,
-					"values": [
-						"open",
-						"closed"
-					]
-				},
-				"task_id": {
-					"inverse": "activities",
-					"kind": "ref",
-					"owned": true,
-					"to": "tasks"
-				},
 				"title": {
-					"kind": "text",
-					"optional": true
+					"kind": "text"
 				}
 			},
 			"indexes": [
 				{
 					"on": [
-						"task_id",
-						"kind"
+						"occurred_at"
+					]
+				},
+				{
+					"on": [
+						"project_id",
+						"occurred_at"
 					]
 				}
 			],
-			"record_label": "record.title != null ? record.title : record.body"
+			"record_label": "record.title",
+			"search": {
+				"text": [
+					"title",
+					"description"
+				]
+			}
 		},
 		"adhoc_costs": {
 			"audit": true,
@@ -402,10 +326,23 @@
 		"asset_mappings": {
 			"audit": true,
 			"fields": {
+				"cleanup_note": {
+					"kind": "text",
+					"optional": true
+				},
 				"confidence": {
 					"kind": "decimal",
 					"optional": true,
 					"scale": 2
+				},
+				"continuity": {
+					"default": "discontiguous",
+					"kind": "enum",
+					"values": [
+						"discontiguous",
+						"contiguous_linear",
+						"contiguous_planar"
+					]
 				},
 				"ifc_class": {
 					"kind": "text"
@@ -432,8 +369,25 @@
 					"max": "1MiB",
 					"optional": true
 				},
+				"review_status": {
+					"default": "pending",
+					"kind": "enum",
+					"values": [
+						"pending",
+						"verified",
+						"flagged"
+					]
+				},
+				"service": {
+					"kind": "text",
+					"optional": true
+				},
 				"signature": {
 					"kind": "text"
+				},
+				"size_mm": {
+					"kind": "text",
+					"optional": true
 				},
 				"source": {
 					"default": "system_1",
@@ -445,11 +399,20 @@
 					]
 				}
 			},
+			"indexes": [
+				{
+					"on": [
+						"review_status"
+					]
+				}
+			],
 			"record_label": "record.label",
 			"search": {
 				"text": [
 					"label",
-					"ifc_class"
+					"ifc_class",
+					"service",
+					"size_mm"
 				]
 			},
 			"unique": [
@@ -459,6 +422,280 @@
 					],
 					"import_key": true,
 					"name": "one_per_signature"
+				}
+			]
+		},
+		"bim_settings": {
+			"audit": true,
+			"check": {
+				"valid_confidence": {
+					"min_confidence": {
+						"gte": 0.1,
+						"lte": 0.99
+					}
+				},
+				"valid_variance": {
+					"variance_flag_pct": {
+						"gte": 1,
+						"lte": 100
+					}
+				}
+			},
+			"fields": {
+				"auto_deduplicate": {
+					"default": true,
+					"kind": "bool"
+				},
+				"auto_reclassify_generic": {
+					"default": true,
+					"kind": "bool"
+				},
+				"auto_split_multi_storey": {
+					"default": true,
+					"kind": "bool"
+				},
+				"code": {
+					"default": "default",
+					"kind": "text"
+				},
+				"connection_gap_tol_m": {
+					"default": 0.05,
+					"kind": "decimal",
+					"scale": 3
+				},
+				"duplicate_center_tol_m": {
+					"default": 0.05,
+					"kind": "decimal",
+					"scale": 3
+				},
+				"exclude_ifc_classes": {
+					"default": [
+						"IFCSPACE",
+						"IFCOPENINGELEMENT"
+					],
+					"kind": "text",
+					"many": true
+				},
+				"extra_property_keys": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"material_densities": {
+					"default": {
+						"aluminium": 2700,
+						"concrete": 2400,
+						"copper": 8960,
+						"galvanised steel": 7850,
+						"stainless steel": 7930,
+						"steel": 7850
+					},
+					"kind": "json",
+					"optional": true
+				},
+				"max_candidates": {
+					"default": 80,
+					"kind": "int",
+					"max": 250,
+					"min": 10
+				},
+				"max_proposals": {
+					"default": 30,
+					"kind": "int",
+					"max": 200,
+					"min": 0
+				},
+				"max_visual_archetypes": {
+					"default": 200,
+					"kind": "int",
+					"max": 2000,
+					"min": 1
+				},
+				"min_confidence": {
+					"default": 0.7,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"name": {
+					"default": "Default BIM Takeoff & Cleanup Policy",
+					"kind": "text"
+				},
+				"notes": {
+					"format": "markdown",
+					"kind": "text",
+					"optional": true
+				},
+				"service_aliases": {
+					"default": {
+						"chilled_water": [
+							"chilled water",
+							"chw",
+							"chws",
+							"chwr",
+							"condenser water",
+							"cws",
+							"cwr",
+							"chiller",
+							"cooling tower"
+						],
+						"domestic_cold_water": [
+							"domestic cold",
+							"cold water",
+							"potable",
+							"dcw",
+							"cw supply",
+							"water supply"
+						],
+						"domestic_hot_water": [
+							"domestic hot",
+							"hot water",
+							"dhw",
+							"hw supply",
+							"water heater"
+						],
+						"electrical_power": [
+							"electrical",
+							"electric",
+							"power",
+							"conduit",
+							"emt",
+							"cablesegment",
+							"cablecarrier",
+							"cable",
+							"trunking",
+							"panelboard",
+							"switchboard",
+							"receptacle",
+							"outlet",
+							"switchingdevice",
+							"socket",
+							"lighting",
+							"lightfixture",
+							"luminaire",
+							"downlight"
+						],
+						"elv_comms": [
+							"elv",
+							"data",
+							"telecom",
+							"cctv",
+							"security",
+							"audio",
+							"av",
+							"bms",
+							"nurse call"
+						],
+						"fire_protection": [
+							"fire",
+							"sprinkler",
+							"hose reel",
+							"wet riser",
+							"dry riser",
+							"hydrant",
+							"smoke",
+							"alarm"
+						],
+						"hydronic_hvac": [
+							"hydronic",
+							"heating",
+							"boiler",
+							"radiator",
+							"space heater",
+							"fcu",
+							"ahu",
+							"refrigerant",
+							"vrf",
+							"vrv",
+							"acmv",
+							"hvac"
+						],
+						"natural_gas": [
+							"natural gas",
+							"town gas",
+							"lpg",
+							"gas supply",
+							"fuel gas"
+						],
+						"sanitary_dwv": [
+							"sanitary",
+							"waste",
+							"soil",
+							"sewer",
+							"vent",
+							"dwv",
+							"toilet",
+							"urinal",
+							"sink",
+							"lavatory",
+							"tub",
+							"shower",
+							"floor trap"
+						],
+						"storm_drain": [
+							"storm drain",
+							"storm water",
+							"stormwater",
+							"rainwater",
+							"rwdp",
+							"roof drain",
+							"surface drain",
+							"storm"
+						],
+						"ventilation_duct": [
+							"supply air",
+							"return air",
+							"exhaust air",
+							"fresh air",
+							"airterminal",
+							"duct",
+							"diffuser",
+							"grille",
+							"fan",
+							"ventilation"
+						]
+					},
+					"kind": "json",
+					"optional": true
+				},
+				"shape_tolerance_pct": {
+					"default": 3,
+					"kind": "decimal",
+					"scale": 1
+				},
+				"size_band_step_mm": {
+					"default": 25,
+					"kind": "decimal",
+					"scale": 1
+				},
+				"size_bands_mm": {
+					"default": [
+						20,
+						32,
+						50,
+						80,
+						100,
+						150,
+						200,
+						300,
+						500
+					],
+					"kind": "int",
+					"many": true
+				},
+				"variance_flag_pct": {
+					"default": 15,
+					"kind": "decimal",
+					"scale": 1
+				}
+			},
+			"record_label": "record.name",
+			"unique": [
+				{
+					"fields": [
+						"code"
+					],
+					"import_key": true,
+					"name": "unique_code"
 				}
 			]
 		},
@@ -1452,10 +1689,29 @@
 					"many": true,
 					"optional": true
 				},
+				"insulated": {
+					"default": "any",
+					"kind": "enum",
+					"values": [
+						"any",
+						"insulated",
+						"uninsulated"
+					]
+				},
 				"match_keywords": {
 					"kind": "text",
 					"many": true,
 					"optional": true
+				},
+				"max_size_mm": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 1
+				},
+				"min_size_mm": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 1
 				},
 				"name": {
 					"kind": "text"
@@ -1496,6 +1752,21 @@
 				"stands_in_for": {
 					"kind": "text",
 					"optional": true
+				},
+				"system_services": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"topology_mode": {
+					"default": "auto",
+					"kind": "enum",
+					"values": [
+						"auto",
+						"discontiguous",
+						"contiguous_linear",
+						"contiguous_planar"
+					]
 				},
 				"trade_specialty": {
 					"default": "general",
@@ -1918,6 +2189,76 @@
 					"kind": "text",
 					"optional": true
 				},
+				"bim_compliance": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"checked_at": {
+								"kind": "text"
+							},
+							"fail_count": {
+								"kind": "int"
+							},
+							"findings": {
+								"fields": {
+									"actual": {
+										"kind": "text"
+									},
+									"affected_count": {
+										"kind": "int"
+									},
+									"authority": {
+										"kind": "text"
+									},
+									"clause_ref": {
+										"kind": "text",
+										"optional": true
+									},
+									"expected": {
+										"kind": "text"
+									},
+									"remediation": {
+										"kind": "text",
+										"optional": true
+									},
+									"rule_code": {
+										"kind": "text"
+									},
+									"rule_name": {
+										"kind": "text"
+									},
+									"sample_express_ids": {
+										"kind": "int",
+										"many": true,
+										"optional": true
+									},
+									"severity": {
+										"kind": "text"
+									},
+									"status": {
+										"kind": "text"
+									}
+								},
+								"kind": "object",
+								"many": true
+							},
+							"pass_count": {
+								"kind": "int"
+							},
+							"score_pct": {
+								"kind": "int"
+							},
+							"total_rules": {
+								"kind": "int"
+							},
+							"warn_count": {
+								"kind": "int"
+							}
+						},
+						"kind": "object"
+					}
+				},
 				"bim_costing_dirty": {
 					"default": false,
 					"kind": "bool"
@@ -1932,7 +2273,7 @@
 						"*/*"
 					],
 					"kind": "file",
-					"max": "20MiB",
+					"max": "250MiB",
 					"optional": true
 				},
 				"bim_summary": {
@@ -1946,6 +2287,18 @@
 							"asset_count": {
 								"kind": "int"
 							},
+							"dropped_duplicates": {
+								"kind": "int",
+								"optional": true
+							},
+							"multi_storey_splits": {
+								"kind": "int",
+								"optional": true
+							},
+							"propagated_services": {
+								"kind": "int",
+								"optional": true
+							},
 							"schema": {
 								"kind": "text"
 							},
@@ -1955,6 +2308,10 @@
 							"storeys": {
 								"kind": "text",
 								"many": true
+							},
+							"upgraded_classes": {
+								"kind": "int",
+								"optional": true
 							}
 						},
 						"kind": "object"
@@ -1966,7 +2323,7 @@
 					],
 					"hidden": true,
 					"kind": "file",
-					"max": "4MiB",
+					"max": "16MiB",
 					"optional": true
 				},
 				"bim_takeoff_views": {
@@ -2016,10 +2373,6 @@
 							]
 						}
 					}
-				},
-				"open_issue_count": {
-					"kind": "sum",
-					"of": "tasks.open_issue_count"
 				},
 				"open_task_count": {
 					"kind": "count",
@@ -2138,6 +2491,147 @@
 			},
 			"key": "text",
 			"record_label": "record.user_id"
+		},
+		"sop_rules": {
+			"audit": true,
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"authority": {
+					"default": "bca",
+					"kind": "enum",
+					"values": [
+						"corenet_x",
+						"bca",
+						"scdf",
+						"pub",
+						"ura",
+						"company_sop"
+					]
+				},
+				"clause_ref": {
+					"kind": "text",
+					"optional": true
+				},
+				"code": {
+					"kind": "text"
+				},
+				"ifc_classes": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"metric": {
+					"default": "min_width_mm",
+					"kind": "enum",
+					"values": [
+						"schema_version",
+						"georef_crs",
+						"sgpset_coverage_pct",
+						"unassigned_storey_pct",
+						"proxy_ratio_pct",
+						"duplicate_count",
+						"mep_untagged_pct",
+						"min_width_mm",
+						"min_height_mm",
+						"min_thickness_mm",
+						"max_thickness_mm",
+						"max_riser_mm",
+						"min_tread_mm",
+						"max_slope_pct",
+						"required_property",
+						"required_material",
+						"required_service",
+						"min_classified_pct",
+						"max_unmatched_count",
+						"max_variance_warnings",
+						"semantic_check"
+					]
+				},
+				"name": {
+					"kind": "text"
+				},
+				"name_contains": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"operator": {
+					"default": "gte",
+					"kind": "enum",
+					"values": [
+						"gte",
+						"lte",
+						"eq",
+						"contains",
+						"present"
+					]
+				},
+				"remediation": {
+					"kind": "text",
+					"optional": true
+				},
+				"scope": {
+					"default": "element",
+					"kind": "enum",
+					"values": [
+						"model",
+						"element",
+						"estimate"
+					]
+				},
+				"service_filter": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"severity": {
+					"default": "error",
+					"kind": "enum",
+					"values": [
+						"error",
+						"warning",
+						"info"
+					]
+				},
+				"threshold_num": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"threshold_text": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"authority",
+						"active"
+					]
+				}
+			],
+			"record_label": "record.code + ' · ' + record.name",
+			"search": {
+				"text": [
+					"code",
+					"name",
+					"clause_ref",
+					"remediation"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"code"
+					],
+					"import_key": true,
+					"name": "unique_code"
+				}
+			]
 		},
 		"sys_api_key": {
 			"fields": {
@@ -3722,22 +4216,6 @@
 					"kind": "date",
 					"optional": true
 				},
-				"latest_update": {
-					"kind": "text",
-					"optional": true
-				},
-				"open_issue_count": {
-					"kind": "count",
-					"of": "activities",
-					"where": {
-						"kind": {
-							"eq": "issue"
-						},
-						"status": {
-							"eq": "open"
-						}
-					}
-				},
 				"priority": {
 					"default": "medium",
 					"kind": "enum",
@@ -3868,8 +4346,7 @@
 					"task_code",
 					"wbs_path",
 					"title",
-					"zone",
-					"latest_update"
+					"zone"
 				]
 			},
 			"unique": [

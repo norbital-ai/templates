@@ -2,14 +2,13 @@
 	/** Workplace case files of one legal entity: requests, incidents and changes its version lists. */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import type { Row } from '@norbital-ai/bolt';
-	import { AppShell } from '@norbital-ai/ui/layout';
-	import { EmptyState, RecordShell, Sheet, Table } from '@norbital-ai/ui';
-	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
+	import { Table } from '@norbital-ai/ui';
+	import EventPage from '../../../lib/ui/events/event_page.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
 	import { parseCaseSheet } from '../../../data/model/entry/service/entry_workbook.js';
-	import { entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
+	import { employmentQuery, entryImport } from '../../../lib/ui/workbook/entry_import.svelte.js';
 	let { ctx }: { ctx: PageContext } = $props();
 
 	const scope = companyScope(ctx);
@@ -18,7 +17,7 @@
 	const caseName = listedKindNames(ctx, 'case_kinds', () =>
 		scope.entities.map((row) => row.settings_code)
 	);
-	let creating = $state<'workplace_case_catalog_entry' | null>(null);
+	let creating = $state(false);
 
 	const entities = $derived(
 		scope.entities.map((row) => ({
@@ -39,11 +38,7 @@
 					fields: ['entity_id', 'employment_id', 'kind', 'opened_on'],
 					limit: 10000
 				},
-				employment: {
-					where: { entity_id: { eq: companyId } },
-					fields: ['employee_number', 'entity_id', 'effective_range'],
-					limit: 10000
-				}
+				employment: employmentQuery(companyId)
 			}),
 		build: (grids, current, party) => {
 			const parsed = parseCaseSheet(grids, {
@@ -80,39 +75,28 @@
 	value: Row<'workplace_case_catalog_entry'>['kind'] | undefined;
 })}{caseName(value ?? '')}{/snippet}
 
-<AppShell
+<EventPage
+	{ctx}
+	{scope}
 	icon="lucide:folder-open"
 	title={t('app.cases.title')}
 	description={t('app.cases.description')}
+	createOf="workplace_case_catalog_entry"
+	bind:creating
 >
-	{#snippet actions()}<CompanyScope {ctx} {scope} />{/snippet}
-	{#if scope.id == null}
-		<EmptyState title={t('app.events.empty_scope')} />
-	{:else}
+	{#snippet children(companyId)}
 		<Table
 			{ctx}
 			of="workplace_case_catalog_entry"
-			key={`workplace_case_catalog_entry-${scope.id}`}
-			where={{ entity_id: { eq: scope.id } }}
+			key={`workplace_case_catalog_entry-${companyId}`}
+			where={{ entity_id: { eq: companyId } }}
 			order_by={{ opened_on: 'desc' }}
 			toolbar={{
 				title: t('app.cases.title'),
-				new: () => (creating = 'workplace_case_catalog_entry'),
+				new: () => (creating = true),
 				actions: [importCases(t('import.cases'))]
 			}}
 			columns={[{ field: 'kind', cell: caseCell }, 'opened_on', 'closed_on', 'payroll_run_id']}
 		/>
-	{/if}
-</AppShell>
-
-{#if creating != null && scope.id != null}
-	<Sheet open on_open_change={(open) => !open && (creating = null)} title={t('app.cases.title')}>
-		<RecordShell
-			{ctx}
-			of={creating}
-			mode="create"
-			values={{ entity_id: scope.id }}
-			on_done={() => (creating = null)}
-		/>
-	</Sheet>
-{/if}
+	{/snippet}
+</EventPage>

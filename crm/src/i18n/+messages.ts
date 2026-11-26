@@ -102,19 +102,14 @@ export default messages({
 	'timeline.load_failed': 'Older activities could not be loaded. Try again.',
 	'models.companies.plural': 'Customers',
 	'connections.title': 'My connections',
-	'connections.help':
-		'Connect your own WhatsApp, email and calendar so their messages and events reach the CRM. Only you see and manage them.',
-	'connections.shared': 'Workspace channels',
-	'connections.shared_help':
-		'The workspace’s own WhatsApp, Telegram, Slack, Discord and email accounts: the envoy answers on them, follow-up reminders reach each salesperson there by direct message, and customer messages on them are filed. The Apollo account supplies leads; paste its API key when pairing. Administrators add them.',
-	'connections.add': 'Connect',
+	'connections.open_rules': 'Configure',
 	'connections.kind.whatsapp': 'WhatsApp',
 	'connections.kind.email': 'Email',
 	'connections.kind.google_calendar': 'Google Calendar',
-	'connections.kind.telegram': 'Telegram',
-	'connections.kind.slack': 'Slack',
-	'connections.kind.discord': 'Discord',
-	'connections.kind.apollo': 'Apollo',
+	'connections.desc.whatsapp': 'Sync customer WhatsApp messages into leads and jobs.',
+	'connections.desc.email': 'Sync email threads and send outreach or reminders.',
+	'connections.desc.google_calendar':
+		'Two-way sync between your Google calendars and CRM meetings.',
 	'configuration.logs': 'Classified messages',
 	'models.template_documents.fields.drafting_instructions': 'Drafting instructions',
 	'models.template_documents.fields.version': 'Version',
@@ -563,8 +558,6 @@ export default messages({
 	'errors.message_empty': 'Write the message first.',
 	'errors.one_signed_copy': 'Upload one signed copy at a time.',
 	'errors.one_speaker': 'Choose one speaker.',
-	'errors.personal_accounts_only':
-		'You manage only your own calendar, email and WhatsApp accounts; an administrator adds workspace channels.',
 	'errors.personal_no_reply':
 		'Personal connections synchronize messages; they do not send replies.',
 	'errors.project_not_customer': 'Choose a project belonging to this customer.',
@@ -719,7 +712,8 @@ export default messages({
 	'errors.task_context': 'The task company, job and contact must belong to the same company.',
 	'errors.client_needs_commitment':
 		'Client status follows a signed work commitment; an NDA alone does not create one.',
-	'connections.description': 'Connect personal accounts and workspace channels.',
+	'connections.description':
+		'Connect your own WhatsApp, email and Google Calendar so messages and events flow into the CRM.',
 	'templates.description': 'Agreement templates, document versions and drafting instructions.',
 	'models.companies.fields.documents': 'Documents',
 	'models.activities.fields.kind.recording': 'Recording',

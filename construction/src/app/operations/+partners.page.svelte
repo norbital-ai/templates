@@ -86,6 +86,7 @@
 	variant="full"
 >
 	<Tabs
+		level={2}
 		tabs={[
 			{ name: 'all', title: t('partners.tab_all'), icon: 'lucide:users', body: allPartners },
 			{

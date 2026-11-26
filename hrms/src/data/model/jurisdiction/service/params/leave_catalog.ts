@@ -1,675 +1,475 @@
-import { Schema } from 'effect';
+import {
+	arr,
+	bool,
+	daysByRegion,
+	daysOnly,
+	empty,
+	grantWindow,
+	leaveAccounts,
+	mapOf,
+	num,
+	opt,
+	optBool,
+	optNum,
+	optStr,
+	paidShareByRegion,
+	paySteps,
+	serviceBands,
+	str,
+	strArr,
+	struct,
+	upTo
+} from './shared.js';
+
+const genderElig = struct({ gender: str });
+const excludedTypesElig = struct({ excluded_employment_types: strArr });
+const openedGrant = (event: string) =>
+	struct({ grant_days: num, opened_by: struct({ [event]: empty }), window: str });
+const genderOpenedGrant = (event: string) =>
+	struct({
+		eligibility: genderElig,
+		grant_days: num,
+		opened_by: struct({ [event]: empty }),
+		window: str
+	});
+const partTimeFields = {
+	eligibility: struct({ engagement: str }),
+	eligibility_months: num,
+	entitlement: str,
+	full_time_days_per_week: num,
+	full_time_weekly_hours: num,
+	part_time_pro_rata: bool,
+	service_bands: serviceBands,
+	window: str
+};
+const partTimeLeave = struct(partTimeFields);
+const homeLeaveBase = {
+	eligibility: struct({ marital_status: str }),
+	grant_days: num,
+	rolling_months: num,
+	service_months: num,
+	state_owned_employer: bool
+};
+const homeLeaveParents = struct({ ...homeLeaveBase, marital_status: str });
+const shanghaiScale = arr(struct({ completed_months: upTo, share: num }));
+const workInjuryDays = struct({
+	days: num,
+	max_months: num,
+	opened_by: struct({ WORK_ACCIDENT: daysOnly })
+});
 
 /** Typed param schemas for leave_catalog: required keys are required, not hidden in a side map. */
 export const leave_catalog = {
-	ADOPTION_LEAVE: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		eligibility_months: Schema.Number,
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ ADOPTION: Schema.Struct({}) }),
-		window: Schema.String
+	...mapOf(
+		[
+			'BEREAVEMENT_LEAVE_UNPAID',
+			'BREASTFEEDING_TIME',
+			'CHILD_SICK_CARE',
+			'CHILDCARE_REDUCED_HOURS',
+			'CIVIC_DUTY_LEAVE',
+			'COMPANY_TRAINING_LEAVE',
+			'CONTRACEPTION_LEAVE',
+			'CONVALESCENCE_LEAVE',
+			'EMPLOYER_IDLE',
+			'HOSPITALISED_SICK_LEAVE',
+			'JOB_SEARCH_LEAVE',
+			'MATERNAL_HEALTH_CHECK',
+			'MATERNITY_LEAVE_SSO',
+			'MENSTRUAL_LEAVE_UNPAID',
+			'NATURAL_DISASTER_ABSENCE',
+			'NS_LEAVE',
+			'NURSING_TIME',
+			'OCCUPATIONAL_ACCIDENT_LEAVE',
+			'OCCUPATIONAL_INJURY_ABSENCE',
+			'OCCUPATIONAL_INJURY_LEAVE',
+			'OFFICIAL_LEAVE',
+			'PARENTAL_LEAVE',
+			'PERSONAL_LEAVE',
+			'PERSONAL_LEAVE_PAID',
+			'PRENATAL_CHECKUP',
+			'RELIGIOUS_DUTY_LEAVE',
+			'SICK_LEAVE_SUSPENSION',
+			'SICK_LEAVE_UNPAID',
+			'SICKNESS_ABSENCE',
+			'SOCIAL_ACTIVITY',
+			'STATE_DUTY_LEAVE',
+			'STERILISATION_LEAVE',
+			'STOPPAGE_WORKER_FAULT',
+			'SUSPENSION_PENDING_DISCIPLINE',
+			'TRAINING_LEAVE',
+			'UNION_DUTY_LEAVE',
+			'WORK_INJURY_LEAVE'
+		],
+		empty
+	),
+	...mapOf(['COMPASSIONATE_LEAVE', 'EMERGENCY_LEAVE', 'NPL'], struct({ unit: optStr })),
+	...mapOf(['COURT_CUSTODY_ABSENCE', 'NATIONAL_SERVICE_LEAVE'], struct({ unit: str })),
+	...mapOf(['POSTNATAL_LEAVE', 'POSTNATAL_PATERNITY_LEAVE'], daysOnly),
+	...mapOf(
+		['STATUTORY_REST_IN_LIEU', 'SUBSTITUTE_LEAVE_FOR_OVERTIME'],
+		struct({ grant_days: num })
+	),
+	...mapOf(
+		['INDIGENOUS_RITUAL_HOLIDAY', 'MILITARY_LEAVE', 'PERSONAL_BUSINESS_LEAVE', 'PUBLIC_HOLIDAY'],
+		grantWindow
+	),
+	...mapOf(
+		['FOREIGN_NATIONAL_LEAVE', 'YOUNG_WORKER_TRAINING_LEAVE'],
+		struct({ entitlement: str, grant_days: num, window: str })
+	),
+	...mapOf(['HOSPITALIZATION_LEAVE_PART_TIME', 'SICK_LEAVE_PART_TIME'], partTimeLeave),
+	...mapOf(['HOME_LEAVE_PARENTS_BIENNIAL', 'HOME_LEAVE_PARENTS_MARRIED'], homeLeaveParents),
+	...mapOf(['WORK_INJURY_HOSPITALISATION_LEAVE', 'WORK_INJURY_MEDICAL_LEAVE'], workInjuryDays),
+	ADOPTION_LEAVE: struct({
+		eligibility: genderElig,
+		eligibility_months: num,
+		grant_days: num,
+		opened_by: struct({ ADOPTION: empty }),
+		window: str
 	}),
-	ANNUAL_LEAVE: Schema.Struct({
-		window: Schema.String,
-		absence_forfeiture: Schema.optional(
-			Schema.Struct({
-				fallback_days_per_week: Schema.Number,
-				max_absent_share: Schema.Number,
-				weeks: Schema.Number
+	ANNUAL_LEAVE: struct({
+		window: str,
+		absence_forfeiture: opt(
+			struct({ fallback_days_per_week: num, max_absent_share: num, weeks: num })
+		),
+		attendance_ratio: optNum,
+		carry: opt(
+			struct({
+				company_cap_days: optNum,
+				max_days: optNum,
+				statutory_grant_carries: optBool,
+				windows: num
 			})
 		),
-		attendance_ratio: Schema.optional(Schema.Number),
-		carry: Schema.optional(
-			Schema.Struct({
-				company_cap_days: Schema.optional(Schema.Number),
-				max_days: Schema.optional(Schema.Number),
-				statutory_grant_carries: Schema.optional(Schema.Boolean),
-				windows: Schema.Number
+		carry_forward_years: optNum,
+		eligibility: opt(excludedTypesElig),
+		eligibility_months: optNum,
+		encashment_factor: optNum,
+		entitlement: optStr,
+		extra_days: opt(arr(struct({ category: optStr, days: num, fact: optStr }))),
+		first_year_days: optNum,
+		first_year_proration_days: optNum,
+		full_time_days_per_week: optNum,
+		full_time_weekly_hours: optNum,
+		grant_days: optNum,
+		grant_days_by_normal_days_per_week: opt(
+			arr(struct({ days: num, normal_days_per_week: num, service_year: num }))
+		),
+		paid_personal_leave_disqualification_days: optNum,
+		part_time_pro_rata: optBool,
+		part_time_service_bands: opt(serviceBands),
+		per_months: optNum,
+		proration: optStr,
+		qualifying_service_months: optNum,
+		service_bands: opt(serviceBands),
+		service_months: optNum,
+		service_offset_months: optNum,
+		service_unpaid_leave_ignored_after_days: optNum,
+		sick_leave_disqualification_days: opt(serviceBands),
+		unit: optStr
+	}),
+	ANNUAL_LEAVE_DOMESTIC: struct({
+		entitlement: str,
+		grant_days: num,
+		service_months: num,
+		window: str
+	}),
+	ANNUAL_LEAVE_HOURS: struct({
+		accounts: leaveAccounts,
+		annual_days_cap: num,
+		service_offset_months: num
+	}),
+	ANNUAL_LEAVE_PART_TIME: struct({
+		...partTimeFields,
+		carry: struct({ windows: num }),
+		first_year_days: num,
+		proration: str
+	}),
+	BEREAVEMENT_HOUSEHOLD_LEAVE: openedGrant('BEREAVEMENT_HOUSEHOLD'),
+	BEREAVEMENT_LEAVE: struct({
+		grant_days: optNum,
+		opened_by: opt(struct({ BEREAVEMENT: empty })),
+		window: optStr
+	}),
+	CHILD_BAPTISM_LEAVE: openedGrant('CHILD_BAPTISM'),
+	CHILD_CARE_LEAVE: genderOpenedGrant('CHILD_BIRTH'),
+	CHILD_CIRCUMCISION_LEAVE: openedGrant('CHILD_CIRCUMCISION'),
+	CHILD_MARRIAGE_LEAVE: openedGrant('CHILD_MARRIAGE'),
+	CHILD_NURSING_LEAVE: struct({
+		days_one_child: num,
+		entitlement: str,
+		fiscal_year_start_month: num,
+		school_age_limit_years: num
+	}),
+	CHILDCARE_LEAVE: struct({
+		child_age_limit_years: optNum,
+		days_by_children_by_region: opt(arr(struct({ children: num, days: num, region: str }))),
+		entitlement: optStr,
+		per_child_days_by_region: opt(daysByRegion),
+		service_bands: opt(serviceBands),
+		window: optStr
+	}),
+	COMPENSATORY_TIME_OFF: struct({
+		grant_days: num,
+		overtime_as_time_off: bool,
+		unit: str,
+		window: str
+	}),
+	ELDER_CARE_LEAVE: struct({
+		days_by_region: arr(struct({ days: num, only_child_days: num, region: str })),
+		entitlement: str
+	}),
+	FAMILY_CARE_DAYS: struct({
+		days_one_recipient: num,
+		entitlement: str,
+		fiscal_year_start_month: num,
+		recipient_threshold: num
+	}),
+	FAMILY_CARE_LEAVE: struct({ days: optNum, grant_days: optNum, unit: optStr, window: optStr }),
+	FAMILY_PLANNING_LEAVE: struct({
+		days_by_surgery_by_region: arr(struct({ days: num, region: str, surgery: str })),
+		entitlement: str,
+		opened_by: struct(
+			mapOf(
+				[
+					'ABORTION_13W_PLUS',
+					'ABORTION_UNDER_13W',
+					'IMPLANT_INSERTION',
+					'IMPLANT_REMOVAL',
+					'IUD_INSERTION',
+					'IUD_REMOVAL',
+					'TUBAL_LIGATION',
+					'TUBAL_RECANALIZATION',
+					'VAS_RECANALIZATION',
+					'VASECTOMY'
+				],
+				empty
+			)
+		),
+		paid_share_by_region: paidShareByRegion,
+		window: str
+	}),
+	HOME_LEAVE_PARENTS: struct({ ...homeLeaveBase, marital_status: str, window: str }),
+	HOME_LEAVE_SPOUSE: struct({ ...homeLeaveBase, window: str }),
+	HOSPITALIZATION_LEAVE: struct({
+		eligibility: opt(excludedTypesElig),
+		eligibility_months: optNum,
+		entitlement: optStr,
+		grant_days: optNum,
+		service_bands: opt(serviceBands),
+		unit: optStr,
+		window: optStr
+	}),
+	JOINT_LEAVE: struct({ accounts: leaveAccounts }),
+	LONG_LEAVE: struct({
+		grant_days: optNum,
+		rolling_months: optNum,
+		service_months: optNum,
+		unit: optStr
+	}),
+	MARRIAGE_EXTENSION: struct({
+		days_by_region: daysByRegion,
+		entitlement: str,
+		opened_by: struct({ MARRIAGE: empty }),
+		window: str
+	}),
+	MARRIAGE_LEAVE: openedGrant('MARRIAGE'),
+	MATERNITY_ALLOCATION_LEAVE: struct({
+		entitlement: str,
+		grant_days: num,
+		opened_by: struct({ MATERNITY_ALLOCATION: empty }),
+		window: str
+	}),
+	MATERNITY_EXTENSION: struct({
+		days_by_region: daysByRegion,
+		eligibility: genderElig,
+		entitlement: str,
+		opened_by: struct({ CHILD_BIRTH: empty }),
+		window: str
+	}),
+	MATERNITY_LEAVE: struct({
+		additional_baby_extra_days: optNum,
+		allocation_days: optNum,
+		difficult_birth_extra_days: optNum,
+		eligibility: opt(
+			struct({
+				excluded_employment_types: opt(strArr),
+				gender: str,
+				max_surviving_natural_children: optNum,
+				qualifying_service_days: optNum,
+				qualifying_window_months: optNum
 			})
 		),
-		carry_forward_years: Schema.optional(Schema.Number),
-		eligibility: Schema.optional(
-			Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
+		eligibility_months: optNum,
+		entitlement: optStr,
+		full_pay_service_months: optNum,
+		grant_days: optNum,
+		maternity_allowance: optBool,
+		miscarriage_from_threshold_days: optNum,
+		miscarriage_month_threshold: optNum,
+		miscarriage_under_threshold_days: optNum,
+		opened_by: opt(
+			struct({
+				ADDITIONAL_BABY: opt(empty),
+				BIRTH_COMPLICATION: opt(daysOnly),
+				CHILD_BIRTH: empty,
+				CONFINEMENT: opt(empty),
+				DIFFICULT_BIRTH: opt(empty),
+				MISCARRIAGE: opt(empty),
+				PREGNANCY_TERMINATION: opt(empty)
+			})
 		),
-		eligibility_months: Schema.optional(Schema.Number),
-		encashment_factor: Schema.optional(Schema.Number),
-		entitlement: Schema.optional(Schema.String),
-		extra_days: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					category: Schema.optional(Schema.String),
-					days: Schema.Number,
-					fact: Schema.optional(Schema.String)
-				})
-			)
-		),
-		first_year_days: Schema.optional(Schema.Number),
-		first_year_proration_days: Schema.optional(Schema.Number),
-		full_time_days_per_week: Schema.optional(Schema.Number),
-		full_time_weekly_hours: Schema.optional(Schema.Number),
-		grant_days: Schema.optional(Schema.Number),
-		grant_days_by_normal_days_per_week: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					days: Schema.Number,
-					normal_days_per_week: Schema.Number,
-					service_year: Schema.Number
-				})
-			)
-		),
-		paid_personal_leave_disqualification_days: Schema.optional(Schema.Number),
-		part_time_pro_rata: Schema.optional(Schema.Boolean),
-		part_time_service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		per_months: Schema.optional(Schema.Number),
-		proration: Schema.optional(Schema.String),
-		qualifying_service_months: Schema.optional(Schema.Number),
-		service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		service_months: Schema.optional(Schema.Number),
-		service_offset_months: Schema.optional(Schema.Number),
-		service_unpaid_leave_ignored_after_days: Schema.optional(Schema.Number),
-		sick_leave_disqualification_days: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		unit: Schema.optional(Schema.String)
+		pay_steps: opt(paySteps),
+		prenatal_days: optNum,
+		solo_parent_days: optNum,
+		termination_days: optNum,
+		unit: optStr,
+		window: optStr
 	}),
-	ANNUAL_LEAVE_DOMESTIC: Schema.Struct({
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		service_months: Schema.Number,
-		window: Schema.String
-	}),
-	ANNUAL_LEAVE_HOURS: Schema.Struct({
-		accounts: Schema.Array(
-			Schema.Struct({ account: Schema.String, code: Schema.String, measure: Schema.String })
-		),
-		annual_days_cap: Schema.Number,
-		service_offset_months: Schema.Number
-	}),
-	ANNUAL_LEAVE_PART_TIME: Schema.Struct({
-		carry: Schema.Struct({ windows: Schema.Number }),
-		eligibility: Schema.Struct({ engagement: Schema.String }),
-		eligibility_months: Schema.Number,
-		entitlement: Schema.String,
-		first_year_days: Schema.Number,
-		full_time_days_per_week: Schema.Number,
-		full_time_weekly_hours: Schema.Number,
-		part_time_pro_rata: Schema.Boolean,
-		proration: Schema.String,
-		service_bands: Schema.Array(
-			Schema.Struct({ days: Schema.Number, service_months: Schema.Number })
-		),
-		window: Schema.String
-	}),
-	BEREAVEMENT_HOUSEHOLD_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ BEREAVEMENT_HOUSEHOLD: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	BEREAVEMENT_LEAVE: Schema.Struct({
-		grant_days: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(Schema.Struct({ BEREAVEMENT: Schema.Struct({}) })),
-		window: Schema.optional(Schema.String)
-	}),
-	BEREAVEMENT_LEAVE_UNPAID: Schema.Struct({}),
-	BREASTFEEDING_TIME: Schema.Struct({}),
-	CHILD_BAPTISM_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_BAPTISM: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	CHILD_CARE_LEAVE: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	CHILD_CIRCUMCISION_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_CIRCUMCISION: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	CHILD_MARRIAGE_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_MARRIAGE: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	CHILD_NURSING_LEAVE: Schema.Struct({
-		days_one_child: Schema.Number,
-		entitlement: Schema.String,
-		fiscal_year_start_month: Schema.Number,
-		school_age_limit_years: Schema.Number
-	}),
-	CHILD_SICK_CARE: Schema.Struct({}),
-	CHILDCARE_LEAVE: Schema.Struct({
-		child_age_limit_years: Schema.optional(Schema.Number),
-		days_by_children_by_region: Schema.optional(
-			Schema.Array(
-				Schema.Struct({ children: Schema.Number, days: Schema.Number, region: Schema.String })
-			)
-		),
-		entitlement: Schema.optional(Schema.String),
-		per_child_days_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
-		),
-		service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		window: Schema.optional(Schema.String)
-	}),
-	CHILDCARE_REDUCED_HOURS: Schema.Struct({}),
-	CIVIC_DUTY_LEAVE: Schema.Struct({}),
-	COMPANY_TRAINING_LEAVE: Schema.Struct({}),
-	COMPASSIONATE_LEAVE: Schema.Struct({
-		unit: Schema.optional(Schema.String)
-	}),
-	COMPENSATORY_TIME_OFF: Schema.Struct({
-		grant_days: Schema.Number,
-		overtime_as_time_off: Schema.Boolean,
-		unit: Schema.String,
-		window: Schema.String
-	}),
-	CONTRACEPTION_LEAVE: Schema.Struct({}),
-	CONVALESCENCE_LEAVE: Schema.Struct({}),
-	COURT_CUSTODY_ABSENCE: Schema.Struct({
-		unit: Schema.String
-	}),
-	ELDER_CARE_LEAVE: Schema.Struct({
-		days_by_region: Schema.Array(
-			Schema.Struct({ days: Schema.Number, only_child_days: Schema.Number, region: Schema.String })
-		),
-		entitlement: Schema.String
-	}),
-	EMERGENCY_LEAVE: Schema.Struct({
-		unit: Schema.optional(Schema.String)
-	}),
-	EMPLOYER_IDLE: Schema.Struct({}),
-	FAMILY_CARE_DAYS: Schema.Struct({
-		days_one_recipient: Schema.Number,
-		entitlement: Schema.String,
-		fiscal_year_start_month: Schema.Number,
-		recipient_threshold: Schema.Number
-	}),
-	FAMILY_CARE_LEAVE: Schema.Struct({
-		days: Schema.optional(Schema.Number),
-		grant_days: Schema.optional(Schema.Number),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
-	}),
-	FAMILY_PLANNING_LEAVE: Schema.Struct({
-		days_by_surgery_by_region: Schema.Array(
-			Schema.Struct({ days: Schema.Number, region: Schema.String, surgery: Schema.String })
-		),
-		entitlement: Schema.String,
-		opened_by: Schema.Struct({
-			ABORTION_13W_PLUS: Schema.Struct({}),
-			ABORTION_UNDER_13W: Schema.Struct({}),
-			IMPLANT_INSERTION: Schema.Struct({}),
-			IMPLANT_REMOVAL: Schema.Struct({}),
-			IUD_INSERTION: Schema.Struct({}),
-			IUD_REMOVAL: Schema.Struct({}),
-			TUBAL_LIGATION: Schema.Struct({}),
-			TUBAL_RECANALIZATION: Schema.Struct({}),
-			VAS_RECANALIZATION: Schema.Struct({}),
-			VASECTOMY: Schema.Struct({})
+	MATERNITY_LEAVE_EXTENSION: genderOpenedGrant('BIRTH_EXTENSION'),
+	MATERNITY_LEAVE_NO_ALLOWANCE: struct({
+		eligibility: struct({
+			excluded_employment_types: strArr,
+			gender: str,
+			max_surviving_natural_children: num,
+			qualifying_service_days: num,
+			qualifying_window_months: num
 		}),
-		paid_share_by_region: Schema.Array(
-			Schema.Struct({ region: Schema.String, share: Schema.Number })
-		),
-		window: Schema.String
+		entitlement: str,
+		grant_days: num,
+		maternity_allowance: bool,
+		opened_by: struct({ CHILD_BIRTH: empty, CHILD_BIRTH_NO_ALLOWANCE: empty }),
+		unit: str,
+		window: str
 	}),
-	FOREIGN_NATIONAL_LEAVE: Schema.Struct({
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		window: Schema.String
+	MEDICAL_LEAVE: struct({
+		eligibility: opt(excludedTypesElig),
+		entitlement: optStr,
+		opened_by: opt(struct({ LONG_ILLNESS: daysOnly })),
+		part_time_service_bands: opt(serviceBands),
+		pay_steps: opt(paySteps),
+		service_bands: opt(serviceBands),
+		unit: optStr,
+		window: optStr
 	}),
-	HOME_LEAVE_PARENTS: Schema.Struct({
-		eligibility: Schema.Struct({ marital_status: Schema.String }),
-		grant_days: Schema.Number,
-		marital_status: Schema.String,
-		rolling_months: Schema.Number,
-		service_months: Schema.Number,
-		state_owned_employer: Schema.Boolean,
-		window: Schema.String
+	MENSTRUAL_LEAVE: struct({
+		days_by_region: opt(daysByRegion),
+		eligibility: opt(genderElig),
+		requires_by_region: opt(arr(struct({ region: str, requires: str }))),
+		unit: optStr
 	}),
-	HOME_LEAVE_PARENTS_BIENNIAL: Schema.Struct({
-		eligibility: Schema.Struct({ marital_status: Schema.String }),
-		grant_days: Schema.Number,
-		marital_status: Schema.String,
-		rolling_months: Schema.Number,
-		service_months: Schema.Number,
-		state_owned_employer: Schema.Boolean
+	MISCARRIAGE_LEAVE: struct({
+		eligibility: opt(genderElig),
+		grant_days: optNum,
+		opened_by: opt(struct({ MISCARRIAGE: empty })),
+		unit: optStr,
+		window: optStr
 	}),
-	HOME_LEAVE_PARENTS_MARRIED: Schema.Struct({
-		eligibility: Schema.Struct({ marital_status: Schema.String }),
-		grant_days: Schema.Number,
-		marital_status: Schema.String,
-		rolling_months: Schema.Number,
-		service_months: Schema.Number,
-		state_owned_employer: Schema.Boolean
+	NURSING_BREAK: struct({ child_age_limit_years: num, daily_hours: num }),
+	NURSING_LEAVE: struct({
+		days_by_region: daysByRegion,
+		eligibility: genderElig,
+		entitlement: str,
+		opened_by: struct({ CHILD_BIRTH: empty }),
+		paid_share_by_region: paidShareByRegion,
+		window: str
 	}),
-	HOME_LEAVE_SPOUSE: Schema.Struct({
-		eligibility: Schema.Struct({ marital_status: Schema.String }),
-		grant_days: Schema.Number,
-		rolling_months: Schema.Number,
-		service_months: Schema.Number,
-		state_owned_employer: Schema.Boolean,
-		window: Schema.String
+	PARENTAL_LEAVE_BY_DAY: struct({
+		grant_days: num,
+		opened_by: struct({ CHILD_BIRTH: empty }),
+		service_months: num,
+		window: str
 	}),
-	HOSPITALISED_SICK_LEAVE: Schema.Struct({}),
-	HOSPITALIZATION_LEAVE: Schema.Struct({
-		eligibility: Schema.optional(
-			Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
-		),
-		eligibility_months: Schema.optional(Schema.Number),
-		entitlement: Schema.optional(Schema.String),
-		grant_days: Schema.optional(Schema.Number),
-		service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
+	PATERNITY_EXTENSION_LEAVE: struct({
+		eligibility: struct({ gender: str, marital_status: str }),
+		grant_days: num,
+		opened_by: struct({ CHILD_BIRTH: empty }),
+		window: str
 	}),
-	HOSPITALIZATION_LEAVE_PART_TIME: Schema.Struct({
-		eligibility: Schema.Struct({ engagement: Schema.String }),
-		eligibility_months: Schema.Number,
-		entitlement: Schema.String,
-		full_time_days_per_week: Schema.Number,
-		full_time_weekly_hours: Schema.Number,
-		part_time_pro_rata: Schema.Boolean,
-		service_bands: Schema.Array(
-			Schema.Struct({ days: Schema.Number, service_months: Schema.Number })
-		),
-		window: Schema.String
-	}),
-	INDIGENOUS_RITUAL_HOLIDAY: Schema.Struct({
-		grant_days: Schema.Number,
-		window: Schema.String
-	}),
-	JOB_SEARCH_LEAVE: Schema.Struct({}),
-	JOINT_LEAVE: Schema.Struct({
-		accounts: Schema.Array(
-			Schema.Struct({ account: Schema.String, code: Schema.String, measure: Schema.String })
-		)
-	}),
-	LONG_LEAVE: Schema.Struct({
-		grant_days: Schema.optional(Schema.Number),
-		rolling_months: Schema.optional(Schema.Number),
-		service_months: Schema.optional(Schema.Number),
-		unit: Schema.optional(Schema.String)
-	}),
-	MARRIAGE_EXTENSION: Schema.Struct({
-		days_by_region: Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String })),
-		entitlement: Schema.String,
-		opened_by: Schema.Struct({ MARRIAGE: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	MARRIAGE_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ MARRIAGE: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	MATERNAL_HEALTH_CHECK: Schema.Struct({}),
-	MATERNITY_ALLOCATION_LEAVE: Schema.Struct({
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ MATERNITY_ALLOCATION: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	MATERNITY_EXTENSION: Schema.Struct({
-		days_by_region: Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String })),
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		entitlement: Schema.String,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	MATERNITY_LEAVE: Schema.Struct({
-		additional_baby_extra_days: Schema.optional(Schema.Number),
-		allocation_days: Schema.optional(Schema.Number),
-		difficult_birth_extra_days: Schema.optional(Schema.Number),
-		eligibility: Schema.optional(
-			Schema.Struct({
-				excluded_employment_types: Schema.optional(Schema.Array(Schema.String)),
-				gender: Schema.String,
-				max_surviving_natural_children: Schema.optional(Schema.Number),
-				qualifying_service_days: Schema.optional(Schema.Number),
-				qualifying_window_months: Schema.optional(Schema.Number)
+	PATERNITY_LEAVE: struct({
+		days_by_region: opt(daysByRegion),
+		eligibility: opt(
+			struct({
+				excluded_employment_types: opt(strArr),
+				gender: optStr,
+				marital_status: optStr,
+				max_lifetime_confinements: optNum,
+				min_service_months: optNum
 			})
 		),
-		eligibility_months: Schema.optional(Schema.Number),
-		entitlement: Schema.optional(Schema.String),
-		full_pay_service_months: Schema.optional(Schema.Number),
-		grant_days: Schema.optional(Schema.Number),
-		maternity_allowance: Schema.optional(Schema.Boolean),
-		miscarriage_from_threshold_days: Schema.optional(Schema.Number),
-		miscarriage_month_threshold: Schema.optional(Schema.Number),
-		miscarriage_under_threshold_days: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(
-			Schema.Struct({
-				ADDITIONAL_BABY: Schema.optional(Schema.Struct({})),
-				BIRTH_COMPLICATION: Schema.optional(Schema.Struct({ days: Schema.Number })),
-				CHILD_BIRTH: Schema.Struct({}),
-				CONFINEMENT: Schema.optional(Schema.Struct({})),
-				DIFFICULT_BIRTH: Schema.optional(Schema.Struct({})),
-				MISCARRIAGE: Schema.optional(Schema.Struct({})),
-				PREGNANCY_TERMINATION: Schema.optional(Schema.Struct({}))
+		eligibility_months: optNum,
+		entitlement: optStr,
+		grant_days: optNum,
+		max_events: optNum,
+		opened_by: opt(
+			struct({
+				ADOPTION: opt(empty),
+				CHILD_BIRTH: empty,
+				MISCARRIAGE: opt(empty),
+				PREGNANCY_TERMINATION: opt(empty)
 			})
 		),
-		pay_steps: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					unpaid_share: Schema.Number,
-					until_month: Schema.Union([Schema.Null, Schema.Number])
-				})
-			)
-		),
-		prenatal_days: Schema.optional(Schema.Number),
-		solo_parent_days: Schema.optional(Schema.Number),
-		termination_days: Schema.optional(Schema.Number),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
+		unit: optStr,
+		window: optStr
 	}),
-	MATERNITY_LEAVE_EXTENSION: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ BIRTH_EXTENSION: Schema.Struct({}) }),
-		window: Schema.String
+	PRENATAL_CHECKUP_LEAVE: openedGrant('PREGNANCY'),
+	PRENATAL_LEAVE: struct({
+		days: optNum,
+		days_by_region: opt(daysByRegion),
+		eligibility: opt(genderElig),
+		entitlement: optStr,
+		multiple_pregnancy_days: optNum,
+		opened_by: opt(struct({ PREGNANCY: empty })),
+		paid_share_by_region: opt(paidShareByRegion),
+		window: optStr
 	}),
-	MATERNITY_LEAVE_NO_ALLOWANCE: Schema.Struct({
-		eligibility: Schema.Struct({
-			excluded_employment_types: Schema.Array(Schema.String),
-			gender: Schema.String,
-			max_surviving_natural_children: Schema.Number,
-			qualifying_service_days: Schema.Number,
-			qualifying_window_months: Schema.Number
-		}),
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		maternity_allowance: Schema.Boolean,
-		opened_by: Schema.Struct({
-			CHILD_BIRTH: Schema.Struct({}),
-			CHILD_BIRTH_NO_ALLOWANCE: Schema.Struct({})
-		}),
-		unit: Schema.String,
-		window: Schema.String
+	PUBLIC_HOLIDAY_IN_LIEU: struct({ grant_days: num, unit: optStr, window: optStr }),
+	SHARED_PARENTAL_LEAVE: struct({
+		eligibility_months: num,
+		entitlement: str,
+		grant_days: num,
+		opened_by: struct({ ADOPTION: empty, CHILD_BIRTH: empty }),
+		window: str
 	}),
-	MATERNITY_LEAVE_SSO: Schema.Struct({}),
-	MEDICAL_LEAVE: Schema.Struct({
-		eligibility: Schema.optional(
-			Schema.Struct({ excluded_employment_types: Schema.Array(Schema.String) })
-		),
-		entitlement: Schema.optional(Schema.String),
-		opened_by: Schema.optional(
-			Schema.Struct({ LONG_ILLNESS: Schema.Struct({ days: Schema.Number }) })
-		),
-		part_time_service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		pay_steps: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					unpaid_share: Schema.Number,
-					until_month: Schema.Union([Schema.Null, Schema.Number])
-				})
-			)
-		),
-		service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
+	SICK_LEAVE: struct({
+		eligibility_months: optNum,
+		grant_days: optNum,
+		medical_period_max_months: optNum,
+		minimum_wage_floor_share: optNum,
+		opened_by: opt(struct({ ILLNESS: daysOnly })),
+		service_bands: opt(serviceBands),
+		shanghai_scale_first: opt(shanghaiScale),
+		shanghai_scale_first_months: optNum,
+		shanghai_scale_later: opt(shanghaiScale),
+		window: optStr
 	}),
-	MENSTRUAL_LEAVE: Schema.Struct({
-		days_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
-		),
-		eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
-		requires_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ region: Schema.String, requires: Schema.String }))
-		),
-		unit: Schema.optional(Schema.String)
+	SOLO_PARENT_LEAVE: struct({
+		entitlement: str,
+		grant_days: num,
+		service_months: num,
+		window: str
 	}),
-	MENSTRUAL_LEAVE_UNPAID: Schema.Struct({}),
-	MILITARY_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		window: Schema.String
+	SPECIAL_LEAVE_FOR_WOMEN: struct({
+		eligibility: genderElig,
+		grant_days: num,
+		opened_by: struct({ GYNECOLOGICAL_SURGERY: empty }),
+		service_months: num,
+		window: str
 	}),
-	MISCARRIAGE_LEAVE: Schema.Struct({
-		eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
-		grant_days: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(Schema.Struct({ MISCARRIAGE: Schema.Struct({}) })),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
+	SUSPENSION: struct({
+		grant_days: optNum,
+		opened_by: opt(struct({ DISCIPLINARY_SUSPENSION: empty })),
+		window: optStr
 	}),
-	NATIONAL_SERVICE_LEAVE: Schema.Struct({
-		unit: Schema.String
+	UNPAID_INFANT_CARE_LEAVE: struct({
+		child_age_limit_years: num,
+		eligibility_months: num,
+		grant_days: num,
+		window: str
 	}),
-	NATURAL_DISASTER_ABSENCE: Schema.Struct({}),
-	NPL: Schema.Struct({
-		unit: Schema.optional(Schema.String)
-	}),
-	NS_LEAVE: Schema.Struct({}),
-	NURSING_BREAK: Schema.Struct({
-		child_age_limit_years: Schema.Number,
-		daily_hours: Schema.Number
-	}),
-	NURSING_LEAVE: Schema.Struct({
-		days_by_region: Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String })),
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		entitlement: Schema.String,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
-		paid_share_by_region: Schema.Array(
-			Schema.Struct({ region: Schema.String, share: Schema.Number })
-		),
-		window: Schema.String
-	}),
-	NURSING_TIME: Schema.Struct({}),
-	OCCUPATIONAL_ACCIDENT_LEAVE: Schema.Struct({}),
-	OCCUPATIONAL_INJURY_ABSENCE: Schema.Struct({}),
-	OCCUPATIONAL_INJURY_LEAVE: Schema.Struct({}),
-	OFFICIAL_LEAVE: Schema.Struct({}),
-	PARENTAL_LEAVE: Schema.Struct({}),
-	PARENTAL_LEAVE_BY_DAY: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
-		service_months: Schema.Number,
-		window: Schema.String
-	}),
-	PATERNITY_EXTENSION_LEAVE: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String, marital_status: Schema.String }),
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ CHILD_BIRTH: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	PATERNITY_LEAVE: Schema.Struct({
-		days_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
-		),
-		eligibility: Schema.optional(
-			Schema.Struct({
-				excluded_employment_types: Schema.optional(Schema.Array(Schema.String)),
-				gender: Schema.optional(Schema.String),
-				marital_status: Schema.optional(Schema.String),
-				max_lifetime_confinements: Schema.optional(Schema.Number),
-				min_service_months: Schema.optional(Schema.Number)
-			})
-		),
-		eligibility_months: Schema.optional(Schema.Number),
-		entitlement: Schema.optional(Schema.String),
-		grant_days: Schema.optional(Schema.Number),
-		max_events: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(
-			Schema.Struct({
-				ADOPTION: Schema.optional(Schema.Struct({})),
-				CHILD_BIRTH: Schema.Struct({}),
-				MISCARRIAGE: Schema.optional(Schema.Struct({})),
-				PREGNANCY_TERMINATION: Schema.optional(Schema.Struct({}))
-			})
-		),
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
-	}),
-	PERSONAL_BUSINESS_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		window: Schema.String
-	}),
-	PERSONAL_LEAVE: Schema.Struct({}),
-	PERSONAL_LEAVE_PAID: Schema.Struct({}),
-	POSTNATAL_LEAVE: Schema.Struct({
-		days: Schema.Number
-	}),
-	POSTNATAL_PATERNITY_LEAVE: Schema.Struct({
-		days: Schema.Number
-	}),
-	PRENATAL_CHECKUP: Schema.Struct({}),
-	PRENATAL_CHECKUP_LEAVE: Schema.Struct({
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ PREGNANCY: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	PRENATAL_LEAVE: Schema.Struct({
-		days: Schema.optional(Schema.Number),
-		days_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, region: Schema.String }))
-		),
-		eligibility: Schema.optional(Schema.Struct({ gender: Schema.String })),
-		entitlement: Schema.optional(Schema.String),
-		multiple_pregnancy_days: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(Schema.Struct({ PREGNANCY: Schema.Struct({}) })),
-		paid_share_by_region: Schema.optional(
-			Schema.Array(Schema.Struct({ region: Schema.String, share: Schema.Number }))
-		),
-		window: Schema.optional(Schema.String)
-	}),
-	PUBLIC_HOLIDAY: Schema.Struct({
-		grant_days: Schema.Number,
-		window: Schema.String
-	}),
-	PUBLIC_HOLIDAY_IN_LIEU: Schema.Struct({
-		grant_days: Schema.Number,
-		unit: Schema.optional(Schema.String),
-		window: Schema.optional(Schema.String)
-	}),
-	RELIGIOUS_DUTY_LEAVE: Schema.Struct({}),
-	SHARED_PARENTAL_LEAVE: Schema.Struct({
-		eligibility_months: Schema.Number,
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ ADOPTION: Schema.Struct({}), CHILD_BIRTH: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	SICK_LEAVE: Schema.Struct({
-		eligibility_months: Schema.optional(Schema.Number),
-		grant_days: Schema.optional(Schema.Number),
-		medical_period_max_months: Schema.optional(Schema.Number),
-		minimum_wage_floor_share: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(Schema.Struct({ ILLNESS: Schema.Struct({ days: Schema.Number }) })),
-		service_bands: Schema.optional(
-			Schema.Array(Schema.Struct({ days: Schema.Number, service_months: Schema.Number }))
-		),
-		shanghai_scale_first: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					completed_months: Schema.Union([Schema.Null, Schema.Number]),
-					share: Schema.Number
-				})
-			)
-		),
-		shanghai_scale_first_months: Schema.optional(Schema.Number),
-		shanghai_scale_later: Schema.optional(
-			Schema.Array(
-				Schema.Struct({
-					completed_months: Schema.Union([Schema.Null, Schema.Number]),
-					share: Schema.Number
-				})
-			)
-		),
-		window: Schema.optional(Schema.String)
-	}),
-	SICK_LEAVE_PART_TIME: Schema.Struct({
-		eligibility: Schema.Struct({ engagement: Schema.String }),
-		eligibility_months: Schema.Number,
-		entitlement: Schema.String,
-		full_time_days_per_week: Schema.Number,
-		full_time_weekly_hours: Schema.Number,
-		part_time_pro_rata: Schema.Boolean,
-		service_bands: Schema.Array(
-			Schema.Struct({ days: Schema.Number, service_months: Schema.Number })
-		),
-		window: Schema.String
-	}),
-	SICK_LEAVE_SUSPENSION: Schema.Struct({}),
-	SICK_LEAVE_UNPAID: Schema.Struct({}),
-	SICKNESS_ABSENCE: Schema.Struct({}),
-	SOCIAL_ACTIVITY: Schema.Struct({}),
-	SOLO_PARENT_LEAVE: Schema.Struct({
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		service_months: Schema.Number,
-		window: Schema.String
-	}),
-	SPECIAL_LEAVE_FOR_WOMEN: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ GYNECOLOGICAL_SURGERY: Schema.Struct({}) }),
-		service_months: Schema.Number,
-		window: Schema.String
-	}),
-	STATE_DUTY_LEAVE: Schema.Struct({}),
-	STATUTORY_REST_IN_LIEU: Schema.Struct({
-		grant_days: Schema.Number
-	}),
-	STERILISATION_LEAVE: Schema.Struct({}),
-	STOPPAGE_WORKER_FAULT: Schema.Struct({}),
-	SUBSTITUTE_LEAVE_FOR_OVERTIME: Schema.Struct({
-		grant_days: Schema.Number
-	}),
-	SUSPENSION: Schema.Struct({
-		grant_days: Schema.optional(Schema.Number),
-		opened_by: Schema.optional(Schema.Struct({ DISCIPLINARY_SUSPENSION: Schema.Struct({}) })),
-		window: Schema.optional(Schema.String)
-	}),
-	SUSPENSION_PENDING_DISCIPLINE: Schema.Struct({}),
-	TRAINING_LEAVE: Schema.Struct({}),
-	UNION_DUTY_LEAVE: Schema.Struct({}),
-	UNPAID_INFANT_CARE_LEAVE: Schema.Struct({
-		child_age_limit_years: Schema.Number,
-		eligibility_months: Schema.Number,
-		grant_days: Schema.Number,
-		window: Schema.String
-	}),
-	VAWC_LEAVE: Schema.Struct({
-		eligibility: Schema.Struct({ gender: Schema.String }),
-		grant_days: Schema.Number,
-		opened_by: Schema.Struct({ VAWC: Schema.Struct({}) }),
-		window: Schema.String
-	}),
-	WORK_ACCIDENT_LEAVE: Schema.Struct({
-		opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) }),
-		pay_steps: Schema.Array(
-			Schema.Struct({
-				unpaid_share: Schema.Number,
-				until_month: Schema.Union([Schema.Null, Schema.Number])
-			})
-		)
-	}),
-	WORK_INJURY_HOSPITALISATION_LEAVE: Schema.Struct({
-		days: Schema.Number,
-		max_months: Schema.Number,
-		opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) })
-	}),
-	WORK_INJURY_LEAVE: Schema.Struct({}),
-	WORK_INJURY_MEDICAL_LEAVE: Schema.Struct({
-		days: Schema.Number,
-		max_months: Schema.Number,
-		opened_by: Schema.Struct({ WORK_ACCIDENT: Schema.Struct({ days: Schema.Number }) })
-	}),
-	YOUNG_WORKER_TRAINING_LEAVE: Schema.Struct({
-		entitlement: Schema.String,
-		grant_days: Schema.Number,
-		window: Schema.String
+	VAWC_LEAVE: genderOpenedGrant('VAWC'),
+	WORK_ACCIDENT_LEAVE: struct({
+		opened_by: struct({ WORK_ACCIDENT: daysOnly }),
+		pay_steps: paySteps
 	})
 } as const;

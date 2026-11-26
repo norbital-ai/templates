@@ -4,7 +4,8 @@
 	import { Badge, Button, Combobox, Icon, Input, Label, Surface } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { BigDecimal } from 'effect';
-	import { formatTrimmed, moneyStr, toDecimal, type NormalizedPricedLine } from './commercial.js';
+	import { formatTrimmed, moneyStr, toDecimal } from '../services/commercial/decimal.js';
+	import type { NormalizedPricedLine } from '../services/commercial/lines.js';
 
 	type Line = NormalizedPricedLine;
 
@@ -266,7 +267,7 @@
 					</Button>
 				</Inline>
 				<p class="text-sm font-medium text-foreground">{line.description}</p>
-				<Grid minimum="card" gap="sm">
+				<Grid minimum="compact" gap="sm">
 					<Stack gap="xs">
 						<Label for={`${uid}-pl-qty-${idx}`}>
 							{t('priced_lines.col_qty')} ({line.unit})

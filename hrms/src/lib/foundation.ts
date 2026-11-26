@@ -2,12 +2,12 @@ import { BigDecimal, Data, DateTime, Duration, Schema } from 'effect';
 export type Json = Schema.Json;
 export type JsonObject = { readonly [key: string]: Json };
 export type DynObject = Record<string, unknown>;
-export const jsonObject = (value: unknown): JsonObject =>
-	Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(jsonValues(value));
+const decodeJsonObject = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json));
+export const jsonObject = (value: unknown): JsonObject => decodeJsonObject(jsonValues(value));
 export const isJsonObject = (v: unknown): v is JsonObject =>
-	v !== null && typeof v === 'object' && !Array.isArray(v);
+	typeof v === 'object' && v !== null && !Array.isArray(v);
 export const isDynObject = (v: unknown): v is DynObject =>
-	v !== null && typeof v === 'object' && !Array.isArray(v) && !BigDecimal.isBigDecimal(v);
+	typeof v === 'object' && v !== null && !Array.isArray(v) && !BigDecimal.isBigDecimal(v);
 /** Leave is stored as dated half-day slots; quantity is derived, never stored. */
 export const leaveDays = (entry: JsonObject): number => {
 	const days = entry.days;
@@ -86,21 +86,47 @@ export const calculated = <Answer>(
 	isDynObject(copies) &&
 	Object.values(copies).every((rows) => Array.isArray(rows) && rows.every(factsAreNumbers));
 const DECIMAL_TEXT = /^-?\d+(\.\d+)?$/;
-export const jsonValues = (value: unknown): unknown =>
-	BigDecimal.isBigDecimal(value)
-		? BigDecimal.toNumberUnsafe(value)
-		: Array.isArray(value)
-			? value.map(jsonValues)
-			: isDynObject(value)
-				? Object.fromEntries(
-						Object.entries(value).map(([k, v]) => [
-							k,
-							DECIMAL_FIELDS.has(k) && typeof v === 'string' && DECIMAL_TEXT.test(v)
-								? Number(v)
-								: jsonValues(v)
-						])
-					)
-				: value;
+export const jsonValues = (value: unknown): unknown => {
+	if (typeof value !== 'object' || value === null) return value;
+	if (BigDecimal.isBigDecimal(value)) return BigDecimal.toNumberUnsafe(value);
+	if (Array.isArray(value)) {
+		let copy: unknown[] | undefined;
+		for (let i = 0; i < value.length; i++) {
+			const item = value[i];
+			const next = jsonValues(item);
+			if (next !== item) {
+				if (copy === undefined) copy = value.slice(0, i);
+				copy.push(next);
+			} else if (copy !== undefined) {
+				copy.push(item);
+			}
+		}
+		return copy ?? value;
+	}
+	if (!isDynObject(value)) return value;
+	let copy: Record<string, unknown> | undefined;
+	for (const key in value) {
+		if (!Object.hasOwn(value, key)) continue;
+		const item = value[key];
+		const next =
+			DECIMAL_FIELDS.has(key) && typeof item === 'string' && DECIMAL_TEXT.test(item)
+				? Number(item)
+				: jsonValues(item);
+		if (next !== item) {
+			if (copy === undefined) {
+				copy = {};
+				for (const prev in value) {
+					if (prev === key) break;
+					if (Object.hasOwn(value, prev)) copy[prev] = value[prev];
+				}
+			}
+			copy[key] = next;
+		} else if (copy !== undefined) {
+			copy[key] = item;
+		}
+	}
+	return copy ?? value;
+};
 export const stableJson = (value: unknown): string => JSON.stringify(sortValue(jsonValues(value)));
 const sortValue = (value: unknown): unknown =>
 	Array.isArray(value)
@@ -118,12 +144,42 @@ export const getErrorMessage = (error: unknown): string =>
 		: isDynObject(error) && typeof error.message === 'string'
 			? error.message
 			: String(error);
+const daysInCalendarMonth = (year: number, month: number): number =>
+	new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+const validDates = new Map<string, number>();
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** Validates an ISO calendar date (`YYYY-MM-DD`) and returns its UTC epoch milliseconds, or `undefined` if invalid. */
+export const isoDateMillis = (value: string): number | undefined => {
+	const held = validDates.get(value);
+	if (held !== undefined) return held;
+	if (!ISO_DATE.test(value)) return undefined;
+	const year = Number(value.slice(0, 4));
+	const month = Number(value.slice(5, 7));
+	const day = Number(value.slice(8, 10));
+	if (month < 1 || month > 12 || day < 1 || day > daysInCalendarMonth(year, month))
+		return undefined;
+	const ms = Date.UTC(year, month - 1, day);
+	if (validDates.size >= 4096) validDates.clear();
+	validDates.set(value, ms);
+	return ms;
+};
+export const isIsoDate = (value: string): boolean => isoDateMillis(value) !== undefined;
+export const monthEndOf = (ym: string): string => {
+	const last = daysInCalendarMonth(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)));
+	return `${ym}-${String(last).padStart(2, '0')}`;
+};
+export const addDays = (day: string, days: number): string =>
+	DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days }));
 export const completedMonths = (from: string, to: string): number => {
-	let n =
-		(Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 +
-		Number(to.slice(5, 7)) -
-		Number(from.slice(5, 7));
-	if (DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(from), { months: n })) > to) n--;
+	const fromY = Number(from.slice(0, 4));
+	const fromM = Number(from.slice(5, 7));
+	const fromD = Number(from.slice(8, 10));
+	const toY = Number(to.slice(0, 4));
+	const toM = Number(to.slice(5, 7));
+	const toD = Number(to.slice(8, 10));
+	let n = (toY - fromY) * 12 + toM - fromM;
+	if (fromD > toD && Math.min(fromD, daysInCalendarMonth(toY, toM)) > toD) n--;
 	return n;
 };
 

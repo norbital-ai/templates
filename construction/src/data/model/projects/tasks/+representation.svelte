@@ -1,46 +1,65 @@
 <script lang="ts">
 	/**
-	 * A task as a work item, in three tabs: Record (its body, written as it reads with pictures, and its properties),
-	 * Activity (what happens on it, one timeline: comments, issues and meetings, by people or filed from messages) and
-	 * Documents (the photos and files filed under it). Comments post on their own; an issue or a meeting opens its form.
+	 * Linear-inspired Task workspace:
+	 * - Record tab: `<Split ratio="wide">` with a full-height borderless auto-focused Markdown canvas
+	 *   (bubble menu + `/` slash commands, inline image uploads into `attachments`) and collapsible WBS
+	 *   sub-tasks on the left; always-open Properties, Schedule & Programme/4D BIM rail on the right.
+	 * - Activity tab: polymorphic `<ActivityTimeline>` (title, plain description, timestamp, optional docs).
 	 */
-	import { id_of, type FileRef } from '@norbital-ai/bolt';
+	import { id_of, type FileRef, type Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Cluster, Column, Grid, Inline, Split, Stack } from '@norbital-ai/ui/layout';
+	import { create_clipboard } from '@norbital-ai/ui/behaviors';
+	import { Center, Cluster, Inline, Split, Stack, Surface } from '@norbital-ai/ui/layout';
 	import {
+		Badge,
 		Button,
+		cn,
+		Combobox,
 		enum_text,
 		Field,
 		type FieldEditor,
 		Form,
 		Icon,
-		format,
 		Image,
 		open_record,
 		Picker,
+		Progress,
 		ReadonlyMarkdown,
 		RecordForm,
 		RecordShell,
 		type RecordView,
 		RichMarkdownEditor,
-		Section,
 		Sheet,
-		Timeline,
-		type TimelineEntry,
 		use_act,
-		use_record_controller
+		use_record_controller,
+		type ComboboxOption
 	} from '@norbital-ai/ui';
-	import { create_toggle_group } from '@norbital-ai/ui/behaviors';
 	import { Effect, Option, Schema } from 'effect';
+	import ActivityTimeline from '../../../../lib/ActivityTimeline.svelte';
+	import { TRADE_SPECIALTIES, type TradeSpecialty } from '../../../../lib/trades.js';
+	import { toNumber } from '../../../../services/commercial/decimal.js';
+	import {
+		PRIORITY_ICON,
+		PRIORITY_TONE,
+		STATUS_ICON,
+		STATUS_TONE,
+		STATUS_TRANSITIONS,
+		formatDateRange,
+		type TaskPriority,
+		type TaskStatus
+	} from '../../../../services/ui/task-meta.js';
 
 	let { view, ctx }: { view: RecordView<'tasks'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
+	const rawT = (key: string): string => {
+		const words: { t(k: string): string } = ctx;
+		return words.t(key);
+	};
+
 	const record = $derived(view.mode !== 'create' ? view.record : null);
-	const linksSummary = $derived(
-		record?.bim_express_ids?.length
-			? t('tasks.bim_linked_count', { count: record.bim_express_ids.length })
-			: undefined
-	);
+	const isViewMode = $derived(view.mode === 'view' && record !== null);
+	const canEditTask = $derived(ctx.catalog?.tasks?.update !== undefined);
+	const canCreateTask = $derived(ctx.catalog?.tasks?.create !== undefined);
 
 	const controller = use_record_controller();
 	const liveForm = $derived(controller?.current ?? null);
@@ -56,158 +75,194 @@
 	const scopedProject = $derived.by(() => {
 		const raw = liveForm?.get('project_id');
 		const id = typeof raw === 'string' ? raw : fixedProject;
-		if (id === null) return null;
-		return Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
+		return id === null ? null : Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
 	});
 	const isBim = $derived((liveForm?.get('kind') ?? record?.kind) === 'bim');
 
-	const activityQuery = $derived(
+	const clipboard = create_clipboard({ text: () => record?.task_code ?? '' });
+
+	const refsQuery = $derived(
 		record &&
 			ctx.query({
-				activities: {
-					where: { task_id: { eq: record.id } },
-					fields: [
-						'revision',
-						'kind',
-						'title',
-						'body',
-						'attachments',
-						'occurred_at',
-						'issue_type',
-						'severity',
-						'status',
-						'attendees'
-					],
-					order_by: { occurred_at: 'asc' },
-					limit: 500,
-					author: { fields: ['name'] },
-					source_message_id: { fields: ['transport', 'sender_name'] }
-				}
+				projects: {
+					where: { id: { eq: record.project_id } },
+					fields: ['project_name', 'project_number'],
+					limit: 1
+				},
+				...(record.contract_id
+					? {
+							contracts: {
+								where: { id: { eq: record.contract_id } },
+								fields: ['contract_number', 'title'],
+								limit: 1
+							}
+						}
+					: {}),
+				...(record.assignee
+					? {
+							sys_user: {
+								where: { id: { eq: record.assignee } },
+								fields: ['name'],
+								limit: 1
+							}
+						}
+					: {}),
+				...(record.subcontractor_id
+					? {
+							contacts: {
+								where: { id: { eq: record.subcontractor_id } },
+								fields: ['full_name', 'company_name'],
+								limit: 1
+							}
+						}
+					: {})
 			})
 	);
-	const rawT = (key: string): string => {
-		const words: { t(k: string): string } = ctx;
-		return words.t(key);
-	};
-	const label = (field: 'kind' | 'issue_type' | 'severity' | 'status', value: string) =>
-		enum_text(value, { t: rawT, model: 'activities', field });
-	type ActivityRow = NonNullable<typeof activityQuery>['current'] extends infer A
-		? A extends { activities: { rows: readonly (infer R)[] } }
+
+	const projectRef = $derived(refsQuery?.current?.projects.rows[0] ?? null);
+	const contractRef = $derived(refsQuery?.current?.contracts?.rows[0] ?? null);
+	const assigneeRef = $derived(refsQuery?.current?.sys_user?.rows[0] ?? null);
+	const subcontractorRef = $derived(refsQuery?.current?.contacts?.rows[0] ?? null);
+
+	const wbsFamilyQuery = $derived(
+		record && record.wbs_path?.trim()
+			? ctx.query({
+					tasks: {
+						where: { project_id: { eq: record.project_id } },
+						fields: [
+							'task_code',
+							'wbs_path',
+							'title',
+							'status',
+							'priority',
+							'progress_pct',
+							'trade_specialty',
+							'is_milestone'
+						],
+						order_by: { wbs_path: 'asc' },
+						limit: 300
+					}
+				})
+			: null
+	);
+
+	type WbsTaskRow = NonNullable<typeof wbsFamilyQuery>['current'] extends infer A
+		? A extends { tasks: { rows: readonly (infer R)[] } }
 			? R
 			: never
 		: never;
-	type ActivityEntry = TimelineEntry & {
-		readonly row: ActivityRow;
-		/** What was posted with it and is not already pictured in its body. */
-		readonly files: readonly FileRef[];
-	};
-	/** Which kinds the timeline shows: all, or one. */
-	let shown = $state<'all' | 'comment' | 'issue' | 'meeting'>('all');
-	const shownGroup = create_toggle_group({
-		items: () => ['all', 'comment', 'issue', 'meeting'],
-		mode: 'single',
-		value: () => [shown],
-		on_change: (values) => {
-			const next = values[0];
-			if (next === 'all' || next === 'comment' || next === 'issue' || next === 'meeting')
-				shown = next;
-		},
-		control: { id: 'construction:task-activity-kind', label: t('tasks.activity_filter') }
+
+	const parentWbsPath = $derived.by(() => {
+		const path = record?.wbs_path?.trim() ?? '';
+		const dot = path.lastIndexOf('.');
+		return dot > 0 ? path.slice(0, dot) : null;
 	});
-	const ICON = {
-		comment: 'lucide:message-square',
-		issue: 'lucide:triangle-alert',
-		meeting: 'lucide:users'
-	} as const;
-	const activity = $derived<ActivityEntry[]>(
-		(activityQuery?.current?.activities.rows ?? [])
-			.filter((a) => shown === 'all' || a.kind === shown)
-			.map((a) => {
-				const message = a.source_message_id;
-				const who =
-					a.author?.name ??
-					(message
-						? `${message.sender_name ?? t('tasks.comment_author_unknown')} · ${enum_text(message.transport, { t: rawT, model: 'project_messages', field: 'transport' })}`
-						: null);
-				const when = format({ kind: 'instant' }, a.occurred_at, { locale: ctx.locale });
-				return {
-					key: a.id,
-					icon: message && a.kind === 'comment' ? 'lucide:message-circle-more' : ICON[a.kind],
-					tone:
-						a.kind === 'issue' && a.status === 'open' ? ('warning' as const) : ('default' as const),
-					title: a.title ?? who ?? t('tasks.comment_author_unknown'),
-					line: [
-						...(a.kind === 'comment'
-							? []
-							: [label('kind', a.kind), ...(who === null ? [] : [who])]),
-						when,
-						...(a.kind === 'issue' && a.issue_type ? [label('issue_type', a.issue_type)] : []),
-						...(a.kind === 'meeting' && a.attendees?.length ? [a.attendees.join(', ')] : [])
-					],
-					...(a.kind === 'issue' && a.severity && a.status
-						? {
-								mark: {
-									text: `${label('severity', a.severity)} · ${label('status', a.status)}`,
-									warn: a.status === 'open'
-								}
-							}
-						: {}),
-					...(a.kind === 'comment' ? {} : { onpick: () => open_record('activities', a.id) }),
-					row: a,
-					files: (a.attachments ?? []).filter((file) => !(a.body ?? '').includes(file.id))
-				};
-			})
+	const parentTask = $derived<WbsTaskRow | null>(
+		parentWbsPath
+			? ((wbsFamilyQuery?.current?.tasks.rows ?? []).find(
+					(r) => r.wbs_path?.trim() === parentWbsPath && r.id !== record?.id
+				) ?? null)
+			: null
 	);
-	const canUpdate = $derived(ctx.catalog?.activities?.update !== undefined);
-	const deciding = use_act(ctx);
-	/** Closes an open issue, or opens a closed one again. */
-	function toggleIssue(row: ActivityRow): void {
-		deciding.run(
+	const subTasks = $derived.by<readonly WbsTaskRow[]>(() => {
+		const path = record?.wbs_path?.trim();
+		if (!path) return [];
+		const prefix = `${path}.`;
+		return (wbsFamilyQuery?.current?.tasks.rows ?? []).filter(
+			(r) => r.id !== record?.id && (r.wbs_path?.trim() ?? '').startsWith(prefix)
+		);
+	});
+	const subTasksDone = $derived(subTasks.filter((r) => r.status === 'done').length);
+
+	const statusOptions = $derived<readonly ComboboxOption<TaskStatus>[]>(
+		STATUS_TRANSITIONS[record?.status ?? 'todo'].map((s) => ({
+			value: s,
+			label: enum_text(s, { t: rawT, model: 'tasks', field: 'status' }),
+			icon: STATUS_ICON[s]
+		}))
+	);
+	const priorityOptions = $derived<readonly ComboboxOption<TaskPriority>[]>(
+		(['low', 'medium', 'high', 'critical'] as const).map((p) => ({
+			value: p,
+			label: enum_text(p, { t: rawT, model: 'tasks', field: 'priority' }),
+			icon: PRIORITY_ICON[p]
+		}))
+	);
+	const tradeOptions = $derived<readonly ComboboxOption<TradeSpecialty>[]>(
+		TRADE_SPECIALTIES.map((tr) => ({
+			value: tr,
+			label: enum_text(tr, { t: rawT, model: 'tasks', field: 'trade_specialty' })
+		}))
+	);
+
+	const quickAct = use_act(ctx);
+	function patchTask(
+		set: Partial<{
+			status: TaskStatus;
+			priority: TaskPriority;
+			trade_specialty: TradeSpecialty;
+			assignee: Id<'sys_user'> | null;
+			subcontractor_id: Id<'contacts'> | null;
+		}>
+	): void {
+		if (!record || !canEditTask || quickAct.pending) return;
+		quickAct.run(
 			ctx.act({
-				'activities.update': [
-					{
-						target: { id: row.id, revision: row.revision },
-						set: { status: row.status === 'open' ? 'closed' : 'open' }
-					}
-				]
+				'tasks.update': [{ target: { id: record.id, revision: record.revision }, set }]
 			})
 		);
 	}
-	/** A new issue or meeting opens its form here, filed under this task. */
-	let raising = $state<'issue' | 'meeting' | null>(null);
-	let draft = $state('');
-	let draftFiles = $state<FileRef[]>([]);
-	const posting = use_act(ctx);
-	const canComment = $derived(ctx.catalog?.activities?.create !== undefined);
-	/** A picture in a comment is stored with the comment and shown in place. */
-	const keepWithComment = (file: File) =>
-		ctx.upload(file, 'activities.attachments').pipe(
-			Effect.tap((ref) => Effect.sync(() => (draftFiles = [...draftFiles, ref]))),
+
+	let subTasksOpen = $state(true);
+	let subtaskSheetOpen = $state(false);
+
+	const isFileRef = (value: unknown): value is FileRef =>
+		typeof value === 'object' &&
+		value !== null &&
+		'id' in value &&
+		typeof value.id === 'string' &&
+		'name' in value &&
+		typeof value.name === 'string' &&
+		'mime' in value &&
+		typeof value.mime === 'string' &&
+		'size' in value &&
+		typeof value.size === 'number';
+
+	const uploadDescriptionImage = (file: File) =>
+		ctx.upload(file, 'tasks.attachments').pipe(
+			Effect.tap((ref) =>
+				Effect.sync(() => {
+					if (!liveForm) return;
+					const existing = liveForm.get('attachments');
+					const kept = Array.isArray(existing) ? existing.filter(isFileRef) : [];
+					liveForm.set('attachments', [...kept, ref]);
+				})
+			),
 			Effect.map((ref) => ctx.file_url(ref))
 		);
-	function postComment(): void {
-		const body = draft.trim();
-		if (record === null || body === '') return;
-		posting.run(
-			ctx.act({
-				'activities.create': [
-					{
-						task_id: record.id,
-						kind: 'comment',
-						body,
-						...(draftFiles.length > 0 ? { attachments: draftFiles } : {})
-					}
-				]
-			}),
-			{
-				saved: t('tasks.comment_posted'),
-				then: () => {
-					draft = '';
-					draftFiles = [];
-				}
-			}
-		);
-	}
+
+	const formatPeriod = (
+		range: { readonly from?: string | null; readonly to?: string | null } | null | undefined
+	) => formatDateRange(range, ctx.locale);
+
+	const progressNum = $derived(Math.round(toNumber(record?.progress_pct ?? 0)));
+	const visibleAttachments = $derived(
+		(record?.attachments ?? []).filter((f) => !(record?.description ?? '').includes(f.id))
+	);
+	const nextChildWbs = $derived(
+		record?.wbs_path?.trim() ? `${record.wbs_path.trim()}.${subTasks.length + 1}` : undefined
+	);
+	const draftTitle = $derived(
+		typeof liveForm?.get('title') === 'string'
+			? String(liveForm.get('title'))
+			: (record?.title ?? '')
+	);
+	const draftDescription = $derived(
+		typeof liveForm?.get('description') === 'string'
+			? String(liveForm.get('description'))
+			: (record?.description ?? '')
+	);
+	const titleError = $derived(liveForm?.field_errors.get('title'));
 </script>
 
 {#snippet contractEditor(field: FieldEditor)}
@@ -236,173 +291,480 @@
 	/>
 {/snippet}
 
-{#snippet entryBody(entry: ActivityEntry)}
-	{#if entry.row.body}
-		<ReadonlyMarkdown value={entry.row.body} class="text-sm" />
-	{/if}
-	{#if entry.files.length > 0}
-		<Cluster gap="xs">
-			{#each entry.files as file (file.id)}
-				<a href={ctx.file_url(file)} target="_blank" rel="noopener" title={file.name}>
-					{#if file.mime.startsWith('image/')}
-						<Image
-							src={ctx.file_url(file, { preview: 512 })}
-							alt={file.name}
-							class="size-16 rounded-inset border border-border"
-							image_class="object-cover"
-						/>
-					{:else}
-						<span class="text-meta underline">{file.name}</span>
+{#snippet mainCanvas()}
+	<Center measure="wide" class="flex min-h-full flex-col">
+		<Stack gap="md" class="flex-1">
+			{#if record !== null}
+				<Cluster gap="xs" align="center">
+					<Button variant="ghost" onclick={() => open_record('projects', record.project_id)}>
+						<Icon name="lucide:building-2" class="size-3.5 text-muted-foreground" />
+						{projectRef?.project_name ?? t('models.tasks.fields.project_id')}
+					</Button>
+					{#if parentTask !== null}
+						<Icon name="lucide:chevron-right" class="size-3 text-muted-foreground" />
+						<Button variant="ghost" onclick={() => open_record('tasks', parentTask.id)}>
+							<span class="font-mono text-xs text-muted-foreground">{parentTask.task_code}</span>
+							<span class="truncate">{parentTask.title}</span>
+						</Button>
 					{/if}
-				</a>
-			{/each}
-		</Cluster>
-	{/if}
+					<Icon name="lucide:chevron-right" class="size-3 text-muted-foreground" />
+					<span class="font-mono text-xs text-foreground">{record.task_code}</span>
+					{#if record.wbs_path}
+						<span class="font-mono text-tiny text-muted-foreground">
+							{t('tasks.wbs_prefix', { path: record.wbs_path })}
+						</span>
+					{/if}
+					{#if record.is_milestone}
+						<Badge variant="warning" class="text-tiny">
+							<Icon name="lucide:diamond" class="size-2.5" />
+							{t('timeline.milestone_badge')}
+						</Badge>
+					{/if}
+					{#if record.kind === 'bim' && (record.bim_express_ids?.length ?? 0) > 0}
+						<Badge variant="outline" class="font-mono text-tiny">
+							<Icon name="lucide:box" class="size-2.5" />
+							{t('tasks.bim_linked_count', { count: record.bim_express_ids?.length ?? 0 })}
+						</Badge>
+					{/if}
+				</Cluster>
+			{/if}
+
+			{#if isViewMode && record !== null}
+				<Stack gap="md" class="flex-1">
+					<h1 class="text-title text-foreground">{record.title}</h1>
+					{#if record.description?.trim()}
+						{#if canEditTask && liveForm}
+							<div
+								role="button"
+								tabindex="0"
+								class="min-h-48 flex-1 cursor-text"
+								onclick={() => liveForm?.edit()}
+								onkeydown={(e) => {
+									if (e.key === 'Enter') liveForm?.edit();
+								}}
+							>
+								<ReadonlyMarkdown value={record.description} class="text-sm leading-normal" />
+							</div>
+						{:else}
+							<ReadonlyMarkdown value={record.description} class="text-sm leading-normal" />
+						{/if}
+					{:else if canEditTask && liveForm}
+						<button
+							type="button"
+							class="min-h-48 flex-1 cursor-text text-left text-sm text-muted-foreground"
+							onclick={() => liveForm?.edit()}
+						>
+							{t('tasks.add_description_hint')}
+						</button>
+					{:else}
+						<p class="text-meta">{t('tasks.add_description_hint')}</p>
+					{/if}
+				</Stack>
+
+				{#if visibleAttachments.length > 0}
+					<Cluster gap="xs">
+						{#each visibleAttachments as file (file.id)}
+							<a href={ctx.file_url(file)} target="_blank" rel="noopener" title={file.name}>
+								<Surface tone="card" padding="xs" radius="control" interactive>
+									<Inline gap="xs" align="center">
+										{#if file.mime.startsWith('image/')}
+											<Image
+												src={ctx.file_url(file, { preview: 512 })}
+												alt={file.name}
+												class="size-7 rounded-badge border border-border"
+												image_class="object-cover"
+											/>
+										{:else}
+											<Icon name="lucide:paperclip" class="size-3.5 text-muted-foreground" />
+										{/if}
+										<span class="max-w-44 truncate text-xs text-foreground">{file.name}</span>
+									</Inline>
+								</Surface>
+							</a>
+						{/each}
+					</Cluster>
+				{/if}
+			{:else}
+				<Stack gap="md" class="flex-1">
+					<input
+						type="text"
+						value={draftTitle}
+						placeholder={t('models.tasks.fields.title')}
+						aria-label={t('models.tasks.fields.title')}
+						aria-invalid={titleError !== undefined ? 'true' : undefined}
+						class="w-full bg-transparent text-title text-foreground outline-none placeholder:text-muted-foreground"
+						oninput={(e) => liveForm?.set('title', e.currentTarget.value)}
+					/>
+					{#if titleError}
+						<p role="alert" class="text-xs text-destructive">{titleError}</p>
+					{/if}
+					<RichMarkdownEditor
+						value={draftDescription}
+						autofocus
+						placeholder={t('tasks.description_placeholder')}
+						aria-label={t('models.tasks.fields.description')}
+						upload={uploadDescriptionImage}
+						on_change={(next) => liveForm?.set('description', next === '' ? null : next)}
+					/>
+				</Stack>
+			{/if}
+
+			{#if record !== null && (subTasks.length > 0 || (record.wbs_path && canCreateTask))}
+				<Stack gap="xs">
+					<Cluster align="center" justify="between" gap="xs">
+						<Button variant="ghost" onclick={() => (subTasksOpen = !subTasksOpen)}>
+							<Icon
+								name={subTasksOpen ? 'lucide:chevron-down' : 'lucide:chevron-right'}
+								class="size-3.5"
+							/>
+							<span>{t('tasks.sub_tasks')}</span>
+							<span class="font-mono text-xs tabular-nums text-muted-foreground">
+								{`${subTasksDone}/${subTasks.length}`}
+							</span>
+						</Button>
+						{#if canCreateTask}
+							<Button
+								size="icon"
+								variant="ghost"
+								aria-label={t('tasks.add_sub_task')}
+								hint={t('tasks.add_sub_task')}
+								onclick={() => (subtaskSheetOpen = true)}
+							>
+								<Icon name="lucide:plus" class="size-3.5" />
+							</Button>
+						{/if}
+					</Cluster>
+					{#if subTasksOpen && subTasks.length > 0}
+						<Surface tone="card" padding="none" radius="control">
+							<Stack gap="none" divided>
+								{#each subTasks as sub (sub.id)}
+									<button
+										type="button"
+										class="w-full px-3 py-2 text-left transition-colors hover:bg-muted"
+										onclick={() => open_record('tasks', sub.id)}
+									>
+										<Inline align="center" justify="between" gap="sm">
+											<Inline align="center" gap="sm">
+												<Icon
+													name={STATUS_ICON[sub.status]}
+													class={cn('size-3.5 shrink-0', STATUS_TONE[sub.status])}
+												/>
+												<span class="font-mono text-xs text-muted-foreground">{sub.task_code}</span>
+												<span class="truncate text-label">{sub.title}</span>
+											</Inline>
+											<Inline align="center" gap="sm">
+												<span class="text-meta">
+													{enum_text(sub.trade_specialty, {
+														t: rawT,
+														model: 'tasks',
+														field: 'trade_specialty'
+													})}
+												</span>
+												<span class="font-mono text-xs tabular-nums text-muted-foreground">
+													{`${Math.round(toNumber(sub.progress_pct))}%`}
+												</span>
+											</Inline>
+										</Inline>
+									</button>
+								{/each}
+							</Stack>
+						</Surface>
+					{/if}
+				</Stack>
+			{/if}
+		</Stack>
+	</Center>
 {/snippet}
 
-{#snippet main()}
-	<Section icon="lucide:list-checks" first name="task" title={t('section.task')}>
-		<Grid minimum="card">
-			<Column span="all"><Field {ctx} name="title" /></Column>
-			<Column span="all"><Field {ctx} name="description" /></Column>
-			<Column span="all"><Field {ctx} name="latest_update" /></Column>
-		</Grid>
-	</Section>
+{#snippet propertiesSidebar()}
+	<Surface tone="card" padding="md" radius="control">
+		<Stack gap="md" divided>
+			<Stack gap="sm">
+				<Cluster align="center" justify="between" gap="xs">
+					<span class="text-overline">{t('section.task_properties')}</span>
+					{#if record !== null}
+						<Button
+							size="icon"
+							variant="ghost"
+							aria-label={t('tasks.copy_code')}
+							hint={clipboard.copied ? t('tasks.copied_code') : t('tasks.copy_code')}
+							onclick={() => void clipboard.copy()}
+						>
+							<Icon name={clipboard.copied ? 'lucide:check' : 'lucide:copy'} class="size-3.5" />
+						</Button>
+					{/if}
+				</Cluster>
+
+				{#if isViewMode && record !== null}
+					{@const curStatus = record.status}
+					{@const curPriority = record.priority}
+					<Stack gap="xs">
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_status')}</span>
+							{#if canEditTask}
+								<Combobox
+									options={statusOptions}
+									value={curStatus}
+									variant="ghost"
+									searchable={false}
+									disabled={quickAct.pending}
+									on_change={(next) => {
+										if (next && next !== curStatus) patchTask({ status: next });
+									}}
+								/>
+							{:else}
+								<Inline gap="xs" align="center" justify="end">
+									<Icon
+										name={STATUS_ICON[curStatus]}
+										class={cn('size-3.5', STATUS_TONE[curStatus])}
+									/>
+									<span class="text-xs">
+										{enum_text(curStatus, { t: rawT, model: 'tasks', field: 'status' })}
+									</span>
+								</Inline>
+							{/if}
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_priority')}</span>
+							{#if canEditTask}
+								<Combobox
+									options={priorityOptions}
+									value={curPriority}
+									variant="ghost"
+									searchable={false}
+									disabled={quickAct.pending}
+									on_change={(next) => {
+										if (next && next !== curPriority) patchTask({ priority: next });
+									}}
+								/>
+							{:else}
+								<Inline gap="xs" align="center" justify="end">
+									<Icon
+										name={PRIORITY_ICON[curPriority]}
+										class={cn('size-3.5', PRIORITY_TONE[curPriority])}
+									/>
+									<span class="text-xs">
+										{enum_text(curPriority, { t: rawT, model: 'tasks', field: 'priority' })}
+									</span>
+								</Inline>
+							{/if}
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_progress')}</span>
+							<Inline gap="xs" align="center" justify="end">
+								<Progress value={progressNum} max={100} class="h-1.5 w-20 shrink-0" />
+								<span
+									class="shrink-0 whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground"
+								>
+									{`${progressNum}%`}
+								</span>
+							</Inline>
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('models.tasks.fields.assignee')}</span>
+							{#if canEditTask}
+								<Picker
+									{ctx}
+									of="sys_user"
+									value={record.assignee ?? null}
+									disabled={quickAct.pending}
+									on_change={(next) => {
+										if (next !== (record.assignee ?? null)) patchTask({ assignee: next });
+									}}
+								/>
+							{:else}
+								<span class="truncate text-xs text-foreground">
+									{assigneeRef?.name ?? t('component.no_value')}
+								</span>
+							{/if}
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('models.tasks.fields.subcontractor_id')}</span>
+							{#if canEditTask}
+								<Picker
+									{ctx}
+									of="contacts"
+									value={record.subcontractor_id ?? null}
+									disabled={quickAct.pending}
+									on_change={(next) => {
+										if (next !== (record.subcontractor_id ?? null))
+											patchTask({ subcontractor_id: next });
+									}}
+								/>
+							{:else}
+								<span class="truncate text-xs text-foreground">
+									{subcontractorRef?.company_name ??
+										subcontractorRef?.full_name ??
+										t('component.no_value')}
+								</span>
+							{/if}
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_trade')}</span>
+							{#if canEditTask}
+								<Combobox
+									options={tradeOptions}
+									value={record.trade_specialty}
+									variant="ghost"
+									disabled={quickAct.pending}
+									on_change={(next) => {
+										if (next && next !== record.trade_specialty)
+											patchTask({ trade_specialty: next });
+									}}
+								/>
+							{:else}
+								<span class="truncate text-xs text-foreground">
+									{enum_text(record.trade_specialty, {
+										t: rawT,
+										model: 'tasks',
+										field: 'trade_specialty'
+									})}
+								</span>
+							{/if}
+						</Inline>
+
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_zone')}</span>
+							<span class="font-mono text-xs text-foreground">
+								{record.zone ?? t('component.no_value')}
+							</span>
+						</Inline>
+					</Stack>
+				{:else}
+					<Stack gap="sm">
+						{#if record !== null}
+							<Field {ctx} name="status" />
+						{/if}
+						<Field {ctx} name="priority" />
+						<Field {ctx} name="progress_pct" />
+						<Field {ctx} name="assignee" />
+						<Field {ctx} name="subcontractor_id" />
+						<Field {ctx} name="trade_specialty" />
+						<Field {ctx} name="zone" />
+					</Stack>
+				{/if}
+			</Stack>
+
+			<Stack gap="sm">
+				<span class="text-overline">{t('tasks.group_schedule')}</span>
+				{#if isViewMode && record !== null}
+					<Stack gap="xs">
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_planned')}</span>
+							<span class="font-mono text-xs tabular-nums text-foreground">
+								{formatPeriod(record.schedule_range) ?? t('component.no_value')}
+							</span>
+						</Inline>
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_actual')}</span>
+							<span class="font-mono text-xs tabular-nums text-foreground">
+								{formatPeriod(record.actual_range) ?? t('component.no_value')}
+							</span>
+						</Inline>
+						{#if formatPeriod(record.baseline_range)}
+							<Inline align="center" justify="between" gap="sm">
+								<span class="text-meta shrink-0">{t('tasks.prop_baseline')}</span>
+								<span class="font-mono text-xs tabular-nums text-muted-foreground">
+									{formatPeriod(record.baseline_range)}
+								</span>
+							</Inline>
+						{/if}
+					</Stack>
+				{:else}
+					<Stack gap="sm">
+						<Field {ctx} name="schedule_range" />
+						<Field {ctx} name="actual_range" />
+						<Field {ctx} name="baseline_range" />
+					</Stack>
+				{/if}
+			</Stack>
+
+			<Stack gap="sm">
+				<span class="text-overline">{t('tasks.group_programme')}</span>
+				{#if isViewMode && record !== null}
+					<Stack gap="xs">
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('tasks.prop_type')}</span>
+							<Cluster gap="xs" justify="end">
+								<Badge variant="outline" class="text-tiny">
+									{enum_text(record.kind, { t: rawT, model: 'tasks', field: 'kind' })}
+								</Badge>
+								{#if record.is_milestone}
+									<Badge variant="warning" class="text-tiny">{t('timeline.milestone_badge')}</Badge>
+								{/if}
+							</Cluster>
+						</Inline>
+						<Inline align="center" justify="between" gap="sm">
+							<span class="text-meta shrink-0">{t('models.tasks.fields.task_code')}</span>
+							<span class="font-mono text-xs text-foreground">{record.task_code}</span>
+						</Inline>
+						{#if record.wbs_path}
+							<Inline align="center" justify="between" gap="sm">
+								<span class="text-meta shrink-0">{t('models.tasks.fields.wbs_path')}</span>
+								<span class="font-mono text-xs text-foreground">{record.wbs_path}</span>
+							</Inline>
+						{/if}
+						{#if record.contract_id}
+							<Inline align="center" justify="between" gap="sm">
+								<span class="text-meta shrink-0">{t('models.tasks.fields.contract_id')}</span>
+								<Button
+									variant="ghost"
+									onclick={() => record.contract_id && open_record('contracts', record.contract_id)}
+								>
+									{contractRef
+										? `${contractRef.contract_number} · ${contractRef.title}`
+										: t('models.tasks.fields.contract_id')}
+								</Button>
+							</Inline>
+						{/if}
+
+						{#if record.kind === 'bim' && record.bim_express_ids?.length}
+							<Cluster gap="xs">
+								{#each record.bim_express_ids.slice(0, 12) as eid (eid)}
+									<Badge variant="outline" class="font-mono text-tiny">{`#${eid}`}</Badge>
+								{/each}
+								{#if record.bim_express_ids.length > 12}
+									<span class="font-mono text-xs text-muted-foreground">
+										{`+${record.bim_express_ids.length - 12}`}
+									</span>
+								{/if}
+							</Cluster>
+						{/if}
+					</Stack>
+				{:else}
+					<Stack gap="sm">
+						<Field {ctx} name="kind" />
+						<Field {ctx} name="is_milestone" />
+						<Field {ctx} name="task_code" />
+						<Field {ctx} name="wbs_path" help={t('tasks.wbs_path_help')} />
+						<Field {ctx} name="external_id" />
+						<Field {ctx} name="contract_id" editor={contractEditor} />
+						{#if !hideProject}
+							<Field {ctx} name="project_id" />
+						{/if}
+						<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
+						{#if isBim}
+							<Field {ctx} name="bim_express_ids" />
+						{/if}
+					</Stack>
+				{/if}
+			</Stack>
+		</Stack>
+	</Surface>
 {/snippet}
 
-{#snippet properties()}
-	<Stack gap="md">
-		<Section
-			icon="lucide:sliders-horizontal"
-			name="properties"
-			title={t('section.task_properties')}
-		>
-			<Grid minimum="card">
-				<Field {ctx} name="kind" />
-				{#if record !== null}
-					<Field {ctx} name="status" />
-				{/if}
-				<Field {ctx} name="priority" />
-				<Field {ctx} name="assignee" />
-				<Field {ctx} name="subcontractor_id" />
-				<Field {ctx} name="trade_specialty" />
-				<Field {ctx} name="zone" />
-				<Field {ctx} name="progress_pct" />
-				<Field {ctx} name="schedule_range" />
-				<Field {ctx} name="actual_range" />
-				<Field {ctx} name="baseline_range" />
-				<Field {ctx} name="last_updated_on" />
-				<Field {ctx} name="is_milestone" />
-				<Field {ctx} name="contract_id" editor={contractEditor} />
-				{#if !hideProject}
-					<Field {ctx} name="project_id" />
-				{/if}
-			</Grid>
-		</Section>
-		<Section
-			icon="lucide:link"
-			name="programme"
-			title={t('section.programme_and_links')}
-			default_open={false}
-			{...linksSummary ? { summary: linksSummary } : {}}
-		>
-			<Grid minimum="card">
-				<Field {ctx} name="task_code" />
-				<Field {ctx} name="wbs_path" help={t('tasks.wbs_path_help')} />
-				<Field {ctx} name="external_id" />
-				{#if isBim}
-					<Column span="all"><Field {ctx} name="bim_express_ids" /></Column>
-				{/if}
-				<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
-			</Grid>
-		</Section>
-	</Stack>
-{/snippet}
-
-{#snippet issueToggle(entry: ActivityEntry)}
-	{#if entry.row.kind === 'issue' && canUpdate}
-		<Button
-			variant="ghost"
-			class="h-6 px-2 text-micro"
-			disabled={deciding.pending}
-			onclick={() => toggleIssue(entry.row)}
-		>
-			{entry.row.status === 'open' ? t('tasks.close_issue') : t('tasks.reopen_issue')}
-		</Button>
-	{/if}
+{#snippet twoPaneBody()}
+	<Split ratio="wide" collapse="stack" gap="lg" start={mainCanvas} end={propertiesSidebar} />
 {/snippet}
 
 {#snippet activityTab()}
-	<Stack gap="md">
-		<Inline justify="between" align="center" gap="sm">
-			<div
-				class="inline-flex items-center rounded-control border border-border bg-muted/40 p-0.5"
-				{...shownGroup.root_attrs()}
-				aria-label={t('tasks.activity_filter')}
-			>
-				{#each ['all', 'comment', 'issue', 'meeting'] as const as kind (kind)}
-					<Button
-						{...shownGroup.item_attrs(kind)}
-						{@attach shownGroup.item(kind)}
-						variant={shown === kind ? 'secondary' : 'ghost'}
-						class="h-7 px-2 text-micro"
-					>
-						{t(`tasks.activity_${kind}`)}
-					</Button>
-				{/each}
-			</div>
-			{#if canComment}
-				<Inline gap="xs">
-					<Button variant="outline" onclick={() => (raising = 'issue')}>
-						<Icon name="lucide:triangle-alert" class="size-3.5" />
-						{t('tasks.raise_issue')}
-					</Button>
-					<Button variant="outline" onclick={() => (raising = 'meeting')}>
-						<Icon name="lucide:users" class="size-3.5" />
-						{t('tasks.log_meeting')}
-					</Button>
-				</Inline>
-			{/if}
-		</Inline>
-		<Timeline
-			entries={activity}
-			label={t('tasks.activity_title')}
-			item={entryBody}
-			trailing={issueToggle}
-		>
-			{#snippet empty()}
-				<p class="text-meta">{t('tasks.no_activity')}</p>
-			{/snippet}
-		</Timeline>
-		{#if canComment}
-			<RichMarkdownEditor
-				value={draft}
-				on_change={(next) => (draft = next)}
-				upload={keepWithComment}
-				placeholder={t('tasks.comment_placeholder')}
-				aria-label={t('tasks.comment_placeholder')}
-				disabled={posting.pending}
-			/>
-			<Inline justify="end">
-				<Button
-					variant="brand"
-					disabled={posting.pending || draft.trim() === ''}
-					onclick={postComment}
-				>
-					{t('tasks.comment_post')}
-				</Button>
-			</Inline>
-		{/if}
-	</Stack>
-{/snippet}
-
-{#snippet documentsTab()}
 	{#if record}
-		<Form {ctx} of="tasks" mode={view.mode} id={record.id} {record} size="content">
-			<Section icon="lucide:paperclip" first name="documents" title={t('tasks.tab_documents')}>
-				<Field {ctx} name="attachments" />
-			</Section>
-		</Form>
+		<ActivityTimeline {ctx} about={{ model: 'tasks', id: record.id }} />
 	{/if}
 {/snippet}
 
@@ -412,6 +774,8 @@
 		of="tasks"
 		mode={view.mode}
 		id={record.id}
+		title={record.task_code}
+		eyebrow={false}
 		subtitle={['kind', 'status', 'priority']}
 		tabs={[
 			{
@@ -419,32 +783,32 @@
 				title: t('tasks.tab_activity'),
 				icon: 'lucide:activity',
 				body: activityTab
-			},
-			{
-				name: 'documents',
-				title: t('tasks.tab_documents'),
-				icon: 'lucide:paperclip',
-				body: documentsTab
 			}
 		]}
 	>
 		<Form {ctx} of="tasks" mode={view.mode} id={record.id} {record} size="content">
-			<Split ratio="wide" gap="lg" start={main} end={properties} />
+			{@render twoPaneBody()}
 		</Form>
 	</RecordShell>
-	<Sheet open={raising !== null} on_open_change={(open) => !open && (raising = null)}>
-		{#if raising !== null}
+	<Sheet open={subtaskSheetOpen} on_open_change={(open) => !open && (subtaskSheetOpen = false)}>
+		{#if subtaskSheetOpen}
 			<RecordShell
 				{ctx}
-				of="activities"
+				of="tasks"
 				mode="create"
-				values={{ task_id: record.id, kind: raising }}
-				on_done={() => (raising = null)}
+				values={{
+					project_id: record.project_id,
+					kind: record.kind,
+					trade_specialty: record.trade_specialty,
+					...(nextChildWbs ? { wbs_path: nextChildWbs } : {}),
+					...(record.zone ? { zone: record.zone } : {})
+				}}
+				on_done={() => (subtaskSheetOpen = false)}
 			/>
 		{/if}
 	</Sheet>
 {:else}
 	<RecordForm {ctx} {view} subtitle={['kind', 'status', 'priority']}>
-		<Split ratio="wide" gap="lg" start={main} end={properties} />
+		{@render twoPaneBody()}
 	</RecordForm>
 {/if}

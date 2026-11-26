@@ -28,13 +28,12 @@ The workspace splits work cleanly across three runtime planes:
 +============================================================================================+
 |                            BROWSER PLANE (Svelte 5 + Page SDK)                             |
 +============================================================================================+
-|  App: crm (3 pages)                          |  App: configuration (5 pages)               |
-|  - dashboard   (CalendarSchedule KPIs+Cal)   |  - rules       (communication_settings+log) |
-|  - companies   (Table, Import, Cohorts,      |  - connections (MyConnections: Personal +   |
-|                 DocumentPreviewSheet)        |                 Workspace channels/Apollo)  |
-|  - tasks       (Open tasks/follow-ups queue) |  - products    (products + offering_set.)   |
-|                                              |  - templates   (template_docs + signatory)  |
-|  Record Hubs (+representation.svelte)        |  - sequences   (sequences + outreach_set.)  |
+|  App: crm (3 pages)                          |  App: configuration (4 pages)               |
+|  - dashboard   (CalendarSchedule KPIs+Cal)   |  - connections (Bolt <Connections> +        |
+|  - companies   (Table, Import, Cohorts,      |                 Message rules & logs sheets)|
+|                 DocumentPreviewSheet)        |  - products    (products + offering_set.)   |
+|  - tasks       (Open tasks/follow-ups queue) |  - templates   (template_docs + signatory)  |
+|                                              |  - sequences   (sequences + outreach_set.)  |
 |  - companies   (Details, Contacts, Research, +---------------------------------------------+
 |                 Profile, ActivityTimeline)   |  Browser-Local Engines (no server bloat)    |
 |  - projects    (SOW tables, Capture rules,   |  - MediaRecorder 32kbps + IndexedDB drafts  |

@@ -2,7 +2,16 @@ import type { CarriedWrites, EffectCtx } from '@norbital-ai/bolt';
 import { DateTime, Effect, Schema } from 'effect';
 import { amendmentsOf } from '../../payroll_run/service/amendments.js';
 import { reachOf, type Change } from '../../../../lib/dated.js';
-import { LAW_DEPTH, LAW_ROWS, lawRead, lawsOf, standing, type Law, type LawFamily } from './law.js';
+import {
+	LAW_DEPTH,
+	LAW_ROWS,
+	changeOf,
+	lawRead,
+	lawsOf,
+	standing,
+	type Law,
+	type LawFamily
+} from './law.js';
 import { paidShareOf, statutoryOrder, subtotalChain } from '../../payroll_run/service/engine.js';
 import { checkExpression } from './expressions.js';
 import {
@@ -173,11 +182,6 @@ const ENTRY_FAMILIES = [
 	'work_event_catalog'
 ] as const satisfies readonly LawFamily[];
 
-const changeOf = (row: JsonObject): Change => ({
-	id: String(row.id),
-	effective_from: String(row.effective_from),
-	patch: isJsonObject(row.law) ? row.law : {}
-});
 const firstOf = (rows: readonly Change[]): string | undefined =>
 	rows.toSorted(
 		(a, b) => a.effective_from.localeCompare(b.effective_from) || a.id.localeCompare(b.id)

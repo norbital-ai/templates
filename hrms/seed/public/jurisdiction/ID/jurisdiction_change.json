@@ -5127,7 +5127,7 @@
 					"effects": "// PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025: Raises the January task to review the new provincial and city minimum wages against payroll.\nconst month = String(ctx.entry.salary_coverage.from).slice(0, 7);\nconst year = month.slice(0, 4);\nconst key = occurrence_key(['ID', 'MINIMUM_WAGE_COMPLIANCE', ctx.entry.entity_id, year]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'New provincial and city minimum wages in force',\n  due_on: year + '-01-01',\n  occurrence_key: key,\n}];"
 				},
 				"PAYSLIP_ISSUE": {
-					"description": "Raises a wage-slip task for each payslip when the run is paid.",
+					"description": "Raises one wage-slip task for the run when it is paid.",
 					"name": "Wage slip",
 					"lookup": {},
 					"references": [
@@ -5144,33 +5144,19 @@
 					"reads": {
 						"obligation": {
 							"where": {
-								"entity_id": {
+								"occurrence_key": {
 									"eq": {
-										"var": "ctx.entry.entity_id"
-									}
-								},
-								"employee_id": {
-									"is_null": false
-								}
-							},
-							"limit": 10000
-						},
-						"payslip": {
-							"where": {
-								"payroll_run_id": {
-									"eq": {
-										"var": "ctx.entry.id"
+										"var": "occurrence_key(['ID', 'PAYSLIP_ISSUE', ctx.entry.entity_id, ctx.entry.id])"
 									}
 								}
 							},
-							"fields": ["id", "entity_id", "employee_id", "employment_id"],
-							"limit": 10000
+							"limit": 1
 						}
 					},
-					"condition": "// PP 36/2021 art.53(2): Raises a wage-slip task for each payslip when the run is paid.\nreturn ctx.entry.state === 'PAID';",
+					"condition": "// PP 36/2021 art.53(2): Raises one wage-slip task for the run when it is paid.\nreturn ctx.entry.state === 'PAID';",
 					"target_collection": "obligation",
 					"target_action": "create",
-					"effects": "// PP 36/2021 art.53(2): Raises a wage-slip task for each payslip when the run is paid.\nreturn ctx.reads.payslip.flatMap((slip) => {\n  const key = occurrence_key(['ID', 'PAYSLIP_ISSUE', slip.entity_id, slip.id]);\n  if (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\n  return [{\n    entity_id: slip.entity_id,\n    employee_id: slip.employee_id,\n    employment_id: slip.employment_id,\n    title: 'Wage slip',\n    due_on: ctx.entry.pay_date,\n    occurrence_key: key,\n  }];\n});"
+					"effects": "// PP 36/2021 art.53(2): Raises one wage-slip task for the run when it is paid.\nconst key = occurrence_key(['ID', 'PAYSLIP_ISSUE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Wage slip',\n  due_on: ctx.entry.pay_date,\n  occurrence_key: key,\n}];"
 				},
 				"BPJS_KETENAGAKERJAAN_REGISTRATION": {
 					"description": "Raises the 30-day BPJS Ketenagakerjaan registration task for a new worker, except a short-stay foreign worker.",

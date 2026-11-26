@@ -10,7 +10,7 @@
 		Show,
 		Surface
 	} from '@norbital-ai/ui';
-	import { formatCarbon, toNumber } from '../../../../lib/commercial.js';
+	import { formatCarbon, toNumber } from '../../../../services/commercial/decimal.js';
 
 	let { view, ctx }: { view: RecordView<'cost_estimates'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -81,7 +81,7 @@
 	{/if}
 
 	<Section icon="lucide:calculator" first name="estimate" title={t('section.cost_estimate')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="title" />
 			{#if !hideProject}
 				<Field {ctx} name="project_id" />

@@ -27,6 +27,8 @@ const BASES = [
 	'pct_of_bim',
 	'derived'
 ] as const;
+const INSULATED_MODES = ['any', 'insulated', 'uninsulated'] as const;
+const TOPOLOGY_MODES = ['auto', 'discontiguous', 'contiguous_linear', 'contiguous_planar'] as const;
 
 const pick = <T extends string>(
 	list: readonly T[],
@@ -57,6 +59,11 @@ export default sync('item_matrix', 'matrix', {
 		trade_specialty: { kind: 'text', optional: true },
 		ifc_classes: { kind: 'text', optional: true },
 		match_keywords: { kind: 'text', optional: true },
+		system_services: { kind: 'text', optional: true },
+		min_size_mm: { kind: 'text', optional: true },
+		max_size_mm: { kind: 'text', optional: true },
+		insulated: { kind: 'text', optional: true },
+		topology_mode: { kind: 'text', optional: true },
 		unit: { kind: 'text', optional: true },
 		quantity_basis: { kind: 'text', optional: true },
 		currency: { kind: 'currency', optional: true },
@@ -80,6 +87,11 @@ export default sync('item_matrix', 'matrix', {
 					trade_specialty: asTrade(r.trade_specialty),
 					ifc_classes: splitTokens(r.ifc_classes),
 					match_keywords: splitTokens(r.match_keywords),
+					system_services: splitTokens(r.system_services),
+					min_size_mm: r.min_size_mm?.trim() || null,
+					max_size_mm: r.max_size_mm?.trim() || null,
+					insulated: pick(INSULATED_MODES, r.insulated, 'any'),
+					topology_mode: pick(TOPOLOGY_MODES, r.topology_mode, 'auto'),
 					unit: pick(UNITS, r.unit, 'ea'),
 					quantity_basis: pick(BASES, r.quantity_basis, 'count'),
 					currency: r.currency ?? ('SGD' as const),
@@ -104,6 +116,11 @@ export default sync('item_matrix', 'matrix', {
 					'trade_specialty',
 					'ifc_classes',
 					'match_keywords',
+					'system_services',
+					'min_size_mm',
+					'max_size_mm',
+					'insulated',
+					'topology_mode',
 					'unit',
 					'quantity_basis',
 					'currency',
@@ -127,6 +144,11 @@ export default sync('item_matrix', 'matrix', {
 			trade_specialty: r.trade_specialty,
 			ifc_classes: (r.ifc_classes ?? []).join('; '),
 			match_keywords: (r.match_keywords ?? []).join('; '),
+			system_services: (r.system_services ?? []).join('; '),
+			min_size_mm: r.min_size_mm,
+			max_size_mm: r.max_size_mm,
+			insulated: r.insulated,
+			topology_mode: r.topology_mode,
 			unit: r.unit,
 			quantity_basis: r.quantity_basis,
 			currency: r.currency,

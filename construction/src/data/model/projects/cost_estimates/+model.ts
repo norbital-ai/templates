@@ -1,5 +1,5 @@
 import { model } from '@norbital-ai/bolt';
-import { recomputeCostEstimateTotals } from '../../../../lib/bim-pipeline.js';
+import { recomputeCostEstimateTotals } from '../../../../services/bim/pricing.js';
 
 const editableColumns = [
 	'title',

@@ -6,7 +6,7 @@ import {
 	type Id,
 	type WriteCtx
 } from '@norbital-ai/bolt';
-import { DateTime, Effect } from 'effect';
+import { Effect } from 'effect';
 import { amendmentsFor, refusing, type Touched } from '../../payroll_run/service/amendments.js';
 import { reachOf } from '../../../../lib/dated.js';
 import { reconcile } from '../service/dependants.js';
@@ -27,6 +27,7 @@ import {
 } from '../service/person.js';
 import { syncLedgerOn } from '../../jurisdiction/service/configuration.js';
 import {
+	addDays,
 	isJsonObject,
 	jsonObject,
 	numberOf,
@@ -74,8 +75,7 @@ const OTHER_PAY_GROUP = 'errors.contract_terms_pay_group_other_company' as const
 const OVERLONG = 'errors.contract_terms_shift_overlong' as const;
 const OTHER_PATTERN = 'errors.contract_terms_shift_pattern_other_company' as const;
 
-const dayFrom = (day: string, days: number) =>
-	DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days }));
+const dayFrom = addDays;
 /** A stint with its range as `{ from, to }`: an effect's row holds it as stored, half-open. */
 const ranged = (row: JsonObject): JsonObject => ({
 	...row,

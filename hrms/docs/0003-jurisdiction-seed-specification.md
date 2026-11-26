@@ -82,7 +82,8 @@ Formulas select an evidenced base and assess an amount. The ledger service owns 
 - Legal distinctions and dated exceptions are preserved. Splitting a formula across more fields does not count as simplification.
 - Minification, opaque helpers and copied orchestration are rejected.
 - A rule or effect validates nothing the model's own write boundary already checks (the agreed rate, normal time, category, work region and shift length). Seed JSON holds law, not guards.
-- The statutory parameter declarations are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate`: it rewrites `params.ts` from the seed. `bolt check` does not; `tests/configuration/configuration_ownership.test.ts` fails until they match.
+- The statutory parameter declarations are authored in the seed, on each law's first change. After a change to a row param, run `bun run registry:generate` (or update the matching family schema under `src/data/model/jurisdiction/service/params/`): `bolt check` does not regenerate schemas, and `tests/configuration/configuration_ownership.test.ts` fails until they match.
+- Run-level `payroll_run` effects (including payslip / wage-slip delivery duties such as `SG/ITEMISED_PAYSLIP` and `ID/PAYSLIP_ISSUE`) raise one entity-level `obligation` per paid payroll run with an O(1) `occurrence_key` lookup (`limit: 1`) rather than looping per payslip against all obligations.
 - A seed edit or audit across the law packs is one agent per jurisdiction, each with the same brief.
 
 ### Structure

@@ -9,6 +9,10 @@ import {
 import { JsonObject } from './contracts.js';
 import { calculated, getErrorMessage, jsonValues, Refusal } from './foundation.js';
 
+const decodeRows = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Array(JsonObject)));
+const decodeObject = Schema.decodeUnknownSync(JsonObject);
+type IdModel = Parameters<typeof id_of>[0];
+
 /** A server body's typed read: every request is a literal over model names, bounded by its `limit`. */
 export type Reader = WorkspaceQuery['query'];
 /**
@@ -20,9 +24,7 @@ export const queryRows = <const R extends ReadRequestBase>(read: Reader, request
 		Effect.flatMap((pages) =>
 			Effect.try({
 				try: () => {
-					const copies = Schema.decodeUnknownSync(
-						Schema.Record(Schema.String, Schema.Array(JsonObject))
-					)(
+					const copies = decodeRows(
 						Records.map<keyof R & string, unknown, unknown>(pages, (page, name) => {
 							if (!Predicate.hasProperty(page, 'rows'))
 								throw new Refusal({ message: `${name}: the read answered no rows.` });
@@ -42,14 +44,14 @@ export const queryRows = <const R extends ReadRequestBase>(read: Reader, request
 			})
 		)
 	);
-export function idOf<C extends Parameters<typeof id_of>[0]>(model: C, value: unknown): Id<C> {
+export function idOf<C extends IdModel>(model: C, value: unknown): Id<C> {
 	return Schema.decodeUnknownSync(id_of(model))(value);
 }
 /** Ids of one model, each decoded: what a typed `in` filter takes. */
-export const idsOf = <C extends Parameters<typeof id_of>[0]>(
-	model: C,
-	values: Iterable<unknown>
-): Id<C>[] => [...new Set([...values].map(String))].map((value) => idOf(model, value));
+export const idsOf = <C extends IdModel>(model: C, values: Iterable<unknown>): Id<C>[] => {
+	const decode = Schema.decodeUnknownSync(id_of(model));
+	return [...new Set([...values].map(String))].map((value) => decode(value));
+};
 export const valueText = (row: JsonObject, key: string): string => {
 	const value = row[key];
 	if (typeof value !== 'string') throw new Refusal({ message: `${key}: missing text fact.` });
@@ -60,7 +62,7 @@ const objects = new WeakMap<object, JsonObject>();
 export const objectValue = (value: unknown): JsonObject => {
 	const held = typeof value === 'object' && value !== null ? objects.get(value) : undefined;
 	if (held !== undefined) return held;
-	const decoded = Schema.decodeUnknownSync(JsonObject)(jsonValues(value));
+	const decoded = decodeObject(jsonValues(value));
 	if (typeof value === 'object' && value !== null) objects.set(value, decoded);
 	objects.set(decoded, decoded);
 	return decoded;

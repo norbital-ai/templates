@@ -5,14 +5,12 @@
 		Form,
 		Icon,
 		MoneyInput,
-		Picker,
 		RecordShell,
 		Table,
 		TimeInput,
 		confirm_action,
 		toast,
 		use_record_controller,
-		type FieldEditor,
 		type FormState,
 		type RecordView,
 		type Value
@@ -25,8 +23,8 @@
 	import { watch } from '@norbital-ai/ui/behaviors';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { isJsonObject, numberOf } from '../../../../lib/foundation.js';
-	import { idOf } from '../../../../lib/reads.js';
 	import CatalogField from '../../../../lib/ui/settings/catalog_field.svelte';
+	import ScopedEmploymentField from '../../../../lib/ui/person/scoped_employment_field.svelte';
 	import {
 		buildLoanSchedule,
 		loanScheduleProblems,
@@ -110,10 +108,6 @@
 				? view.values.employment_id
 				: null)
 	);
-	const scopedEntity = $derived.by(() => {
-		const raw = liveForm?.get('entity_id');
-		return typeof raw === 'string' ? raw : fixedEntity;
-	});
 
 	const termsOf = (
 		quantityVal: Value | undefined,
@@ -354,19 +348,6 @@
 	};
 </script>
 
-{#snippet employmentEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="employment"
-		id={field.id}
-		{...scopedEntity === null ? {} : { where: { entity_id: { eq: idOf('entity', scopedEntity) } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
 {#snippet repaymentsEmpty()}
 	<div class="grid grid-cols-2 gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground">
 		<span>{ctx.t('loan.repayment_amount')}</span>
@@ -457,11 +438,10 @@
 			<Stack gap="lg">
 				<Grid minimum="card">
 					{#if record === null && fixedEntity === null}<Field {ctx} name="entity_id" />{/if}
-					{#if record === null}<Field
+					{#if record === null}<ScopedEmploymentField
 							{ctx}
-							name="employment_id"
+							entityId={fixedEntity}
 							disabled={fixedEmployment !== null}
-							editor={employmentEditor}
 						/>{/if}
 					<CatalogField {ctx} of="loan_catalog" />
 					{#each ['quantity', 'repayment_period', 'evidence_file'] as name (name)}<Field

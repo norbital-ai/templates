@@ -11,6 +11,8 @@
 		Table
 	} from '@norbital-ai/ui';
 
+	import ActivityTimeline from '../../../lib/ActivityTimeline.svelte';
+
 	let { view, ctx }: { view: RecordView<'contacts'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
 	const record = $derived(view.mode !== 'create' ? view.record : null);
@@ -19,7 +21,7 @@
 
 {#snippet partnerSections()}
 	<Section icon="lucide:handshake" first name="contact" title={t('section.contact')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="company_name" />
 			<Field {ctx} name="full_name" />
 			<Field {ctx} name="role" />
@@ -30,7 +32,7 @@
 		</Grid>
 	</Section>
 	<Section icon="lucide:message-circle" name="channels" title={t('section.messaging_handles')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="phone" />
 			<Field {ctx} name="email" />
 			<Column span="all"><Field {ctx} name="notes" /></Column>
@@ -97,6 +99,12 @@
 	{/if}
 {/snippet}
 
+{#snippet activityTab()}
+	{#if id}
+		<ActivityTimeline {ctx} about={{ model: 'contacts', id }} />
+	{/if}
+{/snippet}
+
 {#if record}
 	<RecordShell
 		{ctx}
@@ -122,6 +130,12 @@
 				title: t('partners.tasks_tab'),
 				icon: 'lucide:list-checks',
 				body: tasksTab
+			},
+			{
+				name: 'activity',
+				title: t('tasks.tab_activity'),
+				icon: 'lucide:activity',
+				body: activityTab
 			}
 		]}
 	>

@@ -1,16 +1,18 @@
 import { DateTime, Effect } from 'effect';
 import { new_id, type EffectCtx, type Id } from '@norbital-ai/bolt';
+import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import {
 	isJsonObject,
 	jsonObject,
 	type Json,
-	type JsonObject
+	type JsonObject,
+	type Refusal
 } from '../../../../../lib/foundation.js';
-import { idOf, idsOf, objectValue, queryRows, type Reader } from '../../../../../lib/reads.js';
+import { idOf, idsOf, objectValue, queryRows } from '../../../../../lib/reads.js';
 import { accountsOf, apply, eventsOf, expired, nextWindow, unlimited, windowOf } from './core.js';
 import { employerOn } from '../../../entity/service/company.js';
 import { employmentOn, startsOf } from '../../service/person.js';
-import { lawRead, lawsOf, type Law } from '../../../jurisdiction/service/law.js';
+import { lawsWith, type Law } from '../../../jurisdiction/service/law.js';
 import {
 	BATCH,
 	FIELDS,
@@ -27,19 +29,26 @@ import {
 import { entitlementPlans, opened } from './posting_plans.js';
 import { personOf } from './entry_postings.js';
 
-/** What a company's people are entitled under: the company on any day, its work events and the law it follows. */
-const companyRead = (read: Reader, companies: readonly Id<'entity'>[], codes: readonly string[]) =>
-	queryRows(read, {
-		entity: { where: { id: { in: companies } }, fields: ['id', 'settings_code'], limit: 50 },
-		entity_change: { where: { entity_id: { in: companies } }, limit: 10000 },
-		...lawRead(codes),
-		work_event: {
-			where: { entity_id: { in: companies } },
-			fields: ['id', 'entity_id', 'employment_id', 'catalog_code', 'from', 'to', 'location'],
-			limit: 10000
-		}
-	});
-type CompanyRead = Effect.Success<ReturnType<typeof companyRead>>;
+type CompanyData = Readonly<
+	Record<
+		'jurisdiction' | 'jurisdiction_change' | 'entity' | 'entity_change' | 'work_event',
+		readonly JsonObject[]
+	>
+>;
+const NO_COMPANY: CompanyData = {
+	jurisdiction: [],
+	jurisdiction_change: [],
+	entity: [],
+	entity_change: [],
+	work_event: []
+};
+/** Per-entity cache across sync batches so overlapping batches never re-fetch companies or laws. */
+interface CompanyCache {
+	readonly entities: Map<string, JsonObject>;
+	readonly changes: Map<string, readonly JsonObject[]>;
+	readonly workEvents: Map<string, readonly JsonObject[]>;
+	readonly loaded: Set<string>;
+}
 /** People synced in one pass of reads and one settle. */
 const SYNC_BATCH = 200;
 
@@ -61,7 +70,12 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 				'employee_id'
 			)
 	);
-	const companies = new Map<string, CompanyRead>();
+	const companies: CompanyCache = {
+		entities: new Map(),
+		changes: new Map(),
+		workEvents: new Map(),
+		loaded: new Set()
+	};
 	let people = 0;
 	let boundary: string | undefined;
 	for (let at = 0; at < everyone.length; at += SYNC_BATCH) {
@@ -76,7 +90,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 const syncPeople = Effect.fnUntraced(function* (
 	ctx: Ctx,
 	employees: readonly Id<'employee_profile'>[],
-	companies: Map<string, CompanyRead>
+	companies: CompanyCache
 ) {
 	const day = ctx.today;
 	// their stints, balances and the rows HR keyed by hand
@@ -100,28 +114,74 @@ const syncPeople = Effect.fnUntraced(function* (
 		.filter((id) => !has.has(id))
 		.map((employee_id) => ({ id: new_id('employee_balance'), employee_id, account: {} }));
 	if (opened.length > 0) yield* ctx.act({ 'employee_balance.create': opened });
-	// the companies those stints name: read once, kept for the next batch of the same companies
+	// the companies those stints name: each entity and law is read once and reused across overlapping batches
 	const named = own.employment.flatMap((row) =>
 		isJsonObject(row.entity_id) ? [row.entity_id] : []
 	);
 	const ids = idsOf(
 		'entity',
 		named.map((row) => row.id)
-	).toSorted();
-	const key = ids.join(',');
-	const theirs =
-		companies.get(key) ??
-		(yield* companyRead(ctx.query, ids, [...new Set(named.map((row) => row.settings_code))]));
-	companies.set(key, theirs);
+	);
+	const missingIds = ids.filter((id) => !companies.loaded.has(id));
+	const codes = [...new Set(named.map((row) => String(row.settings_code)))];
+	const { got: theirs, laws } = yield* lawsWith(
+		ctx.query,
+		codes,
+		(law, fresh): Effect.Effect<CompanyData, ReadFailed | Refusal> =>
+			missingIds.length === 0 && fresh.length === 0
+				? Effect.succeed(NO_COMPANY)
+				: queryRows(ctx.query, {
+						entity: {
+							where: { id: { in: missingIds } },
+							fields: ['id', 'settings_code'],
+							limit: 50
+						},
+						entity_change: { where: { entity_id: { in: missingIds } }, limit: 10000 },
+						...law,
+						work_event: {
+							where: { entity_id: { in: missingIds } },
+							fields: [
+								'id',
+								'entity_id',
+								'employment_id',
+								'catalog_code',
+								'from',
+								'to',
+								'location'
+							],
+							limit: 10000
+						}
+					})
+	);
+	if (missingIds.length > 0) {
+		const newChanges = Map.groupBy(theirs.entity_change ?? [], (row) => String(row.entity_id));
+		const newEvents = Map.groupBy(
+			(theirs.work_event ?? []).map((row) => ({
+				code: row.catalog_code ?? null,
+				entity_id: row.entity_id ?? null,
+				employment_id: row.employment_id == null ? null : row.employment_id,
+				from: row.from ?? null,
+				to: row.to == null ? null : row.to,
+				location: row.location ?? null
+			})),
+			(row) => String(row.entity_id)
+		);
+		for (const row of theirs.entity ?? []) companies.entities.set(String(row.id), row);
+		for (const id of missingIds) {
+			companies.changes.set(id, newChanges.get(id) ?? []);
+			companies.workEvents.set(id, newEvents.get(id) ?? []);
+			companies.loaded.add(id);
+		}
+	}
 	const read = {
 		...own,
-		...theirs,
 		employee_balance: [...own.employee_balance, ...opened.map((row) => jsonObject(row))]
 	};
 	const manual = manualOf(read.ledger_entry ?? []);
 	// a stint's law is its entity's jurisdiction as it stands on the day
-	const lineage = new Map((read.entity ?? []).map((row) => [String(row.id), row.settings_code]));
-	const laws = lawsOf(read);
+	const lineage = new Map(
+		[...companies.entities].map(([id, row]) => [id, String(row.settings_code)])
+	);
 	const lawIn = (entity: unknown, on: string) => laws(lineage.get(String(entity)), on);
 	const entitled = (account: string, rows: readonly JsonObject[]) =>
 		rows.map((row) => ({ account, code: String(row.code), lookup: objectValue(row.lookup) }));
@@ -138,30 +198,20 @@ const syncPeople = Effect.fnUntraced(function* (
 		stints.filter((parts) => parts.terms.length > 0),
 		(parts) => String(parts.stint.employee_id)
 	);
-	const workEvents = (read.work_event ?? []).map((row) => ({
-		code: row.catalog_code,
-		entity_id: row.entity_id,
-		employment_id: row.employment_id == null ? null : row.employment_id,
-		from: row.from,
-		to: row.to == null ? null : row.to,
-		location: row.location ?? null
-	}));
 	const eventsFor = (contract: JsonObject) =>
-		workEvents.filter(
-			(event) =>
-				event.entity_id === String(contract.entity_id) &&
-				(event.employment_id == null || event.employment_id === String(contract.id))
+		(companies.workEvents.get(String(contract.entity_id)) ?? []).filter(
+			(event) => event.employment_id == null || event.employment_id === String(contract.id)
 		);
 	const chains = Map.groupBy(
 		stints.map((parts) => parts.stint),
 		(row) => String(row.employee_id)
 	);
-	const changesOf = Map.groupBy(read.entity_change ?? [], (row) => row.entity_id);
 	const employerAt = (entity: unknown, on: string) => {
-		const company = (read.entity ?? []).find((row) => row.id === entity);
+		const entityKey = String(entity);
+		const company = companies.entities.get(entityKey);
 		return company === undefined
 			? undefined
-			: employerOn(company, changesOf.get(company.id) ?? [], on);
+			: employerOn(company, companies.changes.get(entityKey) ?? [], on);
 	};
 	const plans: Plan[] = [];
 	let boundary: string | undefined;

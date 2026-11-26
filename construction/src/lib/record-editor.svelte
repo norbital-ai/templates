@@ -56,7 +56,7 @@
 </script>
 
 <Surface tone="subtle" padding="sm" radius="control">
-	<Grid gap="sm" minimum="card">
+	<Grid gap="sm" minimum="compact">
 		{#each parts as part (part.key)}
 			<Stack gap="xs">
 				<Label for={`${uid}-${part.key}`}>{part.label}</Label>

@@ -6,6 +6,7 @@ import type { Reader } from '../../../../../lib/reads.js';
 import { jsonObject } from '../../../../../lib/foundation.js';
 import { termsChange } from '../../../employee_profile/service/person.js';
 import { sheetsOf, workbookOf } from './salary_listing_export.js';
+import { collectPages, downloadWorkbook } from './xlsx_sheet.js';
 
 /**
  * Every selected run's listing, read for the whole selection in two dependency waves, following every page: the runs with their payslips, each with its
@@ -42,28 +43,16 @@ export const listingRead = Effect.fn('payroll.listingRead')(function* (
 			terms: { fields: ['effective_from', 'clears', 'job_title', 'department'] }
 		}
 	} as const;
-	let {
-		payroll_run: runPage,
-		payslip: slipPage,
-		jurisdiction: lawPage
-	} = yield* read({ payroll_run: runQuery, payslip: slipQuery, jurisdiction: lawQuery });
-	const runs = [...runPage.rows],
-		slips = [...slipPage.rows],
-		laws = [...lawPage.rows];
-	while (runPage.next !== null) {
-		({ payroll_run: runPage } = yield* read({ payroll_run: { ...runQuery, after: runPage.next } }));
-		runs.push(...runPage.rows);
-	}
-	while (slipPage.next !== null) {
-		({ payslip: slipPage } = yield* read({ payslip: { ...slipQuery, after: slipPage.next } }));
-		slips.push(...slipPage.rows);
-	}
-	while (lawPage.next !== null) {
-		({ jurisdiction: lawPage } = yield* read({
-			jurisdiction: { ...lawQuery, after: lawPage.next }
-		}));
-		laws.push(...lawPage.rows);
-	}
+	const first = yield* read({ payroll_run: runQuery, payslip: slipQuery, jurisdiction: lawQuery });
+	const runs = yield* collectPages(first.payroll_run, (after) =>
+		read({ payroll_run: { ...runQuery, after } }).pipe(Effect.map((p) => p.payroll_run))
+	);
+	const slips = yield* collectPages(first.payslip, (after) =>
+		read({ payslip: { ...slipQuery, after } }).pipe(Effect.map((p) => p.payslip))
+	);
+	const laws = yield* collectPages(first.jurisdiction, (after) =>
+		read({ jurisdiction: { ...lawQuery, after } }).pipe(Effect.map((p) => p.jurisdiction))
+	);
 	if (runs.length !== new Set(ids).size)
 		return yield* Effect.fail(
 			new Error(
@@ -75,14 +64,10 @@ export const listingRead = Effect.fn('payroll.listingRead')(function* (
 		fields: ['employee_id', 'effective_range'],
 		limit: 1000
 	} as const;
-	let { employment: stintPage } = yield* read({ employment: stintQuery });
-	const stints = [...stintPage.rows];
-	while (stintPage.next !== null) {
-		({ employment: stintPage } = yield* read({
-			employment: { ...stintQuery, after: stintPage.next }
-		}));
-		stints.push(...stintPage.rows);
-	}
+	const stintPage = (yield* read({ employment: stintQuery })).employment;
+	const stints = yield* collectPages(stintPage, (after) =>
+		read({ employment: { ...stintQuery, after } }).pipe(Effect.map((p) => p.employment))
+	);
 	const closes = new Map(runs.map((run) => [run.id, run.salary_coverage.to ?? '']));
 	// a run is paid in the currency of its company's jurisdiction
 	const currency = new Map(laws.map((row) => [row.code, row.currency]));
@@ -128,23 +113,15 @@ export const exportSalaryListing = (
 		Effect.flatMap((sheets) =>
 			Effect.tryPromise({
 				try: async () => {
-					if (sheets.length === 0) return;
-					const bytes = await workbookOf(sheets).xlsx.writeBuffer();
-					const url = URL.createObjectURL(
-						new Blob([new Uint8Array(bytes)], {
-							type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-						})
-					);
 					const first = sheets[0];
+					if (first === undefined) return;
 					const last = sheets.at(-1);
-					const link = Object.assign(document.createElement('a'), {
-						href: url,
-						download: `Salary listing ${first?.company ?? ''} ${first?.period ?? ''}${
+					await downloadWorkbook(
+						workbookOf(sheets),
+						`Salary listing ${first.company} ${first.period}${
 							last === first ? '' : ` to ${last?.period ?? ''}`
 						}.xlsx`
-					});
-					link.click();
-					URL.revokeObjectURL(url);
+					);
 				},
 				catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause)))
 			})

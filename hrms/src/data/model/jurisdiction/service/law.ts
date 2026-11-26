@@ -20,14 +20,14 @@ export const LAW_ROWS = [
 	'registered_effect'
 ] as const;
 export type LawFamily = (typeof LAW_ROWS)[number];
+const LAW_ROW_SET: ReadonlySet<string> = new Set(LAW_ROWS);
 
 /**
  * A law document is read three keys deep: family, row code, field. A row's `lookup` is read one key deeper, so a change
  * names only the lookup keys it changes. Below that a value is replaced whole.
  */
 export const LAW_DEPTH = (path: readonly string[]): boolean =>
-	path.length < 3 ||
-	(path.length === 3 && path[2] === 'lookup' && LAW_ROWS.some((rows) => rows === path[0]));
+	path.length < 3 || (path.length === 3 && path[2] === 'lookup' && LAW_ROW_SET.has(path[0] ?? ''));
 
 /**
  * A law as it stands on a day. `settings` is the jurisdiction with the law's own blocks (`conversions`, `ledger`,
@@ -62,7 +62,7 @@ export const lawRead = (codes: readonly string[]) =>
 export const standing = (row: JsonObject): boolean =>
 	row.finding_id == null || (isJsonObject(row.finding_id) && row.finding_id.status === 'CONFIRMED');
 
-const changeOf = (row: JsonObject): Change => ({
+export const changeOf = (row: JsonObject): Change => ({
 	id: String(row.id),
 	effective_from: String(row.effective_from),
 	patch: isJsonObject(row.law) ? row.law : {}
@@ -86,18 +86,34 @@ export const lawsOf = (read: {
 	readonly jurisdiction_change?: readonly JsonObject[];
 }): ((code: unknown, day: string) => Law | undefined) => {
 	const heads = new Map((read.jurisdiction ?? []).map((row) => [String(row.code), row]));
-	const chains = Map.groupBy((read.jurisdiction_change ?? []).filter(standing), (row) =>
+	const chains = new Map<string, readonly Change[]>();
+	for (const [key, rows] of Map.groupBy((read.jurisdiction_change ?? []).filter(standing), (row) =>
 		String(row.jurisdiction_code)
-	);
+	)) {
+		chains.set(
+			key,
+			rows
+				.map(changeOf)
+				.toSorted(
+					(a, b) => a.effective_from.localeCompare(b.effective_from) || a.id.localeCompare(b.id)
+				)
+		);
+	}
 	const held = new Map<string, Law | undefined>();
 	return (code, day) => {
-		const head = heads.get(String(code));
-		const chain = (chains.get(String(code)) ?? []).map(changeOf);
-		if (head === undefined || chain.length === 0) return undefined;
-		const first = chain.map((row) => row.effective_from).toSorted()[0] ?? day;
+		const codeKey = String(code);
+		const head = heads.get(codeKey);
+		const chain = chains.get(codeKey);
+		if (head === undefined || chain === undefined || chain.length === 0) return undefined;
+		const first = chain[0]?.effective_from ?? day;
 		const on = day < first ? first : day;
 		// one fold per stretch between two changes, however many days ask
-		const key = `${String(code)}/${chain.filter((row) => row.effective_from <= on).length}`;
+		let count = 0;
+		for (const row of chain) {
+			if (row.effective_from <= on) count++;
+			else break;
+		}
+		const key = `${codeKey}/${count}`;
 		if (held.has(key)) {
 			const law = held.get(key);
 			return law === undefined ? undefined : { ...law, on: day };
@@ -111,13 +127,11 @@ export const lawsOf = (read: {
 		};
 		const { id: _id, ...jurisdiction } = head;
 		const law: Law = {
-			code: String(code),
+			code: codeKey,
 			on: day,
 			settings: {
 				...jurisdiction,
-				...Object.fromEntries(
-					Object.entries(state).filter(([name]) => !LAW_ROWS.some((rows) => rows === name))
-				)
+				...Object.fromEntries(Object.entries(state).filter(([name]) => !LAW_ROW_SET.has(name)))
 			},
 			rows: {
 				subtotal: chained(family('subtotal')),

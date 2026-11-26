@@ -1,5 +1,5 @@
-import { Effect } from 'effect';
-import { type CarriedWrites, type EffectCtx, type Id } from '@norbital-ai/bolt';
+import { Effect, Schema } from 'effect';
+import { id_of, type CarriedWrites, type EffectCtx, type Id } from '@norbital-ai/bolt';
 import { Refusal, isJsonObject, type JsonObject } from '../../../../../lib/foundation.js';
 import { idOf, idsOf, objectValue, queryRows, type Reader } from '../../../../../lib/reads.js';
 import {
@@ -26,7 +26,7 @@ import {
 	partsIn,
 	startsOf
 } from '../../service/person.js';
-import { lawRead, lawsOf } from '../../../jurisdiction/service/law.js';
+import { lawsAt } from '../../../jurisdiction/service/law.js';
 
 export const LEAVE = 'leave_catalog_entry';
 
@@ -130,21 +130,14 @@ export const stintsRead = (people: readonly Id<'employee_profile'>[]) =>
 		employee_profile: { where: { id: { in: people } }, fields: [...PROFILE_FIELDS], limit: 10000 },
 		dependant: { where: { employee_id: { in: people } }, limit: 10000 }
 	}) as const;
-/** The laws the companies of these stints follow (`stintsRead` reads each stint's company code): one more read. */
-export const lawsFrom = Effect.fnUntraced(function* (read: Reader, stints: readonly JsonObject[]) {
-	return lawsOf(
-		yield* queryRows(
-			read,
-			lawRead([
-				...new Set(
-					stints.flatMap((row) =>
-						isJsonObject(row.entity_id) ? [String(row.entity_id.settings_code)] : []
-					)
-				)
-			])
+/** The laws the companies of these stints follow (`stintsRead` reads each stint's company code): reuses the invocation cache. */
+export const lawsFrom = (read: Reader, stints: readonly JsonObject[]) =>
+	lawsAt(
+		read,
+		stints.flatMap((row) =>
+			isJsonObject(row.entity_id) ? [String(row.entity_id.settings_code)] : []
 		)
 	);
-});
 /**
  * What `stintsRead` found: each stint with its rows, the law code of each company they name, and the people whose
  * service counts every stint.
@@ -195,9 +188,10 @@ export const carry = (
 	for (const row of balances) {
 		const movements = moves.get(String(row.id));
 		if (movements === undefined) continue;
-		carried.ledger_entry.create.push(...movements.map((move) => ledgerRow(String(row.id), move)));
+		const balanceId = balanceIdOf(String(row.id));
+		carried.ledger_entry.create.push(...movements.map((move) => ledgerRow(balanceId, move)));
 		carried.employee_balance.update.push({
-			target: { id: idOf('employee_balance', String(row.id)), revision: Number(row.revision) },
+			target: { id: balanceId, revision: Number(row.revision) },
 			set: { account: apply(accountsOf(row.account), movements) }
 		});
 	}
@@ -208,16 +202,19 @@ type BalanceMove = {
 	readonly target: { readonly id: Id<'employee_balance'>; readonly revision: number };
 	readonly set: { readonly account: Accounts };
 };
-const ledgerRow = (balance: string, row: Movement): LedgerRow => ({
-	balance_id: idOf('employee_balance', balance),
+const FORMAT_AMOUNT = new Intl.NumberFormat('en', {
+	useGrouping: false,
+	maximumFractionDigits: 100
+});
+const balanceIdOf = Schema.decodeUnknownSync(id_of('employee_balance'));
+const ledgerRow = (balance: Id<'employee_balance'>, row: Movement): LedgerRow => ({
+	balance_id: balance,
 	operation: row.operation === 'DEDUCT' ? 'DEDUCT' : 'ADD',
 	account: row.account,
 	code: row.code,
 	period: row.period,
 	measure: row.measure,
-	amount: new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 100 }).format(
-		`${row.amount}` as const
-	),
+	amount: FORMAT_AMOUNT.format(`${row.amount}` as const),
 	...(row.unit === undefined ? {} : { unit: row.unit }),
 	effective_on: row.effective_on,
 	source: row.source
@@ -231,7 +228,8 @@ export const settle = Effect.fn('ledger.settle')(function* (ctx: Ctx, plans: rea
 	const balances = [...new Set(plans.map((plan) => plan.balance_id))];
 	const batches = Array.from({ length: Math.ceil(balances.length / BATCH) }, (_, at) => {
 		const chunk = balances.slice(at * BATCH, (at + 1) * BATCH);
-		return { chunk, due: plans.filter((plan) => chunk.includes(plan.balance_id)) };
+		const chunkSet = new Set(chunk);
+		return { chunk, due: plans.filter((plan) => chunkSet.has(plan.balance_id)) };
 	});
 	// a batch's write moves only its own balances: no batch's read waits on another's write
 	const read = yield* Effect.all(

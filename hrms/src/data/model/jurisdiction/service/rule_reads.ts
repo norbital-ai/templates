@@ -238,6 +238,15 @@ const set = <V extends Json>(
 	return Object.keys(test).length === 0 ? [] : [test];
 };
 
+const IN_LIMIT = 1000;
+/** Splits an `in` list into chunks within Bolt's 1,000-item bound while keeping small lists untouched. */
+const inChunks = <T>(values: readonly T[]): readonly (readonly T[])[] =>
+	values.length <= IN_LIMIT
+		? [values]
+		: Array.from({ length: Math.ceil(values.length / IN_LIMIT) }, (_, index) =>
+				values.slice(index * IN_LIMIT, (index + 1) * IN_LIMIT)
+			);
+
 export type Need = { readonly model: string; readonly layer: JsonObject };
 /**
  * Every declared read of a batch, in one typed request. Each answer is its need's rows: those its own `where` picks,
@@ -261,19 +270,14 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		contract_terms: {
 			where: {
 				or: [
-					{ employment_id: { in: idsOf('employment', by('contract_terms', 'employment_id')) } },
-					{
-						employment_id: {
-							is: {
-								employee_id: {
-									in: idsOf(
-										'employee_profile',
-										by('contract_terms', 'employment_id.is.employee_id')
-									)
-								}
-							}
-						}
-					}
+					...inChunks(idsOf('employment', by('contract_terms', 'employment_id'))).map((chunk) => ({
+						employment_id: { in: [...chunk] }
+					})),
+					...inChunks(
+						idsOf('employee_profile', by('contract_terms', 'employment_id.is.employee_id'))
+					).map((chunk) => ({
+						employment_id: { is: { employee_id: { in: [...chunk] } } }
+					}))
 				],
 				and: range(of('contract_terms'), 'effective_from', isDay).map((effective_from) => ({
 					effective_from
@@ -285,24 +289,19 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		employee_balance: {
 			where: {
 				or: [
-					{ id: { in: idsOf('employee_balance', by('employee_balance', 'id')) } },
-					{ employee_id: { in: idsOf('employee_profile', by('employee_balance', 'employee_id')) } },
-					{
-						employee_id: {
-							is: {
-								employment: {
-									some: {
-										entity_id: {
-											in: idsOf(
-												'entity',
-												by('employee_balance', 'employee_id.is.employment.some.entity_id')
-											)
-										}
-									}
-								}
-							}
-						}
-					}
+					...inChunks(idsOf('employee_balance', by('employee_balance', 'id'))).map((chunk) => ({
+						id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('employee_profile', by('employee_balance', 'employee_id'))).map(
+						(chunk) => ({
+							employee_id: { in: [...chunk] }
+						})
+					),
+					...inChunks(
+						idsOf('entity', by('employee_balance', 'employee_id.is.employment.some.entity_id'))
+					).map((chunk) => ({
+						employee_id: { is: { employment: { some: { entity_id: { in: [...chunk] } } } } }
+					}))
 				]
 			},
 			limit: 10000,
@@ -328,23 +327,24 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		leave_catalog_entry: {
 			where: {
 				or: [
-					{ id: { in: idsOf('leave_catalog_entry', by('leave_catalog_entry', 'id')) } },
-					{
-						employment_id: { in: idsOf('employment', by('leave_catalog_entry', 'employment_id')) }
-					},
-					{
-						employment_id: {
-							is: {
-								employee_id: {
-									in: idsOf(
-										'employee_profile',
-										by('leave_catalog_entry', 'employment_id.is.employee_id')
-									)
-								}
-							}
-						}
-					},
-					{ entity_id: { in: idsOf('entity', by('leave_catalog_entry', 'entity_id')) } }
+					...inChunks(idsOf('leave_catalog_entry', by('leave_catalog_entry', 'id'))).map(
+						(chunk) => ({
+							id: { in: [...chunk] }
+						})
+					),
+					...inChunks(idsOf('employment', by('leave_catalog_entry', 'employment_id'))).map(
+						(chunk) => ({
+							employment_id: { in: [...chunk] }
+						})
+					),
+					...inChunks(
+						idsOf('employee_profile', by('leave_catalog_entry', 'employment_id.is.employee_id'))
+					).map((chunk) => ({
+						employment_id: { is: { employee_id: { in: [...chunk] } } }
+					})),
+					...inChunks(idsOf('entity', by('leave_catalog_entry', 'entity_id'))).map((chunk) => ({
+						entity_id: { in: [...chunk] }
+					}))
 				],
 				and: [
 					...set(of('leave_catalog_entry'), 'catalog_code', isText).map((catalog_code) => ({
@@ -361,42 +361,24 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		leave_catalog_entry_day: {
 			where: {
 				or: [
-					{
-						leave_entry_id: {
-							in: idsOf('leave_catalog_entry', by('leave_catalog_entry_day', 'leave_entry_id'))
-						}
-					},
-					{
-						leave_entry_id: {
-							is: {
-								employment_id: {
-									in: idsOf(
-										'employment',
-										by('leave_catalog_entry_day', 'leave_entry_id.is.employment_id')
-									)
-								}
-							}
-						}
-					},
-					{
-						leave_entry_id: {
-							is: {
-								employment_id: {
-									is: {
-										employee_id: {
-											in: idsOf(
-												'employee_profile',
-												by(
-													'leave_catalog_entry_day',
-													'leave_entry_id.is.employment_id.is.employee_id'
-												)
-											)
-										}
-									}
-								}
-							}
-						}
-					}
+					...inChunks(
+						idsOf('leave_catalog_entry', by('leave_catalog_entry_day', 'leave_entry_id'))
+					).map((chunk) => ({
+						leave_entry_id: { in: [...chunk] }
+					})),
+					...inChunks(
+						idsOf('employment', by('leave_catalog_entry_day', 'leave_entry_id.is.employment_id'))
+					).map((chunk) => ({
+						leave_entry_id: { is: { employment_id: { in: [...chunk] } } }
+					})),
+					...inChunks(
+						idsOf(
+							'employee_profile',
+							by('leave_catalog_entry_day', 'leave_entry_id.is.employment_id.is.employee_id')
+						)
+					).map((chunk) => ({
+						leave_entry_id: { is: { employment_id: { is: { employee_id: { in: [...chunk] } } } } }
+					}))
 				],
 				and: [
 					...range(of('leave_catalog_entry_day'), 'incurred_on', isDay).map((incurred_on) => ({
@@ -416,10 +398,18 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		obligation: {
 			where: {
 				or: [
-					{ occurrence_key: { in: by('obligation', 'occurrence_key') } },
-					{ employment_id: { in: idsOf('employment', by('obligation', 'employment_id')) } },
-					{ entity_id: { in: idsOf('entity', by('obligation', 'entity_id')) } },
-					{ employee_id: { in: idsOf('employee_profile', by('obligation', 'employee_id')) } }
+					...inChunks(by('obligation', 'occurrence_key')).map((chunk) => ({
+						occurrence_key: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('employment', by('obligation', 'employment_id'))).map((chunk) => ({
+						employment_id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('entity', by('obligation', 'entity_id'))).map((chunk) => ({
+						entity_id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('employee_profile', by('obligation', 'employee_id'))).map((chunk) => ({
+						employee_id: { in: [...chunk] }
+					}))
 				],
 				and: [
 					...range(of('obligation'), 'due_on', isDay).map((due_on) => ({ due_on })),
@@ -429,22 +419,30 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 			limit: 10000
 		},
 		payroll_run: {
-			where: { id: { in: idsOf('payroll_run', by('payroll_run', 'id')) } },
+			where: {
+				or: inChunks(idsOf('payroll_run', by('payroll_run', 'id'))).map((chunk) => ({
+					id: { in: [...chunk] }
+				}))
+			},
 			limit: 1000
 		},
 		payslip: {
 			where: {
 				or: [
-					{ payroll_run_id: { in: idsOf('payroll_run', by('payslip', 'payroll_run_id')) } },
-					{ employment_id: { in: idsOf('employment', by('payslip', 'employment_id')) } },
-					{ employee_id: { in: idsOf('employee_profile', by('payslip', 'employee_id')) } },
-					{
-						payroll_run_id: {
-							is: {
-								entity_id: { in: idsOf('entity', by('payslip', 'payroll_run_id.is.entity_id')) }
-							}
-						}
-					}
+					...inChunks(idsOf('payroll_run', by('payslip', 'payroll_run_id'))).map((chunk) => ({
+						payroll_run_id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('employment', by('payslip', 'employment_id'))).map((chunk) => ({
+						employment_id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('employee_profile', by('payslip', 'employee_id'))).map((chunk) => ({
+						employee_id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('entity', by('payslip', 'payroll_run_id.is.entity_id'))).map(
+						(chunk) => ({
+							payroll_run_id: { is: { entity_id: { in: [...chunk] } } }
+						})
+					)
 				],
 				and: range(of('payslip'), 'period', isText).map((period) => ({ period }))
 			},
@@ -454,16 +452,14 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		roster_entry: {
 			where: {
 				or: [
-					{ employment_id: { in: idsOf('employment', by('roster_entry', 'employment_id')) } },
-					{
-						employment_id: {
-							is: {
-								employee_id: {
-									in: idsOf('employee_profile', by('roster_entry', 'employment_id.is.employee_id'))
-								}
-							}
-						}
-					}
+					...inChunks(idsOf('employment', by('roster_entry', 'employment_id'))).map((chunk) => ({
+						employment_id: { in: [...chunk] }
+					})),
+					...inChunks(
+						idsOf('employee_profile', by('roster_entry', 'employment_id.is.employee_id'))
+					).map((chunk) => ({
+						employment_id: { is: { employee_id: { in: [...chunk] } } }
+					}))
 				],
 				and: [
 					...range(of('roster_entry'), 'work_date', isDay).map((work_date) => ({ work_date })),
@@ -478,8 +474,12 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		shift_definition: {
 			where: {
 				or: [
-					{ id: { in: idsOf('shift_definition', by('shift_definition', 'id')) } },
-					{ entity_id: { in: idsOf('entity', by('shift_definition', 'entity_id')) } }
+					...inChunks(idsOf('shift_definition', by('shift_definition', 'id'))).map((chunk) => ({
+						id: { in: [...chunk] }
+					})),
+					...inChunks(idsOf('entity', by('shift_definition', 'entity_id'))).map((chunk) => ({
+						entity_id: { in: [...chunk] }
+					}))
 				]
 			},
 			limit: 1000
@@ -487,12 +487,16 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 		workplace_case_catalog_entry: {
 			where: {
 				or: [
-					{
-						employment_id: {
-							in: idsOf('employment', by('workplace_case_catalog_entry', 'employment_id'))
-						}
-					},
-					{ entity_id: { in: idsOf('entity', by('workplace_case_catalog_entry', 'entity_id')) } }
+					...inChunks(idsOf('employment', by('workplace_case_catalog_entry', 'employment_id'))).map(
+						(chunk) => ({
+							employment_id: { in: [...chunk] }
+						})
+					),
+					...inChunks(idsOf('entity', by('workplace_case_catalog_entry', 'entity_id'))).map(
+						(chunk) => ({
+							entity_id: { in: [...chunk] }
+						})
+					)
 				],
 				and: [
 					...set(of('workplace_case_catalog_entry'), 'kind', isText).map((kind) => ({ kind })),
@@ -504,11 +508,63 @@ export const ruleRead = Effect.fnUntraced(function* (read: Reader, needs: readon
 			limit: 10000
 		}
 	});
+	// lazily index fetched rows by direct key field so large batches filter in O(matches) instead of O(needs × rows)
+	const fieldIndex = new Map<string, Map<Json, number[]>>();
+	const indexFor = (model: Model, field: string) => {
+		const cacheKey = `${model}/${field}`;
+		let idx = fieldIndex.get(cacheKey);
+		if (idx === undefined) {
+			idx = new Map();
+			const rows: readonly JsonObject[] = found[model];
+			for (let i = 0; i < rows.length; i++) {
+				const row = rows[i];
+				if (row === undefined) continue;
+				const val = idOrValue(row[field]) ?? null;
+				const bucket = idx.get(val);
+				if (bucket === undefined) idx.set(val, [i]);
+				else bucket.push(i);
+			}
+			fieldIndex.set(cacheKey, idx);
+		}
+		return idx;
+	};
 	return needs.map(({ model, layer }): readonly JsonObject[] => {
 		if (!isModel(model)) return [];
 		const through = THROUGH[model] ?? [];
 		const where = whereOf(layer);
-		return found[model]
+		const rows: readonly JsonObject[] = found[model];
+		const key = keyOf(model, layer);
+		let candidates: readonly JsonObject[] = rows;
+		if (key !== undefined && !key.path.includes('.')) {
+			const test = where[key.path];
+			if (isJsonObject(test) && (test.eq !== undefined || Array.isArray(test.in))) {
+				const uniqueValues = new Set(key.values);
+				if (uniqueValues.size === 0) return [];
+				const idx = indexFor(model, key.path);
+				if (uniqueValues.size === 1) {
+					const [only] = uniqueValues;
+					const positions = only === undefined ? undefined : idx.get(only);
+					if (positions === undefined) return [];
+					candidates = positions.flatMap((pos) => {
+						const row = rows[pos];
+						return row === undefined ? [] : [row];
+					});
+				} else {
+					const positions: number[] = [];
+					for (const val of uniqueValues) {
+						const bucket = idx.get(val);
+						if (bucket !== undefined) positions.push(...bucket);
+					}
+					if (positions.length === 0) return [];
+					positions.sort((a, b) => a - b);
+					candidates = positions.flatMap((pos) => {
+						const row = rows[pos];
+						return row === undefined ? [] : [row];
+					});
+				}
+			}
+		}
+		return candidates
 			.filter((row) => matches(row, where))
 			.map((row: JsonObject) =>
 				through.length === 0

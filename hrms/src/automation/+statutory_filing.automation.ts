@@ -80,8 +80,13 @@ export default automation({
 				() => new Refusal({ message: `${code}/${family}: not an answer a research agent gives.` })
 			)
 		);
+		const lawQuery = lawRead([code]);
 		const held = yield* queryRows(ctx.query, {
-			...lawRead([code]),
+			...lawQuery,
+			jurisdiction_change: {
+				...lawQuery.jurisdiction_change,
+				fields: [...lawQuery.jurisdiction_change.fields, 'revision']
+			},
 			statutory_finding: { where: { jurisdiction_code: { eq: code } }, limit: 10000 },
 			statutory_source: { where: { jurisdiction_code: { eq: code } }, limit: 10000 }
 		});
@@ -91,43 +96,9 @@ export default automation({
 		const findings = held.statutory_finding ?? [];
 		const sources = held.statutory_source ?? [];
 
-		// an update names each record at the revision it is read at now
-		const at = Effect.fnUntraced(function* (
-			model: 'statutory_finding' | 'statutory_source' | 'jurisdiction_change',
-			ids: readonly string[]
-		) {
-			// one typed read per model whose rows the run updates
-			const rows =
-				model === 'statutory_finding'
-					? (yield* queryRows(ctx.query, {
-							statutory_finding: {
-								where: { id: { in: idsOf('statutory_finding', ids) } },
-								fields: ['revision'],
-								limit: 10000
-							}
-						})).statutory_finding
-					: model === 'statutory_source'
-						? (yield* queryRows(ctx.query, {
-								statutory_source: {
-									where: { id: { in: idsOf('statutory_source', ids) } },
-									fields: ['revision'],
-									limit: 10000
-								}
-							})).statutory_source
-						: (yield* queryRows(ctx.query, {
-								jurisdiction_change: {
-									where: { id: { in: idsOf('jurisdiction_change', ids) } },
-									fields: ['revision'],
-									limit: 10000
-								}
-							})).jurisdiction_change;
-			return new Map(
-				rows.map((row) => [
-					valueText(row, 'id'),
-					{ id: row.id ?? null, revision: row.revision ?? null }
-				])
-			);
-		});
+		const targetOf = (row: JsonObject) => ({ id: row.id ?? null, revision: row.revision ?? null });
+		const targetsById = (rows: readonly JsonObject[]) =>
+			new Map(rows.map((row) => [valueText(row, 'id'), targetOf(row)]));
 		const write = Effect.fnUntraced(function* (acts: JsonObject) {
 			if (Object.keys(acts).length === 0) return [];
 			const written = yield* ctx.act(acts);
@@ -165,12 +136,8 @@ export default automation({
 			const fresh = planned.filter((patch) => !drafted.has(patch.effective_from));
 			const grown = planned.flatMap((patch) => {
 				const row = drafted.get(patch.effective_from);
-				return row === undefined ? [] : [{ id: valueText(row, 'id'), law: patch.law }];
+				return row === undefined ? [] : [{ target: targetOf(row), law: patch.law }];
 			});
-			const targets = yield* at(
-				'jurisdiction_change',
-				grown.map((row) => row.id)
-			);
 			yield* write({
 				...(fresh.length === 0
 					? {}
@@ -184,9 +151,9 @@ export default automation({
 				...(grown.length === 0
 					? {}
 					: {
-							'jurisdiction_change.update': grown.map((row) => ({
-								target: targets.get(row.id) ?? null,
-								set: { law: row.law }
+							'jurisdiction_change.update': grown.map(({ target, law }) => ({
+								target,
+								set: { law }
 							}))
 						}),
 				// what the source does not date is left for a person: a change of law always has its date
@@ -195,7 +162,7 @@ export default automation({
 					: {
 							'statutory_finding.update': [
 								{
-									target: { id: instrument.id ?? null, revision: instrument.revision ?? null },
+									target: targetOf(instrument),
 									set: {
 										notes: [text(instrument.notes), `Undated, ${code}/${family}:`, ...undated]
 											.filter((line) => line !== null)
@@ -241,13 +208,10 @@ export default automation({
 					}
 		);
 		if (merged.length > 0) {
-			const targets = yield* at(
-				'statutory_finding',
-				merged.map(([target]) => target)
-			);
+			const findingTargets = targetsById(findings);
 			yield* write({
 				'statutory_finding.update': merged.map(([target, source_urls]) => ({
-					target: targets.get(target) ?? null,
+					target: findingTargets.get(target) ?? null,
 					set: { source_urls }
 				}))
 			});
@@ -287,17 +251,25 @@ export default automation({
 					}
 		);
 		// an official citation the law already carries needs no second review; every active source records this check
-		const checked = [
-			...active.map((row) => valueText(row, 'id')),
-			...bootstrapped.flatMap((row, index) =>
-				row.status === 'ACTIVE' ? [String(opened[index]?.id)] : []
-			)
-		];
+		const newlyOpened = bootstrapped.flatMap((row, index) =>
+			row.status === 'ACTIVE' ? [String(opened[index]?.id)] : []
+		);
+		const checked = [...active.map((row) => valueText(row, 'id')), ...newlyOpened];
 		if (checked.length > 0) {
-			const targets = yield* at('statutory_source', checked);
+			const sourceTargets = targetsById(active);
+			if (newlyOpened.length > 0) {
+				const createdSources = (yield* queryRows(ctx.query, {
+					statutory_source: {
+						where: { id: { in: idsOf('statutory_source', newlyOpened) } },
+						fields: ['revision'],
+						limit: 10000
+					}
+				})).statutory_source;
+				for (const row of createdSources) sourceTargets.set(valueText(row, 'id'), targetOf(row));
+			}
 			yield* write({
 				'statutory_source.update': checked.map((target) => ({
-					target: targets.get(target) ?? null,
+					target: sourceTargets.get(target) ?? null,
 					set: { status: 'ACTIVE', last_checked_on: ctx.today }
 				}))
 			});

@@ -13,7 +13,7 @@
 		name="intake"
 		title={ctx.t('connections.intake_rules_title')}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="hard_filter" />
 			<Field {ctx} name="auto_extract" />
 			<Column span="all"><Field {ctx} name="classification_sop" /></Column>

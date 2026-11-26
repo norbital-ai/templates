@@ -1,10 +1,19 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import { DateTime } from 'effect';
 import type { JsonObject, Lookup } from '../../../../../lib/contracts.js';
 import { lookupOf, settingsConstants } from '../../../../../lib/contracts.js';
 import { isJsonObject } from '../../../../../lib/foundation.js';
 import { programOf } from '../../../jurisdiction/service/programs.js';
+import { enrichWorkDays } from '../engine.js';
 import { eligible, evaluateNumber, payBasis, round, type PayrollInput } from '../rates.js';
+import {
+	boxBorder,
+	monthOf,
+	solidFill,
+	styleDetailSheet,
+	styleTotalsRow,
+	uniqueSheetName,
+	type XlsxWorkbook
+} from './xlsx_sheet.js';
 
 /** One evaluated `overtime_catalog` monetary total for one employee in a cutoff period. */
 export type OvertimeCatalogLine = {
@@ -111,48 +120,15 @@ export const evaluateEmployeeOvertime = (
 		entries: {}
 	};
 	const basis = payBasis(basisInput, input.coverage);
-	const paidMonth = DateTime.formatIsoDate(
-		DateTime.startOf(DateTime.makeUnsafe(input.coverage.from), 'month')
-	);
-	const ratesBy = new Map<
-		string,
-		{ readonly hour_rate: number; readonly day_rate: number; readonly month_wage: number }
-	>();
-	const wagesByDay = new Map<string, number>();
 	const sortedDays = [...input.days].toSorted((a, b) =>
 		String(a.date ?? '').localeCompare(String(b.date ?? ''))
 	);
-	const enrichedDays: readonly JsonObject[] = sortedDays.map((day): JsonObject => {
-		const { terms: worked, ...rest } = day;
-		const terms = isJsonObject(worked) ? worked : (employment.terms ?? null);
-		const date = String(day.date ?? '');
-		const at = DateTime.makeUnsafe(date);
-		const month = {
-			from: DateTime.formatIsoDate(DateTime.startOf(at, 'month')),
-			to: DateTime.formatIsoDate(DateTime.endOf(at, 'month'))
-		};
-		const key = `${month.from}${JSON.stringify(terms)}`;
-		let rates = ratesBy.get(key);
-		if (rates === undefined) {
-			const own = payBasis(
-				{ ...basisInput, employment: { ...employment, terms } },
-				month.from === paidMonth ? input.coverage : month
-			);
-			rates = {
-				hour_rate: own.overtime_hour_rate,
-				day_rate: own.day_rate,
-				month_wage: own.month_wage
-			};
-			ratesBy.set(key, rates);
-		}
-		wagesByDay.set(date, rates.month_wage);
-		return {
-			...rest,
-			date,
-			hour_rate: rates.hour_rate,
-			day_rate: rates.day_rate
-		};
-	});
+	const { days: enrichedDays, wagesByDay } = enrichWorkDays(
+		basisInput,
+		basis,
+		input.coverage,
+		sortedDays
+	);
 
 	const byRate = Map.groupBy(
 		enrichedDays,
@@ -248,19 +224,6 @@ export const evaluateEmployeeOvertime = (
 	};
 };
 
-/** `2026-10` -> `OCT 2026`, `2026-10-1` -> `OCT 2026 1ST HALF`. */
-const monthOf = (period: string): string => {
-	const match = /^(\d{4})-(\d{2})(?:-([12]))?$/.exec(period);
-	if (match === null) return period.toUpperCase();
-	const half = match[3] === undefined ? '' : match[3] === '1' ? ' 1ST HALF' : ' 2ND HALF';
-	const month = DateTime.formatUtc(DateTime.makeUnsafe(`${match[1]}-${match[2]}-01`), {
-		locale: 'en',
-		month: 'short',
-		year: 'numeric'
-	});
-	return `${month.toUpperCase()}${half}`;
-};
-
 const activePeopleOf = (sheet: OvertimeSheet): readonly OvertimePerson[] =>
 	sheet.people
 		.filter((person) => person.lines.length > 0 || person.bankedHours > 0)
@@ -313,17 +276,6 @@ const THIN = { style: 'thin' as const, color: { argb: 'FFBFBFBF' } };
 const HEAD = 5;
 const FROZEN = 2;
 
-const sheetName = (raw: string, taken: Set<string>): string => {
-	const clean = raw.replaceAll(/[:\\/?*[\]]/g, ' ').trim() || 'Overtime';
-	let name = clean.slice(0, 31).trim();
-	for (let suffix = 2; taken.has(name.toLowerCase()); suffix++) {
-		const tag = ` (${suffix})`;
-		name = `${clean.slice(0, 31 - tag.length).trim()}${tag}`;
-	}
-	taken.add(name.toLowerCase());
-	return name;
-};
-
 type NumericColumn = {
 	readonly header: string;
 	readonly fill: string;
@@ -333,11 +285,7 @@ type NumericColumn = {
 	readonly value: (person: OvertimePerson) => number;
 };
 
-const addSummarySheet = (
-	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
-	sheet: OvertimeSheet,
-	name: string
-) => {
+const addSummarySheet = (workbook: XlsxWorkbook, sheet: OvertimeSheet, name: string) => {
 	const people = activePeopleOf(sheet);
 	const { catalogs, hasBanked } = catalogColumnsOf(people);
 	const numericColumns: NumericColumn[] = [
@@ -403,21 +351,17 @@ const addSummarySheet = (
 
 	const headerRow = ws.getRow(HEAD);
 	headerRow.height = 36;
-	for (const [at, col] of IDENTITY.entries()) {
+	const headCols = [
+		...IDENTITY.map((col) => ({ header: col.header, fill: IDENTITY_FILL })),
+		...numericColumns.map((col) => ({ header: col.header, fill: col.fill }))
+	];
+	for (const [at, col] of headCols.entries()) {
 		const cell = headerRow.getCell(at + 1);
 		cell.value = col.header;
 		cell.font = { bold: true, size: 10 };
 		cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: IDENTITY_FILL } };
-		cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
-	}
-	for (const [at, col] of numericColumns.entries()) {
-		const cell = headerRow.getCell(IDENTITY.length + at + 1);
-		cell.value = col.header;
-		cell.font = { bold: true, size: 10 };
-		cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.fill } };
-		cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+		cell.fill = solidFill(col.fill);
+		cell.border = boxBorder(THIN);
 	}
 
 	const firstCatalogCol = IDENTITY.length + 2; // column after OT HOURS
@@ -432,23 +376,20 @@ const addSummarySheet = (
 		for (const [at, col] of numericColumns.entries()) {
 			const cell = row.getCell(IDENTITY.length + at + 1);
 			const result = col.value(person);
-			if (col.kind === 'total') {
-				cell.value =
-					firstCatalogLetter !== undefined && lastCatalogLetter !== undefined
+			cell.value =
+				col.kind === 'total'
+					? firstCatalogLetter !== undefined && lastCatalogLetter !== undefined
 						? {
 								formula: `SUM(${firstCatalogLetter}${rowNumber}:${lastCatalogLetter}${rowNumber})`,
 								result
 							}
-						: 0;
-			} else {
-				cell.value = result;
-			}
+						: 0
+					: result;
 			cell.numFmt = ACCOUNTING;
-			cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: col.fill } };
+			cell.fill = solidFill(col.fill);
 			if (col.bold) cell.font = { bold: true };
 		}
-		for (let column = 1; column <= width; column++)
-			row.getCell(column).border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+		for (let column = 1; column <= width; column++) row.getCell(column).border = boxBorder(THIN);
 	}
 
 	const last = HEAD + people.length;
@@ -463,17 +404,13 @@ const addSummarySheet = (
 		};
 		cell.numFmt = ACCOUNTING;
 	}
-	for (let column = 1; column <= width; column++) {
-		const cell = totals.getCell(column);
-		cell.font = { bold: true };
-		cell.border = { top: THIN, bottom: { style: 'double', color: { argb: 'FF000000' } } };
-	}
+	styleTotalsRow(ws, last + 1, width, THIN);
 	if (people.length > 0)
 		ws.autoFilter = { from: { row: HEAD, column: 1 }, to: { row: last, column: width } };
 };
 
 const addDetailsSheet = (
-	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
+	workbook: XlsxWorkbook,
 	sheets: readonly { readonly sheet: OvertimeSheet; readonly name: string }[]
 ) => {
 	const ws = workbook.addWorksheet('Daily details', {
@@ -498,7 +435,7 @@ const addDetailsSheet = (
 	ws.columns = columns.map(([header, width]) => ({ header, width }));
 	for (const { sheet, name } of sheets) {
 		const cutoff = `${sheet.attendance.from} to ${sheet.attendance.to}`;
-		for (const person of activePeopleOf(sheet)) {
+		for (const person of activePeopleOf(sheet))
 			for (const item of person.days) {
 				const row = ws.addRow([
 					name,
@@ -519,15 +456,8 @@ const addDetailsSheet = (
 				row.getCell(12).numFmt = '0.####';
 				row.getCell(13).numFmt = '0.####';
 			}
-		}
 	}
-	ws.getRow(1).height = 30;
-	ws.getRow(1).eachCell((cell) => {
-		cell.font = { bold: true };
-		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: IDENTITY_FILL } };
-		cell.alignment = { vertical: 'middle', wrapText: true };
-	});
-	ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: columns.length } };
+	styleDetailSheet(ws, columns.length, 30, IDENTITY_FILL);
 };
 
 /** Builds the styled overtime report workbook: one sheet per period/pay group plus `Daily details`. */
@@ -535,18 +465,16 @@ export const overtimeWorkbookOf = (sheets: readonly OvertimeSheet[]) => {
 	const workbook = new ExcelJSBrowser.Workbook();
 	workbook.creator = 'HRMS';
 	const taken = new Set<string>(['daily details']);
-	const periodsWithMultiple = new Set<string>();
 	const periodCounts = new Map<string, number>();
 	for (const sheet of sheets)
 		periodCounts.set(sheet.period, (periodCounts.get(sheet.period) ?? 0) + 1);
-	for (const [period, count] of periodCounts) if (count > 1) periodsWithMultiple.add(period);
 	const named = sheets.map((sheet) => {
 		const base = monthOf(sheet.period);
 		const label =
-			periodsWithMultiple.has(sheet.period) && sheet.payGroup !== ''
+			(periodCounts.get(sheet.period) ?? 0) > 1 && sheet.payGroup !== ''
 				? `${base} - ${sheet.payGroup}`
 				: base;
-		return { sheet, name: sheetName(label, taken) };
+		return { sheet, name: uniqueSheetName(label, taken, { replace: ' ', fallback: 'Overtime' }) };
 	});
 	for (const { sheet, name } of named) addSummarySheet(workbook, sheet, name);
 	addDetailsSheet(workbook, named);

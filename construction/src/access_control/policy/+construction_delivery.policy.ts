@@ -1,9 +1,9 @@
 import { policy } from '@norbital-ai/bolt';
 
-/** Site & delivery authority: projects, large-scale WBS tasks with their activity (comments, issues, meetings), BIM files, contacts, and WhatsApp/email intake. */
+/** Site & delivery authority: projects, large-scale WBS tasks, polymorphic activities, BIM files, contacts, and WhatsApp/email intake. */
 export default policy({
 	description:
-		'Delivery writes for projects, BIM files, WBS tasks with their activity (comments, issues, meetings), contacts, and WhatsApp/email coordination messages.',
+		'Delivery writes for projects, BIM files, WBS tasks, polymorphic activities, contacts, and WhatsApp/email coordination messages.',
 	grants: {
 		projects: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		cost_estimates: {

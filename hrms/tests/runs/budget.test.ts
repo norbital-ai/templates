@@ -253,6 +253,36 @@ describe('eighty people on the Malaysian law', () => {
 						yield* t.run_due();
 					})
 				);
+				// April's first day runs its crons before measuring retroactive amendment across all 80 people (Feb + Mar = 160 amended + 80 current)
+				t.clock.set('2026-04-01T02:00:00.000Z');
+				yield* t.run_due();
+				yield* measured(
+					'holiday amend create',
+					Effect.gen(function* () {
+						yield* admin.act({
+							'holiday.create': [
+								{
+									entity_id: ENTITY,
+									date: '2026-02-18',
+									name: 'Declared late',
+									kind: 'PUBLIC_HOLIDAY',
+									given_to: 'EVERYONE',
+									published_at: DateTime.formatIso(DateTime.makeUnsafe('2026-04-01T02:00:00.000Z'))
+								}
+							]
+						});
+						yield* t.run_due();
+					})
+				);
+				const { pay_amendment: opened } = yield* storedQuery(t, {
+					pay_amendment: { where: { payroll_run_id: { is_null: true } }, limit: 100 }
+				});
+				assert.equal(opened.rows.length, PEOPLE);
+				yield* measured('amended run create', run(t, '2026-04'));
+				const { pay_amendment: remaining } = yield* storedQuery(t, {
+					pay_amendment: { where: { payroll_run_id: { is_null: true } }, limit: 100 }
+				});
+				assert.equal(remaining.rows.length, 0);
 			}).pipe(
 				Effect.provide(
 					workspace({

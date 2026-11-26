@@ -361,7 +361,7 @@ Each family may read only its declared context roots, listed in [the model speci
 
 The engine is one pure pass per person. It reads nothing beyond its input and writes nothing.
 
-What does not change within a run is worked out once: a time zone's date formatter, a row's decoded object and lookup, a period's list of days, and the catalogue maps. A roster day's intervals are kept as epoch milliseconds. Measured on 50 people, the calculation takes about 0.7 ms a person on the Singapore pack, 1.2 ms on Indonesia, 1.5 to 2.4 ms on Malaysia and 2.9 ms on the Philippines.
+What does not change within a run is worked out once: parsed expression ASTs, a time zone's date formatter, a row's decoded object and lookup, a period's list of days, holidays indexed by date (`indexHolidays`), per-terms-reference day/hour rate caches (`enrichWorkDays`), single-pass copy-on-write decimal coercion (`jsonValues`), and the catalogue maps. A roster day's intervals are kept as epoch milliseconds, and `buildWorkDays` / `enrichWorkDays` are shared by payroll calculation and the overtime report. Across an 80-run chronological multi-country replay (1,953 payslips), peak single-run guest CPU stays under 1.0 s (well within the 2 s budget for ~80 people).
 
 ### Conversions
 
@@ -517,7 +517,7 @@ Sync takes old periods off the balance through dated movements: a month total mo
 - **The employment in a rule.** A rule or effect on `employment` runs on a write to a stint, to its `contract_terms` or to its `statutory_parameters`. Its entry is the employment on the written row's day (the stint's first day for the stint itself): on the terms and parameters in force that day, with `effective_range` from the first day those terms stood to the stint's last day. `ctx.before` is the employment as it stood without the write, and is null for a hire. `exit` runs when a stint becomes an exit; its entry is the employment on the last day. A declared read of `employment` answers the stints as they stand on the reading row's own day.
 - **The company in a rule.** A rule or effect on `entity_change` reads, as its entry, the folded company on the change's date, with an `effective_range` from that date to the day before the next change. One on `entity` reads an update of the company's own fields. Every other rule reads the company through `ctx.subject.employer`, as it stands on the row's own day.
 
-A leave or claim entry's effects run in the `registered_effects` automation, under the system identity, once the entry is not waiting for approval. A check with a deadline ahead, such as a permit or a retirement date, sits on the payslip and runs at every run; its `occurrence_key` keeps it to one task. A run effect looks for its own task before raising it.
+A leave or claim entry's effects run in the `registered_effects` automation, under the system identity, once the entry is not waiting for approval. A check with a deadline ahead, such as a permit or a retirement date, sits on the payslip and runs at every run; its `occurrence_key` keeps it to one task. A run effect looks up its own task by `occurrence_key` (`limit: 1`) before raising it; run-level payslip delivery duties (`SG/ITEMISED_PAYSLIP`, `ID/PAYSLIP_ISSUE`, matching `CN`/`JP`/`MY`/`TW`) raise one entity-level obligation per paid payroll run rather than looping per payslip.
 
 ## 8. Automations
 
@@ -559,30 +559,51 @@ A requester cannot decide their own request. Each step is decided once. A reject
 ## 10. Code layout
 
 ```text
-src/lib/
-  ledger/
-    core.ts             the difference, periods, windows, what a formula reads
-    entitlement.ts      the leave entitlement rule
-    service.ts          posting, sync, retention, the ledger checks
-  payroll_engine/
-    engine.ts           the calculation, subtotal chain, statutory order
-    run_calculation.ts  what a run reads, calculates and seals
-    amended.ts          paid periods worked out again, and what a run carries for them
-    expressions.ts      the expression interpreter and its helpers
-    registrations.ts    rule and effect dispatch
-    pay_cycle.ts        cycles, pay dates, attendance windows
-    loan_schedule.ts    loan schedules and final recovery
-  law.ts                the law on a day: what a run, a write or a screen reads
-  company.ts            the company on a day: the fold of its dated changes
-  person.ts             the employment on a day: the fold of a stint's dated rows, exits, service starts
-  dated.ts              the fold of dated changes, the reach of a change, a correction
-  amendments.ts         the amendment rows a write carries; every model a run reads and its rule
-  dependants.ts         what an exit raised, moved or cancelled leaves behind
-  export_format_configuration/  salary listing and bank files
-src/data/model/         the models, each with its write rules
-src/automation/         the four automations
-src/access_control/     policies
-src/app/                HR controller apps, employee self-service
+src/data/model/
+  payroll_run/service/
+    engine.ts               subtotal chain, statutory order, enrichWorkDays
+    rates.ts                day/hour/proration basis, rounding, paid_share
+    run_calculation.ts      run pricing, full-unpaid detection, exit leave settlement
+    run_loader.ts           single-query batch load (`run` named output) and stint stitching
+    amended.ts              paid periods worked out again, back-pay & carry loop
+    history_slice.ts        historical balance unwinding & per-period entry slicing
+    amendments.ts           write-time pay_amendment capture; RUN_INPUTS rule table
+    pay_cycle.ts            cycles, pay dates, attendance cutoffs
+    exports/                salary listing, overtime report, bank files, shared xlsx_sheet.ts
+  employee_profile/
+    service/
+      person.ts             employment on a day: dated fold, exits, service starts
+      dependants.ts         exit task reconciliation & cancelled-exit loan rebuild
+    employee_balance/service/
+      core.ts               ledger diffs, four-part keys, windows, balance views
+      entitlement.ts        leave entitlement rules
+      ledger_store.ts       atomic ledger_entry + employee_balance writer
+      posting_plans.ts      record/run/sync posting plans & closing-window settlement
+      entry_postings.ts     entry & payslip postings
+      guards.ts             leave/claim admission checks
+      entitlement_sync.ts   batched workspace entitlement sync & retention
+      service.ts            single ledger write facade
+  jurisdiction/service/
+    law.ts                  law on a day (cached per reader)
+    configuration.ts        law write checks & amendment reach
+    params/                 per-family lookup param schemas (`shared.ts` + 7 families)
+    expressions.ts          bounded JS/BigDecimal expression interpreter & helpers
+    registrations.ts        rule & effect dispatch
+    registration_context.ts rule/effect subject & context builder
+    rule_reads.ts           typed batch reads for declared `reads`
+    programs.ts             per-family allowed `ctx.*` root contracts
+    taps.ts                 post-commit effect tap helper
+  entity/service/           company.ts (folded entity), holiday_kind.ts
+  roster_entry/service/     attendance.ts (scheduled, holidaysForDay, buildWorkDays),
+                            time_evidence.ts, roster_warnings.ts, roster_workbook.ts
+  entry/service/            entries.ts, entry_workbook.ts (and loan_schedule.ts under loan_catalog_entry/)
+  statutory_finding/service/ research.ts
+src/lib/                    foundation.ts, contracts.ts, reads.ts, dated.ts, dated_facts.ts,
+                            run_output.ts, workbook_rows.ts, ui/ (shared shells, pickers, importers)
+src/automation/             the six automations (ledger, registered_effects, late_notice,
+                            statutory_research, statutory_filing, invitation_profile)
+src/access_control/         policies and shared approval/grant helpers
+src/app/                    HR controller apps, employee self-service, attendance kiosk
 ```
 
 ## 11. Screens

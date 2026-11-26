@@ -6,7 +6,6 @@
 		enum_text,
 		Field,
 		Icon,
-		open_record,
 		RecordForm,
 		type RecordView,
 		Section,
@@ -78,22 +77,20 @@
 			key={`message:${record.id}:tasks`}
 			where={{ source_message_id: { eq: record.id } }}
 			toolbar={{ new: false, select: false, filter: false, export: false }}
-			columns={['task_code', 'title', 'status', 'progress_pct', 'latest_update']}
+			columns={['task_code', 'title', 'status', 'progress_pct']}
 		/>
 	{/if}
 {/snippet}
 
 {#snippet madeActivities()}
 	{#if record}
-		<!-- an activity stands for its task: the row opens the task -->
 		<Table
 			{ctx}
 			of="activities"
 			key={`message:${record.id}:activities`}
 			where={{ source_message_id: { eq: record.id } }}
-			on_open={(row) => open_record('tasks', row.task_id)}
 			toolbar={{ new: false, select: false, filter: false, export: false }}
-			columns={['task_id', 'kind', 'title', 'body']}
+			columns={['title', 'occurred_at', 'about', 'description']}
 		/>
 	{/if}
 {/snippet}
@@ -154,7 +151,7 @@
 	actions={headerActions}
 >
 	<Section icon="lucide:message-square-text" first name="message" title={ctx.t('section.message')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="subject" />
 			<Field {ctx} name="transport" />
 			<Field {ctx} name="direction" />
@@ -176,7 +173,7 @@
 	>
 		<Stack gap="sm">
 			<Field {ctx} name="attachments" />
-			<Grid minimum="card">
+			<Grid minimum="compact">
 				<Field {ctx} name="recording" />
 				<Field {ctx} name="transcription" />
 				{#if record?.transcription_error}
@@ -193,7 +190,7 @@
 		default_open={false}
 		{...routingSummary ? { summary: routingSummary } : {}}
 	>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="classification" />
 			{#if record?.classified_by != null}
 				<Field {ctx} name="classified_by" readonly />

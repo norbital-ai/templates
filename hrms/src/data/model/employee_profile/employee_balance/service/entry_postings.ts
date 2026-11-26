@@ -9,7 +9,7 @@ import { idsOf, objectValue, queryRows, type Reader } from '../../../../../lib/r
 import { accountsOf, eventsOf, totalsScope } from './core.js';
 import { validateRegistered, type Operation } from '../../../jurisdiction/service/registrations.js';
 import { employmentOn, startsOf, type Parts, type Starts } from '../../service/person.js';
-import { lawRead, lawsOf, type Law } from '../../../jurisdiction/service/law.js';
+import { lawsAt, lawsWith, type Law } from '../../../jurisdiction/service/law.js';
 import { type LeavePerson, type LeaveRow } from './entitlement.js';
 import {
 	FIELDS,
@@ -130,97 +130,101 @@ export const known = Effect.fn('ledger.known')(function* (
 	const sources = [...entries, ...open].map((row) => `${model}:${String(row.id)}`);
 	// the people's leave on the batch's days, from its first to its last: what a half-day may collide with
 	const sameDays = { incurred_on: { gte: first ?? '1970-01-01', lte: last ?? '1970-01-01' } };
-	const own = yield* queryRows(read, {
-		...stintsRead(people),
-		...lawRead([
-			...new Set(
-				stints.flatMap((row) => (isJsonObject(row.entity_id) ? [row.entity_id.settings_code] : []))
-			)
-		]),
-		employee_balance: {
-			where: { employee_id: { in: people } },
-			fields: ['employee_id', 'account', 'revision'],
-			limit: 10000
-		},
-		// what those entries posted, by their own sources: never the person's history. `in` takes 1,000 values
-		ledger_entry: {
-			where: {
-				or: Array.from({ length: Math.max(1, Math.ceil(sources.length / 1000)) }, (_, at) => ({
-					source: { in: sources.slice(at * 1000, (at + 1) * 1000) }
-				}))
+	const codes = stints.flatMap((row) =>
+		isJsonObject(row.entity_id) ? [row.entity_id.settings_code] : []
+	);
+	const { got: own, laws } = yield* lawsWith(read, codes, (law) =>
+		queryRows(read, {
+			...stintsRead(people),
+			...law,
+			employee_balance: {
+				where: { employee_id: { in: people } },
+				fields: ['employee_id', 'account', 'revision'],
+				limit: 10000
 			},
-			fields: FIELDS,
-			limit: 10000
-		},
-		leave_catalog_entry: {
-			where: {
-				employment_id: { is: { employee_id: { in: planned ? people : [] } } },
-				leave_catalog_entry_day: { some: sameDays }
+			// what those entries posted, by their own sources: never the person's history. `in` takes 1,000 values
+			ledger_entry: {
+				where: {
+					or: Array.from({ length: Math.max(1, Math.ceil(sources.length / 1000)) }, (_, at) => ({
+						source: { in: sources.slice(at * 1000, (at + 1) * 1000) }
+					}))
+				},
+				fields: FIELDS,
+				limit: 10000
 			},
-			limit: 10000
-		},
-		// every slot of the batch's own and the open entries; the people's other slots only on the batch's days
-		leave_catalog_entry_day: {
-			where: {
-				or: [
-					{
-						leave_entry_id: {
-							in: idsOf('leave_catalog_entry', planned ? uniqueIds(entries, 'id') : [])
+			leave_catalog_entry: {
+				where: {
+					employment_id: { is: { employee_id: { in: planned ? people : [] } } },
+					leave_catalog_entry_day: { some: sameDays }
+				},
+				limit: 10000
+			},
+			// every slot of the batch's own and the open entries; the people's other slots only on the batch's days
+			leave_catalog_entry_day: {
+				where: {
+					or: [
+						{
+							leave_entry_id: {
+								in: idsOf('leave_catalog_entry', planned ? uniqueIds(entries, 'id') : [])
+							}
+						},
+						{
+							leave_entry_id: {
+								is: {
+									employment_id: { in: planned ? named : [] },
+									payroll_run_id: { is_null: true }
+								}
+							}
+						},
+						{
+							...sameDays,
+							leave_entry_id: {
+								is: { employment_id: { is: { employee_id: { in: planned ? people : [] } } } }
+							}
 						}
-					},
-					{
-						leave_entry_id: {
-							is: { employment_id: { in: planned ? named : [] }, payroll_run_id: { is_null: true } }
-						}
-					},
-					{
-						...sameDays,
-						leave_entry_id: {
-							is: { employment_id: { is: { employee_id: { in: planned ? people : [] } } } }
-						}
+					]
+				},
+				fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
+				limit: 10000
+			},
+			roster_entry: {
+				where: {
+					employment_id: { is: { employee_id: { in: planned ? people : [] } } },
+					work_date: {
+						gte: month(first ?? '1970-01-01', -1),
+						lte: month(last ?? '1970-01-01', 1)
 					}
-				]
+				},
+				fields: ['employment_id', 'work_date', 'shift_definition_id'],
+				limit: 10000
 			},
-			fields: ['leave_entry_id', 'incurred_on', 'part', 'payroll_run_id'],
-			limit: 10000
-		},
-		roster_entry: {
-			where: {
-				employment_id: { is: { employee_id: { in: planned ? people : [] } } },
-				work_date: {
-					gte: month(first ?? '1970-01-01', -1),
-					lte: month(last ?? '1970-01-01', 1)
-				}
+			holiday: {
+				where: { entity_id: { in: companies } },
+				fields: ['date', 'published_at', 'employee_id', 'replaces', 'given_to'],
+				limit: 10000
 			},
-			fields: ['employment_id', 'work_date', 'shift_definition_id'],
-			limit: 10000
-		},
-		holiday: {
-			where: { entity_id: { in: companies } },
-			fields: ['date', 'published_at', 'employee_id', 'replaces', 'given_to'],
-			limit: 10000
-		},
-		pay_group: {
-			where: { entity_id: { in: companies } },
-			fields: ['payment_schedule'],
-			limit: 1000
-		},
-		shift_pattern: {
-			where: { entity_id: { in: companies } },
-			fields: ['pattern', 'effective_range'],
-			limit: 1000
-		},
-		shift_definition: {
-			where: { entity_id: { in: companies } },
-			fields: ['variant'],
-			limit: 1000
-		}
-	});
+			pay_group: {
+				where: { entity_id: { in: companies } },
+				fields: ['payment_schedule'],
+				limit: 1000
+			},
+			shift_pattern: {
+				where: { entity_id: { in: companies } },
+				fields: ['pattern', 'effective_range'],
+				limit: 1000
+			},
+			shift_definition: {
+				where: { entity_id: { in: companies } },
+				fields: ['variant'],
+				limit: 1000
+			}
+		})
+	);
 	// the stored leave a check judges against: the open entries and those on the batch's days, each once
 	const stored = [
 		...new Map([...open, ...own.leave_catalog_entry].map((row) => [row.id, row])).values()
 	];
-	return knownOf(own, stored, own.leave_catalog_entry_day, lawsOf(own));
+	return knownOf(own, stored, own.leave_catalog_entry_day, laws);
 });
 /**
  * `Known` from rows already read: the people's stints with their dated rows (`stintsRead`'s roots), their balances,
@@ -482,7 +486,11 @@ export const runPostings = Effect.fn('ledger.runPostings')(function* (
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row.id]));
 	// a payslip answers to the law of its company on its run's pay date
 	const lawIn =
-		laws ?? lawsOf(yield* queryRows(read, lawRead(entities.map((row) => row.settings_code))));
+		laws ??
+		(yield* lawsAt(
+			read,
+			entities.map((row) => row.settings_code)
+		));
 	const lineage = new Map(entities.map((row) => [String(row.id), row.settings_code]));
 	const lawFor = (slip: JsonObject) =>
 		lawIn(lineage.get(String(slip.entity_id)), String(payDate.get(String(slip.payroll_run_id))));

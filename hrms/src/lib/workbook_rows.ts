@@ -1,4 +1,4 @@
-import { DateTime, Option } from 'effect';
+import { isIsoDate } from './foundation.js';
 
 /** A spreadsheet cell's value. */
 export type Cell = string | number | boolean | null;
@@ -97,9 +97,7 @@ export const cellNumber = (value: Cell | undefined): number | null => {
 /** A date cell: the native `YYYY-MM-DD` text, or the first day of a datetime cell. */
 export const cellDay = (value: Cell | undefined): string | null => {
 	const text = cellText(value).slice(0, 10);
-	return Option.exists(DateTime.make(text), (d) => DateTime.formatIsoDate(d) === text)
-		? text
-		: null;
+	return isIsoDate(text) ? text : null;
 };
 
 export const inRange = (

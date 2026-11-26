@@ -32,6 +32,14 @@ type Held = {
 export const plain = (amount: number) =>
 	new Intl.NumberFormat('en', { useGrouping: false, maximumFractionDigits: 20 }).format(amount);
 
+/** Standard company-scoped employment query shared by every entry workbook import. */
+export const employmentQuery = (companyId: Id<'entity'>) =>
+	({
+		where: { entity_id: { eq: companyId } },
+		fields: ['employee_number', 'entity_id', 'effective_range'],
+		limit: 10000
+	}) as const;
+
 /**
  * One entry sheet's import for the picked company: loads existing rows lazily only when the user
  * picks a workbook, parses against them, and writes one create act. Call during component initialisation.

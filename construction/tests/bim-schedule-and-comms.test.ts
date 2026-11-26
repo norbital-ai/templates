@@ -3,15 +3,13 @@ import { fileURLToPath } from 'node:url';
 import { expect, it } from '@effect/vitest';
 import { JobResult, runAutomation, type TestOptions } from '@norbital-ai/bolt-cli/test';
 import type { Ai } from '@norbital-ai/bolt/engine';
+import { buildBimCostEstimate, rankCandidateMatrixRules } from '../src/services/bim/pricing.js';
+import { UNKNOWN_CATALOG_CHOICE, type ArchetypeDecision } from '../src/services/bim/schema.js';
 import {
-	buildBimCostEstimate,
 	createIfcStepStreamParser,
 	extractFromParsedModel,
-	parseIfcStep,
-	rankCandidateMatrixRules,
-	UNKNOWN_CATALOG_CHOICE,
-	type ArchetypeDecision
-} from '../src/lib/bim-pipeline.js';
+	parseIfcStep
+} from '../src/services/bim/step-parser.js';
 import { parseMsProjectXml, parsePrimaveraXer } from '../src/lib/schedule-parsers.js';
 import { fixtureId, recordOf, rowsOf, workspace as acquireWorkspace } from './test-runtime.js';
 import sys_team from '../seed/public/sys_team.json' with { type: 'json' };
@@ -269,7 +267,7 @@ it.effect(
 		Effect.gen(function* () {
 			const extractionTurn = {
 				content: JSON.stringify({
-					summary: 'Structured WhatsApp update into task progression, BIM issue, VO, and invoice.',
+					summary: 'Structured WhatsApp update into task progression, activity, VO, and invoice.',
 					task_updates: [
 						{
 							task_code: 'WBS-E1',
@@ -278,18 +276,15 @@ it.effect(
 							zone: 'L01-MAIN',
 							progress_pct: 60,
 							status: 'in_progress',
-							latest_update: '60% terminated; feeder tray aligned.',
-							comment: 'Main switchboard 60% terminated; feeder tray aligned per the site photo.',
+							activity_title: 'Main switchboard 60% terminated',
+							activity_description:
+								'Main switchboard 60% terminated; feeder tray aligned per the site photo.',
 							file_attachments: true
 						}
 					],
-					issues: [
+					activities: [
 						{
 							title: 'Chilled water sleeve clash at switchroom',
-							kind: 'clash',
-							trade_specialty: 'mne',
-							severity: 'critical',
-							zone: 'L01-MAIN',
 							description: 'Sleeve encroaches 120mm on panelboard top entry.'
 						}
 					],
@@ -340,7 +335,7 @@ it.effect(
 				content: JSON.stringify({
 					summary: 'Confirmed cable tray clearance; no new records required.',
 					task_updates: [],
-					issues: [],
+					activities: [],
 					variation_orders: [],
 					commercial_documents: []
 				}),
@@ -534,13 +529,14 @@ it.effect(
 				yield* delivery.query({
 					projects: {
 						where: { id: { eq: projectId } },
-						fields: ['revision', 'bim_summary', 'bim_costing_dirty'],
+						fields: ['revision', 'bim_summary', 'bim_compliance', 'bim_costing_dirty'],
 						limit: 1
 					}
 				}),
 				'projects'
 			)[0];
 			expect(projectAfter?.['bim_summary']).not.toBeNull();
+			expect(projectAfter?.['bim_compliance']).not.toBeNull();
 			expect(projectAfter?.['bim_costing_dirty']).toBe(false);
 
 			// Any other edit of a priced project prices nothing again
@@ -932,7 +928,11 @@ it.effect(
 					fields: ['task_code', 'progress_pct'],
 					limit: 20
 				},
-				activities: { where: { kind: { eq: 'issue' } }, fields: ['severity'], limit: 20 },
+				activities: {
+					where: { project_id: { eq: projectId } },
+					fields: ['about', 'project_id', 'title', 'description', 'source_message_id'],
+					limit: 20
+				},
 				contracts: {
 					where: { project_id: { eq: projectId } },
 					fields: ['contract_type', 'contract_value'],
@@ -947,38 +947,24 @@ it.effect(
 			expect(rowsOf(afterExtract, 'project_messages')[0]?.['classified_by']).toBe('model');
 			expect(rowsOf(afterExtract, 'project_messages')[0]?.['extraction_status']).toBe('extracted');
 			expect(rowsOf(afterExtract, 'tasks').some((r) => r['task_code'] === 'WBS-E1')).toBe(true);
-			expect(rowsOf(afterExtract, 'activities')).toHaveLength(1);
-			// the clash no task covers is filed under an ad hoc task of its own, which counts it as open
-			const filed = yield* admin.query({
-				activities: { where: { kind: { eq: 'issue' } }, fields: ['task_id', 'body'], limit: 1 },
-				tasks: {
-					where: { project_id: { eq: projectId }, kind: { eq: 'adhoc' } },
-					fields: ['title', 'open_issue_count'],
-					limit: 10
-				}
-			});
-			const clashTask = rowsOf(filed, 'tasks').find(
-				(r) => r['title'] === 'Chilled water sleeve clash at switchroom'
-			);
-			expect(clashTask?.['open_issue_count']).toBe(1);
-			const clash = rowsOf(filed, 'activities')[0];
-			expect(clash?.['task_id']).toBe(clashTask?.['id']);
-			expect(clash?.['body']).toBe('Sleeve encroaches 120mm on panelboard top entry.');
-			// the task update is filed under its task as a comment from the message
-			const comments = rowsOf(
-				yield* admin.query({
-					activities: {
-						where: { kind: { eq: 'comment' } },
-						fields: ['body', 'source_message_id'],
-						limit: 10
-					}
-				}),
-				'activities'
-			);
-			expect(comments.map((c) => c['body'])).toEqual([
-				'Main switchboard 60% terminated; feeder tray aligned per the site photo.'
-			]);
-			expect(comments.every((c) => c['source_message_id'] != null)).toBe(true);
+			const loggedActivities = rowsOf(afterExtract, 'activities');
+			expect(loggedActivities).toHaveLength(2);
+			expect(loggedActivities.map((a) => a['project_id'])).toEqual([projectId, projectId]);
+			expect(loggedActivities.every((a) => a['source_message_id'] != null)).toBe(true);
+			expect(
+				loggedActivities.some(
+					(a) =>
+						a['title'] === 'Chilled water sleeve clash at switchroom' &&
+						a['description'] === 'Sleeve encroaches 120mm on panelboard top entry.'
+				)
+			).toBe(true);
+			expect(
+				loggedActivities.some(
+					(a) =>
+						a['description'] ===
+						'Main switchboard 60% terminated; feeder tray aligned per the site photo.'
+				)
+			).toBe(true);
 			expect(rowsOf(afterExtract, 'contracts')[0]?.['contract_type']).toBe('variation_order');
 			expect(rowsOf(afterExtract, 'commercial_documents')[0]?.['external_reference']).toBe(
 				'INV-SUB-778'
@@ -1900,5 +1886,283 @@ it.effect(
 				repriced.filter((l) => l.matrix_code === 'MEP-LIFT-PASS').map((l) => l.match_method)
 			).toContain('override');
 			expect(repriced.some((l) => l.matrix_code === 'ARC-DOOR-SLIDE')).toBe(false);
+		}).pipe(Effect.scoped)
+);
+
+it.effect(
+	'reads live bim_settings thresholds, persists cleaned attributes & HITL review_status, and respects QS inline amendments with zero extra AI calls',
+	() =>
+		Effect.gen(function* () {
+			let sys1Calls = 0;
+			const fakeSys1: Ai['Service']['ask'] = (request) =>
+				Effect.sync(() => {
+					sys1Calls += 1;
+					return {
+						cost_usd: 0,
+						provider: 'test',
+						answers: Object.fromEntries(
+							Object.entries(request.questions).map(([id]) => [
+								id,
+								{
+									type: 'choice' as const,
+									choice: 'MEP-HYD-SM',
+									confidence: 0.82,
+									probabilities: {}
+								}
+							])
+						)
+					};
+				});
+
+			const t = yield* acquireWorkspace({
+				root,
+				now: '2026-06-15T06:00:00.000Z',
+				fakes: { ai: { sys_1: fakeSys1, cassette: { default: [] } } }
+			});
+			const admin = yield* t.as(t.admin);
+			const qs = yield* t.as(
+				t.member(['construction_read', 'construction_commercial', 'construction_connections'], {
+					teams: ['commercial_qs']
+				})
+			);
+
+			// Seed workspace-configurable bim_settings with strict min_confidence = 0.88 (above fakeSys1's 0.82)
+			const setup = yield* admin.act({
+				'bim_settings.create': [
+					{
+						code: 'default',
+						name: 'Strict Commercial Policy',
+						min_confidence: '0.88',
+						max_proposals: 0
+					}
+				],
+				'projects.create': [
+					{
+						project_name: 'HITL Verification Tower',
+						project_number: 'HITL-01',
+						project_role: 'main_contractor',
+						currency: 'SGD'
+					}
+				],
+				'item_matrix.create': [
+					{
+						code: 'MEP-HYD-SM',
+						name: 'Hydronic Pipe <=DN32',
+						category: 'bim_asset',
+						discipline: 'mep',
+						trade_specialty: 'hvac',
+						ifc_classes: ['IFCPIPESEGMENT'],
+						system_services: ['hydronic_hvac'],
+						min_size_mm: '0.0',
+						max_size_mm: '34.0',
+						topology_mode: 'contiguous_linear',
+						unit: 'm',
+						quantity_basis: 'length',
+						currency: 'SGD',
+						unit_rate: '68.00',
+						waste_factor_pct: '5.0',
+						active: true
+					},
+					{
+						code: 'MEP-GAS-PIPE',
+						name: 'Natural Gas Pipe',
+						category: 'bim_asset',
+						discipline: 'mep',
+						trade_specialty: 'mne',
+						ifc_classes: ['IFCPIPESEGMENT'],
+						system_services: ['natural_gas'],
+						topology_mode: 'contiguous_linear',
+						unit: 'm',
+						quantity_basis: 'length',
+						currency: 'SGD',
+						unit_rate: '115.00',
+						waste_factor_pct: '0.0',
+						active: true
+					}
+				]
+			});
+			if (setup.kind !== 'committed') throw new Error('HITL test setup failed');
+			const projectRef = recordOf(setup.records, 'projects');
+			const gasItemId = fixtureId(
+				'item_matrix',
+				String(
+					rowsOf(
+						yield* admin.query({
+							item_matrix: { where: { code: { eq: 'MEP-GAS-PIPE' } }, fields: ['code'], limit: 1 }
+						}),
+						'item_matrix'
+					)[0]?.['id']
+				)
+			);
+
+			const takeoffPayload = {
+				schema: 'IFC2X3',
+				project_name: 'HITL Verification Tower',
+				storeys: ['Level 1'],
+				total_asset_count: 10,
+				cleanup: {
+					upgraded_classes: 10,
+					propagated_services: 4,
+					split_mixed_archetypes: 1,
+					multi_storey_splits: 2,
+					dropped_duplicates: 1,
+					variance_warnings: 0
+				},
+				archetypes: [
+					{
+						archetype_id: 'A-PIPE',
+						representative_express_id: 101,
+						representative_part_ids: [],
+						ifc_class: 'IFCPIPESEGMENT',
+						original_ifc_class: 'IFCBUILDINGELEMENTPROXY',
+						continuity: 'contiguous_linear',
+						service: 'hydronic_hvac',
+						nominal_size_mm: 25,
+						size_band: 'DN25',
+						insulated: true,
+						cleanup_note: 'Promoted inline proxy to IFCPIPESEGMENT on hydronic_hvac network',
+						family: 'Unlabelled Pipe',
+						type_name: 'Pipe 25mm',
+						object_type: null,
+						predefined_type: null,
+						operation_type: null,
+						classification_code: null,
+						classification_name: null,
+						materials: ['Steel'],
+						material_layers: [],
+						layer_count: 0,
+						properties: [],
+						sample_names: ['Pipe-01'],
+						total_count: 10,
+						has_length: true,
+						has_area: false,
+						has_volume: false,
+						has_weight: false,
+						signature: 'LIN|IFCPIPESEGMENT|hydronic_hvac|DN25|steel'
+					}
+				],
+				buckets: [
+					{
+						archetype_id: 'A-PIPE',
+						storey: 'Level 1',
+						element_count: 10,
+						length_m: 100,
+						length_measured_count: 10,
+						area_m2: 0,
+						area_measured_count: 0,
+						volume_m3: 0,
+						volume_measured_count: 0,
+						weight_kg: 0,
+						weight_measured_count: 0,
+						sample_express_ids: [101]
+					}
+				]
+			};
+
+			const uploaded = yield* admin.upload('projects.bim_takeoff', {
+				name: 'takeoff.json',
+				mime: 'application/json',
+				bytes: new TextEncoder().encode(JSON.stringify(takeoffPayload))
+			});
+			if (uploaded.kind !== 'committed') throw new Error('Takeoff upload failed');
+			yield* admin.act({
+				'projects.update': [{ target: projectRef, set: { bim_takeoff: uploaded.output } }]
+			});
+			yield* t.run_due();
+
+			// Under custom min_confidence = 0.88, System 1's 0.82 confidence is rejected & flagged for QS review
+			expect(sys1Calls).toBe(1);
+			const mappingAfterRun1 = rowsOf(
+				yield* qs.query({
+					asset_mappings: {
+						where: { signature: { eq: 'LIN|IFCPIPESEGMENT|hydronic_hvac|DN25|steel' } },
+						fields: [
+							'revision',
+							'ifc_class',
+							'continuity',
+							'service',
+							'size_mm',
+							'review_status',
+							'source',
+							'item_id',
+							'cleanup_note'
+						],
+						limit: 1
+					}
+				}),
+				'asset_mappings'
+			)[0];
+			expect(mappingAfterRun1?.['review_status']).toBe('flagged');
+			expect(mappingAfterRun1?.['item_id']).toBeNull();
+			expect(mappingAfterRun1?.['continuity']).toBe('contiguous_linear');
+			expect(mappingAfterRun1?.['service']).toBe('hydronic_hvac');
+			expect(mappingAfterRun1?.['size_mm']).toBe('DN25');
+			expect(mappingAfterRun1?.['cleanup_note']).toContain('Promoted inline proxy');
+
+			// Verify cleanup metrics persisted onto projects.bim_summary
+			const projSummary = rowsOf(
+				yield* admin.query({
+					projects: { where: { id: { eq: projectRef.id } }, fields: ['bim_summary'], limit: 1 }
+				}),
+				'projects'
+			)[0]?.['bim_summary'];
+			const summaryDecoded = Schema.decodeUnknownSync(
+				Schema.Struct({
+					upgraded_classes: Schema.optionalKey(Schema.Number),
+					propagated_services: Schema.optionalKey(Schema.Number),
+					multi_storey_splits: Schema.optionalKey(Schema.Number),
+					dropped_duplicates: Schema.optionalKey(Schema.Number)
+				})
+			)(projSummary);
+			expect(summaryDecoded.upgraded_classes).toBe(10);
+			expect(summaryDecoded.propagated_services).toBe(4);
+			expect(summaryDecoded.multi_storey_splits).toBe(2);
+			expect(summaryDecoded.dropped_duplicates).toBe(1);
+
+			// Human QS amends item_id + service inline -> automatically flips to source='qs' + review_status='verified'
+			const mappingId = fixtureId('asset_mappings', String(mappingAfterRun1?.['id']));
+			const amended = yield* qs.act({
+				'asset_mappings.update': [
+					{
+						target: { id: mappingId, revision: Number(mappingAfterRun1?.['revision']) },
+						set: { item_id: gasItemId, service: 'natural_gas', continuity: 'contiguous_linear' }
+					}
+				]
+			});
+			expect(amended.kind).toBe('committed');
+			const verifiedRow = rowsOf(
+				yield* qs.query({
+					asset_mappings: {
+						where: { id: { eq: mappingId } },
+						fields: ['source', 'review_status', 'service', 'item_id'],
+						limit: 1
+					}
+				}),
+				'asset_mappings'
+			)[0];
+			expect(verifiedRow?.['source']).toBe('qs');
+			expect(verifiedRow?.['review_status']).toBe('verified');
+			expect(verifiedRow?.['service']).toBe('natural_gas');
+
+			// Recalculate estimate: ZERO new System 1 calls, priced accurately at 100m × SGD 115 = SGD 11,500.00!
+			const recalc = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectRef.id, contingency_pct: 0 }, JobResult)
+			);
+			expect(recalc.state).toBe('succeeded');
+			expect(sys1Calls).toBe(1);
+			const estAfter = rowsOf(
+				yield* admin.query({
+					cost_estimates: {
+						where: { project_id: { eq: projectRef.id } },
+						fields: ['bim_subtotal', 'classified_asset_count', 'unmatched_asset_count'],
+						limit: 1
+					}
+				}),
+				'cost_estimates'
+			)[0];
+			expect(estAfter?.['classified_asset_count']).toBe(10);
+			expect(estAfter?.['unmatched_asset_count']).toBe(0);
+			expect(estAfter?.['bim_subtotal']).toBe('11500.00');
 		}).pipe(Effect.scoped)
 );

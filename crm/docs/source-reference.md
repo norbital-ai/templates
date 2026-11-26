@@ -2,7 +2,7 @@
 
 Verified directly against `src/` (`src/+workspace.ts`, `src/app/`, `src/data/model/`, `src/automation/`, `src/access_control/`, `src/integration/`, `src/lib/`).
 
-**Inventory summary:** 22 models, 2 applications (8 pages), 21 automations, 2 syncs, 2 custom integrations (+ 5 built-in channel integrations), 1 team, 6 policies, 0 custom datatypes.
+**Inventory summary:** 22 models, 2 applications (7 pages), 21 automations, 2 syncs, 2 custom integrations (+ 5 built-in channel integrations), 1 team, 6 policies, 0 custom datatypes.
 
 ## Workspace Configuration
 
@@ -11,10 +11,10 @@ Verified directly against `src/` (`src/+workspace.ts`, `src/app/`, `src/data/mod
 
 ## Applications and Pages
 
-| Source application                                | Title         | Pages                                                                                                                                                                                                                           | Purpose                                                                                                                                                             |
-| ------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [crm](../src/app/crm/+app.ts)                     | CRM           | `dashboard`: Dashboard (`CalendarSchedule`); `companies`: Leads & clients (table, import, cohorts, document export); `tasks`: Tasks (open queue)                                                                                | Unified lead-to-client directory, calendar-led dashboard, outreach cohorts, and follow-up/action-item task queue.                                                   |
-| [configuration](../src/app/configuration/+app.ts) | Configuration | `rules`: Message rules (+ Classified messages log); `connections`: My connections; `products`: Products (+ Seller & research focus); `templates`: Templates (+ Company signatory); `sequences`: Sequences (+ Outreach settings) | Personal intake rules and connections, workspace channels and Apollo pairing, product catalog, versioned document/email/research templates, and outreach sequences. |
+| Source application                                | Title         | Pages                                                                                                                                                                                                                      | Purpose                                                                                                                                                             |
+| ------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [crm](../src/app/crm/+app.ts)                     | CRM           | `dashboard`: Dashboard (`CalendarSchedule`); `companies`: Leads & clients (table, import, cohorts, document export); `tasks`: Tasks (open queue)                                                                           | Unified lead-to-client directory, calendar-led dashboard, outreach cohorts, and follow-up/action-item task queue.                                                   |
+| [configuration](../src/app/configuration/+app.ts) | Configuration | `connections`: My connections (+ Message rules & Classified messages sheets); `products`: Products (+ Seller & research focus); `templates`: Templates (+ Company signatory); `sequences`: Sequences (+ Outreach settings) | Personal intake rules and connections, workspace channels and Apollo pairing, product catalog, versioned document/email/research templates, and outreach sequences. |
 
 ## Models and Exposed Operations
 
@@ -121,7 +121,7 @@ All named automations run under the reserved system identity with their declared
 | `message-import.ts`                                                             | `import_start` decoding (`all`, `since`, `native`), query predicates, `skipRacedWrite()`, and dual-lane `selectBatch()`.                                                               |
 | `outreach.ts`                                                                   | Sequence step rendering, Apollo step conversion (`apolloSteps`), schemas, and progress aggregation (`progress`).                                                                       |
 | `research.ts` / `ResearchView.svelte`                                           | Cited research Markdown parser, clickable `[n]` reference popovers, and formatted use-case cards.                                                                                      |
-| `CalendarSchedule.svelte` / `MyConnections.svelte`                              | Dashboard KPI cards + unified calendar, and personal + workspace connection management UI.                                                                                             |
+| `CalendarSchedule.svelte`                                                       | Dashboard KPI cards and unified calendar UI (personal connections use Bolt's `<Connections>`).                                                                                         |
 
 ## Browser Evidence
 

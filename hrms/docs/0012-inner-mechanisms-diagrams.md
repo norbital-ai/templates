@@ -352,6 +352,8 @@ Inside `calculatePayroll` (`engine.ts` + `rates.ts`), every employee is priced i
       | 2. PRORATED    : BASIC - proration_amount - abs_amount                            |
       | 3. PAID_BASIC  : PRORATED - NPL / partial paid_share leave lines (grouped by      |
       |                  month + unit rate before rounding; floored so checkpoint >= 0)   |
+      |                  - UNDERTIME deduction when `employee_profile.dock_undertime` is  |
+      |                  enabled; full-period unpaid months absorb remaining basic here   |
       | 4..K. Subsequent checkpoints (e.g. ORDINARY_WAGES -> ADDITIONAL_WAGES -> GROSS):  |
       |    For each subtotal S:                                                           |
       |      + subtotal.calculation(ctx)                                                  |
@@ -399,9 +401,9 @@ Inside `calculatePayroll` (`engine.ts` + `rates.ts`), every employee is priced i
 
 **Deterministic Expression Sandbox (`expressions.ts` + `programs.ts`):**
 
-- Parsed once via Acorn (ECMA 2022, cached in `parsed` Map; max 64 KiB source).
+- Parsed once via Acorn (ECMA 2022, cached in `parsed` Map; max 64 KiB source) with cached `BigDecimal` numeric literals and single-pass `enrichWorkDays` per-terms-reference rate caching.
 - Bounded AST interpreter: **50,000 step limit** (`tick()`), immutable array methods only (mutators like `push`/`sort`/`splice` rejected at parse time), prototype keys blocked, `new`/`while`/`try`/`async`/`this` disallowed.
-- Arithmetic runs on Effect `BigDecimal` (`+`, `-`, `*`, exact `/` rounded at scale 24 `half-from-zero`, comparisons via `BigDecimal.Order`).
+- Arithmetic runs on Effect `BigDecimal` (`+`, `-`, `*`, exact `/` rounded at scale 24 `half-from-zero`, comparisons via `BigDecimal.Order`), with fast-path integer/decimal handling where exact.
 - Every catalogue family declares its exact allowed `ctx.*` root list in `PROGRAMS` (`programs.ts`), verified at `jurisdiction_change` write time by `checkLaw`.
 
 ---
@@ -675,8 +677,9 @@ An `employment` is one continuous stint of one person with one legal entity (`no
 ```
 
 ```text
-  PART 2: PAYROLL ATTENDANCE MATCHING & ROSTER WARNINGS (run_calculation.ts, attendance.ts)
+  PART 2: PAYROLL ATTENDANCE MATCHING & ROSTER WARNINGS (attendance.ts `buildWorkDays`)
   =========================================================================================
+  Shared `buildWorkDays()` (used by both `run_calculation.ts` and `overtime_report_download.ts`):
   For each roster day in attendance window (and up to leaver's last day):
     plan    = scheduled(row, zone, shift)  -> shift spans minus unpaid breaks (or untimed hours)
     clock   = closedSpans(actual_worked_intervals)
@@ -686,7 +689,8 @@ An `employment` is one continuous stint of one person with one legal entity (`no
     timeOff  = row.overtime_as_time_off ? awarded : 0      clock NEVER invents unapproved OT!
     overtime = awarded - timeOff
     worked   = clock.length == 0 ? 0 : scheduledHours(plan) + overtime
-    clocked_shift_hours = floor(overlapSpans(clock, plan.spans) / 30m) / 2
+    clocked_shift_hours = spanMinutes(overlapSpans(clock, plan.spans)) / 60  (to the minute)
+    undertime_minutes   = max(0, expectedMinutes - overlap(clock, expected))  (net of AM/PM leave)
 
     ABSENCE RULE (Section 0):
       1. Rostered WORK day with `clock.length == 0`, no holiday, no unsealed leave -> ABS
@@ -729,7 +733,8 @@ An `employment` is one continuous stint of one person with one legal entity (`no
                    skipping entries still holding `$approval != null`.
                  * Bulk-reads declared `reads` once -> evaluates `condition` -> `effects` ->
                    writes deduplicated `obligation.import { rows, on_conflict: 'keep' }`
-                   keyed by `occurrence_key` (safe to replay).
+                   keyed by `occurrence_key` (safe to replay; run-level payslip delivery duties
+                   emit 1 entity-level obligation per paid run with `limit: 1` key lookup).
 ```
 
 ```text
@@ -881,12 +886,16 @@ Teams are `sys_team` rows an administrator edits; these are the seeded ones. A f
 ```text
   CLIENT-SIDE EXCELJS EXPORTS (src/data/model/payroll_run/service/exports/)
   -------------------------------------------------------------------------
-  * Salary Listing (`salary_listing_export.ts`): reads saved payslips only (NEVER recalculates).
-    1 sheet per selected run (ordered along subtotal chain, signed corrections merged into each
-    catalogue column, employee vs employer separated, saved Gross / Tax Withheld / Net / Cost to
-    Company totals) + `Line details` sheet preserving each line's own period/back_pay_period.
-  * Overtime Report (`overtime_report_export.ts`): evaluates `overtime_catalog` expressions
-    over an attendance cutoff window (from Payroll runs or Work month board) -> summary per
+  * Shared `xlsx_sheet.ts`: cursor pagination (`collectPages`), tab naming, header/totals
+    styling, and browser `.xlsx` download (`downloadWorkbook`, also used by `roster_import.ts`).
+  * Salary Listing (`salary_listing_export.ts` + `salary_listing_download.ts`): reads saved
+    payslips only (NEVER recalculates). 1 sheet per selected run (ordered along subtotal chain,
+    signed corrections merged into each catalogue column, employee vs employer separated, saved
+    Gross / Tax Withheld / Net / Cost to Company totals) + `Line details` sheet preserving each
+    line's own period/back_pay_period.
+  * Overtime Report (`overtime_report_export.ts` + `overtime_report_download.ts`): shares
+    `buildWorkDays()` (`attendance.ts`) and `enrichWorkDays()` (`engine.ts`) with payroll,
+    evaluating `overtime_catalog` expressions over an attendance cutoff window -> summary per
     period/pay group + `Daily details` sheet (including `time_off_hours` banked).
 
   SERVER FILE SYNCS (src/data/model/payroll_run/)
@@ -925,3 +934,4 @@ Teams are `sys_team` rows an administrator edits; these are the seeded ones. A f
 - **Seeded teams (9, `seed/public/sys_team.json`):** `employee`, `supervisor`, `manager`, `senior_management`, `hr_controller`, `hr_manager`, `manager_hr_controller`, `production_manager`, `attendance_kiosk`
 - **Policies (10):** `employee`, `supervisor`, `manager`, `hr_controller`, `hr_manager`, `senior_management`, `kiosk`, `payroll_execution`, `configuration_execution`, `invitation_profile_automation`
 - **Public Seed Jurisdictions (9):** `CN`, `ID`, `JP`, `MY`, `PH`, `SG`, `TH`, `TW`, `VN` (under `seed/public/jurisdiction/<CODE>/`, seeded from 2025-12-01 with enacted dated changes)
+- **Shared UI & Service Primitives:** `src/lib/ui/events/event_page.svelte` (5 HR controller event pages), `src/lib/ui/person/catalog_entry_shell.svelte` & `scoped_employment_field.svelte` (catalog entry forms), `src/data/model/payroll_run/service/exports/xlsx_sheet.ts` (shared workbook pagination/styling/download), `src/data/model/jurisdiction/service/params/shared.ts` (shared catalog param schema combinators)

@@ -9,6 +9,11 @@ const columns = [
 	'trade_specialty',
 	'ifc_classes',
 	'match_keywords',
+	'system_services',
+	'min_size_mm',
+	'max_size_mm',
+	'insulated',
+	'topology_mode',
 	'unit',
 	'quantity_basis',
 	'currency',
@@ -52,6 +57,20 @@ export default model('item_matrix', {
 		ifc_classes: { kind: 'text', many: true, optional: true },
 		/** Optional case-insensitive family/property/classification tokens that narrow matching within an IFC class. */
 		match_keywords: { kind: 'text', many: true, optional: true },
+		/** Canonical MEP / trade service tags matched by this item (e.g. `hydronic_hvac`, `domestic_cold_water`, `sanitary_dwv`). */
+		system_services: { kind: 'text', many: true, optional: true },
+		/** Optional minimum nominal cross-section diameter or thickness (mm) covered by this rate. */
+		min_size_mm: { kind: 'decimal', scale: 1, optional: true },
+		/** Optional maximum nominal cross-section diameter or thickness (mm) covered by this rate. */
+		max_size_mm: { kind: 'decimal', scale: 1, optional: true },
+		/** Whether this rate applies to insulated, uninsulated, or any piping/ductwork. */
+		insulated: { kind: 'enum', values: ['any', 'insulated', 'uninsulated'], default: 'any' },
+		/** Expected geometric continuity of elements priced by this item (`auto` infers from IFC class/basis). */
+		topology_mode: {
+			kind: 'enum',
+			values: ['auto', 'discontiguous', 'contiguous_linear', 'contiguous_planar'],
+			default: 'auto'
+		},
 		unit: {
 			kind: 'enum',
 			values: ['ea', 'm', 'm2', 'm3', 'kg', 'ls', 'month', 'pct'],

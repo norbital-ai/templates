@@ -1,5 +1,5 @@
 import { automation, type CreateInput } from '@norbital-ai/bolt';
-import { clientContractOf, computeProjectCommercial } from '../lib/commercial.js';
+import { clientContractOf, computeProjectCommercial } from '../services/commercial/analytics.js';
 
 export default automation({
 	description:

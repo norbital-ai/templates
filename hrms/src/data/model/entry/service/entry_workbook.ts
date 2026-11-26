@@ -4,8 +4,9 @@
  * in force on the entry's day, duplicates and leave overlaps. Nothing is written from here.
  */
 import type { Id } from '@norbital-ai/bolt';
-import { DateTime, Duration, Option, Schema } from 'effect';
+import { DateTime, Duration, Schema } from 'effect';
 import { JsonObject } from '../../../../lib/contracts.js';
+import { addDays, isIsoDate } from '../../../../lib/foundation.js';
 import type { Law, LawFamily } from '../../jurisdiction/service/law.js';
 import {
 	cellDay,
@@ -258,6 +259,29 @@ const entityOf = (
 
 const same = (parts: readonly string[]): string => JSON.stringify(parts);
 
+const recordUnique = (
+	key: string,
+	at: number,
+	seen: Map<string, number>,
+	held: ReadonlySet<string>,
+	heldMessage: string,
+	problems: Problem[]
+): boolean => {
+	const earlier = seen.get(key);
+	if (earlier !== undefined) problems.push(`Row ${at}: repeats row ${earlier}.`);
+	if (held.has(key)) problems.push(heldMessage);
+	if (earlier !== undefined || held.has(key)) return false;
+	seen.set(key, at);
+	return true;
+};
+
+const employeeNumberOf = (row: SheetRow, problems: Problem[]): string | null => {
+	const number = cellText(row.cells.employee_number);
+	if (number !== '') return number;
+	problems.push(`Row ${row.at}: enter the employee number.`);
+	return null;
+};
+
 const partOf = (
 	value: string,
 	at: number,
@@ -282,10 +306,7 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 			.filter((part) => part !== '')) {
 			const found = /^(\d{4}-\d{2}-\d{2})(?:\s*(?:\/|\s)\s*(AM|PM))?$/i.exec(token);
 			const date = found?.[1];
-			if (
-				date === undefined ||
-				!Option.exists(DateTime.make(date), (d) => DateTime.formatIsoDate(d) === date)
-			) {
+			if (date === undefined || !isIsoDate(date)) {
 				problems.push(`Row ${row.at}: "${token}" is not a date, optionally followed by AM or PM.`);
 				continue;
 			}
@@ -321,11 +342,7 @@ const leaveSlots = (row: SheetRow, problems: Problem[]): LeaveDraft['days'] | nu
 		if (fromPart === undefined) return null;
 		const toPart = partOf(cellText(row.cells.to_part), row.at, 'to part', problems);
 		if (toPart === undefined) return null;
-		for (
-			let day: string = from;
-			day <= to;
-			day = DateTime.formatIsoDate(DateTime.add(DateTime.makeUnsafe(day), { days: 1 }))
-		) {
+		for (let day: string = from; day <= to; day = addDays(day, 1)) {
 			const first = day === from ? (fromPart === 'PM' ? 'PM' : 'AM') : 'AM';
 			const last = day === to ? (toPart === 'AM' ? 'AM' : 'PM') : 'PM';
 			if (first === 'PM' && last === 'AM') continue;
@@ -364,11 +381,8 @@ export function parseLeaveSheet(
 	const rows: LeaveDraft[] = [];
 	let ignoredDescription = false;
 	for (const row of table.rows) {
-		const number = cellText(row.cells.employee_number);
-		if (number === '') {
-			problems.push(`Row ${row.at}: enter the employee number.`);
-			continue;
-		}
+		const number = employeeNumberOf(row, problems);
+		if (number === null) continue;
 		if (cellText(row.cells.description) !== '') ignoredDescription = true;
 		const slots = leaveSlots(row, problems);
 		if (slots == null) continue;
@@ -459,11 +473,8 @@ const parsePayments = (
 	const rows: PaymentDraft[] = [];
 	let ignoredDescription = false;
 	for (const row of table.rows) {
-		const number = cellText(row.cells.employee_number);
-		if (number === '') {
-			problems.push(`Row ${row.at}: enter the employee number.`);
-			continue;
-		}
+		const number = employeeNumberOf(row, problems);
+		if (number === null) continue;
 		const day = cellDay(row.cells.incurred_on);
 		if (day == null) {
 			problems.push(`Row ${row.at}: enter the incurred date (YYYY-MM-DD).`);
@@ -500,12 +511,17 @@ const parsePayments = (
 			String(quantity),
 			descriptionRequired ? description : ''
 		]);
-		const earlier = seen.get(key);
-		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
-		if (held.has(key))
-			problems.push(`Row ${row.at}: ${number} already has this ${nouns} on ${day}.`);
-		if (earlier !== undefined || held.has(key)) continue;
-		seen.set(key, row.at);
+		if (
+			!recordUnique(
+				key,
+				row.at,
+				seen,
+				held,
+				`Row ${row.at}: ${number} already has this ${nouns} on ${day}.`,
+				problems
+			)
+		)
+			continue;
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
@@ -555,11 +571,8 @@ export function parseLoanSheet(
 	const seen = new Map<string, number>();
 	const rows: LoanDraft[] = [];
 	for (const row of table.rows) {
-		const number = cellText(row.cells.employee_number);
-		if (number === '') {
-			problems.push(`Row ${row.at}: enter the employee number.`);
-			continue;
-		}
+		const number = employeeNumberOf(row, problems);
+		if (number === null) continue;
 		const from = cellDay(row.cells.repayment_from);
 		const to = cellDay(row.cells.repayment_to);
 		if (from == null || to == null) {
@@ -592,12 +605,17 @@ export function parseLoanSheet(
 			problems
 		);
 		if (catalog == null) continue;
-		const key = same([employee.id, catalog, String(quantity), from, to]);
-		const earlier = seen.get(key);
-		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
-		if (held.has(key)) problems.push(`Row ${row.at}: ${number} already has this loan.`);
-		if (earlier !== undefined || held.has(key)) continue;
-		seen.set(key, row.at);
+		if (
+			!recordUnique(
+				same([employee.id, catalog, String(quantity), from, to]),
+				row.at,
+				seen,
+				held,
+				`Row ${row.at}: ${number} already has this loan.`,
+				problems
+			)
+		)
+			continue;
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
@@ -634,13 +652,10 @@ export function parseRepaymentSheet(
 	const seen = new Map<string, number>();
 	const rows: RepaymentDraft[] = [];
 	for (const row of table.rows) {
-		const number = cellText(row.cells.employee_number);
+		const number = employeeNumberOf(row, problems);
+		if (number === null) continue;
 		const loanId = cellText(row.cells.loan_id);
 		const loanCode = cellText(row.cells.loan_code);
-		if (number === '') {
-			problems.push(`Row ${row.at}: enter the employee number.`);
-			continue;
-		}
 		if (loanId === '' && loanCode === '') {
 			problems.push(`Row ${row.at}: enter a loan code or a loan id.`);
 			continue;
@@ -679,13 +694,17 @@ export function parseRepaymentSheet(
 				);
 		}
 		if (loan == null) continue;
-		const key = same([employee.id, loan.id, String(amount), paidOn]);
-		const earlier = seen.get(key);
-		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
-		if (held.has(key))
-			problems.push(`Row ${row.at}: ${number} already has this repayment on ${paidOn}.`);
-		if (earlier !== undefined || held.has(key)) continue;
-		seen.set(key, row.at);
+		if (
+			!recordUnique(
+				same([employee.id, loan.id, String(amount), paidOn]),
+				row.at,
+				seen,
+				held,
+				`Row ${row.at}: ${number} already has this repayment on ${paidOn}.`,
+				problems
+			)
+		)
+			continue;
 		rows.push({
 			entity_id: employee.entity_id,
 			employment_id: employee.id,
@@ -738,11 +757,8 @@ export function parseCaseSheet(
 			problems.push(`Row ${row.at}: enter the case kind.`);
 			continue;
 		}
-		const number = cellText(row.cells.employee_number);
-		if (number === '') {
-			problems.push(`Row ${row.at}: enter the employee number.`);
-			continue;
-		}
+		const number = employeeNumberOf(row, problems);
+		if (number === null) continue;
 		const opened = cellDay(row.cells.opened_on);
 		if (opened == null) {
 			problems.push(`Row ${row.at}: enter the opened date (YYYY-MM-DD).`);
@@ -798,15 +814,17 @@ export function parseCaseSheet(
 		}
 		const inputs = inputsOf(cellText(row.cells.inputs), row.at, problems);
 		if (inputs == null) continue;
-		const key = same([entityId, employee.id, code, opened]);
-		const earlier = seen.get(key);
-		if (earlier !== undefined) problems.push(`Row ${row.at}: repeats row ${earlier}.`);
-		if (held.has(key))
-			problems.push(
-				`Row ${row.at}: ${code} opened on ${opened} is already recorded for ${number}.`
-			);
-		if (earlier !== undefined || held.has(key)) continue;
-		seen.set(key, row.at);
+		if (
+			!recordUnique(
+				same([entityId, employee.id, code, opened]),
+				row.at,
+				seen,
+				held,
+				`Row ${row.at}: ${code} opened on ${opened} is already recorded for ${number}.`,
+				problems
+			)
+		)
+			continue;
 		const severityText = cellText(row.cells.severity);
 		const severity =
 			severityText === ''

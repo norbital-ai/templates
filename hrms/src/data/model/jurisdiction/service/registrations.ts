@@ -97,6 +97,50 @@ const assertPlaced = Effect.fnUntraced(function* (
 	}
 });
 
+/** Resolves subjects and declared reads once for a batch of registered rules or effects. */
+const loadRegisteredReads = Effect.fnUntraced(function* <
+	T extends { readonly law: Law; readonly at: readonly number[] }
+>(
+	read: Reader,
+	collection: string,
+	rows: readonly JsonObject[],
+	applied: readonly T[],
+	on: (index: number) => string,
+	cache: SubjectCache,
+	sourceOf: (item: T) => string,
+	statedOf: (item: T) => JsonObject
+) {
+	const source = applied.map(sourceOf).join('\n');
+	const needs = {
+		employer: source.includes('subject.employer'),
+		employee: source.includes('subject.employee')
+	};
+	const subjects = yield* subjectsOf(
+		read,
+		collection,
+		rows,
+		rows.map((_, index) => on(index)),
+		cache,
+		needs
+	);
+	const declared = applied.map((item) => {
+		const stated = statedOf(item);
+		return item.at.map((index) =>
+			readLaw(
+				item.law,
+				jsonObject(resolveRead(stated, { entry: rows[index], subject: subjects[index] }))
+			)
+		);
+	});
+	const reads = yield* batchRead(
+		read,
+		declared.map((own) => own.map(({ stored }) => stored)),
+		new Map(),
+		(rule, row) => on(applied[rule]?.at[row] ?? -1)
+	);
+	return { subjects, declared, reads };
+});
+
 /**
  * Every rule the law in force registers for this collection and operation validates the proposed rows, for the whole
  * batch in three trips: `lawsFor`'s two (where the rows stand; the law, its lookups and the rows' subjects), then every
@@ -121,39 +165,16 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 			.map((rule) => ({ rule, law, at }))
 	);
 	if (applied.length === 0) return [];
-	const source = applied
-		.map(
-			({ rule }) =>
-				`${JSON.stringify(rule.reads ?? {})}\n${rule.condition ?? ''}\n${rule.validate ?? ''}`
-		)
-		.join('\n');
-	const needs = {
-		employer: source.includes('ctx.subject.employer'),
-		employee: source.includes('ctx.subject.employee')
-	};
-	const subjects = yield* subjectsOf(
+	const { subjects, declared, reads } = yield* loadRegisteredReads(
 		read,
 		collection,
 		rows,
-		rows.map((_, index) => on(index)),
+		applied,
+		on,
 		cache,
-		needs
-	);
-	const declared = applied.map(({ rule, law, at }) => {
-		const stated = isJsonObject(rule.reads) ? rule.reads : {};
-		return at.map((index) =>
-			readLaw(
-				law,
-				jsonObject(resolveRead(stated, { entry: rows[index], subject: subjects[index] }))
-			)
-		);
-	});
-	const readCache = new Map<string, readonly JsonObject[]>();
-	const reads = yield* batchRead(
-		read,
-		declared.map((own) => own.map(({ stored }) => stored)),
-		readCache,
-		(rule, row) => on(applied[rule]?.at[row] ?? -1)
+		({ rule }) =>
+			`${JSON.stringify(rule.reads ?? {})}\n${rule.condition ?? ''}\n${rule.validate ?? ''}`,
+		({ rule }) => (isJsonObject(rule.reads) ? rule.reads : {})
 	);
 	// a row stops at its first refusing rule, in rule order; the other rows go on
 	const refused = new Map<number, string>();
@@ -301,45 +322,29 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 		)
 	);
 	if (applied.length === 0) return;
-	const source = applied
-		.map(
-			({ effect: row }) =>
-				`${JSON.stringify(row.reads ?? {})}\n${row.condition ?? ''}\n${row.effects ?? ''}`
-		)
-		.join('\n');
-	const needs = {
-		employer: source.includes('subject.employer'),
-		employee: source.includes('subject.employee')
-	};
-	const subjects = yield* subjectsOf(
+	const {
+		subjects,
+		declared,
+		reads: allReads
+	} = yield* loadRegisteredReads(
 		ctx.query,
 		collection,
 		entries,
-		entries.map((_, index) => on(index)),
+		applied,
+		on,
 		cache,
-		needs
-	);
-	// every effect's declared reads for the whole batch, together
-	const declared = applied.map(({ effect, law, at }) => {
-		const stated = isJsonObject(effect.reads) ? effect.reads : {};
-		// a task is known by its key: an effect that reads tasks reads the key, whatever fields it lists
-		const tasks = stated.obligation;
-		const keyed =
-			isJsonObject(tasks) && Array.isArray(tasks.fields) && !tasks.fields.includes('occurrence_key')
+		({ effect: row }) =>
+			`${JSON.stringify(row.reads ?? {})}\n${row.condition ?? ''}\n${row.effects ?? ''}`,
+		({ effect }) => {
+			const stated = isJsonObject(effect.reads) ? effect.reads : {};
+			// a task is known by its key: an effect that reads tasks reads the key, whatever fields it lists
+			const tasks = stated.obligation;
+			return isJsonObject(tasks) &&
+				Array.isArray(tasks.fields) &&
+				!tasks.fields.includes('occurrence_key')
 				? { ...stated, obligation: { ...tasks, fields: [...tasks.fields, 'occurrence_key'] } }
 				: stated;
-		return at.map((index) =>
-			readLaw(
-				law,
-				jsonObject(resolveRead(keyed, { entry: entries[index], subject: subjects[index] }))
-			)
-		);
-	});
-	const allReads = yield* batchRead(
-		ctx.query,
-		declared.map((own) => own.map(({ stored }) => stored)),
-		new Map(),
-		(rule, row) => on(applied[rule]?.at[row] ?? -1)
+		}
 	);
 	const writes: Record<string, JsonObject[]> = {};
 	for (const [nth, { effect, law, at }] of applied.entries()) {

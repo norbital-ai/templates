@@ -4,7 +4,7 @@
 	import { Badge, type UiContext } from '@norbital-ai/ui';
 	import { Inline, Scroll } from '@norbital-ai/ui/layout';
 	import CatalogLinesEditor from '../../../lib/CatalogLinesEditor.svelte';
-	import type { NormalizedPricedLine } from '../../../lib/commercial.js';
+	import type { NormalizedPricedLine } from '../../../services/commercial/lines.js';
 
 	let {
 		view,

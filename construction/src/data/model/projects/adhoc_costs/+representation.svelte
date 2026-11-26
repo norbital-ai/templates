@@ -73,7 +73,7 @@
 
 <RecordForm {ctx} {view} subtitle={['catalog_item_id', 'status', 'currency']}>
 	<Section icon="lucide:receipt-text" first name="adhoc" title={t('section.adhoc_cost')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="catalog_item_id" editor={catalogEditor} />
 			<Field {ctx} name="title" />
 			{#if !hideProject}

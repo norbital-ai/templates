@@ -12,7 +12,7 @@
 
 <RecordForm {ctx} {view} subtitle={['kind', 'current_version', 'status']}>
 	<Section icon="lucide:file-text" first name="file" title={ctx.t('section.project_file')}>
-		<Grid minimum="card">
+		<Grid minimum="compact">
 			<Field {ctx} name="document_number" />
 			<Field {ctx} name="title" />
 			{#if !hideProject}

@@ -1,6 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { BigDecimal } from 'effect';
-import { formatTrimmed, moneyStr, toDecimal } from '../../../../lib/commercial.js';
+import { formatTrimmed, moneyStr, toDecimal } from '../../../../services/commercial/decimal.js';
 
 const columns = [
 	'catalog_item_id',

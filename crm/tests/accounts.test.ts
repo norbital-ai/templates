@@ -231,18 +231,20 @@ it.live('a member owns one Google Calendar account, and only a member’s own ac
 		).toMatchObject({
 			configuration: { calendars: ['primary'] }
 		});
-		// a workspace instance (no owner) is no member's calendar
-		const shared = yield* (yield* t.as(t.admin)).act({
-			'sys_integration.create': [
-				{
-					integration: 'google_calendar',
-					name: 'Shared'
-				}
-			]
-		});
-		if (shared.kind !== 'committed') throw new Error(JSON.stringify(shared));
-		const second = recordOf(shared.records, 'sys_integration', 0).id;
-		// an account no member owns imports nothing
+		// a personal-only integration (`scope: 'personal'`) refuses an unowned workspace instance even as admin
+		expect(
+			yield* Effect.flip(
+				(yield* t.as(t.admin)).act({
+					'sys_integration.create': [
+						{
+							integration: 'google_calendar',
+							name: 'Shared'
+						}
+					]
+				})
+			)
+		).toMatchObject({ _tag: 'ActRefused' });
+		// alice's own calendar imports cleanly
 		t.fakes.links.page = Effect.fnUntraced(function* () {
 			return {
 				items: [
@@ -262,10 +264,7 @@ it.live('a member owns one Google Calendar account, and only a member’s own ac
 				more: false
 			};
 		});
-		const importFailure = yield* Effect.flip(t.syncs.read('calendar_entries.sync.google_calendar'));
-		expect(JSON.stringify(importFailure)).toContain(
-			'This is not a member’s own Google Calendar account.'
-		);
+		yield* t.syncs.read('calendar_entries.sync.google_calendar');
 		const entries = pageOf(
 			yield* (yield* t.as(t.admin)).query({
 				calendar_entries: { fields: ['account', 'source_user'] }
@@ -273,15 +272,5 @@ it.live('a member owns one Google Calendar account, and only a member’s own ac
 			'calendar_entries'
 		);
 		expect(entries.rows.map((r) => [r.account, r.source_user])).toEqual([[first, alice.id]]);
-		expect(
-			pageOf(
-				yield* (yield* t.as(t.admin)).query({
-					sys_integration: { where: { id: { eq: second } }, limit: 1 }
-				}),
-				'sys_integration'
-			).rows[0] ?? null
-		).toMatchObject({
-			status: { health: { state: 'attention' } }
-		});
 	}).pipe(Effect.scoped)
 );

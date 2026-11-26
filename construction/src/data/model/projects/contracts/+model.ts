@@ -1,10 +1,11 @@
 import { model } from '@norbital-ai/bolt';
 import {
+	computeLinesTotals,
 	resolveCatalogLines,
 	type BimTakeoffBucketRef,
 	type CatalogItemRef
-} from '../../../../lib/catalog-lines.js';
-import { computeLinesTotals, moneyStr, toDecimal } from '../../../../lib/commercial.js';
+} from '../../../../services/commercial/lines.js';
+import { moneyStr, toDecimal } from '../../../../services/commercial/decimal.js';
 import { TRADE_SPECIALTIES } from '../../../../lib/trades.js';
 
 const editableColumns = [

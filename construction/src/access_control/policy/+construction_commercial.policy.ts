@@ -14,18 +14,17 @@ export default policy({
 		adhoc_costs: { outputs: { default: {} }, create: {}, update: { moves: 'all' }, delete: {} },
 		cost_estimates: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		item_matrix: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		bim_settings: { outputs: { default: {} }, create: {}, update: {} },
+		sop_rules: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		contacts: { outputs: { default: {} }, create: {}, update: {} },
-		asset_mappings: { outputs: { default: {} }, update: { fields: ['item_id', 'note'] } },
-		// the commercial team comments on tasks; issues and meetings on site are delivery's
-		activities: {
+		asset_mappings: {
 			outputs: { default: {} },
-			create: {
-				verdict: function* (changes, ctx) {
-					const row = changes.findIndex(({ after }) => after.kind !== 'comment');
-					return row < 0 ? ctx.allow() : yield* ctx.refuse('errors.comments_only', { row });
-				}
+			update: {
+				fields: ['item_id', 'ifc_class', 'continuity', 'service', 'review_status', 'note']
 			}
-		}
+		},
+		// Commercial & QS members log polymorphic activities across projects, tasks, contracts, and business partners.
+		activities: { outputs: { default: {} }, create: {}, update: {} }
 	},
 	capabilities: {
 		automations: ['generate_payment_claim', 'analyze_bim_file']

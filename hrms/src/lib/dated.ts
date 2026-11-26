@@ -41,23 +41,6 @@ export const leaves = (
 			: [[[...prefix, key].join(SEP), value] as const]
 	);
 
-const applied = (
-	state: JsonObject,
-	patch: JsonObject,
-	depth: Depth,
-	prefix: readonly string[] = []
-): JsonObject => {
-	const next: Record<string, Json> = { ...state };
-	for (const [key, value] of Object.entries(patch)) {
-		const held = next[key];
-		if (value === null) delete next[key];
-		else if (isJsonObject(value) && opens(depth, [...prefix, key]))
-			next[key] = applied(isJsonObject(held) ? held : {}, value, depth, [...prefix, key]);
-		else next[key] = value;
-	}
-	return next;
-};
-
 /**
  * The patch that turns `before` into `after`, both whole documents: a changed value whole, a value gone as `null`.
  * Read as deep as the document is folded, so what the edit left alone is not restated.
@@ -84,10 +67,77 @@ export const patchOf = (
 		)
 	);
 
+const clearOwners = (
+	held: Json | undefined,
+	depth: Depth,
+	set_by: Record<string, string>,
+	prefix: string[],
+	path: string
+): void => {
+	delete set_by[path];
+	if (!isJsonObject(held) || !opens(depth, prefix)) return;
+	for (const [key, value] of Object.entries(held)) {
+		prefix.push(key);
+		clearOwners(value, depth, set_by, prefix, `${path}${SEP}${key}`);
+		prefix.pop();
+	}
+};
+
+const applyWithOwners = (
+	state: JsonObject,
+	patch: JsonObject,
+	depth: Depth,
+	rowId: string,
+	set_by: Record<string, string>,
+	prefix: string[],
+	parentPath: string
+): JsonObject => {
+	const next: Record<string, Json> = { ...state };
+	for (const [key, value] of Object.entries(patch)) {
+		const held = next[key];
+		const path = parentPath === '' ? key : `${parentPath}${SEP}${key}`;
+		prefix.push(key);
+		if (value === null) {
+			delete next[key];
+			if (held !== undefined) clearOwners(held, depth, set_by, prefix, path);
+		} else if (isJsonObject(value) && opens(depth, prefix)) {
+			next[key] = applyWithOwners(
+				isJsonObject(held) ? held : {},
+				value,
+				depth,
+				rowId,
+				set_by,
+				prefix,
+				path
+			);
+		} else {
+			if (held !== undefined && isJsonObject(held) && opens(depth, prefix))
+				clearOwners(held, depth, set_by, prefix, path);
+			next[key] = value;
+			set_by[path] = rowId;
+		}
+		prefix.pop();
+	}
+	return next;
+};
+
+const isOrdered = (rows: readonly Change[]): boolean => {
+	for (let i = 1; i < rows.length; i++) {
+		const prev = rows[i - 1],
+			curr = rows[i];
+		if (prev === undefined || curr === undefined) continue;
+		const cmp = prev.effective_from.localeCompare(curr.effective_from);
+		if (cmp > 0 || (cmp === 0 && prev.id.localeCompare(curr.id) > 0)) return false;
+	}
+	return true;
+};
+
 const ordered = (rows: readonly Change[]) =>
-	rows.toSorted(
-		(a, b) => a.effective_from.localeCompare(b.effective_from) || a.id.localeCompare(b.id)
-	);
+	isOrdered(rows)
+		? rows
+		: rows.toSorted(
+				(a, b) => a.effective_from.localeCompare(b.effective_from) || a.id.localeCompare(b.id)
+			);
 
 /**
  * What is in force on a day: the changes dated on or before it, applied oldest first. `set_by` names the change that
@@ -100,16 +150,10 @@ export const inForce = (
 ): { readonly state: JsonObject; readonly set_by: Readonly<Record<string, string>> } => {
 	let state: JsonObject = {};
 	const set_by: Record<string, string> = {};
+	const prefix: string[] = [];
 	for (const row of ordered(rows)) {
 		if (row.effective_from > day) break;
-		state = applied(state, row.patch, depth);
-		for (const [path, value] of leaves(row.patch, depth)) {
-			// a key taken away, or replaced above the deepest level, takes everything under it
-			if (value === null || opens(depth, path.split(SEP)))
-				for (const known of Object.keys(set_by))
-					if (known === path || known.startsWith(`${path}${SEP}`)) delete set_by[known];
-			if (value !== null) set_by[path] = row.id;
-		}
+		state = applyWithOwners(state, row.patch, depth, row.id, set_by, prefix, '');
 	}
 	return { state, set_by };
 };

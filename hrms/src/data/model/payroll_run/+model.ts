@@ -15,6 +15,16 @@ import { lawsAt } from '../jurisdiction/service/law.js';
 import { tap } from '../jurisdiction/service/taps.js';
 import { validateRegistered } from '../jurisdiction/service/registrations.js';
 
+const FORMAT_DECIMAL = new Intl.NumberFormat('en', {
+	useGrouping: false,
+	maximumFractionDigits: 20
+});
+const FORMAT_MONEY = new Intl.NumberFormat('en', {
+	minimumFractionDigits: 2,
+	maximumFractionDigits: 2,
+	useGrouping: false
+});
+
 export default model('payroll_run', {
 	description: 'One payroll execution over a company and covered period.',
 	record_label: "'Run ' + string(record.run_number) + ' · ' + record.period",
@@ -354,38 +364,17 @@ export default model('payroll_run', {
 					employee_id: idOf('employee_profile', slip.employee_id),
 					employment_id: idOf('employment', slip.employment_id),
 					entity_id: idOf('entity', slip.entity_id),
-					basic_earnings: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.basic_earnings),
-					gross_earnings: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.gross_earnings),
-					net_pay: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.net_pay),
-					total_deductions: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.total_deductions),
-					employer_cost: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.employer_cost),
+					basic_earnings: FORMAT_DECIMAL.format(slip.basic_earnings),
+					gross_earnings: FORMAT_DECIMAL.format(slip.gross_earnings),
+					net_pay: FORMAT_DECIMAL.format(slip.net_pay),
+					total_deductions: FORMAT_DECIMAL.format(slip.total_deductions),
+					employer_cost: FORMAT_DECIMAL.format(slip.employer_cost),
 					period: slip.period,
-					ordinary_wages: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.ordinary_wages),
+					ordinary_wages: FORMAT_DECIMAL.format(slip.ordinary_wages),
 					employee_statutory: BigDecimal.format(
 						BigDecimal.fromNumberUnsafe(slip.employee_statutory)
 					),
-					tax_withheld: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						maximumFractionDigits: 20
-					}).format(slip.tax_withheld),
+					tax_withheld: FORMAT_DECIMAL.format(slip.tax_withheld),
 					breakdown: slip.breakdown
 				}))
 			}));
@@ -539,7 +528,7 @@ export default model('payroll_run', {
 						entity_id: row.entity_id,
 						employee_id: idOf('employee_profile', employee),
 						employment_id: idOf('employment', slip.employment_id),
-						title: `Recover ${new Intl.NumberFormat('en', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false }).format(owed)} outside payroll: the last payslip (${row.period}) ended at zero and no later run pays this person`,
+						title: `Recover ${FORMAT_MONEY.format(owed)} outside payroll: the last payslip (${row.period}) ended at zero and no later run pays this person`,
 						occurrence_key
 					});
 				}
