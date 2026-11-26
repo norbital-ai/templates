@@ -2470,10 +2470,6 @@
 									"system"
 								]
 							},
-							"email_notifications": {
-								"kind": "bool",
-								"optional": true
-							},
 							"locale": {
 								"kind": "text",
 								"max": 35,

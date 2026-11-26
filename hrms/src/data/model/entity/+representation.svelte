@@ -4,9 +4,12 @@
 	 * statutory parameters its law declares), shown as in force on a day and edited in place. Saving writes what
 	 * differs from that day: on the change already dated that day, else on a new one. One Save for the view.
 	 */
+	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
+	import { Clock, DateTime, Effect } from 'effect';
 	import {
 		Combobox,
+		confirm_action,
 		Field,
 		Form,
 		label,
@@ -27,6 +30,7 @@
 	import DatedFacts from '../../../lib/ui/components/dated_facts.svelte';
 	import { declaredParameters } from '../../../lib/ui/components/parameter_facts.js';
 	import { pageLaws } from '../../../lib/ui/law.svelte.js';
+	import { paidPeriods, PAID_QUESTION } from '../../../lib/ui/payroll/paid_period.svelte.js';
 	import { scheduleSummary } from '../../../lib/ui/payroll/schedule_summary.js';
 
 	let { view, ctx }: { view: RecordView<'entity'>; ctx: PageContext } = $props();
@@ -35,6 +39,31 @@
 	let adding = $state<'pay_group' | 'shift_definition' | 'shift_pattern' | 'holiday' | null>(null);
 	const t: PageContext['t'] = (key, vars) => ctx.t(key, vars);
 	const clock = ctx.clock('day');
+	const paid = paidPeriods(ctx);
+	/** Publishes the selected days still drafts, asking first when one falls in a paid period. */
+	const publish = (ids: readonly Id<'holiday'>[]) =>
+		Effect.gen(function* () {
+			const drafts = (yield* ctx.query({
+				holiday: {
+					where: { id: { in: [...ids] }, published_at: { is_null: true } },
+					fields: ['date', 'entity_id', 'revision'],
+					limit: ids.length
+				}
+			})).holiday.rows;
+			if (drafts.length === 0) return;
+			if (
+				drafts.some((row) => paid.covers(row.date, row.entity_id)) &&
+				!(yield* confirm_action(PAID_QUESTION))
+			)
+				return;
+			const at = DateTime.formatIso(DateTime.makeUnsafe(yield* Clock.currentTimeMillis));
+			return yield* ctx.act({
+				'holiday.update': drafts.map((row) => ({
+					target: { id: row.id, revision: row.revision },
+					set: { published_at: at }
+				}))
+			});
+		});
 	const laws = pageLaws(ctx, () => (record === null ? [] : [record.settings_code]));
 	const jurisdictions = ctx.query({
 		jurisdiction: { fields: ['code', 'name'], order_by: { name: 'asc' }, limit: 1000 }
@@ -171,7 +200,19 @@
 			key="entity-holidays"
 			where={{ entity_id: { eq: record.id } }}
 			order_by={{ date: 'asc' }}
-			toolbar={{ title: t('app.settings.holidays'), new: () => (adding = 'holiday') }}
+			toolbar={{
+				title: t('app.settings.holidays'),
+				new: () => (adding = 'holiday'),
+				actions: [
+					{
+						icon: 'lucide:calendar-check',
+						name: t('calendar.publish'),
+						description: t('calendar.publish_description'),
+						requires_selection: true,
+						run: publish
+					}
+				]
+			}}
 			columns={[
 				'date',
 				'name',

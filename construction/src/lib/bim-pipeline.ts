@@ -1,19 +1,14 @@
 /**
- * Pure TypeScript BIM IFC takeoff, archetype candidate ranking, and exact `BigDecimal` Costing
- * Matrix pricing pipeline.
+ * Pure TypeScript BIM takeoff candidate ranking and exact `BigDecimal` Item Matrix pricing.
  *
- * Designed for both small server-parsed IFCs (<= 8 MiB) and huge browser-streamed multi-storey
- * federated BIM models (e.g., 18-storey HDB + playground + MEP, 50–500+ MiB):
- * 1. Streaming IFC STEP parser (`bim-step-stream.ts`) skips ~95% geometry lines and strictly
- *    deduplicates 100k+ instances into unique asset archetypes + `(archetype, storey)` buckets.
- * 2. Browser snapshot renderer (`ifc_asset_snapshots.ts`) renders isolated multi-angle 3D studio
- *    images of ONLY each unique asset (never the full building).
- * 3. `rankCandidateMatrixRules` & `describeArchetypeForAi` prepare bounded candidate catalogs
- *    (with `unknown_unseen_catalog` always offered first) for Jev System 1 (`ctx.ai.sys_1.decide`).
- * 4. Exact `BigDecimal` pricing aggregates matched & unmatched buckets per storey with wastage,
- *    non-BIM additional costings, and contingency.
+ * 1. The browser streams the IFC (`bim-step-stream.ts`) into unique asset archetypes and `(archetype, storey)` buckets,
+ *    measures every element from its geometry, merges archetypes that are one asset (`bim-geometry.ts`) and pictures
+ *    each one from four angles (`ifc-viewer/ifc_geometry_pass.ts`); the takeoff is stored on the project.
+ * 2. `rankCandidateMatrixRules` & `describeArchetypeForAi` prepare bounded candidate catalogs (with
+ *    `unknown_unseen_catalog` always offered first) for System 1 (`analyze_bim_file`).
+ * 3. Exact `BigDecimal` pricing aggregates matched and unmatched buckets per storey with wastage and contingency.
  */
-import { BigDecimal } from 'effect';
+import { BigDecimal, Schema } from 'effect';
 import {
 	divSafe,
 	formatTrimmed,
@@ -46,9 +41,61 @@ export {
 	type ParsedIfcModel
 };
 
+/** A stored takeoff as the page writes it and the pricing automation reads it back. */
+export const ExtractedBimModelSchema = Schema.Struct({
+	schema: Schema.String,
+	project_name: Schema.NullOr(Schema.String),
+	storeys: Schema.Array(Schema.String),
+	total_asset_count: Schema.Number,
+	archetypes: Schema.Array(
+		Schema.Struct({
+			archetype_id: Schema.String,
+			representative_express_id: Schema.Number,
+			representative_part_ids: Schema.Array(Schema.Number),
+			ifc_class: Schema.String,
+			family: Schema.String,
+			type_name: Schema.NullOr(Schema.String),
+			object_type: Schema.NullOr(Schema.String),
+			predefined_type: Schema.NullOr(Schema.String),
+			operation_type: Schema.NullOr(Schema.String),
+			classification_code: Schema.NullOr(Schema.String),
+			classification_name: Schema.NullOr(Schema.String),
+			materials: Schema.Array(Schema.String),
+			material_layers: Schema.Array(Schema.String),
+			layer_count: Schema.Number,
+			properties: Schema.Array(Schema.String),
+			sample_names: Schema.Array(Schema.String),
+			total_count: Schema.Number,
+			has_length: Schema.Boolean,
+			has_area: Schema.Boolean,
+			has_volume: Schema.Boolean,
+			has_weight: Schema.Boolean,
+			visual_file: Schema.optionalKey(Schema.String),
+			signature: Schema.optionalKey(Schema.String)
+		})
+	),
+	buckets: Schema.Array(
+		Schema.Struct({
+			archetype_id: Schema.String,
+			storey: Schema.String,
+			element_count: Schema.Number,
+			length_m: Schema.Number,
+			length_measured_count: Schema.Number,
+			area_m2: Schema.Number,
+			area_measured_count: Schema.Number,
+			volume_m3: Schema.Number,
+			volume_measured_count: Schema.Number,
+			weight_kg: Schema.Number,
+			weight_measured_count: Schema.Number,
+			sample_express_ids: Schema.Array(Schema.Number),
+			element_ids: Schema.optionalKey(Schema.Array(Schema.Number))
+		})
+	),
+	assemblies: Schema.optionalKey(Schema.Record(Schema.String, Schema.Array(Schema.Number)))
+});
+
 const ZERO = BigDecimal.fromBigInt(0n);
 const HUNDRED = BigDecimal.fromBigInt(100n);
-const STREAM_CHUNK_BYTES = 2 * 1024 * 1024;
 
 export type MatrixItem = {
 	readonly code: string;
@@ -60,7 +107,11 @@ export type MatrixItem = {
 	readonly match_keywords: readonly string[];
 	readonly unit: string;
 	readonly quantity_basis:
-		'count' | 'length' | 'area' | 'volume' | 'weight' | 'lump_sum' | 'pct_of_bim';
+		'count' | 'length' | 'area' | 'volume' | 'weight' | 'lump_sum' | 'pct_of_bim' | 'derived';
+	/** For `derived`: the item whose priced quantity this one follows, the units per its unit, and what it stands in for. */
+	readonly derived_from?: string | null;
+	readonly ratio?: DecimalLike | null;
+	readonly stands_in_for?: string | null;
 	readonly currency: string;
 	readonly unit_rate: DecimalLike;
 	readonly waste_factor_pct: DecimalLike;
@@ -76,7 +127,7 @@ export const UNKNOWN_CATALOG_CHOICE = 'unknown_unseen_catalog' as const;
 
 export type ArchetypeDecision = {
 	readonly matrix_code: string | null;
-	readonly method: 'ai_sys1';
+	readonly method: MatchMethod;
 	readonly confidence: number;
 	readonly reason: string;
 };
@@ -190,25 +241,6 @@ export function parseIfcStep(text: string): ParsedIfcModel {
 	return parser.finishFull();
 }
 
-/**
- * Streams an IFC STEP string or `Uint8Array` in bounded 2 MiB slices directly into a compact
- * bucketed `ExtractedBimModel` (archetypes + per-storey quantity rollups).
- */
-export function parseIfcStepToExtracted(input: string | Uint8Array): ExtractedBimModel {
-	const parser = createIfcStepStreamParser();
-	if (typeof input === 'string') {
-		const sliceChars = STREAM_CHUNK_BYTES;
-		for (let offset = 0; offset < input.length; offset += sliceChars) {
-			parser.push(input.slice(offset, offset + sliceChars));
-		}
-	} else {
-		for (let offset = 0; offset < input.byteLength; offset += STREAM_CHUNK_BYTES) {
-			parser.push(input.subarray(offset, offset + STREAM_CHUNK_BYTES));
-		}
-	}
-	return parser.finish();
-}
-
 function normalizeSearchText(parts: readonly (string | null | undefined)[]): string {
 	return parts
 		.filter((p): p is string => p != null && p.length > 0)
@@ -253,7 +285,7 @@ function archetypeHaystack(arch: BimArchetype): {
 
 /**
  * Selects the top `maxCandidates` active `bim_asset` Item Matrix rules most relevant to one or
- * more BIM archetypes, keeping Jev System 1 (`<= 255` choices) focused and fast even when a
+ * more BIM archetypes, keeping System 1 (`<= 255` choices) focused and fast even when a
  * workspace carries hundreds of Item Matrix items.
  */
 export function rankCandidateMatrixRules(
@@ -261,7 +293,10 @@ export function rankCandidateMatrixRules(
 	rules: readonly MatrixItem[],
 	maxCandidates: number
 ): readonly MatrixItem[] {
-	const activeBim = rules.filter((r) => r.active && r.category === 'bim_asset');
+	// a derived item is never what an element is: it follows another item's quantity
+	const activeBim = rules.filter(
+		(r) => r.active && r.category === 'bim_asset' && r.quantity_basis !== 'derived'
+	);
 	if (activeBim.length <= maxCandidates) return activeBim;
 
 	const batchClasses = new Set(archetypes.map((a) => a.ifc_class));
@@ -305,7 +340,7 @@ export function rankCandidateMatrixRules(
 	return scored.slice(0, maxCandidates).map((entry) => entry.rule);
 }
 
-/** Builds a compact, information-dense textual description of one BIM archetype for Jev System 1. */
+/** Builds a compact, information-dense textual description of one BIM archetype for System 1. */
 export function describeArchetypeForAi(arch: BimArchetype): string {
 	const qtys: string[] = ['count'];
 	if (arch.has_length) qtys.push('length(m)');
@@ -340,23 +375,40 @@ export function describeArchetypeForAi(arch: BimArchetype): string {
 	return parts.join(', ');
 }
 
+/** A bucket's quantity on an item's basis: what was measured, never a stand-in for an element without one. */
 function measureBucket(bucket: BimStoreyBucket, basis: MatrixItem['quantity_basis']): number {
 	switch (basis) {
 		case 'length':
-			return bucket.length_m + Math.max(0, bucket.element_count - bucket.length_measured_count);
+			return bucket.length_m;
 		case 'area':
-			return bucket.area_m2 + Math.max(0, bucket.element_count - bucket.area_measured_count);
+			return bucket.area_m2;
 		case 'volume':
-			return bucket.volume_m3 + Math.max(0, bucket.element_count - bucket.volume_measured_count);
+			return bucket.volume_m3;
 		case 'weight':
-			return bucket.weight_kg + Math.max(0, bucket.element_count - bucket.weight_measured_count);
+			return bucket.weight_kg;
+		default:
+			return bucket.element_count;
+	}
+}
+
+/** How many of a bucket's elements the basis measured. */
+function measuredOf(bucket: BimStoreyBucket, basis: MatrixItem['quantity_basis']): number {
+	switch (basis) {
+		case 'length':
+			return bucket.length_measured_count;
+		case 'area':
+			return bucket.area_measured_count;
+		case 'volume':
+			return bucket.volume_measured_count;
+		case 'weight':
+			return bucket.weight_measured_count;
 		default:
 			return bucket.element_count;
 	}
 }
 
 /**
- * Prices an `ExtractedBimModel` against the active currency-matched `item_matrix` using Jev
+ * Prices an `ExtractedBimModel` against the active currency-matched `item_matrix` using
  * System 1 archetype decisions (no Tier 1 keyword rule bypass), computing exact `BigDecimal`
  * amounts, wastage, and contingency for the project's single BIM cost estimate.
  */
@@ -407,6 +459,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 			match_confidence: number | null;
 			match_reason: string | null;
 			express_ids: number[];
+			unmeasured: number;
 		}
 	>();
 
@@ -433,6 +486,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 
 		const basis = rule?.quantity_basis ?? 'count';
 		const qty = toDecimal(measureBucket(bucket, basis));
+		const unmeasured = bucket.element_count - measuredOf(bucket, basis);
 		const key = rule
 			? `${rule.code}::${bucket.storey}`
 			: `UNMATCHED::${arch.archetype_id}::${bucket.storey}`;
@@ -444,6 +498,7 @@ export function buildBimCostEstimateFromExtracted(input: {
 		const existing = grouped.get(key);
 		if (existing !== undefined) {
 			existing.element_count += bucket.element_count;
+			existing.unmeasured += unmeasured;
 			existing.measured_qty = BigDecimal.sum(existing.measured_qty, qty);
 			for (const eid of bucket.sample_express_ids) {
 				if (existing.express_ids.length >= 25) break;
@@ -475,7 +530,47 @@ export function buildBimCostEstimateFromExtracted(input: {
 				match_method: decision?.method ?? null,
 				match_confidence: decision !== null ? Math.round(decision.confidence * 100) / 100 : null,
 				match_reason: decision?.reason ?? null,
-				express_ids: bucket.sample_express_ids.slice(0, 25)
+				express_ids: bucket.sample_express_ids.slice(0, 25),
+				unmeasured
+			});
+		}
+	}
+
+	// what the model does not carry, from what it does, storey by storey: unmodelled rebar from priced concrete, say;
+	// on a storey where the model carries the item it stands in for, nothing is derived so nothing counts twice
+	const storeys = [...new Set([...grouped.values()].map((g) => g.storey))];
+	for (const rule of activeCurrencyMatrix) {
+		if (rule.category !== 'bim_asset' || rule.quantity_basis !== 'derived' || !rule.derived_from)
+			continue;
+		const ratio = toDecimal(rule.ratio ?? '0');
+		if (!BigDecimal.isPositive(ratio)) continue;
+		for (const storey of storeys) {
+			const source = grouped.get(`${rule.derived_from}::${storey}`);
+			if (source === undefined || !BigDecimal.isPositive(source.measured_qty)) continue;
+			const modelled = rule.stands_in_for
+				? grouped.get(`${rule.stands_in_for}::${storey}`)
+				: undefined;
+			if (modelled !== undefined && BigDecimal.isPositive(modelled.measured_qty)) continue;
+			const rate = toDecimal(rule.unit_rate);
+			grouped.set(`${rule.code}::${storey}`, {
+				ifc_class: '',
+				classification: rule.name,
+				discipline: rule.discipline,
+				storey,
+				element_count: 0,
+				measured_qty: BigDecimal.multiply(source.measured_qty, ratio),
+				unit: rule.unit,
+				quantity_basis: 'derived',
+				matrix_code: rule.code,
+				unit_rate: rule.unit_rate,
+				waste_factor_pct: rule.waste_factor_pct,
+				carbon_factor: rule.carbon_factor,
+				status: BigDecimal.isPositive(rate) ? 'matched' : 'rate_missing',
+				match_method: 'rule',
+				match_confidence: null,
+				match_reason: `Derived: ${formatTrimmed(ratio, 4)} ${rule.unit} per ${source.unit} of ${rule.derived_from}${rule.stands_in_for ? ` (${rule.stands_in_for} is not modelled on this storey)` : ''}.`,
+				express_ids: [],
+				unmeasured: 0
 			});
 		}
 	}
@@ -516,7 +611,18 @@ export function buildBimCostEstimateFromExtracted(input: {
 				status: g.status,
 				...(g.match_method !== null ? { match_method: g.match_method } : {}),
 				...(g.match_confidence !== null ? { match_confidence: g.match_confidence } : {}),
-				...(g.match_reason !== null ? { match_reason: g.match_reason } : {}),
+				...(g.match_reason !== null || g.unmeasured > 0
+					? {
+							match_reason: [
+								g.match_reason,
+								g.unmeasured > 0
+									? `${g.unmeasured} of ${g.element_count} elements have no measurable ${g.quantity_basis}; they are not priced.`
+									: null
+							]
+								.filter(Boolean)
+								.join(' ')
+						}
+					: {}),
 				sample_express_ids: g.express_ids
 			};
 		});

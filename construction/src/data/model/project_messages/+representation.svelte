@@ -6,18 +6,40 @@
 		enum_text,
 		Field,
 		Icon,
+		open_record,
 		RecordForm,
 		type RecordView,
-		RunStatus,
 		Section,
+		Table,
+		Tabs,
 		use_act
 	} from '@norbital-ai/ui';
 
 	let { view, ctx }: { view: RecordView<'project_messages'>; ctx: PageContext } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const canExtract = $derived(ctx.catalog?.project_messages?.update !== undefined);
+	/** What this message updated: the records its extraction wrote, by kind. */
+	const made = $derived(
+		record &&
+			ctx.query({
+				tasks: { where: { source_message_id: { eq: record.id } }, aggregate: { count: true } },
+				activities: {
+					where: { source_message_id: { eq: record.id } },
+					aggregate: { count: true }
+				},
+				contracts: { where: { source_message_id: { eq: record.id } }, aggregate: { count: true } },
+				commercial_documents: {
+					where: { source_message_id: { eq: record.id } },
+					aggregate: { count: true }
+				}
+			})
+	);
+	const madeModels = $derived(
+		(['tasks', 'activities', 'contracts', 'commercial_documents'] as const).filter(
+			(model) => (made?.current?.[model].count ?? 0) > 0
+		)
+	);
 	const extract = use_act(ctx);
-	let lastRunId = $state<string | null>(null);
 
 	const rawT = (key: string): string => {
 		const words: { t(k: string): string } = ctx;
@@ -48,17 +70,76 @@
 	);
 </script>
 
+{#snippet madeTasks()}
+	{#if record}
+		<Table
+			{ctx}
+			of="tasks"
+			key={`message:${record.id}:tasks`}
+			where={{ source_message_id: { eq: record.id } }}
+			toolbar={{ new: false, select: false, filter: false, export: false }}
+			columns={['task_code', 'title', 'status', 'progress_pct', 'latest_update']}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet madeActivities()}
+	{#if record}
+		<!-- an activity stands for its task: the row opens the task -->
+		<Table
+			{ctx}
+			of="activities"
+			key={`message:${record.id}:activities`}
+			where={{ source_message_id: { eq: record.id } }}
+			on_open={(row) => open_record('tasks', row.task_id)}
+			toolbar={{ new: false, select: false, filter: false, export: false }}
+			columns={['task_id', 'kind', 'title', 'body']}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet madeContracts()}
+	{#if record}
+		<Table
+			{ctx}
+			of="contracts"
+			key={`message:${record.id}:contracts`}
+			where={{ source_message_id: { eq: record.id } }}
+			toolbar={{ new: false, select: false, filter: false, export: false }}
+			columns={['contract_number', 'title', 'direction', 'contract_value', 'status']}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet madeDocuments()}
+	{#if record}
+		<Table
+			{ctx}
+			of="commercial_documents"
+			key={`message:${record.id}:commercial_documents`}
+			where={{ source_message_id: { eq: record.id } }}
+			toolbar={{ new: false, select: false, filter: false, export: false }}
+			columns={['doc_type', 'external_reference', 'direction', 'subtotal', 'status']}
+		/>
+	{/if}
+{/snippet}
+
 {#snippet headerActions()}
 	{#if canExtract && record && record.project_id != null}
 		<Button
 			variant="outline"
 			disabled={extract.pending}
 			onclick={() =>
-				extract.run(ctx.run('extract_project_updates', { message_ids: [record.id] }), {
-					then: (handle) => {
-						lastRunId = handle.output.id;
-					}
-				})}
+				extract.run(
+					ctx.act({
+						'project_messages.update': [
+							{
+								target: { id: record.id, revision: record.revision },
+								set: { extraction_status: 'pending' }
+							}
+						]
+					})
+				)}
 		>
 			<Icon name="lucide:wand-sparkles" class="size-3.5" />
 			{ctx.t('messages.reextract_now')}
@@ -71,12 +152,7 @@
 	{view}
 	subtitle={['transport', 'sender_name', 'classification']}
 	actions={headerActions}
-	{...record ? { runs: [{ ctx, automation: 'extract_project_updates', limit: 5 }] } : {}}
 >
-	{#if lastRunId}
-		<RunStatus {ctx} automation="extract_project_updates" run={lastRunId} />
-	{/if}
-
 	<Section icon="lucide:message-square-text" first name="message" title={ctx.t('section.message')}>
 		<Grid minimum="card">
 			<Field {ctx} name="subject" />
@@ -132,4 +208,22 @@
 			{/if}
 		</Grid>
 	</Section>
+
+	{#if record && madeModels.length > 0}
+		<Section icon="lucide:list-checks" name="updated" title={ctx.t('updates.created_title')}>
+			<Tabs
+				level={2}
+				tabs={madeModels.map((model) => ({
+					name: model,
+					title: ctx.t(`models.${model}.label`),
+					body: {
+						tasks: madeTasks,
+						activities: madeActivities,
+						contracts: madeContracts,
+						commercial_documents: madeDocuments
+					}[model]
+				}))}
+			/>
+		</Section>
+	{/if}
 </RecordForm>

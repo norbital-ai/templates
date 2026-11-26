@@ -1,9 +1,8 @@
 /**
  * Streaming ISO-10303-21 IFC STEP parser and archetype aggregator.
  *
- * Pure TypeScript with zero native/DOM dependencies so it runs identically inside Bolt's
- * isolated-vm guest runtime (for <= 8 MiB uploaded IFCs) and inside a browser Web Worker
- * streaming arbitrarily large 100–500+ MiB federated BIM files in 4 MiB slices.
+ * Pure TypeScript with zero native/DOM dependencies; it runs in a browser Web Worker streaming
+ * arbitrarily large 100–500+ MiB federated BIM files in 4 MiB slices (and in tests).
  *
  * Design for high-throughput large BIM models (e.g., 18-storey HDB + playground + MEP):
  * - Zero-regex hot path skips ~95% geometry/placement/style entities (`IFCCARTESIANPOINT`,
@@ -279,7 +278,10 @@ export type BimArchetype = {
 	readonly has_area: boolean;
 	readonly has_volume: boolean;
 	readonly has_weight: boolean;
-	readonly visual_views?: readonly string[];
+	/** The id of its four-angle picture among the project's `bim_takeoff_views`. */
+	readonly visual_file?: string;
+	/** What it is remembered by across takeoffs (`assetSignature`): set by the browser's geometry pass. */
+	readonly signature?: string;
 };
 
 export type BimStoreyBucket = {
@@ -295,6 +297,8 @@ export type BimStoreyBucket = {
 	readonly weight_kg: number;
 	readonly weight_measured_count: number;
 	readonly sample_express_ids: readonly number[];
+	/** Every element of the bucket, for the browser's geometry pass; never stored. */
+	readonly element_ids?: readonly number[];
 };
 
 export type ExtractedBimModel = {
@@ -304,6 +308,8 @@ export type ExtractedBimModel = {
 	readonly total_asset_count: number;
 	readonly archetypes: readonly BimArchetype[];
 	readonly buckets: readonly BimStoreyBucket[];
+	/** Every part of each assembly kept as one asset (express id → parts), for the browser's geometry pass; never stored. */
+	readonly assemblies?: Readonly<Record<string, readonly number[]>>;
 };
 
 /** Decodes STEP ISO-10303-21 `\X2\....\X0\` UTF-16 hex escapes inside IFC strings. */
@@ -1245,10 +1251,38 @@ export function createIfcStepStreamParser() {
 		};
 	}
 
+	/**
+	 * An assembly counts once, as a whole: an asset whose parent is itself an asset (a flight of a stair, a plate or
+	 * member of a curtain wall) is part of that whole, not an asset of its own.
+	 */
+	function wholes(): RawAsset[] {
+		const ids = new Set(rawAssets.map((a) => a.express_id));
+		return rawAssets.filter((a) => {
+			const parent = parentOf.get(a.express_id);
+			return parent === undefined || !ids.has(parent);
+		});
+	}
+	/** Each kept whole's parts, nested ones included: what its geometry is made of. */
+	function assembliesOf(kept: readonly RawAsset[]): Record<string, number[]> {
+		const out: Record<string, number[]> = {};
+		for (const a of kept) {
+			const parts: number[] = [];
+			const queue = [...(childrenOf.get(a.express_id) ?? [])];
+			while (queue.length > 0) {
+				const id = queue.shift();
+				if (id === undefined || parts.includes(id)) continue;
+				parts.push(id);
+				queue.push(...(childrenOf.get(id) ?? []));
+			}
+			if (parts.length > 0) out[String(a.express_id)] = parts;
+		}
+		return out;
+	}
+
 	function finishFull(): ParsedIfcModel {
 		flush();
 		const classCounts: Record<string, number> = {};
-		const assets: BimAssetRecord[] = rawAssets.map((raw) => {
+		const assets: BimAssetRecord[] = wholes().map((raw) => {
 			classCounts[raw.ifc_class] = (classCounts[raw.ifc_class] ?? 0) + 1;
 			return resolveElement(raw);
 		});
@@ -1264,12 +1298,12 @@ export function createIfcStepStreamParser() {
 	function finish(): ExtractedBimModel {
 		flush();
 		const explicitStoreys = [...new Set(storeys.values())];
-		return aggregateResolvedAssets(
-			schema,
-			projectName,
-			explicitStoreys,
-			rawAssets.map(resolveElement)
-		);
+		const kept = wholes();
+		const assemblies = assembliesOf(kept);
+		return {
+			...aggregateResolvedAssets(schema, projectName, explicitStoreys, kept.map(resolveElement)),
+			...(Object.keys(assemblies).length > 0 ? { assemblies } : {})
+		};
 	}
 
 	return { push, finish, finishFull, stats };
@@ -1323,6 +1357,7 @@ function aggregateResolvedAssets(
 			weight_kg: number;
 			weight_measured_count: number;
 			sample_express_ids: number[];
+			element_ids: number[];
 		}
 	>();
 	let nextArchNum = 1;
@@ -1394,7 +1429,8 @@ function aggregateResolvedAssets(
 				volume_measured_count: 0,
 				weight_kg: 0,
 				weight_measured_count: 0,
-				sample_express_ids: []
+				sample_express_ids: [],
+				element_ids: []
 			};
 			buckets.set(bucketKey, bucket);
 		}
@@ -1416,6 +1452,7 @@ function aggregateResolvedAssets(
 			bucket.weight_measured_count += 1;
 		}
 		if (bucket.sample_express_ids.length < 10) bucket.sample_express_ids.push(elem.express_id);
+		bucket.element_ids.push(elem.express_id);
 	}
 
 	const orderedStoreys = [...new Set([...explicitStoreys, ...seenStoreys])].filter(
@@ -1464,7 +1501,8 @@ function aggregateResolvedAssets(
 			volume_measured_count: b.volume_measured_count,
 			weight_kg: Number(b.weight_kg.toFixed(4)),
 			weight_measured_count: b.weight_measured_count,
-			sample_express_ids: b.sample_express_ids
+			sample_express_ids: b.sample_express_ids,
+			element_ids: b.element_ids
 		}))
 	};
 }

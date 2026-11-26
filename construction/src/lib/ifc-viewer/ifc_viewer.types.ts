@@ -45,31 +45,32 @@ export type IFCSelectedElement = {
 	readonly properties: readonly { readonly name: string; readonly value: string }[];
 };
 
-export type IFCViewerIssueSummary = {
+/** A BIM task as the viewer lists it on an element it builds. */
+export type IFCViewerTask = {
 	readonly id: string;
-	readonly issue_number: string | null;
-	readonly title: string;
-	readonly severity: string;
-	readonly status: string;
-	readonly expressId: number;
-	readonly photoUrls: readonly string[];
-	readonly pin: IFCViewerPinCoords | null;
+	readonly label: string;
+	readonly expressIds: readonly number[];
+	readonly openIssues: number;
 };
+
+/** What the viewer isolates: these elements in colour and framed, the rest of the model translucent. */
+export type IFCViewerFocus = { readonly label: string; readonly expressIds: readonly number[] };
 
 export type IFCViewerProps = {
 	t: Translator;
-	translateKey?: (key: string) => string;
 	src: string;
 	alt?: string;
 	markers?: number[];
 	markerGroups?: IFCViewerMarkerGroup[];
-	issues?: readonly IFCViewerIssueSummary[];
-	/** The issue in focus: the model shows only its element, framed; `null` shows the whole model. */
-	focusIssue?: IFCViewerIssueSummary | null;
-	/** The viewer left the focused issue (Show whole model, or the selection closed). */
+	/** The BIM tasks, listed on the selected element they build. */
+	tasks?: readonly IFCViewerTask[];
+	/** The elements in focus (a selected task, a 4D slice); `null` shows the whole model. */
+	focus?: IFCViewerFocus | null;
+	/** The viewer left the focus (Show whole model). */
 	onClearFocus?: () => void;
-	onTagIssue?: (element: IFCSelectedElement) => void;
-	onOpenIssue?: (issueId: string) => void;
+	/** Plans a BIM task on the selected element. */
+	onCreateTask?: (element: IFCSelectedElement) => void;
+	onOpenTask?: (taskId: string) => void;
 	onReplaceModel?: () => void;
 };
 
@@ -346,6 +347,8 @@ export interface ViewerFragmentsModel {
 	box: ViewerBox;
 	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	getItemsData(ids: number[]): Promise<Array<ViewerItemData | null | undefined>>;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	getItemsIdsWithGeometry(): Promise<number[]>;
 }
 
 export interface ViewerFragmentsManager {
@@ -422,14 +425,6 @@ export interface ViewerComponentsModule {
 		getWorker(): Promise<Worker>;
 	};
 	Raycasters: ViewerComponentToken<ViewerRaycasters>;
-	Hider: ViewerComponentToken<ViewerHider>;
-}
-
-export interface ViewerHider {
-	// repository-health:allow EFF2 -- The pinned components vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
-	isolate(modelIdMap: Record<string, Set<number>>): Promise<void>;
-	// repository-health:allow EFF2 -- The pinned components vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
-	set(visible: boolean, modelIdMap?: Record<string, Set<number>>): Promise<void>;
 }
 
 export interface ViewerFrontendModule {
@@ -488,7 +483,8 @@ export interface WebIfcVector<T> {
 export interface WebIfcFlatMesh {
 	readonly geometries: WebIfcVector<WebIfcPlacedGeometry>;
 	readonly expressID: number;
-	delete(): void;
+	/** Absent on the mesh of an element without geometry. */
+	delete?(): void;
 }
 
 export interface WebIfcGeometry {
@@ -554,3 +550,15 @@ export type ConvertRequestMessage = typeof ConvertRequestMessageSchema.Type;
 export type WorkerSuccessMessage = typeof workerSuccessMessageSchema.Type;
 export type WorkerErrorMessage = typeof workerErrorMessageSchema.Type;
 export type WorkerReadyMessage = typeof workerReadyMessageSchema.Type;
+
+/**
+ * A worker script made runnable from a blob (sandboxed iframes block direct worker URLs in Chrome) as a module worker:
+ * a dev server serves the worker as a module importing by path, which a blob cannot resolve, so its import specifiers
+ * are made absolute against the script's URL. A bundled worker imports nothing and runs unchanged.
+ */
+export const moduleWorkerSource = (scriptText: string, scriptUrl: URL): string =>
+	scriptText.replace(
+		/(\bimport\s*\(?\s*|\bfrom\s*)(["'])(\.{0,2}\/[^"']*)\2/g,
+		(_, lead: string, quote: string, spec: string) =>
+			`${lead}${quote}${new URL(spec, scriptUrl).href}${quote}`
+	);

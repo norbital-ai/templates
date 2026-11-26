@@ -1,6 +1,13 @@
 import { Effect } from 'effect';
-import { model, type CreateInput, type StoredTree, type WriteCtx } from '@norbital-ai/bolt';
+import {
+	model,
+	type CreateInput,
+	type Row,
+	type StoredTree,
+	type WriteCtx
+} from '@norbital-ai/bolt';
 import { messageImportAllows } from '../../../lib/message-import.js';
+import { fileMessages } from './intake.js';
 
 const columns = [
 	'subject',
@@ -47,6 +54,14 @@ type Entry = {
 	readonly after: Patch;
 	readonly before: StoredTree<'project_messages', 'update'> | undefined;
 };
+
+/** What still waits to be filed: a voice note to transcribe, a route to find, or useful content to extract. */
+const needsFiling = (row: Row<'project_messages'>) =>
+	row.transcription === 'pending' ||
+	row.classification === 'pending' ||
+	(row.classification === 'useful' &&
+		row.project_id != null &&
+		row.extraction_status === 'pending');
 
 const ids = <T>(values: readonly (T | null | undefined)[]) => [
 	...new Set(values.filter((v): v is T => v != null))
@@ -121,7 +136,7 @@ const derived = Effect.fnUntraced(function* (
 
 export default model('project_messages', {
 	description:
-		'Synced WhatsApp and email messages routed into projects for automatic extraction into cashflow documents, contracts/VOs, progression tasks, and BIM issues.',
+		'Synced WhatsApp and email messages routed into projects for automatic extraction into cashflow documents, contracts/VOs, progression tasks, and task activity (comments, issues).',
 	icon: 'lucide:message-square-text',
 	record_label: 'record.subject',
 	fields: {
@@ -217,32 +232,11 @@ export default model('project_messages', {
 			return changes.map(({ set }, i) => ({ ...set, ...patches[i] }));
 		},
 		effect: function* (changes, ctx) {
-			const rows = changes.map(({ after }) => after);
-			if (
-				rows.some(
-					(r) =>
-						r.source_message == null &&
-						(r.classification === 'pending' || r.classification === 'review')
-				)
-			) {
-				yield* ctx.schedule(
-					'classify_messages',
-					{},
-					{ at: ctx.now, key: 'construction-classify-backlog' }
-				);
-			}
-			const extractIds = rows.flatMap((r) =>
-				r.project_id != null && r.classification === 'useful' && r.extraction_status === 'pending'
-					? [r.id]
-					: []
+			// filed as it arrives: transcribed, routed and extracted in this effect, as the writer that stored it
+			yield* fileMessages(
+				changes.flatMap(({ after }) => (needsFiling(after) ? [after.id] : [])),
+				ctx
 			);
-			if (extractIds.length > 0) {
-				yield* ctx.schedule(
-					'extract_project_updates',
-					{ message_ids: extractIds },
-					{ at: ctx.now, key: `construction-extract-${extractIds[0]}` }
-				);
-			}
 		}
 	},
 	update: {
@@ -255,23 +249,19 @@ export default model('project_messages', {
 			return changes.map(({ set }, i) => ({ ...set, ...patches[i] }));
 		},
 		effect: function* (changes, ctx) {
-			const extractIds = changes.flatMap(({ before, after }) =>
-				after.project_id != null &&
-				after.classification === 'useful' &&
-				after.extraction_status === 'pending' &&
-				(before.project_id !== after.project_id ||
-					before.classification !== after.classification ||
-					before.extraction_status !== after.extraction_status)
-					? [after.id]
-					: []
+			// queued again: a person or a directory change set it back to pending
+			yield* fileMessages(
+				changes.flatMap(({ before, after }) =>
+					needsFiling(after) &&
+					(before.classification !== after.classification ||
+						before.extraction_status !== after.extraction_status ||
+						before.transcription !== after.transcription ||
+						before.project_id !== after.project_id)
+						? [after.id]
+						: []
+				),
+				ctx
 			);
-			if (extractIds.length > 0) {
-				yield* ctx.schedule(
-					'extract_project_updates',
-					{ message_ids: extractIds },
-					{ at: ctx.now, key: `construction-extract-${extractIds[0]}` }
-				);
-			}
 		}
 	}
 });

@@ -9,6 +9,7 @@ const editableColumns = [
 	'bim_assets',
 	'contingency_pct',
 	'analyzed_at',
+	'asset_signatures',
 	'notes'
 ] as const;
 
@@ -44,6 +45,8 @@ export default model('cost_estimates', {
 		/** Embodied carbon of the takeoff, in kgCO2e: each line's priced quantity × its item's carbon factor. */
 		carbon_total: { kind: 'decimal', scale: 2, default: 0 },
 		analyzed_at: { kind: 'instant', optional: true },
+		/** The signatures of the unique assets this estimate priced: its rows in `asset_mappings`. */
+		asset_signatures: { kind: 'text', many: true, optional: true, hidden: true },
 		notes: { kind: 'text', format: 'markdown', optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'cost_estimates', owned: true }
 	},

@@ -17,7 +17,16 @@ const DISCIPLINES = [
 	'general'
 ] as const;
 const UNITS = ['ea', 'm', 'm2', 'm3', 'kg', 'ls', 'month', 'pct'] as const;
-const BASES = ['count', 'length', 'area', 'volume', 'weight', 'lump_sum', 'pct_of_bim'] as const;
+const BASES = [
+	'count',
+	'length',
+	'area',
+	'volume',
+	'weight',
+	'lump_sum',
+	'pct_of_bim',
+	'derived'
+] as const;
 
 const pick = <T extends string>(
 	list: readonly T[],
@@ -54,6 +63,9 @@ export default sync('item_matrix', 'matrix', {
 		unit_rate: { kind: 'text' },
 		waste_factor_pct: { kind: 'text', optional: true },
 		carbon_factor: { kind: 'text', optional: true },
+		derived_from: { kind: 'text', optional: true },
+		ratio: { kind: 'text', optional: true },
+		stands_in_for: { kind: 'text', optional: true },
 		active: { kind: 'bool', optional: true }
 	},
 	read: function* ({ records }) {
@@ -74,6 +86,9 @@ export default sync('item_matrix', 'matrix', {
 					unit_rate: r.unit_rate.trim() || '0',
 					waste_factor_pct: r.waste_factor_pct?.trim() || '0',
 					carbon_factor: r.carbon_factor?.trim() || '0',
+					derived_from: r.derived_from?.trim() || null,
+					ratio: r.ratio?.trim() || null,
+					stands_in_for: r.stands_in_for?.trim() || null,
 					active: r.active ?? true
 				}))
 		};
@@ -95,6 +110,9 @@ export default sync('item_matrix', 'matrix', {
 					'unit_rate',
 					'waste_factor_pct',
 					'carbon_factor',
+					'derived_from',
+					'ratio',
+					'stands_in_for',
 					'active'
 				],
 				order_by: { code: 'asc' },
@@ -115,6 +133,9 @@ export default sync('item_matrix', 'matrix', {
 			unit_rate: r.unit_rate,
 			waste_factor_pct: r.waste_factor_pct,
 			carbon_factor: r.carbon_factor,
+			derived_from: r.derived_from,
+			ratio: r.ratio,
+			stands_in_for: r.stands_in_for,
 			active: r.active
 		}));
 	}

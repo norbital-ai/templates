@@ -7,6 +7,7 @@ const columns = [
 	'wbs_path',
 	'external_id',
 	'title',
+	'kind',
 	'project_id',
 	'contract_id',
 	'is_milestone',
@@ -30,7 +31,7 @@ const columns = [
 
 export default model('tasks', {
 	description:
-		"Work packages and milestones of the project's work breakdown structure, synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml) and spreadsheets, with baseline vs actual progression and 4D BIM references.",
+		"Work packages and milestones of the project's work breakdown structure, synced with Autodesk ACC, Primavera P6 (.xer), MS Project (.xml) and spreadsheets, with baseline vs actual progression. A BIM task builds model elements (4D); an ad hoc task is work the model does not show (scaffolding, cranage, concrete testing, collecting documents). Its activity (comments, issues, meetings) is filed under it.",
 	icon: 'lucide:list-checks',
 	record_label: "record.task_code != null ? record.task_code + ' · ' + record.title : record.title",
 	fields: {
@@ -40,6 +41,8 @@ export default model('tasks', {
 		wbs_path: { kind: 'text', optional: true },
 		external_id: { kind: 'text', optional: true },
 		title: { kind: 'text' },
+		/** `bim`: builds the model elements in `bim_express_ids`; `adhoc`: work the model does not show. */
+		kind: { kind: 'enum', values: ['bim', 'adhoc'], default: 'adhoc' },
 		is_milestone: { kind: 'bool', default: false },
 		zone: { kind: 'text', optional: true },
 		trade_specialty: {
@@ -67,12 +70,20 @@ export default model('tasks', {
 		schedule_range: { kind: 'period', of: 'date', optional: true },
 		actual_range: { kind: 'period', of: 'date', optional: true },
 		progress_pct: { kind: 'decimal', scale: 1, default: 0 },
-		/** IFC element expressIDs governed by this work package for 4D timeline highlighting. */
+		/** A BIM task's IFC element expressIDs: the model isolates them when the task is selected, and the 4D timeline shows them. */
 		bim_express_ids: { kind: 'int', many: true, optional: true },
+		/** The task's issues (activities of kind `issue`) not yet closed. */
+		open_issue_count: {
+			kind: 'count',
+			of: 'activities',
+			where: { kind: { eq: 'issue' }, status: { eq: 'open' } }
+		},
 		/** Concise latest status progression note (manual or extracted from WhatsApp/email). */
 		latest_update: { kind: 'text', optional: true },
 		last_updated_on: { kind: 'date', optional: true },
-		description: { kind: 'text', format: 'markdown', optional: true },
+		/** The task's body: anything worth writing down, with pictures pasted in (each stored in `attachments`). */
+		description: { kind: 'text', format: 'markdown', images: 'attachments', optional: true },
+		/** Photos and documents filed under the task, by people or from messages. */
 		attachments: { kind: 'file', accept: ['*/*'], max: '20MiB', many: true, optional: true },
 		project_id: { kind: 'ref', to: 'projects', inverse: 'tasks', owned: true },
 		contract_id: {

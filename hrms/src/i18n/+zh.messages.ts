@@ -552,6 +552,8 @@ export default messages({
 	'references.open_official_text': '打开官方文本',
 	'app.payroll.adhoc_people': '人员',
 	'calendar.published': '发布日期',
+	'calendar.publish': '发布',
+	'calendar.publish_description': '发布所选日期：排班、请假和薪资从此计入。已发布的日期保持不变。',
 	'models.obligation.fields.title': '任务',
 	'models.obligation.fields.state': '状态',
 	'models.obligation.fields.fulfilled_on': '完成日期',

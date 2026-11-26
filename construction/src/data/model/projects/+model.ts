@@ -13,6 +13,7 @@ const columns = [
 	'bim_file',
 	'bim_version',
 	'zones',
+	'location',
 	'address',
 	'description'
 ] as const;
@@ -63,8 +64,30 @@ export default model('projects', {
 		bim_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
 		/** Revision label for the project's BIM model (e.g. P01, P04); record history keeps earlier files. */
 		bim_version: { kind: 'text', optional: true },
-		/** True when a new or updated BIM file awaits AI takeoff costing (manual run or daily EOD sweep). */
+		/**
+		 * The takeoff of `bim_file`, made in the browser that uploaded or opened it: unique assets with their quantities by
+		 * storey and three pictures of each. Storing it prices the model (`analyze_bim_file`); a new file clears it.
+		 */
+		bim_takeoff: {
+			kind: 'file',
+			accept: ['application/json'],
+			max: '4MiB',
+			optional: true,
+			hidden: true
+		},
+		/** Each unique asset of the takeoff pictured alone from four angles, one square JPEG each. */
+		bim_takeoff_views: {
+			kind: 'file',
+			accept: ['image/jpeg'],
+			max: '1MiB',
+			many: true,
+			optional: true,
+			hidden: true
+		},
+		/** True while the BIM file awaits its takeoff and pricing. */
 		bim_costing_dirty: { kind: 'bool', default: false },
+		/** Why the last pricing of the stored takeoff did not finish (System 1 unavailable, say); a new takeoff clears it. */
+		bim_costing_error: { kind: 'text', optional: true, hidden: true },
 		/** Automatically populated summary once the BIM pipeline parses the project's IFC model. */
 		bim_summary: {
 			kind: 'json',
@@ -82,18 +105,18 @@ export default model('projects', {
 		},
 		/** Co-located storeys, zones, grid axes, and elevations owned by this project. */
 		zones: { kind: 'custom', of: 'project_zones', optional: true },
-		address: { kind: 'custom', of: 'project_address', optional: true },
+		/** The site, picked on the map or found by address. */
+		location: { kind: 'point', optional: true },
+		/** The geocoder's address for `location`, or the address typed. */
+		address: { kind: 'text', optional: true },
 		description: { kind: 'text', format: 'markdown', optional: true },
 		open_task_count: {
 			kind: 'count',
 			of: 'tasks',
 			where: { status: { in: ['todo', 'in_progress', 'blocked'] } }
 		},
-		open_issue_count: {
-			kind: 'count',
-			of: 'issues',
-			where: { status: { in: ['open', 'in_progress', 'ready_for_verification'] } }
-		},
+		/** Open issues across the project's tasks. */
+		open_issue_count: { kind: 'sum', of: 'tasks.open_issue_count' },
 		active_contract_count: {
 			kind: 'count',
 			of: 'contracts',
@@ -124,11 +147,29 @@ export default model('projects', {
 		}
 	},
 	update: {
-		fields: [...columns, 'bim_summary', 'bim_costing_dirty'],
+		fields: [
+			...columns,
+			'bim_takeoff',
+			'bim_takeoff_views',
+			'bim_summary',
+			'bim_costing_dirty',
+			'bim_costing_error'
+		],
 		transform: function* (changes) {
 			return changes.map((c) => {
-				if (!c.changed('bim_file')) return c.set;
-				return { ...c.set, bim_costing_dirty: c.after.bim_file != null };
+				// a takeoff just stored waits for its pricing (`analyze_bim_file` runs on this write)
+				if (!c.changed('bim_file'))
+					return c.changed('bim_takeoff') && c.after.bim_takeoff != null
+						? { ...c.set, bim_costing_dirty: true, bim_costing_error: null }
+						: c.set;
+				// a new model's takeoff is made afresh: the old one prices a file that is gone
+				return {
+					...c.set,
+					bim_takeoff: null,
+					bim_takeoff_views: null,
+					bim_costing_error: null,
+					bim_costing_dirty: c.after.bim_file != null
+				};
 			});
 		},
 		effect: function* (changes, ctx) {

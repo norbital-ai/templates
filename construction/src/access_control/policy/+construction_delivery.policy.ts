@@ -1,9 +1,9 @@
 import { policy } from '@norbital-ai/bolt';
 
-/** Site & delivery authority: projects, large-scale WBS tasks, BIM files & issues, contacts, and WhatsApp/email intake. */
+/** Site & delivery authority: projects, large-scale WBS tasks with their activity (comments, issues, meetings), BIM files, contacts, and WhatsApp/email intake. */
 export default policy({
 	description:
-		'Delivery writes for projects, BIM files, WBS tasks, BIM issues, contacts, and WhatsApp/email coordination messages.',
+		'Delivery writes for projects, BIM files, WBS tasks with their activity (comments, issues, meetings), contacts, and WhatsApp/email coordination messages.',
 	grants: {
 		projects: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		cost_estimates: {
@@ -33,19 +33,12 @@ export default policy({
 			}
 		},
 		tasks: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
-		issues: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		activities: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		contacts: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} }
 	},
 	capabilities: {
-		automations: [
-			'sync_messages',
-			'classify_messages',
-			'extract_project_updates',
-			'reclassify_messages',
-			'analyze_bim_file',
-			'sweep_bim_costing'
-		],
+		automations: ['sync_messages', 'analyze_bim_file'],
 		syncs: ['tasks.autodesk_schedule', 'project_files.autodesk_files']
 	}
 });

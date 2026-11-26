@@ -1,7 +1,10 @@
 import { Effect, Result, Schema } from 'effect';
 import takeoffWorkerUrl from './ifc_takeoff.worker.ts?worker&url';
-import { renderIsolatedAssetSnapshots, type BimSnapshotProgress } from './ifc_asset_snapshots.js';
-import { fetchEffect, messageOf } from './ifc_viewer.types.js';
+import type { Id } from '@norbital-ai/bolt';
+import type { PageContext } from '@norbital-ai/bolt/page';
+import { measureAndPicture, type BimGeometryProgress } from './ifc_geometry_pass.js';
+import { fetchEffect, messageOf, moduleWorkerSource } from './ifc_viewer.types.js';
+import { ExtractedBimModelSchema } from '../bim-pipeline.js';
 import type { ExtractedBimModel } from '../bim-step-stream.js';
 
 export type BimStreamProgress = {
@@ -12,11 +15,14 @@ export type BimStreamProgress = {
 	readonly rawAssets: number;
 };
 
-export type BimTakeoffProgress =
-	BimStreamProgress | ({ readonly phase: 'snapshots' } & BimSnapshotProgress);
+export type BimTakeoffProgress = BimStreamProgress | BimGeometryProgress;
 
 export type BimStreamResult = {
 	readonly extracted: ExtractedBimModel;
+	/** Each unique asset's four-angle picture, by archetype. */
+	readonly pictures: ReadonlyMap<string, Blob>;
+	/** Elements dropped as modelled twice. */
+	readonly duplicates: number;
 	readonly durationMs: number;
 	readonly statementsScanned: number;
 	readonly visualCapturedCount: number;
@@ -39,55 +45,9 @@ const WorkerErrorSchema = Schema.Struct({
 	error: Schema.String
 });
 
-const ExtractedArchetypeSchema = Schema.Struct({
-	archetype_id: Schema.String,
-	representative_express_id: Schema.Number,
-	representative_part_ids: Schema.Array(Schema.Number),
-	ifc_class: Schema.String,
-	family: Schema.String,
-	type_name: Schema.NullOr(Schema.String),
-	object_type: Schema.NullOr(Schema.String),
-	predefined_type: Schema.NullOr(Schema.String),
-	operation_type: Schema.NullOr(Schema.String),
-	classification_code: Schema.NullOr(Schema.String),
-	classification_name: Schema.NullOr(Schema.String),
-	materials: Schema.Array(Schema.String),
-	material_layers: Schema.Array(Schema.String),
-	layer_count: Schema.Number,
-	properties: Schema.Array(Schema.String),
-	sample_names: Schema.Array(Schema.String),
-	total_count: Schema.Number,
-	has_length: Schema.Boolean,
-	has_area: Schema.Boolean,
-	has_volume: Schema.Boolean,
-	has_weight: Schema.Boolean
-});
-
-const ExtractedBucketSchema = Schema.Struct({
-	archetype_id: Schema.String,
-	storey: Schema.String,
-	element_count: Schema.Number,
-	length_m: Schema.Number,
-	length_measured_count: Schema.Number,
-	area_m2: Schema.Number,
-	area_measured_count: Schema.Number,
-	volume_m3: Schema.Number,
-	volume_measured_count: Schema.Number,
-	weight_kg: Schema.Number,
-	weight_measured_count: Schema.Number,
-	sample_express_ids: Schema.Array(Schema.Number)
-});
-
 const WorkerSuccessSchema = Schema.Struct({
 	type: Schema.Literal('success'),
-	extracted: Schema.Struct({
-		schema: Schema.String,
-		project_name: Schema.NullOr(Schema.String),
-		storeys: Schema.Array(Schema.String),
-		total_asset_count: Schema.Number,
-		archetypes: Schema.Array(ExtractedArchetypeSchema),
-		buckets: Schema.Array(ExtractedBucketSchema)
-	}),
+	extracted: ExtractedBimModelSchema,
 	durationMs: Schema.Number,
 	statementsScanned: Schema.Number
 });
@@ -107,13 +67,14 @@ const createTakeoffWorker = Effect.gen(function* () {
 		try: () => response.text(),
 		catch: (cause) => new BimStreamError({ message: messageOf(cause) })
 	});
-	const blob = new Blob([scriptText], { type: 'application/javascript' });
+	const source = moduleWorkerSource(scriptText, workerUrl);
+	const blob = new Blob([source], { type: 'text/javascript' });
 	const blobUrl = yield* Effect.acquireRelease(
 		Effect.sync(() => URL.createObjectURL(blob)),
 		(url) => Effect.sync(() => URL.revokeObjectURL(url))
 	);
 	return yield* Effect.try({
-		try: () => new Worker(blobUrl, { name: 'norbital-ifc-takeoff' }),
+		try: () => new Worker(blobUrl, { name: 'norbital-ifc-takeoff', type: 'module' }),
 		catch: (cause) => new BimStreamError({ message: messageOf(cause) })
 	});
 });
@@ -181,7 +142,7 @@ function runWorkerRequest(
 	});
 }
 
-function attachIsolatedVisuals(
+function attachGeometry(
 	source: File | string,
 	streamed: {
 		readonly extracted: ExtractedBimModel;
@@ -192,34 +153,27 @@ function attachIsolatedVisuals(
 ): Effect.Effect<BimStreamResult, never> {
 	return Effect.gen(function* () {
 		const started = performance.now();
-		const archetypesWithVisuals = yield* renderIsolatedAssetSnapshots(
+		const { extracted, pictures, duplicates } = yield* measureAndPicture(
 			source,
-			streamed.extracted.archetypes,
-			(snap) => {
-				onProgress?.({ phase: 'snapshots', ...snap });
-			}
+			streamed.extracted,
+			onProgress
 		);
-		const visualCapturedCount = archetypesWithVisuals.filter(
-			(a) => a.visual_views != null && a.visual_views.length > 0
-		).length;
 		return {
-			extracted: {
-				...streamed.extracted,
-				archetypes: archetypesWithVisuals
-			},
+			extracted,
+			pictures,
+			duplicates,
 			durationMs: Math.round(streamed.durationMs + (performance.now() - started)),
 			statementsScanned: streamed.statementsScanned,
-			visualCapturedCount
+			visualCapturedCount: pictures.size
 		};
 	});
 }
 
 /**
- * Streams a local browser `File` (arbitrarily large 50–500+ MiB IFC models) in 4 MiB chunks
- * inside a dedicated Web Worker, deduplicates into unique asset archetypes, and renders isolated
- * multi-angle 3D snapshots of ONLY each unique asset for Jev System 1 visual classification.
+ * Streams a local browser `File` (arbitrarily large 50–500+ MiB IFC models) in 4 MiB chunks inside a dedicated Web
+ * Worker into unique asset archetypes, then measures, merges and pictures them (`measureAndPicture`).
  */
-export function extractBimFromFile(
+function extractBimFromFile(
 	file: File,
 	onProgress?: (progress: BimTakeoffProgress) => void
 ): Effect.Effect<BimStreamResult, BimStreamError> {
@@ -229,16 +183,12 @@ export function extractBimFromFile(
 		(worker) => Effect.sync(() => worker.terminate())
 	).pipe(
 		Effect.scoped,
-		Effect.flatMap((streamed) => attachIsolatedVisuals(file, streamed, onProgress))
+		Effect.flatMap((streamed) => attachGeometry(file, streamed, onProgress))
 	);
 }
 
-/**
- * Streams an uploaded IFC file URL inside a dedicated Web Worker, deduplicates into unique asset
- * archetypes, and renders isolated multi-angle 3D snapshots of ONLY each unique asset for Jev
- * System 1 visual classification.
- */
-export function extractBimFromUrl(
+/** As `extractBimFromFile`, for the project's stored IFC file by its URL. */
+function extractBimFromUrl(
 	url: string,
 	onProgress?: (progress: BimTakeoffProgress) => void
 ): Effect.Effect<BimStreamResult, BimStreamError> {
@@ -249,6 +199,72 @@ export function extractBimFromUrl(
 		(worker) => Effect.sync(() => worker.terminate())
 	).pipe(
 		Effect.scoped,
-		Effect.flatMap((streamed) => attachIsolatedVisuals(resolved, streamed, onProgress))
+		Effect.flatMap((streamed) => attachGeometry(resolved, streamed, onProgress))
 	);
 }
+
+/** The takeoff's progress in the viewer's words. */
+export const takeoffProgressText = (t: PageContext['t'], progress: BimTakeoffProgress): string =>
+	progress.phase === 'streaming'
+		? t('bim_costing.streaming_progress', { percent: progress.percent, assets: progress.rawAssets })
+		: progress.phase === 'measuring'
+			? t('bim_costing.measuring_progress', { done: progress.done, total: progress.total })
+			: t('bim_costing.snapshots_progress', {
+					done: progress.done,
+					total: progress.total,
+					captured: progress.captured
+				});
+
+/**
+ * Takes off the project's BIM file in this browser and stores the takeoff on the project (`bim_takeoff`); storing it
+ * starts the pricing automation (`analyze_bim_file`). `source` is the file just uploaded, else the stored file's URL.
+ */
+export const storeProjectTakeoff = (
+	ctx: Pick<PageContext, 'upload' | 'query' | 'act'>,
+	project: Id<'projects'>,
+	source: File | string,
+	onProgress?: (progress: BimTakeoffProgress) => void
+) =>
+	Effect.gen(function* () {
+		const taken = yield* typeof source === 'string'
+			? extractBimFromUrl(source, onProgress)
+			: extractBimFromFile(source, onProgress);
+		const views = yield* Effect.forEach(
+			[...taken.pictures],
+			([archetype, picture]) =>
+				ctx
+					.upload(
+						Object.assign(picture, { name: `${archetype}.jpg` }),
+						'projects.bim_takeoff_views'
+					)
+					.pipe(Effect.map((ref) => [archetype, ref] as const)),
+			{ concurrency: 4 }
+		);
+		const fileOf = new Map(views.map(([archetype, ref]) => [archetype, ref.id] as const));
+		const extracted = {
+			...taken.extracted,
+			archetypes: taken.extracted.archetypes.map((a) => {
+				const visual_file = fileOf.get(a.archetype_id);
+				return visual_file === undefined ? a : { ...a, visual_file };
+			})
+		};
+		const ref = yield* ctx.upload(
+			Object.assign(new Blob([JSON.stringify(extracted)], { type: 'application/json' }), {
+				name: 'bim-takeoff.json'
+			}),
+			'projects.bim_takeoff'
+		);
+		const row = (yield* ctx.query({
+			projects: { where: { id: { eq: project } }, fields: ['revision'], limit: 1 }
+		})).projects.rows[0];
+		if (row === undefined) return taken;
+		yield* ctx.act({
+			'projects.update': [
+				{
+					target: { id: row.id, revision: row.revision },
+					set: { bim_takeoff: ref, bim_takeoff_views: views.map(([, view]) => view) }
+				}
+			]
+		});
+		return taken;
+	});

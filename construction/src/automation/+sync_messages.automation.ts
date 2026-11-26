@@ -25,11 +25,8 @@ const isSyncTransport = (value: string | undefined): value is SyncTransport =>
 
 export default automation({
 	description:
-		'Mirrors personal and workspace WhatsApp and email channels into project_messages; voice notes are transcribed and attachments (site photos, PO/DO/invoice PDFs) carried through.',
-	on: [
-		{ model: 'sys_message', verbs: ['create'] },
-		{ cron: '*/15 * * * *', rest: '1d' }
-	],
+		'Files each WhatsApp and email message as it lands, personal and workspace accounts alike, into project_messages with its voice note and attachments (site photos, PO/DO/invoice PDFs); the message model files it from there.',
+	on: [{ model: 'sys_message', verbs: ['create'] }],
 	input: { batch: { kind: 'int', optional: true } },
 	policies: ['construction_automation'],
 	concurrency: { max: 1 },
@@ -240,52 +237,11 @@ export default automation({
 					{ key: `sync-msg:${m.id}` }
 				)
 			);
-			if (outcome === null) continue;
-			if (outcome.kind !== 'committed') {
+			if (outcome !== null && outcome.kind !== 'committed') {
 				return yield* ctx.refuse('errors.intake_failed', { values: { kind: outcome.kind } });
 			}
-			if (note === null) continue;
-			const created = outcome.records.find((r) => r.model === 'project_messages');
-			if (created === undefined) continue;
-			const heard = yield* ctx.convert.ingest(file_ref(note), { diarize: false }).pipe(
-				Effect.map((got) => (got.kind === 'document' ? got.transcript : undefined)?.segments ?? []),
-				Effect.map((segments) => ({
-					detail: segments.map((s) => s.text.trim()).join(' '),
-					transcription: 'done' as const
-				})),
-				Effect.catchTags({
-					Unavailable: (error) =>
-						Effect.succeed({
-							detail: '[voice note — transcription unavailable]',
-							transcription: 'unavailable' as const,
-							transcription_error: error.reason
-						}),
-					FacilityFailure: (error) =>
-						Effect.succeed({
-							detail: '[voice note — transcription failed]',
-							transcription: 'failed' as const,
-							transcription_error: error.message
-						})
-				})
-			);
-			yield* ctx.act(
-				{
-					'project_messages.update': [
-						{
-							target: { id: created.id, revision: created.revision },
-							set: { ...heard, classification: 'pending' }
-						}
-					]
-				},
-				{ key: `transcribe-msg:${created.id}:${created.revision}` }
-			);
 		}
 
-		yield* ctx.schedule(
-			'classify_messages',
-			{},
-			{ at: ctx.now, key: 'construction-classify-backlog' }
-		);
 		yield* ctx.progress({ text: `${messages.length} WhatsApp/email messages synced` });
 		if (messages.length === batch || oldest.rows.length === OLDEST_PAGE) {
 			yield* ctx.schedule('sync_messages', input, {

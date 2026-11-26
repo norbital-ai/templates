@@ -1,19 +1,16 @@
 import { Effect } from 'effect';
 import { type EffectCtx, model, type Row } from '@norbital-ai/bolt';
+import { requeueMessages } from '../project_messages/intake.js';
 
 const columns = ['hard_filter', 'auto_extract', 'classification_sop'] as const;
 
+/** An owner's intake rules changed: their routed messages are routed again. */
 const replayOwners = Effect.fnUntraced(function* (
 	rows: readonly Row<'communication_settings'>[],
-	ctx: Pick<EffectCtx, 'schedule' | 'now'>
+	ctx: EffectCtx<'communication_settings'>
 ) {
-	for (const owner of new Set(rows.flatMap((row) => row.owner ?? []))) {
-		yield* ctx.schedule(
-			'reclassify_messages',
-			{ owner },
-			{ at: ctx.now, key: `construction-user-history-${owner}` }
-		);
-	}
+	const owners = [...new Set(rows.flatMap((row) => row.owner ?? []))];
+	if (owners.length > 0) yield* requeueMessages({ source_user: { in: owners } }, ctx);
 });
 
 export default model('communication_settings', {

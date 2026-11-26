@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Effect, Schema } from 'effect';
-	import { Badge, Button, Icon, Image, Spinner, Surface, cn, enum_text } from '@norbital-ai/ui';
+	import { Badge, Button, Icon, Spinner, Surface, cn } from '@norbital-ai/ui';
 	import { attach, fork, run } from '@norbital-ai/ui/effect';
 	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import {
@@ -18,7 +18,6 @@
 	} from './ifc_viewer.converter.js';
 	import {
 		type IFCSelectedElement,
-		type IFCViewerIssueSummary,
 		type IFCViewerMarkerGroup,
 		type IFCViewerPinCoords,
 		type IFCViewerProps,
@@ -141,7 +140,10 @@
 	const DEFAULT_BACKGROUND_COLOR = 'var(--color-background)';
 	const DEFAULT_SELECTION_COLOR = 'var(--color-brand)';
 	const DEFAULT_MARKER_COLOR = 'var(--color-muted-foreground)';
-	const FOCUS_STYLE_ID = 'ui-ifc-issue-focus';
+	const FOCUS_STYLE_ID = 'ui-ifc-focus';
+	const GHOST_STYLE_ID = 'ui-ifc-ghost';
+	/** How much of the model outside the focus still shows. */
+	const GHOST_OPACITY = 0.08;
 
 	function resolveCssColor(css: string): string {
 		const computed = getComputedStyle(document.documentElement);
@@ -164,18 +166,20 @@
 	interface Props extends IFCViewerProps {}
 	let {
 		t,
-		translateKey,
 		src,
 		alt,
 		markers = [],
 		markerGroups,
-		issues = [],
-		focusIssue = null,
+		tasks = [],
+		focus = null,
 		onClearFocus,
-		onTagIssue,
-		onOpenIssue,
+		onCreateTask,
+		onOpenTask,
 		onReplaceModel
 	}: Props = $props();
+	const focusKey = $derived(focus === null ? '' : `${focus.label}:${focus.expressIds.join(',')}`);
+	/** The focus last framed: a marker refresh keeps the camera where it is. */
+	let framedFocusKey = '';
 
 	const trimmedSrc = $derived(src?.trim() ?? '');
 	const markerKey = $derived(markers.join(','));
@@ -210,9 +214,9 @@
 		readonly button: number;
 	} | null>(null);
 
-	const selectedElementIssues = $derived.by(() => {
-		if (!selectedItem) return [];
-		return issues.filter((issue) => issue.expressId === selectedItem?.expressId);
+	const selectedElementTasks = $derived.by(() => {
+		const picked = selectedItem?.expressId;
+		return picked === undefined ? [] : tasks.filter((task) => task.expressIds.includes(picked));
 	});
 	const sectionActive = $derived(cutX < 100 || cutY < 100 || cutZ < 100);
 	const effectivePan = $derived(navMode === 'pan' || shiftPanning);
@@ -440,7 +444,6 @@
 
 	function clearSelection(): void {
 		resetSelectionState();
-		if (focusIssue) onClearFocus?.();
 		const highlighter = viewer?.highlighter;
 		if (highlighter) {
 			void run(
@@ -563,10 +566,12 @@
 					try: () => highlighter.clear('select'),
 					catch: viewerFailure('clear-selection')
 				}).pipe(Effect.ignore);
-				yield* Effect.tryPromise({
-					try: () => highlighter.clear(FOCUS_STYLE_ID),
-					catch: viewerFailure('clear-focus')
-				}).pipe(Effect.ignore);
+				yield* Effect.forEach([GHOST_STYLE_ID, FOCUS_STYLE_ID], (styleId) =>
+					Effect.tryPromise({
+						try: () => highlighter.clear(styleId),
+						catch: viewerFailure('clear-focus')
+					}).pipe(Effect.ignore)
+				);
 			}
 			const group = runtime.currentGroup;
 			if (group == null) return;
@@ -781,11 +786,52 @@
 			const needsInteraction =
 				runtime.markerStyleIds.length > 0 ||
 				normalizedMarkerGroups.length > 0 ||
-				markers.length > 0;
+				markers.length > 0 ||
+				focus !== null;
 			if (needsInteraction) ensureInteractionSystems(runtime);
 			yield* clearMarkerVisualization(runtime);
 			const highlighter = runtime.highlighter;
 			if (highlighter === null) return;
+			// a focus replaces the markers: its elements in colour, the rest translucent
+			if (focus !== null) {
+				const zoom = framedFocusKey !== focusKey;
+				framedFocusKey = focusKey;
+				const inFocus = new Set(focus.expressIds);
+				const rest = (yield* Effect.tryPromise({
+					try: () => group.getItemsIdsWithGeometry(),
+					catch: viewerFailure('read-model-items')
+				})).filter((id) => !inFocus.has(id));
+				yield* Effect.sync(() => {
+					highlighter.styles.set(GHOST_STYLE_ID, {
+						color: new runtime.THREE.Color(resolveCssColor(DEFAULT_MARKER_COLOR)),
+						opacity: GHOST_OPACITY,
+						transparent: true,
+						renderedFaces: runtime.FRAGS.RenderedFaces.TWO
+					});
+					highlighter.styles.set(FOCUS_STYLE_ID, {
+						color: new runtime.THREE.Color(resolveCssColor(DEFAULT_SELECTION_COLOR)),
+						opacity: 1,
+						transparent: false,
+						renderedFaces: runtime.FRAGS.RenderedFaces.TWO
+					});
+				});
+				yield* Effect.tryPromise({
+					try: () =>
+						highlighter.highlightByID(
+							GHOST_STYLE_ID,
+							{ [group.modelId]: new Set(rest) },
+							true,
+							false
+						),
+					catch: viewerFailure('ghost-model')
+				});
+				yield* Effect.tryPromise({
+					try: () =>
+						highlighter.highlightByID(FOCUS_STYLE_ID, { [group.modelId]: inFocus }, true, zoom),
+					catch: viewerFailure('focus-elements')
+				});
+				return;
+			}
 			if (normalizedMarkerGroups.length > 0) {
 				yield* Effect.forEach(normalizedMarkerGroups, (markerGroup, index) =>
 					Effect.gen(function* () {
@@ -828,66 +874,22 @@
 		});
 	}
 
-	function focusOnIssue(issue: IFCViewerIssueSummary) {
-		return Effect.gen(function* () {
-			const runtime = viewer;
-			const group = runtime?.currentGroup;
-			if (!runtime || !group) return;
-			const highlighter = ensureInteractionSystems(runtime);
-			yield* Effect.sync(() => {
-				highlighter.styles.set(FOCUS_STYLE_ID, {
-					color: new runtime.THREE.Color(resolveCssColor('var(--color-destructive)')),
-					opacity: 1,
-					transparent: false,
-					renderedFaces: runtime.FRAGS.RenderedFaces.TWO
-				});
-			});
-			const issueElements = { [group.modelId]: new Set([issue.expressId]) };
-			yield* Effect.tryPromise({
-				try: () => runtime.components.get(runtime.OBC.Hider).isolate(issueElements),
-				catch: viewerFailure('isolate-issue-element')
-			}).pipe(Effect.ignore);
-			yield* Effect.tryPromise({
-				try: () => highlighter.highlightByID(FOCUS_STYLE_ID, issueElements, true, true),
-				catch: viewerFailure('focus-issue-element')
-			}).pipe(Effect.ignore);
-			if (
-				issue.pin != null &&
-				issue.pin.camera_x != null &&
-				issue.pin.camera_y != null &&
-				issue.pin.camera_z != null
-			) {
-				const { x, y, z, camera_x, camera_y, camera_z } = issue.pin;
-				yield* Effect.tryPromise({
-					try: () =>
-						runtime.world.camera.controls.setLookAt(camera_x, camera_y, camera_z, x, y, z, true),
-					catch: viewerFailure('focus-issue-camera')
-				}).pipe(Effect.ignore);
-			}
-			const properties = (yield* Effect.tryPromise({
-				try: () => group.getItemsData([issue.expressId]),
-				catch: viewerFailure('read-focus-properties')
-			}).pipe(Effect.catch(() => Effect.succeed([null]))))[0];
-			selectedItem = buildSelectedItem(issue.expressId, properties ?? null, issue.pin);
-		});
-	}
-
-	/** Leaves the focused issue: every element visible again, the focus colour cleared, the whole model framed. */
+	/** Leaves the focus: every element as modelled again, the whole model framed, markers back. */
 	function showWholeModel() {
 		return Effect.gen(function* () {
 			const runtime = viewer;
 			if (!runtime?.currentGroup) return;
-			yield* Effect.tryPromise({
-				try: () => runtime.components.get(runtime.OBC.Hider).set(true),
-				catch: viewerFailure('show-whole-model')
-			}).pipe(Effect.ignore);
+			framedFocusKey = '';
 			yield* framePresetEffect(runtime, 'iso', true);
 			const highlighter = runtime.highlighter;
-			if (highlighter === null) return;
-			yield* Effect.tryPromise({
-				try: () => highlighter.clear(FOCUS_STYLE_ID),
-				catch: viewerFailure('clear-focus')
-			}).pipe(Effect.ignore);
+			if (highlighter !== null)
+				yield* Effect.forEach([GHOST_STYLE_ID, FOCUS_STYLE_ID], (styleId) =>
+					Effect.tryPromise({
+						try: () => highlighter.clear(styleId),
+						catch: viewerFailure('clear-focus')
+					}).pipe(Effect.ignore)
+				);
+			scheduleMarkerVisualization();
 		});
 	}
 
@@ -1078,7 +1080,6 @@
 			applyClippingPlanes(viewer);
 		}
 	);
-	const words = (key: string): string => (translateKey ? translateKey(key) : key);
 
 	const sliderY = $derived(
 		create_slider({
@@ -1163,14 +1164,11 @@
 	});
 
 	watch(
-		() => focusIssue,
-		(issue) => {
+		() => focusKey,
+		(key) => {
 			if (!viewer?.currentGroup) return;
-			if (issue) fork(focusOnIssue(issue), () => {});
-			else {
-				resetSelectionState();
-				fork(showWholeModel(), () => {});
-			}
+			if (key !== '') scheduleMarkerVisualization();
+			else fork(showWholeModel(), () => {});
 		}
 	);
 </script>
@@ -1286,64 +1284,43 @@
 								</Inline>
 							</Inline>
 
-							{#if onTagIssue}
+							{#if onCreateTask}
 								<Inline align="center" justify="between" gap="xs" class="pt-1">
 									<span class="text-micro leading-tight text-muted-foreground">
-										{#if selectedElementIssues.length > 0}
-											{t('component.element_tagged_issues_count', {
-												count: selectedElementIssues.length
-											})}
-										{:else}
-											{t('component.click_to_tag_issue')}
-										{/if}
+										{selectedElementTasks.length > 0
+											? t('component.element_tasks_count', { count: selectedElementTasks.length })
+											: t('component.element_no_task')}
 									</span>
 									<Button
 										variant="brand"
 										class="h-6 px-2 text-micro"
-										onclick={() => onTagIssue?.(item)}
+										onclick={() => onCreateTask?.(item)}
 									>
-										<Icon name="lucide:pin" class="size-3" />
-										{t('component.tag_issue_and_photos')}
+										<Icon name="lucide:list-plus" class="size-3" />
+										{t('component.create_bim_task')}
 									</Button>
 								</Inline>
 							{/if}
 
-							{#if selectedElementIssues.length > 0}
+							{#if selectedElementTasks.length > 0}
 								<Stack gap="xs" class="pt-1">
-									{#each selectedElementIssues as issue (issue.id)}
+									{#each selectedElementTasks as task (task.id)}
 										<Surface tone="subtle" padding="xs" radius="control">
 											<button
 												type="button"
 												class="w-full text-left"
-												onclick={() => onOpenIssue?.(issue.id)}
+												onclick={() => onOpenTask?.(task.id)}
 											>
-												<Stack gap="xs">
-													<Inline align="center" justify="between" gap="xs">
-														<span class="min-w-0 truncate text-xs font-medium text-foreground">
-															{#if issue.issue_number}{issue.issue_number} ·
-															{/if}{issue.title}
-														</span>
-														<Badge variant="outline" class="text-tiny">
-															{enum_text(issue.severity, {
-																t: words,
-																model: 'issues',
-																field: 'severity'
-															})}
+												<Inline align="center" justify="between" gap="xs">
+													<span class="min-w-0 truncate text-xs font-medium text-foreground">
+														{task.label}
+													</span>
+													{#if task.openIssues > 0}
+														<Badge variant="warning" class="text-tiny">
+															{t('component.open_issues_count', { count: task.openIssues })}
 														</Badge>
-													</Inline>
-													{#if issue.photoUrls.length > 0}
-														<Inline gap="xs">
-															{#each issue.photoUrls.slice(0, 3) as url (url)}
-																<Image
-																	src={url}
-																	alt={issue.title}
-																	class="size-9 rounded-inset border border-border"
-																	image_class="object-cover"
-																/>
-															{/each}
-														</Inline>
 													{/if}
-												</Stack>
+												</Inline>
 											</button>
 										</Surface>
 									{/each}
@@ -1584,14 +1561,12 @@
 		</Inline>
 	</Imposter>
 
-	{#if focusIssue}
+	{#if focus}
 		<Imposter placement="bottom-start" offset="sm" class="pointer-events-auto max-w-72">
 			<Surface tone="popover" padding="xs" radius="control">
 				<Inline align="center" justify="between" gap="sm">
 					<span class="min-w-0 truncate text-micro text-foreground">
-						{t('component.showing_issue_only', {
-							issue: focusIssue.issue_number ?? focusIssue.title
-						})}
+						{t('component.showing_focus_only', { label: focus.label })}
 					</span>
 					<Button variant="ghost" class="h-6 px-2 text-micro" onclick={() => onClearFocus?.()}>
 						{t('component.show_whole_model')}
@@ -1626,7 +1601,7 @@
 		</Imposter>
 	{/if}
 
-	{#if modelBounds && !focusIssue}
+	{#if modelBounds && !focus}
 		<Imposter placement="bottom-end" offset="sm" class="pointer-events-none hidden sm:block">
 			<div
 				class="rounded-control border border-border bg-popover/85 px-2 py-1 text-tiny leading-tight text-muted-foreground backdrop-blur-xs"

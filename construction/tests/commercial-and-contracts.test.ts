@@ -730,46 +730,6 @@ it.effect(
 			expect(persistedInv?.['status']).toBe('issued');
 
 			const admin = yield* t.as(t.admin);
-			// Commercial QS cannot create delivery issues -> verify 0 persisted, paired with admitted delivery create
-			const qsIssueDenied = yield* qs
-				.act({
-					'issues.create': [
-						{ project_id: projectId, title: 'Denied issue', kind: 'defect', severity: 'low' }
-					]
-				})
-				.pipe(Effect.flip);
-			expect(qsIssueDenied._tag).toBe('ActRefused');
-			expect(
-				rowsOf(
-					yield* viewer.query({
-						issues: { where: { project_id: { eq: projectId } }, fields: ['title'], limit: 10 }
-					}),
-					'issues'
-				)
-			).toHaveLength(0);
-
-			const deliveryIssueOk = yield* delivery.act({
-				'issues.create': [
-					{
-						project_id: projectId,
-						title: 'Roof flashing gap',
-						kind: 'defect',
-						trade_specialty: 'roofing',
-						severity: 'medium',
-						zone: 'Z-ROOF'
-					}
-				]
-			});
-			expect(deliveryIssueOk.kind).toBe('committed');
-			expect(
-				rowsOf(
-					yield* viewer.query({
-						issues: { where: { project_id: { eq: projectId } }, fields: ['title'], limit: 10 }
-					}),
-					'issues'
-				)
-			).toHaveLength(1);
-
 			const taskCreate = yield* delivery.act({
 				'tasks.create': [
 					{
@@ -784,6 +744,74 @@ it.effect(
 			});
 			if (taskCreate.kind !== 'committed') throw new Error('Task create failed');
 			const taskRef = recordOf(taskCreate.records, 'tasks');
+			// the people working on a project comment on its tasks; a read-only viewer cannot
+			const comment = yield* delivery.act({
+				'activities.create': [
+					{ task_id: taskRef.id, kind: 'comment', body: 'Deck fixings checked.' }
+				]
+			});
+			expect(comment.kind).toBe('committed');
+			const posted = rowsOf(
+				yield* viewer.query({
+					activities: { where: { task_id: { eq: taskRef.id } }, fields: ['author'], limit: 1 }
+				}),
+				'activities'
+			)[0];
+			expect(posted?.['author']).toBe(deliveryUser.id);
+			const viewerComment = yield* viewer
+				.act({
+					'activities.create': [{ task_id: taskRef.id, kind: 'comment', body: 'Looks good.' }]
+				})
+				.pipe(Effect.flip);
+			expect(viewerComment._tag).toBe('ActRefused');
+			// Commercial QS comments on tasks but raises no site issues -> verify none persisted, paired with delivery's
+			const qsIssueDenied = yield* qs
+				.act({
+					'activities.create': [
+						{ task_id: taskRef.id, kind: 'issue', title: 'Denied issue', issue_type: 'defect' }
+					]
+				})
+				.pipe(Effect.flip);
+			expect(qsIssueDenied).toMatchObject({ _tag: 'ActRefused', key: 'errors.comments_only' });
+			expect(
+				rowsOf(
+					yield* viewer.query({
+						activities: {
+							where: { task_id: { eq: taskRef.id }, kind: { eq: 'issue' } },
+							fields: ['title'],
+							limit: 10
+						}
+					}),
+					'activities'
+				)
+			).toHaveLength(0);
+
+			const deliveryIssueOk = yield* delivery.act({
+				'activities.create': [{ task_id: taskRef.id, kind: 'issue', title: 'Roof flashing gap' }]
+			});
+			expect(deliveryIssueOk.kind).toBe('committed');
+			expect(
+				rowsOf(
+					yield* viewer.query({
+						activities: {
+							where: { task_id: { eq: taskRef.id }, kind: { eq: 'issue' } },
+							fields: ['title'],
+							limit: 10
+						}
+					}),
+					'activities'
+				)
+			).toHaveLength(1);
+			// the task counts its open issues
+			expect(
+				rowsOf(
+					yield* viewer.query({
+						tasks: { where: { id: { eq: taskRef.id } }, fields: ['open_issue_count'], limit: 1 }
+					}),
+					'tasks'
+				)[0]?.['open_issue_count']
+			).toBe(1);
+
 			const movedTask = yield* delivery.act({
 				'tasks.update': [{ target: taskRef, set: { status: 'in_progress' } }]
 			});

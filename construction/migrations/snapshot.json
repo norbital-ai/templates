@@ -1,6 +1,159 @@
 {
 	"currency": "SGD",
 	"tables": {
+		"activities": {
+			"audit": true,
+			"check": {
+				"issue_complete": {
+					"or": [
+						{
+							"kind": {
+								"ne": "issue"
+							}
+						},
+						{
+							"issue_type": {
+								"is_null": false
+							},
+							"severity": {
+								"is_null": false
+							},
+							"status": {
+								"is_null": false
+							},
+							"title": {
+								"is_null": false
+							}
+						}
+					]
+				},
+				"meeting_titled": {
+					"or": [
+						{
+							"kind": {
+								"ne": "meeting"
+							}
+						},
+						{
+							"title": {
+								"is_null": false
+							}
+						}
+					]
+				},
+				"said_something": {
+					"or": [
+						{
+							"body": {
+								"is_null": false
+							}
+						},
+						{
+							"title": {
+								"is_null": false
+							}
+						}
+					]
+				}
+			},
+			"fields": {
+				"attachments": {
+					"accept": [
+						"*/*"
+					],
+					"kind": "file",
+					"many": true,
+					"max": "20MiB",
+					"optional": true
+				},
+				"attendees": {
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
+				"author": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
+				},
+				"body": {
+					"format": "markdown",
+					"images": "attachments",
+					"kind": "text",
+					"optional": true
+				},
+				"issue_type": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"defect",
+						"rfi",
+						"clash",
+						"safety",
+						"snag"
+					]
+				},
+				"kind": {
+					"default": "comment",
+					"kind": "enum",
+					"values": [
+						"comment",
+						"issue",
+						"meeting"
+					]
+				},
+				"occurred_at": {
+					"default": {
+						"var": "now"
+					},
+					"kind": "instant"
+				},
+				"severity": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"low",
+						"medium",
+						"high",
+						"critical"
+					]
+				},
+				"source_message_id": {
+					"inverse": "activities",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "project_messages"
+				},
+				"status": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"open",
+						"closed"
+					]
+				},
+				"task_id": {
+					"inverse": "activities",
+					"kind": "ref",
+					"owned": true,
+					"to": "tasks"
+				},
+				"title": {
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"task_id",
+						"kind"
+					]
+				}
+			],
+			"record_label": "record.title != null ? record.title : record.body"
+		},
 		"adhoc_costs": {
 			"audit": true,
 			"check": {
@@ -243,6 +396,69 @@
 							"eq": "ONGOING"
 						}
 					}
+				}
+			]
+		},
+		"asset_mappings": {
+			"audit": true,
+			"fields": {
+				"confidence": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"ifc_class": {
+					"kind": "text"
+				},
+				"item_id": {
+					"inverse": "asset_mappings",
+					"kind": "ref",
+					"on_delete": "set_null",
+					"optional": true,
+					"to": "item_matrix"
+				},
+				"label": {
+					"kind": "text"
+				},
+				"note": {
+					"kind": "text",
+					"optional": true
+				},
+				"picture": {
+					"accept": [
+						"image/jpeg"
+					],
+					"kind": "file",
+					"max": "1MiB",
+					"optional": true
+				},
+				"signature": {
+					"kind": "text"
+				},
+				"source": {
+					"default": "system_1",
+					"kind": "enum",
+					"values": [
+						"system_1",
+						"qs",
+						"proposal"
+					]
+				}
+			},
+			"record_label": "record.label",
+			"search": {
+				"text": [
+					"label",
+					"ifc_class"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"signature"
+					],
+					"import_key": true,
+					"name": "one_per_signature"
 				}
 			]
 		},
@@ -1007,6 +1223,12 @@
 					"kind": "instant",
 					"optional": true
 				},
+				"asset_signatures": {
+					"hidden": true,
+					"kind": "text",
+					"many": true,
+					"optional": true
+				},
 				"bim_asset_count": {
 					"default": 0,
 					"kind": "int",
@@ -1147,208 +1369,26 @@
 				}
 			]
 		},
-		"issues": {
-			"audit": true,
-			"fields": {
-				"assignee": {
-					"kind": "ref",
-					"optional": true,
-					"to": "sys_user"
-				},
-				"attachments": {
-					"accept": [
-						"*/*"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
-				},
-				"bim_pin": {
-					"kind": "custom",
-					"of": "bim_pin",
-					"optional": true
-				},
-				"closed_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"contract_id": {
-					"inverse": "issues",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "contracts"
-				},
-				"description": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"due_date": {
-					"kind": "date",
-					"optional": true
-				},
-				"issue_number": {
-					"kind": "seq",
-					"pattern": "ISS-{yyyy}-{000}",
-					"per": [
-						"project_id"
-					]
-				},
-				"kind": {
-					"default": "defect",
-					"kind": "enum",
-					"values": [
-						"defect",
-						"rfi",
-						"clash",
-						"safety",
-						"snag"
-					]
-				},
-				"party": {
-					"inverse": "issues",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "contacts"
-				},
-				"photos": {
-					"accept": [
-						"image/jpeg",
-						"image/png",
-						"image/webp"
-					],
-					"kind": "file",
-					"many": true,
-					"max": "20MiB",
-					"optional": true
-				},
-				"project_id": {
-					"inverse": "issues",
-					"kind": "ref",
-					"owned": true,
-					"to": "projects"
-				},
-				"reported_date": {
-					"default": {
-						"var": "today"
-					},
-					"kind": "date",
-					"optional": true
-				},
-				"resolution_notes": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"severity": {
-					"default": "medium",
-					"kind": "enum",
-					"values": [
-						"low",
-						"medium",
-						"high",
-						"critical"
-					]
-				},
-				"source_message_id": {
-					"inverse": "issues",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "project_messages"
-				},
-				"status": {
-					"initial": "open",
-					"kind": "state",
-					"states": {
-						"closed": {
-							"to": [
-								"open"
-							]
-						},
-						"in_progress": {
-							"to": [
-								"open",
-								"ready_for_verification",
-								"closed"
-							]
-						},
-						"open": {
-							"to": [
-								"in_progress",
-								"ready_for_verification",
-								"closed"
-							]
-						},
-						"ready_for_verification": {
-							"to": [
-								"in_progress",
-								"closed"
-							]
-						}
-					}
-				},
-				"task_id": {
-					"inverse": "issues",
-					"kind": "ref",
-					"on_delete": "set_null",
-					"optional": true,
-					"to": "tasks"
-				},
-				"title": {
-					"kind": "text"
-				},
-				"trade_specialty": {
-					"default": "general",
-					"kind": "enum",
-					"values": [
-						"general",
-						"civil_earthworks",
-						"piling",
-						"structural",
-						"roofing",
-						"facade",
-						"waterproofing",
-						"flooring",
-						"finishing",
-						"mne",
-						"electrical",
-						"plumbing",
-						"hvac",
-						"fire_protection",
-						"elv_security",
-						"landscaping"
-					]
-				},
-				"zone": {
-					"kind": "text",
-					"optional": true
-				}
-			},
-			"indexes": [
-				{
-					"on": [
-						"project_id",
-						"status"
-					]
-				}
-			],
-			"record_label": "record.issue_number != null ? record.issue_number + ' · ' + record.title : record.title",
-			"search": {
-				"text": [
-					"issue_number",
-					"title",
-					"zone",
-					"description"
-				]
-			}
-		},
 		"item_matrix": {
 			"audit": true,
 			"check": {
+				"derived_needs_source": {
+					"or": [
+						{
+							"quantity_basis": {
+								"ne": "derived"
+							}
+						},
+						{
+							"derived_from": {
+								"is_null": false
+							},
+							"ratio": {
+								"gt": 0
+							}
+						}
+					]
+				},
 				"valid_carbon": {
 					"carbon_factor": {
 						"gte": 0
@@ -1391,6 +1431,10 @@
 					"default": "SGD",
 					"kind": "currency"
 				},
+				"derived_from": {
+					"kind": "text",
+					"optional": true
+				},
 				"discipline": {
 					"default": "mep",
 					"kind": "enum",
@@ -1430,7 +1474,8 @@
 						"volume",
 						"weight",
 						"lump_sum",
-						"pct_of_bim"
+						"pct_of_bim",
+						"derived"
 					]
 				},
 				"rate_basis": {
@@ -1442,6 +1487,15 @@
 						"subcon_quote",
 						"assumption"
 					]
+				},
+				"ratio": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 4
+				},
+				"stands_in_for": {
+					"kind": "text",
+					"optional": true
 				},
 				"trade_specialty": {
 					"default": "general",
@@ -1857,8 +1911,7 @@
 					}
 				},
 				"address": {
-					"kind": "custom",
-					"of": "project_address",
+					"kind": "text",
 					"optional": true
 				},
 				"autodesk_project_id": {
@@ -1868,6 +1921,11 @@
 				"bim_costing_dirty": {
 					"default": false,
 					"kind": "bool"
+				},
+				"bim_costing_error": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
 				},
 				"bim_file": {
 					"accept": [
@@ -1902,6 +1960,25 @@
 						"kind": "object"
 					}
 				},
+				"bim_takeoff": {
+					"accept": [
+						"application/json"
+					],
+					"hidden": true,
+					"kind": "file",
+					"max": "4MiB",
+					"optional": true
+				},
+				"bim_takeoff_views": {
+					"accept": [
+						"image/jpeg"
+					],
+					"hidden": true,
+					"kind": "file",
+					"many": true,
+					"max": "1MiB",
+					"optional": true
+				},
 				"bim_version": {
 					"kind": "text",
 					"optional": true
@@ -1922,6 +1999,10 @@
 					"kind": "text",
 					"optional": true
 				},
+				"location": {
+					"kind": "point",
+					"optional": true
+				},
 				"open_document_count": {
 					"kind": "count",
 					"of": "commercial_documents",
@@ -1937,17 +2018,8 @@
 					}
 				},
 				"open_issue_count": {
-					"kind": "count",
-					"of": "issues",
-					"where": {
-						"status": {
-							"in": [
-								"open",
-								"in_progress",
-								"ready_for_verification"
-							]
-						}
-					}
+					"kind": "sum",
+					"of": "tasks.open_issue_count"
 				},
 				"open_task_count": {
 					"kind": "count",
@@ -3460,10 +3532,6 @@
 									"system"
 								]
 							},
-							"email_notifications": {
-								"kind": "bool",
-								"optional": true
-							},
 							"locale": {
 								"kind": "text",
 								"max": 35,
@@ -3595,6 +3663,7 @@
 				},
 				"description": {
 					"format": "markdown",
+					"images": "attachments",
 					"kind": "text",
 					"optional": true
 				},
@@ -3606,6 +3675,14 @@
 					"default": false,
 					"kind": "bool"
 				},
+				"kind": {
+					"default": "adhoc",
+					"kind": "enum",
+					"values": [
+						"bim",
+						"adhoc"
+					]
+				},
 				"last_updated_on": {
 					"kind": "date",
 					"optional": true
@@ -3613,6 +3690,18 @@
 				"latest_update": {
 					"kind": "text",
 					"optional": true
+				},
+				"open_issue_count": {
+					"kind": "count",
+					"of": "activities",
+					"where": {
+						"kind": {
+							"eq": "issue"
+						},
+						"status": {
+							"eq": "open"
+						}
+					}
 				},
 				"priority": {
 					"default": "medium",

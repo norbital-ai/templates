@@ -3,7 +3,7 @@ import { workspace } from '@norbital-ai/bolt';
 /**
  * Contractor workspace for both main contractors managing subcontractors and subcontractors managing
  * their own projects: structures WhatsApp, email, Autodesk ACC, and BIM IFC inputs into cashflow
- * (contracts, PO/DO/invoices/claims), progression (large-scale WBS schedules & BIM issues), and
+ * (contracts, PO/DO/invoices/claims), progression (large-scale WBS schedules with their activity: comments, issues and meetings), and
  * quantifiable BIM + non-BIM cost estimations.
  */
 export default workspace({

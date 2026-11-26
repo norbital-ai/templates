@@ -1,5 +1,15 @@
-import { Effect } from 'effect';
-import type { BimArchetype } from '../bim-step-stream.js';
+import { Effect, type Scope } from 'effect';
+import {
+	assetSignature,
+	dropDuplicates,
+	fillFromGeometry,
+	measureElement,
+	measureMesh,
+	mergeIdenticalArchetypes,
+	type ElementMeasure,
+	type MeshMeasure
+} from '../bim-geometry.js';
+import type { BimArchetype, ExtractedBimModel } from '../bim-step-stream.js';
 import {
 	fetchEffect,
 	messageOf,
@@ -14,15 +24,17 @@ const WEB_IFC_WASM_URL = 'https://esm.sh/web-ifc@0.0.77/web-ifc.wasm';
 const SNAPSHOT_SIZE = 224;
 const SNAPSHOT_JPEG_QUALITY = 0.74;
 const MAX_WASM_SOURCE_BYTES = 250 * 1024 * 1024;
-const MAX_VISUAL_ARCHETYPES = 120;
-const SOFT_TWO_VIEW_BYTES = 1_800_000;
-const MAX_TOTAL_VISUAL_BYTES = 2_400_000;
+const MAX_VISUAL_ARCHETYPES = 200;
 
-export type BimSnapshotProgress = {
-	readonly done: number;
-	readonly total: number;
-	readonly captured: number;
-};
+/** The geometry pass's progress: measuring every element, then picturing each unique asset. */
+export type BimGeometryProgress =
+	| { readonly phase: 'measuring'; readonly done: number; readonly total: number }
+	| {
+			readonly phase: 'snapshots';
+			readonly done: number;
+			readonly total: number;
+			readonly captured: number;
+	  };
 
 type SnapshotAngle = {
 	readonly yawOffsetRad: number;
@@ -30,20 +42,18 @@ type SnapshotAngle = {
 };
 
 /**
- * Three complementary studio camera angles around an isolated asset:
+ * Four studio camera angles around an isolated asset, laid out in a square 2 × 2 picture (vision models refuse a
+ * long strip):
  * 1. Front 3/4 isometric (shows overall 3D form, panels, glazing, hardware, frame)
  * 2. Direct front elevation (shows double vs single leaf, sliding overlap, mullions, symmetry)
  * 3. Side / rear-top 3/4 profile (shows multi-layer thickness, sliding tracks, depth, top shape)
+ * 4. Plan from above (shows bar shapes and bends, duct and tray runs, slab and furniture outlines)
  */
 const MULTI_ANGLE_VIEWS: readonly SnapshotAngle[] = [
 	{ yawOffsetRad: (34 * Math.PI) / 180, pitchRad: (20 * Math.PI) / 180 },
 	{ yawOffsetRad: 0, pitchRad: (4 * Math.PI) / 180 },
-	{ yawOffsetRad: (112 * Math.PI) / 180, pitchRad: (28 * Math.PI) / 180 }
-];
-
-const COMPACT_ANGLE_VIEWS: readonly SnapshotAngle[] = [
-	{ yawOffsetRad: (34 * Math.PI) / 180, pitchRad: (20 * Math.PI) / 180 },
-	{ yawOffsetRad: (112 * Math.PI) / 180, pitchRad: (28 * Math.PI) / 180 }
+	{ yawOffsetRad: (112 * Math.PI) / 180, pitchRad: (28 * Math.PI) / 180 },
+	{ yawOffsetRad: 0, pitchRad: (88 * Math.PI) / 180 }
 ];
 
 const loadVisualRuntime = Effect.gen(function* () {
@@ -194,34 +204,53 @@ function buildIsolatedAssetGroup(
 				}
 			}
 		} finally {
-			flatMesh.delete();
+			flatMesh.delete?.();
 		}
 	}
 
 	return { group, geometries, edges, materials, meshCount };
 }
 
+/** The takeoff and, by archetype, its four-angle picture. */
+export type Takeoff = {
+	readonly extracted: ExtractedBimModel;
+	readonly pictures: ReadonlyMap<string, Blob>;
+	/** Elements dropped as modelled twice. */
+	readonly duplicates: number;
+};
+
+/** A takeoff as stored: element ids are only for measuring. */
+const stored = ({ assemblies: _parts, ...extracted }: ExtractedBimModel): ExtractedBimModel => ({
+	...extracted,
+	buckets: extracted.buckets.map(({ element_ids: _ids, ...bucket }) => bucket)
+});
+
 /**
- * Renders isolated multi-angle 3D studio snapshots of ONLY each unique deduplicated BIM asset
- * (never the full building) using `web-ifc@0.0.77` + `three@0.185.1` on an offscreen WebGL canvas.
- *
- * Designed so Jev System 1 (`ctx.ai.sys_1.decide`) visually distinguishes door leaves, sliding
- * tracks, multi-layer walls/doors, windows, fixtures, and site/playground assets even when IFC
- * text metadata is sparse or inconsistent. Fails soft (returns archetypes unchanged) if WebGL,
- * WASM, or memory limits prevent rendering.
+ * The browser's pass over the model's geometry (`web-ifc` + `three` on an offscreen WebGL canvas), between the STEP
+ * stream and the stored takeoff:
+ * 1. measures every element from its mesh;
+ * 2. drops elements modelled twice and fills the quantities the model's own quantity sets leave out;
+ * 3. merges archetypes that are one asset under different names or drawn a little off (tolerance, material families);
+ * 4. renders each unique asset alone from four angles into one square picture, for System 1 to classify by sight.
+ * It fails soft: without WebGL or WASM the takeoff keeps the stream's quantities and goes without pictures.
  */
-export function renderIsolatedAssetSnapshots(
+export function measureAndPicture(
 	source: File | string,
-	archetypes: readonly BimArchetype[],
-	onProgress?: (progress: BimSnapshotProgress) => void
-): Effect.Effect<readonly BimArchetype[], never> {
-	if (archetypes.length === 0 || typeof document === 'undefined') {
-		return Effect.succeed(archetypes);
+	extracted: ExtractedBimModel,
+	onProgress?: (progress: BimGeometryProgress) => void
+): Effect.Effect<Takeoff, never> {
+	const plain = (): Takeoff => ({
+		extracted: stored(extracted),
+		pictures: new Map(),
+		duplicates: 0
+	});
+	if (extracted.archetypes.length === 0 || typeof document === 'undefined') {
+		return Effect.succeed(plain());
 	}
 
 	const task = Effect.gen(function* () {
 		const bytes = yield* loadSourceBytes(source);
-		if (bytes === null) return archetypes;
+		if (bytes === null) return plain();
 
 		const { ifcApi, THREE } = yield* loadVisualRuntime;
 		const modelID = yield* Effect.acquireRelease(
@@ -239,6 +268,96 @@ export function renderIsolatedAssetSnapshots(
 				}).pipe(Effect.ignore)
 		);
 
+		// a shared geometry (a type's mapped item) is read once
+		const meshes = new Map<number, MeshMeasure | null>();
+		const meshOf = (geometryId: number): MeshMeasure | null => {
+			const held = meshes.get(geometryId);
+			if (held !== undefined) return held;
+			const geo = ifcApi.GetGeometry(modelID, geometryId);
+			try {
+				const measured = measureMesh(
+					ifcApi.GetVertexArray(geo.GetVertexData(), geo.GetVertexDataSize()),
+					ifcApi.GetIndexArray(geo.GetIndexData(), geo.GetIndexDataSize())
+				);
+				meshes.set(geometryId, measured);
+				return measured;
+			} finally {
+				geo.delete();
+			}
+		};
+		const measureIds = (ids: readonly number[]): ElementMeasure | null => {
+			const placed: { mesh: MeshMeasure; transform: readonly number[] }[] = [];
+			for (const id of ids) {
+				const flat = ifcApi.GetFlatMesh(modelID, id);
+				try {
+					for (let i = 0; i < flat.geometries.size(); i++) {
+						const g = flat.geometries.get(i);
+						const mesh = meshOf(g.geometryExpressID);
+						if (mesh !== null && g.flatTransformation.length === 16)
+							placed.push({ mesh, transform: g.flatTransformation });
+					}
+				} finally {
+					flat.delete?.();
+				}
+			}
+			return measureElement(placed);
+		};
+
+		// 1. every element, measured
+		const ids = extracted.buckets.flatMap((b) => b.element_ids ?? []);
+		const measured = new Map<number, ElementMeasure>();
+		for (let i = 0; i < ids.length; i++) {
+			const id = ids[i];
+			if (id === undefined) continue;
+			// an assembly is measured whole: its own geometry and every part's
+			const m = measureIds([id, ...(extracted.assemblies?.[String(id)] ?? [])]);
+			if (m !== null) measured.set(id, m);
+			if ((i + 1) % 500 === 0 || i + 1 === ids.length) {
+				onProgress?.({ phase: 'measuring', done: i + 1, total: ids.length });
+				yield* Effect.yieldNow;
+			}
+		}
+		// 2. what was modelled twice counts once; what geometry measures fills what the model left out
+		const { extracted: single, duplicates } = dropDuplicates(extracted, measured);
+		const filled = fillFromGeometry(single, measured);
+
+		// 3. one asset under two names, or drawn a little off, is classified once
+		const representatives = new Map<string, ElementMeasure>();
+		for (const arch of filled.archetypes) {
+			const m =
+				measured.get(arch.representative_express_id) ??
+				(arch.representative_part_ids.length > 0 ? measureIds(arch.representative_part_ids) : null);
+			if (m !== null) representatives.set(arch.archetype_id, m);
+		}
+		const merged = mergeIdenticalArchetypes(filled, representatives);
+		const signed = {
+			...merged,
+			archetypes: merged.archetypes.map((a) => {
+				const m = representatives.get(a.archetype_id);
+				return m === undefined ? a : { ...a, signature: assetSignature(a, m) };
+			})
+		};
+
+		// 4. each unique asset, pictured alone
+		const pictures = yield* picture(ifcApi, THREE, modelID, signed.archetypes, onProgress).pipe(
+			Effect.catchCause(() => Effect.succeed(new Map<string, Blob>()))
+		);
+		return { extracted: stored(signed), pictures, duplicates };
+	}).pipe(Effect.scoped);
+
+	// soft in every way: a web-ifc fault is a defect, not a failure
+	return task.pipe(Effect.catchCause(() => Effect.succeed(plain())));
+}
+
+/** Renders each archetype's representative alone from four studio angles into one square JPEG, by archetype. */
+function picture(
+	ifcApi: ViewerIfcApi,
+	THREE: ViewerThreeModule,
+	modelID: number,
+	archetypes: readonly BimArchetype[],
+	onProgress?: (progress: BimGeometryProgress) => void
+): Effect.Effect<ReadonlyMap<string, Blob>, Error, Scope.Scope> {
+	return Effect.gen(function* () {
 		const renderer = yield* Effect.acquireRelease(
 			Effect.try({
 				try: () => {
@@ -294,12 +413,15 @@ export function renderIsolatedAssetSnapshots(
 		const size = new THREE.Vector3();
 
 		const targetCount = Math.min(archetypes.length, MAX_VISUAL_ARCHETYPES);
-		const result: BimArchetype[] = [...archetypes];
-		let totalBytes = 0;
-		let captured = 0;
+		const pictures = new Map<string, Blob>();
+		// the four angles in one square picture: front three-quarter, front elevation / side-rear, plan
+		const sheet = document.createElement('canvas');
+		sheet.width = SNAPSHOT_SIZE * 2;
+		sheet.height = SNAPSHOT_SIZE * 2;
+		const paint = sheet.getContext('2d');
+		if (paint === null) return pictures;
 
 		for (let idx = 0; idx < targetCount; idx++) {
-			if (totalBytes >= MAX_TOTAL_VISUAL_BYTES) break;
 			const arch = archetypes[idx];
 			if (arch === undefined) continue;
 
@@ -344,10 +466,7 @@ export function renderIsolatedAssetSnapshots(
 							camera.far = Math.max(100, dist * 12);
 							camera.updateProjectionMatrix();
 
-							const angles =
-								totalBytes >= SOFT_TWO_VIEW_BYTES ? COMPACT_ANGLE_VIEWS : MULTI_ANGLE_VIEWS;
-							const views: string[] = [];
-							for (const angle of angles) {
+							for (const [slot, angle] of MULTI_ANGLE_VIEWS.entries()) {
 								const yaw = baseYaw + angle.yawOffsetRad;
 								const cosPitch = Math.cos(angle.pitchRad);
 								camera.position.set(
@@ -357,21 +476,21 @@ export function renderIsolatedAssetSnapshots(
 								);
 								camera.lookAt(0, 0, 0);
 								renderer.render(scene, camera);
-								const dataUrl = renderer.domElement.toDataURL('image/jpeg', SNAPSHOT_JPEG_QUALITY);
-								if (
-									dataUrl.startsWith('data:image/jpeg;base64,') &&
-									totalBytes + dataUrl.length <= MAX_TOTAL_VISUAL_BYTES
-								) {
-									views.push(dataUrl);
-									totalBytes += dataUrl.length;
-								}
+								paint.drawImage(
+									renderer.domElement,
+									(slot % 2) * SNAPSHOT_SIZE,
+									Math.floor(slot / 2) * SNAPSHOT_SIZE
+								);
 							}
 							scene.remove(built.group);
-
-							if (views.length > 0) {
-								result[idx] = { ...arch, visual_views: views };
-								captured++;
-							}
+							const picture = yield* Effect.callback<Blob | null>((resume) => {
+								sheet.toBlob(
+									(blob) => resume(Effect.succeed(blob)),
+									'image/jpeg',
+									SNAPSHOT_JPEG_QUALITY
+								);
+							});
+							if (picture !== null) pictures.set(arch.archetype_id, picture);
 						}
 					}
 				}
@@ -381,14 +500,17 @@ export function renderIsolatedAssetSnapshots(
 				for (const m of built.materials) m.dispose();
 			}
 
-			onProgress?.({ done: idx + 1, total: targetCount, captured });
+			onProgress?.({
+				phase: 'snapshots',
+				done: idx + 1,
+				total: targetCount,
+				captured: pictures.size
+			});
 			if ((idx + 1) % 4 === 0) {
 				yield* Effect.yieldNow;
 			}
 		}
 
-		return result;
-	}).pipe(Effect.scoped);
-
-	return task.pipe(Effect.catch(() => Effect.succeed(archetypes)));
+		return pictures;
+	});
 }

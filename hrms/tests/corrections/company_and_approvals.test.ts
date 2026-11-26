@@ -164,6 +164,47 @@ describe('what the company corrects', () => {
 		}).pipe(Effect.provide(workspace({ seed: twoPeople(), now: NOW })))
 	);
 
+	it.live('a draft holiday in a paid month amends nobody until it is published', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* pay(t, '2026-02');
+			const admin = yield* t.as(t.admin);
+			yield* admin.act({
+				'holiday.create': [
+					{
+						entity_id: ENTITY,
+						date: DAY,
+						name: 'Drafted',
+						kind: 'PUBLIC_HOLIDAY',
+						given_to: 'EVERYONE'
+					}
+				]
+			});
+			yield* t.run_due();
+			assert.deepEqual(yield* amendments(t), []);
+			const { holiday } = yield* storedQuery(t, {
+				holiday: { where: { name: { eq: 'Drafted' } }, limit: 1 }
+			});
+			const [draft] = holiday.rows;
+			assert.ok(draft !== undefined);
+			yield* admin.act({
+				'holiday.update': [
+					{
+						target: draft,
+						set: {
+							published_at: DateTime.formatIso(DateTime.makeUnsafe('2026-03-19T00:00:00.000Z'))
+						}
+					}
+				]
+			});
+			yield* t.run_due();
+			assert.deepEqual(
+				(yield* amendments(t)).map((row) => String(row.employee_id)).toSorted(),
+				[uuid(4), uuid(904)].toSorted()
+			);
+		}).pipe(Effect.provide(workspace({ seed: twoPeople(), now: NOW })))
+	);
+
 	it.live('holidays of two companies saved together amend each company for its own day', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

@@ -16,6 +16,9 @@ const columns = [
 	'waste_factor_pct',
 	'carbon_factor',
 	'rate_basis',
+	'derived_from',
+	'ratio',
+	'stands_in_for',
 	'validity',
 	'active',
 	'notes'
@@ -54,11 +57,24 @@ export default model('item_matrix', {
 			values: ['ea', 'm', 'm2', 'm3', 'kg', 'ls', 'month', 'pct'],
 			default: 'ea'
 		},
+		/**
+		 * What one `unit` measures. `derived`: a quantity the model does not carry (unmodelled rebar, formwork, paint),
+		 * `ratio` units per unit of item `derived_from` as the estimate priced it, storey by storey.
+		 */
 		quantity_basis: {
 			kind: 'enum',
-			values: ['count', 'length', 'area', 'volume', 'weight', 'lump_sum', 'pct_of_bim'],
+			values: ['count', 'length', 'area', 'volume', 'weight', 'lump_sum', 'pct_of_bim', 'derived'],
 			default: 'count'
 		},
+		/** For `derived`: the code of the item whose priced quantity this one follows (e.g. a slab's concrete m³). */
+		derived_from: { kind: 'text', optional: true },
+		/** For `derived`: units of this item per one unit of `derived_from` (e.g. 100 kg of rebar per m³ of slab). */
+		ratio: { kind: 'decimal', scale: 4, optional: true },
+		/**
+		 * For `derived`: the modelled item this one stands in for (e.g. modelled rebar); on a storey where the model
+		 * carries that item, the derived quantity is left out so nothing is counted twice.
+		 */
+		stands_in_for: { kind: 'text', optional: true },
 		currency: { kind: 'currency', default: 'SGD' },
 		unit_rate: { kind: 'money', currency: 'currency', default: 0 },
 		waste_factor_pct: { kind: 'decimal', scale: 1, default: 0 },
@@ -77,7 +93,15 @@ export default model('item_matrix', {
 		code: { unique: ['code'], import_key: true },
 		valid_rate: { check: { unit_rate: { gte: 0 } } },
 		valid_carbon: { check: { carbon_factor: { gte: 0 } } },
-		valid_waste: { check: { waste_factor_pct: { gte: 0, lte: 100 } } }
+		valid_waste: { check: { waste_factor_pct: { gte: 0, lte: 100 } } },
+		derived_needs_source: {
+			check: {
+				or: [
+					{ quantity_basis: { ne: 'derived' } },
+					{ derived_from: { is_null: false }, ratio: { gt: 0 } }
+				]
+			}
+		}
 	},
 	indexes: {
 		by_category_active: { on: ['category', 'active'] },

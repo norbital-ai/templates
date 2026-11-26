@@ -1,6 +1,6 @@
 /**
  * Canonical contractor & subcontractor trade specialties shared across contacts, contracts,
- * programme tasks, BIM issues, and the item matrix.
+ * programme tasks, their issues, and the item matrix.
  */
 export const TRADE_SPECIALTIES = [
 	'general',

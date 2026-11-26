@@ -7,7 +7,6 @@ export default app({
 	banner: 'app-media/construction_project_workspace-banner.webp',
 	pages: {
 		projects: { title: 'app.operations.page_projects', icon: 'lucide:building-2' },
-		partners: { title: 'app.operations.page_partners', icon: 'lucide:handshake' },
-		messages: { title: 'app.operations.page_messages', icon: 'lucide:message-square-text' }
+		partners: { title: 'app.operations.page_partners', icon: 'lucide:handshake' }
 	}
 });

@@ -1,6 +1,6 @@
 import type { Id, WriteCtx } from '@norbital-ai/bolt';
 
-type ZonedModel = 'tasks' | 'issues' | 'project_files';
+type ZonedModel = 'tasks' | 'project_files';
 
 /**
  * Validates that every non-null `zone` in a write batch matches a declared `projects.zones[].code`

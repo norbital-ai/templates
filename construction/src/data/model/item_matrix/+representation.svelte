@@ -31,6 +31,19 @@
 		</Grid>
 	</Section>
 
+	<Section
+		icon="lucide:sigma"
+		name="derived"
+		title={ctx.t('section.derived_quantity')}
+		default_open={view.mode !== 'create' && view.record.quantity_basis === 'derived'}
+	>
+		<Grid minimum="card">
+			<Field {ctx} name="derived_from" />
+			<Field {ctx} name="ratio" />
+			<Field {ctx} name="stands_in_for" />
+		</Grid>
+	</Section>
+
 	<Section icon="lucide:box" name="matching" title={ctx.t('section.bim_classification_rules')}>
 		<Grid minimum="card">
 			<Field {ctx} name="ifc_classes" />

@@ -71,7 +71,8 @@ const routeSystem1: Ai['Service']['ask'] = (request) =>
 				if (question.type === 'choice') {
 					const keys = Object.keys(question.criteria);
 					if (keys.includes(UNKNOWN_CATALOG_CHOICE)) {
-						const instr = String(question.instructions ?? '').toLowerCase();
+						const instr =
+							`${String(question.instructions ?? '')} ${JSON.stringify(request.state ?? {})}`.toLowerCase();
 						const choice =
 							instr.includes('panelboard') && keys.includes('ELEC-PANEL')
 								? 'ELEC-PANEL'
@@ -262,7 +263,7 @@ it('parses IFC STEP assets, enforces currency-matched Item Matrix pricing on Sys
 });
 
 it.effect(
-	'runs automatic BIM takeoff effect, locks baselined estimates, exercises all 4 syncs, routes/extracts WhatsApp via cassette, and persists digest notifications',
+	'prices a stored BIM takeoff on its write, locks baselined estimates, exercises all 4 syncs, and files WhatsApp messages as they arrive',
 	() =>
 		Effect.gen(function* () {
 			const extractionTurn = {
@@ -276,7 +277,9 @@ it.effect(
 							zone: 'L01-MAIN',
 							progress_pct: 60,
 							status: 'in_progress',
-							latest_update: '60% terminated; feeder tray aligned.'
+							latest_update: '60% terminated; feeder tray aligned.',
+							comment: 'Main switchboard 60% terminated; feeder tray aligned per the site photo.',
+							file_attachments: true
 						}
 					],
 					issues: [
@@ -413,8 +416,17 @@ it.effect(
 			const projectRef = recordOf(setup.records, 'projects');
 			const projectId = projectRef.id;
 
-			// 1. Upload IFC onto projects.bim_file -> marks bim_costing_dirty=true without eager AI burn;
-			// daily EOD sweep_bim_costing picks up dirty/new project and generates 1:1 estimate
+			// 1. Upload IFC onto projects.bim_file -> marks bim_costing_dirty=true; nothing is priced until the browser's
+			// takeoff is stored, and storing it prices the model (analyze_bim_file, triggered by the write)
+			const takeoffBytes = () => {
+				const taken = extractFromParsedModel(parseIfcStep(SAMPLE_IFC));
+				return new TextEncoder().encode(
+					JSON.stringify({
+						...taken,
+						buckets: taken.buckets.map(({ element_ids: _ids, ...bucket }) => bucket)
+					})
+				);
+			};
 			const uploadedIfc = yield* delivery.upload('projects.bim_file', {
 				name: 'synthetic.ifc',
 				mime: 'application/octet-stream',
@@ -434,6 +446,7 @@ it.effect(
 			});
 			if (bimAttach.kind !== 'committed') throw new Error('Project BIM attach failed');
 			const attachedProjectRef = recordOf(bimAttach.records, 'projects');
+			yield* t.run_due();
 
 			const dirtyProject = rowsOf(
 				yield* delivery.query({
@@ -447,20 +460,30 @@ it.effect(
 			)[0];
 			expect(dirtyProject?.['bim_costing_dirty']).toBe(true);
 			expect(dirtyProject?.['bim_version']).toBe('P01');
+			expect(
+				rowsOf(
+					yield* delivery.query({
+						cost_estimates: {
+							where: { project_id: { eq: projectId } },
+							fields: ['status'],
+							limit: 5
+						}
+					}),
+					'cost_estimates'
+				)
+			).toHaveLength(0);
 
-			// Run daily EOD sweep automation -> schedules & executes analyze_bim_file for dirty project
-			const sweepRes = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
-			expect(sweepRes.state).toBe('succeeded');
-			const sweepOut = Schema.decodeUnknownSync(
-				Schema.Struct({
-					checked_projects: Schema.Number,
-					scheduled_count: Schema.Number,
-					browser_required_count: Schema.Number
-				})
-			)(sweepRes.output);
-			expect(sweepOut.checked_projects).toBe(1);
-			expect(sweepOut.scheduled_count).toBe(1);
-			expect(sweepOut.browser_required_count).toBe(0);
+			const takeoff = yield* delivery.upload('projects.bim_takeoff', {
+				name: 'bim-takeoff.json',
+				mime: 'application/json',
+				bytes: takeoffBytes()
+			});
+			if (takeoff.kind !== 'committed') throw new Error('Takeoff upload failed');
+			const stored = yield* delivery.act({
+				'projects.update': [{ target: attachedProjectRef, set: { bim_takeoff: takeoff.output } }]
+			});
+			expect(stored.kind).toBe('committed');
+			yield* t.run_due();
 
 			const autoEstimates = rowsOf(
 				yield* delivery.query({
@@ -484,7 +507,7 @@ it.effect(
 			);
 			expect(autoEstimates).toHaveLength(1);
 			const estRow = autoEstimates[0];
-			if (!estRow) throw new Error('Expected cost estimate from sweep_bim_costing');
+			if (!estRow) throw new Error('Expected cost estimate once the takeoff was stored');
 			expect(estRow['bim_asset_count']).toBe(5);
 			expect(estRow['classified_asset_count']).toBe(1);
 			expect(estRow['unmatched_asset_count']).toBe(4);
@@ -519,14 +542,29 @@ it.effect(
 			expect(projectAfter?.['bim_summary']).not.toBeNull();
 			expect(projectAfter?.['bim_costing_dirty']).toBe(false);
 
-			// Clean project is skipped by subsequent daily sweep
-			const cleanSweep = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
-			expect(cleanSweep.state).toBe('succeeded');
+			// Any other edit of a priced project prices nothing again
+			const projectRevAfter = Schema.decodeUnknownSync(Schema.Number)(projectAfter?.['revision']);
+			yield* delivery.act({
+				'projects.update': [
+					{
+						target: { id: projectId, revision: projectRevAfter },
+						set: { description: 'Edited after pricing.' }
+					}
+				]
+			});
+			yield* t.run_due();
 			expect(
-				Schema.decodeUnknownSync(Schema.Struct({ scheduled_count: Schema.Number }))(
-					cleanSweep.output
-				).scheduled_count
-			).toBe(0);
+				rowsOf(
+					yield* delivery.query({
+						cost_estimates: {
+							where: { project_id: { eq: projectId } },
+							fields: ['revision'],
+							limit: 1
+						}
+					}),
+					'cost_estimates'
+				)[0]?.['revision']
+			).toBe(estRow['revision']);
 
 			// Baseline estimate -> verify lock refuses pricing edits AND leaves persisted value unchanged
 			const estId = fixtureId('cost_estimates', String(estRow['id']));
@@ -553,10 +591,10 @@ it.effect(
 			)[0];
 			expect(estAfterRefusal?.['contingency_pct']).toBe('5');
 
-			// Explicit re-analysis targeting a locked baselined estimate refuses cleanly AND leaves persisted estimate untouched
+			// Pricing a locked baselined estimate again refuses cleanly AND leaves persisted estimate untouched
 			const lockedRerun = yield* runAutomation(
 				t,
-				admin.run('analyze_bim_file', { project_id: projectId, estimate_id: estId }, JobResult)
+				admin.run('analyze_bim_file', { project_id: projectId }, JobResult)
 			);
 			expect(lockedRerun.state).toBe('failed');
 			const estAfterLockedRerun = rowsOf(
@@ -573,8 +611,8 @@ it.effect(
 			expect(estAfterLockedRerun[0]?.['revision']).toBe(baselinedRef.revision);
 			expect(estAfterLockedRerun[0]?.['total_estimate']).toBe('12600.00');
 
-			// Replacing projects.bim_file marks bim_costing_dirty=true AND voids the existing baselined estimate;
-			// next EOD sweep regenerates it back to draft and clears dirty
+			// Replacing projects.bim_file clears its takeoff, marks bim_costing_dirty=true AND voids the baselined estimate;
+			// the new takeoff, once stored, prices it back to draft and clears dirty
 			const uploadedIfcV2 = yield* delivery.upload('projects.bim_file', {
 				name: 'synthetic_v2.ifc',
 				mime: 'application/octet-stream',
@@ -582,7 +620,12 @@ it.effect(
 			});
 			if (uploadedIfcV2.kind !== 'committed') throw new Error('IFC v2 upload failed');
 			const projectRevForReplace = Schema.decodeUnknownSync(Schema.Number)(
-				projectAfter?.['revision'] ?? attachedProjectRef.revision
+				rowsOf(
+					yield* delivery.query({
+						projects: { where: { id: { eq: projectId } }, fields: ['revision'], limit: 1 }
+					}),
+					'projects'
+				)[0]?.['revision'] ?? attachedProjectRef.revision
 			);
 			const bimReplace = yield* delivery.act({
 				'projects.update': [
@@ -593,6 +636,7 @@ it.effect(
 				]
 			});
 			expect(bimReplace.kind).toBe('committed');
+			if (bimReplace.kind !== 'committed') throw new Error('BIM replace failed');
 			yield* t.run_due();
 
 			const voidedEst = rowsOf(
@@ -602,9 +646,30 @@ it.effect(
 				'cost_estimates'
 			)[0];
 			expect(voidedEst?.['status']).toBe('void');
+			expect(
+				rowsOf(
+					yield* admin.query({
+						projects: { where: { id: { eq: projectId } }, fields: ['bim_takeoff'], limit: 1 }
+					}),
+					'projects'
+				)[0]?.['bim_takeoff']
+			).toBeNull();
 
-			const regenSweep = yield* runAutomation(t, admin.run('sweep_bim_costing', {}, JobResult));
-			expect(regenSweep.state).toBe('succeeded');
+			const takeoffV2 = yield* delivery.upload('projects.bim_takeoff', {
+				name: 'bim-takeoff-v2.json',
+				mime: 'application/json',
+				bytes: takeoffBytes()
+			});
+			if (takeoffV2.kind !== 'committed') throw new Error('Takeoff v2 upload failed');
+			yield* delivery.act({
+				'projects.update': [
+					{
+						target: recordOf(bimReplace.records, 'projects'),
+						set: { bim_takeoff: takeoffV2.output }
+					}
+				]
+			});
+			yield* t.run_due();
 			const regenEst = rowsOf(
 				yield* admin.query({
 					cost_estimates: {
@@ -849,8 +914,10 @@ it.effect(
 				attachments: []
 			});
 
+			// the arrival files it: the mirror's write runs the message model's effect, which routes and extracts it
 			const syncRes = yield* runAutomation(t, admin.run('sync_messages', {}, JobResult));
 			expect(syncRes.state).toBe('succeeded');
+			yield* t.run_due();
 			expect(t.fakes.ai?.remaining()).toEqual({ default: 1 });
 
 			const afterExtract = yield* admin.query({
@@ -864,7 +931,7 @@ it.effect(
 					fields: ['task_code', 'progress_pct'],
 					limit: 20
 				},
-				issues: { where: { project_id: { eq: projectId } }, fields: ['severity'], limit: 20 },
+				activities: { where: { kind: { eq: 'issue' } }, fields: ['severity'], limit: 20 },
 				contracts: {
 					where: { project_id: { eq: projectId } },
 					fields: ['contract_type', 'contract_value'],
@@ -879,13 +946,44 @@ it.effect(
 			expect(rowsOf(afterExtract, 'project_messages')[0]?.['classified_by']).toBe('model');
 			expect(rowsOf(afterExtract, 'project_messages')[0]?.['extraction_status']).toBe('extracted');
 			expect(rowsOf(afterExtract, 'tasks').some((r) => r['task_code'] === 'WBS-E1')).toBe(true);
-			expect(rowsOf(afterExtract, 'issues')).toHaveLength(1);
+			expect(rowsOf(afterExtract, 'activities')).toHaveLength(1);
+			// the clash no task covers is filed under an ad hoc task of its own, which counts it as open
+			const filed = yield* admin.query({
+				activities: { where: { kind: { eq: 'issue' } }, fields: ['task_id', 'body'], limit: 1 },
+				tasks: {
+					where: { project_id: { eq: projectId }, kind: { eq: 'adhoc' } },
+					fields: ['title', 'open_issue_count'],
+					limit: 10
+				}
+			});
+			const clashTask = rowsOf(filed, 'tasks').find(
+				(r) => r['title'] === 'Chilled water sleeve clash at switchroom'
+			);
+			expect(clashTask?.['open_issue_count']).toBe(1);
+			const clash = rowsOf(filed, 'activities')[0];
+			expect(clash?.['task_id']).toBe(clashTask?.['id']);
+			expect(clash?.['body']).toBe('Sleeve encroaches 120mm on panelboard top entry.');
+			// the task update is filed under its task as a comment from the message
+			const comments = rowsOf(
+				yield* admin.query({
+					activities: {
+						where: { kind: { eq: 'comment' } },
+						fields: ['body', 'source_message_id'],
+						limit: 10
+					}
+				}),
+				'activities'
+			);
+			expect(comments.map((c) => c['body'])).toEqual([
+				'Main switchboard 60% terminated; feeder tray aligned per the site photo.'
+			]);
+			expect(comments.every((c) => c['source_message_id'] != null)).toBe(true);
 			expect(rowsOf(afterExtract, 'contracts')[0]?.['contract_type']).toBe('variation_order');
 			expect(rowsOf(afterExtract, 'commercial_documents')[0]?.['external_reference']).toBe(
 				'INV-SUB-778'
 			);
 
-			// 6. reclassify_messages re-queues non-manual ignored messages while preserving manual classifications
+			// 6. A contact's new phone routes non-manual ignored messages again while preserving manual classifications
 			const reclassifySetup = yield* admin.act({
 				'project_messages.create': [
 					{
@@ -920,7 +1018,7 @@ it.effect(
 			const autoIgnoredRef = fixtureId('project_messages', autoIgnoredId);
 			const manualIgnoredRef = fixtureId('project_messages', manualIgnoredId);
 
-			// Drain any create effects first: neither ignored row should be touched before reclassify_messages runs
+			// Drain any create effects first: neither ignored row is touched before the directory changes
 			yield* t.run_due();
 			const beforeReclassify = rowsOf(
 				yield* admin.query({
@@ -934,11 +1032,13 @@ it.effect(
 			);
 			expect(beforeReclassify.every((r) => r['classification'] === 'ignored')).toBe(true);
 
-			const reclassifyRes = yield* runAutomation(
-				t,
-				admin.run('reclassify_messages', {}, JobResult)
-			);
-			expect(reclassifyRes.state).toBe('succeeded');
+			const directoryChange = yield* admin.act({
+				'contacts.update': [
+					{ target: recordOf(waCreate.records, 'contacts'), set: { phone: '+65 9222 3334' } }
+				]
+			});
+			expect(directoryChange.kind).toBe('committed');
+			yield* t.run_due();
 			const afterReclassify = rowsOf(
 				yield* admin.query({
 					project_messages: {
@@ -968,66 +1068,6 @@ it.effect(
 			expect(manualRow?.['classification']).toBe('ignored');
 			expect(manualRow?.['classified_by']).toBe('manual');
 			expect(t.fakes.ai?.remaining()).toEqual({ default: 0 });
-
-			// 7. daily_project_digest: add overdue task + overdue issued invoice, verify counts AND persisted notification
-			const overdueSetup = yield* admin.act({
-				'tasks.create': [
-					{
-						project_id: projectId,
-						task_code: 'OVR-1',
-						title: 'Overdue switchgear test',
-						schedule_range: { from: '2026-06-01', to: '2026-06-10' }
-					}
-				],
-				'commercial_documents.create': [
-					{
-						project_id: projectId,
-						doc_type: 'invoice',
-						direction: 'outflow',
-						external_reference: 'INV-OVERDUE-1',
-						currency: 'SGD',
-						subtotal: '5000.00',
-						issue_date: '2026-05-01',
-						due_date: '2026-06-01'
-					}
-				]
-			});
-			if (overdueSetup.kind !== 'committed') throw new Error('Overdue setup failed');
-			const overdueInvRef = recordOf(overdueSetup.records, 'commercial_documents');
-			yield* admin.act({
-				'commercial_documents.update': [{ target: overdueInvRef, set: { status: 'issued' } }]
-			});
-
-			const digestRes = yield* runAutomation(t, admin.run('daily_project_digest', {}, JobResult));
-			expect(digestRes.state).toBe('succeeded');
-			const digestOut = Schema.decodeUnknownSync(
-				Schema.Struct({
-					critical_high_issues_count: Schema.Number,
-					blocked_or_overdue_tasks_count: Schema.Number,
-					pending_contracts_count: Schema.Number,
-					overdue_documents_count: Schema.Number
-				})
-			)(digestRes.output);
-			expect(digestOut.critical_high_issues_count).toBeGreaterThanOrEqual(1);
-			expect(digestOut.blocked_or_overdue_tasks_count).toBeGreaterThanOrEqual(1);
-			expect(digestOut.pending_contracts_count).toBeGreaterThanOrEqual(1);
-			expect(digestOut.overdue_documents_count).toBeGreaterThanOrEqual(1);
-
-			const notifications = rowsOf(
-				yield* admin.query({
-					sys_notification: { fields: ['title', 'body', 'once'], limit: 20 }
-				}),
-				'sys_notification'
-			);
-			expect(notifications.length).toBeGreaterThanOrEqual(1);
-			expect(String(notifications[0]?.['title'] ?? '')).toContain('Morning digest');
-			expect(String(notifications[0]?.['once'] ?? '')).toMatch(/^construction-digest:2026-06-15:/);
-			yield* runAutomation(t, admin.run('daily_project_digest', {}, JobResult));
-			const afterRepeatDigest = rowsOf(
-				yield* admin.query({ sys_notification: { fields: ['id'], limit: 20 } }),
-				'sys_notification'
-			);
-			expect(afterRepeatDigest.length).toBe(notifications.length);
 		}).pipe(Effect.scoped)
 );
 
@@ -1275,7 +1315,7 @@ it('streams a multi-storey 18-floor HDB + playground IFC across arbitrary chunk 
 });
 
 it.effect(
-	'routes ALL deduplicated BIM archetypes through Jev System 1 with isolated multi-angle asset images (no Tier 1 bypass) and unknown_unseen_catalog handling',
+	'classifies each unique asset of a stored takeoff once, by its four-angle picture, through System 1 (no keyword bypass), remembers each decision, and proposes what nothing prices for approval',
 	() =>
 		Effect.gen(function* () {
 			const TINY_JPEG_DATA_URL =
@@ -1287,6 +1327,9 @@ it.effect(
 				readonly angles: readonly string[];
 				readonly firstCriterion: string;
 			}> = [];
+			const tinyJpeg = Uint8Array.from(
+				Buffer.from(TINY_JPEG_DATA_URL.split(',')[1] ?? '', 'base64')
+			);
 
 			const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
 				value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -1302,7 +1345,7 @@ it.effect(
 					let imageCount = 0;
 					for (const item of viewsArr) {
 						const viewObj = asRecord(item);
-						if (typeof viewObj['angle'] === 'string') angles.push(viewObj['angle']);
+						if (typeof viewObj['angles'] === 'string') angles.push(viewObj['angles']);
 						const imgObj = asRecord(viewObj['image']);
 						if (imgObj['type'] === 'image_url') {
 							imageCount++;
@@ -1352,7 +1395,30 @@ it.effect(
 				fakes: {
 					ai: {
 						sys_1: bimSys1,
-						cassette: {}
+						cassette: {
+							default: [
+								{
+									content: JSON.stringify({
+										proposals: [
+											{
+												assets: [0],
+												code: 'art kinetic',
+												name: 'Kinetic art feature',
+												discipline: 'architecture',
+												trade_specialty: 'general',
+												quantity_basis: 'count',
+												unit_rate: 45000,
+												carbon_factor: 120,
+												rationale: 'A one-off feature priced as an installed item.'
+											}
+										]
+									}),
+									tool_calls: [],
+									finish: 'stop' as const,
+									usage: { input: 0, output: 0 }
+								}
+							]
+						}
 					}
 				}
 			});
@@ -1433,268 +1499,287 @@ it.effect(
 			if (setup.kind !== 'committed') throw new Error('Setup failed');
 			const projectId = recordOf(setup.records, 'projects').id;
 
-			const views3 = [TINY_JPEG_DATA_URL, TINY_JPEG_DATA_URL, TINY_JPEG_DATA_URL];
-
-			// Submit browser-streamed deduplicated archetypes WITH isolated multi-angle visual renders
-			const runRes = yield* runAutomation(
-				t,
-				admin.run(
-					'analyze_bim_file',
-					{
-						project_id: projectId,
-						title: 'HDB 18-Storey Federated BIM — Visual System 1 Cost Estimate',
-						contingency_pct: 5,
-						extracted_model: {
-							schema: 'IFC4',
-							project_name: 'HDB 888B',
-							storeys: ['Level 1', 'Level 18', 'Precinct Playground'],
-							total_asset_count: 105,
-							archetypes: [
-								{
-									archetype_id: 'A1',
-									representative_express_id: 101,
-									representative_part_ids: [],
-									ifc_class: 'IFCWALLSTANDARDCASE',
-									family: 'Basic Wall',
-									type_name: 'RC Shear Wall 200mm G40',
-									object_type: null,
-									predefined_type: 'SHEAR',
-									operation_type: null,
-									classification_code: null,
-									classification_name: null,
-									materials: ['Concrete C40'],
-									material_layers: ['Concrete C40 (200mm)'],
-									layer_count: 1,
-									properties: ['LoadBearing=true'],
-									sample_names: ['Basic Wall:RC-200'],
-									total_count: 100,
-									has_length: false,
-									has_area: true,
-									has_volume: false,
-									has_weight: false,
-									visual_views: views3
-								},
-								{
-									archetype_id: 'A2',
-									representative_express_id: 201,
-									representative_part_ids: [],
-									ifc_class: 'IFCTRANSPORTELEMENT',
-									family: 'KONE MonoSpace 1000kg',
-									type_name: null,
-									object_type: 'MRL Car',
-									predefined_type: 'ELEVATOR',
-									operation_type: null,
-									classification_code: null,
-									classification_name: null,
-									materials: [],
-									material_layers: [],
-									layer_count: 0,
-									properties: [],
-									sample_names: ['KONE MonoSpace 1000kg:L1'],
-									total_count: 2,
-									has_length: false,
-									has_area: false,
-									has_volume: false,
-									has_weight: false,
-									visual_views: views3
-								},
-								{
-									archetype_id: 'A3',
-									representative_express_id: 301,
-									representative_part_ids: [],
-									ifc_class: 'IFCDOOR',
-									family: 'Generic Door',
-									type_name: 'D-09',
-									object_type: null,
-									predefined_type: 'DOOR',
-									operation_type: 'DOUBLE_DOOR_SLIDING',
-									classification_code: null,
-									classification_name: null,
-									materials: ['Tempered Glass', 'Anodised Aluminium'],
-									material_layers: ['Tempered Glass (12mm)', 'Anodised Aluminium (50mm)'],
-									layer_count: 2,
-									properties: [],
-									sample_names: ['Door-L01-01'],
-									total_count: 1,
-									has_length: false,
-									has_area: false,
-									has_volume: false,
-									has_weight: false,
-									visual_views: views3
-								},
-								{
-									archetype_id: 'A4',
-									representative_express_id: 401,
-									representative_part_ids: [],
-									ifc_class: 'IFCGEOGRAPHICELEMENT',
-									family: 'EPDM Pour-in-Place Cushion',
-									type_name: null,
-									object_type: 'Outdoor Play Mat',
-									predefined_type: null,
-									operation_type: null,
-									classification_code: null,
-									classification_name: null,
-									materials: ['EPDM Rubber'],
-									material_layers: [],
-									layer_count: 0,
-									properties: [],
-									sample_names: ['EPDM Pour-in-Place Cushion:ZoneA'],
-									total_count: 1,
-									has_length: false,
-									has_area: true,
-									has_volume: false,
-									has_weight: false,
-									visual_views: views3
-								},
-								{
-									archetype_id: 'A5',
-									representative_express_id: 501,
-									representative_part_ids: [],
-									ifc_class: 'IFCELECTRICAPPLIANCE',
-									family: 'Bespoke Kinetic Sculpture',
-									type_name: null,
-									object_type: 'Art Feature',
-									predefined_type: null,
-									operation_type: null,
-									classification_code: null,
-									classification_name: null,
-									materials: [],
-									material_layers: [],
-									layer_count: 0,
-									properties: [],
-									sample_names: ['Sculpture-01'],
-									total_count: 1,
-									has_length: false,
-									has_area: false,
-									has_volume: false,
-									has_weight: false,
-									visual_views: views3
-								}
-							],
-							buckets: [
-								{
-									archetype_id: 'A1',
-									storey: 'Level 1',
-									element_count: 100,
-									length_m: 0,
-									length_measured_count: 0,
-									area_m2: 1000,
-									area_measured_count: 100,
-									volume_m3: 0,
-									volume_measured_count: 0,
-									weight_kg: 0,
-									weight_measured_count: 0,
-									sample_express_ids: [101, 102]
-								},
-								{
-									archetype_id: 'A2',
-									storey: 'Level 18',
-									element_count: 2,
-									length_m: 0,
-									length_measured_count: 0,
-									area_m2: 0,
-									area_measured_count: 0,
-									volume_m3: 0,
-									volume_measured_count: 0,
-									weight_kg: 0,
-									weight_measured_count: 0,
-									sample_express_ids: [201, 202]
-								},
-								{
-									archetype_id: 'A3',
-									storey: 'Level 1',
-									element_count: 1,
-									length_m: 0,
-									length_measured_count: 0,
-									area_m2: 0,
-									area_measured_count: 0,
-									volume_m3: 0,
-									volume_measured_count: 0,
-									weight_kg: 0,
-									weight_measured_count: 0,
-									sample_express_ids: [301]
-								},
-								{
-									archetype_id: 'A4',
-									storey: 'Precinct Playground',
-									element_count: 1,
-									length_m: 0,
-									length_measured_count: 0,
-									area_m2: 300,
-									area_measured_count: 1,
-									volume_m3: 0,
-									volume_measured_count: 0,
-									weight_kg: 0,
-									weight_measured_count: 0,
-									sample_express_ids: [401]
-								},
-								{
-									archetype_id: 'A5',
-									storey: 'Level 1',
-									element_count: 1,
-									length_m: 0,
-									length_measured_count: 0,
-									area_m2: 0,
-									area_measured_count: 0,
-									volume_m3: 0,
-									volume_measured_count: 0,
-									weight_kg: 0,
-									weight_measured_count: 0,
-									sample_express_ids: [501]
-								}
-							]
-						}
-					},
-					JobResult
+			// The browser's takeoff, stored: each unique asset with its four-angle picture as a file of the project
+			const viewOf = new Map<string, string>();
+			const views = [];
+			for (const archetype of ['A1', 'A2', 'A3', 'A4', 'A5']) {
+				const view = yield* admin.upload('projects.bim_takeoff_views', {
+					name: `${archetype}.jpg`,
+					mime: 'image/jpeg',
+					bytes: tinyJpeg
+				});
+				if (view.kind !== 'committed') throw new Error('View upload failed');
+				viewOf.set(archetype, view.output.id);
+				views.push(view.output);
+			}
+			const takeoff = yield* admin.upload('projects.bim_takeoff', {
+				name: 'bim-takeoff.json',
+				mime: 'application/json',
+				bytes: new TextEncoder().encode(
+					JSON.stringify({
+						schema: 'IFC4',
+						project_name: 'HDB 888B',
+						storeys: ['Level 1', 'Level 18', 'Precinct Playground'],
+						total_asset_count: 105,
+						archetypes: [
+							{
+								archetype_id: 'A1',
+								representative_express_id: 101,
+								representative_part_ids: [],
+								ifc_class: 'IFCWALLSTANDARDCASE',
+								family: 'Basic Wall',
+								type_name: 'RC Shear Wall 200mm G40',
+								object_type: null,
+								predefined_type: 'SHEAR',
+								operation_type: null,
+								classification_code: null,
+								classification_name: null,
+								materials: ['Concrete C40'],
+								material_layers: ['Concrete C40 (200mm)'],
+								layer_count: 1,
+								properties: ['LoadBearing=true'],
+								sample_names: ['Basic Wall:RC-200'],
+								total_count: 100,
+								has_length: false,
+								has_area: true,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A1'),
+								signature: 'sig-A1'
+							},
+							{
+								archetype_id: 'A2',
+								representative_express_id: 201,
+								representative_part_ids: [],
+								ifc_class: 'IFCTRANSPORTELEMENT',
+								family: 'KONE MonoSpace 1000kg',
+								type_name: null,
+								object_type: 'MRL Car',
+								predefined_type: 'ELEVATOR',
+								operation_type: null,
+								classification_code: null,
+								classification_name: null,
+								materials: [],
+								material_layers: [],
+								layer_count: 0,
+								properties: [],
+								sample_names: ['KONE MonoSpace 1000kg:L1'],
+								total_count: 2,
+								has_length: false,
+								has_area: false,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A2'),
+								signature: 'sig-A2'
+							},
+							{
+								archetype_id: 'A3',
+								representative_express_id: 301,
+								representative_part_ids: [],
+								ifc_class: 'IFCDOOR',
+								family: 'Generic Door',
+								type_name: 'D-09',
+								object_type: null,
+								predefined_type: 'DOOR',
+								operation_type: 'DOUBLE_DOOR_SLIDING',
+								classification_code: null,
+								classification_name: null,
+								materials: ['Tempered Glass', 'Anodised Aluminium'],
+								material_layers: ['Tempered Glass (12mm)', 'Anodised Aluminium (50mm)'],
+								layer_count: 2,
+								properties: [],
+								sample_names: ['Door-L01-01'],
+								total_count: 1,
+								has_length: false,
+								has_area: false,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A3'),
+								signature: 'sig-A3'
+							},
+							{
+								archetype_id: 'A4',
+								representative_express_id: 401,
+								representative_part_ids: [],
+								ifc_class: 'IFCGEOGRAPHICELEMENT',
+								family: 'EPDM Pour-in-Place Cushion',
+								type_name: null,
+								object_type: 'Outdoor Play Mat',
+								predefined_type: null,
+								operation_type: null,
+								classification_code: null,
+								classification_name: null,
+								materials: ['EPDM Rubber'],
+								material_layers: [],
+								layer_count: 0,
+								properties: [],
+								sample_names: ['EPDM Pour-in-Place Cushion:ZoneA'],
+								total_count: 1,
+								has_length: false,
+								has_area: true,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A4'),
+								signature: 'sig-A4'
+							},
+							{
+								archetype_id: 'A5',
+								representative_express_id: 501,
+								representative_part_ids: [],
+								ifc_class: 'IFCELECTRICAPPLIANCE',
+								family: 'Bespoke Kinetic Sculpture',
+								type_name: null,
+								object_type: 'Art Feature',
+								predefined_type: null,
+								operation_type: null,
+								classification_code: null,
+								classification_name: null,
+								materials: [],
+								material_layers: [],
+								layer_count: 0,
+								properties: [],
+								sample_names: ['Sculpture-01'],
+								total_count: 1,
+								has_length: false,
+								has_area: false,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A5'),
+								signature: 'sig-A5'
+							}
+						],
+						buckets: [
+							{
+								archetype_id: 'A1',
+								storey: 'Level 1',
+								element_count: 100,
+								length_m: 0,
+								length_measured_count: 0,
+								area_m2: 1000,
+								area_measured_count: 100,
+								volume_m3: 0,
+								volume_measured_count: 0,
+								weight_kg: 0,
+								weight_measured_count: 0,
+								sample_express_ids: [101, 102]
+							},
+							{
+								archetype_id: 'A2',
+								storey: 'Level 18',
+								element_count: 2,
+								length_m: 0,
+								length_measured_count: 0,
+								area_m2: 0,
+								area_measured_count: 0,
+								volume_m3: 0,
+								volume_measured_count: 0,
+								weight_kg: 0,
+								weight_measured_count: 0,
+								sample_express_ids: [201, 202]
+							},
+							{
+								archetype_id: 'A3',
+								storey: 'Level 1',
+								element_count: 1,
+								length_m: 0,
+								length_measured_count: 0,
+								area_m2: 0,
+								area_measured_count: 0,
+								volume_m3: 0,
+								volume_measured_count: 0,
+								weight_kg: 0,
+								weight_measured_count: 0,
+								sample_express_ids: [301]
+							},
+							{
+								archetype_id: 'A4',
+								storey: 'Precinct Playground',
+								element_count: 1,
+								length_m: 0,
+								length_measured_count: 0,
+								area_m2: 300,
+								area_measured_count: 1,
+								volume_m3: 0,
+								volume_measured_count: 0,
+								weight_kg: 0,
+								weight_measured_count: 0,
+								sample_express_ids: [401]
+							},
+							{
+								archetype_id: 'A5',
+								storey: 'Level 1',
+								element_count: 1,
+								length_m: 0,
+								length_measured_count: 0,
+								area_m2: 0,
+								area_measured_count: 0,
+								volume_m3: 0,
+								volume_measured_count: 0,
+								weight_kg: 0,
+								weight_measured_count: 0,
+								sample_express_ids: [501]
+							}
+						]
+					})
 				)
-			);
-			expect(runRes.state).toBe('succeeded');
+			});
+			if (takeoff.kind !== 'committed') throw new Error('Takeoff upload failed');
+			const stored = yield* admin.act({
+				'projects.update': [
+					{
+						target: recordOf(setup.records, 'projects'),
+						set: { bim_takeoff: takeoff.output, bim_takeoff_views: views }
+					}
+				]
+			});
+			expect(stored.kind).toBe('committed');
+			yield* t.run_due();
+			const est = rowsOf(
+				yield* admin.query({
+					cost_estimates: {
+						where: { project_id: { eq: projectId } },
+						fields: [
+							'bim_assets',
+							'bim_asset_count',
+							'classified_asset_count',
+							'unmatched_asset_count',
+							'bim_subtotal',
+							'total_estimate'
+						],
+						limit: 1
+					}
+				}),
+				'cost_estimates'
+			)[0];
 			const out = Schema.decodeUnknownSync(
 				Schema.Struct({
-					estimate_id: Schema.String,
 					bim_asset_count: Schema.Number,
-					archetype_count: Schema.Number,
 					classified_asset_count: Schema.Number,
-					ai_classified_count: Schema.Number,
 					unmatched_asset_count: Schema.Number,
 					bim_subtotal: Schema.String,
 					total_estimate: Schema.String
 				})
-			)(runRes.output);
+			)(est);
 
 			// EXACTLY 5 System 1 calls for 5 deduplicated archetypes (ALL went through System 1 — even RC Shear Wall! Never 105!)
 			expect(recordedCalls).toHaveLength(5);
 			for (const call of recordedCalls) {
-				expect(call.imageCount).toBe(3);
+				expect(call.imageCount).toBe(1);
 				expect(call.angles).toEqual([
-					'front_three_quarter',
-					'front_elevation',
-					'side_rear_three_quarter'
+					'front_three_quarter, front_elevation / side_rear_three_quarter, plan'
 				]);
 				expect(call.firstCriterion).toBe(UNKNOWN_CATALOG_CHOICE);
 			}
 
 			// 100 walls + 2 lifts + 1 double sliding door + 1 EPDM = 104 classified (ALL 104 via ai_sys1), 1 unknown_unseen_catalog
 			expect(out.bim_asset_count).toBe(105);
-			expect(out.archetype_count).toBe(5);
 			expect(out.classified_asset_count).toBe(104);
-			expect(out.ai_classified_count).toBe(104);
 			expect(out.unmatched_asset_count).toBe(1);
 			// 1000*200 (200,000) + 2*180,000 (360,000) + 1*2,500 (2,500) + 300*150 (45,000) = 607,500.00; +5% = 637,875.00
 			expect(out.bim_subtotal).toBe('607500.00');
 			expect(out.total_estimate).toBe('637875.00');
 
 			// Verify ALL matched lines carry `ai_sys1` visual provenance and the unseen item carries Unknown / Unseen Catalog reason
-			const savedEst = rowsOf(
-				yield* admin.query({
-					cost_estimates: {
-						where: { id: { eq: fixtureId('cost_estimates', out.estimate_id) } },
-						fields: ['bim_assets', 'bim_subtotal', 'total_estimate'],
-						limit: 1
-					}
-				}),
-				'cost_estimates'
-			)[0];
 			const lines = Schema.decodeUnknownSync(
 				Schema.Array(
 					Schema.Struct({
@@ -1704,17 +1789,113 @@ it.effect(
 						match_reason: Schema.optionalKey(Schema.NullOr(Schema.String))
 					})
 				)
-			)(savedEst?.['bim_assets']);
+			)(est?.['bim_assets']);
 
 			expect(lines.find((l) => l.matrix_code === 'STR-RC-WALL')?.match_method).toBe('ai_sys1');
 			expect(lines.find((l) => l.matrix_code === 'MEP-LIFT-PASS')?.match_method).toBe('ai_sys1');
 			expect(lines.find((l) => l.matrix_code === 'CIV-PLAY-EPDM')?.match_method).toBe('ai_sys1');
 			const doorLine = lines.find((l) => l.matrix_code === 'ARC-DOOR-SLIDE');
 			expect(doorLine?.match_method).toBe('ai_sys1');
-			expect(doorLine?.match_reason).toContain('3 angles');
+			expect(doorLine?.match_reason).toContain('Visual AI (System 1)');
 			const unknownLine = lines.find((l) => l.status === 'unmatched');
 			expect(unknownLine?.matrix_code ?? null).toBeNull();
 			expect(unknownLine?.match_method).toBe('ai_sys1');
 			expect(unknownLine?.match_reason).toContain('Unknown / Unseen Catalog');
+
+			// each decision is remembered by its asset's signature, picture included
+			const mappingsOf = () =>
+				admin.query({
+					asset_mappings: {
+						fields: ['revision', 'signature', 'source', 'item_id', 'picture'],
+						order_by: { signature: 'asc' },
+						limit: 10
+					}
+				});
+			const remembered = rowsOf(yield* mappingsOf(), 'asset_mappings');
+			expect(remembered.map((r) => r['signature'])).toEqual([
+				'sig-A1',
+				'sig-A2',
+				'sig-A3',
+				'sig-A4',
+				'sig-A5'
+			]);
+			expect(remembered.every((r) => r['source'] !== 'qs' && r['picture'] != null)).toBe(true);
+
+			// System 2's proposal for the unpriced sculpture waits for commercial review, linked to its asset
+			const proposed = rowsOf(
+				yield* admin.query({
+					item_matrix: {
+						where: { code: { eq: 'ART-KINETIC' } },
+						fields: ['unit_rate', 'rate_basis'],
+						limit: 1
+					}
+				}),
+				'item_matrix'
+			)[0];
+			const approval = Schema.decodeUnknownSync(Schema.Struct({ request_id: Schema.String }))(
+				proposed?.['$approval']
+			);
+			const qs = yield* t.as(
+				t.member(['construction_read', 'construction_commercial', 'construction_connections'], {
+					teams: ['commercial_qs']
+				})
+			);
+			yield* qs.approvals.decide(approval.request_id, { decision: 'approve' });
+
+			// a QS correction wins from then on: the door is priced as the QS chose
+			const items = rowsOf(
+				yield* admin.query({ item_matrix: { fields: ['code'], limit: 10 } }),
+				'item_matrix'
+			);
+			const liftId = fixtureId(
+				'item_matrix',
+				String(items.find((r) => r['code'] === 'MEP-LIFT-PASS')?.['id'])
+			);
+			const door = rowsOf(yield* mappingsOf(), 'asset_mappings').find(
+				(r) => r['signature'] === 'sig-A3'
+			);
+			yield* qs.act({
+				'asset_mappings.update': [
+					{
+						target: {
+							id: fixtureId('asset_mappings', String(door?.['id'])),
+							revision: Number(door?.['revision'])
+						},
+						set: { item_id: liftId }
+					}
+				]
+			});
+
+			// pricing again asks System 1 nothing: every asset is remembered
+			const again = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectId }, JobResult)
+			);
+			expect(again.state).toBe('succeeded');
+			expect(recordedCalls).toHaveLength(5);
+			const repriced = Schema.decodeUnknownSync(
+				Schema.Array(
+					Schema.Struct({
+						matrix_code: Schema.optionalKey(Schema.NullOr(Schema.String)),
+						match_method: Schema.optionalKey(Schema.NullOr(Schema.String))
+					})
+				)
+			)(
+				rowsOf(
+					yield* admin.query({
+						cost_estimates: {
+							where: { project_id: { eq: projectId } },
+							fields: ['bim_assets'],
+							limit: 1
+						}
+					}),
+					'cost_estimates'
+				)[0]?.['bim_assets']
+			);
+			expect(repriced.find((l) => l.matrix_code === 'ART-KINETIC')?.match_method).toBe('ai_sys2');
+			expect(
+				repriced.filter((l) => l.matrix_code === 'MEP-LIFT-PASS').map((l) => l.match_method)
+			).toContain('override');
+			expect(repriced.some((l) => l.matrix_code === 'ARC-DOOR-SLIDE')).toBe(false);
 		}).pipe(Effect.scoped)
 );

@@ -5,7 +5,8 @@ import {
 	type Translator,
 	WorkerResponseMessageSchema,
 	fetchEffect,
-	messageOf
+	messageOf,
+	moduleWorkerSource
 } from './ifc_viewer.types.js';
 
 /** Error codes the converter worker posts instead of display copy. */
@@ -109,22 +110,24 @@ const createConverterWorker = Effect.gen(function* () {
 	let scriptText = cachedWorkerScriptText;
 	if (scriptText === null) {
 		const workerUrl = new URL(converterWorkerUrl, import.meta.url);
-		// Sandboxed iframes block direct worker URLs in Chrome.
-		// Fetch the script and create a blob URL to bypass the restriction.
+		// Sandboxed iframes block direct worker URLs in Chrome: the script runs from a blob.
 		const response = yield* fetchEffect(workerUrl.href, 'load-ifc-converter-worker');
-		scriptText = yield* Effect.tryPromise({
-			try: () => response.text(),
-			catch: (cause) => workerFailure(messageOf(cause))
-		});
+		scriptText = moduleWorkerSource(
+			yield* Effect.tryPromise({
+				try: () => response.text(),
+				catch: (cause) => workerFailure(messageOf(cause))
+			}),
+			workerUrl
+		);
 		cachedWorkerScriptText = scriptText;
 	}
-	const blob = new Blob([scriptText], { type: 'application/javascript' });
+	const blob = new Blob([scriptText], { type: 'text/javascript' });
 	const blobUrl = yield* Effect.acquireRelease(
 		Effect.sync(() => URL.createObjectURL(blob)),
 		(url) => Effect.sync(() => URL.revokeObjectURL(url))
 	);
 	return yield* Effect.try({
-		try: () => new Worker(blobUrl, { name: 'norbital-ifc-converter' }),
+		try: () => new Worker(blobUrl, { name: 'norbital-ifc-converter', type: 'module' }),
 		catch: (cause) => workerFailure(messageOf(cause))
 	});
 });

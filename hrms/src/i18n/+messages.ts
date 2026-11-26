@@ -237,6 +237,9 @@ export default messages({
 	'component.tab_overview': 'Overview',
 	'component.work_day_actual': 'Actual',
 	'calendar.published': 'Publication date',
+	'calendar.publish': 'Publish',
+	'calendar.publish_description':
+		'Publishes the selected days: rosters, leave and payroll count them from now. Days already published stay as they are.',
 	'component.workbook_import_failed': '{file} could not be imported.',
 	'component.workbook_imported': 'Imported {count} {label} from {file}.',
 	'component.workbook_warnings': '{count} warnings',

@@ -1,5 +1,6 @@
-import { model, type EffectCtx } from '@norbital-ai/bolt';
+import { model } from '@norbital-ai/bolt';
 import { TRADE_SPECIALTIES } from '../../../lib/trades.js';
+import { requeueMessages } from '../project_messages/intake.js';
 
 const columns = [
 	'full_name',
@@ -13,9 +14,6 @@ const columns = [
 	'status',
 	'notes'
 ] as const;
-
-const replayMessages = (ctx: Pick<EffectCtx, 'schedule' | 'now'>) =>
-	ctx.schedule('reclassify_messages', {}, { at: ctx.now, key: 'construction-reclassify-all' });
 
 /**
  * Subcontractors (specialized by trade: roofing, flooring, MnE, structural, etc.), suppliers,
@@ -74,14 +72,14 @@ export default model('contacts', {
 	create: {
 		fields: columns,
 		effect: function* (_changes, ctx) {
-			yield* replayMessages(ctx);
+			yield* requeueMessages({}, ctx);
 		}
 	},
 	update: {
 		fields: columns,
 		effect: function* (changes, ctx) {
 			if (changes.some((c) => c.changed('phone', 'email'))) {
-				yield* replayMessages(ctx);
+				yield* requeueMessages({}, ctx);
 			}
 		}
 	},
