@@ -1,6 +1,7 @@
 import type { CurrencyCode, Id, ReadAnswer } from '@norbital-ai/bolt';
 import { BigDecimal, DateTime } from 'effect';
 import { unitRatio } from './commercial.js';
+import { floorDefaultUnit } from './unit-display.js';
 import type { FloorMatrixExportRow, ParsedFloorMatrix } from './floor-matrix-xlsx.js';
 
 /** Month and scope selectors need bucket counts, not the individual price records. */
@@ -564,7 +565,7 @@ export function planFloorMatrixImport(input: {
 		}
 		const inherited =
 			latestByProductGroup.get(`${product.id}\0${groupCode}`) ?? latestByProduct.get(product.id);
-		const unit = inherited?.unit ?? (product.unit || '吨');
+		const unit = inherited?.unit ?? floorDefaultUnit(product.unit);
 		const tax_inclusive = inherited?.tax_inclusive ?? true;
 		const tax_rate = inherited?.tax_rate ?? product.tax_rate ?? '13';
 		if (product.unit && unitRatio(unit, product.unit) === null) {

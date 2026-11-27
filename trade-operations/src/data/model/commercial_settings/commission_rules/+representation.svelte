@@ -23,11 +23,11 @@
 		view: RecordView<'commission_rules'>;
 		ctx: PageContext;
 	} = $props();
-	let quantity = $state('1000');
-	let net = $state('2000');
-	let floor = $state('1');
+	let quantity = $state('1');
+	let net = $state('15000');
+	let floor = $state('14000');
 	let product = $state('');
-	let unit = $state('kg');
+	let unit = $state('吨');
 	let party = $state('');
 	const day = ctx.clock('day');
 	let orderedOn = $state<string | null>(day.today);

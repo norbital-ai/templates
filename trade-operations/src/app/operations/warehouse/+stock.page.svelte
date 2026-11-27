@@ -14,6 +14,7 @@
 		stockAvailability,
 		stockAvailabilityRead
 	} from '../../../lib/stock-availability.js';
+	import { displayUnit, priceToDisplay, qtyToDisplay } from '../../../lib/unit-display.js';
 
 	const clock = ctx.clock('minute');
 	const day = ctx.clock('day');
@@ -33,7 +34,15 @@
 	const rows = $derived(
 		inventory?.current
 			? stockAvailability(inventory.current, Date.parse(clock.now))
-					.map((row) => ({ ...row, region: row.region ?? ctx.t('stock.availability.no_region') }))
+					.map((row) => ({
+						...row,
+						region: row.region ?? ctx.t('stock.availability.no_region'),
+						unit: displayUnit(row.unit, ctx.locale) || row.unit,
+						on_hand: qtyToDisplay(row.on_hand, row.unit),
+						promised_out: qtyToDisplay(row.promised_out, row.unit),
+						promised_in: qtyToDisplay(row.promised_in, row.unit),
+						projected: qtyToDisplay(row.projected, row.unit)
+					}))
 					.sort((a, b) => a.region.localeCompare(b.region) || a.code.localeCompare(b.code))
 			: null
 	);
@@ -140,15 +149,32 @@
 						limit: 10000
 					}
 				});
-		const bytes = xlsxWorkbook('products', productColumns, answer.products.rows);
+		const mapped = answer.products.rows.map((row) => ({
+			...row,
+			unit: displayUnit(row.unit, ctx.locale) || row.unit,
+			...('unit_price' in row && (typeof row.unit_price === 'string' || row.unit_price === null)
+				? { unit_price: priceToDisplay(row.unit_price, row.unit) }
+				: {})
+		}));
+		const bytes = xlsxWorkbook('products', productColumns, mapped);
 		downloadWorkbook('products.xlsx', bytes);
 	}
 </script>
 
+{#snippet unitCell({ value }: { value: unknown })}{displayUnit(
+		typeof value === 'string' ? value : null,
+		ctx.locale
+	) || '—'}{/snippet}
 {#snippet products()}<Table
 		{ctx}
 		of="products"
-		columns={['external_code', 'name', 'category', 'unit', 'active']}
+		columns={[
+			'external_code',
+			'name',
+			'category',
+			{ field: 'unit', label: ctx.t('models.products.fields.unit'), cell: unitCell },
+			'active'
+		]}
 		toolbar={{
 			new: false,
 			actions: [

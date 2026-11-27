@@ -262,6 +262,7 @@ export interface ViewerBox {
 	getCenter(target: ViewerVector3): ViewerVector3;
 }
 interface ViewerSimpleRenderer {
+	showLogo?: boolean;
 	three: { localClippingEnabled: boolean; clippingPlanes: ViewerPlane[] };
 }
 export interface ViewerWorld {

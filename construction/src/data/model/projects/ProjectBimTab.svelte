@@ -1,7 +1,11 @@
 <script lang="ts">
 	/**
-	 * Project Hub → BIM tab: 3D IFC viewer + BIM tasks, always-live inline BOQ costing,
-	 * CORENET X compliance & organizer, HITL asset verification, and model file metadata.
+	 * Project Hub → BIM tab:
+	 * 1. `3D Model & Tasks` — live 3D IFC viewer + linked BIM tasks.
+	 * 2. `BIM Costing` — repeatable 2-step workflow (numbered stepper header, zero stacked tab bars):
+	 *    - Step 1: Parse BIM, review/edit proposed Item Matrix & costings, proposed Clean BIM, and Compliance Lints.
+	 *    - Step 2: Generate & edit Classification & BOQ Costing Matrix.
+	 * 3. `Model file` — federated IFC file attachment & metadata.
 	 */
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -14,6 +18,7 @@
 		Form,
 		Icon,
 		Input,
+		RunStatus,
 		Section,
 		Show,
 		Spinner,
@@ -23,6 +28,7 @@
 		enum_text,
 		format,
 		open_record,
+		toast,
 		use_act
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
@@ -50,8 +56,9 @@
 		IFCViewerTask
 	} from '../../../services/viewer/types.js';
 	import BimTakeoffRenderer from '../../custom_field/bim_takeoff/+renderer.svelte';
-	import BimAssetReview from './BimAssetReview.svelte';
-	import BimComplianceOrganizer from './BimComplianceOrganizer.svelte';
+	import BimPrepareStep from './BimPrepareStep.svelte';
+
+	type CostingStep = 'prepare' | 'cost';
 
 	let {
 		ctx,
@@ -130,8 +137,14 @@
 		projectBimFile ? import('../../../services/viewer/IfcViewer.svelte') : null
 	);
 	const singleEstimate = $derived(estimateQuery.current?.cost_estimates.rows[0] ?? null);
-	const activeBimAssets = $derived(
-		singleEstimate && singleEstimate.status !== 'void' ? (singleEstimate.bim_assets ?? []) : []
+	const activeEstimate = $derived(
+		singleEstimate && singleEstimate.status !== 'void' ? singleEstimate : null
+	);
+	const activeBimAssets = $derived(activeEstimate?.bim_assets ?? []);
+	const projectSignatures = $derived<readonly string[]>(
+		record.bim_summary?.asset_signatures?.length
+			? record.bim_summary.asset_signatures
+			: (singleEstimate?.asset_signatures ?? [])
 	);
 
 	const bimTasks = $derived<IFCViewerTask[]>(
@@ -166,7 +179,19 @@
 	);
 
 	let bimActiveTab = $state('model');
-	const bimAnalyze = use_act(ctx);
+	let costingStepOverride = $state<CostingStep | null>(null);
+	let step1Edited = $state(false);
+	let activeRun = $state<{ readonly id: string } | null>(null);
+	let startingRun = $state(false);
+
+	const step1Done = $derived(
+		record.bim_summary != null && record.bim_takeoff != null && !record.bim_costing_dirty
+	);
+	const step2Done = $derived(activeEstimate !== null && record.bim_summary?.stage === 'costed');
+	const costingStep = $derived<CostingStep>(
+		costingStepOverride ?? (step2Done ? 'cost' : 'prepare')
+	);
+
 	const figuresSaver = use_act(ctx);
 	let bimStreaming = $state(false);
 	let bimUploading = $state(false);
@@ -188,10 +213,30 @@
 		);
 	}
 
+	function startBimRun(phase: 'prepare' | 'cost') {
+		if (startingRun || bimStreaming) return;
+		startingRun = true;
+		fork(
+			ctx.run('analyze_bim_file', { project_id: record.id, phase }).pipe(
+				Effect.match({
+					onFailure: (error) => {
+						startingRun = false;
+						toast.error('message' in error ? error.message : String(error));
+					},
+					onSuccess: (res) => {
+						startingRun = false;
+						if (res.kind === 'committed') activeRun = { id: res.output.id };
+					}
+				})
+			)
+		);
+	}
+
 	const takeOff = (projectId: Id<'projects'>, source: File | string) => {
 		bimStreamError = null;
 		bimStreamNotice = null;
 		bimStreaming = true;
+		costingStepOverride = 'prepare';
 		return storeProjectTakeoff(ctx, projectId, source, (progress) => {
 			bimStreamNotice = takeoffProgressText(t, progress);
 		}).pipe(
@@ -248,18 +293,33 @@
 		);
 	}
 
-	function costProjectBim() {
-		if (!projectBimFile || bimStreaming || bimAnalyze.pending) return;
+	function runPhase1Prepare() {
+		if (!projectBimFile || bimStreaming || startingRun) return;
+		costingStepOverride = 'prepare';
 		if (record.bim_takeoff == null) {
 			fork(takeOff(record.id, ctx.file_url(projectBimFile)));
 			return;
 		}
-		bimAnalyze.run(ctx.run('analyze_bim_file', { project_id: record.id }));
+		startBimRun('prepare');
 	}
 
-	function reTakeoffProjectBim() {
-		if (!projectBimFile || bimStreaming || bimAnalyze.pending || costingLocked) return;
+	function reParseProjectBim() {
+		if (!projectBimFile || bimStreaming || startingRun) return;
 		fork(takeOff(record.id, ctx.file_url(projectBimFile)));
+	}
+
+	function runPhase2Cost() {
+		if (
+			!projectBimFile ||
+			record.bim_takeoff == null ||
+			bimStreaming ||
+			startingRun ||
+			costingLocked
+		)
+			return;
+		step1Edited = false;
+		costingStepOverride = 'cost';
+		startBimRun('cost');
 	}
 
 	const costingLocked = $derived(
@@ -270,28 +330,49 @@
 			if (bimStreamError) return { text: bimStreamError, tone: 'error' };
 			if (bimStreaming && bimStreamNotice) return { text: bimStreamNotice, tone: 'busy' };
 			if (!record.bim_file) return { text: t('bim_costing.status_no_model'), tone: 'muted' };
-			if (costingLocked) return { text: t('bim_costing.locked_hint'), tone: 'locked' };
-			if (record.bim_takeoff == null || singleEstimate?.status === 'void')
-				return { text: t('bim_costing.status_needs_takeoff'), tone: 'warning' };
+			if (record.bim_takeoff == null)
+				return { text: t('bim_step.status_needs_prepare'), tone: 'warning' };
 			if (record.bim_costing_dirty)
 				return record.bim_costing_error
 					? {
 							text: t('bim_costing.status_failed', { reason: record.bim_costing_error }),
 							tone: 'error'
 						}
-					: { text: bimStreamNotice ?? t('bim_costing.status_pricing'), tone: 'busy' };
-			if (bimAnalyze.pending) return { text: t('bim_costing.status_pricing'), tone: 'busy' };
-			return singleEstimate?.analyzed_at
+					: { text: bimStreamNotice ?? t('bim_step.status_preparing'), tone: 'busy' };
+			if (startingRun) return { text: t('bim_costing.status_pricing'), tone: 'busy' };
+			if (costingLocked) return { text: t('bim_costing.locked_hint'), tone: 'locked' };
+			if (record.bim_summary?.stage === 'prepared' && !activeEstimate)
+				return {
+					text: t('bim_step.status_prepared_ready', {
+						when: format({ kind: 'instant' }, record.bim_summary.analyzed_at, {
+							locale: ctx.locale
+						})
+					}),
+					tone: 'muted'
+				};
+			if (activeEstimate?.analyzed_at)
+				return {
+					text: t('bim_costing.status_priced', {
+						when: format({ kind: 'instant' }, activeEstimate.analyzed_at, { locale: ctx.locale })
+					}),
+					tone: 'muted'
+				};
+			return record.bim_summary?.analyzed_at
 				? {
-						text: t('bim_costing.status_priced', {
-							when: format({ kind: 'instant' }, singleEstimate.analyzed_at, { locale: ctx.locale })
+						text: t('bim_step.status_prepared_ready', {
+							when: format({ kind: 'instant' }, record.bim_summary.analyzed_at, {
+								locale: ctx.locale
+							})
 						}),
 						tone: 'muted'
 					}
-				: { text: t('bim_costing.status_needs_takeoff'), tone: 'warning' };
+				: { text: t('bim_step.status_needs_prepare'), tone: 'warning' };
 		}
 	);
-	const costingBusy = $derived(bimStreaming || bimAnalyze.pending || costingStatus.tone === 'busy');
+	const costingBusy = $derived(bimStreaming || startingRun || costingStatus.tone === 'busy');
+	const costingStale = $derived(
+		activeEstimate != null && (step1Edited || record.bim_summary?.stage === 'prepared')
+	);
 
 	const liveLines = $derived(
 		singleEstimate && editedRevision === singleEstimate.revision && editedLines !== null
@@ -527,7 +608,63 @@
 {#snippet bimCostingTab()}
 	<Scroll name={t('bim_costing.estimates_title')} size="fill" inset>
 		<Stack gap="md">
-			{#if estimateQuery.loading && !estimateQuery.current}
+			<!-- Repeatable 2-Step Numbered Stepper -->
+			<Surface tone="subtle" padding="xs" radius="control">
+				<Cluster align="center" justify="between" gap="sm">
+					<Cluster align="center" gap="xs">
+						<Button
+							variant={costingStep === 'prepare' ? 'secondary' : 'ghost'}
+							aria-current={costingStep === 'prepare' ? 'step' : undefined}
+							onclick={() => (costingStepOverride = 'prepare')}
+						>
+							<Icon
+								name={step1Done ? 'lucide:circle-check' : 'lucide:circle-dot'}
+								class={step1Done ? 'size-3.5 text-tone-success-text' : 'size-3.5 text-primary'}
+							/>
+							{t('bim_step.step1_pill')}
+						</Button>
+						<Icon name="lucide:chevron-right" class="size-3.5 text-muted-foreground" />
+						<Button
+							variant={costingStep === 'cost' ? 'secondary' : 'ghost'}
+							aria-current={costingStep === 'cost' ? 'step' : undefined}
+							onclick={() => (costingStepOverride = 'cost')}
+						>
+							<Icon
+								name={step2Done ? 'lucide:circle-check' : 'lucide:circle'}
+								class={step2Done
+									? 'size-3.5 text-tone-success-text'
+									: 'size-3.5 text-muted-foreground'}
+							/>
+							{t('bim_step.step2_pill')}
+						</Button>
+					</Cluster>
+					<span class="px-2 text-meta">{t('bim_step.repeatable_hint')}</span>
+				</Cluster>
+			</Surface>
+
+			{#if costingStep === 'prepare'}
+				<BimPrepareStep
+					{ctx}
+					projectName={record.project_name}
+					currency={record.currency}
+					bimFile={record.bim_file ?? null}
+					bimTakeoff={record.bim_takeoff ?? null}
+					bimSummary={record.bim_summary ?? null}
+					compliance={record.bim_compliance ?? null}
+					signatures={projectSignatures}
+					bimAssets={activeBimAssets}
+					status={costingStatus}
+					{activeRun}
+					busy={costingBusy}
+					canAnalyze={canAnalyzeBim}
+					{costingLocked}
+					onRunPrepare={runPhase1Prepare}
+					onRetakeoff={reParseProjectBim}
+					onRunCost={runPhase2Cost}
+					onInspect3d={inspect3d}
+					onMutated={() => (step1Edited = true)}
+				/>
+			{:else if estimateQuery.loading && !estimateQuery.current}
 				<Inline gap="sm" align="center" aria-busy="true">
 					<Spinner />
 					<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
@@ -536,19 +673,19 @@
 				<Alert.Root variant="destructive"
 					><Alert.Title>{estimateQuery.error.message}</Alert.Title></Alert.Root
 				>
-			{:else if singleEstimate}
-				{@const est = singleEstimate}
+			{:else if activeEstimate}
+				{@const est = activeEstimate}
 				<Surface tone="card" padding="md" radius="control">
 					<Stack gap="md" divided>
 						<Stack gap="xs">
 							<Cluster align="center" justify="between" gap="sm">
 								<Inline gap="sm" align="center">
 									<span class="text-label">{est.title}</span>
-									<Badge variant={est.status === 'void' ? 'destructive' : 'outline'}>
+									<Badge variant="outline">
 										{enum_text(est.status, { t: rawT, model: 'cost_estimates', field: 'status' })}
 									</Badge>
 									{#if record.bim_compliance}
-										<Button variant="ghost" onclick={() => (bimActiveTab = 'compliance')}>
+										<Button variant="ghost" onclick={() => (costingStepOverride = 'prepare')}>
 											<Badge
 												variant={record.bim_compliance.fail_count > 0
 													? 'destructive'
@@ -565,17 +702,26 @@
 									{#if canAnalyzeBim && projectBimFile}
 										<Button
 											variant={!figuresDirty &&
-											(costingStatus.tone === 'warning' || costingStatus.tone === 'error')
+											(costingStale ||
+												costingStatus.tone === 'warning' ||
+												costingStatus.tone === 'error')
 												? 'brand'
 												: 'outline'}
-											disabled={costingBusy || costingLocked || figuresDirty}
+											disabled={costingBusy ||
+												costingLocked ||
+												figuresDirty ||
+												record.bim_takeoff == null}
 											hint={costingLocked
 												? t('bim_costing.locked_hint')
-												: t('bim_costing.run_pipeline_desc')}
-											onclick={costProjectBim}
+												: t('bim_step.run_phase2_hint')}
+											onclick={runPhase2Cost}
 										>
-											<Icon name="lucide:scan-line" class="size-3.5" />
-											{t('bim_costing.run_pipeline')}
+											{#if costingBusy}
+												<Spinner class="size-3.5" />
+											{:else}
+												<Icon name="lucide:refresh-cw" class="size-3.5" />
+											{/if}
+											{t('bim_step.regenerate_phase2')}
 										</Button>
 									{/if}
 									{#if canAnalyzeBim}
@@ -589,10 +735,7 @@
 										</Button>
 										<Button
 											variant="outline"
-											disabled={figuresDirty ||
-												figuresSaver.pending ||
-												costingBusy ||
-												est.status === 'void'}
+											disabled={figuresDirty || figuresSaver.pending || costingBusy}
 											onclick={toggleBaselineEstimate}
 										>
 											<Icon
@@ -615,7 +758,7 @@
 									'flex min-w-0 items-center gap-1.5 text-xs',
 									costingStatus.tone === 'error'
 										? 'text-destructive'
-										: costingStatus.tone === 'warning'
+										: costingStale || costingStatus.tone === 'warning'
 											? 'text-warning'
 											: 'text-muted-foreground'
 								]}
@@ -625,28 +768,22 @@
 									<Spinner class="size-3.5 shrink-0" />
 								{:else}
 									<Icon
-										name={costingStatus.tone === 'muted'
-											? 'lucide:circle-check'
-											: costingStatus.tone === 'locked'
-												? 'lucide:lock'
-												: 'lucide:triangle-alert'}
+										name={costingStale
+											? 'lucide:triangle-alert'
+											: costingStatus.tone === 'muted'
+												? 'lucide:circle-check'
+												: costingStatus.tone === 'locked'
+													? 'lucide:lock'
+													: 'lucide:triangle-alert'}
 										class="size-3.5 shrink-0"
 									/>
 								{/if}
-								<span class="truncate">{costingStatus.text}</span>
+								<span class="truncate">
+									{costingStale ? t('bim_step.phase1_updated_hint') : costingStatus.text}
+								</span>
 							</p>
-							{#if record.bim_summary && ((record.bim_summary.upgraded_classes ?? 0) > 0 || (record.bim_summary.propagated_services ?? 0) > 0 || (record.bim_summary.multi_storey_splits ?? 0) > 0 || (record.bim_summary.dropped_duplicates ?? 0) > 0)}
-								<Inline gap="xs" align="center" class="text-micro text-tone-info-text">
-									<Icon name="lucide:sparkles" class="size-3 shrink-0" />
-									<span>
-										{t('bim_costing.cleanup_summary', {
-											upgraded: record.bim_summary.upgraded_classes ?? 0,
-											services: record.bim_summary.propagated_services ?? 0,
-											splits: record.bim_summary.multi_storey_splits ?? 0,
-											duplicates: record.bim_summary.dropped_duplicates ?? 0
-										})}
-									</span>
-								</Inline>
+							{#if activeRun}
+								<RunStatus {ctx} automation="analyze_bim_file" run={activeRun} />
 							{/if}
 						</Stack>
 						<Grid minimum="card" gap="md">
@@ -736,70 +873,36 @@
 				<EmptyState
 					variant="card"
 					icon="file"
-					title={t('bim_costing.estimates_title')}
-					hint={costingStatus.text}
+					title={t('bim_step.phase2_title')}
+					hint={record.bim_takeoff != null
+						? t('bim_step.phase2_ready_hint')
+						: t('bim_step.phase2_needs_phase1')}
 				>
-					{#if canAnalyzeBim && projectBimFile}
-						<Button
-							variant={costingStatus.tone === 'warning' || costingStatus.tone === 'error'
-								? 'brand'
-								: 'outline'}
-							disabled={costingBusy || costingLocked}
-							hint={costingLocked
-								? t('bim_costing.locked_hint')
-								: t('bim_costing.run_pipeline_desc')}
-							onclick={costProjectBim}
-						>
-							<Icon name="lucide:scan-line" class="size-3.5" />
-							{t('bim_costing.run_pipeline')}
-						</Button>
-					{/if}
+					<Cluster gap="xs">
+						{#if record.bim_takeoff == null}
+							<Button variant="brand" onclick={() => (costingStepOverride = 'prepare')}>
+								<Icon name="lucide:arrow-left" class="size-3.5" />
+								{t('bim_step.goto_phase1')}
+							</Button>
+						{:else if canAnalyzeBim && projectBimFile}
+							<Button
+								variant="brand"
+								disabled={costingBusy || costingLocked}
+								onclick={runPhase2Cost}
+							>
+								{#if costingBusy}
+									<Spinner class="size-3.5" />
+								{:else}
+									<Icon name="lucide:calculator" class="size-3.5" />
+								{/if}
+								{t('bim_step.generate_phase2')}
+							</Button>
+						{/if}
+					</Cluster>
 				</EmptyState>
 			{/if}
 		</Stack>
 	</Scroll>
-{/snippet}
-
-{#snippet bimAssetsTab()}
-	{#if singleEstimate?.asset_signatures?.length}
-		<BimAssetReview
-			{ctx}
-			signatures={singleEstimate.asset_signatures}
-			bimAssets={activeBimAssets}
-			recalculating={costingBusy}
-			{costingLocked}
-			{...canAnalyzeBim && projectBimFile
-				? { onRecalculate: costProjectBim, onRetakeoff: reTakeoffProjectBim }
-				: {}}
-			onInspect3d={inspect3d}
-		/>
-	{:else}
-		<Bound size="content" inset>
-			<EmptyState
-				variant="card"
-				icon="file"
-				title={t('bim_costing.assets_title')}
-				hint={t('bim_costing.assets_empty')}
-			/>
-		</Bound>
-	{/if}
-{/snippet}
-
-{#snippet bimComplianceTab()}
-	<BimComplianceOrganizer
-		{ctx}
-		projectName={record.project_name}
-		currency={record.currency}
-		bimFile={record.bim_file ?? null}
-		bimTakeoff={record.bim_takeoff ?? null}
-		compliance={record.bim_compliance ?? null}
-		bimAssets={activeBimAssets}
-		signatures={singleEstimate?.asset_signatures ?? []}
-		recalculating={costingBusy}
-		{costingLocked}
-		{...canAnalyzeBim && projectBimFile ? { onRecalculate: costProjectBim } : {}}
-		onInspect3d={inspect3d}
-	/>
 {/snippet}
 
 {#snippet bimFileTab()}
@@ -832,18 +935,6 @@
 			title: t('bim_costing.estimates_title'),
 			icon: 'lucide:calculator',
 			body: bimCostingTab
-		},
-		{
-			name: 'compliance',
-			title: t('bim_compliance.tab_title'),
-			icon: 'lucide:shield-check',
-			body: bimComplianceTab
-		},
-		{
-			name: 'assets',
-			title: t('bim_costing.assets_title'),
-			icon: 'lucide:shapes',
-			body: bimAssetsTab
 		},
 		{
 			name: 'model_file',

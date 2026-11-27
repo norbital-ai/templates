@@ -337,5 +337,33 @@ it.live(
 			})).pricing_floors.rows;
 			expect(finalRows).toHaveLength(1);
 			expect(sameDecimal(finalRows[0]?.floor_price, '21800')).toBe(true);
+
+			// Uploading a brand-new floor for a KG product without prior floors defaults to '吨', never 'KG'
+			const freshPlan = planFloorMatrixImport({
+				parsed: {
+					stamp: null,
+					months: ['2026-10'],
+					invalid: [],
+					cells: [
+						{ rowNo: 2, code: 'RESIN-A', group: '华东仓', date: '2026-10-05', price: '19800' }
+					]
+				},
+				currency: 'CNY',
+				warehouses,
+				knownGroups: ['WEST'],
+				products: [
+					{
+						id: PRODUCT,
+						external_code: 'RESIN-A',
+						source_number: 'RESIN-A',
+						unit: 'KG',
+						tax_rate: '13',
+						active: true
+					}
+				],
+				existing: []
+			});
+			expect(freshPlan.issues).toEqual([]);
+			expect(freshPlan.rows).toMatchObject([{ unit: '吨', floor_price: '19800' }]);
 		})
 );

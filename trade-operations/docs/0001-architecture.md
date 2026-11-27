@@ -148,8 +148,7 @@ per-order acknowledgment table. The commission board and statement retain their 
 - **Below-floor is a setting.** The floor rule chooses a hint, a Commercial Manager's approval or a refusal.
 - **A quantity band is its own dated row.** The newest row on or before the order date that the quantity meets
   is the floor: retyping the base price on a later day replaces the bands of the earlier day.
-- **The floor book is kept in the line's unit.** There is no kg-to-tonne conversion; a book kept per tonne is
-  converted when it is imported.
+- **Kingdee mirrors store Kingdee's base unit (`KG`), while pricing and user surfaces present tonnes (`吨` / `MT`).** `pricing_floors` default to `吨` (`元/吨`), commission rules use `t`, and order lines, stock, pricing history and sales analysis convert `KG ↔ 吨` at the presentation/input boundary via `src/lib/unit-display.ts` and `unitRatio`.
 - **Kingdee owns void and close.** Trade Operations reads them and never writes them; archive is local only.
 - **Freight is not deducted by default.** No Kingdee feed carries it; a workspace that records freight chooses
   `deduct` in its commercial settings.

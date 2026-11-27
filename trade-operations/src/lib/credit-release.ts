@@ -210,8 +210,82 @@ export const creditReleaseContentHash = (total: string, lines: readonly CreditBi
 	);
 };
 
+export const ORG_CREDIT_PLAN: readonly PlannedCreditItem[] = [
+	{ key: 'current_bill', caption: '当前单据金额', bit: 1, sign: 1 },
+	{ key: 'invoices_audited', caption: '已审核发票金额', bit: 2, sign: 1 },
+	{ key: 'invoices_paid', caption: '已审核的已收款发票金额', bit: 4, sign: -1 },
+	{ key: 'refunds_unsettled', caption: '已审核未核销的应收退款单金额', bit: 64, sign: 1 },
+	{ key: 'receipts_unsettled', caption: '已审核未核销的收款单金额', bit: 256, sign: -1 },
+	{ key: 'advances_unsettled', caption: '已审核未核销的预收单金额', bit: 1024, sign: -1 },
+	{ key: 'stock_out_audited', caption: '已审核的销售出库单金额', bit: 16384, sign: 1 },
+	{ key: 'stock_out_hooked', caption: '已钩稽的销售出库单金额', bit: 65536, sign: -1 }
+];
+
+export type OrderCreditWarning = {
+	readonly held: boolean;
+	readonly currency: string;
+	readonly creditLimit: string | null;
+	readonly creditUsed: string | null;
+	readonly currentOver: string | null;
+	readonly projectedUsed: string | null;
+	readonly projectedOver: string | null;
+};
+
+/** Early-warning check for a sales order against the customer's latest Kingdee credit snapshot. */
+export function orderCreditAssessment(
+	snapshot: {
+		readonly currency: string;
+		readonly credit_limit: string | null;
+		readonly credit_used: string | null;
+		readonly credit_hold: boolean;
+	} | null,
+	orderCurrency: string | null | undefined,
+	draftOrderTotal: string | null | undefined
+): OrderCreditWarning | null {
+	if (!snapshot) return null;
+	const zero = BigDecimal.fromBigInt(0n);
+	const limit =
+		snapshot.credit_limit !== null ? BigDecimal.fromStringUnsafe(snapshot.credit_limit) : null;
+	const used =
+		snapshot.credit_used !== null ? BigDecimal.fromStringUnsafe(snapshot.credit_used) : null;
+	const currentDiff = limit !== null && used !== null ? BigDecimal.subtract(used, limit) : null;
+	const currentOver =
+		currentDiff !== null && BigDecimal.isGreaterThan(currentDiff, zero)
+			? fixedDecimal(currentDiff, 2)
+			: null;
+	let projectedUsed: string | null = null;
+	let projectedOver: string | null = null;
+	if (
+		limit !== null &&
+		used !== null &&
+		orderCurrency === snapshot.currency &&
+		draftOrderTotal != null &&
+		draftOrderTotal !== ''
+	) {
+		const added = BigDecimal.fromStringUnsafe(draftOrderTotal);
+		if (BigDecimal.isGreaterThan(added, zero)) {
+			const totalUsed = BigDecimal.sum(used, added);
+			const diff = BigDecimal.subtract(totalUsed, limit);
+			if (BigDecimal.isGreaterThan(diff, zero)) {
+				projectedUsed = fixedDecimal(totalUsed, 2);
+				projectedOver = fixedDecimal(diff, 2);
+			}
+		}
+	}
+	if (!snapshot.credit_hold && currentOver === null && projectedOver === null) return null;
+	return {
+		held: snapshot.credit_hold,
+		currency: snapshot.currency,
+		creditLimit: snapshot.credit_limit,
+		creditUsed: snapshot.credit_used,
+		currentOver,
+		projectedUsed,
+		projectedOver
+	};
+}
+
 const RELEASE_LOG_RE = /^销售出库 - (\S+) 由 (.+?) 授信通过信用检查$/;
-const BILL_NO_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const BILL_NO_RE = /^[A-Za-z0-9._/-]{1,40}$/;
 
 export type ParsedReleaseLog = {
 	readonly logId: string;
@@ -268,6 +342,13 @@ export type BillCreditObservation<O = string, D = string> =
 			readonly oper_date: string;
 			readonly content_hash: string;
 			readonly release: ParsedReleaseLog | null;
+			readonly org_audit?: {
+				readonly fid: string;
+				readonly over_limit: boolean;
+				readonly credit_limit?: string | null;
+				readonly credit_used?: string | null;
+				readonly over_limit_amount?: string | null;
+			} | null;
 	  }
 	| {
 			readonly kind: 'unaudited';
@@ -376,6 +457,44 @@ export function reconcileCreditRelease<O = string, D = string>(
 				content_hash: observation.content_hash,
 				source_oper_date: observation.oper_date
 			};
+		}
+		if (observation.org_audit) {
+			const releaseKey = `org:${observation.org_audit.fid}:${observation.oper_date.toLowerCase()}`;
+			if (!open) {
+				return observation.org_audit.over_limit
+					? {
+							op: 'open_bypass',
+							released_by: 'kingdee-audit',
+							released_at: observedAt,
+							release_log_key: releaseKey
+						}
+					: { op: 'none' };
+			}
+			const validApproval =
+				open.status === 'approved' &&
+				open.approved_content_hash !== null &&
+				open.approved_content_hash === observation.content_hash;
+			if (validApproval)
+				return {
+					op: 'release',
+					status: 'released',
+					released_by: 'kingdee-audit',
+					released_at: observedAt,
+					release_log_key: releaseKey,
+					content_hash: observation.content_hash,
+					source_oper_date: observation.oper_date
+				};
+			if (observation.org_audit.over_limit)
+				return {
+					op: 'release',
+					status: 'bypassed',
+					released_by: 'kingdee-audit',
+					released_at: observedAt,
+					release_log_key: releaseKey,
+					content_hash: observation.content_hash,
+					source_oper_date: observation.oper_date
+				};
+			return { op: 'close', status: 'cleared' };
 		}
 		if (!open) return { op: 'none' };
 		if (open.status === 'approved' && open.audit_seen_at === null)

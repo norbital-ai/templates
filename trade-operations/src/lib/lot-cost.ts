@@ -1,5 +1,6 @@
 import { BigDecimal, Duration } from 'effect';
 import type { Id, ReadAnswer } from '@norbital-ai/bolt';
+import { unitRatio } from './commercial.js';
 
 export const fifoStockFields = [
 	'product',
@@ -30,7 +31,11 @@ type StockLot = {
 	readonly unit: string | null;
 	readonly on_hand: string;
 };
-const unitKey = (unit: string | null) => unit?.normalize('NFKC').trim().toLowerCase();
+const convertQty = (amount: string, from: string | null, to: string) => {
+	if (from === null) return null;
+	const ratio = unitRatio(from, to);
+	return ratio === null ? null : BigDecimal.multiply(BigDecimal.fromStringUnsafe(amount), ratio);
+};
 
 /** An advisory pick from physical stock, with purchase price evidence scoped to the selected warehouse. */
 export function estimateFifoCost(
@@ -72,7 +77,8 @@ export function estimateFifoCost(
 		selected.some(
 			(lot) =>
 				!lot.lot_number ||
-				unitKey(lot.unit) !== unitKey(input.unit) ||
+				lot.unit === null ||
+				unitRatio(lot.unit, input.unit) === null ||
 				BigDecimal.isNegative(BigDecimal.fromStringUnsafe(lot.on_hand))
 		)
 	)
@@ -94,30 +100,35 @@ export function estimateFifoCost(
 	for (const lot of selected) {
 		const name = lot.lot_number ?? '';
 		const receipt = costs.get(name);
-		if (!receipt || unitKey(receipt.unit) !== unitKey(input.unit)) return null;
+		const receiptRatio = receipt ? unitRatio(receipt.unit, input.unit) : null;
+		const lotQuantity = convertQty(lot.on_hand, lot.unit, input.unit);
+		if (!receipt || receiptRatio === null || lotQuantity === null) return null;
 		const recorded = productLots.filter(
 			(row) =>
 				row.lot_number === name && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(row.on_hand))
 		);
+		const recordedConverted = recorded.map((row) => convertQty(row.on_hand, row.unit, input.unit));
+		const receivedConverted = convertQty(receipt.received_qty, receipt.unit, input.unit);
 		if (
-			recorded.some((row) => unitKey(row.unit) !== unitKey(input.unit)) ||
+			receivedConverted === null ||
+			recordedConverted.some((q) => q === null) ||
 			BigDecimal.isGreaterThan(
-				BigDecimal.sumAll(recorded.map((row) => BigDecimal.fromStringUnsafe(row.on_hand))),
-				BigDecimal.fromStringUnsafe(receipt.received_qty)
+				BigDecimal.sumAll(recordedConverted.flatMap((q) => (q === null ? [] : [q]))),
+				receivedConverted
 			)
 		)
 			return null;
+		const unitCost = BigDecimal.round(
+			BigDecimal.divideUnsafe(BigDecimal.fromStringUnsafe(receipt.unit_cost), receiptRatio),
+			{ scale: 8 }
+		);
 		const previous = picks.get(name);
-		if (previous)
-			previous.quantity = BigDecimal.sum(
-				previous.quantity,
-				BigDecimal.fromStringUnsafe(lot.on_hand)
-			);
+		if (previous) previous.quantity = BigDecimal.sum(previous.quantity, lotQuantity);
 		else
 			picks.set(name, {
 				lot_number: name,
-				quantity: BigDecimal.fromStringUnsafe(lot.on_hand),
-				unit_cost: BigDecimal.fromStringUnsafe(receipt.unit_cost),
+				quantity: lotQuantity,
+				unit_cost: unitCost,
 				received_on: receipt.received_on
 			});
 	}
@@ -163,14 +174,18 @@ export function averageLotCost(
 		)
 	)
 		return null;
-	const lots = rows.filter(
-		(r) =>
-			r.product === product &&
-			r.unit === unit &&
-			r.currency === currency &&
-			BigDecimal.isPositive(BigDecimal.fromStringUnsafe(r.on_hand))
-	);
-	const valued = lots.flatMap((r) =>
+	const lots = rows.flatMap((r) => {
+		if (
+			r.product !== product ||
+			r.currency !== currency ||
+			r.unit === null ||
+			!BigDecimal.isPositive(BigDecimal.fromStringUnsafe(r.on_hand))
+		)
+			return [];
+		const ratio = unitRatio(r.unit, unit);
+		return ratio === null ? [] : [{ row: r, ratio }];
+	});
+	const valued = lots.flatMap(({ row: r }) =>
 		r.unit_cost === null
 			? []
 			: [
@@ -184,7 +199,11 @@ export function averageLotCost(
 	return BigDecimal.round(
 		BigDecimal.divideUnsafe(
 			BigDecimal.sumAll(valued),
-			BigDecimal.sumAll(lots.map((r) => BigDecimal.fromStringUnsafe(r.on_hand)))
+			BigDecimal.sumAll(
+				lots.map(({ row: r, ratio }) =>
+					BigDecimal.multiply(BigDecimal.fromStringUnsafe(r.on_hand), ratio)
+				)
+			)
 		),
 		{ scale: 8 }
 	);

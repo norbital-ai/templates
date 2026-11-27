@@ -512,7 +512,8 @@ export const proposeUnseenItems = Effect.fnUntraced(function* (
 	matrix: readonly MatrixItem[],
 	currency: CurrencyCode,
 	maxProposals: number,
-	ctx: Pick<AutomationCtx, 'ai' | 'act' | 'progress'>
+	ctx: Pick<AutomationCtx, 'ai' | 'act' | 'progress'>,
+	runScope?: string
 ) {
 	const assets = unknown
 		.filter((a) => a.signature !== undefined)
@@ -633,7 +634,9 @@ export const proposeUnseenItems = Effect.fnUntraced(function* (
 						}
 					}))
 				},
-				{ key: `bim-proposal:${covered.map(({ a }) => a.signature).join(',')}` }
+				{
+					key: `bim-proposal:${runScope ? `${runScope}:` : ''}${covered.map(({ a }) => a.signature).join(',')}`
+				}
 			)
 			.pipe(Effect.option);
 		if (outcome._tag === 'Some') proposed += 1;

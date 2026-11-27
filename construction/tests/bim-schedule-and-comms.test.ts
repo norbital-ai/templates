@@ -481,6 +481,49 @@ it.effect(
 			expect(stored.kind).toBe('committed');
 			yield* t.run_due();
 
+			// Phase 1 (`prepare`) ran automatically: cleaned BIM summary, asset_signatures & compliance stored, no cost_estimates yet
+			const projectAfterPrepare = rowsOf(
+				yield* delivery.query({
+					projects: {
+						where: { id: { eq: projectId } },
+						fields: ['revision', 'bim_summary', 'bim_compliance', 'bim_costing_dirty'],
+						limit: 1
+					}
+				}),
+				'projects'
+			)[0];
+			expect(projectAfterPrepare?.['bim_summary']).not.toBeNull();
+			expect(projectAfterPrepare?.['bim_compliance']).not.toBeNull();
+			expect(projectAfterPrepare?.['bim_costing_dirty']).toBe(false);
+			const preparedSummary = Schema.decodeUnknownSync(
+				Schema.Struct({
+					stage: Schema.optionalKey(Schema.String),
+					asset_count: Schema.Number,
+					asset_signatures: Schema.optionalKey(Schema.Array(Schema.String))
+				})
+			)(projectAfterPrepare?.['bim_summary']);
+			expect(preparedSummary.stage).toBe('prepared');
+			expect(preparedSummary.asset_count).toBe(5);
+			expect(
+				rowsOf(
+					yield* delivery.query({
+						cost_estimates: {
+							where: { project_id: { eq: projectId } },
+							fields: ['status'],
+							limit: 5
+						}
+					}),
+					'cost_estimates'
+				)
+			).toHaveLength(0);
+
+			// Phase 2 (`cost`) generates the 1:1 classification & costing matrix from Phase 1's reviewed BIM & Item Matrix
+			const phase2Run = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
+			);
+			expect(phase2Run.state).toBe('succeeded');
+
 			const autoEstimates = rowsOf(
 				yield* delivery.query({
 					cost_estimates: {
@@ -503,7 +546,7 @@ it.effect(
 			);
 			expect(autoEstimates).toHaveLength(1);
 			const estRow = autoEstimates[0];
-			if (!estRow) throw new Error('Expected cost estimate once the takeoff was stored');
+			if (!estRow) throw new Error('Expected cost estimate once Phase 2 ran');
 			expect(estRow['bim_asset_count']).toBe(5);
 			expect(estRow['classified_asset_count']).toBe(1);
 			expect(estRow['unmatched_asset_count']).toBe(4);
@@ -538,6 +581,11 @@ it.effect(
 			expect(projectAfter?.['bim_summary']).not.toBeNull();
 			expect(projectAfter?.['bim_compliance']).not.toBeNull();
 			expect(projectAfter?.['bim_costing_dirty']).toBe(false);
+			expect(
+				Schema.decodeUnknownSync(Schema.Struct({ stage: Schema.optionalKey(Schema.String) }))(
+					projectAfter?.['bim_summary']
+				).stage
+			).toBe('costed');
 
 			// Any other edit of a priced project prices nothing again
 			const projectRevAfter = Schema.decodeUnknownSync(Schema.Number)(projectAfter?.['revision']);
@@ -588,10 +636,10 @@ it.effect(
 			)[0];
 			expect(estAfterRefusal?.['contingency_pct']).toBe('5');
 
-			// Pricing a locked baselined estimate again refuses cleanly AND leaves persisted estimate untouched
+			// Phase 2 on a locked baselined estimate refuses cleanly AND leaves persisted estimate untouched
 			const lockedRerun = yield* runAutomation(
 				t,
-				admin.run('analyze_bim_file', { project_id: projectId }, JobResult)
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
 			);
 			expect(lockedRerun.state).toBe('failed');
 			const estAfterLockedRerun = rowsOf(
@@ -609,7 +657,7 @@ it.effect(
 			expect(estAfterLockedRerun[0]?.['total_estimate']).toBe('12600.00');
 
 			// Replacing projects.bim_file clears its takeoff, marks bim_costing_dirty=true AND voids the baselined estimate;
-			// the new takeoff, once stored, prices it back to draft and clears dirty
+			// storing the new takeoff runs Phase 1 cleanly, then Phase 2 restores it to draft
 			const uploadedIfcV2 = yield* delivery.upload('projects.bim_file', {
 				name: 'synthetic_v2.ifc',
 				mime: 'application/octet-stream',
@@ -667,6 +715,11 @@ it.effect(
 				]
 			});
 			yield* t.run_due();
+			const regenRun = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
+			);
+			expect(regenRun.state).toBe('succeeded');
 			const regenEst = rowsOf(
 				yield* admin.query({
 					cost_estimates: {
@@ -1723,6 +1776,25 @@ it.effect(
 			});
 			expect(stored.kind).toBe('committed');
 			yield* t.run_due();
+
+			// Phase 1 ran automatically: EXACTLY 5 System 1 visual calls, all 5 asset_mappings remembered, AND System 2 proposed ART-KINETIC!
+			expect(recordedCalls).toHaveLength(5);
+			for (const call of recordedCalls) {
+				expect(call.imageCount).toBe(1);
+				expect(call.angles).toEqual([
+					'front_three_quarter, front_elevation / side_rear_three_quarter, plan'
+				]);
+				expect(call.firstCriterion).toBe(UNKNOWN_CATALOG_CHOICE);
+			}
+
+			// First Phase 2 run BEFORE approving the proposal -> 104 classified, 1 unmatched awaiting commercial approval
+			const initialCost = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
+			);
+			expect(initialCost.state).toBe('succeeded');
+			expect(recordedCalls).toHaveLength(5);
+
 			const est = rowsOf(
 				yield* admin.query({
 					cost_estimates: {
@@ -1750,17 +1822,7 @@ it.effect(
 				})
 			)(est);
 
-			// EXACTLY 5 System 1 calls for 5 deduplicated archetypes (ALL went through System 1 — even RC Shear Wall! Never 105!)
-			expect(recordedCalls).toHaveLength(5);
-			for (const call of recordedCalls) {
-				expect(call.imageCount).toBe(1);
-				expect(call.angles).toEqual([
-					'front_three_quarter, front_elevation / side_rear_three_quarter, plan'
-				]);
-				expect(call.firstCriterion).toBe(UNKNOWN_CATALOG_CHOICE);
-			}
-
-			// 100 walls + 2 lifts + 1 double sliding door + 1 EPDM = 104 classified (ALL 104 via ai_sys1), 1 unknown_unseen_catalog
+			// 100 walls + 2 lifts + 1 double sliding door + 1 EPDM = 104 classified (ALL 104 via ai_sys1), 1 awaiting proposal approval
 			expect(out.bim_asset_count).toBe(105);
 			expect(out.classified_asset_count).toBe(104);
 			expect(out.unmatched_asset_count).toBe(1);
@@ -1768,7 +1830,7 @@ it.effect(
 			expect(out.bim_subtotal).toBe('607500.00');
 			expect(out.total_estimate).toBe('637875.00');
 
-			// Verify ALL matched lines carry `ai_sys1` visual provenance and the unseen item carries Unknown / Unseen Catalog reason
+			// Verify ALL matched lines carry `ai_sys1` visual provenance and the unseen item awaits proposal approval
 			const lines = Schema.decodeUnknownSync(
 				Schema.Array(
 					Schema.Struct({
@@ -1785,11 +1847,10 @@ it.effect(
 			expect(lines.find((l) => l.matrix_code === 'CIV-PLAY-EPDM')?.match_method).toBe('ai_sys1');
 			const doorLine = lines.find((l) => l.matrix_code === 'ARC-DOOR-SLIDE');
 			expect(doorLine?.match_method).toBe('ai_sys1');
-			expect(doorLine?.match_reason).toContain('Visual AI (System 1)');
 			const unknownLine = lines.find((l) => l.status === 'unmatched');
 			expect(unknownLine?.matrix_code ?? null).toBeNull();
-			expect(unknownLine?.match_method).toBe('ai_sys1');
-			expect(unknownLine?.match_reason).toContain('Unknown / Unseen Catalog');
+			expect(unknownLine?.match_method).toBe('ai_sys2');
+			expect(unknownLine?.match_reason).toContain('awaiting commercial approval');
 
 			// each decision is remembered by its asset's signature, picture included
 			const mappingsOf = () =>
@@ -1810,12 +1871,12 @@ it.effect(
 			]);
 			expect(remembered.every((r) => r['source'] !== 'qs' && r['picture'] != null)).toBe(true);
 
-			// System 2's proposal for the unpriced sculpture waits for commercial review, linked to its asset
+			// Step 1 review: QS approves System 2's ART-KINETIC proposal AND adjusts its proposed unit_rate inline!
 			const proposed = rowsOf(
 				yield* admin.query({
 					item_matrix: {
 						where: { code: { eq: 'ART-KINETIC' } },
-						fields: ['unit_rate', 'rate_basis'],
+						fields: ['revision', 'unit_rate', 'rate_basis'],
 						limit: 1
 					}
 				}),
@@ -1830,6 +1891,16 @@ it.effect(
 				})
 			);
 			yield* qs.approvals.decide(approval.request_id, { decision: 'approve' });
+			const proposedId = fixtureId('item_matrix', String(proposed?.['id']));
+			const editedRate = yield* qs.act({
+				'item_matrix.update': [
+					{
+						target: { id: proposedId, revision: Number(proposed?.['revision']) },
+						set: { unit_rate: '55000.00', waste_factor_pct: '10.0' }
+					}
+				]
+			});
+			expect(editedRate.kind).toBe('committed');
 
 			// a QS correction wins from then on: the door is priced as the QS chose
 			const items = rowsOf(
@@ -1855,10 +1926,15 @@ it.effect(
 				]
 			});
 
-			// pricing again asks System 1 nothing: every asset is remembered
+			// Re-running Step 1 then Step 2 asks System 1 nothing: every asset is remembered and QS rate edits take effect!
+			const step1Again = yield* runAutomation(
+				t,
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'prepare' }, JobResult)
+			);
+			expect(step1Again.state).toBe('succeeded');
 			const again = yield* runAutomation(
 				t,
-				admin.run('analyze_bim_file', { project_id: projectId }, JobResult)
+				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
 			);
 			expect(again.state).toBe('succeeded');
 			expect(recordedCalls).toHaveLength(5);
@@ -1866,7 +1942,8 @@ it.effect(
 				Schema.Array(
 					Schema.Struct({
 						matrix_code: Schema.optionalKey(Schema.NullOr(Schema.String)),
-						match_method: Schema.optionalKey(Schema.NullOr(Schema.String))
+						match_method: Schema.optionalKey(Schema.NullOr(Schema.String)),
+						amount: Schema.String
 					})
 				)
 			)(
@@ -1881,7 +1958,9 @@ it.effect(
 					'cost_estimates'
 				)[0]?.['bim_assets']
 			);
-			expect(repriced.find((l) => l.matrix_code === 'ART-KINETIC')?.match_method).toBe('ai_sys2');
+			const kineticLine = repriced.find((l) => l.matrix_code === 'ART-KINETIC');
+			expect(kineticLine?.match_method).toBe('ai_sys2');
+			expect(kineticLine?.amount).toBe('60500.00'); // 1 × 1.10 × 55,000.00 (QS-edited proposed costing!)
 			expect(
 				repriced.filter((l) => l.matrix_code === 'MEP-LIFT-PASS').map((l) => l.match_method)
 			).toContain('override');
@@ -2108,12 +2187,18 @@ it.effect(
 			)[0]?.['bim_summary'];
 			const summaryDecoded = Schema.decodeUnknownSync(
 				Schema.Struct({
+					stage: Schema.optionalKey(Schema.String),
+					asset_signatures: Schema.optionalKey(Schema.Array(Schema.String)),
 					upgraded_classes: Schema.optionalKey(Schema.Number),
 					propagated_services: Schema.optionalKey(Schema.Number),
 					multi_storey_splits: Schema.optionalKey(Schema.Number),
 					dropped_duplicates: Schema.optionalKey(Schema.Number)
 				})
 			)(projSummary);
+			expect(summaryDecoded.stage).toBe('prepared');
+			expect(summaryDecoded.asset_signatures).toEqual([
+				'LIN|IFCPIPESEGMENT|hydronic_hvac|DN25|steel'
+			]);
 			expect(summaryDecoded.upgraded_classes).toBe(10);
 			expect(summaryDecoded.propagated_services).toBe(4);
 			expect(summaryDecoded.multi_storey_splits).toBe(2);
@@ -2144,10 +2229,14 @@ it.effect(
 			expect(verifiedRow?.['review_status']).toBe('verified');
 			expect(verifiedRow?.['service']).toBe('natural_gas');
 
-			// Recalculate estimate: ZERO new System 1 calls, priced accurately at 100m × SGD 115 = SGD 11,500.00!
+			// Phase 2 generates costing: ZERO new System 1 calls, priced accurately at 100m × SGD 115 = SGD 11,500.00!
 			const recalc = yield* runAutomation(
 				t,
-				admin.run('analyze_bim_file', { project_id: projectRef.id, contingency_pct: 0 }, JobResult)
+				admin.run(
+					'analyze_bim_file',
+					{ project_id: projectRef.id, phase: 'cost', contingency_pct: 0 },
+					JobResult
+				)
 			);
 			expect(recalc.state).toBe('succeeded');
 			expect(sys1Calls).toBe(1);

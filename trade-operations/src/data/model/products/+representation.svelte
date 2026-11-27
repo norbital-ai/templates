@@ -4,6 +4,7 @@
 	import { Chart, EmptyState, Field, RecordForm, Section, type RecordView } from '@norbital-ai/ui';
 	import { Bound, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
+	import { displayUnit, priceToDisplay } from '../../../lib/unit-display.js';
 	let {
 		view,
 		ctx
@@ -35,6 +36,12 @@
 	const rows = $derived(
 		(sales?.current ? salesDetail(sales.current) : [])
 			.filter((row) => row.product === id)
+			.map((row) => ({
+				...row,
+				display_unit: displayUnit(row.unit, ctx.locale),
+				sold_price: priceToDisplay(row.sold_price, row.unit),
+				floor_net: priceToDisplay(row.floor_net, row.unit)
+			}))
 			.sort((a, b) => a.business_on.localeCompare(b.business_on))
 	);
 	const floors = $derived(
@@ -59,12 +66,8 @@
 	);
 	const rates = $derived(
 		floors?.current?.pricing_floors.rows
-			.map((floor) => ({
-				on: floor.effective_on,
-				currency: floor.currency,
-				unit: floor.unit,
-				group: floor.group_code,
-				price: floor.tax_inclusive
+			.map((floor) => {
+				const net = floor.tax_inclusive
 					? BigDecimal.format(
 							BigDecimal.round(
 								BigDecimal.divideUnsafe(
@@ -83,11 +86,18 @@
 								{ scale: 8 }
 							)
 						)
-					: floor.floor_price
-			}))
+					: floor.floor_price;
+				return {
+					on: floor.effective_on,
+					currency: floor.currency,
+					unit: displayUnit(floor.unit, ctx.locale),
+					group: floor.group_code,
+					price: priceToDisplay(net, floor.unit) ?? net
+				};
+			})
 			.reverse() ?? []
 	);
-	const groups = $derived([...new Set(rows.map((r) => `${r.currency}/${r.unit}`))]);
+	const groups = $derived([...new Set(rows.map((r) => `${r.currency}/${r.display_unit}`))]);
 	/** One multi-series step chart per currency/unit, plotting each warehouse region as its own line. */
 	const floorCharts = $derived.by(() => {
 		const byUnit = new Map<string, typeof rates>();
@@ -125,7 +135,7 @@
 						<Chart
 							{ctx}
 							of={rows
-								.filter((r) => `${r.currency}/${r.unit}` === group)
+								.filter((r) => `${r.currency}/${r.display_unit}` === group)
 								.map((r) => ({
 									on: r.business_on,
 									[ctx.t('component.sold_price')]: r.sold_price,
@@ -134,7 +144,9 @@
 							x="on"
 							y={[
 								ctx.t('component.sold_price'),
-								...(rows.some((r) => `${r.currency}/${r.unit}` === group && r.floor_net !== null)
+								...(rows.some(
+									(r) => `${r.currency}/${r.display_unit}` === group && r.floor_net !== null
+								)
 									? [ctx.t('models.pricing_floors.fields.floor_price')]
 									: [])
 							]}

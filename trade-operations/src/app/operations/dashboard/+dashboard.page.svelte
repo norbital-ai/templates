@@ -31,7 +31,7 @@
 		approvals: Boolean(orders),
 		kingdee: Boolean(orders),
 		overdue: ages,
-		credit: Boolean(ctx.catalog?.credit_snapshots)
+		credit: Boolean(ctx.catalog?.credit_snapshots || ctx.catalog?.credit_releases)
 	});
 
 	const draft = { status: { eq: 'draft' }, archived: { eq: false } } as const;
@@ -114,7 +114,29 @@
 				)
 			: null
 	);
-	const credit = $derived(shown.credit ? ctx.query(creditRead) : null);
+	const credit = $derived(ctx.catalog?.credit_snapshots ? ctx.query(creditRead) : null);
+	const creditReleases = $derived(
+		ctx.catalog?.credit_releases
+			? ctx.query({
+					credit_releases: {
+						...(ctx.catalog.credit_releases.output === 'logistics'
+							? { output: 'logistics' as const }
+							: {}),
+						where: { source_status: { in: ['blocked', 'bypassed'] } },
+						fields: ['source_status'],
+						limit: 500
+					}
+				})
+			: null
+	);
+	const blockedReleases = $derived(
+		creditReleases?.current?.credit_releases.rows.filter((r) => r.source_status === 'blocked')
+			.length ?? 0
+	);
+	const bypassedReleases = $derived(
+		creditReleases?.current?.credit_releases.rows.filter((r) => r.source_status === 'bypassed')
+			.length ?? 0
+	);
 	const creditFigures = $derived(
 		credit?.current && (!ages || aging.current || aging.error)
 			? creditTotals(
@@ -299,9 +321,17 @@
 							href={analysis('credit')}
 						>
 							{@render count(
-								creditFigures?.reduce((sum, row) => sum + row.customers, 0),
-								credit?.error
+								creditFigures
+									? creditFigures.reduce((sum, row) => sum + row.customers, 0)
+									: creditReleases?.current
+										? blockedReleases + bypassedReleases
+										: undefined,
+								credit?.error ?? creditReleases?.error
 							)}
+							{@render meta([
+								[ctx.t('dashboard.credit_blocked'), blockedReleases],
+								[ctx.t('dashboard.credit_bypassed'), bypassedReleases]
+							])}
 							{#each creditFigures ?? [] as row (row.currency)}
 								{@const over = row.figures.find((figure) => figure.field === 'over_limit')?.value}
 								{#if over && BigDecimal.isPositive(BigDecimal.fromStringUnsafe(over))}

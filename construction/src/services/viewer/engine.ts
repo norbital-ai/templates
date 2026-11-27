@@ -461,6 +461,7 @@ export function createViewerRuntime(container: HTMLDivElement, pan: boolean) {
 				logarithmicDepthBuffer: true,
 				antialias: true
 			});
+			world.renderer.showLogo = false;
 			world.camera = new OBC.SimpleCamera(components);
 			components.init();
 			const fragments = components.get(OBC.FragmentsManager);

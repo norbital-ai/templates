@@ -4,6 +4,7 @@ import {
 	computeCreditExposure,
 	evaluateCreditBlock,
 	hashBillLines,
+	ORG_CREDIT_PLAN,
 	parseKingdeeReleaseLog,
 	planCreditFormula,
 	reconcileCreditRelease,
@@ -12,13 +13,15 @@ import {
 	type OpenCreditRelease,
 	type ParsedReleaseLog
 } from '../../lib/credit-release.js';
+import { fixedDecimal } from '../../lib/purchase-listing.js';
 
 type SourceReleaseStatus =
 	'blocked' | 'released' | 'cleared' | 'superseded' | 'withdrawn' | 'bypassed';
 import {
 	kingdeeCreditAccount,
 	kingdeeCreditPolicy,
-	kingdeeCreditPolicyOf
+	kingdeeCreditPolicyOf,
+	kingdeeOrgCreditPolicy
 } from './configuration.js';
 import { checked } from './order-source.js';
 import {
@@ -173,6 +176,174 @@ SELECT @fingerprint AS fingerprint,
  CASE WHEN DATALENGTH(@data)<=1000000 AND @fingerprint<>@prior THEN @data END AS entries,
  CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at; /* kingdee-credit-release */`;
 
+// Snapshot of KIS customer-master credit (t_Organization.FIsCreditMgr / FCreditLimit), unaudited blue DOs
+// for credit-managed customers, their exposure (including watched DOs for post-audit bypass checks), and watched DOs.
+const orgCreditReleaseSnapshot = `${requireReadAccount}
+DECLARE @data nvarchar(max) = (
+ SELECT
+  CONVERT(varchar(10),GETDATE(),23) AS today,
+  JSON_QUERY('[]') AS options,
+  JSON_QUERY('[]') AS fields,
+  JSON_QUERY(COALESCE((
+   SELECT TOP (501)
+    CONVERT(varchar(20),b.FInterID) AS fid,
+    LTRIM(RTRIM(ISNULL(b.FBillNo,''))) AS bill_no,
+    CONVERT(varchar(10),b.FDate,23) AS bill_on,
+    CONVERT(varchar(20),b.FSupplyID) AS customer_id,
+    CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
+    JSON_QUERY(COALESCE((
+     SELECT e.FEntryID AS entry_id,
+      CONVERT(varchar(20),e.FItemID) AS item_id,
+      CONVERT(varchar(100),e.FQty) AS quantity,
+      CONVERT(varchar(100),e.FConsignAmount) AS amount,
+      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
+      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
+      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
+     FROM dbo.ICStockBillEntry e
+     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
+     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
+     WHERE e.FInterID=b.FInterID
+     ORDER BY e.FEntryID
+     FOR JSON PATH, INCLUDE_NULL_VALUES
+    ),'[]')) AS lines
+   FROM dbo.ICStockBill b
+   WHERE b.FTranType=21 AND b.FStatus=0 AND b.FCancellation=0 AND b.FROB<>-1
+    AND EXISTS (
+     SELECT 1 FROM dbo.t_Organization o
+     WHERE o.FItemID=b.FSupplyID AND o.FIsCreditMgr<>0 AND o.FDeleted=0
+      AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
+    )
+   ORDER BY b.FInterID
+   FOR JSON PATH, INCLUDE_NULL_VALUES
+  ),'[]')) AS unaudited,
+  JSON_QUERY(COALESCE((
+   SELECT TOP (2001)
+    CONVERT(varchar(20),o.FItemID) AS customer_id,
+    'CNY' AS currency,
+    REPLACE(LTRIM(RTRIM(o.FCreditLimit)),',','') AS credit_limit,
+    0 AS credit_days,
+    CONVERT(varchar(100),i.invoiced) AS invoices_audited,
+    CONVERT(varchar(100),i.paid) AS invoices_paid,
+    CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
+    CONVERT(varchar(100),r.receipts) AS receipts_unsettled,
+    CONVERT(varchar(100),r.advances) AS advances_unsettled,
+    CONVERT(varchar(100),d.issued) AS stock_out_audited,
+    CONVERT(varchar(100),d.hooked) AS stock_out_hooked,
+    0 AS invalid_terms,
+    JSON_QUERY('[]') AS overdue_invoices
+   FROM dbo.t_Organization o
+   OUTER APPLY(SELECT COALESCE(SUM(a.FAmount),0) AS invoiced,
+    COALESCE(SUM(a.FAmount-a.FRemainAmount),0) AS paid
+    FROM dbo.t_RP_Contact a JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID
+     AND s.FStatus<>0 AND s.FCancellation=0
+    WHERE a.FRP=1 AND a.FType=3 AND a.FCustomer=o.FItemID) i
+   OUTER APPLY(SELECT COALESCE(-SUM(CASE WHEN a.FPre=-1 THEN a.FRemainAmount ELSE 0 END),0) AS refunds,
+    COALESCE(SUM(CASE WHEN a.FPre=0 THEN a.FRemainAmount ELSE 0 END),0) AS receipts,
+    COALESCE(SUM(CASE WHEN a.FPre=1 THEN a.FRemainAmount ELSE 0 END),0) AS advances
+    FROM dbo.t_RP_Contact a JOIN dbo.t_RP_NewReceiveBill b ON b.FBillID=a.FBillID AND b.FStatus<>0
+    WHERE a.FRP=1 AND a.FType=5 AND a.FCustomer=o.FItemID) r
+   OUTER APPLY(SELECT COALESCE(SUM(e.FConsignAmount),0) AS issued,
+    COALESCE(SUM(CASE WHEN b.FHookStatus=2 THEN e.FConsignAmount ELSE 0 END),0) AS hooked
+    FROM dbo.ICStockBill b JOIN dbo.ICStockBillEntry e ON e.FInterID=b.FInterID
+    WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=o.FItemID) d
+   WHERE o.FIsCreditMgr<>0 AND o.FDeleted=0
+    AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
+    AND (
+     EXISTS (
+      SELECT 1 FROM dbo.ICStockBill udo
+      WHERE udo.FTranType=21 AND udo.FStatus=0 AND udo.FCancellation=0 AND udo.FROB<>-1
+       AND udo.FSupplyID=o.FItemID
+     )
+     OR EXISTS (
+      SELECT 1 FROM dbo.ICStockBill wdo
+      WHERE wdo.FTranType=21 AND wdo.FSupplyID=o.FItemID
+       AND wdo.FInterID IN (SELECT CONVERT(int, n.value('.','varchar(20)')) FROM @ids.nodes('/ids/id') AS w(n))
+     )
+     OR (@last_fid<>'' AND EXISTS (
+      SELECT 1 FROM dbo.ICStockBill ado
+      WHERE ado.FTranType=21 AND ado.FStatus<>0 AND ado.FCancellation=0 AND ado.FROB<>-1
+       AND ado.FInterID>CONVERT(int,@last_fid) AND ado.FSupplyID=o.FItemID
+     ))
+    )
+   ORDER BY o.FItemID
+   FOR JSON PATH, INCLUDE_NULL_VALUES
+  ),'[]')) AS customers,
+  JSON_QUERY(COALESCE((
+   SELECT
+    CONVERT(varchar(20),b.FInterID) AS fid,
+    b.FStatus AS status,
+    b.FCancellation AS cancelled,
+    LTRIM(RTRIM(ISNULL(b.FBillNo,''))) AS bill_no,
+    CONVERT(varchar(10),b.FDate,23) AS bill_on,
+    CONVERT(varchar(20),b.FSupplyID) AS customer_id,
+    CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
+    JSON_QUERY(COALESCE((
+     SELECT e.FEntryID AS entry_id,
+      CONVERT(varchar(20),e.FItemID) AS item_id,
+      CONVERT(varchar(100),e.FQty) AS quantity,
+      CONVERT(varchar(100),e.FConsignAmount) AS amount,
+      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
+      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
+      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
+     FROM dbo.ICStockBillEntry e
+     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
+     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
+     WHERE e.FInterID=b.FInterID
+     ORDER BY e.FEntryID
+     FOR JSON PATH, INCLUDE_NULL_VALUES
+    ),'[]')) AS lines
+   FROM dbo.ICStockBill b
+   WHERE b.FTranType=21 AND b.FInterID IN (
+    SELECT CONVERT(int, n.value('.','varchar(20)')) FROM @ids.nodes('/ids/id') AS w(n)
+   )
+   ORDER BY b.FInterID
+   FOR JSON PATH, INCLUDE_NULL_VALUES
+  ),'[]')) AS watched,
+  JSON_QUERY(COALESCE((
+   SELECT TOP (501)
+    CONVERT(varchar(20),b.FInterID) AS fid,
+    b.FStatus AS status,
+    b.FCancellation AS cancelled,
+    LTRIM(RTRIM(ISNULL(b.FBillNo,''))) AS bill_no,
+    CONVERT(varchar(10),b.FDate,23) AS bill_on,
+    CONVERT(varchar(20),b.FSupplyID) AS customer_id,
+    CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
+    JSON_QUERY(COALESCE((
+     SELECT e.FEntryID AS entry_id,
+      CONVERT(varchar(20),e.FItemID) AS item_id,
+      CONVERT(varchar(100),e.FQty) AS quantity,
+      CONVERT(varchar(100),e.FConsignAmount) AS amount,
+      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
+      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
+      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
+     FROM dbo.ICStockBillEntry e
+     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
+     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
+     WHERE e.FInterID=b.FInterID
+     ORDER BY e.FEntryID
+     FOR JSON PATH, INCLUDE_NULL_VALUES
+    ),'[]')) AS lines
+   FROM dbo.ICStockBill b
+   WHERE @last_fid<>'' AND b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FROB<>-1
+    AND b.FInterID>CONVERT(int,@last_fid)
+    AND EXISTS (
+     SELECT 1 FROM dbo.t_Organization o
+     WHERE o.FItemID=b.FSupplyID AND o.FIsCreditMgr<>0 AND o.FDeleted=0
+      AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
+    )
+   ORDER BY b.FInterID ASC
+   FOR JSON PATH, INCLUDE_NULL_VALUES
+  ),'[]')) AS recent_audited
+ FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+);
+SET @data=COALESCE(@data,N'{}');
+DECLARE @fingerprint varchar(64) = CONVERT(varchar(64),HASHBYTES('SHA2_256',@data),2);
+SELECT @fingerprint AS fingerprint,
+ CONVERT(bit,CASE WHEN DATALENGTH(@data)>1000000 THEN 1 ELSE 0 END) AS oversized,
+ CASE WHEN DATALENGTH(@data)<=1000000 AND @fingerprint<>@prior THEN @data END AS entries,
+ CONVERT(varchar(20),COALESCE((SELECT MAX(FInterID) FROM dbo.ICStockBill WHERE FTranType=21 AND FStatus<>0),0)) AS max_do_fid,
+ CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at; /* kingdee-org-credit-release */`;
+
 // Incremental t_Log read: clustered PK seek on FLogID > @last_log_id; first poll reads last 7 days only.
 const initialReleaseLogSql = `${requireReadAccount}
 SELECT CONVERT(varchar(30),COALESCE((SELECT MAX(FLogID) FROM dbo.t_Log),0)) AS max_log_id,
@@ -189,7 +360,7 @@ SELECT CONVERT(varchar(30),COALESCE((SELECT MAX(FLogID) FROM dbo.t_Log),0)) AS m
 const incrementalReleaseLogSql = `${requireReadAccount}
 SELECT CONVERT(varchar(30),COALESCE((SELECT MAX(FLogID) FROM dbo.t_Log),0)) AS max_log_id,
  JSON_QUERY(COALESCE((
-  SELECT TOP (200) CONVERT(varchar(30),l.FLogID) AS log_id,
+  SELECT TOP (201) CONVERT(varchar(30),l.FLogID) AS log_id,
    CONVERT(varchar(33),l.FDate,126)+'Z' AS logged_at,
    LTRIM(RTRIM(ISNULL(l.FDescription,''))) AS description
   FROM dbo.t_Log l
@@ -273,7 +444,7 @@ const WatchedBillSchema = Schema.Struct({
 const CustomerExposureSchema = Schema.Struct({
 	customer_id: positiveId,
 	currency: Schema.String,
-	credit_limit: precise,
+	credit_limit: Schema.String,
 	credit_days: integer,
 	invoices_audited: precise,
 	invoices_paid: precise,
@@ -303,7 +474,8 @@ const SnapshotPayload = Schema.fromJsonString(
 		),
 		unaudited: Schema.Array(UnauditedBillSchema),
 		customers: Schema.Array(CustomerExposureSchema),
-		watched: Schema.Array(WatchedBillSchema)
+		watched: Schema.Array(WatchedBillSchema),
+		recent_audited: Schema.optionalKey(Schema.Array(WatchedBillSchema))
 	})
 );
 
@@ -321,14 +493,20 @@ const ReleaseBillsSchema = Schema.fromJsonString(Schema.Array(WatchedBillSchema)
 
 const CursorSchema = Schema.Struct({
 	account: Schema.String,
+	policy: Schema.optionalKey(Schema.String),
 	fingerprint: Schema.optionalKey(Schema.String),
 	last_log_id: Schema.optionalKey(Schema.String),
+	last_org_fid: Schema.optionalKey(Schema.String),
 	watched: Schema.optionalKey(Schema.Array(Schema.String)),
 	grace_pending: Schema.optionalKey(Schema.Boolean)
 });
 
 const invalid = (column: string, reason: string) => new SourceRowInvalid({ column, reason });
+const LOG_PAGE_LIMIT = 200;
 const LOG_ADVANCE_THRESHOLD = 50_000n;
+const ORG_FID_PAGE_LIMIT = 500;
+const ORG_FID_ADVANCE_THRESHOLD = 500n;
+const PRECISE_RE = /^-?\d+(\.\d+)?$/;
 
 function idsXml(values: readonly string[], shape: RegExp, label: string): string {
 	if (!values.length) return '<ids/>';
@@ -382,13 +560,10 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 ) {
 	const account = kingdeeCreditAccount(ctx.configuration);
 	const policy = kingdeeCreditPolicyOf(ctx.configuration.creditPolicy);
-	// Dormant unless native KIS sales-out credit control is explicitly configured.
-	if (
-		policy !== kingdeeCreditPolicy ||
-		account === null ||
-		ctx.configuration.baseCurrency !== 'CNY'
-	)
+	// Dormant unless a verified KIS credit policy is configured on CNY.
+	if (policy === null || account === null || ctx.configuration.baseCurrency !== 'CNY')
 		return { rows: [], cursor, more: false };
+	const isOrgPolicy = policy === kingdeeOrgCreditPolicy;
 
 	const prior =
 		cursor === null ? null : yield* checked(() => Schema.decodeUnknownSync(CursorSchema)(cursor));
@@ -398,19 +573,30 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 			'The credit account changed. Review the retained credit releases before resetting.'
 		);
 
+	const policyChanged = prior?.policy !== undefined && prior.policy !== policy;
 	const watchedFids = prior?.watched ?? [];
-	const priorFingerprint = prior?.grace_pending ? '' : (prior?.fingerprint ?? '');
+	const priorLastOrgFid = isOrgPolicy && !policyChanged ? (prior?.last_org_fid ?? null) : null;
+	const priorFingerprint = prior?.grace_pending || policyChanged ? '' : (prior?.fingerprint ?? '');
 	const [snapRow] = yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
 		max_rows: 1,
-		arguments: {
-			stmt: creditReleaseSnapshot,
-			params: '@read_account nvarchar(73),@prior varchar(64),@ids xml',
-			read_account: account,
-			prior: priorFingerprint,
-			ids: yield* checked(() => idsXml(watchedFids, /^[1-9]\d*$/, 'watched_fid'))
-		}
+		arguments: isOrgPolicy
+			? {
+					stmt: orgCreditReleaseSnapshot,
+					params: '@read_account nvarchar(73),@prior varchar(64),@ids xml,@last_fid varchar(20)',
+					read_account: account,
+					prior: priorFingerprint,
+					ids: yield* checked(() => idsXml(watchedFids, /^[1-9]\d*$/, 'watched_fid')),
+					last_fid: priorLastOrgFid ?? ''
+				}
+			: {
+					stmt: creditReleaseSnapshot,
+					params: '@read_account nvarchar(73),@prior varchar(64),@ids xml',
+					read_account: account,
+					prior: priorFingerprint,
+					ids: yield* checked(() => idsXml(watchedFids, /^[1-9]\d*$/, 'watched_fid'))
+				}
 	});
 	const snapshot = yield* checked(() => {
 		if (!snapRow) throw invalid('$result', 'Missing credit release snapshot checkpoint');
@@ -423,57 +609,108 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		const entries = r.text('entries', null);
 		if (entries === null && fingerprint !== priorFingerprint)
 			throw invalid('$result', 'Incomplete credit release snapshot checkpoint');
-		return { fingerprint, entries, observedAt: Instant(r.text('observed_at')) };
+		const maxDoFid = isOrgPolicy ? r.text('max_do_fid', '0') : null;
+		if (maxDoFid !== null && !/^\d+$/.test(maxDoFid))
+			throw invalid('max_do_fid', 'Invalid ICStockBill max FInterID');
+		return { fingerprint, entries, maxDoFid, observedAt: Instant(r.text('observed_at')) };
 	});
 
-	// Query 2: incremental clustered-PK seek on t_Log (FLogID > @last_log_id) for XS100016 releases.
-	const priorLogId = prior?.last_log_id ?? null;
-	const [logRow] = yield* query(ctx, {
-		op: 'call',
-		procedure: { schema: 'sys', name: 'sp_executesql' },
-		max_rows: 1,
-		arguments: {
-			stmt: priorLogId ? incrementalReleaseLogSql : initialReleaseLogSql,
-			params: priorLogId
-				? '@read_account nvarchar(73),@last_log_id varchar(30)'
-				: '@read_account nvarchar(73)',
-			read_account: account,
-			...(priorLogId ? { last_log_id: priorLogId } : {})
-		}
-	});
-	const logResult = yield* checked(() => {
-		if (!logRow) throw invalid('$result', 'Missing t_Log checkpoint');
-		const r = columns(logRow);
-		const maxLogId = r.text('max_log_id');
-		if (!/^\d+$/.test(maxLogId)) throw invalid('max_log_id', 'Invalid t_Log max FLogID');
-		const rawEntries = Schema.decodeUnknownSync(LogEntriesSchema)(r.text('entries'));
-		const releases: ParsedReleaseLog[] = [];
-		for (const item of rawEntries) {
-			const parsed = parseKingdeeReleaseLog(item);
-			if (parsed) releases.push(parsed);
-		}
-		return { maxLogId, releases };
-	});
+	// Query 2 (sales-out policy only): incremental clustered-PK seek on t_Log (FLogID > @last_log_id) for XS100016 releases.
+	const priorLogId = isOrgPolicy || policyChanged ? null : (prior?.last_log_id ?? null);
+	let logResult: {
+		readonly nextLogId: string | null;
+		readonly releases: readonly ParsedReleaseLog[];
+		readonly unparsedLogs: readonly string[];
+		readonly more: boolean;
+		readonly logGap: boolean;
+	};
+	if (isOrgPolicy) {
+		logResult = {
+			nextLogId: null,
+			releases: [],
+			unparsedLogs: [],
+			more: false,
+			logGap: false
+		};
+	} else {
+		const [logRow] = yield* query(ctx, {
+			op: 'call',
+			procedure: { schema: 'sys', name: 'sp_executesql' },
+			max_rows: 1,
+			arguments: {
+				stmt: priorLogId ? incrementalReleaseLogSql : initialReleaseLogSql,
+				params: priorLogId
+					? '@read_account nvarchar(73),@last_log_id varchar(30)'
+					: '@read_account nvarchar(73)',
+				read_account: account,
+				...(priorLogId ? { last_log_id: priorLogId } : {})
+			}
+		});
+		logResult = yield* checked(() => {
+			if (!logRow) throw invalid('$result', 'Missing t_Log checkpoint');
+			const r = columns(logRow);
+			const maxLogId = r.text('max_log_id');
+			if (!/^\d+$/.test(maxLogId)) throw invalid('max_log_id', 'Invalid t_Log max FLogID');
+			const rawEntries = Schema.decodeUnknownSync(LogEntriesSchema)(r.text('entries'));
+			const paged = priorLogId !== null && rawEntries.length > LOG_PAGE_LIMIT;
+			const pageEntries = paged ? rawEntries.slice(0, LOG_PAGE_LIMIT) : rawEntries;
+			const releases: ParsedReleaseLog[] = [];
+			const unparsedLogs: string[] = [];
+			for (const item of pageEntries) {
+				const parsed = parseKingdeeReleaseLog(item);
+				if (parsed) {
+					releases.push(parsed);
+				} else if (item.description.includes('销售出库') && item.description.includes('信用')) {
+					unparsedLogs.push(`Unparseable Kingdee XS100016 release log #${item.log_id}.`);
+				}
+			}
+			const nextLogId = paged ? (pageEntries.at(-1)?.log_id ?? maxLogId) : maxLogId;
+			const logGap =
+				priorLogId === null
+					? true
+					: BigInt(nextLogId) - BigInt(priorLogId) >= LOG_ADVANCE_THRESHOLD;
+			return { nextLogId, releases, unparsedLogs, more: paged, logGap };
+		});
+	}
 
-	// Keep the workspace asleep on quiet ticks: advance last_log_id only on real writes or large log gaps.
-	const logGap =
-		priorLogId === null
-			? true
-			: BigInt(logResult.maxLogId) - BigInt(priorLogId) >= LOG_ADVANCE_THRESHOLD;
-	if (snapshot.entries === null && logResult.releases.length === 0 && unchanged && !logGap)
+	const orgFidGap =
+		isOrgPolicy &&
+		(priorLastOrgFid === null ||
+			(snapshot.maxDoFid !== null &&
+				BigInt(snapshot.maxDoFid) - BigInt(priorLastOrgFid) >= ORG_FID_ADVANCE_THRESHOLD));
+
+	// Keep the workspace asleep on quiet ticks: advance watermarks only on real writes or large gaps.
+	if (
+		snapshot.entries === null &&
+		logResult.releases.length === 0 &&
+		logResult.unparsedLogs.length === 0 &&
+		!logResult.more &&
+		unchanged &&
+		!logResult.logGap &&
+		!orgFidGap &&
+		!policyChanged
+	)
 		return { rows: [], cursor, more: false };
 
-	// If nothing changed in the snapshot and no new XS100016 lines arrived, only advance log cursor if gap exceeded.
-	if (snapshot.entries === null && logResult.releases.length === 0) {
+	// If nothing changed in the snapshot and no new XS100016 lines arrived, only advance watermarks if needed.
+	if (
+		snapshot.entries === null &&
+		logResult.releases.length === 0 &&
+		logResult.unparsedLogs.length === 0 &&
+		!logResult.more
+	) {
 		return {
 			rows: [],
 			cursor: {
 				account,
+				policy,
 				fingerprint: snapshot.fingerprint,
-				last_log_id: logResult.maxLogId,
+				...(logResult.nextLogId !== null ? { last_log_id: logResult.nextLogId } : {}),
+				...(snapshot.maxDoFid !== null ? { last_org_fid: snapshot.maxDoFid } : {}),
 				...(watchedFids.length ? { watched: watchedFids } : {})
 			},
-			more: false
+			more: false,
+			health: { state: 'ready' as const }
 		};
 	}
 
@@ -482,6 +719,25 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		snapshotEntries !== null
 			? yield* checked(() => Schema.decodeUnknownSync(SnapshotPayload)(snapshotEntries))
 			: null;
+
+	const issues: string[] = [...logResult.unparsedLogs];
+	if (page) {
+		if (page.unaudited.length > 500)
+			issues.push('Unaudited delivery orders exceed the 500-bill credit detection bound.');
+		const customerBound = isOrgPolicy ? 2000 : 1000;
+		if (page.customers.length > customerBound)
+			issues.push(`Credit-managed customers exceed the ${customerBound}-customer detection bound.`);
+	}
+	const rawRecentAudited = isOrgPolicy ? (page?.recent_audited ?? []) : [];
+	const orgRecentPaged = rawRecentAudited.length > ORG_FID_PAGE_LIMIT;
+	const recentAudited = orgRecentPaged
+		? rawRecentAudited.slice(0, ORG_FID_PAGE_LIMIT)
+		: rawRecentAudited;
+	const nextOrgFid = isOrgPolicy
+		? orgRecentPaged
+			? (recentAudited.at(-1)?.fid ?? snapshot.maxDoFid)
+			: snapshot.maxDoFid
+		: null;
 
 	// Newest XS100016 release per bill number.
 	const newestReleaseByBillNo = new Map<string, ParsedReleaseLog>();
@@ -532,6 +788,11 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 	const seenReleaseLogKeys = new Set(
 		existingReleases.rows.flatMap((row) => (row.release_log_key ? [row.release_log_key] : []))
 	);
+	const closedReleaseFids = new Set(
+		existingReleases.rows
+			.filter((row) => row.source_status === 'released' || row.source_status === 'bypassed')
+			.map((row) => row.delivery_fid)
+	);
 	const allExistingKeys = new Set(existingReleases.rows.map((row) => row.external_code));
 	const openByFid = new Map<string, OpenCreditRelease<Id<'orders'>, Id<'transactions'>>>();
 	for (const row of existingReleases.rows) {
@@ -574,7 +835,9 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				stmt: releaseBillsByNoSql,
 				params: '@read_account nvarchar(73),@ids xml',
 				read_account: account,
-				ids: yield* checked(() => idsXml(missingReleaseBillNos, /^[A-Za-z0-9_-]{1,40}$/, 'bill_no'))
+				ids: yield* checked(() =>
+					idsXml(missingReleaseBillNos, /^[A-Za-z0-9._/-]{1,40}$/, 'bill_no')
+				)
 			}
 		});
 		const fetched = yield* checked(() =>
@@ -603,12 +866,23 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 			: (releaseBillsByNo.get(rel.billNo) ?? []);
 		if (candidates.length === 1 && candidates[0]) {
 			releaseByFid.set(candidates[0].fid, { release: rel, bill: candidates[0] });
+		} else {
+			issues.push(
+				`Kingdee release log for ${rel.billNo} matched ${candidates.length} delivery order(s).`
+			);
 		}
 	}
 
-	// Validate global KIS credit option & formula (refusing detection never blocks closing audited/gone/released rows).
+	// Validate global KIS credit option & formula (refusing detection surfaces attention health without stalling closes).
 	const detection = (() => {
-		if (!page) return { ok: false as const };
+		if (!page) return { ok: false as const, reason: null };
+		if (isOrgPolicy)
+			return {
+				ok: true as const,
+				today: page.today,
+				controlRange: 1,
+				plan: ORG_CREDIT_PLAN
+			};
 		const option = page.options[0];
 		if (
 			page.options.length !== 1 ||
@@ -616,9 +890,13 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 			option.control !== 2 ||
 			!['1', '2', '3'].includes(option.control_range)
 		)
-			return { ok: false as const };
+			return {
+				ok: false as const,
+				reason:
+					'Kingdee ICCreditOption must have one blocking sales-out rule (FCreditControl=2, FRangeCustom in 1..3).'
+			};
 		const plan = planCreditFormula(option.mask, page.fields);
-		if (!plan.ok) return { ok: false as const };
+		if (!plan.ok) return { ok: false as const, reason: `${plan.column}: ${plan.reason}` };
 		return {
 			ok: true as const,
 			today: page.today,
@@ -626,30 +904,38 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 			plan: plan.items
 		};
 	})();
+	if (!detection.ok && detection.reason) issues.push(detection.reason);
 
-	// Index customers from snapshot; refuse invalid/non-CNY customers individually without failing valid CNY ones.
+	// Index customers from snapshot; refuse invalid/non-CNY customers individually without breaking valid CNY ones.
 	const customerById = new Map<
 		string,
 		| { readonly usable: true; readonly row: Schema.Schema.Type<typeof CustomerExposureSchema> }
-		| { readonly usable: false }
+		| { readonly usable: false; readonly reason: string }
 	>();
 	if (page) {
 		const grouped = Map.groupBy(page.customers, (c) => c.customer_id);
 		for (const [cid, list] of grouped) {
 			const c = list[0];
-			const limit = c ? BigDecimal.fromStringUnsafe(c.credit_limit) : null;
+			const validLimitText = c !== undefined && PRECISE_RE.test(c.credit_limit);
+			const limit = validLimitText ? BigDecimal.fromStringUnsafe(c.credit_limit) : null;
 			const invalidTerms =
 				detection.ok && (detection.controlRange & 2) !== 0 && (c?.invalid_terms ?? 0) !== 0;
-			if (
-				list.length !== 1 ||
-				!c ||
-				c.currency !== 'CNY' ||
-				limit === null ||
-				BigDecimal.isNegative(limit) ||
-				c.credit_days < 0 ||
-				invalidTerms
-			) {
-				customerById.set(cid, { usable: false });
+			if (list.length !== 1 || !c) {
+				customerById.set(cid, { usable: false, reason: 'duplicate credit profile' });
+			} else if (c.currency !== 'CNY') {
+				customerById.set(cid, {
+					usable: false,
+					reason: `non-CNY currency ${c.currency || 'empty'}`
+				});
+			} else if (!validLimitText || limit === null || BigDecimal.isNegative(limit)) {
+				customerById.set(cid, {
+					usable: false,
+					reason: `invalid credit limit '${c.credit_limit}'`
+				});
+			} else if (c.credit_days < 0) {
+				customerById.set(cid, { usable: false, reason: 'negative credit days' });
+			} else if (invalidTerms) {
+				customerById.set(cid, { usable: false, reason: 'open invoices have invalid term dates' });
 			} else {
 				customerById.set(cid, { usable: true, row: c });
 			}
@@ -661,15 +947,25 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 	// and keep other open rows watched without treating them as gone.
 	const watchedSet = new Set(watchedFids);
 	const unauditedByFid = new Map((page?.unaudited ?? []).map((bill) => [bill.fid, bill]));
+	const recentAuditedByFid = new Map(recentAudited.map((bill) => [bill.fid, bill]));
 	const allFids = new Set<string>(
 		page === null
 			? [...releaseByFid.keys()]
-			: [...openByFid.keys(), ...unauditedByFid.keys(), ...releaseByFid.keys()]
+			: [
+					...openByFid.keys(),
+					...unauditedByFid.keys(),
+					...recentAuditedByFid.keys(),
+					...releaseByFid.keys()
+				]
 	);
 	const customerIds = new Set<string>();
 	const deliveryErpIds = new Set<string>();
 	for (const fid of allFids) {
-		const bill = unauditedByFid.get(fid) ?? watchedByFid.get(fid) ?? releaseByFid.get(fid)?.bill;
+		const bill =
+			unauditedByFid.get(fid) ??
+			watchedByFid.get(fid) ??
+			recentAuditedByFid.get(fid) ??
+			releaseByFid.get(fid)?.bill;
 		if (bill) customerIds.add(bill.customer_id);
 		deliveryErpIds.add(`delivery:${fid}`);
 	}
@@ -715,7 +1011,11 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 	// Also match source SO fid -> orders only when a bill references an SO not already resolved via transactions.
 	const needsOrderLookup = [...allFids].some((fid) => {
 		if (deliveryByFid.has(fid)) return false;
-		const bill = unauditedByFid.get(fid) ?? watchedByFid.get(fid) ?? releaseByFid.get(fid)?.bill;
+		const bill =
+			unauditedByFid.get(fid) ??
+			watchedByFid.get(fid) ??
+			recentAuditedByFid.get(fid) ??
+			releaseByFid.get(fid)?.bill;
 		return bill ? firstLineLink(bill.lines).sourceSoFid !== null : false;
 	});
 	const orderBySoFid = new Map<string, Id<'orders'>>();
@@ -778,8 +1078,10 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		const open = openByFid.get(fid) ?? null;
 		const relEntry = releaseByFid.get(fid) ?? null;
 		const unaudited = unauditedByFid.get(fid) ?? null;
-		const watched = watchedByFid.get(fid) ?? null;
+		const watched = watchedByFid.get(fid) ?? recentAuditedByFid.get(fid) ?? null;
 		const bill = relEntry?.bill ?? unaudited ?? watched ?? null;
+
+		if (!open && !relEntry && !unaudited && closedReleaseFids.has(fid)) continue;
 
 		// An open row whose fid wasn't in this tick's watched query yet cannot be declared gone: watch it next tick.
 		if (!bill && open && !watchedSet.has(fid)) {
@@ -836,12 +1138,57 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				}
 
 				if (audited) {
-					observation = {
-						kind: 'audited',
-						oper_date: bill.oper_date,
-						content_hash: contentHash,
-						release: relEntry?.release ?? null
-					};
+					if (isOrgPolicy) {
+						const customer = customerById.get(bill.customer_id);
+						if ((customer && !customer.usable) || (customer?.usable && !partyId)) {
+							issues.push(
+								customer && !customer.usable
+									? `Delivery ${bill.bill_no}: customer ${bill.customer_id} post-audit check failed (${customer.reason}).`
+									: `Delivery ${bill.bill_no}: customer ${bill.customer_id} is not synchronized as an active CNY party.`
+							);
+							observation = {
+								kind: 'undetectable',
+								oper_date: bill.oper_date,
+								content_hash: contentHash
+							};
+						} else if (customer?.usable) {
+							const used = computeCreditExposure(ORG_CREDIT_PLAN, customer.row, null);
+							const usedBd = BigDecimal.fromStringUnsafe(used);
+							const limitBd = BigDecimal.fromStringUnsafe(customer.row.credit_limit);
+							const overLimit = BigDecimal.isGreaterThan(usedBd, limitBd);
+							const overLimitAmount = overLimit
+								? fixedDecimal(BigDecimal.subtract(usedBd, limitBd), 2)
+								: null;
+							observation = {
+								kind: 'audited',
+								oper_date: bill.oper_date,
+								content_hash: contentHash,
+								release: null,
+								org_audit: {
+									fid,
+									over_limit: overLimit,
+									credit_limit: customer.row.credit_limit,
+									credit_used: used,
+									over_limit_amount: overLimitAmount
+								}
+							};
+						} else {
+							observation = {
+								kind: 'audited',
+								oper_date: bill.oper_date,
+								content_hash: contentHash,
+								release: null,
+								org_audit: { fid, over_limit: false }
+							};
+						}
+					} else {
+						observation = {
+							kind: 'audited',
+							oper_date: bill.oper_date,
+							content_hash: contentHash,
+							release: relEntry?.release ?? null
+						};
+					}
 				} else if (!detection.ok) {
 					observation = {
 						kind: 'undetectable',
@@ -851,7 +1198,7 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				} else {
 					const customer = customerById.get(bill.customer_id);
 					if (!customer) {
-						// Customer has no ICCreditObject row anymore -> not blocked.
+						// Customer no longer has a credit limit -> not blocked.
 						observation = {
 							kind: 'unaudited',
 							oper_date: bill.oper_date,
@@ -865,6 +1212,11 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 							settlement_name: settlementName
 						};
 					} else if (!customer.usable || !partyId) {
+						issues.push(
+							!customer.usable
+								? `Delivery ${bill.bill_no}: customer ${bill.customer_id} credit check skipped (${customer.reason}).`
+								: `Delivery ${bill.bill_no}: customer ${bill.customer_id} is not synchronized as an active CNY party.`
+						);
 						observation = {
 							kind: 'undetectable',
 							oper_date: bill.oper_date,
@@ -1057,8 +1409,12 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				}
 				break;
 			case 'open_bypass':
-				if (billMeta) {
+				if (billMeta && !seenReleaseLogKeys.has(action.release_log_key)) {
 					const code = `bypass:${fid}:${action.release_log_key}`;
+					const orgAudit =
+						observation.kind === 'audited' && observation.org_audit?.over_limit
+							? observation.org_audit
+							: null;
 					outRows.push({
 						$id: code,
 						external_code: code,
@@ -1072,6 +1428,14 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 						currency: 'CNY',
 						source_status: 'bypassed',
 						bill_amount: billMeta.bill_amount,
+						...(orgAudit
+							? {
+									credit_limit: orgAudit.credit_limit ?? null,
+									credit_used: orgAudit.credit_used ?? null,
+									over_limit: orgAudit.over_limit_amount ?? null,
+									block_reasons: ['over_limit'] as const
+								}
+							: {}),
 						source_oper_date: billMeta.oper_date,
 						content_hash: billMeta.content_hash,
 						released_by: action.released_by,
@@ -1085,15 +1449,26 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 	}
 
 	const nextWatchedList = [...nextWatched].sort();
+	const recheckNext = gracePending || issues.length > 0;
 	return {
 		rows: outRows,
 		cursor: {
 			account,
+			policy,
 			fingerprint: snapshot.fingerprint,
-			last_log_id: logResult.maxLogId,
+			...(logResult.nextLogId !== null ? { last_log_id: logResult.nextLogId } : {}),
+			...(nextOrgFid !== null ? { last_org_fid: nextOrgFid } : {}),
 			...(nextWatchedList.length ? { watched: nextWatchedList } : {}),
-			...(gracePending ? { grace_pending: true } : {})
+			...(recheckNext ? { grace_pending: true } : {})
 		},
-		more: false
+		more: logResult.more || orgRecentPaged,
+		health:
+			issues.length > 0
+				? {
+						state: 'attention' as const,
+						code: 'creditDetection',
+						message: issues.slice(0, 3).join(' ')
+					}
+				: { state: 'ready' as const }
 	};
 });

@@ -52,18 +52,18 @@ const checkpoint: NativeProjection = {
 	sql: `/* kingdee-purchase-listing-checkpoint */
 SELECT 'pl' AS __key,
  CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at,
- CONVERT(varchar(20),po.n)+'|'+CONVERT(varchar(18),po.rv,1)
+ CONVERT(varchar(20),po.n)+'|'+CONVERT(varchar(18),CONVERT(binary(8),po.rv),1)
  +'|'+CONVERT(varchar(20),pe.n)+'|'+CONVERT(varchar(40),pe.q)+'|'+CONVERT(varchar(40),pe.a)
- +'|'+CONVERT(varchar(18),rch.rv,1)+'|'+CONVERT(varchar(40),rce.q)+'|'+CONVERT(varchar(40),rce.a)
- +'|'+CONVERT(varchar(18),ivh.rv,1)+'|'+CONVERT(varchar(40),ive.n)+'|'+CONVERT(varchar(40),ive.t)
- +'|'+CONVERT(varchar(18),ct.rv,1)+'|'+CONVERT(varchar(40),ct.r)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),rch.rv),1)+'|'+CONVERT(varchar(40),rce.q)+'|'+CONVERT(varchar(40),rce.a)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),ivh.rv),1)+'|'+CONVERT(varchar(40),ive.n)+'|'+CONVERT(varchar(40),ive.t)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),ct.rv),1)+'|'+CONVERT(varchar(40),ct.r)
  +'|'+CONVERT(varchar(20),pl.n)+'|'+CONVERT(varchar(20),pl.d)
  +'|'+CONVERT(varchar(20),ck.n)+'|'+CONVERT(varchar(20),ck.m)
  +'|'+CONVERT(varchar(20),exh.n)+'|'+CONVERT(varchar(20),exh.h)+'|'+CONVERT(varchar(40),exe.a)
  +'|'+CONVERT(varchar(20),hk.n)
- +'|'+CONVERT(varchar(18),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_Supplier),CONVERT(binary(8),'0x0000000000000000',1)),1)
- +'|'+CONVERT(varchar(18),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_ICItem),CONVERT(binary(8),'0x0000000000000000',1)),1)
- +'|'+CONVERT(varchar(18),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_Item WHERE FItemClassID=2037),CONVERT(binary(8),'0x0000000000000000',1)),1)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_Supplier),CONVERT(binary(8),'0x0000000000000000',1))),1)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_ICItem),CONVERT(binary(8),'0x0000000000000000',1))),1)
+ +'|'+CONVERT(varchar(18),CONVERT(binary(8),COALESCE((SELECT MAX(FModifyTime) FROM dbo.t_Item WHERE FItemClassID=2037),CONVERT(binary(8),'0x0000000000000000',1))),1)
  +'|'+CONVERT(varchar(20),(SELECT COUNT_BIG(*) FROM dbo.t_Settle)) AS digest
 FROM (
  SELECT SUM(CASE WHEN FDate>=CONVERT(datetime,'${fromDate}',112) THEN 1 ELSE 0 END) AS n,

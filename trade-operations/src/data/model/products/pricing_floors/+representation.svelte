@@ -22,7 +22,7 @@
 	// a floor opened from the price book (`openCreate`) carries its region, currency and day: fixed, not asked
 	const preset = createValues<'pricing_floors'>();
 	const values: Partial<InsertOf<'pricing_floors'>> = $derived(
-		view.mode === 'create' ? { ...preset, ...view.values } : {}
+		view.mode === 'create' ? { unit: '吨', ...preset, ...view.values } : {}
 	);
 	// the key fields stay visible after creation, readonly: only the price and its tax change
 	const stored = $derived(view.mode !== 'create');

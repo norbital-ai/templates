@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { run } from '@norbital-ai/ui/effect';
 	import { selectOrderProduct } from '../../../../lib/ui/order-product-defaults.js';
@@ -8,7 +9,6 @@
 		open_record,
 		type InsertOf,
 		Picker,
-		MoneyInput,
 		RecordForm,
 		Section,
 		type RecordView,
@@ -18,9 +18,12 @@
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
+	import UnitPriceInput from '../../../../lib/ui/unit-price-input.svelte';
+	import UnitQuantityInput from '../../../../lib/ui/unit-quantity-input.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	import { contractKind, currentTemplate, documentLocale } from '../../../../lib/order-document.js';
 	import { floorFor, floorNetInUnit, quoteBelowFloor } from '../../../../lib/commercial.js';
+	import { displayUnit, isKgUnit, priceToDisplay } from '../../../../lib/unit-display.js';
 	let {
 		view,
 		ctx
@@ -38,8 +41,26 @@
 	);
 	const header = $derived(order?.current?.orders.rows[0]);
 	let chosenCurrency = $state<string | undefined>(undefined);
+	let chosenProduct = $state<Id<'products'> | null>(null);
 	const currency = $derived(
 		view.mode !== 'create' ? view.record.currency : (header?.currency ?? chosenCurrency)
+	);
+	const selectedProductId = $derived(
+		view.mode !== 'create'
+			? view.record.product
+			: (chosenProduct ?? view.values.product ?? preset.product ?? null)
+	);
+	const selectedProduct = $derived(
+		view.mode === 'create' && selectedProductId
+			? ctx.query({
+					products: { where: { id: { eq: selectedProductId } }, fields: ['unit'], limit: 1 }
+				})
+			: null
+	);
+	const lineUnit = $derived(
+		view.mode !== 'create'
+			? view.record.unit
+			: (selectedProduct?.current?.products.rows[0]?.unit ?? null)
 	);
 	// a line's print details belong to its order's current contract layout
 	const layouts = ctx.query({
@@ -84,16 +105,21 @@
 		const productId = form.id<'products'>('product');
 		if (!book || !header || !productId) return null;
 		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
-		const unitValue = view.mode !== 'create' ? view.record.unit : form.get('unit');
-		const lineUnit = typeof unitValue === 'string' && unitValue !== '' ? unitValue : undefined;
+		const unitValue = lineUnit ?? form.get('unit');
+		const resolvedUnit = typeof unitValue === 'string' && unitValue !== '' ? unitValue : undefined;
 		const floor = floorFor(
 			header,
 			book.warehouses.rows[0]?.group_code,
-			{ product: productId, ...(lineUnit ? { unit: lineUnit } : {}) },
+			{ product: productId, ...(resolvedUnit ? { unit: resolvedUnit } : {}) },
 			book.pricing_floors.rows
 		);
 		const floorNet =
-			floor && lineUnit ? floorNetInUnit(floor, lineUnit) : (floor?.floor_net ?? null);
+			floor && resolvedUnit ? floorNetInUnit(floor, resolvedUnit) : (floor?.floor_net ?? null);
+		const displayFloorNet =
+			floor && floorNet !== null
+				? priceToDisplay(floorNet, resolvedUnit)
+				: (floor?.floor_net ?? null);
+		const displayFloorUnit = displayUnit(resolvedUnit ?? floor?.unit, ctx.locale);
 		const price = form.get('unit_price');
 		const below =
 			floor && floorNet !== null && price != null && String(price) !== ''
@@ -107,7 +133,14 @@
 						header.tax_inclusive
 					)
 				: false;
-		return { floor, below, rule, flagged: !floor || floorNet === null || below };
+		return {
+			floor,
+			displayFloorNet,
+			displayFloorUnit,
+			below,
+			rule,
+			flagged: !floor || floorNet === null || below
+		};
 	}
 	const values: Partial<InsertOf<'order_lines'>> = $derived(
 		view.mode === 'create' ? { ...preset, ...view.values } : {}
@@ -124,7 +157,8 @@
 		where={{ active: { eq: true } }}
 		disabled={field.disabled}
 		invalid={Boolean(field.error)}
-		on_change={(id) =>
+		on_change={(id) => {
+			chosenProduct = id;
 			void run(
 				selectOrderProduct(
 					ctx,
@@ -136,19 +170,34 @@
 					},
 					view.mode === 'create'
 				)
-			)}
+			);
+		}}
 	/>
+{/snippet}
+{#snippet quantityEditor(field: FieldEditor)}
+	<UnitQuantityInput
+		{ctx}
+		id={field.id}
+		value={field.value}
+		unit={lineUnit}
+		on_change={field.on_change}
+		disabled={field.disabled}
+		invalid={Boolean(field.error)}
+	/>
+{/snippet}
+{#snippet quantityView(field: FieldView)}
+	<UnitQuantityInput {ctx} value={field.value} unit={lineUnit} readonly />
 {/snippet}
 {#snippet unitPrice(field: FieldEditor)}
 	{@const state = floorState(field.form)}
 	<Stack gap="xs">
-		<MoneyInput
+		<UnitPriceInput
 			{ctx}
 			id={field.id}
 			value={field.value}
+			unit={lineUnit}
 			on_change={field.on_change}
 			{...currency ? { currency } : {}}
-			scale={4}
 			disabled={field.disabled}
 			invalid={Boolean(field.error) || Boolean(state?.flagged && state.rule === 'refuse')}
 		/>
@@ -160,11 +209,11 @@
 				class:text-warning={state.flagged && state.rule === 'warn'}
 				class:text-muted-foreground={!state.flagged}
 			>
-				{#if state.floor}
+				{#if state.floor && state.displayFloorNet !== null}
 					{ctx.t('component.quote_floor_minimum')}: {header?.currency}
-					{format({ kind: 'decimal', scale: 8 }, state.floor.floor_net, {
+					{format({ kind: 'decimal', scale: isKgUnit(lineUnit) ? 2 : 4 }, state.displayFloorNet, {
 						locale: ctx.locale
-					})}/{state.floor.unit} · {state.floor.effective_on}
+					})}/{state.displayFloorUnit} · {state.floor.effective_on}
 					· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
 				{:else}
 					{ctx.t('component.floor_none')}
@@ -175,6 +224,15 @@
 			</p>
 		{/if}
 	</Stack>
+{/snippet}
+{#snippet unitPriceView(field: FieldView)}
+	<UnitPriceInput
+		{ctx}
+		value={field.value}
+		unit={lineUnit}
+		{...currency ? { currency } : {}}
+		readonly
+	/>
 {/snippet}
 {#snippet printDetails(field: FieldEditor)}
 	<PrintDetails
@@ -205,8 +263,8 @@
 		<Section first name="line" icon="lucide:list" title={ctx.t('section.lines')}>
 			<Grid gap="md" minimum="compact">
 				<Field {ctx} name="product" editor={product} />
-				<Field {ctx} name="quantity" />
-				<Field {ctx} name="unit_price" editor={unitPrice} />
+				<Field {ctx} name="quantity" editor={quantityEditor} view={quantityView} />
+				<Field {ctx} name="unit_price" editor={unitPrice} view={unitPriceView} />
 				<Field {ctx} name="discount_pct" />
 				<Field {ctx} name="tax_rate" />
 				{#if layout}<Field

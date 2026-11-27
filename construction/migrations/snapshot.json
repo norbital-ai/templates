@@ -2287,6 +2287,11 @@
 							"asset_count": {
 								"kind": "int"
 							},
+							"asset_signatures": {
+								"kind": "text",
+								"many": true,
+								"optional": true
+							},
 							"dropped_duplicates": {
 								"kind": "int",
 								"optional": true
@@ -2301,6 +2306,10 @@
 							},
 							"schema": {
 								"kind": "text"
+							},
+							"stage": {
+								"kind": "text",
+								"optional": true
 							},
 							"storey_count": {
 								"kind": "int"

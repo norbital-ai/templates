@@ -997,5 +997,14 @@ export default messages({
 	'errors.credit_route_required': '请选择放行方式（单次特批或永久调高额度）。',
 	'errors.credit_proposed_limit': '建议信用额度必须大于当前信用额度。',
 	'errors.credit_release_not_blocked': '只有当前处于拦截状态的出库单才能发起放行审批。',
-	'errors.credit_release_approval_only': '信用放行状态只能通过正式审批流转为已批准。'
+	'errors.credit_release_approval_only': '信用放行状态只能通过正式审批流转为已批准。',
+	'component.order_credit_hold': '该客户当前处于金蝶信用拦截状态。',
+	'component.order_credit_over_limit':
+		'该客户已超出信用额度 {amount}（信用额度 {limit}，已用 {used}）。',
+	'component.order_credit_projected_breach':
+		'本单将导致客户超出信用额度 {amount}（信用额度 {limit}，预计已用 {used}）。',
+	'component.order_credit_releases_alert': '出库单 {bill} 需要信用处理（{status}）。',
+	'component.order_credit_open_release': '查看信用放行',
+	'dashboard.credit_blocked': '已拦截出库',
+	'dashboard.credit_bypassed': '未批特批'
 });

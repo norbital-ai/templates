@@ -28,6 +28,7 @@
 		type SalesBasis
 	} from '../../../lib/reports.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
+	import { displayUnit, priceToDisplay, qtyToDisplay } from '../../../lib/unit-display.js';
 
 	let {
 		ctx,
@@ -77,7 +78,10 @@
 		return purchaseChain(chained, purchases?.current?.source_purchase_lines.rows ?? []).map(
 			(row) => ({
 				...row,
-				purchase_price: row.purchase_price ?? row.lot_unit_cost,
+				quantity: qtyToDisplay(row.quantity, row.unit) ?? row.quantity,
+				unit: displayUnit(row.unit, ctx.locale) || row.unit,
+				sold_price: priceToDisplay(row.sold_price, row.unit),
+				purchase_price: priceToDisplay(row.purchase_price ?? row.lot_unit_cost, row.unit),
 				supplier_payment_label: row.supplier_payment
 					? ctx.t(`reports.sales.supplier_payment.${row.supplier_payment}`)
 					: '',

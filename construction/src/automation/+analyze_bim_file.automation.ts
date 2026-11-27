@@ -1,7 +1,12 @@
 /**
- * Thin orchestrator automation pricing a project's stored BIM takeoff via `src/services/bim/*`:
- * recall memory → System 1 classify unseen → persist memory → exact BigDecimal BOQ →
- * CORENET X / BCA / SOP compliance → commit estimate → System 2 proposals.
+ * Repeatable 2-phase BIM costing orchestrator over `src/services/bim/*`:
+ * - Phase 1 (`prepare`, automatic on `bim_takeoff` write or explicit re-run):
+ *   recall memory → classify unseen via System 1 → persist proposed cleaned BIM (`asset_mappings`) →
+ *   propose missing Item Matrix entries via System 2 (held for commercial review) →
+ *   run all active BCA / SCDF / PUB / URA / CORENET X & semantic SOP compliance lints.
+ * - Phase 2 (`cost`, explicit or part of `all`):
+ *   apply reviewed/approved cleaned BIM + Item Matrix → generate exact BigDecimal BOQ (`cost_estimates`) →
+ *   refresh estimate-scoped compliance checks.
  */
 import { Effect, Schema } from 'effect';
 import { automation, type FileRef, type Id } from '@norbital-ai/bolt';
@@ -23,6 +28,7 @@ import {
 	ExtractedBimModelSchema,
 	type ArchetypeDecision,
 	type BimArchetype,
+	type BimComplianceFinding,
 	type ExtractedBimModel,
 	type MatrixItem,
 	type SopRule
@@ -37,10 +43,11 @@ const optNum = (raw: string | number | null | undefined): number | null => {
 
 export default automation({
 	description:
-		"Prices a project's BIM model whenever its takeoff is stored, or when it has a takeoff and no current estimate. Uses workspace-configurable BIM rules (`bim_settings`), respects QS overrides and human-in-the-loop verification (`asset_mappings`), classifies only unseen assets in parallel with System 1 against enriched Item Matrix criteria (service, size band, insulation, continuity), flags uncertain or auto-reclassified assets for QS review, writes exact BigDecimal takeoff lines, and proposes new Item Matrix entries via System 2 for unseen assets.",
+		"Repeatable 2-phase BIM costing pipeline. Phase 1 ('prepare', automatic when a takeoff is stored or re-run manually) proposes cleaned BIM asset mappings, proposes missing Item Matrix entries with unit rates via System 2, and runs BCA/CORENET X/company SOP compliance lints. Phase 2 ('cost') generates or regenerates the 1:1 classification and BOQ costing matrix from the reviewed cleaned BIM and Item Matrix. Both phases can be re-run whenever needed.",
 	on: [{ model: 'projects', verbs: ['create', 'update'] }],
 	input: {
 		project_id: { kind: 'ref', to: 'projects', optional: true },
+		phase: { kind: 'enum', values: ['prepare', 'cost', 'all'], optional: true },
 		contingency_pct: { kind: 'number', optional: true }
 	},
 	output: { kind: 'object', fields: { priced: { kind: 'ref', to: 'cost_estimates', many: true } } },
@@ -48,6 +55,7 @@ export default automation({
 	concurrency: { max: 1 },
 	run: function* (input, ctx) {
 		const asked = input.project_id ?? null;
+		const phase = input.phase ?? (asked === null ? 'prepare' : 'all');
 		const ids: readonly Id<'projects'>[] =
 			asked !== null
 				? [asked]
@@ -67,6 +75,7 @@ export default automation({
 					'bim_version',
 					'bim_takeoff',
 					'bim_takeoff_views',
+					'bim_compliance',
 					'bim_costing_dirty',
 					'bim_costing_error'
 				],
@@ -159,6 +168,9 @@ export default automation({
 			loaded.bim_settings.rows.find((r) => r.code === 'default') ?? loaded.bim_settings.rows[0]
 		);
 		const activeSopRules: readonly SopRule[] = loaded.sop_rules.rows;
+		const semanticRuleByCode = new Map(
+			activeSopRules.filter((r) => r.metric === 'semantic_check').map((r) => [r.code, r] as const)
+		);
 		const today = ctx.today;
 		const matrix: MatrixItem[] = loaded.item_matrix.rows
 			.filter(
@@ -177,11 +189,14 @@ export default automation({
 		const itemIdByCode = new Map(loaded.item_matrix.rows.map((r) => [r.code, r.id] as const));
 
 		const priced: Id<'cost_estimates'>[] = [];
+		const writesCost = phase === 'cost' || phase === 'all';
+		const runsPrepare = phase === 'prepare' || phase === 'all';
+
 		for (const project of loaded.projects.rows) {
 			const estimate = loaded.cost_estimates.rows.find((e) => e.project_id === project.id);
-			const waiting = project.bim_costing_dirty || !estimate || estimate.status === 'void';
-			if (asked === null && (!waiting || project.bim_costing_error != null)) continue;
-			if (estimate && estimate.status !== 'draft' && estimate.status !== 'void') {
+			if (asked === null && (!project.bim_costing_dirty || project.bim_costing_error != null))
+				continue;
+			if (writesCost && estimate && estimate.status !== 'draft' && estimate.status !== 'void') {
 				if (asked !== null) return yield* ctx.refuse('errors.bim_estimate_locked');
 				continue;
 			}
@@ -298,11 +313,33 @@ export default automation({
 				itemIdByCode,
 				warnedArchetypes,
 				config,
-				idempotencyKey: `bim-memory:${project.id}:${project.bim_takeoff.id}:${project.revision}`,
+				idempotencyKey: `bim-memory:${project.id}:${project.bim_takeoff.id}:r${project.revision}`,
 				ctx
 			});
 
-			// 4. Price BOQ + evaluate compliance + commit atomically
+			// 4. Phase 1: Propose Item Matrix entries via System 2 for unseen assets BEFORE committing Step 1 state
+			if (runsPrepare && config.max_proposals > 0) {
+				const unknown = fresh.filter(
+					(a) => a.signature !== undefined && decisions[a.archetype_id]?.matrix_code == null
+				);
+				if (unknown.length > 0) {
+					yield* proposeUnseenItems(
+						unknown,
+						pictures,
+						yield* recallAssetMappings(
+							unknown.flatMap((a) => (a.signature ? [a.signature] : [])),
+							ctx
+						),
+						rules,
+						project.currency,
+						config.max_proposals,
+						ctx,
+						`${project.id}:r${project.revision}`
+					);
+				}
+			}
+
+			// 5. Build BOQ calculation (in-memory for Phase 1 compliance preview; committed in Phase 2)
 			const result = buildBimCostEstimateFromExtracted({
 				extracted,
 				matrix: rules,
@@ -310,13 +347,47 @@ export default automation({
 				ai_decisions: { ...settled, ...decisions },
 				contingency_pct: input.contingency_pct ?? estimate?.contingency_pct ?? '5'
 			});
-			const semanticFindings = yield* evaluateSemanticComplianceRules({
-				extracted,
-				rules: activeSopRules,
-				pictures,
-				progress: ctx.progress,
-				infer: (req) => ctx.ai.sys_2.infer(req)
-			});
+
+			// 6. Run compliance lints (semantic AI lint in Phase 1 or when no prior report; deterministic every run)
+			const priorSemanticFindings: readonly BimComplianceFinding[] =
+				!runsPrepare && project.bim_compliance
+					? project.bim_compliance.findings.flatMap((f) => {
+							const rule = semanticRuleByCode.get(f.rule_code);
+							if (!rule) return [];
+							return [
+								{
+									rule_code: f.rule_code,
+									rule_name: f.rule_name,
+									authority: rule.authority,
+									severity: rule.severity,
+									status:
+										f.status === 'pass' || f.status === 'warning' || f.status === 'fail'
+											? f.status
+											: 'warning',
+									actual: f.actual,
+									expected: f.expected,
+									affected_count: f.affected_count,
+									clause_ref: f.clause_ref ?? null,
+									remediation: f.remediation ?? null,
+									...(f.sample_express_ids?.length
+										? { sample_express_ids: [...f.sample_express_ids] }
+										: {})
+								} satisfies BimComplianceFinding
+							];
+						})
+					: [];
+
+			const semanticFindings =
+				runsPrepare || !project.bim_compliance
+					? yield* evaluateSemanticComplianceRules({
+							extracted,
+							rules: activeSopRules,
+							pictures,
+							progress: ctx.progress,
+							infer: (req) => ctx.ai.sys_2.infer(req)
+						})
+					: priorSemanticFindings;
+
 			const compliance = evaluateComplianceRules({
 				extracted,
 				estimate: result,
@@ -325,15 +396,6 @@ export default automation({
 				checkedAt: ctx.now
 			});
 
-			yield* ctx.progress({
-				text: 'Saving the BIM cost estimate & compliance checks',
-				ratio: 0.92
-			});
-			const version = project.bim_version?.trim() ? ` (${project.bim_version.trim()})` : '';
-			const lines = result.bim_assets.map((line) => ({
-				...line,
-				...(line.sample_express_ids ? { sample_express_ids: [...line.sample_express_ids] } : {})
-			}));
 			const projectWrite = {
 				target: { id: project.id, revision: project.revision },
 				set: {
@@ -342,6 +404,8 @@ export default automation({
 						asset_count: extracted.total_asset_count,
 						storey_count: extracted.storeys.length,
 						storeys: [...extracted.storeys],
+						stage: writesCost ? 'costed' : 'prepared',
+						asset_signatures: signatures,
 						...(extracted.cleanup
 							? {
 									upgraded_classes: extracted.cleanup.upgraded_classes,
@@ -374,6 +438,34 @@ export default automation({
 					bim_costing_error: null
 				}
 			};
+
+			if (!writesCost) {
+				yield* ctx.progress({
+					text: 'Saving proposed cleaned BIM, Item Matrix proposals & compliance lints',
+					ratio: 0.95
+				});
+				const prepared = yield* ctx.act(
+					{ 'projects.update': [projectWrite] },
+					{ key: `bim-prepare:${project.id}:${project.bim_takeoff.id}:r${project.revision}` }
+				);
+				if (prepared.kind !== 'committed')
+					return yield* ctx.refuse('errors.bim_estimate_write_failed');
+				yield* ctx.progress({
+					text: `Phase 1 complete: ${extracted.archetypes.length} unique BIM assets cleaned & linted (${compliance.score_pct}% compliance)`,
+					ratio: 1
+				});
+				continue;
+			}
+
+			yield* ctx.progress({
+				text: 'Generating the classification & BOQ costing matrix',
+				ratio: 0.92
+			});
+			const version = project.bim_version?.trim() ? ` (${project.bim_version.trim()})` : '';
+			const lines = result.bim_assets.map((line) => ({
+				...line,
+				...(line.sample_express_ids ? { sample_express_ids: [...line.sample_express_ids] } : {})
+			}));
 			const committed = yield* ctx.act(
 				estimate
 					? {
@@ -405,33 +497,15 @@ export default automation({
 								}
 							]
 						},
-				{ key: `bim-estimate:${project.id}:${project.bim_takeoff.id}:${project.revision}` }
+				{ key: `bim-estimate:${project.id}:${project.bim_takeoff.id}:r${project.revision}` }
 			);
 			if (committed.kind !== 'committed')
 				return yield* ctx.refuse('errors.bim_estimate_write_failed');
 			const saved = committed.records.find((r) => r.model === 'cost_estimates')?.id ?? estimate?.id;
 			if (saved !== undefined) priced.push(saved);
 
-			// 5. Propose Item Matrix entries via System 2 for unseen assets
-			const unknown = fresh.filter(
-				(a) => a.signature !== undefined && decisions[a.archetype_id]?.matrix_code == null
-			);
-			if (unknown.length > 0 && config.max_proposals > 0) {
-				yield* proposeUnseenItems(
-					unknown,
-					pictures,
-					yield* recallAssetMappings(
-						unknown.flatMap((a) => (a.signature ? [a.signature] : [])),
-						ctx
-					),
-					rules,
-					project.currency,
-					config.max_proposals,
-					ctx
-				);
-			}
 			yield* ctx.progress({
-				text: `System 1 classified ${result.classified_asset_count}/${result.bim_asset_count} BIM elements (${result.unmatched_asset_count} unknown / unseen catalog)`,
+				text: `Phase 2 complete: ${result.classified_asset_count}/${result.bim_asset_count} BIM elements classified & costed (${result.unmatched_asset_count} unmatched)`,
 				ratio: 1
 			});
 		}

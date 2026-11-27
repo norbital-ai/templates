@@ -1005,5 +1005,14 @@ export default messages({
 	'errors.credit_release_not_blocked':
 		'Only a currently blocked delivery can be submitted for credit release.',
 	'errors.credit_release_approval_only':
-		'Credit releases can only move to approved through formal approval.'
+		'Credit releases can only move to approved through formal approval.',
+	'component.order_credit_hold': 'Customer is on Kingdee credit hold.',
+	'component.order_credit_over_limit':
+		'Customer is over credit limit by {amount} (limit {limit}, used {used}).',
+	'component.order_credit_projected_breach':
+		'This order will exceed the customer credit limit by {amount} (limit {limit}, projected used {used}).',
+	'component.order_credit_releases_alert': 'Delivery {bill} requires credit attention ({status}).',
+	'component.order_credit_open_release': 'Open credit release',
+	'dashboard.credit_blocked': 'Blocked DOs',
+	'dashboard.credit_bypassed': 'Bypassed'
 });

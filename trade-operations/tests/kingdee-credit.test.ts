@@ -3,7 +3,10 @@ import { expect, it } from '@effect/vitest';
 import { Effect, Exit } from 'effect';
 import type { Json } from '@norbital-ai/bolt';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
+import {
+	kingdeeCreditPolicy,
+	kingdeeOrgCreditPolicy
+} from '../src/integration/kingdee/configuration.js';
 import { workspace } from './kit.js';
 import { kingdeeFixture } from './kingdee-fixture.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
@@ -342,5 +345,88 @@ it.live(
 			const row = firstRow((yield* s.read()).credit_snapshots.rows);
 			expect(row.as_of).toBe(s.state.observed);
 			expect(sameDecimal(row.credit_used, '113')).toBe(true);
+		})
+);
+
+it.live(
+	'supports kis-org-credit-v1 customer master credit and fails loudly on malformed FCreditLimit',
+	() =>
+		Effect.gen(function* () {
+			const fixture = kingdeeFixture();
+			const state: { rows: Json[]; observed: string } = {
+				rows: [
+					{
+						customer_id: '101',
+						currency: 'CNY',
+						credit_limit: '100000.00',
+						invoices_audited: '150000.00',
+						invoices_paid: '20000.00',
+						refunds_unsettled: '0',
+						receipts_unsettled: '0',
+						advances_unsettled: '0',
+						stock_out_audited: '0',
+						stock_out_hooked: '0'
+					}
+				],
+				observed: '2026-11-17T03:00:00.000Z'
+			};
+			const t = yield* workspace({
+				now: state.observed,
+				source: (op) => {
+					if (op.op !== 'call' || !String(op.arguments.stmt).includes('kingdee-org-credit'))
+						return fixture.request(op);
+					expect(String(op.arguments.stmt)).toContain(
+						"REPLACE(LTRIM(RTRIM(o.FCreditLimit)),',','')"
+					);
+					expect(String(op.arguments.stmt)).not.toContain("NOT LIKE '%[^0-9.]%'");
+					const entries = JSON.stringify({ customers: state.rows });
+					const fingerprint = createHash('sha256').update(entries).digest('hex').toUpperCase();
+					const changed = fingerprint !== op.arguments.prior;
+					return Effect.succeed({
+						rows: [
+							{
+								fingerprint,
+								oversized: false,
+								entries: changed ? entries : null,
+								observed_at: state.observed
+							}
+						]
+					});
+				}
+			});
+			const as = yield* t.as(t.admin);
+			const instance = fixtureId('sys_integration', 'kingdee');
+			const configuration = {
+				...fixture.configuration('org-credit-owner'),
+				creditAccount: fixture.configuration('org-credit-owner').writeAccount,
+				creditPolicy: kingdeeOrgCreditPolicy
+			};
+			yield* as.act({
+				'sys_integration.update': [{ target: { id: instance }, set: { configuration } }]
+			});
+			yield* t.pull('parties');
+			yield* t.pull('credit_snapshots');
+			const read = () => as.query({ credit_snapshots: { where: { source: { eq: instance } } } });
+			const good = firstRow((yield* read()).credit_snapshots.rows);
+			expect(sameDecimal(good.credit_used, '130000')).toBe(true);
+			expect(good.credit_hold).toBe(true);
+
+			// Non-numeric FCreditLimit fails loudly instead of silently dropping the customer
+			state.rows = [
+				{
+					customer_id: '101',
+					currency: 'CNY',
+					credit_limit: '50万',
+					invoices_audited: '150000.00',
+					invoices_paid: '20000.00',
+					refunds_unsettled: '0',
+					receipts_unsettled: '0',
+					advances_unsettled: '0',
+					stock_out_audited: '0',
+					stock_out_hooked: '0'
+				}
+			];
+			expect(Exit.isFailure(yield* Effect.exit(t.pull('credit_snapshots')))).toBe(true);
+			expect(firstRow((yield* read()).credit_snapshots.rows)).toEqual(good);
 		})
 );

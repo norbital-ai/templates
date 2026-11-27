@@ -565,6 +565,11 @@ export default messages({
 	// Models — Cost Matrix
 	'models.item_matrix.label': 'Item matrix',
 	'models.item_matrix.singular': 'Item',
+	'models.item_matrix.fields.code': 'Code',
+	'models.item_matrix.fields.name': 'Name',
+	'models.item_matrix.fields.quantity_basis': 'Quantity basis',
+	'models.item_matrix.fields.unit_rate': 'Unit rate',
+	'models.item_matrix.fields.waste_factor_pct': 'Waste (%)',
 	'models.item_matrix.fields.carbon_factor': 'Carbon factor (kgCO₂e per unit)',
 	'models.item_matrix.fields.discipline': 'Discipline',
 	'models.item_matrix.fields.unit': 'Unit',
@@ -659,6 +664,12 @@ export default messages({
 	'integrations.autodesk_acc.configuration.fields.default_project_id': 'Default ACC Project ID',
 	'automations.sync_messages.input.fields.batch': 'Batch size',
 	'automations.analyze_bim_file.input.fields.project_id': 'Project',
+	'automations.analyze_bim_file.input.fields.phase': 'Workflow phase',
+	'automations.analyze_bim_file.input.fields.phase.prepare':
+		'Step 1 — Clean BIM, Item Matrix & Compliance',
+	'automations.analyze_bim_file.input.fields.phase.cost':
+		'Step 2 — Classification & Costing Matrix',
+	'automations.analyze_bim_file.input.fields.phase.all': 'Both steps (Prepare + Cost)',
 	'automations.analyze_bim_file.input.fields.contingency_pct': 'Contingency (%)',
 	'automations.generate_payment_claim.input.fields.project_id': 'Project',
 	'automations.generate_payment_claim.input.fields.issue_date': 'Issue date',
@@ -786,9 +797,6 @@ export default messages({
 	'bim_review.verified': 'Verified',
 	'bim_review.inspect_3d': '3D',
 	'bim_review.bulk_verify': 'Verify high-confidence ({count})',
-	'bim_review.recalculate': 'Recalculate estimate',
-	'bim_review.recalculating': 'Recalculating…',
-	'bim_review.rescan_3d': 'Re-scan 3D',
 	'bim_review.empty_filter': 'No assets match this review filter.',
 	'bim_review.col_asset': 'Asset & cleanup',
 	'bim_review.col_class': 'Class & continuity',
@@ -879,23 +887,76 @@ export default messages({
 	'bim_settings.add_service_terms_placeholder':
 		'Comma-separated keywords (e.g. chw, chilled water)',
 	'bim_settings.add_row': 'Add',
-	'bim_compliance.tab_title': 'Compliance & Organizer',
-	'bim_compliance.title': 'BCA / CORENET X Compliance',
-	'bim_compliance.empty':
-		'Run BIM takeoff & costing to evaluate compliance rules and organize the model.',
+	'bim_compliance.title': 'Compliance & SOP Lints',
+	'bim_compliance.empty': 'Run Step 1 to parse the BIM file and evaluate compliance rules.',
 	'bim_compliance.checked_at': 'Evaluated {when}',
-	'bim_compliance.recheck': 'Re-check rules',
+	'bim_compliance.recheck': 'Re-run lints',
 	'bim_compliance.score_label': 'Compliance score',
 	'bim_compliance.passed': 'Passed',
 	'bim_compliance.warnings': 'Warnings',
 	'bim_compliance.failures': 'Failures',
 	'bim_compliance.expected': 'Required',
-	'bim_organizer.title': 'Auto-Organized IFC Model',
-	'bim_organizer.description':
-		'Uploaded IFC elements automatically organized into SMM2 / CORENET X trade packages and storeys.',
-	'bim_organizer.by_trade': 'By Trade Package',
-	'bim_organizer.by_storey': 'By Storey',
-	'bim_organizer.download_ifc': 'Download Clean & Organized IFC (.ifc)',
-	'bim_organizer.download_done':
-		'Exported clean IFC: {tagged} elements tagged · {promoted} classes promoted · {duplicates} duplicates stripped · {systems} systems/groups created · {overrides} QS edits applied'
+
+	// 2-Step Repeatable BIM Costing Workflow
+	'bim_step.step1_pill': '1. Clean BIM, Matrix & Lints',
+	'bim_step.step2_pill': '2. Classification & Costing',
+	'bim_step.repeatable_hint': 'Both steps can be re-run anytime',
+	'bim_step.phase1_title': 'Step 1 · Proposed Clean BIM, Item Matrix & Compliance',
+	'bim_step.phase1_empty_hint':
+		'Run Step 1 to parse the BIM file, propose cleaned BIM attributes, propose missing Item Matrix entries with unit rates, and run compliance lints.',
+	'bim_step.run_phase1': 'Run Step 1',
+	'bim_step.rerun_phase1': 'Re-run Step 1',
+	'bim_step.reparse_ifc': 'Re-parse IFC',
+	'bim_step.download_clean_ifc': 'Download Clean BIM (.ifc)',
+	'bim_step.download_clean_done':
+		'Exported clean BIM: {tagged} elements tagged · {promoted} classes promoted · {duplicates} duplicates removed · {overrides} QS edits applied',
+	'bim_step.proceed_phase2': 'Step 2: Generate Costing',
+	'bim_step.run_phase2_hint':
+		'Generate or refresh the classification and BOQ costing matrix from the reviewed Clean BIM and Item Matrix.',
+	'bim_step.phase2_title': 'Step 2 · Classification & Costing Matrix',
+	'bim_step.phase2_ready_hint':
+		'Step 1 preparation is complete. Generate the classification and BOQ costing matrix from your reviewed Clean BIM and Item Matrix.',
+	'bim_step.phase2_needs_phase1':
+		'Complete Step 1 first to parse the BIM file, review proposed Clean BIM & Item Matrix rates, and run compliance lints.',
+	'bim_step.goto_phase1': 'Go to Step 1',
+	'bim_step.generate_phase2': 'Generate Costing Matrix',
+	'bim_step.regenerate_phase2': 'Regenerate Costing',
+	'bim_step.phase1_updated_hint':
+		'Step 1 inputs changed — click Regenerate Costing to refresh the BOQ matrix.',
+	'bim_step.status_needs_prepare':
+		'Ready for Step 1: parse BIM, propose Clean BIM & Item Matrix, and lint.',
+	'bim_step.status_preparing':
+		'Running Step 1: cleaning BIM, proposing Item Matrix & running compliance lints…',
+	'bim_step.status_prepared_ready': 'Step 1 completed {when} — review items below or run Step 2.',
+	'bim_step.tab_clean_bim': 'Proposed Clean BIM ({count})',
+	'bim_step.tab_compliance': 'Compliance Lints',
+	'bim_step.clean_bim_heading': 'Proposed Clean BIM Assets',
+	'bim_step.held_by_proposal': 'Pending Item Matrix proposal',
+	'bim_step.review_proposal': 'Review proposal',
+	'bim_step.matrix_heading': 'Proposed Item Matrix & Costings',
+	'bim_step.matrix_hint':
+		'Edit proposed item names, measurement bases, unit rates, waste, and carbon factors inline before generating Step 2 costing.',
+	'bim_step.pending_approval_count': '{count} awaiting approval',
+	'bim_step.pending_approval': 'Proposed · Pending approval',
+	'bim_step.approve': 'Approve',
+	'bim_step.approve_and_save': 'Approve & Save',
+	'bim_step.reject': 'Reject',
+	'bim_step.approve_all': 'Approve all ({count})',
+	'bim_step.save_item': 'Save',
+	'bim_step.cancel': 'Cancel',
+	'bim_step.add_matrix_item': 'Add item',
+	'bim_step.new_matrix_title': 'New Item Matrix entry',
+	'bim_step.create_matrix_item': 'Create item',
+	'bim_step.link_unmatched_asset': 'Optional: assign to an unmatched BIM asset…',
+	'bim_step.filter_proposed': 'Proposed & Pending ({count})',
+	'bim_step.filter_all_matrix': 'All Project Items ({count})',
+	'bim_step.no_pending_proposals':
+		'No pending Item Matrix proposals for this model. Switch to All Project Items to adjust matched rates or add a new item.',
+	'bim_step.no_matrix_items': 'No Item Matrix entries linked to this model yet.',
+	'bim_step.used_by_assets': 'Used by {count} asset(s)',
+	'bim_step.proposal_approved': 'Approved {code}',
+	'bim_step.proposal_rejected': 'Rejected {code}',
+	'bim_step.approved_all': 'Approved {count} Item Matrix proposals',
+	'bim_step.item_saved': 'Saved {code}',
+	'bim_step.item_created': 'Created Item Matrix entry {code}'
 });

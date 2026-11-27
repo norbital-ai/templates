@@ -1,12 +1,10 @@
 <script lang="ts">
 	/**
-	 * Co-located human-in-the-loop BIM asset verification workbench (`projects` → BIM → Assets).
+	 * Step 1 section body: inline editor for proposed cleaned BIM assets (`asset_mappings`).
 	 *
-	 * - Roving-focus filter bar via `create_toggle_group` (Norbius-observable).
-	 * - Intrinsic responsive layout (`Surface`, `Stack`, `Inline`, `Cluster`, `Grid`) — zero
-	 *   viewport breakpoints, zero margins, zero layout shifts when verifying or amending rows.
-	 * - One path per action: click thumbnail for full record details; amend Item Matrix, class,
-	 *   continuity, or service directly inline; fixed-slot Verify toggle per row.
+	 * - Visible labels on every editable control (`ui-standard` #8).
+	 * - Zero nested scroll containers; one compact inline filter bar + search.
+	 * - Rows held by an open System 2 Item Matrix approval link directly to the proposal section.
 	 */
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -27,7 +25,7 @@
 		use_act,
 		type ComboboxOption
 	} from '@norbital-ai/ui';
-	import { Bound, Cluster, Grid, Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
+	import { Cluster, Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
 	import type { BimTakeoffLine, ContinuityMode } from '../../../services/bim/schema.js';
 	import SegmentedToggle from '../../../services/ui/SegmentedToggle.svelte';
 
@@ -45,19 +43,15 @@
 		signatures,
 		bimAssets = [],
 		onInspect3d,
-		onRecalculate,
-		onRetakeoff,
-		recalculating = false,
-		costingLocked = false
+		onReviewProposals,
+		onMutated
 	}: {
 		ctx: PageContext;
 		signatures: readonly string[];
 		bimAssets?: readonly BimTakeoffLine[];
 		onInspect3d?: (expressIds: readonly number[], label: string) => void;
-		onRecalculate?: () => void;
-		onRetakeoff?: () => void;
-		recalculating?: boolean;
-		costingLocked?: boolean;
+		onReviewProposals?: () => void;
+		onMutated?: () => void;
 	} = $props();
 
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -68,9 +62,8 @@
 	const canEdit = $derived(ctx.catalog?.asset_mappings?.update !== undefined);
 	const saver = use_act(ctx);
 
-	let activeFilter = $state<ReviewFilter>('needs_review');
+	let activeFilter = $state<ReviewFilter>('all');
 	let search = $state('');
-	let dirtyForRecalc = $state(false);
 	let savingRowId = $state<Id<'asset_mappings'> | null>(null);
 	let serviceDrafts = $state<Record<string, string>>({});
 	let classDrafts = $state<Record<string, string>>({});
@@ -127,7 +120,8 @@
 			if (r.item_id == null) unmatched += 1;
 			if (r.cleanup_note != null && r.cleanup_note.trim() !== '') cleaned += 1;
 			const conf = r.confidence != null ? Number(r.confidence) : 0;
-			if (r.review_status !== 'verified' && r.item_id != null && conf >= 0.9) highConfPending += 1;
+			if (r.review_status !== 'verified' && r.item_id != null && r.$approval == null && conf >= 0.9)
+				highConfPending += 1;
 		}
 		return {
 			total: allRows.length,
@@ -263,7 +257,7 @@
 			review_status?: 'pending' | 'verified' | 'flagged';
 		}
 	): void {
-		if (!canEdit || saver.pending) return;
+		if (!canEdit || saver.pending || row.$approval != null) return;
 		savingRowId = row.id;
 		saver.run(
 			ctx.act({
@@ -272,7 +266,7 @@
 			{
 				then: () => {
 					savingRowId = null;
-					dirtyForRecalc = true;
+					onMutated?.();
 				}
 			}
 		);
@@ -296,7 +290,9 @@
 		if (!canEdit || saver.pending) return;
 		const targets = allRows.filter((r) => {
 			const conf = r.confidence != null ? Number(r.confidence) : 0;
-			return r.review_status !== 'verified' && r.item_id != null && conf >= 0.9;
+			return (
+				r.review_status !== 'verified' && r.item_id != null && r.$approval == null && conf >= 0.9
+			);
 		});
 		if (targets.length === 0) return;
 		saver.run(
@@ -306,7 +302,7 @@
 					set: { review_status: 'verified' as const }
 				}))
 			}),
-			{ then: () => (dirtyForRecalc = true) }
+			{ then: () => onMutated?.() }
 		);
 	}
 
@@ -320,193 +316,144 @@
 </script>
 
 {#if mappingsQuery?.loading && !mappingsQuery.current}
-	<Bound size="content" inset>
-		<Inline gap="sm" align="center" aria-busy="true">
-			<Spinner />
-			<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
-		</Inline>
-	</Bound>
+	<Inline gap="sm" align="center" aria-busy="true">
+		<Spinner />
+		<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+	</Inline>
 {:else if mappingsQuery?.error}
-	<Bound size="content" inset>
-		<Alert.Root variant="destructive">
-			<Alert.Title>{mappingsQuery.error.message}</Alert.Title>
-		</Alert.Root>
-	</Bound>
+	<Alert.Root variant="destructive">
+		<Alert.Title>{mappingsQuery.error.message}</Alert.Title>
+	</Alert.Root>
 {:else if allRows.length === 0}
-	<Bound size="content" inset>
-		<EmptyState
-			variant="card"
-			icon="file"
-			title={t('bim_costing.assets_title')}
-			hint={t('bim_costing.assets_empty')}
-		/>
-	</Bound>
+	<EmptyState
+		variant="card"
+		icon="file"
+		title={t('bim_costing.assets_title')}
+		hint={t('bim_costing.assets_empty')}
+	/>
 {:else}
-	<Scroll name={t('bim_costing.assets_title')} size="fill" inset>
-		<Stack gap="md">
-			<Surface tone="card" padding="md" radius="control">
-				<Stack gap="sm">
-					<Cluster align="center" justify="between" gap="sm">
-						<Stack gap="xs">
-							<Inline gap="sm" align="center">
-								<span class="text-label">{t('bim_costing.assets_title')}</span>
-								<span class="text-meta tabular-nums">
-									{t('bim_review.summary_progress', {
-										verified: counts.verified,
-										total: counts.total,
-										flagged: counts.flagged,
-										unmatched: counts.unmatched
-									})}
-								</span>
-							</Inline>
-							<Progress value={verifiedPct} max={100} class="h-1.5" />
-						</Stack>
-						<Cluster gap="xs" align="center">
-							{#if canEdit}
-								<Button
-									variant="outline"
-									disabled={saver.pending || counts.highConfPending === 0}
-									onclick={bulkVerifyHighConfidence}
-								>
-									<Icon name="lucide:check-check" class="size-3.5" />
-									{t('bim_review.bulk_verify', { count: counts.highConfPending })}
-								</Button>
-							{/if}
-							{#if onRetakeoff}
-								<Button
-									variant="outline"
-									disabled={recalculating || costingLocked}
-									onclick={() => {
-										dirtyForRecalc = false;
-										onRetakeoff();
-									}}
-								>
-									<Icon name="lucide:scan-line" class="size-3.5" />
-									{t('bim_review.rescan_3d')}
-								</Button>
-							{/if}
-							{#if onRecalculate}
-								<Button
-									variant={dirtyForRecalc ? 'brand' : 'outline'}
-									disabled={recalculating || costingLocked}
-									onclick={() => {
-										dirtyForRecalc = false;
-										onRecalculate();
-									}}
-								>
-									{#if recalculating}
-										<Spinner class="size-3.5" />
-										{t('bim_review.recalculating')}
-									{:else}
-										<Icon name="lucide:refresh-cw" class="size-3.5" />
-										{t('bim_review.recalculate')}
-									{/if}
-								</Button>
-							{/if}
-						</Cluster>
-					</Cluster>
+	<Stack gap="sm">
+		<Cluster align="center" justify="between" gap="sm">
+			<Inline gap="sm" align="center">
+				<Progress value={verifiedPct} max={100} class="h-1.5 w-24 shrink-0" />
+				<span class="shrink-0 whitespace-nowrap text-meta tabular-nums">
+					{t('bim_review.summary_progress', {
+						verified: counts.verified,
+						total: counts.total,
+						flagged: counts.flagged,
+						unmatched: counts.unmatched
+					})}
+				</span>
+			</Inline>
+			{#if canEdit && counts.highConfPending > 0}
+				<Button variant="outline" disabled={saver.pending} onclick={bulkVerifyHighConfidence}>
+					<Icon name="lucide:check-check" class="size-3.5" />
+					{t('bim_review.bulk_verify', { count: counts.highConfPending })}
+				</Button>
+			{/if}
+		</Cluster>
 
-					<Cluster align="center" justify="between" gap="sm">
-						<SegmentedToggle
-							options={FILTERS.map((f) => ({ value: f, label: filterLabel(f) }))}
-							value={activeFilter}
-							onChange={(next) => (activeFilter = next)}
-							label={t('bim_costing.assets_title')}
-							control={{
-								id: 'construction:bim-review-filter',
-								label: t('bim_costing.assets_title')
-							}}
-						/>
-						<Input
-							bind:value={search}
-							type="search"
-							placeholder={`${t('bim_review.col_asset')} / ${t('bim_review.col_class')}…`}
-							aria-label={t('bim_review.col_asset')}
-							class="text-xs"
-						/>
-					</Cluster>
-				</Stack>
-			</Surface>
+		<Cluster align="center" justify="between" gap="sm">
+			<SegmentedToggle
+				options={FILTERS.map((f) => ({ value: f, label: filterLabel(f) }))}
+				value={activeFilter}
+				onChange={(next) => (activeFilter = next)}
+				label={t('bim_costing.assets_title')}
+				control={{
+					id: 'construction:bim-review-filter',
+					label: t('bim_costing.assets_title')
+				}}
+			/>
+			<Input
+				bind:value={search}
+				type="search"
+				placeholder={`${t('bim_review.col_asset')} / ${t('bim_review.col_class')}…`}
+				aria-label={t('bim_review.col_asset')}
+				class="text-xs"
+			/>
+		</Cluster>
 
-			{#if visibleRows.length === 0}
-				<EmptyState variant="card" icon="file" title={t('bim_review.empty_filter')} />
-			{:else}
-				<Surface tone="card" padding="none" radius="control">
-					<Stack gap="none" divided>
-						{#each visibleRows as row (row.id)}
-							{@const rowExpressIds = expressIdsFor(row)}
-							{@const pct =
-								row.confidence != null ? Math.round(Number(row.confidence) * 100) : null}
-							{@const isSaving = savingRowId === row.id && saver.pending}
-							{@const isVerified = row.review_status === 'verified'}
-							<Surface
-								tone={row.review_status === 'flagged' ? 'subtle' : 'transparent'}
-								padding="sm"
-								radius="none"
-								bordered={false}
-							>
-								<Grid minimum="card" gap="sm" align="start">
-									<!-- Identity, 4-angle picture & auto-cleanup audit -->
-									<Inline gap="sm" align="start">
-										<button
-											type="button"
-											class="shrink-0 overflow-hidden rounded-inset border border-border bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-											onclick={() => open_record('asset_mappings', row.id)}
-											title={row.label}
-										>
-											{#if row.picture}
-												<Image
-													src={ctx.file_url(row.picture, { preview: 512 })}
-													alt={row.label}
-													class="size-12"
-													image_class="object-cover"
-												/>
-											{:else}
-												<span class="flex size-12 items-center justify-center">
-													<Icon name="lucide:box" class="size-4 text-muted-foreground" />
-												</span>
-											{/if}
-										</button>
-										<Stack gap="xs">
-											<Cluster gap="xs" align="center">
-												<span class="text-label" title={row.label}>{row.label}</span>
-												{#if row.size_mm}
-													<Badge variant="outline" class="font-mono text-tiny">{row.size_mm}</Badge>
-												{/if}
-											</Cluster>
-											<Cluster gap="xs" align="center">
-												<Badge variant={statusBadgeVariant(row.review_status)} class="text-tiny">
-													{enum_text(row.review_status, {
-														t: rawT,
-														model: 'asset_mappings',
-														field: 'review_status'
-													})}
-												</Badge>
-												<span class="text-meta">
-													{enum_text(row.source, {
-														t: rawT,
-														model: 'asset_mappings',
-														field: 'source'
-													})}
-												</span>
-												{#if pct !== null}
-													<span class="font-mono text-xs tabular-nums text-muted-foreground"
-														>{`${pct}%`}</span
-													>
-												{/if}
-											</Cluster>
-											{#if row.cleanup_note}
-												<Inline gap="xs" align="center" class="text-micro text-tone-info-text">
-													<Icon name="lucide:sparkles" class="size-3 shrink-0" />
-													<span class="line-clamp-2">{row.cleanup_note}</span>
-												</Inline>
-											{/if}
-										</Stack>
-									</Inline>
-
-									<!-- Class, continuity & service (inline editable) -->
+		{#if visibleRows.length === 0}
+			<EmptyState variant="card" icon="file" title={t('bim_review.empty_filter')} />
+		{:else}
+			<Surface tone="card" padding="none" radius="control">
+				<Stack gap="none" divided>
+					{#each visibleRows as row (row.id)}
+						{@const rowExpressIds = expressIdsFor(row)}
+						{@const pct = row.confidence != null ? Math.round(Number(row.confidence) * 100) : null}
+						{@const isSaving = savingRowId === row.id && saver.pending}
+						{@const isVerified = row.review_status === 'verified'}
+						{@const heldByProposal = row.$approval != null}
+						<Surface
+							tone={row.review_status === 'flagged' ? 'subtle' : 'transparent'}
+							padding="sm"
+							radius="none"
+							bordered={false}
+						>
+							<Grid minimum="card" gap="sm" align="start">
+								<!-- Identity, 4-angle picture & auto-cleanup audit -->
+								<Inline gap="sm" align="start">
+									<button
+										type="button"
+										class="shrink-0 overflow-hidden rounded-inset border border-border bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+										onclick={() => open_record('asset_mappings', row.id)}
+										title={row.label}
+									>
+										{#if row.picture}
+											<Image
+												src={ctx.file_url(row.picture, { preview: 512 })}
+												alt={row.label}
+												class="size-12"
+												image_class="object-cover"
+											/>
+										{:else}
+											<span class="flex size-12 items-center justify-center">
+												<Icon name="lucide:box" class="size-4 text-muted-foreground" />
+											</span>
+										{/if}
+									</button>
 									<Stack gap="xs">
-										{#if canEdit}
+										<Cluster gap="xs" align="center">
+											<span class="text-label" title={row.label}>{row.label}</span>
+											{#if row.size_mm}
+												<Badge variant="outline" class="font-mono text-tiny">{row.size_mm}</Badge>
+											{/if}
+										</Cluster>
+										<Cluster gap="xs" align="center">
+											<Badge variant={statusBadgeVariant(row.review_status)} class="text-tiny">
+												{enum_text(row.review_status, {
+													t: rawT,
+													model: 'asset_mappings',
+													field: 'review_status'
+												})}
+											</Badge>
+											<span class="text-meta">
+												{enum_text(row.source, {
+													t: rawT,
+													model: 'asset_mappings',
+													field: 'source'
+												})}
+											</span>
+											{#if pct !== null}
+												<span class="font-mono text-xs tabular-nums text-muted-foreground"
+													>{`${pct}%`}</span
+												>
+											{/if}
+										</Cluster>
+										{#if row.cleanup_note}
+											<Inline gap="xs" align="center" class="text-micro text-tone-info-text">
+												<Icon name="lucide:sparkles" class="size-3 shrink-0" />
+												<span class="line-clamp-2">{row.cleanup_note}</span>
+											</Inline>
+										{/if}
+									</Stack>
+								</Inline>
+
+								<!-- Class, continuity & service (visible labels, inline editable) -->
+								<Stack gap="xs">
+									<Stack gap="xs">
+										<span class="text-overline">{t('models.asset_mappings.fields.ifc_class')}</span>
+										{#if canEdit && !heldByProposal}
 											<Input
 												value={classDrafts[row.id] ?? row.ifc_class}
 												oninput={(e) => {
@@ -523,18 +470,26 @@
 										{:else}
 											<span class="font-mono text-micro text-foreground">{row.ifc_class}</span>
 										{/if}
-										<Grid minimum="compact" gap="xs">
+									</Stack>
+									<Grid minimum="compact" gap="xs">
+										<Stack gap="xs">
+											<span class="text-overline">
+												{t('models.asset_mappings.fields.continuity')}
+											</span>
 											<Combobox
 												options={continuityOptions}
 												value={row.continuity}
 												searchable={false}
-												disabled={!canEdit || isSaving}
+												disabled={!canEdit || isSaving || heldByProposal}
 												aria-label={t('models.asset_mappings.fields.continuity')}
 												on_change={(next) => {
 													if (next && next !== row.continuity) savePatch(row, { continuity: next });
 												}}
 											/>
-											{#if canEdit}
+										</Stack>
+										<Stack gap="xs">
+											<span class="text-overline">{t('models.asset_mappings.fields.service')}</span>
+											{#if canEdit && !heldByProposal}
 												<Input
 													value={serviceDrafts[row.id] ?? row.service ?? ''}
 													oninput={(e) => {
@@ -549,14 +504,31 @@
 													aria-label={t('models.asset_mappings.fields.service')}
 													class="font-mono text-micro"
 												/>
-											{:else if row.service}
-												<Badge variant="outline" class="font-mono text-tiny">{row.service}</Badge>
+											{:else}
+												<span class="font-mono text-micro text-muted-foreground">
+													{row.service ?? '—'}
+												</span>
 											{/if}
-										</Grid>
-									</Stack>
+										</Stack>
+									</Grid>
+								</Stack>
 
-									<!-- Item Matrix picker + fixed-slot Verify & 3D actions (zero shift) -->
-									<Stack gap="xs">
+								<!-- Item Matrix assignment + Verify & 3D actions -->
+								<Stack gap="xs">
+									<span class="text-overline">{t('models.item_matrix.singular')}</span>
+									{#if heldByProposal}
+										<Cluster gap="xs" align="center" justify="between">
+											<Badge variant="warning" class="text-tiny">
+												{t('bim_step.held_by_proposal')}
+											</Badge>
+											{#if onReviewProposals}
+												<Button variant="outline" onclick={onReviewProposals}>
+													<Icon name="lucide:arrow-up" class="size-3.5" />
+													{t('bim_step.review_proposal')}
+												</Button>
+											{/if}
+										</Cluster>
+									{:else}
 										<Picker
 											{ctx}
 											of="item_matrix"
@@ -571,39 +543,39 @@
 												if (next !== (row.item_id?.id ?? null)) savePatch(row, { item_id: next });
 											}}
 										/>
-										<Cluster gap="xs" justify="end" align="center">
-											{#if canEdit}
-												<Button
-													variant={isVerified ? 'ghost' : 'secondary'}
-													disabled={isSaving}
-													onclick={() =>
-														savePatch(row, { review_status: isVerified ? 'pending' : 'verified' })}
-												>
-													<Icon
-														name={isVerified ? 'lucide:circle-check' : 'lucide:check'}
-														class="size-3.5"
-													/>
-													{isVerified ? t('bim_review.verified') : t('bim_review.verify')}
-												</Button>
-											{/if}
-											{#if onInspect3d}
-												<Button
-													variant="ghost"
-													disabled={rowExpressIds.length === 0}
-													onclick={() => onInspect3d(rowExpressIds, row.label)}
-												>
-													<Icon name="lucide:box" class="size-3.5" />
-													{t('bim_review.inspect_3d')}
-												</Button>
-											{/if}
-										</Cluster>
-									</Stack>
-								</Grid>
-							</Surface>
-						{/each}
-					</Stack>
-				</Surface>
-			{/if}
-		</Stack>
-	</Scroll>
+									{/if}
+									<Cluster gap="xs" justify="end" align="center">
+										{#if canEdit && !heldByProposal}
+											<Button
+												variant={isVerified ? 'ghost' : 'secondary'}
+												disabled={isSaving}
+												onclick={() =>
+													savePatch(row, { review_status: isVerified ? 'pending' : 'verified' })}
+											>
+												<Icon
+													name={isVerified ? 'lucide:circle-check' : 'lucide:check'}
+													class="size-3.5"
+												/>
+												{isVerified ? t('bim_review.verified') : t('bim_review.verify')}
+											</Button>
+										{/if}
+										{#if onInspect3d}
+											<Button
+												variant="ghost"
+												disabled={rowExpressIds.length === 0}
+												onclick={() => onInspect3d(rowExpressIds, row.label)}
+											>
+												<Icon name="lucide:box" class="size-3.5" />
+												{t('bim_review.inspect_3d')}
+											</Button>
+										{/if}
+									</Cluster>
+								</Stack>
+							</Grid>
+						</Surface>
+					{/each}
+				</Stack>
+			</Surface>
+		{/if}
+	</Stack>
 {/if}

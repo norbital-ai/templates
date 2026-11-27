@@ -22,6 +22,7 @@
 	import { Bound } from '@norbital-ai/ui/layout';
 	import { observe_once } from '@norbital-ai/ui/effect';
 	import { boardRead, completeCommissionBoard, monthOf } from '../../../lib/monthly-commission.js';
+	import { displayUnit } from '../../../lib/unit-display.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
 
 	let { ctx, period: month }: { ctx: PageContext; period: string } = $props();
@@ -60,7 +61,7 @@
 				basis_quantity: units
 					.map(
 						([unit, lines]) =>
-							`${BigDecimal.format(BigDecimal.sumAll(lines.map((line) => BigDecimal.fromStringUnsafe(line.basis_quantity ?? '0'))))} ${unit}`
+							`${BigDecimal.format(BigDecimal.sumAll(lines.map((line) => BigDecimal.fromStringUnsafe(line.basis_quantity ?? '0'))))} ${displayUnit(unit, ctx.locale)}`
 					)
 					.join(' · '),
 				state_label: ctx.t(`reports.commission_ack.${row.state}`)
@@ -71,6 +72,7 @@
 		board?.flatMap((row) =>
 			row.lines.map((line) => ({
 				...line,
+				basis_unit_display: displayUnit(line.basis_unit, ctx.locale),
 				owner_name: row.owner_name,
 				currency: row.currency,
 				reason_label: ctx.t(`reports.commission.${line.reason}`)
@@ -154,18 +156,12 @@
 		{ field: 'number', label: ctx.t('models.orders.singular') },
 		{ field: 'product', label: ctx.t('reports.sales.product') },
 		{
-			field: 'quantity',
-			label: label(ctx, 'orders', 'quantity'),
-			kind: { kind: 'decimal', scale: 3 },
-			align: 'end'
-		},
-		{
 			field: 'basis_quantity',
 			label: ctx.t('reports.commission.basis_quantity'),
 			kind: { kind: 'decimal', scale: 3, optional: true },
 			align: 'end'
 		},
-		{ field: 'basis_unit', label: ctx.t('reports.sales.unit') },
+		{ field: 'basis_unit_display', label: ctx.t('reports.sales.unit') },
 		{
 			field: 'spread',
 			label: ctx.t('reports.commission.spread'),

@@ -34,19 +34,31 @@
 		TimeRangeInput,
 		Timeline,
 		enum_text,
+		label,
 		open_record,
 		use_record_controller,
 		use_act,
+		type Col,
 		type FieldEditor,
 		type FormState,
 		type RecordView,
+		type Row,
 		type TimelineEntry
 	} from '@norbital-ai/ui';
 	import { Bound, Grid, Inline, Scroll, Stack, Surface, Cluster } from '@norbital-ai/ui/layout';
 	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
+	import UnitPriceInput from '../../../lib/ui/unit-price-input.svelte';
+	import UnitQuantityInput from '../../../lib/ui/unit-quantity-input.svelte';
 	import { contractKind, currentTemplate, documentLocale } from '../../../lib/order-document.js';
 	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
+	import {
+		displayUnit,
+		isKgUnit,
+		priceToDisplay,
+		qtyToDisplay
+	} from '../../../lib/unit-display.js';
+	import { orderCreditAssessment } from '../../../lib/credit-release.js';
 
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -64,6 +76,36 @@
 	// a narrower output (logistics) carries no commercial terms
 	const commercial = $derived(ctx.catalog?.orders?.output === undefined);
 	const recordController = use_record_controller();
+	const productUnitsRead = ctx.query({
+		products: { fields: ['unit'], limit: 10000 }
+	});
+	const productUnitById = $derived(
+		new Map<string, string | null>(
+			(productUnitsRead.current?.products.rows ?? []).map((row) => [row.id, row.unit])
+		)
+	);
+	const lineUnitOf = (row: Row): string | null => {
+		const stored = row['unit'];
+		if (typeof stored === 'string' && stored.trim() !== '') return stored;
+		const productId = row['product'];
+		return typeof productId === 'string' ? (productUnitById.get(productId) ?? null) : null;
+	};
+	const canEditChildField = (
+		parentForm: FormState,
+		childForm: FormState | undefined,
+		field: string
+	) => {
+		if (
+			recordController?.historical === true ||
+			(parentForm.mode !== 'edit' && parentForm.mode !== 'create') ||
+			childForm === undefined ||
+			childForm.locked(field)
+		)
+			return false;
+		if (childForm.capabilities === undefined) return true;
+		const capability = childForm.capabilities?.fields[field];
+		return Boolean(capability?.writable || capability?.proposal);
+	};
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const activityWords: { t(key: string): string } = ctx;
 	const orderActivities = $derived(
@@ -181,6 +223,40 @@
 			? quotationFifoCosts(costRead.current, purchaseCosts, clock.now, ledger)
 			: []
 	);
+	const orderReleasesRead = $derived(
+		id && ctx.catalog?.credit_releases
+			? ctx.query({
+					credit_releases: {
+						...(ctx.catalog.credit_releases.output === 'logistics'
+							? { output: 'logistics' as const }
+							: {}),
+						where: { order: { eq: id }, source_status: { in: ['blocked', 'bypassed'] } },
+						fields: ['bill_number', 'source_status', 'approval_status'],
+						limit: 20
+					}
+				})
+			: null
+	);
+	const orderReleases = $derived(orderReleasesRead?.current?.credit_releases.rows ?? []);
+	let partyPick = $state<{ key: Id<'orders'> | null; id: Id<'parties'> | null } | null>(null);
+	const initialPartyId = $derived<Id<'parties'> | null>(
+		view.mode !== 'create' ? view.record.party : (view.values.party ?? preset.party ?? null)
+	);
+	const activePartyId = $derived<Id<'parties'> | null>(
+		partyPick && partyPick.key === id ? partyPick.id : initialPartyId
+	);
+	const partyCreditRead = $derived(
+		activePartyId && commercial && ctx.catalog?.credit_snapshots
+			? ctx.query({
+					credit_snapshots: {
+						where: { party: { eq: activePartyId } },
+						fields: ['currency', 'credit_limit', 'credit_used', 'credit_hold'],
+						limit: 5
+					}
+				})
+			: null
+	);
+	const partyCreditRows = $derived(partyCreditRead?.current?.credit_snapshots.rows ?? []);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);
 	const save = use_act(ctx);
 	const disabled = $derived(
@@ -281,6 +357,7 @@
 	}
 	function pickParty(form: FormState, field: FieldEditor, next: Id<'parties'> | null) {
 		const before = form.id<'parties'>('party');
+		partyPick = { key: id, id: next };
 		field.on_change(next);
 		if (next === null) return form.set('buyer_contact', null);
 		void run(
@@ -503,6 +580,74 @@
 {/snippet}
 
 {#snippet confirmationNotices(form: FormState)}
+	{@const orderDirection = form.get('direction')}
+	{@const orderCurrency =
+		typeof form.get('currency') === 'string' ? String(form.get('currency')) : null}
+	{@const orderTotal =
+		draft && view.mode !== 'create' && view.record.total != null ? String(view.record.total) : null}
+	{@const creditSnap =
+		orderDirection === 'sales'
+			? (partyCreditRows.find((row) => row.currency === orderCurrency) ??
+				partyCreditRows[0] ??
+				null)
+			: null}
+	{@const creditWarn =
+		orderDirection === 'sales'
+			? orderCreditAssessment(creditSnap, orderCurrency, orderTotal)
+			: null}
+	{#if creditWarn}
+		{@const fmtCredit = (value: string | null) =>
+			value === null
+				? '—'
+				: format({ kind: 'money' }, value, { locale: ctx.locale, currency: creditWarn.currency })}
+		<Surface tone="subtle" padding="sm" radius="control">
+			<Stack gap="xs">
+				{#if creditWarn.held}
+					<p class="text-sm font-medium text-destructive">{ctx.t('component.order_credit_hold')}</p>
+				{/if}
+				{#if creditWarn.currentOver !== null}
+					<p class="text-sm text-destructive">
+						{ctx.t('component.order_credit_over_limit', {
+							amount: fmtCredit(creditWarn.currentOver),
+							limit: fmtCredit(creditWarn.creditLimit),
+							used: fmtCredit(creditWarn.creditUsed)
+						})}
+					</p>
+				{:else if creditWarn.projectedOver !== null}
+					<p class="text-sm text-destructive">
+						{ctx.t('component.order_credit_projected_breach', {
+							amount: fmtCredit(creditWarn.projectedOver),
+							limit: fmtCredit(creditWarn.creditLimit),
+							used: fmtCredit(creditWarn.projectedUsed)
+						})}
+					</p>
+				{/if}
+			</Stack>
+		</Surface>
+	{/if}
+	{#if orderReleases.length > 0}
+		<Surface tone="subtle" padding="sm" radius="control">
+			<Stack gap="xs">
+				{#each orderReleases as rel (rel.id)}
+					{@const relStatus =
+						rel.source_status === 'blocked' && rel.approval_status === 'approved'
+							? 'approved'
+							: rel.source_status}
+					<Inline align="center" justify="between" gap="sm">
+						<p class="text-sm text-destructive">
+							{ctx.t('component.order_credit_releases_alert', {
+								bill: rel.bill_number,
+								status: ctx.t(`models.credit_releases.fields.status.${relStatus}`)
+							})}
+						</p>
+						<Button variant="outline" onclick={() => open_record('credit_releases', rel.id)}>
+							{ctx.t('component.order_credit_open_release')}
+						</Button>
+					</Inline>
+				{/each}
+			</Stack>
+		</Surface>
+	{/if}
 	{#if costRead && draft}
 		{#if costRead.current}
 			{#if !purchaseCosts && belowCost.length}<p class="text-sm">
@@ -519,28 +664,36 @@
 								<p class="text-meta">{ctx.t('stock.fifo.scope')}</p>
 								<Stack as="ul" gap="xs">
 									{#each fifoCosts as row (row.key)}
+										{@const shownUnit = displayUnit(row.unit, ctx.locale)}
+										{@const shownQty = qtyToDisplay(BigDecimal.format(row.quantity), row.unit)}
+										{@const shownCost = row.estimate
+											? priceToDisplay(BigDecimal.format(row.estimate.unit_cost), row.unit)
+											: null}
 										<li>
 											<span class="font-medium">{row.product}</span> · {format(
 												{ kind: 'decimal', scale: 3 },
-												BigDecimal.format(row.quantity),
+												shownQty ?? BigDecimal.format(row.quantity),
 												{ locale: ctx.locale }
 											)}
-											{row.unit}
-											{#if row.estimate}
+											{shownUnit}
+											{#if row.estimate && shownCost !== null}
 												· {purchaseCosts.currency}
-												{format(
-													{ kind: 'decimal', scale: 4 },
-													BigDecimal.format(BigDecimal.round(row.estimate.unit_cost, { scale: 4 })),
-													{ locale: ctx.locale }
-												)}
-												/ {row.unit}
+												{format({ kind: 'decimal', scale: isKgUnit(row.unit) ? 2 : 4 }, shownCost, {
+													locale: ctx.locale
+												})}
+												/ {shownUnit}
 												{#if row.below}
 													· {ctx.t('stock.fifo.below_quote')}{/if}
 												<div class="text-meta">
 													{row.estimate.lots
 														.map(
 															(lot) =>
-																`${lot.lot_number} × ${format({ kind: 'decimal', scale: 3 }, BigDecimal.format(lot.quantity), { locale: ctx.locale })}`
+																`${lot.lot_number} × ${format(
+																	{ kind: 'decimal', scale: 3 },
+																	qtyToDisplay(BigDecimal.format(lot.quantity), row.unit) ??
+																		BigDecimal.format(lot.quantity),
+																	{ locale: ctx.locale }
+																)}`
 														)
 														.join(' · ')}
 												</div>
@@ -592,16 +745,84 @@
 		{/if}
 	{/if}
 {/snippet}
-{#snippet lines()}
-	<ChildGrid
-		{ctx}
-		of="orders"
-		relation="lines"
-		{...id ? { id } : {}}
-		columns={commercial
-			? ['product', 'quantity', 'unit', 'unit_price', 'discount_pct', 'tax_rate', 'total']
-			: ['product', 'quantity', 'unit']}
-	/>
+{#snippet lines(form: FormState)}
+	{#snippet quantityCell({ row }: { field: string; row: Row })}
+		{@const childForm = form.child_forms.get(`lines:${row.id}`)}
+		{@const rowUnit = lineUnitOf(row)}
+		{@const editable = canEditChildField(form, childForm, 'quantity')}
+		{@const error = childForm?.field_errors.get('quantity')}
+		<Stack gap="xs">
+			<UnitQuantityInput
+				{ctx}
+				value={childForm ? childForm.get('quantity') : (row['quantity'] ?? null)}
+				unit={rowUnit}
+				readonly={!editable}
+				disabled={form.pending || Boolean(childForm?.pending)}
+				invalid={Boolean(error)}
+				dense
+				aria_label={label(ctx, 'order_lines', 'quantity')}
+				on_change={(next) => childForm?.set('quantity', next)}
+			/>
+			{#if error}<p class="text-xs text-destructive">{error}</p>{/if}
+		</Stack>
+	{/snippet}
+	{#snippet unitCell({ row }: { field: string; row: Row })}
+		<span>{displayUnit(lineUnitOf(row), ctx.locale) || '—'}</span>
+	{/snippet}
+	{#snippet unitPriceCell({ row }: { field: string; row: Row })}
+		{@const childForm = form.child_forms.get(`lines:${row.id}`)}
+		{@const rowUnit = lineUnitOf(row)}
+		{@const rawCurrency = row['currency'] ?? form.get('currency')}
+		{@const rowCurrency =
+			typeof rawCurrency === 'string' && rawCurrency !== '' ? rawCurrency : undefined}
+		{@const editable = canEditChildField(form, childForm, 'unit_price')}
+		{@const error = childForm?.field_errors.get('unit_price')}
+		<Stack gap="xs">
+			<UnitPriceInput
+				{ctx}
+				value={childForm ? childForm.get('unit_price') : (row['unit_price'] ?? null)}
+				unit={rowUnit}
+				{...rowCurrency ? { currency: rowCurrency } : {}}
+				readonly={!editable}
+				disabled={form.pending || Boolean(childForm?.pending)}
+				invalid={Boolean(error)}
+				dense
+				on_change={(next) => childForm?.set('unit_price', next)}
+			/>
+			{#if error}<p class="text-xs text-destructive">{error}</p>{/if}
+		</Stack>
+	{/snippet}
+	{@const lineColumns: readonly Col<Row>[] = commercial
+		? [
+				'product',
+				{
+					field: 'quantity',
+					label: label(ctx, 'order_lines', 'quantity'),
+					align: 'end',
+					cell: quantityCell
+				},
+				{ field: 'unit', label: label(ctx, 'order_lines', 'unit'), cell: unitCell },
+				{
+					field: 'unit_price',
+					label: label(ctx, 'order_lines', 'unit_price'),
+					align: 'end',
+					cell: unitPriceCell
+				},
+				'discount_pct',
+				'tax_rate',
+				'total'
+			]
+		: [
+				'product',
+				{
+					field: 'quantity',
+					label: label(ctx, 'order_lines', 'quantity'),
+					align: 'end',
+					cell: quantityCell
+				},
+				{ field: 'unit', label: label(ctx, 'order_lines', 'unit'), cell: unitCell }
+			]}
+	<ChildGrid {ctx} of="orders" relation="lines" {...id ? { id } : {}} columns={lineColumns} />
 {/snippet}
 {#snippet fulfillment()}{#if id}<Table
 			{ctx}
@@ -652,7 +873,7 @@
 	</Cluster>{/snippet}
 {#snippet contractBody(form: FormState)}<Stack gap="md">
 		{@render confirmationNotices(form)}
-		<Bound size="viewport">{@render lines()}</Bound>
+		<Bound size="viewport">{@render lines(form)}</Bound>
 	</Stack>{/snippet}
 {#snippet orderState()}
 	{#if view.mode === 'create' && choice !== null}
@@ -725,7 +946,10 @@
 		trailing={orderState}
 		on_done={(o) => {
 			// a new order returns its sheet to the type choice
-			if (view.mode === 'create' && o.kind === 'committed' && o.records[0]) choice = null;
+			if (view.mode === 'create' && o.kind === 'committed' && o.records[0]) {
+				choice = null;
+				partyPick = null;
+			}
 		}}
 		{...archived ? { lock: ctx.t('component.order_archived') } : {}}
 		history={{

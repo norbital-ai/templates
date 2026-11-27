@@ -49,14 +49,29 @@
 			reasons: row.reasons.map((reason) => ctx.t(`reports.credit.${reason}`))
 		})) ?? null
 	);
+	const openReleases = $derived(
+		hasReleases
+			? ctx.query({
+					credit_releases: {
+						...(commercialReleases ? {} : { output: 'logistics' as const }),
+						where: { source_status: { in: ['blocked', 'bypassed'] } },
+						fields: ['source_status'],
+						limit: 500
+					}
+				})
+			: null
+	);
+	const releaseAlertCount = $derived(openReleases?.current?.credit_releases.rows.length ?? 0);
 	let chosenView = $state<'releases' | 'customers' | 'invoices' | null>(null);
 	const view = $derived<'releases' | 'customers' | 'invoices'>(
 		chosenView &&
 			((chosenView === 'releases' && hasReleases) || (chosenView !== 'releases' && hasSnapshots))
 			? chosenView
-			: hasSnapshots
-				? 'customers'
-				: 'releases'
+			: hasReleases && releaseAlertCount > 0
+				? 'releases'
+				: hasSnapshots
+					? 'customers'
+					: 'releases'
 	);
 	let customer = $state<{ keys: readonly string[]; name: string } | null>(null);
 	const invoices = $derived(
@@ -249,7 +264,16 @@
 						]
 					: []),
 				...(hasReleases
-					? [{ name: 'releases', title: ctx.t('reports.credit.releases'), body: releasesTab }]
+					? [
+							{
+								name: 'releases',
+								title:
+									releaseAlertCount > 0
+										? `${ctx.t('reports.credit.releases')} (${releaseAlertCount})`
+										: ctx.t('reports.credit.releases'),
+								body: releasesTab
+							}
+						]
 					: [])
 			]}
 		/>

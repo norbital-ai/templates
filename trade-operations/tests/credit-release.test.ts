@@ -8,10 +8,14 @@ import {
 	creditReleaseContentHash,
 	evaluateCreditBlock,
 	isAdvanceSettlement,
+	orderCreditAssessment,
 	parseKingdeeReleaseLog,
 	planCreditFormula
 } from '../src/lib/credit-release.js';
-import { kingdeeCreditPolicy } from '../src/integration/kingdee/configuration.js';
+import {
+	kingdeeCreditPolicy,
+	kingdeeOrgCreditPolicy
+} from '../src/integration/kingdee/configuration.js';
 import { workspace, committed, PROBE_NET30 } from './kit.js';
 import { kingdeeFixture } from './kingdee-fixture.js';
 import { firstRow, fixtureId, sameDecimal } from './test-runtime.js';
@@ -121,8 +125,16 @@ const setup = Effect.fnUntraced(function* () {
 			}
 			if (stmt.includes('kingdee-credit-release-log-')) {
 				state.logReads++;
-				const after = stmt.includes('log-inc') ? BigInt(String(op.arguments.last_log_id)) : 0n;
-				const entries = state.logs.filter((row) => BigInt(row.log_id) > after);
+				const inc = stmt.includes('log-inc');
+				const after = inc ? BigInt(String(op.arguments.last_log_id)) : 0n;
+				const entries = state.logs
+					.filter((row) => BigInt(row.log_id) > after)
+					.sort((a, b) =>
+						inc
+							? Number(BigInt(a.log_id) - BigInt(b.log_id))
+							: Number(BigInt(b.log_id) - BigInt(a.log_id))
+					)
+					.slice(0, inc ? 201 : 200);
 				return Effect.succeed({
 					rows: [{ max_log_id: state.maxLogId, entries: JSON.stringify(entries) }]
 				});
@@ -131,6 +143,63 @@ const setup = Effect.fnUntraced(function* () {
 				const nos = new Set(parseXmlIds(op.arguments.ids));
 				const matched = state.bills.filter((b) => nos.has(b.bill_no));
 				return Effect.succeed({ rows: [{ bills: JSON.stringify(matched) }] });
+			}
+			if (stmt.includes('kingdee-org-credit-release')) {
+				expect(stmt).not.toMatch(/ICCreditManager|FPassword/);
+				state.snapshotReads++;
+				const watchedIds = new Set(parseXmlIds(op.arguments.ids));
+				const lastFidText = String(op.arguments.last_fid ?? '');
+				const lastFid = lastFidText !== '' ? Number(lastFidText) : null;
+				const limitedIds = new Set(state.customers.map((c) => c.customer_id));
+				const unaudited = state.bills
+					.filter((b) => b.status === 0 && !b.cancelled && limitedIds.has(b.customer_id))
+					.map(({ status: _s, cancelled: _c, ...rest }) => rest);
+				const watched = state.bills.filter((b) => watchedIds.has(b.fid));
+				const recent_audited =
+					lastFid === null
+						? []
+						: state.bills
+								.filter(
+									(b) =>
+										b.status !== 0 &&
+										!b.cancelled &&
+										limitedIds.has(b.customer_id) &&
+										Number(b.fid) > lastFid
+								)
+								.sort((a, b) => Number(a.fid) - Number(b.fid))
+								.slice(0, 501);
+				const activeCustomers = new Set([
+					...unaudited.map((b) => b.customer_id),
+					...watched.map((b) => b.customer_id),
+					...recent_audited.map((b) => b.customer_id)
+				]);
+				const customers = state.customers.filter((c) => activeCustomers.has(c.customer_id));
+				const maxDoFid = state.bills
+					.filter((b) => b.status !== 0)
+					.reduce((max, b) => Math.max(max, Number(b.fid)), 0);
+				const entries = JSON.stringify({
+					today: state.today,
+					options: [],
+					fields: [],
+					unaudited,
+					customers,
+					watched,
+					recent_audited
+				});
+				const fingerprint = createHash('sha256').update(entries).digest('hex').toUpperCase();
+				const changed = fingerprint !== op.arguments.prior;
+				if (changed) state.snapshotTransfers++;
+				return Effect.succeed({
+					rows: [
+						{
+							fingerprint,
+							oversized: false,
+							entries: changed ? entries : null,
+							max_do_fid: String(maxDoFid),
+							observed_at: state.observed
+						}
+					]
+				});
 			}
 			if (stmt.includes('kingdee-credit-release')) {
 				expect(stmt).not.toMatch(/ICCreditManager|FPassword/);
@@ -198,6 +267,24 @@ const setup = Effect.fnUntraced(function* () {
 			text: 'SELECT member, title FROM sys_notification ORDER BY at, member',
 			params: []
 		});
+	const syncHealth = () =>
+		t.db
+			.rows(
+				Schema.Struct({
+					health: Schema.NullOr(
+						Schema.Struct({
+							state: Schema.String,
+							code: Schema.optionalKey(Schema.String),
+							message: Schema.optionalKey(Schema.String)
+						})
+					)
+				}),
+				{
+					text: 'SELECT health FROM sys_sync WHERE instance=$1 AND sync=$2',
+					params: [instance, 'credit_releases.sync.kingdee']
+				}
+			)
+			.pipe(Effect.map((rows) => rows[0]?.health ?? null));
 	return {
 		t,
 		fixture,
@@ -214,7 +301,8 @@ const setup = Effect.fnUntraced(function* () {
 		financeAs,
 		logisticsAs,
 		read,
-		notices
+		notices,
+		syncHealth
 	};
 });
 
@@ -295,9 +383,66 @@ it.effect(
 				kisUser: 'controller_a',
 				releasedAt: '2026-10-15T05:00:00.000Z'
 			});
+			expect(
+				parseKingdeeReleaseLog({
+					log_id: '9002',
+					logged_at: '2026-10-15T05:01:00.000Z',
+					description: '销售出库 - XOUT/2026.10-01 由 controller_a 授信通过信用检查'
+				})
+			).toEqual({
+				logId: '9002',
+				billNo: 'XOUT/2026.10-01',
+				kisUser: 'controller_a',
+				releasedAt: '2026-10-15T05:01:00.000Z'
+			});
 			expect(isAdvanceSettlement('款到发货')).toBe(true);
 			expect(isAdvanceSettlement('预付30%，发货前付清')).toBe(true);
 			expect(isAdvanceSettlement('月结30天')).toBe(false);
+			// Order-level early warning assessment
+			expect(
+				orderCreditAssessment(
+					{ currency: 'CNY', credit_limit: '10000.00', credit_used: '4000.00', credit_hold: false },
+					'CNY',
+					'5000.00'
+				)
+			).toBeNull();
+			expect(
+				orderCreditAssessment(
+					{ currency: 'CNY', credit_limit: '10000.00', credit_used: '4000.00', credit_hold: false },
+					'CNY',
+					'6500.00'
+				)
+			).toEqual({
+				held: false,
+				currency: 'CNY',
+				creditLimit: '10000.00',
+				creditUsed: '4000.00',
+				currentOver: null,
+				projectedUsed: '10500.00',
+				projectedOver: '500.00'
+			});
+			expect(
+				orderCreditAssessment(
+					{ currency: 'CNY', credit_limit: '10000.00', credit_used: '4000.00', credit_hold: false },
+					'USD',
+					'50000.00'
+				)
+			).toBeNull();
+			expect(
+				orderCreditAssessment(
+					{ currency: 'CNY', credit_limit: '10000.00', credit_used: '12500.00', credit_hold: true },
+					'CNY',
+					null
+				)
+			).toEqual({
+				held: true,
+				currency: 'CNY',
+				creditLimit: '10000.00',
+				creditUsed: '12500.00',
+				currentOver: '2500.00',
+				projectedUsed: null,
+				projectedOver: null
+			});
 		})
 );
 
@@ -877,5 +1022,412 @@ it.live(
 			yield* s.t.pull('credit_releases');
 			after = (yield* s.read()).credit_releases.rows;
 			expect(after.find((r) => r.bill_number === 'XOUT-CLR-3')?.status).toBe('cleared');
+		})
+);
+
+it.live(
+	'surfaces creditDetection attention on KIS misconfiguration, invalid customer profiles, unmatched/unparseable logs, and pages >200 t_Log entries',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* setup();
+			// 1. Misconfigured ICCreditOption (non-blocking control = 0) -> attention health, recovers to ready when fixed
+			s.state.options = [{ mask: '83271', control_range: '3', control: 0 }];
+			yield* s.t.pull('credit_releases');
+			expect(yield* s.syncHealth()).toMatchObject({
+				state: 'attention',
+				code: 'creditDetection'
+			});
+			s.state.options = [{ mask: '83271', control_range: '3', control: 2 }];
+			yield* s.t.pull('credit_releases');
+			expect(yield* s.syncHealth()).toMatchObject({ state: 'ready' });
+
+			// 2. Unusable non-CNY customer with an unaudited DO raises attention without breaking valid CNY customer detection
+			s.state.customers = [
+				{
+					customer_id: '101',
+					currency: 'CNY',
+					credit_limit: '1000.00',
+					credit_days: 30,
+					invoices_audited: '900.00',
+					invoices_paid: '0',
+					refunds_unsettled: '0',
+					receipts_unsettled: '0',
+					advances_unsettled: '0',
+					stock_out_audited: '0',
+					stock_out_hooked: '0',
+					invalid_terms: 0,
+					overdue_invoices: []
+				},
+				{
+					customer_id: '999',
+					currency: 'USD',
+					credit_limit: '1000.00',
+					credit_days: 30,
+					invoices_audited: '2000.00',
+					invoices_paid: '0',
+					refunds_unsettled: '0',
+					receipts_unsettled: '0',
+					advances_unsettled: '0',
+					stock_out_audited: '0',
+					stock_out_hooked: '0',
+					invalid_terms: 0,
+					overdue_invoices: []
+				}
+			];
+			s.state.bills = [
+				{
+					fid: '71001',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-GOOD-101',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000101',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '10',
+							amount: '500.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				},
+				{
+					fid: '71002',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-BAD-999',
+					bill_on: '2026-10-15',
+					customer_id: '999',
+					oper_date: '0x0000000000000102',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '10',
+							amount: '500.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				}
+			];
+			yield* s.t.pull('credit_releases');
+			expect((yield* s.read()).credit_releases.rows.map((r) => r.bill_number)).toEqual([
+				'XOUT-GOOD-101'
+			]);
+			const badCustHealth = yield* s.syncHealth();
+			expect(badCustHealth).toMatchObject({ state: 'attention', code: 'creditDetection' });
+			expect(badCustHealth?.message).toContain('XOUT-BAD-999');
+
+			// Remove the bad-customer DO -> attention clears
+			s.state.bills = [firstRow(s.state.bills)];
+			yield* s.t.pull('credit_releases');
+			expect(yield* s.syncHealth()).toMatchObject({ state: 'ready' });
+
+			// 3. Unmatched + unparseable XS100016 logs raise attention
+			s.state.maxLogId = '302';
+			s.state.logs = [
+				{
+					log_id: '301',
+					logged_at: '2026-10-15T04:15:00.000Z',
+					description: '销售出库 - XOUT-GHOST-1 由 ghost_user 授信通过信用检查'
+				},
+				{
+					log_id: '302',
+					logged_at: '2026-10-15T04:15:01.000Z',
+					description: '销售出库 异常格式 信用检查'
+				}
+			];
+			yield* s.t.pull('credit_releases');
+			const logHealth = yield* s.syncHealth();
+			expect(logHealth).toMatchObject({ state: 'attention', code: 'creditDetection' });
+			expect(logHealth?.message).toContain('#302');
+			expect(logHealth?.message).toContain('XOUT-GHOST-1');
+
+			// 4. Incremental t_Log pagination (>200 rows) pulls page 2 without skipping entry #201
+			const fillerLogs: MockLog[] = Array.from({ length: 200 }, (_, i) => ({
+				log_id: String(1001 + i),
+				logged_at: '2026-10-15T04:20:00.000Z',
+				description: `销售订单 - SO-${i} 信用记录`
+			}));
+			const targetLog: MockLog = {
+				log_id: '1201',
+				logged_at: '2026-10-15T04:21:00.000Z',
+				description: '销售出库 - XOUT-PAGE2-201 由 late_user 授信通过信用检查'
+			};
+			s.state.bills = [
+				...s.state.bills,
+				{
+					fid: '71201',
+					status: 1,
+					cancelled: false,
+					bill_no: 'XOUT-PAGE2-201',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000201',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '10',
+							amount: '400.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				}
+			];
+			s.state.maxLogId = '1201';
+			s.state.logs = [...s.state.logs, ...fillerLogs, targetLog];
+			const logReadsBefore = s.state.logReads;
+			yield* s.t.pull('credit_releases');
+			expect(s.state.logReads - logReadsBefore).toBeGreaterThanOrEqual(2);
+			const page2Row = (yield* s.read()).credit_releases.rows.find(
+				(r) => r.bill_number === 'XOUT-PAGE2-201'
+			);
+			expect(page2Row).toMatchObject({
+				status: 'bypassed',
+				released_by: 'late_user',
+				release_log_key: '1201'
+			});
+			expect(yield* s.syncHealth()).toMatchObject({ state: 'ready' });
+		})
+);
+
+it.live(
+	'detects blocked DOs, approved releases, unapproved & direct fast-audit bypasses, and clears under kis-org-credit-v1',
+	() =>
+		Effect.gen(function* () {
+			const s = yield* setup();
+			yield* s.admin.act({
+				'sys_integration.update': [
+					{
+						target: { id: s.instance },
+						set: { configuration: { ...s.configuration, creditPolicy: kingdeeOrgCreditPolicy } }
+					}
+				]
+			});
+			// Pre-existing historical audited DO before watermark must NOT be flagged
+			s.state.customers = [
+				{
+					customer_id: '101',
+					currency: 'CNY',
+					credit_limit: '5000.00',
+					credit_days: 0,
+					invoices_audited: '4800.00',
+					invoices_paid: '0',
+					refunds_unsettled: '0',
+					receipts_unsettled: '0',
+					advances_unsettled: '0',
+					stock_out_audited: '0',
+					stock_out_hooked: '0',
+					invalid_terms: 0,
+					overdue_invoices: []
+				}
+			];
+			s.state.bills = [
+				{
+					fid: '80000',
+					status: 1,
+					cancelled: false,
+					bill_no: 'XOUT-OLD-0',
+					bill_on: '2026-10-01',
+					customer_id: '101',
+					oper_date: '0x0000000000000001',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '10',
+							amount: '1000.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				}
+			];
+			yield* s.t.pull('credit_releases');
+			expect((yield* s.read()).credit_releases.rows).toHaveLength(0);
+			expect(s.state.logReads).toBe(0);
+
+			// Add 1 within-limit DO and 3 over-limit unaudited DOs
+			s.state.bills = [
+				...s.state.bills,
+				{
+					fid: '81001',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-ORG-OK',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000011',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '1',
+							amount: '100.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				},
+				{
+					fid: '81002',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-ORG-APP',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000012',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '5',
+							amount: '500.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				},
+				{
+					fid: '81003',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-ORG-BYP',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000013',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '6',
+							amount: '600.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				},
+				{
+					fid: '81004',
+					status: 0,
+					cancelled: false,
+					bill_no: 'XOUT-ORG-CLR',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000014',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '4',
+							amount: '400.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				}
+			];
+			yield* s.t.pull('credit_releases');
+			const opened = (yield* s.read()).credit_releases.rows;
+			expect(opened.map((r) => r.bill_number).sort()).toEqual([
+				'XOUT-ORG-APP',
+				'XOUT-ORG-BYP',
+				'XOUT-ORG-CLR'
+			]);
+
+			// Approve XOUT-ORG-APP (manager -> finance)
+			const appRow = opened.find((r) => r.bill_number === 'XOUT-ORG-APP');
+			if (!appRow) throw new Error('Expected XOUT-ORG-APP');
+			const req = held(
+				yield* s.managerAs.act({
+					'credit_releases.update': [
+						{
+							target: yield* s.t.at('credit_releases', appRow.id),
+							set: { approval_status: 'approved', route: 'one_time', reason: 'Approved release' }
+						}
+					]
+				})
+			);
+			yield* s.financeAs.approvals.decide(req, { decision: 'approve' });
+
+			// In Kingdee:
+			// - XOUT-ORG-APP (approved) audits while over limit -> released
+			// - XOUT-ORG-BYP (unapproved) audits while over limit -> bypassed
+			// - XOUT-ORG-FAST (brand-new, created & audited between polls!) -> bypassed directly
+			s.state.observed = '2026-10-15T04:05:00.000Z';
+			s.state.customers = [{ ...firstRow(s.state.customers), stock_out_audited: '1800.00' }];
+			s.state.bills = [
+				...s.state.bills.map((b) =>
+					b.fid === '81002' || b.fid === '81003' ? { ...b, status: 1 } : b
+				),
+				{
+					fid: '81005',
+					status: 1,
+					cancelled: false,
+					bill_no: 'XOUT-ORG-FAST',
+					bill_on: '2026-10-15',
+					customer_id: '101',
+					oper_date: '0x0000000000000015',
+					lines: [
+						{
+							entry_id: 1,
+							item_id: '301',
+							quantity: '7',
+							amount: '700.00',
+							source_type: null,
+							source_fid: null,
+							settle_name: null
+						}
+					]
+				}
+			];
+			yield* s.t.pull('credit_releases');
+			yield* s.t.run_due();
+			const afterAudit = (yield* s.read()).credit_releases.rows;
+			expect(afterAudit.find((r) => r.bill_number === 'XOUT-ORG-APP')).toMatchObject({
+				status: 'released',
+				released_by: 'kingdee-audit'
+			});
+			expect(afterAudit.find((r) => r.bill_number === 'XOUT-ORG-BYP')).toMatchObject({
+				status: 'bypassed',
+				released_by: 'kingdee-audit'
+			});
+			const fastBypass = afterAudit.find((r) => r.bill_number === 'XOUT-ORG-FAST');
+			expect(fastBypass).toMatchObject({
+				status: 'bypassed',
+				released_by: 'kingdee-audit',
+				block_reasons: ['over_limit']
+			});
+			expect(sameDecimal(fastBypass?.over_limit ?? null, '1600.00')).toBe(true);
+			const bypassTitles = (yield* s.notices())
+				.filter((n) => n.title.startsWith('Unapproved Kingdee credit release:'))
+				.map((n) => n.title);
+			expect(bypassTitles).toContain('Unapproved Kingdee credit release: XOUT-ORG-BYP');
+			expect(bypassTitles).toContain('Unapproved Kingdee credit release: XOUT-ORG-FAST');
+
+			// Customer pays down within limit and XOUT-ORG-CLR audits -> cleared (not bypassed)
+			s.state.observed = '2026-10-15T04:10:00.000Z';
+			s.state.customers = [
+				{ ...firstRow(s.state.customers), invoices_paid: '3000.00', stock_out_audited: '2200.00' }
+			];
+			s.state.bills = s.state.bills.map((b) => (b.fid === '81004' ? { ...b, status: 1 } : b));
+			yield* s.t.pull('credit_releases');
+			const finalRows = (yield* s.read()).credit_releases.rows;
+			expect(finalRows.find((r) => r.bill_number === 'XOUT-ORG-CLR')?.status).toBe('cleared');
+			expect(yield* s.syncHealth()).toMatchObject({ state: 'ready' });
 		})
 );

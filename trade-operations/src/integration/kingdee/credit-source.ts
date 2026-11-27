@@ -58,7 +58,7 @@ const creditSnapshot = snapshotStatement(`/* kingdee-native-credit */
 const orgCreditSnapshot = snapshotStatement(`/* kingdee-org-credit */
  SELECT JSON_QUERY(COALESCE((SELECT TOP (2001) CONVERT(varchar(20),o.FItemID) AS customer_id,
   'CNY' AS currency,
-  LTRIM(RTRIM(o.FCreditLimit)) AS credit_limit,
+  REPLACE(LTRIM(RTRIM(o.FCreditLimit)),',','') AS credit_limit,
   CONVERT(varchar(100),i.invoiced) AS invoices_audited,
   CONVERT(varchar(100),i.paid) AS invoices_paid,
   CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
@@ -83,7 +83,6 @@ const orgCreditSnapshot = snapshotStatement(`/* kingdee-org-credit */
   WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=o.FItemID) d
  WHERE o.FIsCreditMgr<>0 AND o.FDeleted=0
   AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
-  AND LTRIM(RTRIM(o.FCreditLimit)) NOT LIKE '%[^0-9.]%'
  ORDER BY o.FItemID FOR JSON PATH, INCLUDE_NULL_VALUES),'[]')) AS customers
  FOR JSON PATH, WITHOUT_ARRAY_WRAPPER`);
 

@@ -29,7 +29,7 @@ Generic contractor workspace (`norbital_construction`) for both main contractors
   - `src/services/viewer/` — `types.ts`, `runtime.d.ts`, `engine.ts`, `IfcViewer.svelte`, `converter.ts`, `converter.worker.ts`, `geometry-pass.ts`, `takeoff.ts`, `takeoff.worker.ts`.
   - `src/services/ui/` — `SegmentedToggle.svelte`, `download.ts`, `task-meta.ts`.
 - **Libraries (`src/lib/`):** `ActivityTimeline.svelte`, `CatalogLinesEditor.svelte`, `ProjectTimeline.svelte`, `record-editor.svelte`, `schedule-parsers.ts`, `trades.ts`, `zones.ts`, `dates.ts`, `conversations.ts`, `message-import.ts`, `ai.ts`.
-- **Co-located project hub tabs (`src/data/model/projects/`):** `ProjectProgrammeTab.svelte`, `ProjectBimTab.svelte`, `ProjectFinanceTab.svelte`, `ProjectSustainabilityTab.svelte`, `BimAssetReview.svelte`, `BimComplianceOrganizer.svelte`.
+- **Co-located project hub tabs (`src/data/model/projects/`):** `ProjectProgrammeTab.svelte`, `ProjectBimTab.svelte`, `ProjectFinanceTab.svelte`, `ProjectSustainabilityTab.svelte`, `BimPrepareStep.svelte`, `BimAssetReview.svelte`, `BimItemMatrixReview.svelte`.
 
 ## Verification gates
 

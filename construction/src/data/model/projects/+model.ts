@@ -88,7 +88,7 @@ export default model('projects', {
 		bim_costing_dirty: { kind: 'bool', default: false },
 		/** Why the last pricing of the stored takeoff did not finish (System 1 unavailable, say); a new takeoff clears it. */
 		bim_costing_error: { kind: 'text', optional: true, hidden: true },
-		/** Automatically populated summary once the BIM pipeline parses the project's IFC model. */
+		/** Automatically populated summary once Phase 1 parses/cleans the project's IFC model and Phase 2 costs it. */
 		bim_summary: {
 			kind: 'json',
 			optional: true,
@@ -100,6 +100,8 @@ export default model('projects', {
 					storey_count: { kind: 'int' },
 					storeys: { kind: 'text', many: true },
 					analyzed_at: { kind: 'text' },
+					stage: { kind: 'text', optional: true },
+					asset_signatures: { kind: 'text', many: true, optional: true },
 					upgraded_classes: { kind: 'int', optional: true },
 					propagated_services: { kind: 'int', optional: true },
 					multi_storey_splits: { kind: 'int', optional: true },
@@ -198,11 +200,12 @@ export default model('projects', {
 					return c.changed('bim_takeoff') && c.after.bim_takeoff != null
 						? { ...c.set, bim_costing_dirty: true, bim_costing_error: null }
 						: c.set;
-				// a new model's takeoff is made afresh: the old one prices a file that is gone
+				// a new model's takeoff is made afresh: the old one belongs to a file that is gone
 				return {
 					...c.set,
 					bim_takeoff: null,
 					bim_takeoff_views: null,
+					bim_summary: null,
 					bim_compliance: null,
 					bim_costing_error: null,
 					bim_costing_dirty: c.after.bim_file != null
