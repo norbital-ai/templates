@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_blank",
+	"key": "norbital-blank",
 	"name": "Blank",
 	"industry": "General",
 	"description": "An empty workspace with a single starter note model, ready to be built out by the workspace agent.",

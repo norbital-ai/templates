@@ -1,6 +1,6 @@
 # Treasury Architecture and Inner Mechanisms
 
-Technical deep-dive into the `templates/treasury` Bolt workspace (`norbital_treasury`). Every symbol, constraint, formula, policy, and automation flow below is traced directly from `src/`.
+Technical deep-dive into the `templates/treasury` Bolt workspace (`norbital-treasury`). Every symbol, constraint, formula, policy, and automation flow below is traced directly from `src/`.
 
 ## Table of Contents
 

@@ -2,7 +2,7 @@
 
 ![Fleet Management live map and alerts](screenshots/application.webp)
 
-Technical documentation and developer guide for the **Fleet Management** (`norbital_fleet_management`) Bolt workspace.
+Technical documentation and developer guide for the **Fleet Management** (`norbital-fleet-management`) Bolt workspace.
 
 ## Documentation Map
 
@@ -14,7 +14,7 @@ Technical documentation and developer guide for the **Fleet Management** (`norbi
 
 | Dimension                  | Configuration                                                                                                                                   |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Handle / Name              | `norbital_fleet_management` — Fleet Management (`车队管理`)                                                                                     |
+| Handle / Name              | `norbital-fleet-management` — Fleet Management (`车队管理`)                                                                                     |
 | Locale & Regional Defaults | Timezone `Asia/Singapore`, locale `en-SG`, languages `en` / `zh`, currency `SGD`                                                                |
 | Apps (2)                   | `operations` (`live`, `vehicles`, `routes`, `alerts`), `configuration` (`connections`, `geofences`, `drivers`)                                  |
 | Record Models (6)          | `vehicles`, `telemetry_pings` (`owned: true`), `routes`, `fleet_alerts`, `geofences`, `drivers`                                                 |

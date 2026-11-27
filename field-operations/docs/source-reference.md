@@ -1,6 +1,6 @@
 # Source Reference
 
-Complete source inventory for `templates/field-operations` (`norbital_field_operations`), verified
+Complete source inventory for `templates/field-operations` (`norbital-field-operations`), verified
 directly against `src/` and `migrations/physical.json`. This describes the local template source,
 not a statement that any deployed tenant runs these bytes.
 

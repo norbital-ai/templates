@@ -19,7 +19,7 @@
 		Tabs,
 		enum_text
 	} from '@norbital-ai/ui';
-	import { Bound, Cluster, Grid, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { classifyFindingResolution } from '../../../services/bim/remediation.js';
 	import ReportPreviewDialog from '../../../services/reports/ReportPreviewDialog.svelte';
 	import SegmentedToggle from '../../../services/ui/SegmentedToggle.svelte';
@@ -216,10 +216,10 @@
 {/snippet}
 
 {#snippet overviewTab()}
-	<Scroll name={t('compliance.overview_tab')} size="fill" inset>
-		<Stack gap="md">
-			<Surface tone="card" padding="md" radius="control">
-				<Stack gap="md" divided>
+	<Bound size="fill" inset>
+		<Stack gap="sm" size="fill">
+			<Surface tone="card" padding="sm" radius="control" class="shrink-0">
+				<Stack gap="sm" divided>
 					<Cluster align="center" justify="between" gap="sm">
 						<Cluster align="center" gap="xs">
 							<Icon name="lucide:shield-check" class="size-4 text-muted-foreground" />
@@ -245,40 +245,29 @@
 						</Button>
 					</Cluster>
 
-					<Grid minimum="card" gap="md">
-						<Stack gap="xs">
-							<span class="text-meta">{t('compliance.gateway_label')}</span>
-							<span class="text-label">
-								{record.submission_gateway
-									? enum_text(record.submission_gateway, {
-											t: rawT,
-											model: 'projects',
-											field: 'submission_gateway'
-										})
-									: t('component.no_value')}
-							</span>
-						</Stack>
-						<Stack gap="xs">
-							<span class="text-meta">{t('bim_compliance.score_label')}</span>
+					<Grid minimum="compact" gap="sm">
+						<Stack gap="none">
+							<span class="text-micro text-muted-foreground">{t('bim_compliance.score_label')}</span
+							>
 							{#if compliance}
 								<Inline gap="xs" align="center">
-									<Progress value={compliance.score_pct} max={100} class="h-2 flex-1" />
+									<Progress value={compliance.score_pct} max={100} class="h-1.5 flex-1" />
 									<span class="font-mono text-xs tabular-nums">{`${compliance.score_pct}%`}</span>
 								</Inline>
 							{:else}
 								<span class="text-label">{t('component.no_value')}</span>
 							{/if}
 						</Stack>
-						<Stack gap="xs">
-							<span class="text-meta">{t('bim_compliance.failures')}</span>
+						<Stack gap="none">
+							<span class="text-micro text-muted-foreground">{t('bim_compliance.failures')}</span>
 							<span class="text-label tabular-nums">
 								{compliance
 									? `${compliance.fail_count} / ${compliance.warn_count}`
 									: t('component.no_value')}
 							</span>
 						</Stack>
-						<Stack gap="xs">
-							<span class="text-meta">{t('compliance.audits_summary')}</span>
+						<Stack gap="none">
+							<span class="text-micro text-muted-foreground">{t('compliance.audits_summary')}</span>
 							<span class="text-label tabular-nums">
 								{t('compliance.open_closed_pair', { open: openAudits, closed: closedAudits })}
 							</span>
@@ -286,29 +275,37 @@
 					</Grid>
 
 					{#if record.qualified_person || record.bim_manager || record.bep_version || record.conquas_band_target}
-						<Grid minimum="card" gap="md">
+						<Grid minimum="compact" gap="sm">
 							{#if record.qualified_person}
-								<Stack gap="xs">
-									<span class="text-meta">{t('models.projects.fields.qualified_person')}</span>
-									<span class="text-xs text-foreground">{record.qualified_person}</span>
+								<Stack gap="none">
+									<span class="text-micro text-muted-foreground"
+										>{t('models.projects.fields.qualified_person')}</span
+									>
+									<span class="truncate text-xs text-foreground">{record.qualified_person}</span>
 								</Stack>
 							{/if}
 							{#if record.bim_manager}
-								<Stack gap="xs">
-									<span class="text-meta">{t('models.projects.fields.bim_manager')}</span>
-									<span class="text-xs text-foreground">{record.bim_manager}</span>
+								<Stack gap="none">
+									<span class="text-micro text-muted-foreground"
+										>{t('models.projects.fields.bim_manager')}</span
+									>
+									<span class="truncate text-xs text-foreground">{record.bim_manager}</span>
 								</Stack>
 							{/if}
 							{#if record.bep_version}
-								<Stack gap="xs">
-									<span class="text-meta">{t('models.projects.fields.bep_version')}</span>
-									<span class="text-xs text-foreground">{record.bep_version}</span>
+								<Stack gap="none">
+									<span class="text-micro text-muted-foreground"
+										>{t('models.projects.fields.bep_version')}</span
+									>
+									<span class="truncate text-xs text-foreground">{record.bep_version}</span>
 								</Stack>
 							{/if}
 							{#if record.conquas_band_target}
-								<Stack gap="xs">
-									<span class="text-meta">{t('models.projects.fields.conquas_band_target')}</span>
-									<span class="text-xs text-foreground">{record.conquas_band_target}</span>
+								<Stack gap="none">
+									<span class="text-micro text-muted-foreground"
+										>{t('models.projects.fields.conquas_band_target')}</span
+									>
+									<span class="truncate text-xs text-foreground">{record.conquas_band_target}</span>
 								</Stack>
 							{/if}
 						</Grid>
@@ -317,7 +314,7 @@
 			</Surface>
 
 			{#if compliance && compliance.findings.length > 0}
-				<Bound size="viewport">
+				<Bound size="fill" min_height="12rem">
 					<Table
 						{ctx}
 						of={findingTableRows}
@@ -327,7 +324,7 @@
 						toolbar={{
 							title: t('bim_compliance.title'),
 							controls: authorityControls,
-							export: true,
+							export: false,
 							select: false,
 							new: false
 						}}
@@ -335,29 +332,29 @@
 							{
 								field: 'status',
 								label: t('bim_compliance.col_status'),
-								width: 96,
+								width: 80,
 								cell: statusCell
 							},
-							{ field: 'authority', label: t('models.sop_rules.fields.authority'), width: 100 },
-							{ field: 'rule_code', label: t('models.sop_rules.fields.code'), width: 132 },
+							{ field: 'authority', label: t('models.sop_rules.fields.authority'), width: 88 },
+							{ field: 'rule_code', label: t('models.sop_rules.fields.code'), width: 120 },
 							{
 								field: 'rule_name',
 								label: t('bim_compliance.col_rule'),
-								width: 280,
+								width: 230,
 								cell: ruleCell
 							},
-							{ field: 'actual', label: t('bim_compliance.col_current'), width: 180 },
-							{ field: 'expected', label: t('bim_compliance.expected'), width: 140 },
+							{ field: 'actual', label: t('bim_compliance.col_current'), width: 148 },
+							{ field: 'expected', label: t('bim_compliance.expected'), width: 120 },
 							{
 								field: 'resolution_label',
 								label: t('bim_compliance.col_resolution'),
-								width: 196,
+								width: 156,
 								cell: resolutionCell
 							},
 							{
 								field: 'affected_count',
 								label: t('bim_review.inspect_3d'),
-								width: 96,
+								width: 72,
 								align: 'end',
 								cell: inspect3dCell
 							}
@@ -372,7 +369,7 @@
 				/>
 			{/if}
 		</Stack>
-	</Scroll>
+	</Bound>
 {/snippet}
 
 {#snippet registerTab()}

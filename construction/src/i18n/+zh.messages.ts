@@ -944,11 +944,7 @@ export default messages({
 	'bim_costing.bulk_adjust_rate': '批量调价 (%)',
 	'bim_costing.bulk_pct_placeholder': '+/- %',
 	'bim_costing.search_boq': '搜索工程量清单…',
-	'bim_costing.save_figures': '保存调整',
-	'bim_costing.baseline_estimate': '定版基准',
-	'bim_costing.reopen_draft': '恢复草稿',
-	'bim_costing.export_boq_csv': '导出清单 (.csv)',
-	'bim_costing.compliance_pill': 'CORENET X {pct}%',
+	'bim_costing.saving_figures': '保存中…',
 	'section.bim_advanced': '高级解析与 AI 限制',
 
 	// Dynamic SOP / BCA / CORENET X Compliance & Auto-Organized IFC
@@ -1198,7 +1194,6 @@ export default messages({
 	'compliance.register_title': '合规、CONQUAS 与综合管理体系台账',
 	'compliance.register_description':
 		'跟踪 BCA CONQUAS 质量检查、CORENET X 关口、ISO 9001 不符合项、ISO 14001 环境监测、ISO 45001 安全审核与 ISO 19650 CDE 审查。',
-	'compliance.gateway_label': 'CORENET X 申报关口',
 	'compliance.audits_summary': '现场审核与 NCR',
 	'compliance.open_closed_pair': '{open} 未结 · {closed} 已结',
 	'compliance.no_bim_lints': '暂无 BIM 合规审查结果',

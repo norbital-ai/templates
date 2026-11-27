@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_treasury",
+	"key": "norbital-treasury",
 	"name": "Treasury",
 	"industry": "Finance",
 	"description": "Treasury bank facilities, drawdowns, charges, suppliers, purchase orders and month-ends.",

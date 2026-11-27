@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_scheduling",
+	"key": "norbital-scheduling",
 	"name": "Service Scheduling",
 	"industry": "Field & Local Services",
 	"description": "Generic service booking, provider scheduling, and route-aware dispatch: self-service booking portal, runtime service catalog, skill- and travel-matched recurring appointments, pre-shift check-ins, and live GPS ETA alerts.",

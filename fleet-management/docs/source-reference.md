@@ -1,4 +1,4 @@
-# Source Reference (`norbital_fleet_management`)
+# Source Reference (`norbital-fleet-management`)
 
 Exact, file-by-file inventory of the Fleet Management workspace verified against `src/`,
 `migrations/`, `seed/`, and `tests/`. See [architecture.md](architecture.md) for diagrams of how

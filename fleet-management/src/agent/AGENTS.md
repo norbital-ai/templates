@@ -1,4 +1,4 @@
-# Fleet Management Workspace (`norbital_fleet_management`)
+# Fleet Management Workspace (`norbital-fleet-management`)
 
 - **Apps**: `operations` (`live`, `vehicles`, `routes`, `alerts`), `configuration` (`geofences`, `drivers`). Integrations (`gps_transponder`, `google_routes`) live in Settings → Integrations → Connections.
 - **Models**: `vehicles`, `telemetry_pings` (`owned: true` under `vehicles`, append-only, `transponder` & `gps_csv` syncs), `routes`, `fleet_alerts`, `geofences`, `drivers`.

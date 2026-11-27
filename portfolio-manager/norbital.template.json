@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_portfolio_manager",
+	"key": "norbital-portfolio-manager",
 	"name": "Portfolio Manager",
 	"industry": "Finance",
 	"description": "A family office's book: every holding with its research, and a daily report with totals, allocation and one call per position, written by one agent.",

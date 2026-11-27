@@ -11,7 +11,7 @@ From [`norbital.template.json`](../norbital.template.json):
 | Property           | Value                                       |
 | ------------------ | ------------------------------------------- |
 | `schema_version`   | `1`                                         |
-| `key`              | `norbital_blank`                            |
+| `key`              | `norbital-blank`                            |
 | `name` / `name_zh` | `Blank` / `空白`                            |
 | `industry`         | `General`                                   |
 | `visibility`       | `public`                                    |

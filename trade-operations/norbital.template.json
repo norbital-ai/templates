@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_trade_operations",
+	"key": "norbital-trade-operations",
 	"name": "Trade Operations",
 	"industry": "Trading & Manufacturing",
 	"description": "Order-centered B2B trading, distribution and manufacturing commerce with approved pricing and contracts, purchasing, fulfillment and ERP-synced models.",

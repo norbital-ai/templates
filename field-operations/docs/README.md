@@ -3,7 +3,7 @@
 ![Field Operations application](screenshots/application.webp)
 
 Technical documentation index and developer quickstart for the `field-operations`
-(`norbital_field_operations`) template workspace.
+(`norbital-field-operations`) template workspace.
 
 ## Documentation Map
 

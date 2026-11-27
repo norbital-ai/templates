@@ -3,7 +3,7 @@
 ![Service Scheduling application](screenshots/application.webp)
 
 Technical hub for developing, testing, configuring, and operating the `templates/scheduling`
-Norbital Bolt workspace (`norbital_scheduling`).
+Norbital Bolt workspace (`norbital-scheduling`).
 
 ## Documentation Index
 

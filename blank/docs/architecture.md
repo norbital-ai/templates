@@ -1,6 +1,6 @@
 # Blank — Architecture & Inner Mechanisms
 
-Technical architecture reference for `@template/blank` (`norbital_blank`). Although Blank ships with only one read-only starter model (`notes`), zero authored applications, and zero authored automations, it compiles into a complete Norbital Bolt workspace substrate with full schema history verification, multilingual search indexing, row-level audit trails, approval queues, localization, and Norbius Studio authoring support.
+Technical architecture reference for `@template/blank` (`norbital-blank`). Although Blank ships with only one read-only starter model (`notes`), zero authored applications, and zero authored automations, it compiles into a complete Norbital Bolt workspace substrate with full schema history verification, multilingual search indexing, row-level audit trails, approval queues, localization, and Norbius Studio authoring support.
 
 Every file path, table, constraint, SQL function, and trigger in this document is verified directly against `src/`, `seed/`, `migrations/`, `package.json`, and `norbital.template.json`.
 
@@ -71,7 +71,7 @@ Bolt discovers declarations strictly by filesystem convention. Blank populates o
 templates/blank/
 |
 +-- POPULATED STARTER FILES (Active Today)
-|   +-- norbital.template.json            Catalogue metadata (key: norbital_blank, counts)
+|   +-- norbital.template.json            Catalogue metadata (key: norbital-blank, counts)
 |   +-- src/
 |   |   +-- +workspace.ts                 workspace({ tz, locale, languages })
 |   |   +-- data/model/notes/+model.ts    model('notes', { fields, outputs }) [read-only]

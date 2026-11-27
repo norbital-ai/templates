@@ -2,7 +2,7 @@
 
 ![Treasury application](screenshots/application.webp)
 
-Technical documentation and developer guide for the `templates/treasury` Norbital Bolt workspace (`norbital_treasury`).
+Technical documentation and developer guide for the `templates/treasury` Norbital Bolt workspace (`norbital-treasury`).
 
 ## Documentation Index
 

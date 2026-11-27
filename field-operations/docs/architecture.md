@@ -1,6 +1,6 @@
 # Field Operations — System Architecture & Inner Mechanisms
 
-Technical architecture reference for the `field-operations` (`norbital_field_operations`) Bolt
+Technical architecture reference for the `field-operations` (`norbital-field-operations`) Bolt
 workspace. Every model, constraint, write callback, automation, formula, threshold, and policy
 rule below is derived directly from `src/` and `migrations/physical.json`.
 

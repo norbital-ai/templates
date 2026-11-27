@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_hr",
+	"key": "norbital-hr",
 	"name": "HRMS",
 	"industry": "Human Resources",
 	"description": "Multi-country HR and payroll: law as dated changes, an append-only ledger, a linear subtotal chain and statutory obligations.",

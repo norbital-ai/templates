@@ -1,6 +1,6 @@
 # Portfolio Manager — Technical Documentation
 
-Technical documentation for the `norbital_portfolio_manager` Bolt workspace template (`@template/portfolio-manager`).
+Technical documentation for the `norbital-portfolio-manager` Bolt workspace template (`@template/portfolio-manager`).
 
 ## Document Index
 

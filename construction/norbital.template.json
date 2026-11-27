@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_construction",
+	"key": "norbital-construction",
 	"name": "Construction Operations",
 	"industry": "Construction",
 	"description": "Contractor workspace for main contractors and subcontractors: BIM IFC 3D viewer, visual AI archetype classification and Item Matrix estimation, hierarchical WBS planning with Autodesk ACC and P6/MSP sync, client contracts, subcontracts and VOs with PO, DO and invoice transactions, Business Partners, and WhatsApp/email intake.",

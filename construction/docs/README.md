@@ -2,7 +2,7 @@
 
 ![Construction Operations application](screenshots/application.webp)
 
-Technical guide and developer reference for the `norbital_construction` Bolt template (`templates/construction`). For a business-facing overview of roles, capabilities, and scope, see the root [README](../README.md) ([简体中文](../README.zh.md)).
+Technical guide and developer reference for the `norbital-construction` Bolt template (`templates/construction`). For a business-facing overview of roles, capabilities, and scope, see the root [README](../README.md) ([简体中文](../README.zh.md)).
 
 ## Documentation Index
 

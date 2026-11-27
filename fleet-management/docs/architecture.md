@@ -1,4 +1,4 @@
-# Architecture & Inner Mechanisms (`norbital_fleet_management`)
+# Architecture & Inner Mechanisms (`norbital-fleet-management`)
 
 This document explains the internal runtime topology, data ownership model, state machines,
 real-time GPS telemetry propagation pipeline, route dispatch side-effects, geospatial calculation

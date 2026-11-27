@@ -2,7 +2,7 @@
 
 ![CRM application](screenshots/application.webp)
 
-Technical documentation and developer quickstart for the CRM Bolt template workspace (`norbital_hq`).
+Technical documentation and developer quickstart for the CRM Bolt template workspace (`norbital-hq`).
 
 ## Documentation Index
 

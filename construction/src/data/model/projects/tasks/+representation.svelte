@@ -593,7 +593,7 @@
 		radius="control"
 		class="flex h-full min-h-0 flex-col overflow-hidden"
 	>
-		<Scroll name={t('section.task_properties')} size="fill" inset>
+		<Scroll name={t('section.task_properties')} size="fill" class="px-4 py-3">
 			<Stack gap="md">
 				<Section
 					first

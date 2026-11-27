@@ -20,10 +20,12 @@
 
 	let {
 		view,
-		ctx
+		ctx,
+		fill = false
 	}: {
 		view: CustomFieldView<'bim_takeoff'>;
 		ctx: UiContext & Partial<Pick<PageContext, 't' | 'query'>>;
+		fill?: boolean;
 	} = $props();
 
 	const t = (
@@ -306,88 +308,98 @@
 	<Badge variant={statusTone(row.raw)} class="whitespace-nowrap">{row.match_status}</Badge>
 {/snippet}
 
+{#snippet takeoffGrid()}
+	<Table
+		{ctx}
+		of={tableRows}
+		key="bim:takeoff"
+		layout="grid"
+		toolbar={{
+			title: t('bim_costing.takeoff_table'),
+			controls: disciplineControls,
+			trailing: bulkRateTrailing,
+			export: false,
+			select: false,
+			new: false
+		}}
+		columns={[
+			{
+				field: 'matrix_code',
+				label: t('bim_costing.col_matrix'),
+				width: 112,
+				cell: matrixCodeCell
+			},
+			{
+				field: 'classification',
+				label: t('bim_costing.col_classification'),
+				width: 236,
+				cell: classificationCell
+			},
+			{ field: 'storey', label: t('bim_costing.col_storey'), width: 84 },
+			{
+				field: 'element_count',
+				label: t('bim_costing.col_elements'),
+				kind: { kind: 'int' },
+				width: 76,
+				align: 'end'
+			},
+			{
+				field: 'measured_qty',
+				label: t('bim_costing.col_measured'),
+				width: 112,
+				align: 'end',
+				cell: measuredCell
+			},
+			{
+				field: 'waste_factor_pct',
+				label: t('bim_costing.col_waste'),
+				width: 82,
+				align: 'end',
+				cell: wasteCell
+			},
+			{
+				field: 'unit_rate',
+				label: t('bim_costing.col_rate'),
+				width: 98,
+				align: 'end',
+				cell: rateCell
+			},
+			{
+				field: 'amount',
+				label: t('bim_costing.col_amount'),
+				kind: { kind: 'decimal', scale: 2 },
+				width: 104,
+				align: 'end'
+			},
+			{
+				field: 'carbon',
+				label: t('bim_costing.col_carbon'),
+				kind: { kind: 'decimal', scale: 2 },
+				width: 108,
+				align: 'end'
+			},
+			{
+				field: 'match_status',
+				label: t('bim_costing.col_match'),
+				width: 108,
+				cell: matchCell
+			}
+		]}
+	/>
+{/snippet}
+
 {#if rows.length === 0}
 	<span class="text-sm text-muted-foreground">{t('bim_costing.empty_takeoff')}</span>
 {:else if hasShell}
-	<Bound size="viewport">
-		<Table
-			{ctx}
-			of={tableRows}
-			key="bim:takeoff"
-			layout="grid"
-			toolbar={{
-				title: t('bim_costing.takeoff_table'),
-				controls: disciplineControls,
-				trailing: bulkRateTrailing,
-				export: true,
-				select: false,
-				new: false
-			}}
-			columns={[
-				{
-					field: 'matrix_code',
-					label: t('bim_costing.col_matrix'),
-					width: 124,
-					cell: matrixCodeCell
-				},
-				{
-					field: 'classification',
-					label: t('bim_costing.col_classification'),
-					width: 280,
-					cell: classificationCell
-				},
-				{ field: 'storey', label: t('bim_costing.col_storey'), width: 92 },
-				{
-					field: 'element_count',
-					label: t('bim_costing.col_elements'),
-					kind: { kind: 'int' },
-					width: 72,
-					align: 'end'
-				},
-				{
-					field: 'measured_qty',
-					label: t('bim_costing.col_measured'),
-					width: 120,
-					align: 'end',
-					cell: measuredCell
-				},
-				{
-					field: 'waste_factor_pct',
-					label: t('bim_costing.col_waste'),
-					width: 88,
-					align: 'end',
-					cell: wasteCell
-				},
-				{
-					field: 'unit_rate',
-					label: t('bim_costing.col_rate'),
-					width: 112,
-					align: 'end',
-					cell: rateCell
-				},
-				{
-					field: 'amount',
-					label: t('bim_costing.col_amount'),
-					kind: { kind: 'decimal', scale: 2 },
-					width: 112,
-					align: 'end'
-				},
-				{
-					field: 'carbon',
-					label: t('bim_costing.col_carbon'),
-					kind: { kind: 'decimal', scale: 2 },
-					width: 124,
-					align: 'end'
-				},
-				{
-					field: 'match_status',
-					label: t('bim_costing.col_match'),
-					width: 112,
-					cell: matchCell
-				}
-			]}
-		/>
-	</Bound>
+	{#if fill}
+		<Bound size="fill" min_height="12rem">
+			{@render takeoffGrid()}
+		</Bound>
+	{:else}
+		<Bound height="min(26rem, calc(100dvh - 18rem))">
+			{@render takeoffGrid()}
+		</Bound>
+	{/if}
 {:else}
 	<Stack gap="sm">
 		<Table

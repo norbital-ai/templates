@@ -33,11 +33,9 @@
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Bound, Cluster, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
-	import { buildTenderBoqCsv } from '../../../services/bim/organizer.js';
 	import { recomputeCostEstimateTotals } from '../../../services/bim/pricing.js';
 	import type { BimTakeoffLine } from '../../../services/bim/schema.js';
 	import { formatCarbon, toNumber } from '../../../services/commercial/decimal.js';
-	import { downloadTextFile, safeFilename } from '../../../services/ui/download.js';
 	import { storeProjectTakeoff, takeoffProgressText } from '../../../services/viewer/takeoff.js';
 	import type {
 		IFCSelectedElement,
@@ -189,7 +187,9 @@
 
 	let editedLines = $state<readonly BimTakeoffLine[] | null>(null);
 	let editedContingency = $state<string | null>(null);
-	let editedRevision = $state<number | null>(null);
+	let editedEstimateId = $state<string | null>(null);
+	let draftVersion = $state(0);
+	let savedVersion = $state(0);
 
 	// Durable step signals derived from persisted DB columns + live in-tab streaming/runs
 	const costingLocked = $derived(
@@ -411,18 +411,18 @@
 	}
 
 	const liveLines = $derived(
-		singleEstimate && editedRevision === singleEstimate.revision && editedLines !== null
+		singleEstimate && editedEstimateId === singleEstimate.id && editedLines !== null
 			? editedLines
 			: (singleEstimate?.bim_assets ?? [])
 	);
 	const liveContingency = $derived(
-		singleEstimate && editedRevision === singleEstimate.revision && editedContingency !== null
+		singleEstimate && editedEstimateId === singleEstimate.id && editedContingency !== null
 			? editedContingency
 			: String(singleEstimate?.contingency_pct ?? '5')
 	);
 	const figuresDirty = $derived(
 		singleEstimate !== null &&
-			editedRevision === singleEstimate.revision &&
+			editedEstimateId === singleEstimate.id &&
 			(editedLines !== null || editedContingency !== null)
 	);
 	const liveTotals = $derived(
@@ -433,67 +433,53 @@
 
 	function updateDraftLines(next: readonly BimTakeoffLine[]) {
 		if (!singleEstimate || costingLocked) return;
-		editedRevision = singleEstimate.revision;
+		editedEstimateId = singleEstimate.id;
 		editedLines = next;
+		draftVersion += 1;
 	}
 	function updateDraftContingency(next: string) {
 		if (!singleEstimate || costingLocked) return;
-		editedRevision = singleEstimate.revision;
+		editedEstimateId = singleEstimate.id;
 		editedContingency = next;
+		draftVersion += 1;
 	}
-	function saveEditedFigures() {
-		if (!singleEstimate || !figuresDirty || figuresSaver.pending) return;
-		figuresSaver.run(
-			ctx
-				.act({
-					'cost_estimates.update': [
-						{
-							target: { id: singleEstimate.id, revision: singleEstimate.revision },
-							set: { bim_assets: [...liveLines], contingency_pct: liveContingency }
-						}
-					]
-				})
-				.pipe(
-					Effect.tap(() =>
-						Effect.sync(() => {
-							editedLines = null;
-							editedContingency = null;
-							editedRevision = null;
-						})
+
+	$effect(() => {
+		if (!singleEstimate || !figuresDirty || costingLocked || figuresSaver.pending) return;
+		const version = draftVersion;
+		if (version === savedVersion) return;
+		const snapId = singleEstimate.id;
+		const snapRevision = singleEstimate.revision;
+		const snapLines = [...liveLines];
+		const snapContingency = liveContingency;
+		const timer = setTimeout(() => {
+			if (costingLocked || figuresSaver.pending) return;
+			savedVersion = version;
+			figuresSaver.run(
+				ctx
+					.act({
+						'cost_estimates.update': [
+							{
+								target: { id: snapId, revision: snapRevision },
+								set: { bim_assets: snapLines, contingency_pct: snapContingency }
+							}
+						]
+					})
+					.pipe(
+						Effect.tap(() =>
+							Effect.sync(() => {
+								if (draftVersion === version) {
+									editedLines = null;
+									editedContingency = null;
+									editedEstimateId = null;
+								}
+							})
+						)
 					)
-				)
-		);
-	}
-	function toggleBaselineEstimate() {
-		if (!singleEstimate || figuresDirty || figuresSaver.pending || costingBusy) return;
-		figuresSaver.run(
-			ctx.act({
-				'cost_estimates.update': [
-					{
-						target: { id: singleEstimate.id, revision: singleEstimate.revision },
-						set: { status: singleEstimate.status === 'baselined' ? 'draft' : 'baselined' }
-					}
-				]
-			})
-		);
-	}
-	function exportBoqCsv() {
-		if (!singleEstimate) return;
-		const csv = buildTenderBoqCsv({
-			projectName: record.project_name,
-			currency: singleEstimate.currency,
-			bimAssets: liveLines,
-			bimSubtotal: liveTotals?.bim_subtotal ?? singleEstimate.bim_subtotal,
-			contingencyPct: liveContingency,
-			contingencyAmount: liveTotals?.contingency_amount ?? singleEstimate.contingency_amount,
-			totalEstimate: liveTotals?.total_estimate ?? singleEstimate.total_estimate
-		});
-		downloadTextFile(
-			csv,
-			`${safeFilename(record.project_name)}_Tender_BOQ.csv`,
-			'text/csv;charset=utf-8'
-		);
-	}
+			);
+		}, 450);
+		return () => clearTimeout(timer);
+	});
 	function createTaskFromBim(element: IFCSelectedElement) {
 		onCreateTask({
 			project_id: record.id,
@@ -1196,122 +1182,76 @@
 {/snippet}
 
 {#snippet bimCostingTab()}
-	<Scroll name={t('bim_costing.estimates_title')} size="fill" inset>
-		<Stack gap="md">
-			{#if tunnelOpen}
-				{@render costingTunnelView()}
-			{:else if estimateQuery.loading && !estimateQuery.current}
-				<Inline gap="sm" align="center" aria-busy="true">
-					<Spinner />
-					<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
-				</Inline>
-			{:else if estimateQuery.error}
-				<Alert.Root variant="destructive">
-					<Alert.Title>{estimateQuery.error.message}</Alert.Title>
-				</Alert.Root>
-			{:else if activeEstimate}
-				{@const est = activeEstimate}
-				<Surface tone="card" padding="md" radius="control">
-					<Stack gap="md" divided>
-						<Stack gap="xs">
-							<Cluster align="center" justify="between" gap="sm">
-								<Inline gap="sm" align="center">
-									<span class="text-label">{est.title}</span>
-									<Badge variant="outline">
-										{enum_text(est.status, { t: rawT, model: 'cost_estimates', field: 'status' })}
-									</Badge>
-									{#if record.bim_compliance}
-										<Button variant="ghost" onclick={() => openTunnel('review')}>
-											<Badge
-												variant={record.bim_compliance.fail_count > 0
-													? 'destructive'
-													: record.bim_compliance.warn_count > 0
-														? 'warning'
-														: 'success'}
-											>
-												{t('bim_costing.compliance_pill', { pct: record.bim_compliance.score_pct })}
-											</Badge>
-										</Button>
-									{/if}
-								</Inline>
-								<Cluster gap="xs">
-									{#if canAnalyzeBim && projectBimFile}
-										<Button
-											variant={!figuresDirty && (costingStale || step1Running || step3Running)
-												? 'brand'
-												: 'outline'}
-											onclick={() => openTunnel()}
-										>
-											{#if step1Running || step3Running}
-												<Spinner class="size-3.5" />
-											{:else}
-												<Icon name="lucide:workflow" class="size-3.5" />
-											{/if}
-											{step1Running || step3Running
-												? t('bim_workflow.view_progress')
-												: t('bim_workflow.open_process')}
-										</Button>
-									{/if}
-									{#if canAnalyzeBim}
-										<Button
-											variant={figuresDirty ? 'brand' : 'outline'}
-											disabled={!figuresDirty || figuresSaver.pending || costingLocked}
-											onclick={saveEditedFigures}
-										>
-											<Icon name="lucide:check" class="size-3.5" />
-											{t('bim_costing.save_figures')}
-										</Button>
-										<Button
-											variant="outline"
-											disabled={figuresDirty || figuresSaver.pending || costingBusy}
-											onclick={toggleBaselineEstimate}
-										>
-											<Icon
-												name={est.status === 'baselined' ? 'lucide:lock-open' : 'lucide:lock'}
-												class="size-3.5"
-											/>
-											{est.status === 'baselined'
-												? t('bim_costing.reopen_draft')
-												: t('bim_costing.baseline_estimate')}
-										</Button>
-									{/if}
-									<Button variant="outline" onclick={exportBoqCsv}>
-										<Icon name="lucide:download" class="size-3.5" />
-										{t('bim_costing.export_boq_csv')}
-									</Button>
-								</Cluster>
-							</Cluster>
-							{#if costingStale}
-								<p
-									class="flex min-w-0 items-center gap-1.5 text-xs text-warning"
-									aria-live="polite"
-								>
-									<Icon name="lucide:triangle-alert" class="size-3.5 shrink-0" />
-									<span class="truncate">{t('bim_step.phase1_updated_hint')}</span>
-								</p>
-							{:else if est.analyzed_at}
-								<p class="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-									<Icon
-										name="lucide:circle-check"
-										class="size-3.5 shrink-0 text-tone-success-text"
-									/>
-									<span class="truncate">
-										{t('bim_costing.status_priced', {
-											when: format({ kind: 'instant' }, est.analyzed_at, { locale: ctx.locale })
-										})}
+	{#if !tunnelOpen && activeEstimate}
+		{@const est = activeEstimate}
+		<Bound size="fill" inset>
+			<Stack gap="sm" size="fill">
+				<Surface tone="card" padding="sm" radius="control" class="shrink-0">
+					<Stack gap="sm" divided>
+						<Cluster align="center" justify="between" gap="sm">
+							<Inline gap="xs" align="center" class="min-w-0">
+								<span class="truncate text-label">{est.title}</span>
+								<Badge variant="outline">
+									{enum_text(est.status, { t: rawT, model: 'cost_estimates', field: 'status' })}
+								</Badge>
+								{#if costingStale}
+									<span
+										class="flex min-w-0 items-center gap-1 text-micro text-warning"
+										aria-live="polite"
+									>
+										<Icon name="lucide:triangle-alert" class="size-3 shrink-0" />
+										<span class="truncate">{t('bim_step.phase1_updated_hint')}</span>
 									</span>
-								</p>
+								{:else if figuresSaver.pending}
+									<span
+										class="flex items-center gap-1 text-micro text-muted-foreground"
+										aria-live="polite"
+									>
+										<Spinner class="size-3 shrink-0" />
+										<span>{t('bim_costing.saving_figures')}</span>
+									</span>
+								{:else if est.analyzed_at}
+									<span
+										class="hidden items-center gap-1 text-micro text-muted-foreground sm:inline-flex"
+									>
+										<Icon
+											name="lucide:circle-check"
+											class="size-3 shrink-0 text-tone-success-text"
+										/>
+										<span>
+											{t('bim_costing.status_priced', {
+												when: format({ kind: 'instant' }, est.analyzed_at, { locale: ctx.locale })
+											})}
+										</span>
+									</span>
+								{/if}
+							</Inline>
+							{#if canAnalyzeBim && projectBimFile}
+								<Button
+									variant={costingStale || step1Running || step3Running ? 'brand' : 'outline'}
+									onclick={() => openTunnel()}
+								>
+									{#if step1Running || step3Running}
+										<Spinner class="size-3.5" />
+									{:else}
+										<Icon name="lucide:workflow" class="size-3.5" />
+									{/if}
+									{step1Running || step3Running
+										? t('bim_workflow.view_progress')
+										: t('bim_workflow.open_process')}
+								</Button>
 							{/if}
-						</Stack>
-						<Grid minimum="card" gap="md">
-							<Stack gap="xs">
-								<span class="text-meta">{t('bim_costing.coverage')}</span>
+						</Cluster>
+
+						<Grid minimum="compact" gap="sm">
+							<Stack gap="none">
+								<span class="text-micro text-muted-foreground">{t('bim_costing.coverage')}</span>
 								<Inline gap="xs" align="center">
 									<span class="text-label tabular-nums"
 										>{`${est.classified_asset_count} / ${est.bim_asset_count}`}</span
 									>
 									{#if est.unmatched_asset_count > 0}
-										<Badge variant="warning"
+										<Badge variant="warning" class="text-tiny"
 											>{t('bim_costing.unmatched_badge', {
 												count: est.unmatched_asset_count
 											})}</Badge
@@ -1319,8 +1259,9 @@
 									{/if}
 								</Inline>
 							</Stack>
-							<Stack gap="xs">
-								<span class="text-meta">{t('bim_costing.bim_subtotal')}</span>
+							<Stack gap="none">
+								<span class="text-micro text-muted-foreground">{t('bim_costing.bim_subtotal')}</span
+								>
 								<span class="text-label tabular-nums">
 									<Show
 										{ctx}
@@ -1330,18 +1271,22 @@
 									/>
 								</span>
 							</Stack>
-							<Stack gap="xs">
+							<Stack gap="none">
 								<Inline gap="xs" align="center">
-									<span class="text-meta">{t('bim_costing.contingency')}</span>
-									<Input
-										value={liveContingency}
-										type="number"
-										disabled={!canAnalyzeBim || costingLocked || figuresSaver.pending}
-										aria-label={t('bim_costing.contingency')}
-										class="text-right font-mono text-xs"
-										oninput={(e) => updateDraftContingency(e.currentTarget.value)}
-									/>
-									<span class="text-meta">{'%'}</span>
+									<span class="text-micro text-muted-foreground"
+										>{t('bim_costing.contingency')}</span
+									>
+									<div class="w-16">
+										<Input
+											value={liveContingency}
+											type="number"
+											disabled={!canAnalyzeBim || costingLocked}
+											aria-label={t('bim_costing.contingency')}
+											class="px-1.5 text-right font-mono text-xs"
+											oninput={(e) => updateDraftContingency(e.currentTarget.value)}
+										/>
+									</div>
+									<span class="text-micro text-muted-foreground">{'%'}</span>
 								</Inline>
 								<span class="text-label tabular-nums">
 									<Show
@@ -1352,9 +1297,11 @@
 									/>
 								</span>
 							</Stack>
-							<Stack gap="xs">
-								<span class="text-meta">{t('bim_costing.total_estimate')}</span>
-								<span class="text-sm tabular-nums text-primary">
+							<Stack gap="none">
+								<span class="text-micro text-muted-foreground"
+									>{t('bim_costing.total_estimate')}</span
+								>
+								<span class="text-sm font-medium tabular-nums text-primary">
 									<Show
 										{ctx}
 										kind={money}
@@ -1370,25 +1317,44 @@
 				{#if canAnalyzeBim}
 					<BimTakeoffRenderer
 						{ctx}
+						fill
 						view={{
 							mode: 'edit',
 							name: 'bim_takeoff',
 							value: liveLines,
-							disabled: costingLocked || figuresSaver.pending,
+							disabled: costingLocked,
 							on_change: (next) => updateDraftLines(next ?? [])
 						}}
 					/>
 				{:else}
 					<BimTakeoffRenderer
 						{ctx}
+						fill
 						view={{ mode: 'show', name: 'bim_takeoff', value: liveLines }}
 					/>
 				{/if}
-			{:else}
-				{@render emptyCostingFallback()}
-			{/if}
-		</Stack>
-	</Scroll>
+			</Stack>
+		</Bound>
+	{:else}
+		<Scroll name={t('bim_costing.estimates_title')} size="fill" inset>
+			<Stack gap="md">
+				{#if tunnelOpen}
+					{@render costingTunnelView()}
+				{:else if estimateQuery.loading && !estimateQuery.current}
+					<Inline gap="sm" align="center" aria-busy="true">
+						<Spinner />
+						<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+					</Inline>
+				{:else if estimateQuery.error}
+					<Alert.Root variant="destructive">
+						<Alert.Title>{estimateQuery.error.message}</Alert.Title>
+					</Alert.Root>
+				{:else}
+					{@render emptyCostingFallback()}
+				{/if}
+			</Stack>
+		</Scroll>
+	{/if}
 {/snippet}
 
 <Tabs

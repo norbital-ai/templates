@@ -2,7 +2,7 @@
 
 ![Blank application](screenshots/application.webp)
 
-Technical documentation for `@template/blank` (`norbital_blank`), a minimal Norbital Bolt starter workspace containing one read-only example model (`notes`), zero authored applications, zero authored automations, and bilingual English/Chinese configuration.
+Technical documentation for `@template/blank` (`norbital-blank`), a minimal Norbital Bolt starter workspace containing one read-only example model (`notes`), zero authored applications, zero authored automations, and bilingual English/Chinese configuration.
 
 ## Document Index
 

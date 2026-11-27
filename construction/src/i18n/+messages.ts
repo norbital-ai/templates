@@ -819,11 +819,7 @@ export default messages({
 	'bim_costing.bulk_adjust_rate': 'Apply % to rates',
 	'bim_costing.bulk_pct_placeholder': '+/- %',
 	'bim_costing.search_boq': 'Search BOQ lines…',
-	'bim_costing.save_figures': 'Save figures',
-	'bim_costing.baseline_estimate': 'Baseline',
-	'bim_costing.reopen_draft': 'Reopen draft',
-	'bim_costing.export_boq_csv': 'Export BOQ (.csv)',
-	'bim_costing.compliance_pill': 'CORENET X {pct}%',
+	'bim_costing.saving_figures': 'Saving…',
 	'section.bim_advanced': 'Advanced parsing & AI limits',
 
 	// Dynamic SOP / BCA / CORENET X Compliance & Auto-Organized IFC
@@ -1082,7 +1078,6 @@ export default messages({
 	'compliance.register_title': 'Compliance, CONQUAS & IMS Register',
 	'compliance.register_description':
 		'Track BCA CONQUAS inspections, CORENET X gateways, ISO 9001 NCRs, ISO 14001 environmental checks, ISO 45001 safety audits, and ISO 19650 CDE QA.',
-	'compliance.gateway_label': 'CORENET X gateway',
 	'compliance.audits_summary': 'Site audits & NCRs',
 	'compliance.open_closed_pair': '{open} open · {closed} closed',
 	'compliance.no_bim_lints': 'No BIM compliance lints yet',

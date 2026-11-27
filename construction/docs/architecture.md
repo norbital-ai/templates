@@ -1,6 +1,6 @@
 # Construction Operations — Architecture & Inner Mechanisms
 
-Technical deep dive into the `norbital_construction` Bolt workspace (`templates/construction`). Every model, field, constraint, state transition, calculation formula, client worker, cache layer, automation, sync, and access-control rule below reflects the live implementation under `src/`.
+Technical deep dive into the `norbital-construction` Bolt workspace (`templates/construction`). Every model, field, constraint, state transition, calculation formula, client worker, cache layer, automation, sync, and access-control rule below reflects the live implementation under `src/`.
 
 ## Table of Contents
 
@@ -415,7 +415,7 @@ Active currency-matched, non-derived `bim_asset` rules in `item_matrix` are scor
   1. **Proposed Item Matrix & Costings:** Inline editor over proposed & matched `item_matrix` items (`name`, `unit`, `quantity_basis`, `unit_rate`, `waste_factor_pct`, `carbon_factor`) with one-click **Approve & Save** / **Reject** / **Approve all** and `<Sheet>` creation via **+ Add item**.
   2. **Proposed Clean BIM:** Inline editor over `asset_mappings` (`ifc_class`, `continuity`, `service`, `item_id`, `Verify`, `3D` inspect, `Download Clean BIM (.ifc)` writing back duplicates removed, IFC4 promotions, and live QS edits).
   3. **Compliance Lints:** Authority-filtered BCA / SCDF / PUB / URA / CORENET X / SOP scorecard with direct 3D isolation of non-compliant elements.
-- **BIM → BIM Costing · Step 2 (`bim_takeoff/+renderer.svelte` & `projects/ProjectBimTab.svelte`):** Generates/regenerates the 1:1 `cost_estimates` classification and BOQ costing matrix from the reviewed Clean BIM and Item Matrix, with always-live inline editing of `measured_qty`, `waste_factor_pct`, `unit_rate`, `contingency_pct`, bulk `+/- %` tender adjustments, `Save figures`, `Baseline` / `Reopen draft`, and **Export BOQ (.csv)**.
+- **BIM → BIM Costing · Step 2 (`bim_takeoff/+renderer.svelte` & `projects/ProjectBimTab.svelte`):** Generates/regenerates the 1:1 `cost_estimates` classification and BOQ costing matrix from the reviewed Clean BIM and Item Matrix, with always-live debounced auto-saving inline editing of `measured_qty`, `waste_factor_pct`, `unit_rate`, `contingency_pct`, and bulk `+/- %` tender adjustments in a bounded internal-scroll table.
 - **Anti-Flicker 3D Viewer (`src/services/viewer/IfcViewer.svelte`, `engine.ts`, `converter.worker.ts`):** Hides the `@thatopen/components` watermark (`world.renderer.showLogo = false`), strips `exclude_ifc_classes` (`IFCSPACE`, `IFCOPENINGELEMENT`) during fragment conversion (cache `norbital-ifc-fragments-v2`), enables `logarithmicDepthBuffer: true` + `polygonOffset` on fragment materials, tightens `camera.three.near`/`far` to model bounds, renders highlight/ghost overlays single-sided (`RenderedFaces.ONE`, `depthWrite: false` on ghost), and flushes LOD state on `controls` `rest`.
 
 ---

@@ -11,7 +11,7 @@ Complete inventory of `templates/portfolio-manager` verified directly against `s
 
 | Key                | Value                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `key`              | `norbital_portfolio_manager`                                                                                                         |
+| `key`              | `norbital-portfolio-manager`                                                                                                         |
 | `name` / `name_zh` | `Portfolio Manager` / `投资组合管理`                                                                                                 |
 | `industry`         | `Finance`                                                                                                                            |
 | `visibility`       | `public`                                                                                                                             |

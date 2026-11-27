@@ -1,6 +1,6 @@
 {
 	"schema_version": 1,
-	"key": "norbital_fleet_management",
+	"key": "norbital-fleet-management",
 	"name": "Fleet Management",
 	"industry": "Logistics & Fleet",
 	"description": "Real-time GPS transponder tracking, live vehicle map with live alerts, day-to-day route schedule and ETAs, geofence boundaries, and overspeed or offline alerting with isolated configuration.",
