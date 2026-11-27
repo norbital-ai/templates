@@ -182,7 +182,7 @@
 {#snippet count(value: number | undefined, failure: unknown)}
 	{#if failure}<span class="text-meta">{ctx.t('dashboard.unavailable')}</span>
 	{:else if value === undefined}<span class="text-meta">{ctx.t('dashboard.loading')}</span>
-	{:else}<span class="text-section tabular-nums">{value}</span>{/if}
+	{:else}<span class="text-metric">{value}</span>{/if}
 {/snippet}
 {#snippet meta(parts: readonly (readonly [string, number])[])}
 	{@const shownParts = parts.filter(([, value]) => value > 0)}

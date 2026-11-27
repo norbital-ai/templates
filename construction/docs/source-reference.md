@@ -19,7 +19,7 @@ Each folder under `src/data/custom_field/` contains `+custom_field.ts` (schema +
 - `src/data/custom_field/priced_lines/` — catalog- and BIM-asset-backed exact-decimal line items (`source`: `'bim_asset' | 'adhoc_catalog'`, `code`, `bim_asset_key`, `storey`, `bim_express_ids`, `description`, `unit`, `qty`, `unit_rate`, `amount`) used on `contracts.lines` and `commercial_documents.lines` (delegates editing to `CatalogLinesEditor.svelte`)
 - `src/data/custom_field/project_zones/` — unique-coded project storeys, zones, elevations, and grid axes (`projects.zones`)
 
-## Record Models (15) & Syncs (4)
+## Record Models (14) & Syncs (4)
 
 Each model folder under `src/data/model/` contains `+model.ts` and `+representation.svelte`:
 
@@ -36,7 +36,7 @@ Each model folder under `src/data/model/` contains `+model.ts` and `+representat
   - `projects/project_files/` (`owned: true`, `unique: ['project_id', 'document_number']` `import_key`) — filed non-BIM project documents (`drawing`, `spec`, `schedule`, `contract_doc`, `handover`, `autodesk_model`) listed in the project hub's **Documents** tab (`zone` validated; record history keeps earlier versions)
     - `+autodesk_files.sync.ts` — two-way Autodesk ACC Sheets API sync (`every: '1h'`, `GET` sheets / `PATCH` sheet titles)
 
-### Top-Level & Configuration Models (8)
+### Top-Level & Configuration Models (7)
 
 - `src/data/model/activities/` — polymorphic operational activity log (`about` ref → `projects`, `tasks`, `contracts`, `contacts`, `inverse: 'activities'`, `on_delete: 'cascade'`; auto-derived `project_id` → `projects` for project-level roll-up; simple `title`, plain-text `description`, `occurred_at`, optional `attachments`, `author` stamped from the posting member, and `source_message_id` → `project_messages`) rendered via shared `src/lib/ActivityTimeline.svelte` on every linked record's **Activity** tab
 - `src/data/model/contacts/` — Business Partners directory (`client`, `main_contractor`, `supplier`, `subcontractor`, `consultant`, `architect`, `qs`, `site_engineer`, `project_manager`; 16 trade specialties; standard `payment_terms_days`; CEL-computed `email_key` & `phone_key`; `create` and phone/email `update` effects requeue up to 100 model-routed `review`/`ignored` messages (`requeueMessages`); representation includes linked **Orders & Contracts**, **Transactions**, **Assigned Tasks**, and **Activity** tabs)
@@ -45,44 +45,42 @@ Each model folder under `src/data/model/` contains `+model.ts` and `+representat
 - `src/data/model/bim_settings/` — singleton runtime BIM takeoff & cleanup policy (`default`) controlling cleanup toggles, excluded IFC classes, tolerances, nominal size bands, material densities, service keyword aliases, and AI confidence thresholds
 - `src/data/model/sop_rules/` — dynamic statutory & tender compliance SOP rules (`corenet_x`, `bca`, `scdf`, `pub`, `ura`, `company_sop`) including structured geometry/property checks and multimodal `semantic_check` rules
 - `src/data/model/asset_mappings/` — what each unique BIM asset is priced as, remembered across takeoffs and projects (`signature` unique `import_key`, `label`, `ifc_class`, `picture`, `item_id` → `item_matrix` (`set_null`), `source`: `'system_1' | 'qs' | 'proposal'`, `confidence`, `note`, `continuity`, `service`, `size_mm`, `review_status`, `cleanup_note`); a member changing `item_id` makes it `qs`; the record view offers only active, non-derived BIM items
-- `src/data/model/project_messages/` — WhatsApp & email messages (`unique: ['source_message']`, `import_start` window guard, voice `recording` + `transcription`, `classification`, `extraction_status`, `extraction_summary`); the `create` effect files each message (`fileMessages`), the `update` effect re-files one set back to `pending`; manual assignment marks it `useful` and queues extraction. Record view shows **What this message updated** (tasks, activities, contracts, commercial documents by `source_message_id`)
-  - `intake.ts` — `fileMessages` (transcribe via `ctx.convert.ingest`, route by hard filter / contact directory / System 1 / evident project, extract via System 2 in one write as the writer: updates matching tasks when status, progress, priority, zone, trade or due date changes, logs polymorphic `activities` with `title`, plain `description`, `occurred_at`, `source_message_id`, and message attachments on the relevant task or project, and drafts variation orders and commercial documents; a refused extraction keeps the routing as `extraction_status: failed`) and `requeueMessages`
-- `src/data/model/communication_settings/` — per-member (`unique: ['owner']`) intake rules (`hard_filter`: `'all' | 'known_contacts'`, `auto_extract`, `classification_sop` `<= 8000` chars); `create` and `hard_filter`/`classification_sop` changes requeue that owner's routed messages
+- `src/data/model/project_messages/` — WhatsApp & email messages (`unique: ['source_message']`, `import_start` window guard, voice `recording` + `transcription`, `classification`, `extraction_status`, `extraction_summary`); the `create` and `update` effects schedule `file_project_messages`; manual assignment marks it `useful` and queues extraction. Record view shows **What this message updated** (tasks, activities, contracts, commercial documents by `source_message_id`)
+  - `intake.ts` — `fileMessages` (transcribe via `ctx.convert.ingest`, route via each connection's `sys_integration.classifier` + up to 30 preceding `sys_message` rows in System 1 / contact directory / evident project, then batch useful messages per project into one System Agent `ctx.ai.sys_2.task({ files })` — falling back to structured `ctx.ai.sys_2.infer` when automation System Agents are turned off or capped) and `requeueMessages`
 
 ## Integrations (1 Custom + Built-In WhatsApp & Email)
 
 - `src/integration/autodesk_acc/+integration.ts` — Autodesk Platform Services / Construction Cloud OAuth 2.0 HTTP integration (`base_url: 'https://developer.api.autodesk.com'`, scopes `data:read`, `data:write`, `account:read`, rate `10/s`, allow-listed `/project/v1/**`, `/data/v1/**`, `/construction/schedule/v1/**`, `/construction/sheets/v1/**`, `/modelderivative/v2/**`, connection test via `GET /project/v1/hubs`)
 - Built-in host channels `whatsapp` and `email` (personal accounts per member via `capabilities.personal_connections`, plus workspace-shared accounts managed in Settings → Integrations → Connections)
 
-## Apps (2) & Pages (6)
+## Apps (2) & Pages (4)
 
 - `src/app/operations/` (**Operations**):
   - `+app.ts` — declares `projects`, `partners`
   - `+projects.page.svelte` — Projects table, plus a **Messages to file** tab (review messages with no project) shown only while any exist
   - `+partners.page.svelte` — Business Partners tabbed directory (**All partners**, **Customers**, **Vendors**, **Subcontractors**) with role-preset quick create
 - `src/app/configuration/` (**Configuration**):
-  - `+app.ts` — declares `item_matrix`, `sop_rules`, `bim_settings`, `intake`
+  - `+app.ts` — declares `item_matrix`, `bim_compliance`
   - `+item_matrix.page.svelte` — active Item Matrix table with rate and carbon factor (with XLSX/CSV file sync)
-  - `+sop_rules.page.svelte` — active BCA / CORENET X / SCDF / PUB / URA & Company SOP rules table with bulk toggle-active action
-  - `+bim_settings.page.svelte` — singleton workspace BIM takeoff & cleanup profile (`RecordShell header={false}`) with edit/create presets and visual editors
-  - `+intake.page.svelte` — per-member **Intake & auto-extraction** rules (`communication_settings`; personal connections live in Bolt's `/connections`, workspace connections in Settings → Integrations → Connections)
+  - `+bim_compliance.page.svelte` — consolidated **BIM Compliance** page with two tabs: **Compliance Rules** (`sop_rules` BCA/CORENET X/SCDF/PUB/URA & Company SOP table with bulk toggle-active action) and **Takeoff & Cleanup Profile** (singleton `bim_settings` profile in `RecordShell header={false}` with presets and visual editors). Personal WhatsApp/email connections and channel classifier rules live in Bolt's `/connections`; shared connections live in Settings → Integrations → Connections
 
-## Automations (3)
+## Automations (4)
 
-All 3 automations execute under policy `construction_automation`:
+All 4 automations execute under policy `construction_automation`:
 
-- `src/automation/+sync_messages.automation.ts` — triggered by each `sys_message` create; mirrors WhatsApp & email messages into `project_messages` respecting `import_start` using binary-search seq skipping + fair lane mixing (batch `<= 25`, requeues itself while a backlog remains), storing voice notes with `transcription: 'pending'`; the model's create effect files them (`concurrency: 1`)
+- `src/automation/+sync_messages.automation.ts` — triggered by each `sys_message` create; mirrors WhatsApp & email messages (honoring `sys_integration.classifier` mode/disabled automations and `import_start`) into `project_messages` using binary-search seq skipping + fair lane mixing (batch `<= 25`, requeues itself while a backlog remains), storing voice notes with `transcription: 'pending'` (`concurrency: 1`)
+- `src/automation/+file_project_messages.automation.ts` — scheduled by `project_messages` create/update effects (and triggered on `sys_integration` updates to replay non-manual routed messages when a connection's classifier changes); runs 30-message windowed System 1 classification and batches useful project messages into one System Agent (`ctx.ai.sys_2.task`) per project with `sys_2.infer` fallback (`concurrency: 1`)
 - `src/automation/+analyze_bim_file.automation.ts` — `projects` create/update write trigger (runs Phase 1 `'prepare'`), or manual `{ project_id, phase?: 'prepare' | 'cost' | 'all', contingency_pct? }`. Phase 1 (`prepare`) recalls `asset_mappings`, classifies unseen assets via System 1, persists proposed cleaned BIM attributes, proposes missing `item_matrix` entries via System 2 (each `item_matrix.create` + `asset_mappings.update` held for **Item Matrix proposal review**), evaluates all active deterministic + multimodal semantic `sop_rules` into `projects.bim_compliance`, and stores `projects.bim_summary` (`stage: 'prepared'`, `asset_signatures`). Phase 2 (`cost`) applies reviewed `asset_mappings` and approved `item_matrix` rates, prices exact `BigDecimal` BOQ lines (plus `derived` items) into `cost_estimates`, refreshes deterministic compliance, and sets `bim_summary.stage = 'costed'` (refuses locked non-draft/void estimates). Both phases are repeatable anytime; output `{ priced }` (`concurrency: 1`)
 - `src/automation/+generate_payment_claim.automation.ts` — page RPC (`mode: 'call'`) running `computeProjectCommercial` to draft a `BigDecimal` inflow `progress_claim` in `commercial_documents` against the client contract (`clientContractOf`: first active or completed upstream non-VO contract; refuses `errors.claim_needs_main_contract` without one)
 
 ## Access Control (4 Seeded Teams, 5 Policies)
 
 - `seed/public/sys_team.json` — the starting `sys_team` rows an administrator edits: `construction_administrators`, `project_delivery`, `commercial_qs`, `client_consultant`
-- `src/access_control/policy/+construction_read.policy.ts` — `operations` app + read grants on 14 models (all but `communication_settings`) and `sys_user`
+- `src/access_control/policy/+construction_read.policy.ts` — `operations` app + read grants on all 14 models and `sys_user`
 - `src/access_control/policy/+construction_delivery.policy.ts` — delivery writes on `projects`, `project_files`, `tasks`, `activities` (create/update/delete), `contacts`, `project_messages`, status-only `-> void` move on `cost_estimates`, `sync_messages` and `analyze_bim_file`, and Autodesk ACC syncs
 - `src/access_control/policy/+construction_commercial.policy.ts` — commercial writes on `projects` (`currency`, `bim_takeoff`, `bim_takeoff_views`), `contracts`, `commercial_documents`, `adhoc_costs`, `cost_estimates`, `item_matrix`, `contacts`, `activities` (create/update/delete), `asset_mappings` (`item_id`, `note`, `ifc_class`, `continuity`, `service`, `review_status`), `bim_settings`, `sop_rules`, plus `generate_payment_claim`, `analyze_bim_file`
-- `src/access_control/policy/+construction_connections.policy.ts` — `configuration` app + `capabilities.personal_connections: ['whatsapp', 'email']` and `communication_settings` ownership grants
-- `src/access_control/policy/+construction_automation.policy.ts` — background system policy used by all 3 automations and both Autodesk syncs (it creates and updates the activities filed from messages); its `item_matrix` create verdict holds each System 2 proposal for the **Item Matrix proposal review** flow, decided by the teams holding `construction_commercial`
+- `src/access_control/policy/+construction_connections.policy.ts` — `configuration` app + `capabilities.personal_connections: ['whatsapp', 'email']`
+- `src/access_control/policy/+construction_automation.policy.ts` — background system policy used by all 4 automations and both Autodesk syncs (it creates and updates the activities filed from messages); its `item_matrix` create verdict holds each System 2 proposal for the **Item Matrix proposal review** flow, decided by the teams holding `construction_commercial`
 
 ## Domain Services (`src/services/`) & Shared Libraries (`src/lib/`)
 

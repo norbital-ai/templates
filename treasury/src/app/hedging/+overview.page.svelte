@@ -192,7 +192,7 @@
 						<div class="rounded-md border border-border bg-card p-4">
 							<Stack gap="xs">
 								<p class="text-meta">{tile.title}</p>
-								<p class="text-section tabular-nums">{tile.value}</p>
+								<p class="text-metric">{tile.value}</p>
 								{#if tile.warn}
 									<div>
 										<Badge variant="warning">

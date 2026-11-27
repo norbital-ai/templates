@@ -157,7 +157,7 @@
 					<Icon icon="lucide:keyboard" class="size-5" />
 				</Frame>
 				<div>
-					<h1 class="text-section">{ctx.t('kiosk.manual_entry')}</h1>
+					<h1 class="text-heading">{ctx.t('kiosk.manual_entry')}</h1>
 				</div>
 			</Inline>
 

@@ -670,7 +670,7 @@
 								>
 									<Icon name={booked ? 'lucide:check' : 'lucide:clock'} class="size-7" />
 								</span>
-								<h2 class="text-title">
+								<h2 class="text-heading">
 									{booked ? t('app.portal.booked_title') : t('app.portal.follow_up_title')}
 								</h2>
 								<p class="max-w-prose text-sm text-muted-foreground">

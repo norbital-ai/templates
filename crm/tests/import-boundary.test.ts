@@ -9,6 +9,7 @@ import { personalAccount } from './personal-fixture.js';
 import {
 	idOf,
 	member,
+	nativeId,
 	recordOf,
 	required,
 	sharedWorkspace,
@@ -181,42 +182,19 @@ layer(sharedWorkspace({ now: NOW, ports: model.ports }), { excludeTestServices: 
 					const cutoff = '2026-10-21T01:55:00Z';
 					yield* t.receive(
 						account.id,
-						chat('raw-context', priorDisplay, '2026-10-21T01:50:00Z', CONTEXT_SENDER)
+						chat('PRE_BOUNDARY_RAW_SECRET', priorDisplay, '2026-10-21T01:50:00Z', CONTEXT_SENDER)
 					);
-					const oldSource = required(
-						pageOf(
-							yield* admin.query({
-								sys_message: { where: { text: { eq: 'raw-context' } }, fields: ['seq'] }
-							}),
-							'sys_message'
-						).rows[0]
-					);
-					expect(
-						(yield* admin.act({
-							'activities.create': [
-								{
-									kind: 'message',
-									classification: 'ignored',
-									subject: 'Earlier raw message',
-									detail: 'PRE_BOUNDARY_RAW_SECRET',
-									source_message: sourceOf(oldSource).id,
-									source_seq: sourceOf(oldSource).seq,
-									transport: 'whatsapp',
-									handle: `${CONTEXT_SENDER}@s.whatsapp.net`,
-									occurred_at: DateTime.formatIso(DateTime.makeUnsafe(priorDisplay))
-								}
-							]
-						})).kind
-					).toBe('committed');
+					yield* t.run_due();
 					expect((yield* setBoundary(t, t.admin, account.id, since(cutoff))).kind).toBe(
 						'committed'
 					);
-					yield* t.receive(account.id, chat('fresh-context', NOW, NOW, CONTEXT_SENDER));
+					yield* t.receive(account.id, chat('FRESH_ELIGIBLE_CONTEXT', NOW, NOW, CONTEXT_SENDER));
+					yield* t.run_due();
 					const freshSource = required(
 						pageOf(
 							yield* admin.query({
 								sys_message: {
-									where: { text: { eq: 'fresh-context' } },
+									where: { text: { eq: 'FRESH_ELIGIBLE_CONTEXT' } },
 									fields: ['seq', 'conversation', 'thread']
 								}
 							}),
@@ -266,28 +244,32 @@ layer(sharedWorkspace({ now: NOW, ports: model.ports }), { excludeTestServices: 
 							}
 						]
 					});
-					expect(
-						(yield* admin.act({
-							'activities.create': [
-								{
-									kind: 'message',
-									classification: 'pending',
-									subject: 'Fresh message',
-									detail: 'FRESH_ELIGIBLE_CONTEXT',
-									source_message: sourceOf(freshSource).id,
-									source_seq: sourceOf(freshSource).seq,
-									transport: 'whatsapp',
-									handle: `${CONTEXT_SENDER}@s.whatsapp.net`,
-									occurred_at: DateTime.formatIso(DateTime.makeUnsafe(NOW))
+					// Re-arm fresh activity to pending so classify_messages asks System 1 with manual + raw context present
+					const freshAct = required(
+						pageOf(
+							yield* admin.query({
+								activities: {
+									where: { source_message: { eq: sourceOf(freshSource).id } },
+									limit: 1
 								}
-							]
-						})).kind
-					).toBe('committed');
+							}),
+							'activities'
+						).rows[0]
+					);
+					yield* admin.act({
+						'activities.update': [
+							{
+								target: yield* targetOf(t, 'activities', nativeId('activities', freshAct.id)),
+								set: { classification: 'pending', classified_by: null, classified_at: null }
+							}
+						]
+					});
+					const askedBeforeRun = model.requests.length;
 					yield* admin.run('classify_messages', {}, JobResult);
 					yield* t.run_due();
 					// other tests' pending rows may be asked too: find this message's request
 					const request = model.requests
-						.slice(asked)
+						.slice(askedBeforeRun)
 						.map((r) => JSON.stringify(r))
 						.find((r) => r.includes('FRESH_ELIGIBLE_CONTEXT'));
 					expect(request).toBeDefined();

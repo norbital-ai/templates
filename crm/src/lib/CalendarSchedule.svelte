@@ -216,7 +216,7 @@
 												<Icon name="lucide:chevron-down" class="size-3.5 opacity-60" />
 											</Inline>
 										</dt>
-										<dd class="text-section tabular-nums">{stat.value}</dd>
+										<dd class="text-metric">{stat.value}</dd>
 									</Stack>
 								</Bound>
 							{/snippet}

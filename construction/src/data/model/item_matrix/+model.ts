@@ -20,6 +20,9 @@ const columns = [
 	'unit_rate',
 	'waste_factor_pct',
 	'carbon_factor',
+	'carbon_stage',
+	'epd_reference',
+	'recycled_content_pct',
 	'rate_basis',
 	'derived_from',
 	'ratio',
@@ -99,6 +102,12 @@ export default model('item_matrix', {
 		waste_factor_pct: { kind: 'decimal', scale: 1, default: 0 },
 		/** Embodied carbon per one `unit` of the item, in kgCO2e. */
 		carbon_factor: { kind: 'decimal', scale: 3, default: 0 },
+		/** EN 15978 lifecycle boundary covered by `carbon_factor` (default Product Stage A1–A3). */
+		carbon_stage: { kind: 'enum', values: ['a1_a3', 'a1_a5', 'a4_a5'], default: 'a1_a3' },
+		/** ISO 14025 / EN 15804 EPD certificate or SGBC SBCC emission factor reference. */
+		epd_reference: { kind: 'text', optional: true },
+		/** Recycled or supplementary cementitious content (%) for GRI 301-2 / BCA Green Mark reporting. */
+		recycled_content_pct: { kind: 'decimal', scale: 1, optional: true },
 		rate_basis: {
 			kind: 'enum',
 			values: ['tender', 'benchmark', 'subcon_quote', 'assumption'],
@@ -112,6 +121,14 @@ export default model('item_matrix', {
 		code: { unique: ['code'], import_key: true },
 		valid_rate: { check: { unit_rate: { gte: 0 } } },
 		valid_carbon: { check: { carbon_factor: { gte: 0 } } },
+		valid_recycled: {
+			check: {
+				or: [
+					{ recycled_content_pct: { is_null: true } },
+					{ recycled_content_pct: { gte: 0, lte: 100 } }
+				]
+			}
+		},
 		valid_waste: { check: { waste_factor_pct: { gte: 0, lte: 100 } } },
 		derived_needs_source: {
 			check: {

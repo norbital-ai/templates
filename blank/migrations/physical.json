@@ -176,6 +176,7 @@
 		"column sys_integration.active boolean not null default true",
 		"column sys_integration.bolt_record_label text default bolt_record_label_sys_integration_93340fdd(name) generated",
 		"column sys_integration.bolt_search tsvector default bolt_search_document(COALESCE(bolt_record_label_sys_integration_93340fdd(name), ''::text)) generated",
+		"column sys_integration.classifier jsonb",
 		"column sys_integration.configuration jsonb not null default '{}'::jsonb",
 		"column sys_integration.epoch text",
 		"column sys_integration.id text not null",
@@ -448,6 +449,7 @@
 		"constraint sys_inbox.sys_inbox__uq__243217d1 UNIQUE NULLS NOT DISTINCT (sync, instance, delivery)",
 		"constraint sys_inbox.sys_inbox_pkey PRIMARY KEY (id)",
 		"constraint sys_integration.sys_integration__ck__67fc27ec CHECK (((status IS NULL) OR (store_json_valid(status, '{\"kind\": \"json\", \"optional\": true}'::jsonb) IS TRUE)))",
+		"constraint sys_integration.sys_integration__ck__72687215 CHECK (((classifier IS NULL) OR (store_json_valid(classifier, '{\"kind\": \"json\", \"optional\": true}'::jsonb) IS TRUE)))",
 		"constraint sys_integration.sys_integration__ck__bfedbfd4 CHECK (isfinite(updated_at))",
 		"constraint sys_integration.sys_integration__ck__d303bac9 CHECK (((listen IS NULL) OR (store_json_valid(listen, '{\"kind\": \"json\", \"optional\": true}'::jsonb) IS TRUE)))",
 		"constraint sys_integration.sys_integration__ck__da5b6244 CHECK (((import_start IS NULL) OR (store_json_valid(import_start, '{\"kind\": \"json\", \"optional\": true}'::jsonb) IS TRUE)))",
@@ -1512,7 +1514,9 @@
 			746,
 			747,
 			748,
-			749
+			749,
+			750,
+			751
 		]
 	}
 }

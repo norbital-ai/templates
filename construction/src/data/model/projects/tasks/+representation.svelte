@@ -4,24 +4,37 @@
 	 * - Header: single-line constrained breadcrumb flushed to LHS beside History / Fullscreen / Close.
 	 * - Record tab: `<Split ratio="wide" size="fill">` with independently scrolling LHS (Title,
 	 *   always-editable borderless RichMarkdownEditor, attachments) pinned above a fixed-height
-	 *   Sub-tasks panel, and independently scrolling RHS card with collapsible `<Section>` groups.
+	 *   Sub-tasks panel, and independently scrolling RHS card with simplified Ad hoc / BIM switch,
+	 *   visual 3D BIM element tagger, and collapsible `<Section>` groups.
 	 * - Auto-save: always in edit mode when writable; debounced save status lives in the footer.
 	 * - Activity tab: polymorphic `<ActivityTimeline>`.
 	 */
 	import { id_of, type FileRef } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { create_clipboard } from '@norbital-ai/ui/behaviors';
-	import { Center, Cluster, Inline, Scroll, Split, Stack, Surface } from '@norbital-ai/ui/layout';
 	import {
+		Bound,
+		Center,
+		Cluster,
+		Inline,
+		Scroll,
+		Split,
+		Stack,
+		Surface
+	} from '@norbital-ai/ui/layout';
+	import {
+		Alert,
 		Badge,
 		Button,
 		cn,
 		enum_text,
 		Field,
+		FieldControl,
 		type FieldEditor,
 		Form,
 		Icon,
 		Image,
+		Input,
 		open_record,
 		Picker,
 		RecordShell,
@@ -29,12 +42,18 @@
 		RichMarkdownEditor,
 		Section,
 		Sheet,
+		Spinner,
 		use_record_controller
 	} from '@norbital-ai/ui';
 	import { Effect, Option, Schema } from 'effect';
 	import ActivityTimeline from '../../../../lib/ActivityTimeline.svelte';
 	import { toNumber } from '../../../../services/commercial/decimal.js';
+	import SegmentedToggle from '../../../../services/ui/SegmentedToggle.svelte';
 	import { STATUS_ICON, STATUS_TONE, formatDateRange } from '../../../../services/ui/task-meta.js';
+	import type {
+		IFCSelectedElement,
+		IFCViewerMarkerGroup
+	} from '../../../../services/viewer/types.js';
 
 	let { view, ctx }: { view: RecordView<'tasks'>; ctx: PageContext } = $props();
 	const t: PageContext['t'] = (...args) => ctx.t(...args);
@@ -66,22 +85,136 @@
 		const id = typeof raw === 'string' ? raw : fixedProject;
 		return id === null ? null : Option.getOrNull(Schema.decodeUnknownOption(id_of('projects'))(id));
 	});
-	const isBim = $derived((liveForm?.get('kind') ?? record?.kind) === 'bim');
+
+	const rawKind = $derived(liveForm?.get('kind') ?? record?.kind ?? 'adhoc');
+	const taskKind = $derived<'bim' | 'adhoc'>(rawKind === 'bim' ? 'bim' : 'adhoc');
+	const isBim = $derived(taskKind === 'bim');
+
+	const liveExpressIds = $derived.by<readonly number[]>(() => {
+		const raw = liveForm?.get('bim_express_ids') ?? record?.bim_express_ids;
+		if (!Array.isArray(raw)) return [];
+		return raw.filter((v): v is number => typeof v === 'number' && Number.isInteger(v));
+	});
+	const expressIdSet = $derived(new Set(liveExpressIds));
 
 	const clipboard = create_clipboard({ text: () => record?.task_code ?? '' });
 
 	const projectQuery = $derived(
-		record
+		scopedProject
 			? ctx.query({
 					projects: {
-						where: { id: { eq: record.project_id } },
-						fields: ['project_name', 'project_number'],
+						where: { id: { eq: scopedProject } },
+						fields: ['project_name', 'project_number', 'bim_file'],
 						limit: 1
 					}
 				})
 			: null
 	);
 	const projectRef = $derived(projectQuery?.current?.projects.rows[0] ?? null);
+	const projectBimFile = $derived(projectRef?.bim_file ?? null);
+	const projectIfcSrc = $derived(projectBimFile ? ctx.file_url(projectBimFile) : '');
+
+	let bimPickerOpen = $state(false);
+	let bimGroupSearch = $state('');
+
+	const bimEstimateQuery = $derived(
+		scopedProject && (isBim || bimPickerOpen)
+			? ctx.query({
+					cost_estimates: {
+						where: { project_id: { eq: scopedProject } },
+						fields: ['status', 'bim_assets'],
+						limit: 1
+					}
+				})
+			: null
+	);
+	const bimSettingsQuery = $derived(
+		bimPickerOpen
+			? ctx.query({ bim_settings: { fields: ['code', 'exclude_ifc_classes'], limit: 10 } })
+			: null
+	);
+	const viewerExcludeClasses = $derived.by(() => {
+		const rows = bimSettingsQuery?.current?.bim_settings.rows ?? [];
+		return (rows.find((r) => r.code === 'default') ?? rows[0])?.exclude_ifc_classes ?? undefined;
+	});
+	const bimGroups = $derived.by(() => {
+		const est = bimEstimateQuery?.current?.cost_estimates.rows[0];
+		if (!est || est.status === 'void') return [];
+		return (est.bim_assets ?? []).filter((line) => (line.sample_express_ids?.length ?? 0) > 0);
+	});
+	const filteredBimGroups = $derived.by(() => {
+		const q = bimGroupSearch.trim().toLowerCase();
+		if (!q) return bimGroups;
+		return bimGroups.filter((g) =>
+			`${g.classification} ${g.storey} ${g.ifc_class} ${g.matrix_code ?? ''}`
+				.toLowerCase()
+				.includes(q)
+		);
+	});
+	const matchedGroupLabels = $derived.by(() => {
+		if (liveExpressIds.length === 0 || bimGroups.length === 0) return [];
+		const labels: string[] = [];
+		for (const g of bimGroups) {
+			if ((g.sample_express_ids ?? []).some((id) => expressIdSet.has(id))) {
+				labels.push(`${g.storey} · ${g.classification}`);
+			}
+		}
+		return labels;
+	});
+
+	const pickerViewer = $derived(
+		bimPickerOpen && projectBimFile ? import('../../../../services/viewer/IfcViewer.svelte') : null
+	);
+	const pickerMarkerGroups = $derived<IFCViewerMarkerGroup[]>(
+		liveExpressIds.length > 0
+			? [
+					{
+						label: t('tasks.bim_tagged_legend'),
+						color: 'var(--color-primary)',
+						expressIds: [...liveExpressIds]
+					}
+				]
+			: []
+	);
+
+	function setExpressIds(next: readonly number[]) {
+		if (isReadOnly || !liveForm) return;
+		const unique = [...new Set(next)].sort((a, b) => a - b);
+		liveForm.set('bim_express_ids', unique.length > 0 ? unique : null);
+	}
+
+	function toggleElementTag(element: IFCSelectedElement) {
+		if (expressIdSet.has(element.expressId)) {
+			setExpressIds(liveExpressIds.filter((id) => id !== element.expressId));
+		} else {
+			setExpressIds([...liveExpressIds, element.expressId]);
+		}
+	}
+
+	function toggleGroupTag(ids: readonly number[]) {
+		if (ids.length === 0) return;
+		const allTagged = ids.every((id) => expressIdSet.has(id));
+		if (allTagged) {
+			const drop = new Set(ids);
+			setExpressIds(liveExpressIds.filter((id) => !drop.has(id)));
+		} else {
+			setExpressIds([...liveExpressIds, ...ids]);
+		}
+	}
+
+	function setTaskKind(next: 'bim' | 'adhoc') {
+		if (isReadOnly || !liveForm) return;
+		liveForm.set('kind', next);
+	}
+
+	const kindOptions = $derived([
+		{
+			value: 'adhoc' as const,
+			label: t('models.tasks.fields.kind.adhoc'),
+			icon: 'lucide:list-checks'
+		},
+		{ value: 'bim' as const, label: t('models.tasks.fields.kind.bim'), icon: 'lucide:box' }
+	]);
 
 	const wbsFamilyQuery = $derived(
 		record && record.wbs_path?.trim()
@@ -215,14 +348,14 @@
 	});
 
 	const programmeSummary = $derived.by(() => {
-		const rawKind = liveForm?.get('kind') ?? record?.kind;
 		const rawCode = liveForm?.get('task_code') ?? record?.task_code;
+		const rawWbs = liveForm?.get('wbs_path') ?? record?.wbs_path;
 		const parts: string[] = [];
-		if (typeof rawKind === 'string') {
-			parts.push(enum_text(rawKind, { t: rawT, model: 'tasks', field: 'kind' }));
-		}
 		if (typeof rawCode === 'string' && rawCode.trim() !== '') {
 			parts.push(rawCode.trim());
+		}
+		if (typeof rawWbs === 'string' && rawWbs.trim() !== '') {
+			parts.push(t('tasks.wbs_prefix', { path: rawWbs.trim() }));
 		}
 		return parts.join(' · ') || undefined;
 	});
@@ -232,19 +365,6 @@
 	<Picker
 		{ctx}
 		of="contracts"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
-{#snippet sourceMessageEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="project_messages"
 		id={field.id}
 		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
 		value={typeof field.value === 'string' ? field.value : null}
@@ -298,10 +418,10 @@
 					{t('timeline.milestone_badge')}
 				</Badge>
 			{/if}
-			{#if record.kind === 'bim' && (record.bim_express_ids?.length ?? 0) > 0}
+			{#if isBim && liveExpressIds.length > 0}
 				<Badge variant="outline" class="shrink-0 whitespace-nowrap font-mono text-tiny">
 					<Icon name="lucide:box" class="size-2.5" />
-					{t('tasks.bim_linked_count', { count: record.bim_express_ids?.length ?? 0 })}
+					{t('tasks.bim_linked_count', { count: liveExpressIds.length })}
 				</Badge>
 			{/if}
 		</nav>
@@ -328,7 +448,7 @@
 			<Center measure="wide" class="py-1">
 				<Stack gap="md">
 					{#if isReadOnly && record !== null}
-						<h1 class="text-title text-foreground">{record.title}</h1>
+						<h1 class="text-heading text-foreground">{record.title}</h1>
 					{:else}
 						<Stack gap="xs">
 							<input
@@ -337,7 +457,7 @@
 								placeholder={t('models.tasks.fields.title')}
 								aria-label={t('models.tasks.fields.title')}
 								aria-invalid={titleError !== undefined ? 'true' : undefined}
-								class="w-full bg-transparent text-title text-foreground outline-none placeholder:text-muted-foreground"
+								class="w-full bg-transparent text-heading text-foreground outline-none placeholder:text-muted-foreground"
 								oninput={(e) => liveForm?.set('title', e.currentTarget.value)}
 							/>
 							{#if titleError}
@@ -454,7 +574,7 @@
 									</Stack>
 								</Scroll>
 							{:else}
-								<Inline align="center" justify="center" size="fill" class="px-4 text-meta">
+								<Inline align="center" justify="center" size="fill" class="text-meta">
 									<span>{t('tasks.no_sub_tasks')}</span>
 								</Inline>
 							{/if}
@@ -473,7 +593,7 @@
 		radius="control"
 		class="flex h-full min-h-0 flex-col overflow-hidden"
 	>
-		<Scroll name={t('section.task_properties')} size="fill" class="p-4">
+		<Scroll name={t('section.task_properties')} size="fill" inset>
 			<Stack gap="md">
 				<Section
 					first
@@ -484,11 +604,85 @@
 					actions={copyCodeAction}
 				>
 					<Stack gap="sm">
+						<FieldControl id="task-kind" label={t('tasks.prop_type')}>
+							{#if isReadOnly}
+								<Badge variant="outline">
+									{enum_text(taskKind, { t: rawT, model: 'tasks', field: 'kind' })}
+								</Badge>
+							{:else}
+								<SegmentedToggle
+									options={kindOptions}
+									value={taskKind}
+									onChange={setTaskKind}
+									label={t('tasks.prop_type')}
+									control={{ id: 'construction:task-kind', label: t('tasks.prop_type') }}
+								/>
+							{/if}
+						</FieldControl>
+
+						{#if isBim}
+							<FieldControl id="task-bim-elements" label={t('tasks.bim_elements_label')}>
+								<Surface tone="subtle" padding="xs" radius="control">
+									<Stack gap="xs">
+										<Cluster align="center" justify="between" gap="xs">
+											<Inline gap="xs" align="center">
+												<Icon name="lucide:box" class="size-3.5 shrink-0 text-muted-foreground" />
+												<span class="text-xs text-foreground">
+													{liveExpressIds.length > 0
+														? t('tasks.bim_linked_count', { count: liveExpressIds.length })
+														: t('tasks.bim_none_tagged')}
+												</span>
+											</Inline>
+											{#if !isReadOnly && liveExpressIds.length > 0}
+												<Button
+													size="icon"
+													variant="ghost"
+													aria-label={t('tasks.bim_clear_tags')}
+													hint={t('tasks.bim_clear_tags')}
+													onclick={() => setExpressIds([])}
+												>
+													<Icon name="lucide:x" class="size-3.5" />
+												</Button>
+											{/if}
+										</Cluster>
+										{#if matchedGroupLabels.length > 0}
+											<Cluster gap="xs">
+												{#each matchedGroupLabels.slice(0, 3) as lbl (lbl)}
+													<Badge variant="outline" class="max-w-full truncate text-tiny"
+														>{lbl}</Badge
+													>
+												{/each}
+												{#if matchedGroupLabels.length > 3}
+													<Badge variant="outline" class="text-tiny">
+														{`+${matchedGroupLabels.length - 3}`}
+													</Badge>
+												{/if}
+											</Cluster>
+										{/if}
+										{#if projectBimFile}
+											<Button variant="outline" onclick={() => (bimPickerOpen = true)}>
+												<Icon name="lucide:mouse-pointer-click" class="size-3.5" />
+												{isReadOnly ? t('tasks.bim_view_in_3d') : t('tasks.bim_tag_in_3d')}
+											</Button>
+										{:else}
+											<p class="text-micro text-muted-foreground">
+												{t('tasks.bim_no_project_model')}
+											</p>
+										{/if}
+									</Stack>
+								</Surface>
+							</FieldControl>
+						{/if}
+
+						{#if !hideProject}
+							<Field {ctx} name="project_id" />
+						{/if}
 						{#if record !== null}
 							<Field {ctx} name="status" />
 						{/if}
 						<Field {ctx} name="priority" />
 						<Field {ctx} name="progress_pct" />
+						<Field {ctx} name="is_milestone" />
 						<Field {ctx} name="assignee" />
 						<Field {ctx} name="subcontractor_id" />
 						<Field {ctx} name="trade_specialty" />
@@ -505,7 +699,9 @@
 					<Stack gap="sm">
 						<Field {ctx} name="schedule_range" />
 						<Field {ctx} name="actual_range" />
-						<Field {ctx} name="baseline_range" />
+						{#if record?.baseline_range != null}
+							<Field {ctx} name="baseline_range" />
+						{/if}
 					</Stack>
 				</Section>
 
@@ -513,26 +709,94 @@
 					name="task_programme"
 					title={t('tasks.group_programme')}
 					icon="lucide:boxes"
+					default_open={false}
 					{...programmeSummary ? { summary: programmeSummary } : {}}
 				>
 					<Stack gap="sm">
-						<Field {ctx} name="kind" />
-						<Field {ctx} name="is_milestone" />
 						<Field {ctx} name="task_code" />
 						<Field {ctx} name="wbs_path" help={t('tasks.wbs_path_help')} />
-						<Field {ctx} name="external_id" />
 						<Field {ctx} name="contract_id" editor={contractEditor} />
-						{#if !hideProject}
-							<Field {ctx} name="project_id" />
-						{/if}
-						<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
-						{#if isBim}
-							<Field {ctx} name="bim_express_ids" />
+						{#if record?.source_message_id != null}
+							<Field {ctx} name="source_message_id" readonly />
 						{/if}
 					</Stack>
 				</Section>
 			</Stack>
 		</Scroll>
+	</Surface>
+{/snippet}
+
+{#snippet bimPickerViewer()}
+	<Bound size="fill" min_height="26rem">
+		{#if pickerViewer && projectBimFile && projectIfcSrc}
+			{#await pickerViewer}
+				<Inline align="center" justify="center" size="fill" aria-busy="true">
+					<Spinner />
+					<span class="text-xs text-muted-foreground">{t('component.loading_viewer')}</span>
+				</Inline>
+			{:then mod}
+				<mod.default
+					t={ctx.t}
+					src={projectIfcSrc}
+					alt={projectBimFile.name}
+					initialNavMode="inspect"
+					markerGroups={pickerMarkerGroups}
+					taggedExpressIds={liveExpressIds}
+					{...!isReadOnly ? { onToggleTag: toggleElementTag } : {}}
+					{...viewerExcludeClasses ? { excludeClasses: viewerExcludeClasses } : {}}
+				/>
+			{:catch error}
+				<Alert.Root variant="destructive"><Alert.Title>{String(error)}</Alert.Title></Alert.Root>
+			{/await}
+		{/if}
+	</Bound>
+{/snippet}
+
+{#snippet bimPickerGroups()}
+	<Surface tone="card" padding="sm" radius="control" class="flex h-full min-h-0 flex-col">
+		<Stack gap="sm" size="fill">
+			<Stack gap="xs">
+				<span class="text-label">{t('tasks.bim_groups_title')}</span>
+				<span class="text-meta">{t('tasks.bim_groups_hint')}</span>
+			</Stack>
+			<Input
+				bind:value={bimGroupSearch}
+				type="search"
+				placeholder={t('bim_costing.search_boq')}
+				aria-label={t('tasks.bim_groups_title')}
+				class="text-xs"
+			/>
+			<Scroll name={t('tasks.bim_groups_title')} size="fill">
+				<Stack gap="xs">
+					{#each filteredBimGroups as grp (grp.asset_key)}
+						{@const ids = grp.sample_express_ids ?? []}
+						{@const taggedCount = ids.filter((id) => expressIdSet.has(id)).length}
+						{@const allTagged = ids.length > 0 && taggedCount === ids.length}
+						<Surface tone={taggedCount > 0 ? 'subtle' : 'card'} padding="xs" radius="control">
+							<Cluster align="center" justify="between" gap="xs">
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-xs font-medium text-foreground">{grp.classification}</p>
+									<p class="truncate text-micro text-muted-foreground">
+										{`${grp.storey} · ${grp.ifc_class} · ${ids.length}`}
+									</p>
+								</div>
+								{#if !isReadOnly}
+									<Button
+										variant={allTagged ? 'secondary' : 'outline'}
+										onclick={() => toggleGroupTag(ids)}
+									>
+										<Icon name={allTagged ? 'lucide:check' : 'lucide:plus'} class="size-3" />
+										{allTagged ? t('tasks.bim_tagged_short') : t('tasks.bim_tag_short')}
+									</Button>
+								{:else if taggedCount > 0}
+									<Badge variant="outline" class="text-tiny">{taggedCount}</Badge>
+								{/if}
+							</Cluster>
+						</Surface>
+					{/each}
+				</Stack>
+			</Scroll>
+		</Stack>
 	</Surface>
 {/snippet}
 
@@ -600,3 +864,48 @@
 		</Form>
 	</RecordShell>
 {/if}
+
+<Sheet
+	open={bimPickerOpen}
+	on_open_change={(open) => !open && (bimPickerOpen = false)}
+	title={t('tasks.bim_picker_title')}
+	memory="construction:task-bim-picker"
+>
+	{#if bimPickerOpen}
+		<Bound size="fill" inset>
+			<Stack gap="sm" size="fill">
+				<Cluster align="center" justify="between" gap="sm">
+					<Inline gap="xs" align="center">
+						<Badge variant="outline" class="font-mono text-tiny">
+							{t('tasks.bim_linked_count', { count: liveExpressIds.length })}
+						</Badge>
+						<span class="text-meta">{t('tasks.bim_picker_hint')}</span>
+					</Inline>
+					<Cluster gap="xs">
+						{#if !isReadOnly && liveExpressIds.length > 0}
+							<Button variant="ghost" onclick={() => setExpressIds([])}>
+								{t('tasks.bim_clear_tags')}
+							</Button>
+						{/if}
+						<Button variant="brand" onclick={() => (bimPickerOpen = false)}>
+							<Icon name="lucide:check" class="size-3.5" />
+							{t('tasks.bim_picker_done')}
+						</Button>
+					</Cluster>
+				</Cluster>
+				{#if bimGroups.length > 0}
+					<Split
+						size="fill"
+						ratio="wide"
+						collapse="stack"
+						gap="md"
+						start={bimPickerViewer}
+						end={bimPickerGroups}
+					/>
+				{:else}
+					{@render bimPickerViewer()}
+				{/if}
+			</Stack>
+		</Bound>
+	{/if}
+</Sheet>

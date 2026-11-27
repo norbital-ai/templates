@@ -999,40 +999,132 @@
 				]
 			}
 		},
-		"communication_settings": {
+		"compliance_records": {
 			"audit": true,
 			"fields": {
-				"auto_extract": {
-					"default": true,
-					"kind": "bool"
+				"category": {
+					"default": "inspection",
+					"kind": "enum",
+					"values": [
+						"inspection",
+						"ncr",
+						"safety_metric",
+						"environmental",
+						"bim_cde",
+						"statutory_gateway"
+					]
 				},
-				"classification_sop": {
-					"format": "markdown",
+				"clause_ref": {
 					"kind": "text",
 					"optional": true
 				},
-				"hard_filter": {
-					"default": "all",
-					"kind": "enum",
-					"values": [
-						"all",
-						"known_contacts"
-					]
+				"closed_on": {
+					"kind": "date",
+					"optional": true
+				},
+				"corrective_action": {
+					"kind": "text",
+					"optional": true
+				},
+				"metric_value": {
+					"kind": "text",
+					"optional": true
 				},
 				"owner": {
 					"kind": "ref",
+					"optional": true,
 					"to": "sys_user"
+				},
+				"project_id": {
+					"inverse": "compliance_records",
+					"kind": "ref",
+					"owned": true,
+					"to": "projects"
+				},
+				"record_code": {
+					"kind": "seq",
+					"pattern": "CMP-{yyyy}-{000}",
+					"per": [
+						"project_id"
+					]
+				},
+				"recorded_on": {
+					"kind": "date"
+				},
+				"severity": {
+					"default": "medium",
+					"kind": "enum",
+					"values": [
+						"low",
+						"medium",
+						"high",
+						"critical"
+					]
+				},
+				"standard": {
+					"default": "bca_conquas",
+					"kind": "enum",
+					"values": [
+						"bca_conquas",
+						"bca_corenet_x",
+						"iso_9001",
+						"iso_14001",
+						"iso_45001",
+						"iso_19650"
+					]
+				},
+				"status": {
+					"initial": "open",
+					"kind": "state",
+					"states": {
+						"closed": {
+							"to": [
+								"verified",
+								"open"
+							]
+						},
+						"in_progress": {
+							"to": [
+								"closed",
+								"verified",
+								"open"
+							]
+						},
+						"open": {
+							"to": [
+								"in_progress",
+								"closed",
+								"verified"
+							]
+						},
+						"verified": {
+							"to": [
+								"open"
+							]
+						}
+					}
+				},
+				"title": {
+					"kind": "text"
 				}
 			},
-			"record_label": "record.owner.name",
-			"unique": [
+			"indexes": [
 				{
-					"fields": [
-						"owner"
-					],
-					"name": "one_settings_per_owner"
+					"on": [
+						"project_id",
+						"standard"
+					]
 				}
-			]
+			],
+			"record_label": "record.record_code + ' · ' + record.title",
+			"search": {
+				"text": [
+					"record_code",
+					"title",
+					"clause_ref",
+					"metric_value"
+				]
+			}
 		},
 		"contacts": {
 			"audit": true,
@@ -1636,6 +1728,21 @@
 						"gte": 0
 					}
 				},
+				"valid_recycled": {
+					"or": [
+						{
+							"recycled_content_pct": {
+								"is_null": true
+							}
+						},
+						{
+							"recycled_content_pct": {
+								"gte": 0,
+								"lte": 100
+							}
+						}
+					]
+				},
 				"valid_waste": {
 					"waste_factor_pct": {
 						"gte": 0,
@@ -1652,6 +1759,15 @@
 					"default": 0,
 					"kind": "decimal",
 					"scale": 3
+				},
+				"carbon_stage": {
+					"default": "a1_a3",
+					"kind": "enum",
+					"values": [
+						"a1_a3",
+						"a1_a5",
+						"a4_a5"
+					]
 				},
 				"category": {
 					"default": "bim_asset",
@@ -1683,6 +1799,10 @@
 						"preliminaries",
 						"general"
 					]
+				},
+				"epd_reference": {
+					"kind": "text",
+					"optional": true
 				},
 				"ifc_classes": {
 					"kind": "text",
@@ -1748,6 +1868,11 @@
 					"kind": "decimal",
 					"optional": true,
 					"scale": 4
+				},
+				"recycled_content_pct": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 1
 				},
 				"stands_in_for": {
 					"kind": "text",
@@ -2168,6 +2293,22 @@
 		},
 		"projects": {
 			"audit": true,
+			"check": {
+				"valid_gfa": {
+					"or": [
+						{
+							"gfa_m2": {
+								"is_null": true
+							}
+						},
+						{
+							"gfa_m2": {
+								"gt": 0
+							}
+						}
+					]
+				}
+			},
 			"fields": {
 				"active_contract_count": {
 					"kind": "count",
@@ -2186,6 +2327,14 @@
 					"optional": true
 				},
 				"autodesk_project_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"bca_project_ref": {
+					"kind": "text",
+					"optional": true
+				},
+				"bep_version": {
 					"kind": "text",
 					"optional": true
 				},
@@ -2276,6 +2425,10 @@
 					"max": "250MiB",
 					"optional": true
 				},
+				"bim_manager": {
+					"kind": "text",
+					"optional": true
+				},
 				"bim_summary": {
 					"kind": "json",
 					"optional": true,
@@ -2349,12 +2502,25 @@
 					"kind": "text",
 					"optional": true
 				},
+				"building_typology": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"residential",
+						"non_residential",
+						"industrial"
+					]
+				},
 				"client_id": {
 					"inverse": "client_projects",
 					"kind": "ref",
 					"on_delete": "set_null",
 					"optional": true,
 					"to": "contacts"
+				},
+				"conquas_band_target": {
+					"kind": "text",
+					"optional": true
 				},
 				"currency": {
 					"default": "SGD",
@@ -2364,6 +2530,22 @@
 					"format": "markdown",
 					"kind": "text",
 					"optional": true
+				},
+				"gfa_m2": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 2
+				},
+				"green_mark_target": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"certified",
+						"gold_plus",
+						"platinum",
+						"sle",
+						"ze"
+					]
 				},
 				"location": {
 					"kind": "point",
@@ -2417,6 +2599,10 @@
 						"specialist_contractor"
 					]
 				},
+				"qualified_person": {
+					"kind": "text",
+					"optional": true
+				},
 				"schedule_range": {
 					"kind": "period",
 					"of": "date",
@@ -2466,6 +2652,20 @@
 						}
 					}
 				},
+				"submission_gateway": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"design",
+						"piling",
+						"construction",
+						"completion"
+					]
+				},
+				"sustainability_assessor": {
+					"kind": "text",
+					"optional": true
+				},
 				"zones": {
 					"kind": "custom",
 					"of": "project_zones",
@@ -2487,6 +2687,96 @@
 					"name": "project_number"
 				}
 			]
+		},
+		"report_templates": {
+			"audit": true,
+			"fields": {
+				"body": {
+					"default": "{report}",
+					"kind": "text"
+				},
+				"company_stamp": {
+					"accept": [
+						"image/png"
+					],
+					"kind": "file",
+					"max": "512KiB",
+					"optional": true
+				},
+				"kind": {
+					"kind": "enum",
+					"values": [
+						"sustainability_report",
+						"compliance_report"
+					]
+				},
+				"letterhead": {
+					"accept": [
+						"image/png"
+					],
+					"kind": "file",
+					"max": "512KiB",
+					"optional": true
+				},
+				"locale": {
+					"default": "en",
+					"kind": "enum",
+					"values": [
+						"en",
+						"zh"
+					]
+				},
+				"print_layout": {
+					"accept": [
+						"text/html"
+					],
+					"kind": "file",
+					"max": "3MiB",
+					"optional": true
+				},
+				"published_at": {
+					"kind": "instant",
+					"optional": true
+				},
+				"standard_ref": {
+					"kind": "text",
+					"optional": true
+				},
+				"status": {
+					"initial": "draft",
+					"kind": "state",
+					"states": {
+						"draft": {
+							"to": [
+								"published"
+							]
+						},
+						"published": {}
+					}
+				},
+				"title": {
+					"kind": "text"
+				},
+				"version": {
+					"kind": "text"
+				}
+			},
+			"locks": {
+				"published": {
+					"where": {
+						"status": {
+							"eq": "published"
+						}
+					}
+				}
+			},
+			"record_label": "record.title + ' (v' + record.version + ')'",
+			"search": {
+				"text": [
+					"title",
+					"standard_ref"
+				]
+			}
 		},
 		"requestor": {
 			"fields": {
@@ -2641,6 +2931,103 @@
 					"name": "unique_code"
 				}
 			]
+		},
+		"sustainability_logs": {
+			"audit": true,
+			"check": {
+				"non_negative_energy": {
+					"diesel_litres": {
+						"gte": 0
+					},
+					"electricity_kwh": {
+						"gte": 0
+					},
+					"transport_tco2e": {
+						"gte": 0
+					}
+				},
+				"non_negative_water_waste": {
+					"newater_m3": {
+						"gte": 0
+					},
+					"waste_diverted_t": {
+						"gte": 0
+					},
+					"waste_generated_t": {
+						"gte": 0
+					},
+					"waste_hazardous_t": {
+						"gte": 0
+					},
+					"water_m3": {
+						"gte": 0
+					}
+				}
+			},
+			"fields": {
+				"diesel_litres": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"electricity_kwh": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"newater_m3": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"project_id": {
+					"inverse": "sustainability_logs",
+					"kind": "ref",
+					"owned": true,
+					"to": "projects"
+				},
+				"reporting_period": {
+					"kind": "period",
+					"of": "date"
+				},
+				"transport_tco2e": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 3
+				},
+				"waste_diverted_t": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"waste_generated_t": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"waste_hazardous_t": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				},
+				"water_m3": {
+					"default": 0,
+					"kind": "decimal",
+					"scale": 2
+				}
+			},
+			"indexes": [
+				{
+					"on": [
+						"project_id"
+					]
+				}
+			],
+			"record_label": "record.reporting_period != null ? record.reporting_period.from + (record.reporting_period.to != null ? ' – ' + record.reporting_period.to : '') : 'Site log'"
 		},
 		"sys_api_key": {
 			"fields": {
@@ -3060,6 +3447,10 @@
 				"active": {
 					"default": true,
 					"kind": "bool"
+				},
+				"classifier": {
+					"kind": "json",
+					"optional": true
 				},
 				"configuration": {
 					"default": {},

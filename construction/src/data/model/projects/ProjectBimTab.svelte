@@ -1,14 +1,13 @@
 <script lang="ts">
 	/**
 	 * Project Hub → BIM tab:
-	 * 1. `3D Model & Tasks` — live 3D IFC viewer + linked BIM tasks.
+	 * 1. `3D Model & Tasks` — federated IFC upload/replace bar, live 3D IFC viewer + linked BIM tasks.
 	 * 2. `BIM Costing` — clear Cost Estimate overview (or durable progress-aware EmptyState when no
 	 *    estimate exists yet) with an in-place tunneled 3-step workflow (`← Back` anytime without
 	 *    losing progress):
 	 *    - Step 1: Parse & Analyze Model (no premature review tables or buttons).
 	 *    - Step 2: Review Proposed Clean BIM, Item Matrix Rates & Compliance Lints (only once parsed).
 	 *    - Step 3: Generate Cost Estimate.
-	 * 3. `Model file` — federated IFC file attachment & metadata.
 	 */
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
@@ -17,12 +16,9 @@
 		Badge,
 		Button,
 		EmptyState,
-		Field,
-		Form,
 		Icon,
 		Input,
 		RunStatus,
-		Section,
 		Show,
 		Spinner,
 		Surface,
@@ -35,16 +31,7 @@
 		use_act
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
-	import {
-		Bound,
-		Cluster,
-		Column,
-		Grid,
-		Inline,
-		Scroll,
-		Split,
-		Stack
-	} from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import { buildTenderBoqCsv } from '../../../services/bim/organizer.js';
 	import { recomputeCostEstimateTotals } from '../../../services/bim/pricing.js';
@@ -59,6 +46,7 @@
 		IFCViewerTask
 	} from '../../../services/viewer/types.js';
 	import BimTakeoffRenderer from '../../custom_field/bim_takeoff/+renderer.svelte';
+	import ReportPreviewDialog from '../../../services/reports/ReportPreviewDialog.svelte';
 	import BimPrepareStep from './BimPrepareStep.svelte';
 
 	type ProcessStep = 'parse' | 'review' | 'generate';
@@ -66,14 +54,14 @@
 	let {
 		ctx,
 		record,
-		mode,
+		today,
 		focus = null,
 		onFocusChange,
 		onCreateTask
 	}: {
 		ctx: PageContext;
 		record: Row<'projects'>;
-		mode: 'view' | 'edit';
+		today: string;
 		focus: (IFCViewerFocus & { readonly task?: string }) | null;
 		onFocusChange: (next: (IFCViewerFocus & { readonly task?: string }) | null) => void;
 		onCreateTask: (values: Record<string, unknown>) => void;
@@ -183,6 +171,7 @@
 
 	let bimActiveTab = $state('model');
 	let tunnelOpen = $state(false);
+	let complianceReportOpen = $state(false);
 	let stepOverride = $state<ProcessStep | null>(null);
 	let step2Edited = $state(false);
 	let activeRun = $state<{ readonly id: string } | null>(null);
@@ -374,7 +363,9 @@
 				Effect.match({
 					onFailure: (error) => {
 						bimUploading = false;
-						bimStreamError = 'message' in error ? error.message : String(error);
+						const message = 'message' in error ? error.message : String(error);
+						bimStreamError = message;
+						toast.error(message);
 						return false;
 					},
 					onSuccess: () => {
@@ -577,6 +568,49 @@
 {#snippet bimViewerPane()}
 	<Stack gap="xs" size="fill">
 		{#if projectBimFile && viewer && activeIfcSrc}
+			<Surface tone="subtle" padding="xs" radius="control">
+				<Cluster align="center" justify="between" gap="xs">
+					<Inline gap="xs" align="center" class="min-w-0">
+						<Icon name="lucide:file-box" class="size-3.5 shrink-0 text-muted-foreground" />
+						<a
+							href={activeIfcSrc}
+							download={projectBimFile.name}
+							class="min-w-0 truncate font-mono text-xs text-foreground hover:underline"
+							title={projectBimFile.name}
+						>
+							{projectBimFile.name}
+						</a>
+						{#if record.bim_version}
+							<Badge variant="outline" class="shrink-0 font-mono text-tiny">
+								{record.bim_version}
+							</Badge>
+						{/if}
+						{#if record.bim_summary}
+							<span class="hidden shrink-0 text-micro text-muted-foreground sm:inline">
+								{t('bim.model_meta', {
+									schema: record.bim_summary.schema,
+									assets: record.bim_summary.asset_count,
+									storeys: record.bim_summary.storey_count
+								})}
+							</span>
+						{/if}
+					</Inline>
+					{#if canUpdateProject}
+						<Button
+							variant="outline"
+							disabled={bimUploading || bimStreaming}
+							onclick={() => bimUploadInput?.click()}
+						>
+							{#if bimUploading}
+								<Spinner class="size-3.5" />
+							{:else}
+								<Icon name="lucide:upload" class="size-3.5" />
+							{/if}
+							{t('component.replace_ifc_model')}
+						</Button>
+					{/if}
+				</Cluster>
+			</Surface>
 			{#await viewer}
 				<Inline align="center" justify="center" size="fill" aria-busy="true">
 					<Spinner />
@@ -593,7 +627,6 @@
 					onClearFocus={() => onFocusChange(null)}
 					{...ctx.catalog?.tasks?.create !== undefined ? { onCreateTask: createTaskFromBim } : {}}
 					onOpenTask={(taskId) => open_record('tasks', taskId)}
-					{...canUpdateProject ? { onReplaceModel: () => bimUploadInput?.click() } : {}}
 					{...viewerExcludeClasses ? { excludeClasses: viewerExcludeClasses } : {}}
 				/>
 			{:catch error}
@@ -608,7 +641,11 @@
 			>
 				{#if canUpdateProject}
 					<Button variant="outline" disabled={bimUploading} onclick={() => bimUploadInput?.click()}>
-						<Icon name="lucide:upload" class="size-3.5" />
+						{#if bimUploading}
+							<Spinner class="size-3.5" />
+						{:else}
+							<Icon name="lucide:upload" class="size-3.5" />
+						{/if}
 						{t('component.upload_ifc_model')}
 					</Button>
 				{/if}
@@ -893,6 +930,7 @@
 				onRerunCompliance={runStep1Parse}
 				onContinueToCosting={() => (stepOverride = 'generate')}
 				onInspect3d={inspect3d}
+				onPreviewComplianceReport={() => (complianceReportOpen = true)}
 				onMutated={() => (step2Edited = true)}
 			/>
 		{:else}
@@ -1329,44 +1367,28 @@
 					</Stack>
 				</Surface>
 
-				<Surface tone="card" padding="md" radius="control">
-					{#if canAnalyzeBim}
-						<BimTakeoffRenderer
-							{ctx}
-							view={{
-								mode: 'edit',
-								name: 'bim_takeoff',
-								value: liveLines,
-								disabled: costingLocked || figuresSaver.pending,
-								on_change: (next) => updateDraftLines(next ?? [])
-							}}
-						/>
-					{:else}
-						<BimTakeoffRenderer
-							{ctx}
-							view={{ mode: 'show', name: 'bim_takeoff', value: liveLines }}
-						/>
-					{/if}
-				</Surface>
+				{#if canAnalyzeBim}
+					<BimTakeoffRenderer
+						{ctx}
+						view={{
+							mode: 'edit',
+							name: 'bim_takeoff',
+							value: liveLines,
+							disabled: costingLocked || figuresSaver.pending,
+							on_change: (next) => updateDraftLines(next ?? [])
+						}}
+					/>
+				{:else}
+					<BimTakeoffRenderer
+						{ctx}
+						view={{ mode: 'show', name: 'bim_takeoff', value: liveLines }}
+					/>
+				{/if}
 			{:else}
 				{@render emptyCostingFallback()}
 			{/if}
 		</Stack>
 	</Scroll>
-{/snippet}
-
-{#snippet bimFileTab()}
-	<Form {ctx} of="projects" {mode} id={record.id} {record}>
-		<Section icon="lucide:file-box" first name="bim_model" title={t('section.bim_model')}>
-			<Grid minimum="compact">
-				<Field {ctx} name="bim_version" />
-				<Column span="all"><Field {ctx} name="bim_file" /></Column>
-				{#if record.bim_summary != null}
-					<Column span="all"><Field {ctx} name="bim_summary" readonly /></Column>
-				{/if}
-			</Grid>
-		</Section>
-	</Form>
 {/snippet}
 
 <Tabs
@@ -1386,13 +1408,16 @@
 			icon: 'lucide:calculator',
 			keep_alive: true,
 			body: bimCostingTab
-		},
-		{
-			name: 'model_file',
-			title: t('bim.tab_model_file'),
-			icon: 'lucide:file-box',
-			keep_alive: true,
-			body: bimFileTab
 		}
 	]}
 />
+
+{#if complianceReportOpen}
+	<ReportPreviewDialog
+		{ctx}
+		projectId={record.id}
+		kind="compliance_report"
+		{today}
+		onClose={() => (complianceReportOpen = false)}
+	/>
+{/if}

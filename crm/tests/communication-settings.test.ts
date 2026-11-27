@@ -1,132 +1,197 @@
-import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { expect, it } from '@effect/vitest';
-import { workspace, member, required, recordOf, runRows, pageOf, targetOf } from './workspace.js';
-import { Effect } from 'effect';
-import { scriptedDecision } from './model.js';
+import { Ai, DecisionResult, type AiRequest } from '@norbital-ai/bolt/engine';
+import { Effect, Layer, Schema, Stream } from 'effect';
+import { workspace, member, recordOf, pageOf, targetOf } from './workspace.js';
 import { personalAccount } from './personal-fixture.js';
+
 it.live(
-	'binds personal intake rules to their owner and refuses cross-user edits and oversized instructions',
+	'honors sys_integration.classifier modes, 30-message conversation window, and spawns a batched System Agent when needs_update fires',
 	() =>
 		Effect.gen(function* () {
-			const t = yield* workspace();
-			const alice = yield* member(t, ['sales', 'crm'], { email: 'alice@example.test' });
-			const bob = yield* member(t, ['sales', 'crm'], { email: 'bob@example.test' });
-			const created = yield* (yield* t.as(alice)).act({
-				'communication_settings.create': [
-					{
-						hard_filter: 'all',
-						classification_sop: 'Prioritize deployment questions.'
-					}
-				]
-			});
-			if (created.kind !== 'committed') throw new Error(JSON.stringify(created));
-			const id = recordOf(created.records, 'communication_settings', 0).id;
-			// the effect runs as alice, whose policy may start the replay it queues
-			yield* t.run_due();
-			for (const run of ['communication_settings.effect.create', 'replay_message_routes'])
-				expect(yield* runRows(t, run)).toEqual([{ state: 'succeeded', error: null }]);
-			expect(
-				pageOf(
-					yield* (yield* t.as(alice)).query({
-						communication_settings: { where: { id: { eq: id } }, limit: 1 }
+			const seenDecisions: Parameters<Ai['Service']['ask']>[0][] = [];
+			const seenAgentPrompts: string[] = [];
+			const ports = Layer.succeed(Ai, {
+				maxChoices: undefined,
+				models: ['default'],
+				catalog: Effect.succeed({ models: [{ id: 'default', label: 'Test' }], default: 'default' }),
+				deciders: Effect.succeed({
+					models: [{ id: 'default', label: 'Test' }],
+					default: 'default'
+				}),
+				embed: () => Effect.die(new Error('unused')),
+				ask: (request) =>
+					Effect.gen(function* () {
+						seenDecisions.push(request);
+						const companyIds = Object.keys(
+							request.questions['company']?.type === 'choice'
+								? request.questions['company'].criteria
+								: {}
+						).filter((id) => id !== 'none');
+						const projectIds = Object.keys(
+							request.questions['project']?.type === 'choice'
+								? request.questions['project'].criteria
+								: {}
+						).filter((id) => id !== 'none');
+						const msgText = JSON.stringify(request.state);
+						const actionable = msgText.includes('update stage to qualified');
+						return yield* Schema.decodeUnknownEffect(DecisionResult)({
+							provider: 'test',
+							cost_usd: 0,
+							answers: {
+								relevance: {
+									type: 'choice',
+									choice: 'useful',
+									confidence: 0.95,
+									probabilities: {}
+								},
+								company: {
+									type: 'choice',
+									choice: companyIds[0] ?? 'none',
+									confidence: 0.95,
+									probabilities: {}
+								},
+								project: {
+									type: 'choice',
+									choice: projectIds[0] ?? 'none',
+									confidence: 0.95,
+									probabilities: {}
+								},
+								certainty: {
+									type: 'score',
+									score: 2,
+									level: 2,
+									confidence: 0.95,
+									probabilities: {},
+									legend: {}
+								},
+								needs_update: {
+									type: 'noul',
+									noul: actionable ? 0.9 : 0.1
+								}
+							}
+						}).pipe(Effect.orDie);
 					}),
-					'communication_settings'
-				).rows[0] ?? null
-			).toMatchObject({
-				owner: alice.id
+				infer: (req: AiRequest) =>
+					Stream.succeed({
+						_tag: 'Response' as const,
+						response: (() => {
+							seenAgentPrompts.push(JSON.stringify(req.messages));
+							return {
+								content: 'Reviewed client update.',
+								tool_calls: [],
+								finish: 'stop' as const,
+								usage: { input: 10, output: 10 }
+							};
+						})()
+					})
 			});
-			expect(
-				pageOf(
-					yield* (yield* t.as(bob)).query({ communication_settings: {} }),
-					'communication_settings'
-				).rows
-			).toHaveLength(0);
-			expect(
-				yield* Effect.flip(
-					(yield* t.as(bob)).act({
-						'communication_settings.update': [
-							{
-								target: yield* targetOf(t, 'communication_settings', id),
-								set: { hard_filter: 'customer_pics' }
-							}
-						]
-					})
-				)
-			).toMatchObject({ _tag: 'ActRefused' });
-			expect(
-				yield* Effect.flip(
-					(yield* t.as(alice)).act({
-						'communication_settings.update': [
-							{
-								target: yield* targetOf(t, 'communication_settings', id),
-								set: { classification_sop: 'x'.repeat(8001) }
-							}
-						]
-					})
-				)
-			).toMatchObject({ _tag: 'ActRefused' });
-		}).pipe(Effect.scoped)
-);
-it.live(
-	'filters native WhatsApp and email before AI and reads the syncing user’s supplementary SOP',
-	() =>
-		Effect.gen(function* () {
-			const ai = scriptedDecision([]);
-			const t = yield* workspace({ ports: ai.ports });
+
+			const t = yield* workspace({ ports });
 			const admin = yield* t.as(t.admin);
 			const alice = yield* member(t, ['sales', 'crm'], { email: 'alice@example.test' });
 			const bob = yield* member(t, ['sales', 'crm'], { email: 'bob@example.test' });
-			const configured = yield* (yield* t.as(alice)).act({
-				'communication_settings.create': [
+
+			const companyRes = yield* admin.act({ 'companies.create': [{ name: 'Acme Corp' }] });
+			if (companyRes.kind !== 'committed') throw new Error(JSON.stringify(companyRes));
+			const companyId = recordOf(companyRes.records, 'companies', 0).id;
+			const projectRes = yield* admin.act({
+				'projects.create': [{ name: 'Acme Portal', company_id: companyId }]
+			});
+			if (projectRes.kind !== 'committed') throw new Error(JSON.stringify(projectRes));
+
+			const aliceMail = yield* personalAccount(t, alice, 'email');
+			const bobMail = yield* personalAccount(t, bob, 'email');
+
+			// Configure Alice's mailbox with custom classifier instructions; turn Bob's mailbox classifier off
+			const aliceConfigured = yield* (yield* t.as(alice)).act({
+				'sys_integration.update': [
 					{
-						hard_filter: 'all',
-						classification_sop: 'Prioritize deployment questions.'
+						target: yield* targetOf(t, 'sys_integration', aliceMail),
+						set: {
+							classifier: { mode: 'smart', instructions: 'Prioritize deployment questions.' }
+						}
 					}
 				]
 			});
-			if (configured.kind !== 'committed') throw new Error(JSON.stringify(configured));
-			const mailboxes = new Map([
-				[alice, yield* personalAccount(t, alice, 'email')],
-				[bob, yield* personalAccount(t, bob, 'email')]
-			]);
-			const emit = Effect.fnUntraced(function* emit(user: typeof alice, id: string) {
-				yield* t.receive(required(mailboxes.get(user)), {
-					id,
-					sent_at: t.clock.now(),
-					from: { address: 'unknown@example.test', name: null },
-					to: [{ address: 'sales@example.test', name: null }],
-					subject: id,
-					text: 'Deployment question',
-					headers: {}
-				});
+			expect(aliceConfigured.kind).toBe('committed');
+			const bobConfigured = yield* (yield* t.as(bob)).act({
+				'sys_integration.update': [
+					{
+						target: yield* targetOf(t, 'sys_integration', bobMail),
+						set: { classifier: { mode: 'off' } }
+					}
+				]
 			});
-			yield* emit(alice, 'alice:first');
-			yield* emit(bob, 'bob:mail');
-			yield* t.receive(yield* personalAccount(t, bob, 'whatsapp'), {
-				id: 'bob:phone',
-				thread: 'bob:phone',
-				sent_at: t.clock.now(),
-				from: { handle: '6599998888@s.whatsapp.net', name: null },
-				text: 'Hello',
-				attachments: []
+			expect(bobConfigured.kind).toBe('committed');
+
+			// Two sequential emails in Alice's thread (reactive sys_message trigger -> sync_messages -> classify_messages)
+			yield* t.receive(aliceMail, {
+				id: '<alice-1@example.test>',
+				thread: 'acme-thread-1',
+				sent_at: '2026-10-01T02:00:00Z',
+				from: { address: 'buyer@acme.test', name: 'Buyer' },
+				to: [{ address: 'alice@example.test', name: null }],
+				subject: 'Deployment kickoff',
+				text: 'First note about Acme Portal deployment.',
+				headers: {}
 			});
-			yield* admin.run('sync_messages', {}, JobResult);
+			yield* t.receive(aliceMail, {
+				id: '<alice-2@example.test>',
+				thread: 'acme-thread-1',
+				sent_at: '2026-10-01T02:05:00Z',
+				from: { address: 'buyer@acme.test', name: 'Buyer' },
+				to: [{ address: 'alice@example.test', name: null }],
+				subject: 'Re: Deployment kickoff',
+				text: 'Approved budget — please update stage to qualified and set a follow-up.',
+				headers: {}
+			});
+			// Bob's mailbox has classifier.mode = 'off' -> reactive sync_messages is gated off
+			yield* t.receive(bobMail, {
+				id: '<bob-1@example.test>',
+				sent_at: '2026-10-01T02:06:00Z',
+				from: { address: 'someone@other.test', name: null },
+				to: [{ address: 'bob@example.test', name: null }],
+				subject: 'Ignored while off',
+				text: 'Should not sync when classifier is off',
+				headers: {}
+			});
+
 			yield* t.run_due();
-			expect(ai.requests).toHaveLength(1);
-			expect(ai.requests[0]).toMatchObject({
-				state: { classification_sop: 'Prioritize deployment questions.' }
-			});
+			yield* t.settled();
+
+			// Bob's off connection synced 0 activities
 			const bobItems = pageOf(
-				yield* admin.query({
-					activities: { where: { source_user: { eq: bob.id } } }
-				}),
+				yield* admin.query({ activities: { where: { source_user: { eq: bob.id } } } }),
 				'activities'
 			);
-			expect(bobItems.rows).toHaveLength(2);
+			expect(bobItems.rows).toHaveLength(0);
+
+			// Alice's second message received connection instructions AND earlier thread message as contextOnly
+			expect(seenDecisions.length).toBeGreaterThanOrEqual(2);
+			const secondDecision = seenDecisions.find((req) =>
+				JSON.stringify(req.state).includes('update stage to qualified')
+			);
+			expect(secondDecision).toBeDefined();
+			expect(secondDecision).toMatchObject({
+				state: { channel_classifier: 'Prioritize deployment questions.' }
+			});
+			const parsedState = Schema.decodeUnknownSync(
+				Schema.Struct({
+					earlier: Schema.Array(Schema.Struct({ text: Schema.String, contextOnly: Schema.Boolean }))
+				})
+			)(secondDecision?.state);
 			expect(
-				bobItems.rows.every(
-					(r) => r.classification === 'ignored' && String(r.reason ?? '').startsWith('Hard filter:')
+				parsedState.earlier.some(
+					(e) => e.text.includes('First note about Acme Portal') && e.contextOnly
 				)
 			).toBe(true);
+
+			// Actionable needs_update message spawned a batched System Agent task conversation
+			const taskConvs = yield* t.db.rows(Schema.Struct({ id: Schema.String }), {
+				text: "SELECT id FROM sys_conversation WHERE kind = 'task'",
+				params: []
+			});
+			expect(taskConvs.length).toBeGreaterThanOrEqual(1);
+			expect(seenAgentPrompts.length).toBeGreaterThanOrEqual(1);
 		}).pipe(Effect.scoped)
 );

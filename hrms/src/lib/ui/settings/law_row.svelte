@@ -259,7 +259,7 @@
 		CodeEditor,
 		Combobox,
 		Editor,
-		Label,
+		FieldControl,
 		Section,
 		Sheet,
 		enum_text,
@@ -391,8 +391,12 @@
 
 {#snippet control([name, kind]: FieldSpec)}
 	{@const helped = HELPED.find((field) => field === name)}
-	<Stack gap="xs">
-		<Label for="law-row-{name}">{title(name)}</Label>
+	<FieldControl
+		id="law-row-{name}"
+		label={title(name)}
+		{...helped ? { help: ctx.t(`models.law.help.${helped}`) } : {}}
+		readonly={writing === null}
+	>
 		{#if kind === 'code'}
 			<CodeEditor
 				language="javascript"
@@ -435,8 +439,7 @@
 				on_change={(next) => (edits[name] = next)}
 			/>
 		{/if}
-		{#if helped}<p class="text-meta">{ctx.t(`models.law.help.${helped}`)}</p>{/if}
-	</Stack>
+	</FieldControl>
 {/snippet}
 
 <Sheet

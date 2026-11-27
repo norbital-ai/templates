@@ -1,7 +1,15 @@
 <script lang="ts">
 	import type { CustomFieldView } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Badge, Button, Icon, Input, Label, Surface, type UiContext } from '@norbital-ai/ui';
+	import {
+		Badge,
+		Button,
+		FieldControl,
+		Icon,
+		Input,
+		Surface,
+		type UiContext
+	} from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 
 	type Zone = {
@@ -59,35 +67,31 @@
 			<Surface tone="subtle" padding="sm" radius="control">
 				<Stack gap="sm">
 					<Grid minimum="compact" gap="sm">
-						<Stack gap="xs">
-							<Label for={`${uid}-zn-code-${idx}`}>{t('zones.code')}</Label>
+						<FieldControl id={`${uid}-zn-code-${idx}`} label={t('zones.code')}>
 							<Input
 								id={`${uid}-zn-code-${idx}`}
 								value={zone.code}
 								disabled={view.disabled}
 								oninput={(e) => updateZone(idx, { code: e.currentTarget.value })}
 							/>
-						</Stack>
-						<Stack gap="xs">
-							<Label for={`${uid}-zn-name-${idx}`}>{t('zones.name')}</Label>
+						</FieldControl>
+						<FieldControl id={`${uid}-zn-name-${idx}`} label={t('zones.name')}>
 							<Input
 								id={`${uid}-zn-name-${idx}`}
 								value={zone.name}
 								disabled={view.disabled}
 								oninput={(e) => updateZone(idx, { name: e.currentTarget.value })}
 							/>
-						</Stack>
-						<Stack gap="xs">
-							<Label for={`${uid}-zn-grid-${idx}`}>{t('zones.grid_axis')}</Label>
+						</FieldControl>
+						<FieldControl id={`${uid}-zn-grid-${idx}`} label={t('zones.grid_axis')}>
 							<Input
 								id={`${uid}-zn-grid-${idx}`}
 								value={zone.grid_axis ?? ''}
 								disabled={view.disabled}
 								oninput={(e) => updateZone(idx, { grid_axis: e.currentTarget.value || null })}
 							/>
-						</Stack>
-						<Stack gap="xs">
-							<Label for={`${uid}-zn-elev-${idx}`}>{t('zones.elevation_m')}</Label>
+						</FieldControl>
+						<FieldControl id={`${uid}-zn-elev-${idx}`} label={t('zones.elevation_m')}>
 							<Input
 								id={`${uid}-zn-elev-${idx}`}
 								type="number"
@@ -101,7 +105,7 @@
 									updateZone(idx, { elevation_m: parsed });
 								}}
 							/>
-						</Stack>
+						</FieldControl>
 					</Grid>
 					<Inline justify="end">
 						<Button

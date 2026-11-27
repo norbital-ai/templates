@@ -3075,6 +3075,10 @@
 					"default": true,
 					"kind": "bool"
 				},
+				"classifier": {
+					"kind": "json",
+					"optional": true
+				},
 				"configuration": {
 					"default": {},
 					"kind": "json"

@@ -992,37 +992,6 @@
 				]
 			}
 		},
-		"communication_settings": {
-			"audit": true,
-			"fields": {
-				"classification_sop": {
-					"format": "markdown",
-					"kind": "text",
-					"optional": true
-				},
-				"hard_filter": {
-					"default": "customer_pics",
-					"kind": "enum",
-					"values": [
-						"customer_pics",
-						"all"
-					]
-				},
-				"owner": {
-					"kind": "ref",
-					"to": "sys_user"
-				}
-			},
-			"record_label": "record.owner.name",
-			"unique": [
-				{
-					"fields": [
-						"owner"
-					],
-					"name": "one_settings_per_owner"
-				}
-			]
-		},
 		"companies": {
 			"audit": true,
 			"computed": {
@@ -2760,6 +2729,10 @@
 				"active": {
 					"default": true,
 					"kind": "bool"
+				},
+				"classifier": {
+					"kind": "json",
+					"optional": true
 				},
 				"configuration": {
 					"default": {},

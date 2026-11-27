@@ -4,7 +4,7 @@
 	 * or a correction of the changes that set the edited values. Without `always` bound, it is the date alone.
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Combobox, Editor, Label } from '@norbital-ai/ui';
+	import { Combobox, Editor, FieldControl } from '@norbital-ai/ui';
 	import { Stack } from '@norbital-ai/ui/layout';
 
 	let {
@@ -38,14 +38,15 @@
 		/>
 	{/if}
 	{#if !always}
-		<Label for={id}>{ctx.t('law_save.date')}</Label>
-		<Editor
-			{ctx}
-			{id}
-			name="effective_from"
-			kind={{ kind: 'date' }}
-			value={date}
-			on_change={(next) => next != null && (date = String(next))}
-		/>
+		<FieldControl {id} label={ctx.t('law_save.date')}>
+			<Editor
+				{ctx}
+				{id}
+				name="effective_from"
+				kind={{ kind: 'date' }}
+				value={date}
+				on_change={(next) => next != null && (date = String(next))}
+			/>
+		</FieldControl>
 	{/if}
 </Stack>

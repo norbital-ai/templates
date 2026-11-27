@@ -98,13 +98,13 @@
 			<Columns count={2} gap="none" class="gap-px rounded-lg border bg-border">
 				<Stack gap="none" class="bg-card p-4">
 					<p class="text-xs font-medium text-muted-foreground">{ctx.t('app.people.current')}</p>
-					<p class="text-section tabular-nums" data-headcount>{current}</p>
+					<p class="text-metric" data-headcount>{current}</p>
 				</Stack>
 				<Stack gap="none" class="bg-card p-4">
 					<p class="text-xs font-medium text-muted-foreground">
 						{ctx.t('app.people.turnover_12m')}
 					</p>
-					<p class="text-section tabular-nums">
+					<p class="text-metric">
 						{new Intl.NumberFormat(ctx.locale, {
 							style: 'percent',
 							maximumFractionDigits: 1

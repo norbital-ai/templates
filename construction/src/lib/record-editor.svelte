@@ -26,8 +26,8 @@
 	 * One structured value edited part by part. A value whose every part is empty is `null`, so clearing the last
 	 * filled cell clears the field rather than storing a record of empty strings.
 	 */
-	import { Input, Label, Surface } from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { FieldControl, Input, Surface } from '@norbital-ai/ui';
+	import { Grid } from '@norbital-ai/ui/layout';
 	import * as Predicate from 'effect/Predicate';
 	let {
 		value,
@@ -58,8 +58,7 @@
 <Surface tone="subtle" padding="sm" radius="control">
 	<Grid gap="sm" minimum="compact">
 		{#each parts as part (part.key)}
-			<Stack gap="xs">
-				<Label for={`${uid}-${part.key}`}>{part.label}</Label>
+			<FieldControl id={`${uid}-${part.key}`} label={part.label}>
 				<Input
 					id={`${uid}-${part.key}`}
 					type={part.type ?? 'text'}
@@ -69,7 +68,7 @@
 					{disabled}
 					oninput={(event) => update(part, event.currentTarget.value)}
 				/>
-			</Stack>
+			</FieldControl>
 		{/each}
 	</Grid>
 </Surface>

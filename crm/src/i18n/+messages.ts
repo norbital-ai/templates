@@ -105,20 +105,9 @@ export default messages({
 	'models.template_documents.fields.drafting_instructions': 'Drafting instructions',
 	'models.template_documents.fields.version': 'Version',
 	'automations.template_documents_new_version.label': 'Publish new version',
-	'crm.accounts.rules_help':
-		'These settings apply to your connected accounts. Changes apply to messages awaiting classification.',
-	'models.communication_settings.fields.hard_filter': 'Which messages to sync',
-	'models.communication_settings.fields.hard_filter.customer_pics': 'Customer PICs only (default)',
-	'models.communication_settings.fields.hard_filter.all': 'All messages',
-	'crm.accounts.filter_help':
-		'Customer PICs match the email addresses, phone numbers and Telegram, Slack and Discord ids saved under a customer. Excluded messages skip AI classification.',
-	'models.communication_settings.fields.classification_sop': 'Extra filing instructions',
-	'crm.accounts.sop_help':
-		'Guide System 1 relevance decisions. Customer matching and confidence checks still apply. Maximum 8,000 characters.',
-	'crm.accounts.save_rules': 'Save settings',
 	'app.configuration.title': 'Configuration',
 	'app.configuration.description':
-		'Your message rules, the template catalogue and your company’s signatory.',
+		'Products, document and outreach templates, and your company’s signatory.',
 	'models.activities.fields.source_user': 'Synced by',
 	'models.activities.fields.transport': 'Source type',
 	'models.activities.fields.handle': 'Contact address',
@@ -499,7 +488,6 @@ export default messages({
 	'jobs.column.fee': 'Fee',
 	'jobs.column.decision': 'Decision',
 	'jobs.column.decided_on': 'Decided on',
-	'configuration.rules': 'Message rules',
 	'configuration.save_signatory': 'Save signatory',
 	'configuration.signatory_help':
 		'Your company’s legal details and who signs its documents: the provider_* placeholders of every template.',
@@ -525,7 +513,6 @@ export default messages({
 	'errors.calendar_partition_missing': 'A calendar sync requires its calendar identity.',
 	'errors.calendar_refused': 'Google Calendar refused this change ({status}): {message}',
 	'errors.calendar_source_automatic': 'Calendar source links are assigned automatically.',
-	'errors.classification_too_long': 'Classification instructions must be at most 8,000 characters.',
 	'errors.company_missing': 'The company no longer exists.',
 	'errors.contact_missing': 'Choose an existing contact.',
 	'errors.contact_no_email': 'This contact has no email address.',
@@ -535,8 +522,6 @@ export default messages({
 	'errors.follow_up_due': 'Set a due date for this follow-up.',
 	'errors.follow_up_only': 'Only follow-up activities can be completed.',
 	'errors.intake_failed': 'CRM intake failed: {kind}',
-	'errors.intake_needs_member': 'Personal intake settings require a signed-in user.',
-	'errors.intake_not_own': 'You can only change your own intake settings.',
 	'errors.invalid_import_start': 'The connection has an invalid import start.',
 	'errors.job_customer_fixed':
 		'A job stays with its customer to preserve its SOW and activity history.',

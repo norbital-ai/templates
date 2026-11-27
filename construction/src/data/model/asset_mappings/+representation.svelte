@@ -54,7 +54,6 @@
 			<Field {ctx} name="service" />
 			<Field {ctx} name="size_mm" readonly />
 			<Column span="all"><Field {ctx} name="cleanup_note" readonly /></Column>
-			<Column span="all"><Field {ctx} name="signature" readonly /></Column>
 		</Grid>
 	</Section>
 </RecordForm>

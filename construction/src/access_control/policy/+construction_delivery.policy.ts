@@ -33,6 +33,13 @@ export default policy({
 			}
 		},
 		tasks: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		sustainability_logs: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		compliance_records: {
+			outputs: { default: {} },
+			create: {},
+			update: { moves: 'all' },
+			delete: {}
+		},
 		activities: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		contacts: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		project_messages: { outputs: { default: {} }, create: {}, update: {} }

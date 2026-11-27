@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Badge, Button, Combobox, Icon, Input, Label, Surface } from '@norbital-ai/ui';
+	import { Badge, Button, Combobox, FieldControl, Icon, Input, Surface } from '@norbital-ai/ui';
 	import { Cluster, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { BigDecimal } from 'effect';
 	import { formatTrimmed, moneyStr, toDecimal } from '../services/commercial/decimal.js';
@@ -268,30 +268,28 @@
 				</Inline>
 				<p class="text-sm font-medium text-foreground">{line.description}</p>
 				<Grid minimum="compact" gap="sm">
-					<Stack gap="xs">
-						<Label for={`${uid}-pl-qty-${idx}`}>
-							{t('priced_lines.col_qty')} ({line.unit})
-						</Label>
+					<FieldControl
+						id={`${uid}-pl-qty-${idx}`}
+						label={`${t('priced_lines.col_qty')} (${line.unit})`}
+					>
 						<Input
 							id={`${uid}-pl-qty-${idx}`}
 							value={line.qty}
 							{disabled}
 							oninput={(e) => updateLine(idx, { qty: e.currentTarget.value })}
 						/>
-					</Stack>
-					<Stack gap="xs">
-						<Label for={`${uid}-pl-rate-${idx}`}>{t('priced_lines.col_rate')}</Label>
+					</FieldControl>
+					<FieldControl id={`${uid}-pl-rate-${idx}`} label={t('priced_lines.col_rate')}>
 						<Input
 							id={`${uid}-pl-rate-${idx}`}
 							value={line.unit_rate}
 							{disabled}
 							oninput={(e) => updateLine(idx, { unit_rate: e.currentTarget.value })}
 						/>
-					</Stack>
-					<Stack gap="xs" justify="end">
-						<span class="text-meta">{t('priced_lines.col_amount')}</span>
+					</FieldControl>
+					<FieldControl id={`${uid}-pl-amt-${idx}`} label={t('priced_lines.col_amount')} readonly>
 						<span class="text-label tabular-nums">{line.amount}</span>
-					</Stack>
+					</FieldControl>
 				</Grid>
 			</Stack>
 		</Surface>

@@ -190,7 +190,7 @@ accumulator's mark, keeps its row) -->
 							>
 						</Inline>
 						<Stack gap="xs">
-							<p class="text-title tabular-nums wrap-anywhere">{money(latest.net_assets)}</p>
+							<p class="text-metric wrap-anywhere">{money(latest.net_assets)}</p>
 							{#if latest.day_change !== null}
 								<p
 									class={[

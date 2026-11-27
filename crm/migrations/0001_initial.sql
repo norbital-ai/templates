@@ -1,4 +1,4 @@
--- 0001_initial.sql: 408 step(s), from an empty database to cda0b31943a3d2e6ee56646f9e794996d83b06e26967cb372d8aa71d2bb9be77.
+-- 0001_initial.sql: 402 step(s), from an empty database to 297c0ba464e7d2c9f4de5264dad6f88b55f99327251d687bdc00a17a994e53ff.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -1114,6 +1114,7 @@ create table "sys_integration" ("id" text primary key,
 	"configuration" jsonb default '{}'::jsonb not null,
 	"import_start" jsonb,
 	"listen" jsonb,
+	"classifier" jsonb,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
@@ -1124,6 +1125,7 @@ create table "sys_integration" ("id" text primary key,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__d303bac9" check (("listen" is null or store_json_valid("listen", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__72687215" check (("classifier" is null or store_json_valid("classifier", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1533,15 +1535,6 @@ create table "cohort_members" ("id" uuid primary key, revision int not null defa
 	constraint "cohort_members__ck__509595f1" check ("stopped" in ('bounced', 'unsubscribed')),
 	constraint "cohort_members__ex__1563ec2b" exclude using btree ("contact" with =) where (coalesce("active" = true, false)) deferrable initially immediate,
 	constraint "cohort_members__ex__ccd1addd" exclude using btree ("company" with =) where (coalesce("active" = true, false)) deferrable initially immediate
-);
-
--- step create:table:communication_settings (additive)
-create table "communication_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"hard_filter" text default 'customer_pics'::text not null,
-	"classification_sop" text,
-	"owner" text not null,
-	constraint "communication_settings__ck__29d8c5fe" check ("hard_filter" in ('customer_pics', 'all')),
-	constraint "communication_settings__uq__28afca82" unique ("owner") deferrable initially immediate
 );
 
 -- step create:table:companies (additive)
@@ -1955,7 +1948,7 @@ select bolt_history_register('sys_envoy_channel','{"fields":{"active":{"default"
 select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:sys_integration (additive)
-select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"classifier":{"kind":"json","optional":true},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
 
 -- step create:history:schema:sys_invitation (additive)
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_team"}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
@@ -1983,9 +1976,6 @@ select bolt_history_register('cohorts','{"audit":true,"fields":{"apollo_sequence
 
 -- step create:history:schema:cohort_members (additive)
 select bolt_history_register('cohort_members','{"audit":true,"fields":{"active":{"default":true,"hidden":true,"kind":"bool"},"apollo_contact_id":{"hidden":true,"kind":"text","optional":true},"cohort":{"inverse":"members","kind":"ref","on_delete":"cascade","to":"cohorts"},"company":{"inverse":"cohort_memberships","kind":"ref","to":"companies"},"contact":{"inverse":"cohort_memberships","kind":"ref","to":"contacts"},"enrolled_on":{"kind":"date","optional":true},"meeting_booked":{"default":false,"kind":"bool"},"projects_sent":{"format":"markdown","kind":"text","optional":true},"replied":{"default":false,"kind":"bool"},"step":{"kind":"int","min":0,"optional":true},"stopped":{"kind":"enum","optional":true,"values":["bounced","unsubscribed"]}},"record_label":"record.cohort.name + '' · '' + record.contact.full_name","unique":[{"fields":["contact"],"name":"one_active_cohort_per_contact","where":{"active":{"eq":true}}},{"fields":["company"],"name":"one_active_cohort_per_company","where":{"active":{"eq":true}}}]}'::jsonb);
-
--- step create:history:schema:communication_settings (additive)
-select bolt_history_register('communication_settings','{"audit":true,"fields":{"classification_sop":{"format":"markdown","kind":"text","optional":true},"hard_filter":{"default":"customer_pics","kind":"enum","values":["customer_pics","all"]},"owner":{"kind":"ref","to":"sys_user"}},"record_label":"record.owner.name","unique":[{"fields":["owner"],"name":"one_settings_per_owner"}]}'::jsonb);
 
 -- step create:history:schema:companies (additive)
 select bolt_history_register('companies','{"audit":true,"computed":{"company_key":{"expr":{"trim":{"regex_replace":[{"trim":{"regex_replace":[{"regex_replace":[{"lower":{"field":"name"}},"&"," and "]},"[^0-9a-zÀ-￿]+"," "]}},"( (private|pte|pvt|public|limited|ltd|sdn|bhd|berhad|inc|incorporated|llc|llp|lp|plc|pty|corp|corporation|co|company|gmbh|ag|sa|bv|nv|tbk|pt|jsc))+$",""]}},"kind":"text"},"uen_key":{"expr":{"upper":{"regex_replace":[{"field":"uen"},"[^A-Za-z0-9]",""]}},"kind":"text"}},"fields":{"address":{"kind":"text","optional":true},"description":{"kind":"text","optional":true},"documents":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"domain":{"kind":"text","optional":true},"follow_up_days":{"default":7,"kind":"int","max":90,"min":1},"industry":{"kind":"text","optional":true},"job_count":{"kind":"count","of":"projects"},"manual_fields":{"hidden":true,"kind":"enum","many":true,"optional":true,"values":["industry","description"]},"name":{"kind":"text"},"nda_required":{"kind":"bool","optional":true},"notes":{"format":"markdown","kind":"text","optional":true},"owner":{"default":{"var":"actor.id"},"kind":"ref","optional":true,"to":"sys_user"},"preferences":{"kind":"json","optional":true,"shape":{"fields":{"origin":{"hidden":true,"kind":"enum","optional":true,"values":["generated","manual"]},"preference":{"kind":"text"},"sources":{"hidden":true,"kind":"text","many":true,"optional":true},"topic":{"kind":"text"}},"kind":"object","many":true}},"profile_error":{"kind":"text","optional":true},"profiled_at":{"kind":"instant","optional":true},"progress":{"kind":"enum","optional":true,"values":["in_progress","maintenance"]},"region":{"kind":"text","optional":true},"research":{"format":"markdown","kind":"text","optional":true},"research_error":{"kind":"text","optional":true},"researched_at":{"kind":"instant","optional":true},"source":{"default":"manual","kind":"enum","values":["manual","csv","apollo"]},"stage":{"initial":"lead","kind":"state","states":{"client":{"to":["qualified"]},"lead":{"to":["qualified","client","lost"]},"lost":{"to":["lead","client"]},"qualified":{"to":["lead","client","lost"]}}},"uen":{"kind":"text","optional":true},"use_cases":{"kind":"text","many":true,"optional":true},"website":{"kind":"text","optional":true}},"indexes":[{"on":["stage"]}],"record_label":"record.name","search":{"text":["name","uen","domain"]},"unique":[{"fields":["company_key"],"name":"one_company"},{"fields":["domain"],"name":"one_company_per_domain"},{"fields":["uen_key"],"name":"one_company_per_uen"}]}'::jsonb);
@@ -2109,9 +2099,6 @@ alter table "cohort_members" add constraint "cohort_members__fk__cdc5887b" forei
 
 -- step create:fk:cohort_members.cohort_members__fk__2831372d (additive)
 alter table "cohort_members" add constraint "cohort_members__fk__2831372d" foreign key ("company") references "companies" ("id") on delete restrict on update restrict;
-
--- step create:fk:communication_settings.communication_settings__fk__6b4b5400 (additive)
-alter table "communication_settings" add constraint "communication_settings__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
 
 -- step create:fk:companies.companies__fk__6b4b5400 (additive)
 alter table "companies" add constraint "companies__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
@@ -2461,9 +2448,6 @@ create index "cohorts__gin__73732636" on "cohorts" using gin (bolt_search);
 -- step create:trigger:cohort_members.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "cohort_members" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
--- step create:trigger:communication_settings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "communication_settings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
 -- step create:trigger:companies.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "companies" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"stage":{"initial":"lead","states":{"client":{"to":["qualified"]},"lead":{"to":["qualified","client","lost"]},"lost":{"to":["lead","client"]},"qualified":{"to":["lead","client","lost"]}}}}}');
 
@@ -2695,9 +2679,6 @@ create index "cohort_members__ix__e1848275" on "cohort_members" ("contact");
 -- step create:index:cohort_members.cohort_members__ix__2a6a296f (additive)
 create index "cohort_members__ix__2a6a296f" on "cohort_members" ("company");
 
--- step create:index:communication_settings.communication_settings__ix__eb10cfe3 (additive)
-create index "communication_settings__ix__eb10cfe3" on "communication_settings" ("owner");
-
 -- step create:index:companies.companies__ix__eb10cfe3 (additive)
 create index "companies__ix__eb10cfe3" on "companies" ("owner");
 
@@ -2792,7 +2773,7 @@ create index "tasks__ix__48bb0927" on "tasks" ("contact_id");
 create index "tasks__ix__2a751893" on "tasks" ("meeting");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['activities','agreement_settings','approval_request','calendar_entries','cohort_members','cohorts','communication_settings','companies','contacts','issues','meeting_recordings','meeting_speakers','notes','offering_settings','outreach_settings','potential_projects','products','project_documents','projects','sequences','signed_documents','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace','tasks','template_documents']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['activities','agreement_settings','approval_request','calendar_entries','cohort_members','cohorts','companies','contacts','issues','meeting_recordings','meeting_speakers','notes','offering_settings','outreach_settings','potential_projects','products','project_documents','projects','sequences','signed_documents','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace','tasks','template_documents']::text[]));
 
 -- step create:engine:audit:agreement_settings (additive)
 drop trigger if exists bolt_audit_mark on "agreement_settings";
@@ -2818,11 +2799,6 @@ create trigger bolt_audit after insert or update or delete on "cohorts" for each
 drop trigger if exists bolt_audit_mark on "cohort_members";
 drop trigger if exists bolt_audit on "cohort_members";
 create trigger bolt_audit after insert or update or delete on "cohort_members" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["cohort","cohorts"],["company","companies"],["contact","contacts"]]');
-
--- step create:engine:audit:communication_settings (additive)
-drop trigger if exists bolt_audit_mark on "communication_settings";
-drop trigger if exists bolt_audit on "communication_settings";
-create trigger bolt_audit after insert or update or delete on "communication_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["owner","sys_user"]]');
 
 -- step create:engine:audit:companies (additive)
 drop trigger if exists bolt_audit_mark on "companies";

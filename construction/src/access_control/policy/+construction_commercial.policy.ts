@@ -7,7 +7,23 @@ export default policy({
 	grants: {
 		projects: {
 			outputs: { default: {} },
-			update: { fields: ['currency', 'bim_takeoff', 'bim_takeoff_views'] }
+			update: {
+				fields: [
+					'currency',
+					'bim_takeoff',
+					'bim_takeoff_views',
+					'gfa_m2',
+					'building_typology',
+					'green_mark_target',
+					'sustainability_assessor',
+					'bca_project_ref',
+					'submission_gateway',
+					'qualified_person',
+					'bim_manager',
+					'bep_version',
+					'conquas_band_target'
+				]
+			}
 		},
 		contracts: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
 		commercial_documents: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
@@ -16,6 +32,14 @@ export default policy({
 		item_matrix: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		bim_settings: { outputs: { default: {} }, create: {}, update: {} },
 		sop_rules: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		report_templates: { outputs: { default: {} }, create: {}, update: { moves: 'all' } },
+		sustainability_logs: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
+		compliance_records: {
+			outputs: { default: {} },
+			create: {},
+			update: { moves: 'all' },
+			delete: {}
+		},
 		contacts: { outputs: { default: {} }, create: {}, update: {} },
 		asset_mappings: {
 			outputs: { default: {} },

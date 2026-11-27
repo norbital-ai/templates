@@ -14,6 +14,7 @@ import {
 	selectBatch,
 	skipRacedWrite
 } from '../lib/message-import.js';
+import { allowsAutomation } from '../lib/classifier.js';
 
 /** Old history read per run: filed rows past the prefix drop out, and still a full batch unfiled can remain. */
 const OLDEST_PAGE = 50;
@@ -25,8 +26,7 @@ const TRANSPORTS = ['email', 'whatsapp', 'telegram', 'slack', 'discord'] as cons
 export default automation({
 	description:
 		'Mirrors members’ WhatsApp and mailbox accounts and the workspace’s WhatsApp, email, Telegram, Slack and Discord accounts into the shared CRM intake table; a voice note is filed as its transcript, images and documents as its attachments.',
-	// rests a day after a slot with nothing to file; an arriving message wakes the database and the next slot runs
-	on: [{ cron: '* * * * *', rest: '1d' }],
+	on: [{ model: 'sys_message', verbs: ['create'] }],
 	input: { batch: { kind: 'int', optional: true } },
 	policies: ['hq_automation'],
 	concurrency: { max: 1 },
@@ -36,10 +36,10 @@ export default automation({
 			sys_integration: {
 				// a member's own accounts and the workspace's (Telegram, Slack and Discord bots are always the workspace's)
 				where: { integration: { in: [...TRANSPORTS] } },
-				fields: ['integration', 'import_start']
+				fields: ['integration', 'import_start', 'classifier']
 			}
 		})).sys_integration;
-		const owned = connections.rows;
+		const owned = connections.rows.filter((r) => allowsAutomation(r.classifier, 'sync_messages'));
 		if (owned.length === 0) return;
 		const transportOf = new Map(owned.map((r) => [r.id, r.integration]));
 		const boundary = {

@@ -7,7 +7,6 @@ import {
 	type WriteCtx
 } from '@norbital-ai/bolt';
 import { messageImportAllows } from '../../../lib/message-import.js';
-import { fileMessages } from './intake.js';
 
 const columns = [
 	'subject',
@@ -232,11 +231,10 @@ export default model('project_messages', {
 			return changes.map(({ set }, i) => ({ ...set, ...patches[i] }));
 		},
 		effect: function* (changes, ctx) {
-			// filed as it arrives: transcribed, routed and extracted in this effect, as the writer that stored it
-			yield* fileMessages(
-				changes.flatMap(({ after }) => (needsFiling(after) ? [after.id] : [])),
-				ctx
-			);
+			const pending = changes.flatMap(({ after }) => (needsFiling(after) ? [after.id] : []));
+			if (pending.length > 0) {
+				yield* ctx.schedule('file_project_messages', { ids: pending }, { at: ctx.now });
+			}
 		}
 	},
 	update: {
@@ -249,19 +247,18 @@ export default model('project_messages', {
 			return changes.map(({ set }, i) => ({ ...set, ...patches[i] }));
 		},
 		effect: function* (changes, ctx) {
-			// queued again: a person or a directory change set it back to pending
-			yield* fileMessages(
-				changes.flatMap(({ before, after }) =>
-					needsFiling(after) &&
-					(before.classification !== after.classification ||
-						before.extraction_status !== after.extraction_status ||
-						before.transcription !== after.transcription ||
-						before.project_id !== after.project_id)
-						? [after.id]
-						: []
-				),
-				ctx
+			const pending = changes.flatMap(({ before, after }) =>
+				needsFiling(after) &&
+				(before.classification !== after.classification ||
+					before.extraction_status !== after.extraction_status ||
+					before.transcription !== after.transcription ||
+					before.project_id !== after.project_id)
+					? [after.id]
+					: []
 			);
+			if (pending.length > 0) {
+				yield* ctx.schedule('file_project_messages', { ids: pending }, { at: ctx.now });
+			}
 		}
 	}
 });

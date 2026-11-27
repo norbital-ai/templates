@@ -21,11 +21,12 @@
 		open_record,
 		Sheet,
 		Spinner,
+		Table,
 		toast,
 		type ComboboxOption
 	} from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Bound, Cluster, Grid, Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { Effect } from 'effect';
 	import SegmentedToggle from '../../../services/ui/SegmentedToggle.svelte';
 
@@ -86,7 +87,6 @@
 	const canCreate = $derived(ctx.catalog?.item_matrix?.create !== undefined);
 
 	let createdItemIds = $state<Id<'item_matrix'>[]>([]);
-	let search = $state('');
 
 	const linkedItemIds = $derived([
 		...new Set([...assetLinks.flatMap((a) => (a.item_id ? [a.item_id.id] : [])), ...createdItemIds])
@@ -151,16 +151,42 @@
 	const activeFilter = $derived<ItemFilter>(
 		filterOverride ?? (proposedItems.length > 0 ? 'proposed' : 'all')
 	);
-	const visibleItems = $derived.by(() => {
+	type MatrixTableRow = {
+		readonly id: Id<'item_matrix'>;
+		readonly raw: MatrixRow;
+		readonly code: string;
+		readonly name: string;
+		readonly discipline: string;
+		readonly unit: string;
+		readonly unit_rate: string;
+		readonly currency: CurrencyCode;
+		readonly waste_factor_pct: string;
+		readonly carbon_factor: string;
+		readonly actions: string;
+	};
+
+	const visibleItems = $derived.by<readonly MatrixTableRow[]>(() => {
 		const source = activeFilter === 'proposed' ? proposedItems : allItems;
-		const q = search.trim().toLowerCase();
-		const filtered = q
-			? source.filter((r) =>
-					[r.code, r.name, r.discipline, r.unit, r.notes ?? ''].join(' ').toLowerCase().includes(q)
-				)
-			: source;
 		const rank = (r: MatrixRow) => (r.$approval != null ? 0 : isProposedRow(r) ? 1 : 2);
-		return [...filtered].sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code));
+		return [...source]
+			.sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code))
+			.map((row) => ({
+				id: row.id,
+				raw: row,
+				code: row.code,
+				name: row.name,
+				discipline: enum_text(row.discipline, {
+					t: rawT,
+					model: 'item_matrix',
+					field: 'discipline'
+				}),
+				unit: enum_text(row.unit, { t: rawT, model: 'item_matrix', field: 'unit' }),
+				unit_rate: String(row.unit_rate),
+				currency: row.currency,
+				waste_factor_pct: String(row.waste_factor_pct),
+				carbon_factor: String(row.carbon_factor),
+				actions: ''
+			}));
 	});
 
 	let inspectingId = $state<Id<'item_matrix'> | null>(null);
@@ -428,223 +454,202 @@
 	}
 </script>
 
-<Stack gap="sm">
-	<Cluster align="center" justify="between" gap="sm">
-		<SegmentedToggle
-			options={[
+{#snippet filterControls()}
+	<SegmentedToggle
+		options={[
+			{
+				value: 'proposed' as const,
+				label: t('bim_step.filter_proposed', { count: proposedItems.length })
+			},
+			{
+				value: 'all' as const,
+				label: t('bim_step.filter_all_matrix', { count: allItems.length })
+			}
+		]}
+		value={activeFilter}
+		onChange={(next) => (filterOverride = next)}
+		label={t('bim_step.matrix_heading')}
+		control={{
+			id: 'construction:bim-matrix-filter',
+			label: t('bim_step.matrix_heading')
+		}}
+	/>
+{/snippet}
+
+{#snippet approveAllTrailing()}
+	{#if canEdit && pendingApprovalItems.length > 1}
+		<Button variant="secondary" disabled={bulkBusy} onclick={handleApproveAllPending}>
+			{#if bulkBusy}
+				<Spinner class="size-3.5" />
+			{:else}
+				<Icon name="lucide:check-check" class="size-3.5" />
+			{/if}
+			{t('bim_step.approve_all', { count: pendingApprovalItems.length })}
+		</Button>
+	{/if}
+{/snippet}
+
+{#snippet codeCell({ row: item }: { row: MatrixTableRow })}
+	{@const row = item.raw}
+	<div class="flex min-w-0 items-center gap-1.5">
+		<span class="truncate font-mono text-label text-foreground">{row.code}</span>
+		{#if row.$approval != null}
+			<Badge variant="warning" class="shrink-0 text-tiny">{t('bim_step.pending_approval')}</Badge>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet nameCell({ row: item }: { row: MatrixTableRow })}
+	{@const row = item.raw}
+	{@const linkedLabels = assetLabelsByItemId.get(row.id) ?? []}
+	<div class="flex min-w-0 items-center gap-1.5" title={linkedLabels.join(', ') || row.name}>
+		<span class="min-w-0 truncate text-label text-foreground">{row.name}</span>
+		{#if linkedLabels.length > 0}
+			<span class="shrink-0 text-tiny text-muted-foreground">
+				{t('bim_step.used_by_assets', { count: linkedLabels.length })}
+			</span>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet unitCell({ row: item }: { row: MatrixTableRow })}
+	{@const row = item.raw}
+	<span class="truncate">
+		{`${item.unit} · ${enum_text(row.quantity_basis, { t: rawT, model: 'item_matrix', field: 'quantity_basis' })}`}
+	</span>
+{/snippet}
+
+{#snippet actionsCell({ row: item }: { row: MatrixTableRow })}
+	{@const row = item.raw}
+	{@const pendingApproval = row.$approval != null}
+	{@const isBusy = Boolean(busyIds[row.id]) || bulkBusy}
+	<div class="flex items-center justify-end gap-1">
+		{#if canEdit && pendingApproval}
+			<Button variant="secondary" disabled={isBusy} onclick={() => handleSaveOrApprove(row)}>
+				{#if isBusy}
+					<Spinner class="size-3.5" />
+				{:else}
+					<Icon name="lucide:check" class="size-3.5" />
+				{/if}
+				{t('bim_step.approve')}
+			</Button>
+			<Button
+				size="icon"
+				variant="outline"
+				disabled={isBusy}
+				aria-label={t('bim_step.reject')}
+				hint={t('bim_step.reject')}
+				onclick={() => handleReject(row)}
+			>
+				<Icon name="lucide:x" class="size-3.5" />
+			</Button>
+		{/if}
+		<Button
+			size="icon"
+			variant="ghost"
+			aria-label={t('bim_review.inspect_edit')}
+			hint={t('bim_review.inspect_edit')}
+			onclick={() => openInspect(row)}
+		>
+			<Icon name="lucide:pencil" class="size-3.5" />
+		</Button>
+	</div>
+{/snippet}
+
+{#if itemsQuery?.loading && !itemsQuery.current}
+	<Inline gap="sm" align="center" aria-busy="true">
+		<Spinner />
+		<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
+	</Inline>
+{:else if itemsQuery?.error}
+	<Alert.Root variant="destructive">
+		<Alert.Title>{itemsQuery.error.message}</Alert.Title>
+	</Alert.Root>
+{:else}
+	<Bound size="viewport">
+		<Table
+			{ctx}
+			of={visibleItems}
+			key="bim:proposed-matrix"
+			layout="grid"
+			on_open={(item) => openInspect(item.raw)}
+			row_class={(item) => (item.raw.$approval != null ? 'bg-tone-warning-bg/25' : undefined)}
+			toolbar={{
+				title: t('bim_step.matrix_heading'),
+				description: t('bim_step.matrix_hint'),
+				controls: filterControls,
+				trailing: approveAllTrailing,
+				export: true,
+				select: false,
+				new: canCreate ? () => (addSheetOpen = true) : false
+			}}
+			columns={[
 				{
-					value: 'proposed' as const,
-					label: t('bim_step.filter_proposed', { count: proposedItems.length })
+					field: 'code',
+					label: t('models.item_matrix.fields.code'),
+					width: 180,
+					cell: codeCell
 				},
 				{
-					value: 'all' as const,
-					label: t('bim_step.filter_all_matrix', { count: allItems.length })
+					field: 'name',
+					label: t('models.item_matrix.fields.name'),
+					width: 260,
+					cell: nameCell
+				},
+				{
+					field: 'discipline',
+					label: t('models.item_matrix.fields.discipline'),
+					width: 112
+				},
+				{
+					field: 'unit',
+					label: t('models.item_matrix.fields.unit'),
+					width: 132,
+					cell: unitCell
+				},
+				{
+					field: 'unit_rate',
+					label: t('models.item_matrix.fields.unit_rate'),
+					kind: { kind: 'money', currency: 'currency' },
+					width: 124,
+					align: 'end'
+				},
+				{
+					field: 'waste_factor_pct',
+					label: t('models.item_matrix.fields.waste_factor_pct'),
+					kind: { kind: 'decimal', scale: 1 },
+					width: 92,
+					align: 'end'
+				},
+				{
+					field: 'carbon_factor',
+					label: t('bim_costing.col_carbon'),
+					kind: { kind: 'decimal', scale: 3 },
+					width: 116,
+					align: 'end'
+				},
+				{
+					field: 'actions',
+					label: t('bim_review.col_actions'),
+					width: 160,
+					align: 'end',
+					cell: actionsCell
 				}
 			]}
-			value={activeFilter}
-			onChange={(next) => (filterOverride = next)}
-			label={t('bim_step.matrix_heading')}
-			control={{
-				id: 'construction:bim-matrix-filter',
-				label: t('bim_step.matrix_heading')
-			}}
-		/>
-		<Cluster gap="xs" align="center">
-			<Input
-				bind:value={search}
-				type="search"
-				placeholder={`${t('models.item_matrix.fields.code')} / ${t('models.item_matrix.fields.name')}…`}
-				aria-label={t('models.item_matrix.fields.name')}
-				class="text-xs"
-			/>
-			{#if canEdit && pendingApprovalItems.length > 1}
-				<Button variant="secondary" disabled={bulkBusy} onclick={handleApproveAllPending}>
-					{#if bulkBusy}
-						<Spinner class="size-3.5" />
-					{:else}
-						<Icon name="lucide:check-check" class="size-3.5" />
-					{/if}
-					{t('bim_step.approve_all', { count: pendingApprovalItems.length })}
-				</Button>
-			{/if}
-			{#if canCreate}
-				<Button variant="outline" onclick={() => (addSheetOpen = true)}>
-					<Icon name="lucide:plus" class="size-3.5" />
-					{t('bim_step.add_matrix_item')}
-				</Button>
-			{/if}
-		</Cluster>
-	</Cluster>
-
-	{#if itemsQuery?.loading && !itemsQuery.current}
-		<Inline gap="sm" align="center" aria-busy="true">
-			<Spinner />
-			<span class="text-sm text-muted-foreground">{t('component.loading_summary')}</span>
-		</Inline>
-	{:else if itemsQuery?.error}
-		<Alert.Root variant="destructive">
-			<Alert.Title>{itemsQuery.error.message}</Alert.Title>
-		</Alert.Root>
-	{:else if visibleItems.length === 0}
-		<EmptyState
-			variant="card"
-			icon="file"
-			title={t('bim_step.matrix_heading')}
-			hint={activeFilter === 'proposed'
-				? t('bim_step.no_pending_proposals')
-				: t('bim_step.no_matrix_items')}
-		/>
-	{:else}
-		<Surface tone="card" padding="none" radius="control" class="overflow-hidden">
-			<Scroll name={t('bim_step.matrix_heading')} axis="x">
-				<table class="w-full min-w-[54rem] table-fixed border-collapse text-left text-xs">
-					<colgroup>
-						<col class="w-[16%]" />
-						<col class="w-[31%]" />
-						<col class="w-[12%]" />
-						<col class="w-[12%]" />
-						<col class="w-[11%]" />
-						<col class="w-[18%]" />
-					</colgroup>
-					<thead>
-						<tr class="border-b border-border bg-muted/40 text-overline text-muted-foreground">
-							<th class="px-3 py-2 font-medium">{t('models.item_matrix.fields.code')}</th>
-							<th class="px-3 py-2 font-medium">{t('models.item_matrix.fields.name')}</th>
-							<th class="px-3 py-2 font-medium">{t('models.item_matrix.fields.unit')}</th>
-							<th class="px-3 py-2 text-right font-medium">
-								{t('models.item_matrix.fields.unit_rate')}
-							</th>
-							<th class="px-3 py-2 text-right font-medium">{t('bim_review.col_waste_carbon')}</th>
-							<th class="px-3 py-2 text-right font-medium">{t('bim_review.col_actions')}</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-border">
-						{#each visibleItems as row (row.id)}
-							{@const pendingApproval = row.$approval != null}
-							{@const isBusy = Boolean(busyIds[row.id]) || bulkBusy}
-							{@const linkedLabels = assetLabelsByItemId.get(row.id) ?? []}
-							<tr
-								class="align-middle transition-colors hover:bg-muted/30 {pendingApproval
-									? 'bg-tone-warning-bg/25'
-									: ''}"
-							>
-								<td class="px-3 py-2">
-									<div class="flex min-w-0 flex-col gap-1">
-										<span class="truncate font-mono text-label text-foreground" title={row.code}>
-											{row.code}
-										</span>
-										{#if pendingApproval}
-											<Badge variant="warning" class="w-fit text-tiny">
-												{t('bim_step.pending_approval')}
-											</Badge>
-										{:else}
-											<span class="truncate text-micro text-muted-foreground">
-												{enum_text(row.rate_basis, {
-													t: rawT,
-													model: 'item_matrix',
-													field: 'rate_basis'
-												})}
-											</span>
-										{/if}
-									</div>
-								</td>
-								<td class="px-3 py-2">
-									<div class="min-w-0">
-										<button
-											type="button"
-											class="block w-full truncate text-left text-label text-foreground hover:underline"
-											title={row.name}
-											onclick={() => openInspect(row)}
-										>
-											{row.name}
-										</button>
-										<div
-											class="mt-0.5 flex min-w-0 items-center gap-1.5 text-micro text-muted-foreground"
-										>
-											<span class="shrink-0">
-												{enum_text(row.discipline, {
-													t: rawT,
-													model: 'item_matrix',
-													field: 'discipline'
-												})}
-											</span>
-											{#if linkedLabels.length > 0}
-												<span>·</span>
-												<span class="truncate" title={linkedLabels.join(', ')}>
-													{t('bim_step.used_by_assets', { count: linkedLabels.length })}
-												</span>
-											{/if}
-										</div>
-									</div>
-								</td>
-								<td class="px-3 py-2">
-									<div class="flex min-w-0 flex-col">
-										<span class="truncate text-foreground">
-											{enum_text(row.unit, { t: rawT, model: 'item_matrix', field: 'unit' })}
-										</span>
-										<span class="truncate text-micro text-muted-foreground">
-											{enum_text(row.quantity_basis, {
-												t: rawT,
-												model: 'item_matrix',
-												field: 'quantity_basis'
-											})}
-										</span>
-									</div>
-								</td>
-								<td class="px-3 py-2 text-right font-mono tabular-nums text-foreground">
-									{`${row.currency} ${row.unit_rate}`}
-								</td>
-								<td
-									class="px-3 py-2 text-right font-mono text-micro tabular-nums text-muted-foreground"
-								>
-									<div>{`${row.waste_factor_pct}%`}</div>
-									<div>{`${row.carbon_factor} kg`}</div>
-								</td>
-								<td class="px-3 py-2">
-									<div class="flex items-center justify-end gap-1">
-										{#if canEdit && pendingApproval}
-											<Button
-												variant="secondary"
-												disabled={isBusy}
-												onclick={() => handleSaveOrApprove(row)}
-											>
-												{#if isBusy}
-													<Spinner class="size-3.5" />
-												{:else}
-													<Icon name="lucide:check" class="size-3.5" />
-												{/if}
-												{t('bim_step.approve')}
-											</Button>
-											<Button
-												size="icon"
-												variant="outline"
-												disabled={isBusy}
-												aria-label={t('bim_step.reject')}
-												hint={t('bim_step.reject')}
-												onclick={() => handleReject(row)}
-											>
-												<Icon name="lucide:x" class="size-3.5" />
-											</Button>
-										{/if}
-										<Button
-											size="icon"
-											variant="ghost"
-											aria-label={t('bim_review.inspect_edit')}
-											hint={t('bim_review.inspect_edit')}
-											onclick={() => openInspect(row)}
-										>
-											<Icon name="lucide:pencil" class="size-3.5" />
-										</Button>
-									</div>
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</Scroll>
-		</Surface>
-	{/if}
-</Stack>
+		>
+			{#snippet empty()}
+				<EmptyState
+					variant="inset"
+					icon="file"
+					title={t('bim_step.matrix_heading')}
+					hint={activeFilter === 'proposed'
+						? t('bim_step.no_pending_proposals')
+						: t('bim_step.no_matrix_items')}
+				/>
+			{/snippet}
+		</Table>
+	</Bound>
+{/if}
 
 <!-- Side Sheet to inspect System 2 rationale, linked assets, and edit/approve/reject any matrix item -->
 <Sheet

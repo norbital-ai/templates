@@ -14,6 +14,15 @@
 	const record = $derived(view.mode !== 'create' ? view.record : null);
 	const scope = $derived(controller?.current?.get('scope') ?? record?.scope ?? 'element');
 	const metric = $derived(controller?.current?.get('metric') ?? record?.metric ?? 'min_width_mm');
+	const operator = $derived(
+		String(controller?.current?.get('operator') ?? record?.operator ?? 'gte')
+	);
+	const usesNumericThreshold = $derived(
+		metric !== 'semantic_check' && (operator === 'gte' || operator === 'lte' || operator === 'eq')
+	);
+	const usesTextThreshold = $derived(
+		metric === 'semantic_check' || operator === 'contains' || operator === 'present'
+	);
 </script>
 
 <RecordForm {ctx} {view} subtitle={['authority', 'severity', 'scope']}>
@@ -34,8 +43,16 @@
 			<Field {ctx} name="scope" />
 			<Field {ctx} name="metric" />
 			<Field {ctx} name="operator" />
-			<Field {ctx} name="threshold_num" />
-			<Field {ctx} name="threshold_text" />
+			{#if usesNumericThreshold}
+				<Field {ctx} name="threshold_num" />
+			{/if}
+			{#if usesTextThreshold}
+				{#if metric === 'semantic_check'}
+					<Column span="all"><Field {ctx} name="threshold_text" /></Column>
+				{:else}
+					<Field {ctx} name="threshold_text" />
+				{/if}
+			{/if}
 			{#if scope === 'element' || metric === 'semantic_check'}
 				<Column span="all"><Field {ctx} name="ifc_classes" /></Column>
 				<Column span="all"><Field {ctx} name="name_contains" /></Column>

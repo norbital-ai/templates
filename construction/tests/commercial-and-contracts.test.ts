@@ -817,10 +817,10 @@ it.effect(
 					{
 						integration: 'whatsapp',
 						name: 'My WhatsApp',
-						owner: fixtureId('sys_user', deliveryUser.id)
+						owner: fixtureId('sys_user', deliveryUser.id),
+						classifier: { mode: 'smart', instructions: 'Focus on site progress and variations.' }
 					}
-				],
-				'communication_settings.create': [{ hard_filter: 'all', auto_extract: true }]
+				]
 			});
 			expect(ownConn.kind).toBe('committed');
 			const ownConnRef = recordOf(ownConn.records, 'sys_integration');
@@ -859,16 +859,26 @@ it.effect(
 			);
 			expect(storedConns.map((r) => r['name'])).toEqual(['My WhatsApp']);
 
-			// sys_integration update/delete verdicts: owner succeeds, other member refused & persisted state unchanged
+			// sys_integration update/delete verdicts (including classifier): owner succeeds, other member refused & persisted state unchanged
 			const ownConnUpdate = yield* delivery.act({
-				'sys_integration.update': [{ target: ownConnRef, set: { name: 'Site WhatsApp Personal' } }]
+				'sys_integration.update': [
+					{
+						target: ownConnRef,
+						set: {
+							name: 'Site WhatsApp Personal',
+							classifier: { mode: 'all', instructions: 'Capture all site chats.' }
+						}
+					}
+				]
 			});
 			if (ownConnUpdate.kind !== 'committed') throw new Error('Own connection update failed');
 			const updatedConnRef = recordOf(ownConnUpdate.records, 'sys_integration');
 
 			const otherConnUpdateDenied = yield* qs
 				.act({
-					'sys_integration.update': [{ target: updatedConnRef, set: { name: 'Hijacked' } }]
+					'sys_integration.update': [
+						{ target: updatedConnRef, set: { name: 'Hijacked', classifier: { mode: 'off' } } }
+					]
 				})
 				.pipe(Effect.flip);
 			expect(otherConnUpdateDenied._tag).toBe('ActRefused');
@@ -876,18 +886,21 @@ it.effect(
 				.act({ 'sys_integration.delete': [{ target: updatedConnRef }] })
 				.pipe(Effect.flip);
 			expect(otherConnDeleteDenied._tag).toBe('ActRefused');
-			expect(
-				rowsOf(
-					yield* admin.query({
-						sys_integration: {
-							where: { id: { eq: updatedConnRef.id } },
-							fields: ['name'],
-							limit: 1
-						}
-					}),
-					'sys_integration'
-				)[0]?.['name']
-			).toBe('Site WhatsApp Personal');
+			const persistedConn = rowsOf(
+				yield* admin.query({
+					sys_integration: {
+						where: { id: { eq: updatedConnRef.id } },
+						fields: ['name', 'classifier'],
+						limit: 1
+					}
+				}),
+				'sys_integration'
+			)[0];
+			expect(persistedConn?.['name']).toBe('Site WhatsApp Personal');
+			expect(persistedConn?.['classifier']).toEqual({
+				mode: 'all',
+				instructions: 'Capture all site chats.'
+			});
 
 			const ownConnDelete = yield* delivery.act({
 				'sys_integration.delete': [{ target: updatedConnRef }]
@@ -899,47 +912,6 @@ it.effect(
 					'sys_integration'
 				)
 			).toHaveLength(0);
-
-			// communication_settings update verdict: other member refused (persisted unchanged), paired with owner admitted
-			const settingsRef = recordOf(ownConn.records, 'communication_settings');
-			const otherSettingsDenied = yield* qs
-				.act({
-					'communication_settings.update': [
-						{ target: settingsRef, set: { hard_filter: 'known_contacts' } }
-					]
-				})
-				.pipe(Effect.flip);
-			expect(otherSettingsDenied._tag).toBe('ActRefused');
-			const persistedSettings = rowsOf(
-				yield* delivery.query({
-					communication_settings: {
-						where: { id: { eq: settingsRef.id } },
-						fields: ['hard_filter'],
-						limit: 1
-					}
-				}),
-				'communication_settings'
-			)[0];
-			expect(persistedSettings?.['hard_filter']).toBe('all');
-
-			const ownSettingsUpdate = yield* delivery.act({
-				'communication_settings.update': [
-					{ target: settingsRef, set: { hard_filter: 'known_contacts' } }
-				]
-			});
-			expect(ownSettingsUpdate.kind).toBe('committed');
-			expect(
-				rowsOf(
-					yield* delivery.query({
-						communication_settings: {
-							where: { id: { eq: settingsRef.id } },
-							fields: ['hard_filter'],
-							limit: 1
-						}
-					}),
-					'communication_settings'
-				)[0]?.['hard_filter']
-			).toBe('known_contacts');
 
 			// RBAC: viewer is denied generate_payment_claim; paired with admitted QS invocation
 			const viewerClaimDenied = yield* viewer

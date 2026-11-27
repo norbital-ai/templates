@@ -61,10 +61,12 @@ export type IFCViewerProps = {
 	markerGroups?: IFCViewerMarkerGroup[];
 	tasks?: readonly IFCViewerTask[];
 	focus?: IFCViewerFocus | null;
+	initialNavMode?: 'orbit' | 'pan' | 'inspect';
+	taggedExpressIds?: readonly number[];
+	onToggleTag?: (element: IFCSelectedElement) => void;
 	onClearFocus?: () => void;
 	onCreateTask?: (element: IFCSelectedElement) => void;
 	onOpenTask?: (taskId: string) => void;
-	onReplaceModel?: () => void;
 	excludeClasses?: readonly string[];
 };
 

@@ -21,19 +21,19 @@ Technical deep-dive into the CRM workspace (`src/+workspace.ts`: `tz: 'Asia/Sing
 The workspace splits work cleanly across three runtime planes:
 
 - **Browser Plane (Svelte 5 Pages, Record Hubs & Local Media/ML):** Renders two apps (`crm` and `configuration`), manages crash-safe audio capture via `MediaRecorder` + IndexedDB (`norbital_hq_recordings`), executes biometric speaker embedding locally via `onnxruntime-web/wasm` + pinned Hugging Face CAM++ weights (never shipping large weights in the release or sending raw voiceprints to third-party servers), and renders live A4 document previews (`DocumentPaper` + `ctx.preview_pdf`).
-- **Workspace Server Plane (22 Models, 21 Automations, 2 Syncs):** Owns database integrity, transforms, post-commit effects, deduplication keys, state transitions, optimistic revision locks, and background pipelines running on the Bolt engine (PGlite locally/tests, per-tenant PostgreSQL in production).
-- **Host Facilities & External Providers:** Supplies sealed integration credentials, AI inference (`ctx.ai.sys_1.decide`, `ctx.ai.sys_2.infer`), web fetch/search (`ctx.web.read`, `web_search`), media & spreadsheet ingest + Pandoc/Typst PDF conversion (`ctx.convert.ingest`, `ctx.convert.document`), and messaging/notification delivery (`ctx.send`, `ctx.notify`).
+- **Workspace Server Plane (21 Models, 21 Automations, 2 Syncs):** Owns database integrity, transforms, post-commit effects, deduplication keys, state transitions, optimistic revision locks, and background pipelines running on the Bolt engine (PGlite locally/tests, per-tenant PostgreSQL in production).
+- **Host Facilities & External Providers:** Supplies sealed integration credentials, AI inference (`ctx.ai.sys_1.decide`, `ctx.ai.sys_2.infer`, `ctx.ai.sys_2.task`), web fetch/search (`ctx.web.read`, `web_search`), media & spreadsheet ingest + Pandoc/Typst PDF conversion (`ctx.convert.ingest`, `ctx.convert.document`), and messaging/notification delivery (`ctx.send`, `ctx.notify`).
 
 ```text
 +============================================================================================+
 |                            BROWSER PLANE (Svelte 5 + Page SDK)                             |
 +============================================================================================+
-|  App: crm (3 pages)                          |  App: configuration (4 pages)               |
-|  - dashboard   (CalendarSchedule KPIs+Cal)   |  - connections (Bolt <Connections> +        |
-|  - companies   (Table, Import, Cohorts,      |                 Message rules & logs sheets)|
-|                 DocumentPreviewSheet)        |  - products    (products + offering_set.)   |
-|  - tasks       (Open tasks/follow-ups queue) |  - templates   (template_docs + signatory)  |
-|                                              |  - sequences   (sequences + outreach_set.)  |
+|  App: crm (3 pages)                          |  App: configuration (3 pages)               |
+|  - dashboard   (CalendarSchedule KPIs+Cal)   |  - products    (products + offering_set.)   |
+|  - companies   (Table, Import, Cohorts,      |  - templates   (template_docs + signatory)  |
+|                 Filing logs, DocPreview)     |  - sequences   (sequences + outreach_set.)  |
+|  - tasks       (Open tasks/follow-ups queue) |  (Connections & classifier live in Bolt's   |
+|                                              |   native /connections & Settings views)     |
 |  - companies   (Details, Contacts, Research, +---------------------------------------------+
 |                 Profile, ActivityTimeline)   |  Browser-Local Engines (no server bloat)    |
 |  - projects    (SOW tables, Capture rules,   |  - MediaRecorder 32kbps + IndexedDB drafts  |
@@ -142,7 +142,7 @@ BRANCH 2: TEMPLATES (2 models)          BRANCH 3: OUTREACH (3 models)
   +-----------------------------+                                    +--------------------+
                                                                      | cohort_members     |
 ==================================================================   | contact, company   |
-BRANCH 4: PLANNING, OFFERING & INTAKE ROOTS (7 models)               | UK(active=true):   |
+BRANCH 4: PLANNING, OFFERING & INTAKE ROOTS (6 models)               | UK(active=true):   |
 ==================================================================   |  (contact),        |
   +-----------------------------+  +-----------------------------+   |  (company)         |
   | calendar_entries            |  | tasks                       |   | step, replied,     |
@@ -153,13 +153,12 @@ BRANCH 4: PLANNING, OFFERING & INTAKE ROOTS (7 models)               | UK(active
   | source_user->sys_user       |  |  overdue|escalated          |  +---------------------+
   +-----------------------------+  | refs: company, project_id,  |  | offering_settings   |
   +-----------------------------+  |  contact_id, meeting, owner |  | UK: scope='ws' (1)  |
-  | communication_settings      |  +-----------------------------+  +---------------------+
-  | UK: owner (1 per member)    |  +-----------------------------+  +---------------------+
-  | hard_filter, class._sop     |  | outreach_settings           |  | products            |
-  +-----------------------------+  | UK: scope='workspace' (1)   |  | name, category,     |
-  +-----------------------------+  | projects_prompt, version++  |  |  fit_criteria,active|
   | notes (read-only seeded)    |  +-----------------------------+  +---------------------+
-  +-----------------------------+
+  +-----------------------------+  +-----------------------------+  +---------------------+
+                                   | outreach_settings           |  | products            |
+                                   | UK: scope='workspace' (1)   |  | name, category,     |
+                                   | projects_prompt, version++  |  |  fit_criteria,active|
+                                   +-----------------------------+  +---------------------+
 ```
 
 ### Key Computed & Constraint Invariants
@@ -259,15 +258,16 @@ Four models declare native `state` fields, backed by cross-model transactional t
 
 ---
 
-## 4. Multi-Channel Message Intake, Fairness & System 1 Routing
+## 4. Multi-Channel Message Intake, Classifier & Batched Filing
 
-Message ingestion separates **mirroring** (`sync_messages`, every minute) from **classification** (`classify_messages`, every 5 minutes) and uses two fairness mechanisms so historical backfills never starve live client messages:
+Message ingestion separates **mirroring** (`sync_messages`, reactive on `sys_message.create` plus safety-net cron) from **classification** (`classify_messages`, scheduled immediately plus safety-net cron) and uses two fairness mechanisms so historical backfills never starve live client messages:
 
 1. **Binary-Search Prefix Skip (`filedThrough`):** When the oldest 50-row page is already filed, `sync_messages` binary-searches the sequence space (`low..high`) using paired `sys_message` vs `activities` count queries to jump directly past the longest contiguous filed prefix.
 2. **Dual-Lane Batch Selection (`selectBatch`):** Reserves `floor((batch - 1) / 2)` slots (12 of 25) round-robin across each provider's 4 newest unfiled messages (`dated` by `source_at` + `undated` by `created_at`), then fills the remaining slots in ascending `seq` order to steadily drain backfill.
 
 ```text
   Personal (email, whatsapp) & Workspace (email, whatsapp, telegram, slack, discord)
+  Configured in Bolt /connections & Settings -> Integrations -> Connections
                                          |
                                          v
   +-----------------------------------------------------------------------------------+
@@ -281,7 +281,7 @@ Message ingestion separates **mirroring** (`sync_messages`, every minute) from *
                                          |
                                          v
   +-----------------------------------------------------------------------------------+
-  | sync_messages  [cron: * * * * *, rest: 1d, concurrency: 1, policy: hq_automation] |
+  | sync_messages [on: sys_message.create + cron * * * * *, rest: 1d, concurrency: 1] |
   | 1. Binary-search filedThrough(mid) to skip already-filed seq prefix               |
   | 2. Dual-lane selectBatch(oldest[50], recent[4/provider], batch=25):               |
   |      - up to 12 fresh slots (round-robin across providers)                        |
@@ -304,22 +304,22 @@ Message ingestion separates **mirroring** (`sync_messages`, every minute) from *
   |    - Previously excluded now inside      -> reset to pending                      |
   | B. Batch select (max 50): 25 newest occurred_at + oldest source_seq,              |
   |    where classified_at is null OR older than 5 min (retryAfter)                   |
-  | C. Context load: communication_settings, group participants, matching contacts    |
-  |    (email/phone/telegram/slack/discord keys, cap 200), companies (cap 60),        |
-  |    projects (cap 120), 30-min thread history (max 8 msgs/item)                    |
+  | C. Context load: sys_integration.classifier (mode, instructions, disabled),       |
+  |    group participants, matching contacts (cap 200), companies (cap 60),           |
+  |    projects (cap 120), 30-message sys_message thread window per conversation      |
   +--------------------------------------+--------------------------------------------+
                                          |
              +---------------------------+---------------------------+
-             | hard_filter == 'customer_pics'                        | Passes hard filter
-             | AND sender + group participants match NO company PIC  | (or hard_filter='all')
+             | classifier off / disabled                             | Passes classifier gate
+             | OR mode=='smart' & no PIC match                       | (mode=='all' or matched PIC)
              v                                                       v
   +-------------------------+                     +-----------------------------------+
-  | IGNORED (hard_filter)   |                     | ctx.ai.sys_1.decide               |
+  | IGNORED (classifier)    |                     | ctx.ai.sys_1.decide               |
   | (or pending if contact  |                     | - Untrusted message framing       |
-  |  overflow > 200)        |                     | - 30-min conversation context     |
-  +-------------------------+                     | - Job capture_rules > personal SOP|
+  |  overflow > 200)        |                     | - 30-message thread window        |
+  +-------------------------+                     | - Job capture_rules > conn. instr.|
                                                   | - Questions: relevance, company,  |
-                                                  |   project, certainty              |
+                                                  |   project, certainty, needs_update|
                                                   +-----------------+-----------------+
                                                                     |
           +---------------------------------+-----------------------+-----------------+
@@ -333,14 +333,14 @@ Message ingestion separates **mirroring** (`sync_messages`, every minute) from *
   | -> deriveFrom()  |            +------------------+          +------------+----------+
   |    queues SOW +  |                                          | Matched               | None
   |    profile sync  |                                          v                       v
+  | -> batched Sys 2 |                              +------------------+   +------------------+
+  |    task if       |                              | FILED ('useful', |   | RETRY ('pending')|
+  |    needs_update  |                              |  'hard_filter')  |   | retries in 5 min |
   +------------------+                              +------------------+   +------------------+
-                                                    | FILED ('useful', |   | RETRY ('pending')|
-                                                    |  'hard_filter')  |   | retries in 5 min |
-                                                    +------------------+   +------------------+
 
   REPLAY TRIGGERS (bounded 50-row pages, preserving manual classifications):
   - contacts create/update (handle or company change) -> replay_message_routes (all/owner)
-  - communication_settings create/update              -> replay_message_routes (owner)
+  - sys_integration update (classifier change)        -> replay_message_routes (owner)
   - group chat with newly seen PIC                    -> replay_message_routes (thread)
   - projects.capture_rules update                     -> refresh_job_capture_rules (project)
   - Human reassign via `activities_file`              -> classified_by='manual' (locked)
@@ -736,8 +736,6 @@ One seeded team (`sys_team` row `sales`, name `Sales`, in `seed/public/sys_team.
                               |  owner == actor.id AND      |  shared ch. & |
                               |  integration in [whatsapp,  |  Apollo)      |
                               |  email, google_calendar]    |               |
-  communication_settings      | R/C/U ONLY where            | Full          | hq_auto: R
-                              |  owner == actor.id          |               |
   agreement_settings          | R ONLY (no C/U)             | R/C/U         | hq_auto: R
   template_documents          | R + U(`drafting_instr.`     | R/C/U + run   | template_pub:
                               |  ONLY; no new version)      |  new_version  |  R/C (new version)

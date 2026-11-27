@@ -66,6 +66,27 @@
 
 	let createLinkedType = $state<'delivery_order' | 'invoice' | null>(null);
 	const canCreateTx = $derived(ctx.catalog?.commercial_documents?.create !== undefined);
+	const activeDocType = $derived(
+		String(liveForm?.get('doc_type') ?? record?.doc_type ?? 'invoice')
+	);
+	const showsParentDoc = $derived(
+		activeDocType === 'delivery_order' ||
+			activeDocType === 'invoice' ||
+			activeDocType === 'credit_note' ||
+			record?.parent_document_id != null
+	);
+	const showsDeliveryDate = $derived(
+		activeDocType === 'delivery_order' || record?.delivery_date != null
+	);
+	const showsRetentionAndCertified = $derived(
+		activeDocType === 'progress_claim' ||
+			activeDocType === 'invoice' ||
+			record?.retention_amount != null ||
+			record?.certified_amount != null
+	);
+	const showsPaidDate = $derived(
+		record !== null || activeDocType === 'invoice' || activeDocType === 'progress_claim'
+	);
 </script>
 
 {#snippet contractEditor(field: FieldEditor)}
@@ -85,19 +106,6 @@
 	<Picker
 		{ctx}
 		of="commercial_documents"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
-{#snippet sourceMessageEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="project_messages"
 		id={field.id}
 		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
 		value={typeof field.value === 'string' ? field.value : null}
@@ -133,11 +141,17 @@
 			{/if}
 			<Field {ctx} name="contract_id" editor={contractEditor} />
 			<Field {ctx} name="contact_id" />
-			<Field {ctx} name="parent_document_id" editor={parentDocEditor} />
+			{#if showsParentDoc}
+				<Field {ctx} name="parent_document_id" editor={parentDocEditor} />
+			{/if}
 			<Field {ctx} name="issue_date" />
-			<Field {ctx} name="delivery_date" />
+			{#if showsDeliveryDate}
+				<Field {ctx} name="delivery_date" />
+			{/if}
 			<Field {ctx} name="due_date" />
-			<Field {ctx} name="paid_date" />
+			{#if showsPaidDate}
+				<Field {ctx} name="paid_date" />
+			{/if}
 		</Grid>
 	</Section>
 
@@ -150,8 +164,10 @@
 				<Field {ctx} name="tax_amount" readonly />
 				<Field {ctx} name="total_amount" readonly />
 			{/if}
-			<Field {ctx} name="retention_amount" />
-			<Field {ctx} name="certified_amount" />
+			{#if showsRetentionAndCertified}
+				<Field {ctx} name="retention_amount" />
+				<Field {ctx} name="certified_amount" />
+			{/if}
 			{#if record}
 				<Field {ctx} name="net_amount" readonly />
 				<Field {ctx} name="match_status" readonly />
@@ -170,7 +186,9 @@
 		default_open={false}
 	>
 		<Grid minimum="compact">
-			<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
+			{#if record?.source_message_id != null}
+				<Field {ctx} name="source_message_id" readonly />
+			{/if}
 			<Column span="all"><Field {ctx} name="description" /></Column>
 			<Column span="all"><Field {ctx} name="attachments" /></Column>
 		</Grid>

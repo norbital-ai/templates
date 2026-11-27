@@ -12,7 +12,6 @@ agreement_settings/
 calendar_entries/
 cohorts/
   cohort_members/
-communication_settings/
 companies/
   contacts/
   potential_projects/

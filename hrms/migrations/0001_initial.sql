@@ -1,4 +1,4 @@
--- 0001_initial.sql: 474 step(s), from an empty database to d4096a7e2d3b45a9f46407ecb7b93a684aea02126f5ebaf79bb4035f500b6cdf.
+-- 0001_initial.sql: 474 step(s), from an empty database to 6bff73b493283e809cf99b210d6f2bd0d37f30cf5f1353d97892eae1fbfcae05.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -1127,6 +1127,7 @@ create table "sys_integration" ("id" text primary key,
 	"configuration" jsonb default '{}'::jsonb not null,
 	"import_start" jsonb,
 	"listen" jsonb,
+	"classifier" jsonb,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
@@ -1137,6 +1138,7 @@ create table "sys_integration" ("id" text primary key,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__d303bac9" check (("listen" is null or store_json_valid("listen", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__72687215" check (("classifier" is null or store_json_valid("classifier", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -2062,7 +2064,7 @@ select bolt_history_register('sys_envoy_channel','{"fields":{"active":{"default"
 select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:sys_integration (additive)
-select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"classifier":{"kind":"json","optional":true},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
 
 -- step create:history:schema:sys_invitation (additive)
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_team"}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);

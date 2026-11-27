@@ -21,7 +21,7 @@ Technical deep dive into the `norbital_construction` Bolt workspace (`templates/
 The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` default currency, bilingual `en` / `zh`, PDF conversion enabled) and splits cleanly into two runtime sides:
 
 - **Browser client (Svelte 5 + `@norbital-ai/ui` + Web Workers + WebGL):** Hosts the two apps (`operations`, `configuration`), the thin Project Hub shell (`projects/+representation.svelte`) composed from co-located tab components (`ProjectProgrammeTab.svelte`, `ProjectBimTab.svelte`, `ProjectFinanceTab.svelte`, `ProjectSustainabilityTab.svelte`, `BimAssetReview.svelte`, `BimComplianceOrganizer.svelte`), the Linear-inspired unified Task workspace (`tasks/+representation.svelte` via intrinsic `<Split ratio="wide">` + `create_clipboard`), the always-live inline-editable BOQ renderer (`bim_takeoff/+renderer.svelte`), the 4D virtualized WBS timeline (`ProjectTimeline.svelte`), the catalog-only line editor (`CatalogLinesEditor.svelte`), and the modular 3D/takeoff service stack under `src/services/viewer/` (`IfcViewer.svelte`, `engine.ts`, `converter.ts`, `converter.worker.ts`, `takeoff.ts`, `takeoff.worker.ts`, `geometry-pass.ts`). Large binaries (`web-ifc@0.0.77`, `three@0.185.1`, `@thatopen/*`) load from pinned CDN URLs at runtime so the workspace release stays lightweight.
-- **Bolt server & guest engine (Effect v4):** Owns 15 record models (including runtime-configurable `bim_settings` and dynamic `sop_rules`), 4 co-located custom fields, 4 syncs, 3 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 seeded teams, 5 policies, and clean domain services under `src/services/commercial/` (`decimal.ts`, `lines.ts`, `analytics.ts`) and `src/services/bim/` (`schema.ts`, `config.ts`, `step-parser.ts`, `geometry.ts`, `cleanup.ts`, `pricing.ts`, `compliance.ts`, `organizer.ts`, `classifier.ts`).
+- **Bolt server & guest engine (Effect v4):** Owns 14 record models (including runtime-configurable `bim_settings` and dynamic `sop_rules`), 4 co-located custom fields, 4 syncs, 4 automations, 1 custom OAuth 2.0 integration (`autodesk_acc`), 4 seeded teams, 5 policies, and clean domain services under `src/services/commercial/` (`decimal.ts`, `lines.ts`, `analytics.ts`) and `src/services/bim/` (`schema.ts`, `config.ts`, `step-parser.ts`, `geometry.ts`, `cleanup.ts`, `pricing.ts`, `compliance.ts`, `organizer.ts`, `classifier.ts`).
 
 ```text
 +----------------------------------------------------------------------------------------------+
@@ -29,11 +29,11 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 |                                                                                              |
 |  [Operations App]                         [Configuration App]                                |
 |   |- Projects -> Project Hub               |- Item Matrix (+matrix.sync.ts XLSX/CSV)      |
-|   |   |- Record (Project + Site)           |- Compliance & SOP (sop_rules)                 |
-|   |   |- Programme & Tasks (Timeline |     |- BIM Rules (bim_settings singleton)           |
-|   |   |   Table | Board icon toggle)       |- Connections (Bolt <Connections>:             |
-|   |   |   (task: Record | Activity)        |   Personal WA/Email + Personal Intake Rules;  |
-|   |   |- BIM [keep_alive]                  |   Shared WA/Email/ACC in Settings)            |
+|   |   |- Record (Project + Site)           |- BIM Compliance (Compliance Rules +             |
+|   |   |- Programme & Tasks (Timeline |     |   Takeoff & Cleanup Profile)                    |
+|   |   |   Table | Board icon toggle)       |   (Personal WA/Email & classifier rules live    |
+|   |   |   (task: Record | Activity)        |   in Bolt's /connections; shared WA/Email/ACC   |
+|   |   |- BIM [keep_alive]                  |   in Settings -> Integrations -> Connections)   |
 |   |   |   |- 3D Model & Tasks (IfcViewer.svelte + BIM tasks table; select isolates)          |
 |   |   |   |- BIM Costing (1:1 estimate card, status in place, one Run button)                |
 |   |   |   |- Compliance & Organizer (BCA/CORENET X scorecard + Clean IFC export)             |
@@ -62,15 +62,16 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 +----------------------------------------------------------------------------------------------+
 |                              BOLT SERVER / GUEST ENGINE (Effect v4)                          |
 |                                                                                              |
-|  [15 Models + Write Transforms/Effects]        [3 Automations (construction_automation)]     |
+|  [14 Models + Write Transforms/Effects]        [4 Automations (construction_automation)]     |
 |   projects (root) -> 6 owned children:          |- sync_messages (sys_message create)        |
-|     cost_estimates (1:1), contracts,            |- analyze_bim_file (projects write/manual)  |
-|     commercial_documents, adhoc_costs,          |- generate_payment_claim (mode: 'call' RPC) |
-|     tasks, project_files                                                                     |
-|   Top-level: activities (polymorphic about),   [Message Filing]                              |
-|     contacts, project_messages, item_matrix,    project_messages create/update effect:       |
-|     bim_settings, sop_rules,                    transcribe -> route -> extract (intake.ts)   |
-|     communication_settings, asset_mappings                                                   |
+|     cost_estimates (1:1), contracts,            |- file_project_messages (project_messages   |
+|     commercial_documents, adhoc_costs,          |   effect + sys_integration update replay)  |
+|     tasks, project_files                        |- analyze_bim_file (projects write/manual)  |
+|   Top-level: activities (polymorphic about),    |- generate_payment_claim (mode: 'call' RPC) |
+|     contacts, project_messages, item_matrix,                                                 |
+|     bim_settings, sop_rules, asset_mappings     [Message Filing (intake.ts)]                 |
+|                                                 transcribe -> 30-msg windowed classifier ->  |
+|                                                 batched System Agent (sys_2.task + fallback) |
 |  [Domain Services (src/services/)]                                                           |
 |   commercial/{decimal,lines,analytics}.ts       [4 Syncs]                                    |
 |   bim/{schema,config,step-parser,geometry,      |- tasks.schedule_file (.xer/.xml/.csv/.xlsx)|
@@ -97,7 +98,7 @@ The workspace runs on `@norbital-ai/bolt` (`Asia/Singapore`, `en-SG`, `SGD` defa
 
 ## 2. Data Model & Ownership ER Diagram
 
-All 15 models live under `src/data/model/`. `projects` is the primary aggregate root with 6 owned children (`owned: true`, cascade delete), and top-level `activities` attaches polymorphically (`about`: `projects | tasks | contracts | contacts`, `on_delete: 'cascade'`) with an auto-derived `project_id` roll-up so a project's **Activity** tab surfaces activity across the project, its tasks, and its contracts. A task's `description` is Markdown edited in a borderless, full-height, auto-focused Linear-style `RichMarkdownEditor` (`images: 'attachments'`, floating bubble menu + `/` slash commands, no static toolbar). Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> item_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted. `asset_mappings` remembers what each unique BIM asset is priced as across takeoffs and projects; `cost_estimates.asset_signatures` names the rows an estimate priced.
+All 14 models live under `src/data/model/`. `projects` is the primary aggregate root with 6 owned children (`owned: true`, cascade delete), and top-level `activities` attaches polymorphically (`about`: `projects | tasks | contracts | contacts`, `on_delete: 'cascade'`) with an auto-derived `project_id` roll-up so a project's **Activity** tab surfaces activity across the project, its tasks, and its contracts. A task's `description` is Markdown edited in a borderless, full-height, auto-focused Linear-style `RichMarkdownEditor` (`images: 'attachments'`, floating bubble menu + `/` slash commands, no static toolbar). Cross-entity operational references use `on_delete: 'set_null'`, except `adhoc_costs.catalog_item_id -> item_matrix`, which uses `on_delete: 'restrict'` so catalog items backing recorded project costs cannot be deleted. `asset_mappings` remembers what each unique BIM asset is priced as across takeoffs and projects; `cost_estimates.asset_signatures` names the rows an estimate priced.
 
 ```text
                        +-------------------------------------------+
@@ -160,19 +161,14 @@ All 15 models live under `src/data/model/`. `projects` is the primary aggregate 
 | COMPUTED phone_key      | | extraction_status       | | unit_rate, waste_factor_pct,     |
 +-------------------------+ | source_message->sys_msg | | carbon_factor, rate_basis,       |
                             | source_user->sys_user   | | derived: derived_from, ratio,    |
-+-------------------------+ | project_id, contact_id  | |          stands_in_for           |
-| communication_settings  | +-------------------------+ | validity, active                 |
-| UQ (owner -> sys_user)  |                             +----------------+-----------------+
-| hard_filter,auto_extract|                                              ^ item_id (set_null)
-| classification_sop      | +-------------------------+ +----------------+-----------------+
 +-------------------------+ |       activities        | |          asset_mappings          |
-                            | about -> projects|tasks | | UQ (signature) [import_key]      |
-                            |   |contracts|contacts   | | label, ifc_class, picture,       |
-                            |   (on_delete: cascade)  | | source: system_1 | qs | proposal,|
-                            | project_id -> projects  | | confidence, note, continuity,    |
-                            | title, description,     | | service, size_mm, review_status  |
-                            | occurred_at,            | +----------------------------------+
-                            | attachments[], author,  |
+|       sop_rules         | | about -> projects|tasks | | UQ (signature) [import_key]      |
+| authority, scope, metric| |   |contracts|contacts   | | label, ifc_class, picture,       |
+| threshold, active       | |   (on_delete: cascade)  | | source: system_1 | qs | proposal,|
++-------------------------+ | project_id -> projects  | | confidence, note, continuity,    |
+|       bim_settings      | | title, description,     | | service, size_mm, review_status  |
+| UQ (key='default')      | | occurred_at,            | +----------------------------------+
++-------------------------+ | attachments[], author,  |
                             | source_message_id       |
                             +-------------------------+
 
@@ -412,9 +408,9 @@ Active currency-matched, non-derived `bim_asset` rules in `item_matrix` are scor
 
 ### Configurable BIM Rules, Repeatable 2-Step BIM Costing & Dynamic Compliance
 
-- **`sop_rules` & `bim_settings` (Configuration → Compliance & SOP, BIM Rules):** Separate single-concern configuration pages with zero raw JSON editing:
-  - **Compliance & SOP (`src/app/configuration/+sop_rules.page.svelte`):** Declarative statutory and company tender SOP checks (`authority`: `corenet_x | bca | scdf | pub | ura | company_sop`, `scope`: `model | element | estimate`, 21 metrics including `georef_crs` SVY21/EPSG:3414, `sgpset_coverage_pct`, `min_width_mm`, `min_height_mm`, `min_thickness_mm`, `max_riser_mm`, `min_tread_mm`, `max_slope_pct`, `required_property`, `mep_untagged_pct`, `duplicate_count`, `min_classified_pct`, and multimodal `semantic_check` using wide-aperture building/storey overviews, 4-angle+neighborhood archetype screenshots, and 3D `nearby_archetypes` clearances). Automatically evaluated during Step 1 (`phase: 'prepare'`) and refreshed in Step 2 (`phase: 'cost'`), stored on `projects.bim_compliance`.
-  - **BIM Rules (`src/app/configuration/+bim_settings.page.svelte`):** Opens the singleton `default` profile directly in `<RecordShell header={false}>` (zero 1-row table click-through, no duplicate heading) with edit/create section-header presets (`CORENET X Strict (SG)`, `Main Contractor Tender (±1%)`, `Early Concept Budget`), visual key-value editors for `material_densities` and `service_aliases`, tolerances, cleanup toggles, `exclude_ifc_classes`, and collapsed advanced limits.
+- **`sop_rules` & `bim_settings` (Configuration → BIM Compliance):** One consolidated **BIM Compliance** page (`src/app/configuration/+bim_compliance.page.svelte`) with two inner tabs and zero raw JSON editing:
+  - **Compliance Rules (`sop_rules`):** Declarative statutory and company tender SOP checks (`authority`: `corenet_x | bca | scdf | pub | ura | company_sop`, `scope`: `model | element | estimate`, 21 metrics including `georef_crs` SVY21/EPSG:3414, `sgpset_coverage_pct`, `min_width_mm`, `min_height_mm`, `min_thickness_mm`, `max_riser_mm`, `min_tread_mm`, `max_slope_pct`, `required_property`, `mep_untagged_pct`, `duplicate_count`, `min_classified_pct`, and multimodal `semantic_check` using wide-aperture building/storey overviews, 4-angle+neighborhood archetype screenshots, and 3D `nearby_archetypes` clearances). Automatically evaluated during Step 1 (`phase: 'prepare'`) and refreshed in Step 2 (`phase: 'cost'`), stored on `projects.bim_compliance`.
+  - **Takeoff & Cleanup Profile (`bim_settings`):** Opens the singleton `default` profile directly in `<RecordShell header={false}>` (zero 1-row table click-through, no duplicate heading) with edit/create section-header presets (`CORENET X Strict (SG)`, `Main Contractor Tender (±1%)`, `Early Concept Budget`), visual key-value editors for `material_densities` and `service_aliases`, tolerances, cleanup toggles, `exclude_ifc_classes`, and collapsed advanced limits.
 - **BIM → BIM Costing · Step 1 (`projects/BimPrepareStep.svelte`, `BimAssetReview.svelte`, `BimItemMatrixReview.svelte`):** Repeatable preparation workspace under a numbered 2-step stepper header with live `RunStatus` progress and three collapsible `<Section>`s (zero stacked view-tab bars):
   1. **Proposed Item Matrix & Costings:** Inline editor over proposed & matched `item_matrix` items (`name`, `unit`, `quantity_basis`, `unit_rate`, `waste_factor_pct`, `carbon_factor`) with one-click **Approve & Save** / **Reject** / **Approve all** and `<Sheet>` creation via **+ Add item**.
   2. **Proposed Clean BIM:** Inline editor over `asset_mappings` (`ifc_class`, `continuity`, `service`, `item_id`, `Verify`, `3D` inspect, `Download Clean BIM (.ifc)` writing back duplicates removed, IFC4 promotions, and live QS edits).
@@ -579,45 +575,44 @@ Unstructured WhatsApp messages, voice notes, site photos, and emails are mirrore
   |  a. Transcribe: ctx.convert.ingest(recording, diarize: false) -> detail,           |
   |     transcription = done | failed | unavailable                                    |
   |  b. Route (classification = 'pending'):                                            |
-  |   - Loads communication_settings per source_user + group participant handles       |
+  |   - Loads each connection's sys_integration.classifier + up to 30 preceding        |
+  |     sys_message rows in the conversation (oldest first, contextOnly: true)         |
   |   - Normalizes handles (handleKey: lowercase email / >=6-digit phone; ignores      |
   |     @g.us / @lid) and matches contacts via computed email_key / phone_key          |
-  |   - Hard filter: owner hard_filter == 'known_contacts' & unknown -> 'ignored'      |
-  |   - System 1 (ctx.ai.sys_1.decide): relevance + project + certainty                |
+  |   - classifier.mode == 'off' -> 'ignored'; 'all' -> never semantically drop        |
+  |   - System 1 (ctx.ai.sys_1.decide): relevance + project + certainty with           |
+  |     channel_classifier instructions and 30-message earlier window                  |
   |     * Confident iff relevance.conf >= 0.80 & certainty.conf >= 0.80 &              |
   |       certainty.level == 'Clear direct evidence'                                   |
   |     * Useful + picked project -> classification='useful', project_id=picked        |
-  |     * Ignored + confident     -> classification='ignored'                          |
+  |     * Ignored + confident (in 'smart' mode) -> classification='ignored'            |
   |   - Still undecided -> evidentProject: unique project_number/name in the text ->   |
   |     partner's one project (live contracts, client_id) -> sole active project;      |
   |     none -> 'review'                                                               |
-  |   - useful & auto_extract (default true) -> extraction_status = 'pending'          |
   |  c. Extract (useful, project set, extraction_status = 'pending'):                  |
-  |   - Bounded JSON context (project zones, open tasks, active contracts) +           |
-  |     readable PDF/image/text attachments -> System 2 (ctx.ai.sys_2.infer)           |
-  |   - Resolves valid task_id, contract_id, and project zone codes                    |
-  |   - One ctx.act with the message's own update:                                     |
-  |       * tasks.update, one per task the message concerns: status, progress_pct      |
-  |         (clamped 0..100), priority, zone, trade, due date (end of schedule_range)  |
-  |         only when the message says so; file_attachments adds message photos/docs   |
+  |   - Batches useful messages per project into ONE System Agent (ctx.ai.sys_2.task)  |
+  |     with readable PDF/image/text attachments (files), using read_messages,         |
+  |     read_file, and single-record act writes                                        |
+  |   - When automation System Agents are disabled or capped (Unavailable /            |
+  |     FacilityFailure), falls back to structured ctx.ai.sys_2.infer:                 |
+  |       * tasks.update, one per task the message concerns                            |
   |       * tasks.create (fallback code MSG-<id>-<seq>) for one no task matches        |
-  |       * activities.create (polymorphic about -> task or project): title, plain     |
-  |         description, occurred_at, source_message_id, and message attachments       |
+  |       * activities.create (polymorphic about -> task or project)                   |
   |       * contracts.create (draft variation_order with EOT days & attachments)       |
   |       * commercial_documents.create (draft PO/DO/Invoice/Claim/Credit Note)        |
   |       * project_messages.update (extraction_status='extracted'|'none', summary)    |
   |   - Refused write: keeps the routing, extraction_status = 'failed' with the reason |
-  |   - System 2 unavailable: extraction_status = 'failed'                             |
   +------------------------------------------------------------------------------------+
 
-  Filed again (project_messages.update effect) when a write sets classification,
-  extraction_status or transcription back to 'pending', or changes project_id:
+  Filed again (project_messages.update effect -> file_project_messages) when a write
+  sets classification, extraction_status or transcription back to 'pending', or changes
+  project_id:
    - Message record "Re-extract updates" action.
    - Manual project assignment -> useful (classified_by 'manual'), extraction queued.
    - contacts.create, or contacts.update changing phone/email -> requeueMessages:
      up to 100 newest non-manual 'review'|'ignored' messages -> 'pending'.
-   - communication_settings.create, or update changing hard_filter/classification_sop
-     -> the same requeue, scoped to that owner.
+   - sys_integration.update -> file_project_messages replays that connection's
+     non-manual 'review'|'ignored' messages.
    - A writer who may not update messages (e.g. commercial staff editing a contact)
      leaves them as they are.
 ```
@@ -685,7 +680,7 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 +----------------------------------------------------------------------------------------------+
 | construction_read                                                                            |
 |  Apps: [operations] | Rate limit: act 600/min, read 600/min, agent 100/h                     |
-|  Read (default output): 14 models (all but communication_settings) + sys_user                |
+|  Read (default output): all 14 models + sys_user                                             |
 +----------------------------------------------------------------------------------------------+
 | construction_delivery                                                                        |
 |  Create/Update (all moves): projects, tasks, project_messages | CRUD: contacts, activities   |
@@ -703,13 +698,12 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 +----------------------------------------------------------------------------------------------+
 | construction_connections                                                                     |
 |  Apps: [configuration]                                                                       |
-|  sys_integration: OWN personal whatsapp/email only (custom verdict: owner==me & personal)    |
-|  communication_settings: OWN rows only (custom verdict + transform enforce owner == me)      |
+|  capabilities.personal_connections: ['whatsapp', 'email'] (own accounts + classifier rules)  |
 +----------------------------------------------------------------------------------------------+
-| construction_automation (system-only; bound to all 3 automations & both Autodesk ACC syncs)  |
+| construction_automation (system-only; bound to all 4 automations & both Autodesk ACC syncs)  |
 |  projects: read + update ['bim_summary', 'bim_compliance', 'bim_costing_dirty', 'bim_costing_error'] |
 |  contracts, commercial_documents, tasks, activities, project_files, cost_estimates: R/C/U    |
-|  project_messages, asset_mappings: R/C/U | adhoc_costs, contacts, comm_settings, sys_*: read |
+|  project_messages, asset_mappings: R/C/U | adhoc_costs, contacts, sys_*: read                |
 |  item_matrix: read + create held for approval ("Item Matrix proposal review":                |
 |               the teams holding construction_commercial)                                     |
 +----------------------------------------------------------------------------------------------+
@@ -717,8 +711,8 @@ POLICY CAPABILITIES & GRANTS (src/access_control/policy/)
 
 ### Key Governance Details
 
-- **Client & Consultant Isolation (`client_consultant`):** Receives only `construction_read` — read-only access to the Operations app with zero write grants, zero Configuration app access, and zero visibility into `sys_integration` or `communication_settings`.
+- **Client & Consultant Isolation (`client_consultant`):** Receives only `construction_read` — read-only access to the Operations app with zero write grants, zero Configuration app access, and zero visibility into `sys_integration`.
 - **Delivery vs. Commercial Separation:** `project_delivery` cannot create or modify contracts, commercial documents, ad-hoc costs, or item matrix rates, and on `cost_estimates` may **only** transition `status -> void` so updating `projects.bim_file` can safely execute the voiding side effect. Conversely, `commercial_qs` may only edit `currency` and the stored takeoff (`bim_takeoff`, `bim_takeoff_views`) on `projects` (contract terms live on `contracts`) and cannot edit WBS tasks or BIM files; it may log polymorphic activities (`activities`) and correct what each BIM asset is priced as (`asset_mappings`).
 - **System 2 Proposals Wait for Approval:** `analyze_bim_file`'s Item Matrix proposals are written by `construction_automation`, whose `item_matrix` create verdict returns `ctx.approve` with the **Item Matrix proposal review** flow, decided by the teams holding `construction_commercial` (refused as `errors.no_matrix_reviewer` when none does); until a member approves it, the proposed item prices nothing and its assets stay unmatched.
-- **Message Filing Runs as the Writer:** `project_messages` effects file with the authority of whoever stored or requeued the message (`construction_automation` for `sync_messages`). A writer refused part of an extraction keeps the routing and records `extraction_status: failed` with the reason.
-- **Personal Account Ownership (`construction_connections`):** Native `capabilities.personal_connections: ['whatsapp', 'email']` restricts members to their own personal `whatsapp` or `email` `sys_integration` accounts, and policy verdicts restrict `communication_settings` to each member's own row (`errors.intake_not_own`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are managed by administrators in Settings → Integrations → Connections.
+- **Message Filing via Dedicated Automation (`file_project_messages`):** `project_messages` effects schedule `file_project_messages`, which runs under `construction_automation` so it can spawn batched System Agents (`ctx.ai.sys_2.task`) or fall back to structured `ctx.ai.sys_2.infer`. A writer refused part of an extraction keeps the routing and records `extraction_status: failed` with the reason.
+- **Personal Account Ownership (`construction_connections`):** Native `capabilities.personal_connections: ['whatsapp', 'email']` restricts members to their own personal `whatsapp` or `email` `sys_integration` accounts (including their `listen` and `classifier` configuration in `/connections`), while workspace-shared connections (`owner: null`, including `autodesk_acc`) are managed by administrators in Settings → Integrations → Connections.

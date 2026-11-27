@@ -28,7 +28,7 @@ Non-message entries open their activity record; `meeting` and `recording` rows m
 
 ### Configuration Surfaces
 
-Configuration has five flat pages: **Message rules**, **My connections**, **Products**, **Templates**, and **Sequences**. Related singletons and logs open in sheets from their owning page: **Classified messages** from Message rules, **Seller & research focus** from Products, **Company signatory** from Templates, and **Outreach** settings from Sequences.
+Configuration has three flat pages: **Products**, **Templates**, and **Sequences**. Related singletons open in sheets from their owning page: **Seller & research focus** from Products, **Company signatory** from Templates, and **Outreach** settings from Sequences. Personal and shared connections and per-connection classifier rules live in Bolt's native `/connections` and **Settings → Integrations → Connections** views, and **Filing logs** opens in a sheet from **CRM → Leads & clients**.
 
 ## Visual Treatment
 

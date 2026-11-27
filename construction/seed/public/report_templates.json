@@ -1,0 +1,46 @@
+[
+	{
+		"id": "019f0100-0001-7000-8000-000000000001",
+		"kind": "sustainability_report",
+		"locale": "en",
+		"version": "1",
+		"title": "Project Sustainability & Whole Life Carbon Report",
+		"standard_ref": "BCA Green Mark 2021 (CN1.1) · EN 15978 · ISO 21930 · SGX / GRI 301–306",
+		"body": "{report}\n\nDeclaration: Upfront embodied carbon (Modules A1–A3) is derived from the project BIM takeoff and approved Item Matrix carbon factors (SGBC / SBCC / ISO 21930 EPDs). Construction phase emissions (Modules A4–A5 / Scope 1 & 2) apply Singapore EMA grid and diesel combustion factors.\n\nPrepared by (GMAP / Sustainability Lead): ________________________    Date: ______________\nReviewed by (Project Manager): ___________________________________    Date: ______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00.000Z"
+	},
+	{
+		"id": "019f0100-0001-7000-8000-000000000002",
+		"kind": "sustainability_report",
+		"locale": "zh",
+		"version": "1",
+		"title": "项目可持续发展与全生命周期碳排放报告",
+		"standard_ref": "BCA Green Mark 2021 (CN1.1) · EN 15978 · ISO 21930 · SGX / GRI 301–306",
+		"body": "{report}\n\n声明：前期隐含碳排（A1–A3 阶段）依据项目 BIM 算量及经批准的清单矩阵碳排因子（SGBC / SBCC / ISO 21930 EPD）汇总；施工现场碳排（A4–A5 阶段 / 范围 1 与范围 2）采用新加坡 EMA 电网因子及柴油燃烧因子核算。\n\n编制人（GMAP / 可持续发展负责人）：________________________    日期：______________\n审核人（项目经理）：__________________________________________    日期：______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00.000Z"
+	},
+	{
+		"id": "019f0100-0001-7000-8000-000000000003",
+		"kind": "compliance_report",
+		"locale": "en",
+		"version": "1",
+		"title": "Project Regulatory, BIM & IMS Compliance Report",
+		"standard_ref": "BCA CORENET X (IFC+SG) · ISO 19650-2 · BCA CONQUAS · ISO 9001 / 14001 / 45001",
+		"body": "{report}\n\nDeclaration: Automated BIM verification findings reflect the latest federated IFC model evaluated against active BCA, CORENET X, SCDF, PUB, URA, and company SOP rules. Site quality, safety, environmental, and CDE records reflect the project Integrated Management System register.\n\nPrepared by (BIM / QA-HSE Manager): _____________________________    Date: ______________\nApproved by (Qualified Person QP / PE): __________________________    Date: ______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00.000Z"
+	},
+	{
+		"id": "019f0100-0001-7000-8000-000000000004",
+		"kind": "compliance_report",
+		"locale": "zh",
+		"version": "1",
+		"title": "项目合规、BIM 审查与综合管理体系报告",
+		"standard_ref": "BCA CORENET X (IFC+SG) · ISO 19650-2 · BCA CONQUAS · ISO 9001 / 14001 / 45001",
+		"body": "{report}\n\n声明：BIM 自动核验结果基于最新整合 IFC 模型及当前启用的 BCA、CORENET X、SCDF、PUB、URA 与企业 SOP 规则生成；现场质量、安全、环境及 CDE 台账反映项目综合管理体系（IMS）最新审核状态。\n\n编制人（BIM / 质量安全经理）：__________________________________    日期：______________\n批准人（合格人士 QP / PE）：_____________________________________    日期：______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00.000Z"
+	}
+]

@@ -965,7 +965,7 @@
 							<Icon icon="lucide:camera-off" class="size-7" />
 						</Frame>
 						<Stack gap="xs" align="center">
-							<h1 class="text-section">{ctx.t('kiosk.camera_unavailable')}</h1>
+							<h1 class="text-heading">{ctx.t('kiosk.camera_unavailable')}</h1>
 							<p class="max-w-xl text-sm text-muted-foreground">
 								{fatal ?? ctx.t('kiosk.camera_help')}
 							</p>
@@ -1079,7 +1079,7 @@
 										<Frame
 											as="span"
 											ratio="square"
-											class="size-20 rounded-full bg-black/70 text-title text-white tabular-nums"
+											class="size-20 rounded-full bg-black/70 text-metric text-white"
 											aria-hidden="true">{challengeLeft}</Frame
 										>
 									</Imposter>
@@ -1100,7 +1100,7 @@
 						-->
 								<Stack as="section" gap="sm" class="max-lg:hidden">
 									<div class="flex items-center gap-1">
-										<h1 class="text-section">{ctx.t('kiosk.how_it_works')}</h1>
+										<h1 class="text-heading">{ctx.t('kiosk.how_it_works')}</h1>
 										<DescriptionHint text={ctx.t('kiosk.how_it_works_hint')} />
 									</div>
 								</Stack>

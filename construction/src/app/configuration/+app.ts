@@ -6,8 +6,7 @@ export default app({
 	icon: 'lucide:settings-2',
 	pages: {
 		item_matrix: { title: 'item_matrix.title', icon: 'lucide:table-2' },
-		sop_rules: { title: 'sop_rules.tab_title', icon: 'lucide:shield-check' },
-		bim_settings: { title: 'bim_settings.title', icon: 'lucide:sliders-horizontal' },
-		intake: { title: 'connections.intake_rules_title', icon: 'lucide:list-filter' }
+		bim_compliance: { title: 'bim_compliance.nav_title', icon: 'lucide:shield-check' },
+		report_templates: { title: 'reports.nav_title', icon: 'lucide:file-spreadsheet' }
 	}
 });

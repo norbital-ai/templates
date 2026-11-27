@@ -167,6 +167,7 @@ layer(sharedWorkspace({ now: '2026-10-01T02:00:00Z' }), { excludeTestServices: t
 				yield* t.receive(supportLine, { ...chat, id: 'on-support-line' });
 				yield* t.receive(phone, { ...chat, id: 'on-personal-phone' });
 				const thread = Effect.fnUntraced(function* (integration: Id<'sys_integration'>) {
+					yield* t.run_due();
 					const message = pageOf(
 						yield* admin.query({
 							sys_message: { where: { integration: { eq: integration } }, fields: ['conversation'] }
@@ -174,6 +175,21 @@ layer(sharedWorkspace({ now: '2026-10-01T02:00:00Z' }), { excludeTestServices: t
 						'sys_message'
 					).rows[0];
 					if (message === undefined) throw new Error('The received source message is missing.');
+					const existing = pageOf(
+						yield* admin.query({
+							activities: {
+								where: { source_message: { eq: nativeId('sys_message', message.id) } },
+								limit: 1
+							}
+						}),
+						'activities'
+					).rows[0];
+					if (existing !== undefined) {
+						return {
+							activity: nativeId('activities', existing.id),
+							conversation: message['conversation']
+						};
+					}
 					const created = yield* admin.act({
 						'activities.create': [
 							{

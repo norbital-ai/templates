@@ -46,10 +46,12 @@
 		markerGroups,
 		tasks = [],
 		focus = null,
+		initialNavMode = 'orbit',
+		taggedExpressIds = [],
+		onToggleTag,
 		onClearFocus,
 		onCreateTask,
 		onOpenTask,
-		onReplaceModel,
 		excludeClasses
 	}: IFCViewerProps = $props();
 
@@ -73,7 +75,8 @@
 	let selectedItem = $state<IFCSelectedElement | null>(null);
 	let loadBanner = $state<LoadBanner>('none');
 	let interactionLocked = $state(false);
-	let navMode = $state<NavMode>('orbit');
+	// svelte-ignore state_referenced_locally
+	let navMode = $state<NavMode>(initialNavMode);
 	let shiftPanning = $state(false);
 	let propertiesOpen = $state(false);
 	let sectionPanelOpen = $state(false);
@@ -532,6 +535,23 @@
 								</Inline>
 							</Inline>
 
+							{#if onToggleTag}
+								{@const isTagged = taggedExpressIds.includes(item.expressId)}
+								<Inline align="center" justify="between" gap="xs" class="pt-1">
+									<span class="text-micro leading-tight text-muted-foreground">
+										{isTagged ? t('tasks.bim_element_tagged') : t('tasks.bim_element_not_tagged')}
+									</span>
+									<Button
+										variant={isTagged ? 'outline' : 'brand'}
+										class="h-6 px-2 text-micro"
+										onclick={() => onToggleTag?.(item)}
+									>
+										<Icon name={isTagged ? 'lucide:x' : 'lucide:tag'} class="size-3" />
+										{isTagged ? t('tasks.bim_untag_element') : t('tasks.bim_tag_element')}
+									</Button>
+								</Inline>
+							{/if}
+
 							{#if onCreateTask}
 								<Inline align="center" justify="between" gap="xs" class="pt-1">
 									<span class="text-micro leading-tight text-muted-foreground">
@@ -664,18 +684,6 @@
 					>
 						<Icon name={interactionLocked ? 'lucide:lock' : 'lucide:unlock'} class="size-3.5" />
 					</Button>
-					{#if onReplaceModel}
-						<span class="h-4 w-px bg-border" aria-hidden="true"></span>
-						<Button
-							size="icon"
-							variant="ghost"
-							class="size-7"
-							hint={t('component.replace_ifc_model')}
-							onclick={onReplaceModel}
-						>
-							<Icon name="lucide:upload" class="size-3.5" />
-						</Button>
-					{/if}
 				</div>
 
 				{#if modelBounds}

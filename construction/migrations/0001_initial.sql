@@ -1,4 +1,4 @@
--- 0001_initial.sql: 368 step(s), from an empty database to 8828c88406271f5da25676a042e179a3c295e7e68b1acd7eb01fea1b7826c5da.
+-- 0001_initial.sql: 389 step(s), from an empty database to f433af9a7f326e3cf1523d378bbb459735d5d14f5c4793ce915f35ba08a9cf2a.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -681,6 +681,16 @@ create or replace function "bolt_record_label_commercial_documents_708905e9"(tex
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['external_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['external_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['external_reference']), 'null'::jsonb) AS right_value OFFSET 0) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['external_reference']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['external_reference']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('external_reference', to_jsonb("external_reference"), 'document_number', to_jsonb("document_number")) AS j FROM (SELECT $1 AS "document_number", $2 AS "external_reference") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
+-- step create:function:bolt_record_label_compliance_records_518f8ec8 (additive)
+create or replace function "bolt_record_label_compliance_records_518f8ec8"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['record_code']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) AS right_value OFFSET 0) label_1) #>> '{}') AS value FROM (SELECT jsonb_build_object('record_code', to_jsonb("record_code"), 'title', to_jsonb("title")) AS j FROM (SELECT $1 AS "record_code", $2 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
 -- step create:function:bolt_record_label_contracts_63ff5434 (additive)
 create or replace function "bolt_record_label_contracts_63ff5434"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -711,6 +721,16 @@ create or replace function "bolt_record_label_project_files_ea3beb98"(text, text
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) AS right_value OFFSET 0) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['document_number']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('document_number', to_jsonb("document_number"), 'title', to_jsonb("title")) AS j FROM (SELECT $1 AS "document_number", $2 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
+-- step create:function:bolt_record_label_sustainability_logs_b440748b (additive)
+create or replace function "bolt_record_label_sustainability_logs_b440748b"(daterange) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['reporting_period', 'from']), 'null'::jsonb) AS left_value, (CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period', 'to']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period', 'to']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT to_jsonb(' – '::text) AS left_value, coalesce((label_row.j #> ARRAY['reporting_period', 'to']), 'null'::jsonb) AS right_value OFFSET 0) label_0) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period', 'to']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period', 'to']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb(''::text) ELSE 'null'::jsonb END) AS right_value OFFSET 0) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['reporting_period']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN to_jsonb('Site log'::text) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('reporting_period', (CASE WHEN "reporting_period" IS NOT NULL THEN jsonb_build_object('from', lower("reporting_period")::text, 'to', CASE WHEN NOT upper_inf("reporting_period") THEN (upper("reporting_period") - 1)::text END) END)) AS j FROM (SELECT $1 AS "reporting_period") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
 -- step create:function:bolt_record_label_tasks_26010760 (additive)
 create or replace function "bolt_record_label_tasks_26010760"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -720,6 +740,16 @@ create or replace function "bolt_record_label_tasks_26010760"(text, text) return
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT ((CASE WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['task_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['task_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS TRUE THEN (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['task_code']), 'null'::jsonb) AS left_value, to_jsonb(' · '::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) AS right_value OFFSET 0) label_1) WHEN (CASE WHEN jsonb_typeof(to_jsonb((coalesce((label_row.j #> ARRAY['task_code']), 'null'::jsonb) <> 'null'::jsonb))) = 'boolean' THEN (to_jsonb((coalesce((label_row.j #> ARRAY['task_code']), 'null'::jsonb) <> 'null'::jsonb)) #>> '{}') END)::boolean IS FALSE THEN coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) ELSE 'null'::jsonb END) #>> '{}') AS value FROM (SELECT jsonb_build_object('task_code', to_jsonb("task_code"), 'title', to_jsonb("title")) AS j FROM (SELECT $1 AS "task_code", $2 AS "title") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_report_templates_71cbeeae (additive)
+create or replace function "bolt_record_label_report_templates_71cbeeae"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT ((SELECT CASE WHEN jsonb_typeof(label_2.left_value) = 'string' AND jsonb_typeof(label_2.right_value) = 'string' THEN to_jsonb((label_2.left_value #>> '{}') || (label_2.right_value #>> '{}')) WHEN jsonb_typeof(label_2.left_value) = 'array' AND jsonb_typeof(label_2.right_value) = 'array' THEN label_2.left_value || label_2.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_2.left_value) = 'number' THEN (label_2.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_2.right_value) = 'number' THEN (label_2.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_1.left_value) = 'string' AND jsonb_typeof(label_1.right_value) = 'string' THEN to_jsonb((label_1.left_value #>> '{}') || (label_1.right_value #>> '{}')) WHEN jsonb_typeof(label_1.left_value) = 'array' AND jsonb_typeof(label_1.right_value) = 'array' THEN label_1.left_value || label_1.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_1.left_value) = 'number' THEN (label_1.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_1.right_value) = 'number' THEN (label_1.right_value #>> '{}') END)::numeric) END FROM (SELECT (SELECT CASE WHEN jsonb_typeof(label_0.left_value) = 'string' AND jsonb_typeof(label_0.right_value) = 'string' THEN to_jsonb((label_0.left_value #>> '{}') || (label_0.right_value #>> '{}')) WHEN jsonb_typeof(label_0.left_value) = 'array' AND jsonb_typeof(label_0.right_value) = 'array' THEN label_0.left_value || label_0.right_value ELSE to_jsonb((CASE WHEN jsonb_typeof(label_0.left_value) = 'number' THEN (label_0.left_value #>> '{}') END)::numeric + (CASE WHEN jsonb_typeof(label_0.right_value) = 'number' THEN (label_0.right_value #>> '{}') END)::numeric) END FROM (SELECT coalesce((label_row.j #> ARRAY['title']), 'null'::jsonb) AS left_value, to_jsonb(' (v'::text) AS right_value OFFSET 0) label_0) AS left_value, coalesce((label_row.j #> ARRAY['version']), 'null'::jsonb) AS right_value OFFSET 0) label_1) AS left_value, to_jsonb(')'::text) AS right_value OFFSET 0) label_2) #>> '{}') AS value FROM (SELECT jsonb_build_object('title', to_jsonb("title"), 'version', to_jsonb("version")) AS j FROM (SELECT $1 AS "title", $2 AS "version") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sop_rules_0d7dd15b (additive)
 create or replace function "bolt_record_label_sop_rules_0d7dd15b"(text, text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -1064,6 +1094,7 @@ create table "sys_integration" ("id" text primary key,
 	"configuration" jsonb default '{}'::jsonb not null,
 	"import_start" jsonb,
 	"listen" jsonb,
+	"classifier" jsonb,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
@@ -1074,6 +1105,7 @@ create table "sys_integration" ("id" text primary key,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__d303bac9" check (("listen" is null or store_json_valid("listen", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__72687215" check (("classifier" is null or store_json_valid("classifier", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1466,16 +1498,6 @@ create table "bim_settings" ("id" uuid primary key, revision int not null defaul
 	constraint "bim_settings__ck__9a600a63" check ((coalesce("variance_flag_pct" >= '1'::numeric, false) and coalesce("variance_flag_pct" <= '100'::numeric, false)))
 );
 
--- step create:table:communication_settings (additive)
-create table "communication_settings" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
-	"hard_filter" text default 'all'::text not null,
-	"auto_extract" boolean default true not null,
-	"classification_sop" text,
-	"owner" text not null,
-	constraint "communication_settings__ck__b7f8a8cc" check ("hard_filter" in ('all', 'known_contacts')),
-	constraint "communication_settings__uq__28afca82" unique ("owner") deferrable initially immediate
-);
-
 -- step create:table:contacts (additive)
 create table "contacts" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"full_name" text not null,
@@ -1523,6 +1545,9 @@ create table "item_matrix" ("id" uuid primary key, revision int not null default
 	"unit_rate" numeric default '0'::numeric not null,
 	"waste_factor_pct" numeric default '0'::numeric not null,
 	"carbon_factor" numeric default '0'::numeric not null,
+	"carbon_stage" text default 'a1_a3'::text not null,
+	"epd_reference" text,
+	"recycled_content_pct" numeric,
 	"rate_basis" text default 'benchmark'::text not null,
 	"validity" daterange,
 	"active" boolean default true not null,
@@ -1546,11 +1571,14 @@ create table "item_matrix" ("id" uuid primary key, revision int not null default
 	constraint "item_matrix__ck__5b9983cb" check ("unit_rate" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("unit_rate", bolt_minor_units("currency")) = "unit_rate"),
 	constraint "item_matrix__ck__91981e0d" check ("waste_factor_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("waste_factor_pct", 1) = "waste_factor_pct"),
 	constraint "item_matrix__ck__466d20e6" check ("carbon_factor" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("carbon_factor", 3) = "carbon_factor"),
+	constraint "item_matrix__ck__3be26962" check ("carbon_stage" in ('a1_a3', 'a1_a5', 'a4_a5')),
+	constraint "item_matrix__ck__01457e83" check ("recycled_content_pct" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("recycled_content_pct", 1) = "recycled_content_pct"),
 	constraint "item_matrix__ck__7a68389f" check ("rate_basis" in ('tender', 'benchmark', 'subcon_quote', 'assumption')),
 	constraint "item_matrix__ck__a9e34137" check (not isempty("validity") and not lower_inf("validity")),
 	constraint "item_matrix__uq__8afde2d7" unique ("code"),
 	constraint "item_matrix__ck__21f06763" check ((coalesce("unit_rate" >= '0'::numeric, false))),
 	constraint "item_matrix__ck__daf2a8b6" check ((coalesce("carbon_factor" >= '0'::numeric, false))),
+	constraint "item_matrix__ck__e9e82a46" check (("recycled_content_pct" is null or (coalesce("recycled_content_pct" >= '0'::numeric, false) and coalesce("recycled_content_pct" <= '100'::numeric, false)))),
 	constraint "item_matrix__ck__e650a79f" check ((coalesce("waste_factor_pct" >= '0'::numeric, false) and coalesce("waste_factor_pct" <= '100'::numeric, false))),
 	constraint "item_matrix__ck__7132bbe9" check (("quantity_basis" is distinct from 'derived'::text or ("derived_from" is not null and coalesce("ratio" > '0'::numeric, false))))
 );
@@ -1616,6 +1644,16 @@ create table "projects" ("id" uuid primary key, revision int not null default 1,
 	"bim_summary" jsonb,
 	"bim_compliance" jsonb,
 	"zones" jsonb,
+	"gfa_m2" numeric,
+	"building_typology" text,
+	"green_mark_target" text,
+	"sustainability_assessor" text,
+	"bca_project_ref" text,
+	"submission_gateway" text,
+	"qualified_person" text,
+	"bim_manager" text,
+	"bep_version" text,
+	"conquas_band_target" text,
 	"location" point,
 	"address" text,
 	"description" text,
@@ -1636,8 +1674,13 @@ create table "projects" ("id" uuid primary key, revision int not null default 1,
 	constraint "projects__ck__656a1266" check (("bim_summary" is null or store_json_valid("bim_summary", '{"kind":"json","optional":true,"shape":{"fields":{"analyzed_at":{"kind":"text"},"asset_count":{"kind":"int"},"asset_signatures":{"kind":"text","many":true,"optional":true},"dropped_duplicates":{"kind":"int","optional":true},"multi_storey_splits":{"kind":"int","optional":true},"propagated_services":{"kind":"int","optional":true},"schema":{"kind":"text"},"stage":{"kind":"text","optional":true},"storey_count":{"kind":"int"},"storeys":{"kind":"text","many":true},"upgraded_classes":{"kind":"int","optional":true}},"kind":"object"}}'::jsonb) is true)),
 	constraint "projects__ck__37c34870" check (("bim_compliance" is null or store_json_valid("bim_compliance", '{"kind":"json","optional":true,"shape":{"fields":{"checked_at":{"kind":"text"},"fail_count":{"kind":"int"},"findings":{"fields":{"actual":{"kind":"text"},"affected_count":{"kind":"int"},"authority":{"kind":"text"},"clause_ref":{"kind":"text","optional":true},"expected":{"kind":"text"},"remediation":{"kind":"text","optional":true},"rule_code":{"kind":"text"},"rule_name":{"kind":"text"},"sample_express_ids":{"kind":"int","many":true,"optional":true},"severity":{"kind":"text"},"status":{"kind":"text"}},"kind":"object","many":true},"pass_count":{"kind":"int"},"score_pct":{"kind":"int"},"total_rules":{"kind":"int"},"warn_count":{"kind":"int"}},"kind":"object"}}'::jsonb) is true)),
 	constraint "projects__ck__01a17d62" check (("zones" is null or store_json_valid("zones", '{"kind":"custom","of":"project_zones","optional":true}'::jsonb) is true)),
+	constraint "projects__ck__9b4c6964" check ("gfa_m2" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("gfa_m2", 2) = "gfa_m2"),
+	constraint "projects__ck__63448c78" check ("building_typology" in ('residential', 'non_residential', 'industrial')),
+	constraint "projects__ck__50081345" check ("green_mark_target" in ('certified', 'gold_plus', 'platinum', 'sle', 'ze')),
+	constraint "projects__ck__c533fd46" check ("submission_gateway" in ('design', 'piling', 'construction', 'completion')),
 	constraint "projects__ck__59d37111" check ("location"[1] between -90 and 90 and "location"[0] between -180 and 180),
-	constraint "projects__uq__0a1dc313" unique ("project_number") deferrable initially immediate
+	constraint "projects__uq__0a1dc313" unique ("project_number") deferrable initially immediate,
+	constraint "projects__ck__4083384d" check (("gfa_m2" is null or coalesce("gfa_m2" > '0'::numeric, false)))
 );
 
 -- step create:table:adhoc_costs (additive)
@@ -1723,6 +1766,32 @@ create table "commercial_documents" ("id" uuid primary key, revision int not nul
 	constraint "commercial_documents__ck__243a7e7b" check ((coalesce("tax_rate" >= '0'::numeric, false) and coalesce("tax_rate" <= '100'::numeric, false))),
 	constraint "commercial_documents__ck__5d7c68c2" check ((coalesce("doc_type" = 'credit_note'::text, false) or coalesce("subtotal" >= '0'::numeric, false))),
 	constraint "commercial_documents__ck__17823856" check ((coalesce("retention_amount" >= '0'::numeric, false)))
+);
+
+-- step create:table:compliance_records (additive)
+create table "compliance_records" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"record_code" text not null,
+	"recorded_on" date not null,
+	"standard" text default 'bca_conquas'::text not null,
+	"category" text default 'inspection'::text not null,
+	"clause_ref" text,
+	"title" text not null,
+	"severity" text default 'medium'::text not null,
+	"status" text default 'open' not null,
+	"metric_value" text,
+	"corrective_action" text,
+	"closed_on" date,
+	"bolt_record_label" text generated always as ("bolt_record_label_compliance_records_518f8ec8"("record_code", "title")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_compliance_records_518f8ec8"("record_code", "title"), '') || ' ' || coalesce("record_code"::text, '') || ' ' || coalesce("title"::text, '') || ' ' || coalesce("clause_ref"::text, '') || ' ' || coalesce("metric_value"::text, ''))) stored,
+	"project_id" uuid not null,
+	"owner" text,
+	constraint "compliance_records__uq__5f92f0ea" unique nulls not distinct ("project_id", "record_code") deferrable initially immediate,
+	constraint "compliance_records__ck__38db2e31" check (isfinite("recorded_on")),
+	constraint "compliance_records__ck__05ae3645" check ("standard" in ('bca_conquas', 'bca_corenet_x', 'iso_9001', 'iso_14001', 'iso_45001', 'iso_19650')),
+	constraint "compliance_records__ck__47e3c6b8" check ("category" in ('inspection', 'ncr', 'safety_metric', 'environmental', 'bim_cde', 'statutory_gateway')),
+	constraint "compliance_records__ck__827dafc6" check ("severity" in ('low', 'medium', 'high', 'critical')),
+	constraint "compliance_records__ck__271b61e7" check ("status" in ('closed', 'in_progress', 'open', 'verified')),
+	constraint "compliance_records__ck__df54a8a4" check (isfinite("closed_on"))
 );
 
 -- step create:table:contracts (additive)
@@ -1840,6 +1909,34 @@ create table "project_files" ("id" uuid primary key, revision int not null defau
 	constraint "project_files__uq__03d273b5" unique nulls not distinct ("project_id", "document_number")
 );
 
+-- step create:table:sustainability_logs (additive)
+create table "sustainability_logs" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"reporting_period" daterange not null,
+	"electricity_kwh" numeric default '0'::numeric not null,
+	"diesel_litres" numeric default '0'::numeric not null,
+	"transport_tco2e" numeric default '0'::numeric not null,
+	"water_m3" numeric default '0'::numeric not null,
+	"newater_m3" numeric default '0'::numeric not null,
+	"waste_generated_t" numeric default '0'::numeric not null,
+	"waste_diverted_t" numeric default '0'::numeric not null,
+	"waste_hazardous_t" numeric default '0'::numeric not null,
+	"notes" text,
+	"bolt_record_label" text generated always as ("bolt_record_label_sustainability_logs_b440748b"("reporting_period")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sustainability_logs_b440748b"("reporting_period"), ''))) stored,
+	"project_id" uuid not null,
+	constraint "sustainability_logs__ck__b0e00570" check (not isempty("reporting_period") and not lower_inf("reporting_period")),
+	constraint "sustainability_logs__ck__daf57a7f" check ("electricity_kwh" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("electricity_kwh", 2) = "electricity_kwh"),
+	constraint "sustainability_logs__ck__494cec17" check ("diesel_litres" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("diesel_litres", 2) = "diesel_litres"),
+	constraint "sustainability_logs__ck__7d676fa8" check ("transport_tco2e" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("transport_tco2e", 3) = "transport_tco2e"),
+	constraint "sustainability_logs__ck__f5ae132a" check ("water_m3" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("water_m3", 2) = "water_m3"),
+	constraint "sustainability_logs__ck__49987a3f" check ("newater_m3" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("newater_m3", 2) = "newater_m3"),
+	constraint "sustainability_logs__ck__b81a68c5" check ("waste_generated_t" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("waste_generated_t", 2) = "waste_generated_t"),
+	constraint "sustainability_logs__ck__f1dcade3" check ("waste_diverted_t" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("waste_diverted_t", 2) = "waste_diverted_t"),
+	constraint "sustainability_logs__ck__e8e4a86d" check ("waste_hazardous_t" not in ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric) and round("waste_hazardous_t", 2) = "waste_hazardous_t"),
+	constraint "sustainability_logs__ck__e3a554eb" check ((coalesce("diesel_litres" >= '0'::numeric, false) and coalesce("electricity_kwh" >= '0'::numeric, false) and coalesce("transport_tco2e" >= '0'::numeric, false))),
+	constraint "sustainability_logs__ck__1e8ac3b8" check ((coalesce("newater_m3" >= '0'::numeric, false) and coalesce("waste_diverted_t" >= '0'::numeric, false) and coalesce("waste_generated_t" >= '0'::numeric, false) and coalesce("waste_hazardous_t" >= '0'::numeric, false) and coalesce("water_m3" >= '0'::numeric, false)))
+);
+
 -- step create:table:tasks (additive)
 create table "tasks" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
 	"task_code" text not null,
@@ -1880,6 +1977,30 @@ create table "tasks" ("id" uuid primary key, revision int not null default 1, cr
 	constraint "tasks__ck__50e98387" check (("attachments" is null or store_json_valid("attachments", '{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true}'::jsonb) is true)),
 	constraint "tasks__uq__9ea8dd32" unique nulls not distinct ("project_id", "task_code"),
 	constraint "tasks__ck__0bca605d" check ((coalesce("progress_pct" >= '0'::numeric, false) and coalesce("progress_pct" <= '100'::numeric, false)))
+);
+
+-- step create:table:report_templates (additive)
+create table "report_templates" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text,
+	"kind" text not null,
+	"locale" text default 'en'::text not null,
+	"version" text not null,
+	"title" text not null,
+	"standard_ref" text,
+	"body" text default '{report}'::text not null,
+	"print_layout" jsonb,
+	"letterhead" jsonb,
+	"company_stamp" jsonb,
+	"published_at" timestamptz,
+	"status" text default 'draft' not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_report_templates_71cbeeae"("title", "version")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_report_templates_71cbeeae"("title", "version"), '') || ' ' || coalesce("title"::text, '') || ' ' || coalesce("standard_ref"::text, ''))) stored,
+	constraint "report_templates__ck__4be15c40" check ("kind" in ('sustainability_report', 'compliance_report')),
+	constraint "report_templates__ck__d73591a4" check ("locale" in ('en', 'zh')),
+	constraint "report_templates__ck__2d6b54cc" check (("print_layout" is null or store_json_valid("print_layout", '{"accept":["text/html"],"kind":"file","max":"3MiB","optional":true}'::jsonb) is true)),
+	constraint "report_templates__ck__24a3cb04" check (("letterhead" is null or store_json_valid("letterhead", '{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true}'::jsonb) is true)),
+	constraint "report_templates__ck__bba0420c" check (("company_stamp" is null or store_json_valid("company_stamp", '{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true}'::jsonb) is true)),
+	constraint "report_templates__ck__acf9419d" check (isfinite("published_at")),
+	constraint "report_templates__ck__b8d6a024" check ("status" in ('draft', 'published'))
 );
 
 -- step create:table:sop_rules (additive)
@@ -1959,7 +2080,7 @@ select bolt_history_register('sys_envoy_channel','{"fields":{"active":{"default"
 select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:sys_integration (additive)
-select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"classifier":{"kind":"json","optional":true},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
 
 -- step create:history:schema:sys_invitation (additive)
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_team"}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
@@ -1982,26 +2103,26 @@ select bolt_history_register('asset_mappings','{"audit":true,"fields":{"cleanup_
 -- step create:history:schema:bim_settings (additive)
 select bolt_history_register('bim_settings','{"audit":true,"check":{"valid_confidence":{"min_confidence":{"gte":0.1,"lte":0.99}},"valid_variance":{"variance_flag_pct":{"gte":1,"lte":100}}},"fields":{"auto_deduplicate":{"default":true,"kind":"bool"},"auto_reclassify_generic":{"default":true,"kind":"bool"},"auto_split_multi_storey":{"default":true,"kind":"bool"},"code":{"default":"default","kind":"text"},"connection_gap_tol_m":{"default":0.05,"kind":"decimal","scale":3},"duplicate_center_tol_m":{"default":0.05,"kind":"decimal","scale":3},"exclude_ifc_classes":{"default":["IFCSPACE","IFCOPENINGELEMENT"],"kind":"text","many":true},"extra_property_keys":{"kind":"text","many":true,"optional":true},"material_densities":{"default":{"aluminium":2700,"concrete":2400,"copper":8960,"galvanised steel":7850,"stainless steel":7930,"steel":7850},"kind":"json","optional":true},"max_candidates":{"default":80,"kind":"int","max":250,"min":10},"max_proposals":{"default":30,"kind":"int","max":200,"min":0},"max_visual_archetypes":{"default":200,"kind":"int","max":2000,"min":1},"min_confidence":{"default":0.7,"kind":"decimal","scale":2},"name":{"default":"Default BIM Takeoff & Cleanup Policy","kind":"text"},"notes":{"format":"markdown","kind":"text","optional":true},"service_aliases":{"default":{"chilled_water":["chilled water","chw","chws","chwr","condenser water","cws","cwr","chiller","cooling tower"],"domestic_cold_water":["domestic cold","cold water","potable","dcw","cw supply","water supply"],"domestic_hot_water":["domestic hot","hot water","dhw","hw supply","water heater"],"electrical_power":["electrical","electric","power","conduit","emt","cablesegment","cablecarrier","cable","trunking","panelboard","switchboard","receptacle","outlet","switchingdevice","socket","lighting","lightfixture","luminaire","downlight"],"elv_comms":["elv","data","telecom","cctv","security","audio","av","bms","nurse call"],"fire_protection":["fire","sprinkler","hose reel","wet riser","dry riser","hydrant","smoke","alarm"],"hydronic_hvac":["hydronic","heating","boiler","radiator","space heater","fcu","ahu","refrigerant","vrf","vrv","acmv","hvac"],"natural_gas":["natural gas","town gas","lpg","gas supply","fuel gas"],"sanitary_dwv":["sanitary","waste","soil","sewer","vent","dwv","toilet","urinal","sink","lavatory","tub","shower","floor trap"],"storm_drain":["storm drain","storm water","stormwater","rainwater","rwdp","roof drain","surface drain","storm"],"ventilation_duct":["supply air","return air","exhaust air","fresh air","airterminal","duct","diffuser","grille","fan","ventilation"]},"kind":"json","optional":true},"shape_tolerance_pct":{"default":3,"kind":"decimal","scale":1},"size_band_step_mm":{"default":25,"kind":"decimal","scale":1},"size_bands_mm":{"default":[20,32,50,80,100,150,200,300,500],"kind":"int","many":true},"variance_flag_pct":{"default":15,"kind":"decimal","scale":1}},"record_label":"record.name","unique":[{"fields":["code"],"import_key":true,"name":"unique_code"}]}'::jsonb);
 
--- step create:history:schema:communication_settings (additive)
-select bolt_history_register('communication_settings','{"audit":true,"fields":{"auto_extract":{"default":true,"kind":"bool"},"classification_sop":{"format":"markdown","kind":"text","optional":true},"hard_filter":{"default":"all","kind":"enum","values":["all","known_contacts"]},"owner":{"kind":"ref","to":"sys_user"}},"record_label":"record.owner.name","unique":[{"fields":["owner"],"name":"one_settings_per_owner"}]}'::jsonb);
-
 -- step create:history:schema:contacts (additive)
 select bolt_history_register('contacts','{"audit":true,"computed":{"email_key":{"expr":{"lower":{"field":"email"}},"kind":"text"},"phone_key":{"expr":{"regex_replace":[{"field":"phone"},"\\D",""]},"kind":"text"}},"fields":{"company_name":{"kind":"text","optional":true},"email":{"format":"email","kind":"text","optional":true},"full_name":{"kind":"text"},"notes":{"kind":"text","optional":true},"payment_terms_days":{"kind":"int","max":180,"min":0,"optional":true},"phone":{"format":"phone","kind":"text","optional":true},"registration_no":{"kind":"text","optional":true},"role":{"default":"subcontractor","kind":"enum","values":["subcontractor","supplier","main_contractor","client","consultant","architect","qs","site_engineer","project_manager"]},"status":{"default":"active","kind":"enum","values":["active","inactive"]},"trade_specialty":{"default":"general","kind":"enum","values":["general","civil_earthworks","piling","structural","roofing","facade","waterproofing","flooring","finishing","mne","electrical","plumbing","hvac","fire_protection","elv_security","landscaping"]}},"indexes":[{"on":["email_key"]},{"on":["phone_key"]},{"on":["trade_specialty","role"]}],"record_label":"record.company_name != null ? record.company_name + '' · '' + record.full_name : record.full_name","search":{"text":["full_name","company_name","phone","email","registration_no"]}}'::jsonb);
 
 -- step create:history:schema:item_matrix (additive)
-select bolt_history_register('item_matrix','{"audit":true,"check":{"derived_needs_source":{"or":[{"quantity_basis":{"ne":"derived"}},{"derived_from":{"is_null":false},"ratio":{"gt":0}}]},"valid_carbon":{"carbon_factor":{"gte":0}},"valid_rate":{"unit_rate":{"gte":0}},"valid_waste":{"waste_factor_pct":{"gte":0,"lte":100}}},"fields":{"active":{"default":true,"kind":"bool"},"carbon_factor":{"default":0,"kind":"decimal","scale":3},"category":{"default":"bim_asset","kind":"enum","values":["bim_asset","additional_cost"]},"code":{"kind":"text"},"currency":{"default":"SGD","kind":"currency"},"derived_from":{"kind":"text","optional":true},"discipline":{"default":"mep","kind":"enum","values":["architecture","structural","mep","civil","preliminaries","general"]},"ifc_classes":{"kind":"text","many":true,"optional":true},"insulated":{"default":"any","kind":"enum","values":["any","insulated","uninsulated"]},"match_keywords":{"kind":"text","many":true,"optional":true},"max_size_mm":{"kind":"decimal","optional":true,"scale":1},"min_size_mm":{"kind":"decimal","optional":true,"scale":1},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"quantity_basis":{"default":"count","kind":"enum","values":["count","length","area","volume","weight","lump_sum","pct_of_bim","derived"]},"rate_basis":{"default":"benchmark","kind":"enum","values":["tender","benchmark","subcon_quote","assumption"]},"ratio":{"kind":"decimal","optional":true,"scale":4},"stands_in_for":{"kind":"text","optional":true},"system_services":{"kind":"text","many":true,"optional":true},"topology_mode":{"default":"auto","kind":"enum","values":["auto","discontiguous","contiguous_linear","contiguous_planar"]},"trade_specialty":{"default":"general","kind":"enum","values":["general","civil_earthworks","piling","structural","roofing","facade","waterproofing","flooring","finishing","mne","electrical","plumbing","hvac","fire_protection","elv_security","landscaping"]},"unit":{"default":"ea","kind":"enum","values":["ea","m","m2","m3","kg","ls","month","pct"]},"unit_rate":{"currency":"currency","default":0,"kind":"money"},"validity":{"kind":"period","of":"date","optional":true},"waste_factor_pct":{"default":0,"kind":"decimal","scale":1}},"indexes":[{"on":["category","active"]}],"record_label":"record.code + '' · '' + record.name","search":{"text":["code","name","notes"]},"unique":[{"fields":["code"],"import_key":true,"name":"code"}]}'::jsonb);
+select bolt_history_register('item_matrix','{"audit":true,"check":{"derived_needs_source":{"or":[{"quantity_basis":{"ne":"derived"}},{"derived_from":{"is_null":false},"ratio":{"gt":0}}]},"valid_carbon":{"carbon_factor":{"gte":0}},"valid_rate":{"unit_rate":{"gte":0}},"valid_recycled":{"or":[{"recycled_content_pct":{"is_null":true}},{"recycled_content_pct":{"gte":0,"lte":100}}]},"valid_waste":{"waste_factor_pct":{"gte":0,"lte":100}}},"fields":{"active":{"default":true,"kind":"bool"},"carbon_factor":{"default":0,"kind":"decimal","scale":3},"carbon_stage":{"default":"a1_a3","kind":"enum","values":["a1_a3","a1_a5","a4_a5"]},"category":{"default":"bim_asset","kind":"enum","values":["bim_asset","additional_cost"]},"code":{"kind":"text"},"currency":{"default":"SGD","kind":"currency"},"derived_from":{"kind":"text","optional":true},"discipline":{"default":"mep","kind":"enum","values":["architecture","structural","mep","civil","preliminaries","general"]},"epd_reference":{"kind":"text","optional":true},"ifc_classes":{"kind":"text","many":true,"optional":true},"insulated":{"default":"any","kind":"enum","values":["any","insulated","uninsulated"]},"match_keywords":{"kind":"text","many":true,"optional":true},"max_size_mm":{"kind":"decimal","optional":true,"scale":1},"min_size_mm":{"kind":"decimal","optional":true,"scale":1},"name":{"kind":"text"},"notes":{"kind":"text","optional":true},"quantity_basis":{"default":"count","kind":"enum","values":["count","length","area","volume","weight","lump_sum","pct_of_bim","derived"]},"rate_basis":{"default":"benchmark","kind":"enum","values":["tender","benchmark","subcon_quote","assumption"]},"ratio":{"kind":"decimal","optional":true,"scale":4},"recycled_content_pct":{"kind":"decimal","optional":true,"scale":1},"stands_in_for":{"kind":"text","optional":true},"system_services":{"kind":"text","many":true,"optional":true},"topology_mode":{"default":"auto","kind":"enum","values":["auto","discontiguous","contiguous_linear","contiguous_planar"]},"trade_specialty":{"default":"general","kind":"enum","values":["general","civil_earthworks","piling","structural","roofing","facade","waterproofing","flooring","finishing","mne","electrical","plumbing","hvac","fire_protection","elv_security","landscaping"]},"unit":{"default":"ea","kind":"enum","values":["ea","m","m2","m3","kg","ls","month","pct"]},"unit_rate":{"currency":"currency","default":0,"kind":"money"},"validity":{"kind":"period","of":"date","optional":true},"waste_factor_pct":{"default":0,"kind":"decimal","scale":1}},"indexes":[{"on":["category","active"]}],"record_label":"record.code + '' · '' + record.name","search":{"text":["code","name","notes"]},"unique":[{"fields":["code"],"import_key":true,"name":"code"}]}'::jsonb);
 
 -- step create:history:schema:project_messages (additive)
 select bolt_history_register('project_messages','{"audit":true,"fields":{"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"classification":{"default":"pending","kind":"enum","values":["pending","useful","ignored","review"]},"classified_at":{"kind":"instant","optional":true},"classified_by":{"kind":"enum","optional":true,"values":["hard_filter","model","manual"]},"contact_id":{"inverse":"messages","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"detail":{"format":"markdown","kind":"text","optional":true},"direction":{"default":"inbound","kind":"enum","values":["inbound","outbound"]},"extracted_at":{"kind":"instant","optional":true},"extraction_status":{"default":"pending","kind":"enum","values":["pending","extracted","none","failed"]},"extraction_summary":{"kind":"text","optional":true},"handle":{"kind":"text","optional":true},"occurred_at":{"default":{"var":"now"},"kind":"instant"},"project_id":{"inverse":"messages","kind":"ref","on_delete":"set_null","optional":true,"to":"projects"},"reason":{"kind":"text","optional":true},"recording":{"accept":["audio/*","video/*"],"kind":"file","max":"20MiB","optional":true},"sender_name":{"kind":"text","optional":true},"source_key":{"hidden":true,"kind":"text","optional":true},"source_message":{"inverse":"project_messages","kind":"ref","optional":true,"to":"sys_message"},"source_seq":{"hidden":true,"kind":"int","optional":true},"source_user":{"kind":"ref","optional":true,"to":"sys_user"},"subject":{"kind":"text"},"thread_key":{"hidden":true,"kind":"text","optional":true},"transcription":{"default":"none","kind":"enum","values":["none","pending","done","failed","unavailable"]},"transcription_error":{"kind":"text","optional":true},"transport":{"default":"whatsapp","kind":"enum","values":["whatsapp","email","manual"]}},"indexes":[{"on":["occurred_at"]},{"on":["classification","source_seq"]},{"on":["source_key","thread_key","occurred_at"]}],"record_label":"record.subject","search":{"text":["subject","detail","sender_name","handle"]},"unique":[{"fields":["source_message"],"name":"one_message_per_native_message"}]}'::jsonb);
 
 -- step create:history:schema:projects (additive)
-select bolt_history_register('projects','{"audit":true,"fields":{"active_contract_count":{"kind":"count","of":"contracts","where":{"status":{"in":["under_review","active"]}}},"address":{"kind":"text","optional":true},"autodesk_project_id":{"kind":"text","optional":true},"bim_compliance":{"kind":"json","optional":true,"shape":{"fields":{"checked_at":{"kind":"text"},"fail_count":{"kind":"int"},"findings":{"fields":{"actual":{"kind":"text"},"affected_count":{"kind":"int"},"authority":{"kind":"text"},"clause_ref":{"kind":"text","optional":true},"expected":{"kind":"text"},"remediation":{"kind":"text","optional":true},"rule_code":{"kind":"text"},"rule_name":{"kind":"text"},"sample_express_ids":{"kind":"int","many":true,"optional":true},"severity":{"kind":"text"},"status":{"kind":"text"}},"kind":"object","many":true},"pass_count":{"kind":"int"},"score_pct":{"kind":"int"},"total_rules":{"kind":"int"},"warn_count":{"kind":"int"}},"kind":"object"}},"bim_costing_dirty":{"default":false,"kind":"bool"},"bim_costing_error":{"hidden":true,"kind":"text","optional":true},"bim_file":{"accept":["*/*"],"kind":"file","max":"250MiB","optional":true},"bim_summary":{"kind":"json","optional":true,"shape":{"fields":{"analyzed_at":{"kind":"text"},"asset_count":{"kind":"int"},"asset_signatures":{"kind":"text","many":true,"optional":true},"dropped_duplicates":{"kind":"int","optional":true},"multi_storey_splits":{"kind":"int","optional":true},"propagated_services":{"kind":"int","optional":true},"schema":{"kind":"text"},"stage":{"kind":"text","optional":true},"storey_count":{"kind":"int"},"storeys":{"kind":"text","many":true},"upgraded_classes":{"kind":"int","optional":true}},"kind":"object"}},"bim_takeoff":{"accept":["application/json"],"hidden":true,"kind":"file","max":"16MiB","optional":true},"bim_takeoff_views":{"accept":["image/jpeg"],"hidden":true,"kind":"file","many":true,"max":"1MiB","optional":true},"bim_version":{"kind":"text","optional":true},"client_id":{"inverse":"client_projects","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"currency":{"default":"SGD","kind":"currency"},"description":{"format":"markdown","kind":"text","optional":true},"location":{"kind":"point","optional":true},"open_document_count":{"kind":"count","of":"commercial_documents","where":{"status":{"in":["issued","verified","certified","disputed"]}}},"open_task_count":{"kind":"count","of":"tasks","where":{"status":{"in":["todo","in_progress","blocked"]}}},"project_manager":{"kind":"ref","optional":true,"to":"sys_user"},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true},"project_role":{"default":"main_contractor","kind":"enum","values":["main_contractor","subcontractor","specialist_contractor"]},"schedule_range":{"kind":"period","of":"date","optional":true},"status":{"initial":"active","kind":"state","states":{"active":{"to":["tendering","on_hold","defects_liability","complete","cancelled"]},"cancelled":{"to":["tendering","active"]},"complete":{"to":["defects_liability"]},"defects_liability":{"to":["complete","active"]},"on_hold":{"to":["active","cancelled"]},"tendering":{"to":["active","cancelled"]}}},"zones":{"kind":"custom","of":"project_zones","optional":true}},"record_label":"record.project_number != null ? record.project_number + '' · '' + record.project_name : record.project_name","search":{"text":["project_name","project_number"]},"unique":[{"fields":["project_number"],"name":"project_number"}]}'::jsonb);
+select bolt_history_register('projects','{"audit":true,"check":{"valid_gfa":{"or":[{"gfa_m2":{"is_null":true}},{"gfa_m2":{"gt":0}}]}},"fields":{"active_contract_count":{"kind":"count","of":"contracts","where":{"status":{"in":["under_review","active"]}}},"address":{"kind":"text","optional":true},"autodesk_project_id":{"kind":"text","optional":true},"bca_project_ref":{"kind":"text","optional":true},"bep_version":{"kind":"text","optional":true},"bim_compliance":{"kind":"json","optional":true,"shape":{"fields":{"checked_at":{"kind":"text"},"fail_count":{"kind":"int"},"findings":{"fields":{"actual":{"kind":"text"},"affected_count":{"kind":"int"},"authority":{"kind":"text"},"clause_ref":{"kind":"text","optional":true},"expected":{"kind":"text"},"remediation":{"kind":"text","optional":true},"rule_code":{"kind":"text"},"rule_name":{"kind":"text"},"sample_express_ids":{"kind":"int","many":true,"optional":true},"severity":{"kind":"text"},"status":{"kind":"text"}},"kind":"object","many":true},"pass_count":{"kind":"int"},"score_pct":{"kind":"int"},"total_rules":{"kind":"int"},"warn_count":{"kind":"int"}},"kind":"object"}},"bim_costing_dirty":{"default":false,"kind":"bool"},"bim_costing_error":{"hidden":true,"kind":"text","optional":true},"bim_file":{"accept":["*/*"],"kind":"file","max":"250MiB","optional":true},"bim_manager":{"kind":"text","optional":true},"bim_summary":{"kind":"json","optional":true,"shape":{"fields":{"analyzed_at":{"kind":"text"},"asset_count":{"kind":"int"},"asset_signatures":{"kind":"text","many":true,"optional":true},"dropped_duplicates":{"kind":"int","optional":true},"multi_storey_splits":{"kind":"int","optional":true},"propagated_services":{"kind":"int","optional":true},"schema":{"kind":"text"},"stage":{"kind":"text","optional":true},"storey_count":{"kind":"int"},"storeys":{"kind":"text","many":true},"upgraded_classes":{"kind":"int","optional":true}},"kind":"object"}},"bim_takeoff":{"accept":["application/json"],"hidden":true,"kind":"file","max":"16MiB","optional":true},"bim_takeoff_views":{"accept":["image/jpeg"],"hidden":true,"kind":"file","many":true,"max":"1MiB","optional":true},"bim_version":{"kind":"text","optional":true},"building_typology":{"kind":"enum","optional":true,"values":["residential","non_residential","industrial"]},"client_id":{"inverse":"client_projects","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"conquas_band_target":{"kind":"text","optional":true},"currency":{"default":"SGD","kind":"currency"},"description":{"format":"markdown","kind":"text","optional":true},"gfa_m2":{"kind":"decimal","optional":true,"scale":2},"green_mark_target":{"kind":"enum","optional":true,"values":["certified","gold_plus","platinum","sle","ze"]},"location":{"kind":"point","optional":true},"open_document_count":{"kind":"count","of":"commercial_documents","where":{"status":{"in":["issued","verified","certified","disputed"]}}},"open_task_count":{"kind":"count","of":"tasks","where":{"status":{"in":["todo","in_progress","blocked"]}}},"project_manager":{"kind":"ref","optional":true,"to":"sys_user"},"project_name":{"kind":"text"},"project_number":{"kind":"text","optional":true},"project_role":{"default":"main_contractor","kind":"enum","values":["main_contractor","subcontractor","specialist_contractor"]},"qualified_person":{"kind":"text","optional":true},"schedule_range":{"kind":"period","of":"date","optional":true},"status":{"initial":"active","kind":"state","states":{"active":{"to":["tendering","on_hold","defects_liability","complete","cancelled"]},"cancelled":{"to":["tendering","active"]},"complete":{"to":["defects_liability"]},"defects_liability":{"to":["complete","active"]},"on_hold":{"to":["active","cancelled"]},"tendering":{"to":["active","cancelled"]}}},"submission_gateway":{"kind":"enum","optional":true,"values":["design","piling","construction","completion"]},"sustainability_assessor":{"kind":"text","optional":true},"zones":{"kind":"custom","of":"project_zones","optional":true}},"record_label":"record.project_number != null ? record.project_number + '' · '' + record.project_name : record.project_name","search":{"text":["project_name","project_number"]},"unique":[{"fields":["project_number"],"name":"project_number"}]}'::jsonb);
 
 -- step create:history:schema:adhoc_costs (additive)
 select bolt_history_register('adhoc_costs','{"audit":true,"check":{"non_negative_qty":{"qty":{"gte":0}},"non_negative_rate":{"unit_rate":{"gte":0}}},"fields":{"amount":{"currency":"currency","default":0,"kind":"money"},"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"catalog_item_id":{"inverse":"adhoc_costs","kind":"ref","on_delete":"restrict","to":"item_matrix"},"contact_id":{"inverse":"adhoc_costs","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"cost_number":{"kind":"seq","pattern":"ADH-{yyyy}-{000}","per":["project_id"]},"currency":{"default":"SGD","kind":"currency"},"incurred_date":{"kind":"date","optional":true},"notes":{"format":"markdown","kind":"text","optional":true},"project_id":{"inverse":"adhoc_costs","kind":"ref","owned":true,"to":"projects"},"qty":{"default":1,"kind":"decimal","scale":3},"status":{"initial":"draft","kind":"state","states":{"approved":{"to":["incurred","draft","cancelled"]},"cancelled":{"to":["draft"]},"draft":{"to":["approved","cancelled"]},"incurred":{"to":[]}}},"title":{"kind":"text"},"unit":{"default":"ls","kind":"text"},"unit_rate":{"currency":"currency","default":0,"kind":"money"}},"indexes":[{"on":["project_id","status"]}],"locks":{"settled_locked":{"except":["status","attachments","notes"],"where":{"status":{"in":["incurred","cancelled"]}}}},"record_label":"record.cost_number != null ? record.cost_number + '' · '' + record.title : record.title","search":{"text":["cost_number","title","notes"]}}'::jsonb);
 
 -- step create:history:schema:commercial_documents (additive)
 select bolt_history_register('commercial_documents','{"audit":true,"check":{"non_negative_retention":{"retention_amount":{"gte":0}},"non_negative_subtotal":{"or":[{"doc_type":{"eq":"credit_note"}},{"subtotal":{"gte":0}}]},"valid_tax_rate":{"tax_rate":{"gte":0,"lte":100}}},"fields":{"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"certified_amount":{"currency":"currency","kind":"money","optional":true},"contact_id":{"inverse":"commercial_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"contract_id":{"inverse":"commercial_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"contracts"},"currency":{"default":"SGD","kind":"currency"},"delivery_date":{"kind":"date","optional":true},"description":{"format":"markdown","kind":"text","optional":true},"direction":{"default":"outflow","kind":"enum","values":["inflow","outflow"]},"doc_type":{"default":"invoice","kind":"enum","values":["purchase_order","delivery_order","invoice","progress_claim","credit_note"]},"document_number":{"kind":"seq","pattern":"DOC-{yyyy}-{000}","per":["project_id"]},"due_date":{"kind":"date","optional":true},"external_reference":{"kind":"text","optional":true},"issue_date":{"default":{"var":"today"},"kind":"date","optional":true},"lines":{"kind":"custom","of":"priced_lines","optional":true},"match_notes":{"kind":"text","optional":true},"match_status":{"default":"unmatched","kind":"enum","values":["unmatched","partial","matched","variance"]},"net_amount":{"currency":"currency","default":0,"kind":"money"},"paid_date":{"kind":"date","optional":true},"parent_document_id":{"inverse":"linked_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"commercial_documents"},"project_id":{"inverse":"commercial_documents","kind":"ref","owned":true,"to":"projects"},"retention_amount":{"currency":"currency","default":0,"kind":"money"},"source_message_id":{"inverse":"commercial_documents","kind":"ref","on_delete":"set_null","optional":true,"to":"project_messages"},"status":{"initial":"draft","kind":"state","states":{"cancelled":{"to":[]},"certified":{"to":["paid","disputed"]},"disputed":{"to":["draft","issued","verified","cancelled"]},"draft":{"to":["issued","cancelled"]},"issued":{"to":["verified","certified","paid","disputed","cancelled"]},"paid":{"to":[]},"verified":{"to":["certified","paid","disputed"]}}},"subtotal":{"currency":"currency","default":0,"kind":"money"},"tax_amount":{"currency":"currency","default":0,"kind":"money"},"tax_rate":{"default":9,"kind":"decimal","scale":2},"total_amount":{"currency":"currency","default":0,"kind":"money"}},"indexes":[{"on":["project_id","doc_type","direction","status"]}],"locks":{"certified_locked":{"except":["status","paid_date","attachments"],"where":{"status":{"eq":"certified"}}},"issued_locked":{"except":["status","certified_amount","net_amount","delivery_date","paid_date","match_status","match_notes","attachments"],"where":{"status":{"in":["issued","verified"]}}},"settled_locked":{"except":["attachments"],"where":{"status":{"in":["paid","cancelled"]}}}},"record_label":"record.external_reference != null ? record.document_number + '' · '' + record.external_reference : record.document_number","search":{"text":["document_number","external_reference","description"]}}'::jsonb);
+
+-- step create:history:schema:compliance_records (additive)
+select bolt_history_register('compliance_records','{"audit":true,"fields":{"category":{"default":"inspection","kind":"enum","values":["inspection","ncr","safety_metric","environmental","bim_cde","statutory_gateway"]},"clause_ref":{"kind":"text","optional":true},"closed_on":{"kind":"date","optional":true},"corrective_action":{"kind":"text","optional":true},"metric_value":{"kind":"text","optional":true},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"project_id":{"inverse":"compliance_records","kind":"ref","owned":true,"to":"projects"},"record_code":{"kind":"seq","pattern":"CMP-{yyyy}-{000}","per":["project_id"]},"recorded_on":{"kind":"date"},"severity":{"default":"medium","kind":"enum","values":["low","medium","high","critical"]},"standard":{"default":"bca_conquas","kind":"enum","values":["bca_conquas","bca_corenet_x","iso_9001","iso_14001","iso_45001","iso_19650"]},"status":{"initial":"open","kind":"state","states":{"closed":{"to":["verified","open"]},"in_progress":{"to":["closed","verified","open"]},"open":{"to":["in_progress","closed","verified"]},"verified":{"to":["open"]}}},"title":{"kind":"text"}},"indexes":[{"on":["project_id","standard"]}],"record_label":"record.record_code + '' · '' + record.title","search":{"text":["record_code","title","clause_ref","metric_value"]}}'::jsonb);
 
 -- step create:history:schema:contracts (additive)
 select bolt_history_register('contracts','{"audit":true,"check":{"valid_retention_cap":{"retention_cap_rate":{"gte":0,"lte":100}},"valid_retention_rate":{"retention_rate":{"gte":0,"lte":100}},"valid_tax_rate":{"tax_rate":{"gte":0,"lte":100}}},"fields":{"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"bim_pin":{"kind":"custom","of":"bim_pin","optional":true},"bond_amount":{"currency":"currency","kind":"money","optional":true},"contact_id":{"inverse":"contracts","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"contract_number":{"kind":"seq","pattern":"CTR-{yyyy}-{000}","per":["project_id"]},"contract_period":{"kind":"period","of":"date","optional":true},"contract_type":{"default":"subcontract","kind":"enum","values":["main_contract","subcontract","supply_agreement","consultancy","variation_order"]},"contract_value":{"currency":"currency","default":0,"kind":"money"},"currency":{"default":"SGD","kind":"currency"},"direction":{"default":"downstream","kind":"enum","values":["upstream","downstream"]},"dlp_months":{"default":12,"kind":"int","max":60,"min":0},"insurance_expiry":{"kind":"date","optional":true},"lines":{"kind":"custom","of":"priced_lines","optional":true},"parent_contract_id":{"inverse":"variations","kind":"ref","on_delete":"set_null","optional":true,"to":"contracts"},"payment_terms_days":{"default":30,"kind":"int","max":180,"min":0},"project_id":{"inverse":"contracts","kind":"ref","owned":true,"to":"projects"},"retention_cap_rate":{"default":5,"kind":"decimal","scale":2},"retention_rate":{"default":10,"kind":"decimal","scale":2},"schedule_impact_days":{"default":0,"kind":"int"},"scope_notes":{"format":"markdown","kind":"text","optional":true},"signed_date":{"kind":"date","optional":true},"source_message_id":{"inverse":"contracts","kind":"ref","on_delete":"set_null","optional":true,"to":"project_messages"},"status":{"initial":"draft","kind":"state","states":{"active":{"to":["completed","terminated"]},"completed":{"to":[]},"draft":{"to":["under_review","active","rejected"]},"rejected":{"to":["draft"]},"terminated":{"to":[]},"under_review":{"to":["active","draft","rejected"]}}},"tax_rate":{"default":9,"kind":"decimal","scale":2},"title":{"kind":"text"},"trade_specialty":{"default":"general","kind":"enum","values":["general","civil_earthworks","piling","structural","roofing","facade","waterproofing","flooring","finishing","mne","electrical","plumbing","hvac","fire_protection","elv_security","landscaping"]}},"indexes":[{"on":["project_id","direction","status"]}],"locks":{"active_locked":{"except":["status","insurance_expiry","attachments","scope_notes"],"where":{"status":{"eq":"active"}}},"review_locked":{"except":["status","signed_date","attachments","scope_notes"],"where":{"status":{"eq":"under_review"}}},"settled_locked":{"except":["attachments"],"where":{"status":{"in":["completed","terminated"]}}}},"record_label":"record.contract_number != null ? record.contract_number + '' · '' + record.title : record.title","search":{"text":["contract_number","title","scope_notes"]}}'::jsonb);
@@ -2012,8 +2133,14 @@ select bolt_history_register('cost_estimates','{"audit":true,"check":{"valid_con
 -- step create:history:schema:project_files (additive)
 select bolt_history_register('project_files','{"audit":true,"fields":{"autodesk_urn":{"kind":"text","optional":true},"current_version":{"default":"P01","kind":"text"},"discipline":{"kind":"enum","optional":true,"values":["architecture","structural","mep","civil","federated","commercial"]},"document_number":{"kind":"text"},"file":{"accept":["*/*"],"kind":"file","max":"20MiB","optional":true},"kind":{"default":"drawing","kind":"enum","values":["drawing","spec","schedule","contract_doc","handover","autodesk_model"]},"notes":{"format":"markdown","kind":"text","optional":true},"project_id":{"inverse":"project_files","kind":"ref","owned":true,"to":"projects"},"status":{"initial":"draft","kind":"state","states":{"archived":{"to":["draft"]},"draft":{"to":["in_review","issued","archived"]},"in_review":{"to":["issued","draft","archived"]},"issued":{"to":["superseded","in_review","archived"]},"superseded":{"to":["archived"]}}},"title":{"kind":"text"},"zone":{"kind":"text","optional":true}},"record_label":"record.document_number != null ? record.document_number + '' · '' + record.title : record.title","search":{"text":["document_number","title","zone"]},"unique":[{"fields":["project_id","document_number"],"import_key":true,"name":"document_number"}]}'::jsonb);
 
+-- step create:history:schema:sustainability_logs (additive)
+select bolt_history_register('sustainability_logs','{"audit":true,"check":{"non_negative_energy":{"diesel_litres":{"gte":0},"electricity_kwh":{"gte":0},"transport_tco2e":{"gte":0}},"non_negative_water_waste":{"newater_m3":{"gte":0},"waste_diverted_t":{"gte":0},"waste_generated_t":{"gte":0},"waste_hazardous_t":{"gte":0},"water_m3":{"gte":0}}},"fields":{"diesel_litres":{"default":0,"kind":"decimal","scale":2},"electricity_kwh":{"default":0,"kind":"decimal","scale":2},"newater_m3":{"default":0,"kind":"decimal","scale":2},"notes":{"kind":"text","optional":true},"project_id":{"inverse":"sustainability_logs","kind":"ref","owned":true,"to":"projects"},"reporting_period":{"kind":"period","of":"date"},"transport_tco2e":{"default":0,"kind":"decimal","scale":3},"waste_diverted_t":{"default":0,"kind":"decimal","scale":2},"waste_generated_t":{"default":0,"kind":"decimal","scale":2},"waste_hazardous_t":{"default":0,"kind":"decimal","scale":2},"water_m3":{"default":0,"kind":"decimal","scale":2}},"indexes":[{"on":["project_id"]}],"record_label":"record.reporting_period != null ? record.reporting_period.from + (record.reporting_period.to != null ? '' – '' + record.reporting_period.to : '''') : ''Site log''"}'::jsonb);
+
 -- step create:history:schema:tasks (additive)
 select bolt_history_register('tasks','{"audit":true,"check":{"valid_progress":{"progress_pct":{"gte":0,"lte":100}}},"fields":{"actual_range":{"kind":"period","of":"date","optional":true},"assignee":{"kind":"ref","optional":true,"to":"sys_user"},"attachments":{"accept":["*/*"],"kind":"file","many":true,"max":"20MiB","optional":true},"baseline_range":{"kind":"period","of":"date","optional":true},"bim_express_ids":{"kind":"int","many":true,"optional":true},"contract_id":{"inverse":"tasks","kind":"ref","on_delete":"set_null","optional":true,"to":"contracts"},"description":{"format":"markdown","images":"attachments","kind":"text","optional":true},"external_id":{"kind":"text","optional":true},"is_milestone":{"default":false,"kind":"bool"},"kind":{"default":"adhoc","kind":"enum","values":["bim","adhoc"]},"last_updated_on":{"kind":"date","optional":true},"priority":{"default":"medium","kind":"enum","values":["low","medium","high","critical"]},"progress_pct":{"default":0,"kind":"decimal","scale":1},"project_id":{"inverse":"tasks","kind":"ref","owned":true,"to":"projects"},"schedule_range":{"kind":"period","of":"date","optional":true},"source_message_id":{"inverse":"tasks","kind":"ref","on_delete":"set_null","optional":true,"to":"project_messages"},"status":{"initial":"todo","kind":"state","states":{"blocked":{"to":["in_progress","todo","cancelled"]},"cancelled":{"to":["todo"]},"done":{"to":["in_progress"]},"in_progress":{"to":["blocked","done","todo","cancelled"]},"todo":{"to":["in_progress","blocked","done","cancelled"]}}},"subcontractor_id":{"inverse":"tasks","kind":"ref","on_delete":"set_null","optional":true,"to":"contacts"},"task_code":{"kind":"text"},"title":{"kind":"text"},"trade_specialty":{"default":"general","kind":"enum","values":["general","civil_earthworks","piling","structural","roofing","facade","waterproofing","flooring","finishing","mne","electrical","plumbing","hvac","fire_protection","elv_security","landscaping"]},"wbs_path":{"kind":"text","optional":true},"zone":{"kind":"text","optional":true}},"indexes":[{"on":["project_id","status"]}],"record_label":"record.task_code != null ? record.task_code + '' · '' + record.title : record.title","search":{"text":["task_code","wbs_path","title","zone"]},"unique":[{"fields":["project_id","task_code"],"import_key":true,"name":"task_code"}]}'::jsonb);
+
+-- step create:history:schema:report_templates (additive)
+select bolt_history_register('report_templates','{"audit":true,"fields":{"body":{"default":"{report}","kind":"text"},"company_stamp":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"kind":{"kind":"enum","values":["sustainability_report","compliance_report"]},"letterhead":{"accept":["image/png"],"kind":"file","max":"512KiB","optional":true},"locale":{"default":"en","kind":"enum","values":["en","zh"]},"print_layout":{"accept":["text/html"],"kind":"file","max":"3MiB","optional":true},"published_at":{"kind":"instant","optional":true},"standard_ref":{"kind":"text","optional":true},"status":{"initial":"draft","kind":"state","states":{"draft":{"to":["published"]},"published":{}}},"title":{"kind":"text"},"version":{"kind":"text"}},"locks":{"published":{"where":{"status":{"eq":"published"}}}},"record_label":"record.title + '' (v'' + record.version + '')''","search":{"text":["title","standard_ref"]}}'::jsonb);
 
 -- step create:history:schema:sop_rules (additive)
 select bolt_history_register('sop_rules','{"audit":true,"fields":{"active":{"default":true,"kind":"bool"},"authority":{"default":"bca","kind":"enum","values":["corenet_x","bca","scdf","pub","ura","company_sop"]},"clause_ref":{"kind":"text","optional":true},"code":{"kind":"text"},"ifc_classes":{"kind":"text","many":true,"optional":true},"metric":{"default":"min_width_mm","kind":"enum","values":["schema_version","georef_crs","sgpset_coverage_pct","unassigned_storey_pct","proxy_ratio_pct","duplicate_count","mep_untagged_pct","min_width_mm","min_height_mm","min_thickness_mm","max_thickness_mm","max_riser_mm","min_tread_mm","max_slope_pct","required_property","required_material","required_service","min_classified_pct","max_unmatched_count","max_variance_warnings","semantic_check"]},"name":{"kind":"text"},"name_contains":{"kind":"text","many":true,"optional":true},"operator":{"default":"gte","kind":"enum","values":["gte","lte","eq","contains","present"]},"remediation":{"kind":"text","optional":true},"scope":{"default":"element","kind":"enum","values":["model","element","estimate"]},"service_filter":{"kind":"text","many":true,"optional":true},"severity":{"default":"error","kind":"enum","values":["error","warning","info"]},"threshold_num":{"kind":"decimal","optional":true,"scale":2},"threshold_text":{"kind":"text","optional":true}},"indexes":[{"on":["authority","active"]}],"record_label":"record.code + '' · '' + record.name","search":{"text":["code","name","clause_ref","remediation"]},"unique":[{"fields":["code"],"import_key":true,"name":"unique_code"}]}'::jsonb);
@@ -2099,9 +2226,6 @@ alter table "activities" add constraint "activities__fk__b0fb9554" foreign key (
 -- step create:fk:asset_mappings.asset_mappings__fk__e8cc6c49 (additive)
 alter table "asset_mappings" add constraint "asset_mappings__fk__e8cc6c49" foreign key ("item_id") references "item_matrix" ("id") on delete set null on update restrict;
 
--- step create:fk:communication_settings.communication_settings__fk__6b4b5400 (additive)
-alter table "communication_settings" add constraint "communication_settings__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
-
 -- step create:fk:project_messages.project_messages__fk__66847865 (additive)
 alter table "project_messages" add constraint "project_messages__fk__66847865" foreign key ("source_message") references "sys_message" ("id") on delete restrict on update restrict;
 
@@ -2144,6 +2268,12 @@ alter table "commercial_documents" add constraint "commercial_documents__fk__c42
 -- step create:fk:commercial_documents.commercial_documents__fk__b0fb9554 (additive)
 alter table "commercial_documents" add constraint "commercial_documents__fk__b0fb9554" foreign key ("source_message_id") references "project_messages" ("id") on delete set null on update restrict;
 
+-- step create:fk:compliance_records.compliance_records__fk__9ee6b710 (additive)
+alter table "compliance_records" add constraint "compliance_records__fk__9ee6b710" foreign key ("project_id") references "projects" ("id") on delete cascade on update restrict;
+
+-- step create:fk:compliance_records.compliance_records__fk__6b4b5400 (additive)
+alter table "compliance_records" add constraint "compliance_records__fk__6b4b5400" foreign key ("owner") references "sys_user" ("id") on delete restrict on update restrict;
+
 -- step create:fk:contracts.contracts__fk__9ee6b710 (additive)
 alter table "contracts" add constraint "contracts__fk__9ee6b710" foreign key ("project_id") references "projects" ("id") on delete cascade on update restrict;
 
@@ -2161,6 +2291,9 @@ alter table "cost_estimates" add constraint "cost_estimates__fk__9ee6b710" forei
 
 -- step create:fk:project_files.project_files__fk__9ee6b710 (additive)
 alter table "project_files" add constraint "project_files__fk__9ee6b710" foreign key ("project_id") references "projects" ("id") on delete cascade on update restrict;
+
+-- step create:fk:sustainability_logs.sustainability_logs__fk__9ee6b710 (additive)
+alter table "sustainability_logs" add constraint "sustainability_logs__fk__9ee6b710" foreign key ("project_id") references "projects" ("id") on delete cascade on update restrict;
 
 -- step create:fk:tasks.tasks__fk__9ee6b710 (additive)
 alter table "tasks" add constraint "tasks__fk__9ee6b710" foreign key ("project_id") references "projects" ("id") on delete cascade on update restrict;
@@ -2417,9 +2550,6 @@ create index "bim_settings__gin__064cbe59" on "bim_settings" using gin ("extra_p
 -- step create:index:bim_settings.bim_settings__gin__73732636 (additive)
 create index "bim_settings__gin__73732636" on "bim_settings" using gin (bolt_search);
 
--- step create:trigger:communication_settings.store_row_rules (additive)
-create trigger store_row_rules before insert or update or delete on "communication_settings" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
-
 -- step create:trigger:contacts.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "contacts" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
 
@@ -2507,6 +2637,15 @@ create index "commercial_documents__gin__73732636" on "commercial_documents" usi
 -- step create:index:commercial_documents.commercial_documents__ix__b23d9da8 (additive)
 create index "commercial_documents__ix__b23d9da8" on "commercial_documents" ("project_id", "doc_type", "direction", "status");
 
+-- step create:trigger:compliance_records.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "compliance_records" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"open","states":{"closed":{"to":["verified","open"]},"in_progress":{"to":["closed","verified","open"]},"open":{"to":["in_progress","closed","verified"]},"verified":{"to":["open"]}}}}}');
+
+-- step create:index:compliance_records.compliance_records__gin__73732636 (additive)
+create index "compliance_records__gin__73732636" on "compliance_records" using gin (bolt_search);
+
+-- step create:index:compliance_records.compliance_records__ix__7db76398 (additive)
+create index "compliance_records__ix__7db76398" on "compliance_records" ("project_id", "standard");
+
 -- step create:trigger:contracts.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "contracts" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"draft","states":{"active":{"to":["completed","terminated"]},"completed":{"to":[]},"draft":{"to":["under_review","active","rejected"]},"rejected":{"to":["draft"]},"terminated":{"to":[]},"under_review":{"to":["active","draft","rejected"]}}}}}');
 
@@ -2546,6 +2685,15 @@ create trigger store_row_rules before insert or update or delete on "project_fil
 -- step create:index:project_files.project_files__gin__73732636 (additive)
 create index "project_files__gin__73732636" on "project_files" using gin (bolt_search);
 
+-- step create:trigger:sustainability_logs.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "sustainability_logs" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
+
+-- step create:index:sustainability_logs.sustainability_logs__gin__73732636 (additive)
+create index "sustainability_logs__gin__73732636" on "sustainability_logs" using gin (bolt_search);
+
+-- step create:index:sustainability_logs.sustainability_logs__ix__17a654f9 (additive)
+create index "sustainability_logs__ix__17a654f9" on "sustainability_logs" ("project_id");
+
 -- step create:trigger:tasks.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "tasks" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"todo","states":{"blocked":{"to":["in_progress","todo","cancelled"]},"cancelled":{"to":["todo"]},"done":{"to":["in_progress"]},"in_progress":{"to":["blocked","done","todo","cancelled"]},"todo":{"to":["in_progress","blocked","done","cancelled"]}}}}}');
 
@@ -2554,6 +2702,18 @@ create index "tasks__gin__73732636" on "tasks" using gin (bolt_search);
 
 -- step create:index:tasks.tasks__ix__6cabdb6b (additive)
 create index "tasks__ix__6cabdb6b" on "tasks" ("project_id", "status");
+
+-- step create:trigger:report_templates.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "report_templates" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
+
+-- step create:trigger:report_templates.store_statement_rules_update (additive)
+create trigger store_statement_rules_update after update on "report_templates" referencing old table as store_old new table as store_new for each statement execute function store_statement_rules('{"fields":{"body":["body"],"company_stamp":["company_stamp"],"kind":["kind"],"letterhead":["letterhead"],"locale":["locale"],"print_layout":["print_layout"],"published_at":["published_at"],"standard_ref":["standard_ref"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"report_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
+
+-- step create:trigger:report_templates.store_statement_rules_delete (additive)
+create trigger store_statement_rules_delete after delete on "report_templates" referencing old table as store_old for each statement execute function store_statement_rules('{"fields":{"body":["body"],"company_stamp":["company_stamp"],"kind":["kind"],"letterhead":["letterhead"],"locale":["locale"],"print_layout":["print_layout"],"published_at":["published_at"],"standard_ref":["standard_ref"],"status":["status"],"title":["title"],"version":["version"]},"key":["id"],"locks":[{"constraint":"report_templates__lock__b04e5ea2","except":[],"name":"published","sql":"(coalesce(t.\"status\" = ''published''::text, false))"}],"parents":[],"states":{"status":{"initial":"draft","states":{"draft":{"to":["published"]},"published":{}}}}}');
+
+-- step create:index:report_templates.report_templates__gin__73732636 (additive)
+create index "report_templates__gin__73732636" on "report_templates" using gin (bolt_search);
 
 -- step create:trigger:sop_rules.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "sop_rules" for each row execute function store_row_rules('{"audit":true,"key":["id"],"states":{}}');
@@ -2654,9 +2814,6 @@ create index "activities__ix__3f524f14" on "activities" ("source_message_id");
 -- step create:index:asset_mappings.asset_mappings__ix__30837746 (additive)
 create index "asset_mappings__ix__30837746" on "asset_mappings" ("item_id");
 
--- step create:index:communication_settings.communication_settings__ix__eb10cfe3 (additive)
-create index "communication_settings__ix__eb10cfe3" on "communication_settings" ("owner");
-
 -- step create:index:project_messages.project_messages__ix__51ebb0db (additive)
 create index "project_messages__ix__51ebb0db" on "project_messages" ("source_message");
 
@@ -2699,6 +2856,12 @@ create index "commercial_documents__ix__794b59ae" on "commercial_documents" ("pa
 -- step create:index:commercial_documents.commercial_documents__ix__3f524f14 (additive)
 create index "commercial_documents__ix__3f524f14" on "commercial_documents" ("source_message_id");
 
+-- step create:index:compliance_records.compliance_records__ix__17a654f9 (additive)
+create index "compliance_records__ix__17a654f9" on "compliance_records" ("project_id");
+
+-- step create:index:compliance_records.compliance_records__ix__eb10cfe3 (additive)
+create index "compliance_records__ix__eb10cfe3" on "compliance_records" ("owner");
+
 -- step create:index:contracts.contracts__ix__17a654f9 (additive)
 create index "contracts__ix__17a654f9" on "contracts" ("project_id");
 
@@ -2733,7 +2896,7 @@ create index "tasks__ix__9b5e9a38" on "tasks" ("subcontractor_id");
 create index "tasks__ix__3f524f14" on "tasks" ("source_message_id");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['activities','adhoc_costs','approval_request','asset_mappings','bim_settings','commercial_documents','communication_settings','contacts','contracts','cost_estimates','item_matrix','project_files','project_messages','projects','sop_rules','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace','tasks']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['activities','adhoc_costs','approval_request','asset_mappings','bim_settings','commercial_documents','compliance_records','contacts','contracts','cost_estimates','item_matrix','project_files','project_messages','projects','report_templates','sop_rules','sustainability_logs','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace','tasks']::text[]));
 
 -- step create:engine:audit:activities (additive)
 drop trigger if exists bolt_audit_mark on "activities";
@@ -2749,11 +2912,6 @@ create trigger bolt_audit after insert or update or delete on "asset_mappings" f
 drop trigger if exists bolt_audit_mark on "bim_settings";
 drop trigger if exists bolt_audit on "bim_settings";
 create trigger bolt_audit after insert or update or delete on "bim_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
-
--- step create:engine:audit:communication_settings (additive)
-drop trigger if exists bolt_audit_mark on "communication_settings";
-drop trigger if exists bolt_audit on "communication_settings";
-create trigger bolt_audit after insert or update or delete on "communication_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["owner","sys_user"]]');
 
 -- step create:engine:audit:contacts (additive)
 drop trigger if exists bolt_audit_mark on "contacts";
@@ -2785,6 +2943,11 @@ drop trigger if exists bolt_audit_mark on "commercial_documents";
 drop trigger if exists bolt_audit on "commercial_documents";
 create trigger bolt_audit after insert or update or delete on "commercial_documents" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["project_id","projects"]]','[["contact_id","contacts"],["contract_id","contracts"],["parent_document_id","commercial_documents"],["project_id","projects"],["source_message_id","project_messages"]]');
 
+-- step create:engine:audit:compliance_records (additive)
+drop trigger if exists bolt_audit_mark on "compliance_records";
+drop trigger if exists bolt_audit on "compliance_records";
+create trigger bolt_audit after insert or update or delete on "compliance_records" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["project_id","projects"]]','[["owner","sys_user"],["project_id","projects"]]');
+
 -- step create:engine:audit:contracts (additive)
 drop trigger if exists bolt_audit_mark on "contracts";
 drop trigger if exists bolt_audit on "contracts";
@@ -2800,10 +2963,20 @@ drop trigger if exists bolt_audit_mark on "project_files";
 drop trigger if exists bolt_audit on "project_files";
 create trigger bolt_audit after insert or update or delete on "project_files" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["project_id","projects"]]','[["project_id","projects"]]');
 
+-- step create:engine:audit:sustainability_logs (additive)
+drop trigger if exists bolt_audit_mark on "sustainability_logs";
+drop trigger if exists bolt_audit on "sustainability_logs";
+create trigger bolt_audit after insert or update or delete on "sustainability_logs" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["project_id","projects"]]','[["project_id","projects"]]');
+
 -- step create:engine:audit:tasks (additive)
 drop trigger if exists bolt_audit_mark on "tasks";
 drop trigger if exists bolt_audit on "tasks";
 create trigger bolt_audit after insert or update or delete on "tasks" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[["project_id","projects"]]','[["assignee","sys_user"],["contract_id","contracts"],["project_id","projects"],["source_message_id","project_messages"],["subcontractor_id","contacts"]]');
+
+-- step create:engine:audit:report_templates (additive)
+drop trigger if exists bolt_audit_mark on "report_templates";
+drop trigger if exists bolt_audit on "report_templates";
+create trigger bolt_audit after insert or update or delete on "report_templates" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
 
 -- step create:engine:audit:sop_rules (additive)
 drop trigger if exists bolt_audit_mark on "sop_rules";

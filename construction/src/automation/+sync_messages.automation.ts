@@ -14,6 +14,7 @@ import {
 	selectBatch,
 	skipRacedWrite
 } from '../lib/message-import.js';
+import { allowsAutomation } from '../lib/classifier.js';
 
 const OLDEST_PAGE = 50;
 const BATCH = 25;
@@ -35,11 +36,11 @@ export default automation({
 		const connections = (yield* ctx.query({
 			sys_integration: {
 				where: { integration: { in: [...TRANSPORTS] } },
-				fields: ['integration', 'import_start'],
+				fields: ['integration', 'import_start', 'classifier'],
 				limit: 200
 			}
 		})).sys_integration;
-		const owned = connections.rows;
+		const owned = connections.rows.filter((r) => allowsAutomation(r.classifier, 'sync_messages'));
 		if (owned.length === 0) return;
 		const transportOf = new Map(owned.map((r) => [r.id, r.integration]));
 		const boundary = {

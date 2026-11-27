@@ -25,7 +25,9 @@
 			{/if}
 			<Field {ctx} name="zone" />
 			<Field {ctx} name="current_version" />
-			<Field {ctx} name="autodesk_urn" />
+			{#if record?.autodesk_urn != null}
+				<Field {ctx} name="autodesk_urn" readonly />
+			{/if}
 			<Column span="all"><Field {ctx} name="file" /></Column>
 			<Column span="all"><Field {ctx} name="notes" /></Column>
 		</Grid>

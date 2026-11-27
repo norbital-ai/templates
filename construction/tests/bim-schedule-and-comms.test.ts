@@ -938,7 +938,12 @@ it.effect(
 			expect(accFile?.['kind']).toBe('autodesk_model');
 			expect(accFile?.['current_version']).toBe('ACC-R3');
 
-			// 5. WhatsApp sync -> System 1 classify -> cassette extract into tasks, issues, VOs & invoices
+			// 5. WhatsApp reactive ingest -> 30-msg windowed System 1 classify -> structured sys_2.infer fallback when System Agents are disabled
+			yield* t.db.write({
+				text: `INSERT INTO sys_config (key, value) VALUES ('agent', '{"monthly":null,"member":null,"policies":{},"models":[],"system1":null,"system2":null,"system":{"improve":false,"automations":false,"policies":[],"monthly":10,"task":1}}'::jsonb)
+					ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+				params: []
+			});
 			const waCreate = yield* admin.act({
 				'contacts.create': [
 					{
@@ -950,7 +955,14 @@ it.effect(
 						email: 'sam@syntheticelec.test'
 					}
 				],
-				'sys_integration.create': [{ integration: 'whatsapp', name: 'Site WhatsApp', owner: null }]
+				'sys_integration.create': [
+					{
+						integration: 'whatsapp',
+						name: 'Site WhatsApp',
+						owner: null,
+						classifier: { mode: 'smart', instructions: 'Capture site progress and invoices.' }
+					}
+				]
 			});
 			if (waCreate.kind !== 'committed') throw new Error('WhatsApp integration failed');
 			const waId = recordOf(waCreate.records, 'sys_integration').id;
@@ -964,9 +976,7 @@ it.effect(
 				attachments: []
 			});
 
-			// the arrival files it: the mirror's write runs the message model's effect, which routes and extracts it
-			const syncRes = yield* runAutomation(t, admin.run('sync_messages', {}, JobResult));
-			expect(syncRes.state).toBe('succeeded');
+			// Reactive sys_message create trigger queues sync_messages -> project_messages -> file_project_messages automatically
 			yield* t.run_due();
 			expect(t.fakes.ai?.remaining()).toEqual({ default: 1 });
 
@@ -2253,5 +2263,122 @@ it.effect(
 			expect(estAfter?.['classified_asset_count']).toBe(10);
 			expect(estAfter?.['unmatched_asset_count']).toBe(0);
 			expect(estAfter?.['bim_subtotal']).toBe('11500.00');
+		}).pipe(Effect.scoped)
+);
+
+it.effect(
+	'classifies inbound WhatsApp messages with 30-message window + sys_integration.classifier and spawns a batched System Agent',
+	() =>
+		Effect.gen(function* () {
+			const seenStates: unknown[] = [];
+			const captureSys1: Ai['Service']['ask'] = (request) =>
+				Effect.sync(() => {
+					seenStates.push(request.state);
+					const keys = Object.keys(
+						request.questions['project']?.type === 'choice'
+							? request.questions['project'].criteria
+							: {}
+					);
+					const picked = keys.find((k) => k !== 'none') ?? 'none';
+					return {
+						cost_usd: 0,
+						provider: 'test',
+						answers: {
+							relevance: {
+								type: 'choice' as const,
+								choice: 'useful',
+								confidence: 0.95,
+								probabilities: {}
+							},
+							project: {
+								type: 'choice' as const,
+								choice: picked,
+								confidence: 0.95,
+								probabilities: {}
+							},
+							certainty: {
+								type: 'score' as const,
+								score: 2,
+								level: 2,
+								confidence: 0.95,
+								probabilities: {},
+								legend: {}
+							}
+						}
+					};
+				});
+			const t = yield* acquireWorkspace({
+				root,
+				now: '2026-06-15T06:00:00.000Z',
+				fakes: {
+					ai: {
+						sys_1: captureSys1,
+						cassette: {
+							default: [
+								{
+									content: 'Reviewed and filed project update.',
+									tool_calls: [],
+									finish: 'stop' as const,
+									usage: { input: 10, output: 10 }
+								}
+							]
+						}
+					}
+				}
+			});
+			const admin = yield* t.as(t.admin);
+			const setup = yield* admin.act({
+				'projects.create': [{ project_name: 'Windowed Site Tower', project_number: 'WST-01' }],
+				'sys_integration.create': [
+					{
+						integration: 'whatsapp',
+						name: 'Windowed WA',
+						owner: null,
+						classifier: { mode: 'smart', instructions: 'Keep concrete pour updates.' }
+					}
+				]
+			});
+			if (setup.kind !== 'committed') throw new Error('Setup failed');
+			const waId = recordOf(setup.records, 'sys_integration').id;
+
+			// First message establishes thread context; second message triggers windowed System 1 + System Agent
+			yield* t.receive(waId, {
+				id: 'win-1',
+				thread: 'wst-grp@g.us',
+				sent_at: '2026-06-15T05:50:00.000Z',
+				from: { handle: '6590001234@s.whatsapp.net', name: 'Foreman' },
+				text: 'Starting WST-01 basement slab prep',
+				attachments: []
+			});
+			yield* t.receive(waId, {
+				id: 'win-2',
+				thread: 'wst-grp@g.us',
+				sent_at: '2026-06-15T05:55:00.000Z',
+				from: { handle: '6590001234@s.whatsapp.net', name: 'Foreman' },
+				text: 'Pour completed 100%, slump test passed',
+				attachments: []
+			});
+			yield* t.run_due();
+			yield* t.settled();
+
+			// Classifier received connection instructions and earlier thread context window
+			expect(seenStates.length).toBeGreaterThanOrEqual(2);
+			const secondState = Schema.decodeUnknownSync(
+				Schema.Struct({
+					channel_classifier: Schema.String,
+					earlier: Schema.Array(Schema.Struct({ text: Schema.String, contextOnly: Schema.Boolean }))
+				})
+			)(seenStates[1]);
+			expect(secondState.channel_classifier).toBe('Keep concrete pour updates.');
+			expect(
+				secondState.earlier.some((e) => e.text.includes('basement slab prep') && e.contextOnly)
+			).toBe(true);
+
+			// Batched System Agent task conversation was spawned for the project
+			const tasks = yield* t.db.rows(Schema.Struct({ id: Schema.String, kind: Schema.String }), {
+				text: "SELECT id, kind FROM sys_conversation WHERE kind = 'task'",
+				params: []
+			});
+			expect(tasks.length).toBeGreaterThanOrEqual(1);
 		}).pipe(Effect.scoped)
 );

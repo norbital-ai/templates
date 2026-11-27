@@ -286,7 +286,7 @@
 									{usage.total.used_pct?.toFixed(0) ?? '—'}% {t('app.dashboard.used')}
 								</Badge>
 							</Inline>
-							<p class="text-title tabular-nums">{usd(usage.total.limit)}</p>
+							<p class="text-metric">{usd(usage.total.limit)}</p>
 							<Stack gap="xs">
 								{@render usageBar(usage.total)}
 								<Cluster gap="sm" align="center" class="text-meta">
@@ -387,7 +387,7 @@
 								<h2 class="text-heading">{t('app.dashboard.cost_of_funds')}</h2>
 								<Icon name="lucide:percent" class="size-4 text-muted-foreground" />
 							</Inline>
-							<p class="text-title tabular-nums">{rate(costAll?.rate ?? null)}</p>
+							<p class="text-metric">{rate(costAll?.rate ?? null)}</p>
 							<Grid minimum="compact" gap="sm">
 								<Stack gap="xs">
 									<Label for="treasury-period-preset">{t('app.dashboard.period')}</Label>

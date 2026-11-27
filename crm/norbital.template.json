@@ -6,7 +6,7 @@
 	"description": "Company CRM: one company table from lead to client (CSV and Apollo import with domain and email dedupe, cited web research, System 1-picked outreach, follow-ups DM'd to the salesperson on their cadence); one Activities timeline of PIC messages from WhatsApp, email, Telegram, Slack and Discord filtered by System 1, with images and voice notes read into each job's requirements and decisions; a configurable template catalogue of documents, outreach emails and research prompts rendered to PDF; meeting recording with transcription and minutes; two-way Google Calendar.",
 	"visibility": "public",
 	"counts": {
-		"models": 22,
+		"models": 21,
 		"apps": 2,
 		"automations": 21
 	},

@@ -277,16 +277,14 @@
 	>
 		{#snippet children(shownTasks)}
 			<Scroll name={t('programme.tasks_title')} size="fill">
-				<div class="px-3 pb-3">
-					<ProjectTimeline
-						{ctx}
-						projectRange={record.schedule_range}
-						tasks={shownTasks}
-						{today}
-						onInspectBim={(expressIds, label) =>
-							onInspectBim(expressIds, t('bim.focus_4d', { date: label }))}
-					/>
-				</div>
+				<ProjectTimeline
+					{ctx}
+					projectRange={record.schedule_range}
+					tasks={shownTasks}
+					{today}
+					onInspectBim={(expressIds, label) =>
+						onInspectBim(expressIds, t('bim.focus_4d', { date: label }))}
+				/>
 			</Scroll>
 		{/snippet}
 	</CustomView>

@@ -10,7 +10,6 @@ export default policy({
 	description:
 		'Background work: import and research leads, launch and sync outreach cohorts, send documents, remind follow-up owners, file new client conversations, and transcribe meetings.',
 	grants: {
-		communication_settings: { outputs: { default: {} } },
 		companies: { outputs: { default: {} }, create: {}, update: {} },
 		project_documents: { outputs: { default: { history: true } } },
 		contacts: { outputs: { crm: {} }, create: {}, update: {} },
@@ -42,7 +41,7 @@ export default policy({
 		sys_integration: { outputs: { default: {} } },
 		// cold outreach: proposals from research, a cohort's launch and its Apollo progress
 		outreach_settings: { outputs: { default: {} }, update: {} },
-		potential_projects: { outputs: { default: {} }, create: {}, delete: {} },
+		potential_projects: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		sequences: { outputs: { default: {} } },
 		cohorts: { outputs: { default: {} }, update: { moves: { status: ['draft->launched'] } } },
 		cohort_members: { outputs: { default: {} }, update: {} }

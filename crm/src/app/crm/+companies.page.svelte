@@ -9,7 +9,7 @@
 	let { ctx }: { ctx: PageContext } = $props();
 	const t = ctx.t;
 	const act = use_act(ctx);
-	let panel = $state<'import' | 'cohorts' | null>(null);
+	let panel = $state<'import' | 'cohorts' | 'logs' | null>(null);
 	let exportTarget = $state<{ company: Id<'companies'>; key: string } | null>(null);
 	let exportOpen = $state(false);
 
@@ -56,6 +56,13 @@
 						panel = 'cohorts';
 					}
 				},
+				{
+					icon: 'lucide:list-filter',
+					name: t('configuration.logs'),
+					run: () => {
+						panel = 'logs';
+					}
+				},
 				...exportTemplates.map((template) => ({
 					icon: 'lucide:file-down',
 					name: t('documents.export_named', { title: template.title }),
@@ -86,7 +93,9 @@
 <Sheet
 	open={panel !== null}
 	on_open_change={(open) => !open && (panel = null)}
-	title={t(panel === 'cohorts' ? 'cohorts.title' : 'leads.import')}
+	title={t(
+		panel === 'cohorts' ? 'cohorts.title' : panel === 'logs' ? 'configuration.logs' : 'leads.import'
+	)}
 >
 	{#if panel === 'import'}
 		<Form {ctx} of={{ automation: 'import_leads' }} fields={['file', 'owner']} />
@@ -97,6 +106,18 @@
 			order_by={{ created_at: 'desc' }}
 			columns={['name', 'sequence', 'status', 'member_count', 'replied_count', 'meeting_count']}
 			toolbar={{ title: false }}
+		/>
+	{:else if panel === 'logs'}
+		<Table
+			{ctx}
+			of="activities"
+			toolbar={{ title: false, new: false }}
+			where={{
+				kind: { eq: 'message' },
+				...(ctx.actor?.kind === 'member' ? { source_user: { eq: ctx.actor.id } } : {})
+			}}
+			order_by={{ occurred_at: 'desc' }}
+			columns={['subject', 'transport', 'company', 'occurred_at', 'classification', 'reason']}
 		/>
 	{/if}
 </Sheet>

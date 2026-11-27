@@ -1,7 +1,8 @@
 <script lang="ts">
 	/**
 	 * Project Hub shell: Record form + tabs composed from focused co-located tab components
-	 * (`ProjectProgrammeTab`, `ProjectBimTab`, `ProjectFinanceTab`, `ProjectSustainabilityTab`).
+	 * (`ProjectProgrammeTab`, `ProjectBimTab`, `ProjectFinanceTab`, `ProjectSustainabilityTab`,
+	 * `ProjectComplianceTab`).
 	 */
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import {
@@ -17,6 +18,7 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import type { IFCViewerFocus } from '../../../services/viewer/types.js';
 	import ProjectBimTab from './ProjectBimTab.svelte';
+	import ProjectComplianceTab from './ProjectComplianceTab.svelte';
 	import ProjectFinanceTab from './ProjectFinanceTab.svelte';
 	import ProjectProgrammeTab from './ProjectProgrammeTab.svelte';
 	import ProjectSustainabilityTab from './ProjectSustainabilityTab.svelte';
@@ -36,7 +38,9 @@
 				direction: 'upstream' | 'downstream';
 				contract_type: 'main_contract' | 'subcontract';
 		  }
-		| { kind: 'adhoc_cost' };
+		| { kind: 'adhoc_cost' }
+		| { kind: 'sustainability_log' }
+		| { kind: 'compliance_record' };
 
 	let createSheet = $state<CreateSheet>(null);
 	let focus = $state<(IFCViewerFocus & { readonly task?: string }) | null>(null);
@@ -46,6 +50,11 @@
 			record?.address,
 			record?.zones?.length ? t('zones.count_summary', { count: record.zones.length }) : ''
 		]
+			.filter(Boolean)
+			.join(' · ') || undefined
+	);
+	const complianceSummary = $derived(
+		[record?.bca_project_ref, record?.gfa_m2 ? `${record.gfa_m2} m²` : '', record?.bep_version]
 			.filter(Boolean)
 			.join(' · ') || undefined
 	);
@@ -66,6 +75,26 @@
 			<Field {ctx} name="currency" />
 			<Field {ctx} name="autodesk_project_id" />
 			<Column span="all"><Field {ctx} name="description" /></Column>
+		</Grid>
+	</Section>
+	<Section
+		icon="lucide:shield-check"
+		name="sustainability_compliance"
+		title={t('section.sustainability_compliance')}
+		default_open={false}
+		{...complianceSummary ? { summary: complianceSummary } : {}}
+	>
+		<Grid minimum="compact">
+			<Field {ctx} name="gfa_m2" />
+			<Field {ctx} name="building_typology" />
+			<Field {ctx} name="green_mark_target" />
+			<Field {ctx} name="sustainability_assessor" />
+			<Field {ctx} name="bca_project_ref" />
+			<Field {ctx} name="submission_gateway" />
+			<Field {ctx} name="qualified_person" />
+			<Field {ctx} name="bim_manager" />
+			<Field {ctx} name="bep_version" />
+			<Field {ctx} name="conquas_band_target" />
 		</Grid>
 	</Section>
 	<Section
@@ -99,7 +128,7 @@
 		<ProjectBimTab
 			{ctx}
 			{record}
-			mode={view.mode}
+			today={day.today}
 			{focus}
 			onFocusChange={(next) => (focus = next)}
 			onCreateTask={(values) => (createSheet = { kind: 'task', values })}
@@ -122,7 +151,24 @@
 
 {#snippet sustainabilityTab()}
 	{#if record}
-		<ProjectSustainabilityTab {ctx} {record} />
+		<ProjectSustainabilityTab
+			{ctx}
+			{record}
+			today={day.today}
+			onCreateSustainabilityLog={() => (createSheet = { kind: 'sustainability_log' })}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet complianceTab()}
+	{#if record}
+		<ProjectComplianceTab
+			{ctx}
+			{record}
+			today={day.today}
+			onCreateComplianceRecord={() => (createSheet = { kind: 'compliance_record' })}
+			onInspectBim={(expressIds, label) => (focus = { label, expressIds: [...expressIds] })}
+		/>
 	{/if}
 {/snippet}
 
@@ -185,6 +231,12 @@
 				body: sustainabilityTab
 			},
 			{
+				name: 'compliance',
+				title: t('project.tab_compliance'),
+				icon: 'lucide:shield-check',
+				body: complianceTab
+			},
+			{
 				name: 'documents',
 				title: t('project_files.register_title'),
 				icon: 'lucide:file-text',
@@ -238,6 +290,22 @@
 			of="adhoc_costs"
 			mode="create"
 			values={{ project_id: id, currency: record?.currency ?? 'SGD' }}
+			on_done={() => (createSheet = null)}
+		/>
+	{:else if createSheet?.kind === 'sustainability_log' && id}
+		<RecordShell
+			{ctx}
+			of="sustainability_logs"
+			mode="create"
+			values={{ project_id: id }}
+			on_done={() => (createSheet = null)}
+		/>
+	{:else if createSheet?.kind === 'compliance_record' && id}
+		<RecordShell
+			{ctx}
+			of="compliance_records"
+			mode="create"
+			values={{ project_id: id, recorded_on: day.today }}
 			on_done={() => (createSheet = null)}
 		/>
 	{/if}

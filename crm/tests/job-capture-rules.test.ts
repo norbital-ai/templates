@@ -2,7 +2,7 @@ import { JobResult } from '@norbital-ai/bolt-cli/test';
 import { runAutomation } from '@norbital-ai/bolt-cli/test';
 import { expect, it } from '@effect/vitest';
 import { workspace, member, required, recordOf, pageOf, targetOf, nativeId } from './workspace.js';
-import { Effect, Schema } from 'effect';
+import { Effect } from 'effect';
 import { personalAccount } from './personal-fixture.js';
 it.live('reconsiders captured job messages after rule edits but preserves manual filing', () =>
 	Effect.gen(function* () {
@@ -35,32 +35,20 @@ it.live('reconsiders captured job messages after rule edits but preserves manual
 				text: 'Delivery update',
 				attachments: []
 			});
-		// captured messages: activities naming their stored source messages
-		const sources = pageOf(
+		// reactive sync_messages captures both messages into activities automatically
+		yield* t.run_due();
+		const captured = pageOf(
 			yield* admin.query({
-				sys_message: {
-					where: { integration: { eq: phone } },
-					fields: ['seq'],
-					order_by: { seq: 'asc' }
+				activities: {
+					where: { source_key: { eq: phone } },
+					order_by: { source_seq: 'asc' }
 				}
 			}),
-			'sys_message'
+			'activities'
 		).rows;
-		const captured = yield* admin.act({
-			'activities.create': sources.map((source) => ({
-				kind: 'message' as const,
-				classification: 'pending' as const,
-				subject: 'Example',
-				detail: 'Delivery update',
-				transport: 'whatsapp' as const,
-				handle: '6581234506@s.whatsapp.net',
-				source_message: nativeId('sys_message', source.id),
-				source_seq: Schema.decodeUnknownSync(Schema.Number)(source['seq'])
-			}))
-		});
-		if (captured.kind !== 'committed') throw new Error(JSON.stringify(captured));
-		const firstId = recordOf(captured.records, 'activities', 0).id;
-		const secondId = recordOf(captured.records, 'activities', 1).id;
+		expect(captured).toHaveLength(2);
+		const firstId = nativeId('activities', required(captured[0]).id);
+		const secondId = nativeId('activities', required(captured[1]).id);
 		yield* admin.act({
 			'activities.update': [
 				{

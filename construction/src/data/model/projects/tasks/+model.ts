@@ -120,12 +120,47 @@ export default model('tasks', {
 	},
 	create: {
 		fields: columns.filter((f) => f !== 'status'),
+		filled: { fields: ['task_code'] },
 		transform: function* (changes, ctx) {
 			yield* validateProjectZones(changes, ctx);
 			const isRemoteSync = ctx.actor.kind === 'system' && 'sync' in ctx.actor.by;
-			if (isRemoteSync) return changes.map(({ set }) => set);
+			const needsCode = changes.some((c) => !c.after.task_code?.trim());
+			const nextByProject = new Map<string, number>();
+			if (needsCode) {
+				const projectIds = [...new Set(changes.map((c) => c.after.project_id))];
+				const existing = (yield* ctx.query({
+					tasks: {
+						where: { project_id: { in: projectIds } },
+						fields: ['project_id', 'task_code'],
+						limit: 2000
+					}
+				})).tasks.rows;
+				for (const row of existing) {
+					const m = /^T-(\d+)$/i.exec(row.task_code.trim());
+					const num = m ? Number(m[1]) : 0;
+					const cur = nextByProject.get(row.project_id) ?? 0;
+					if (num > cur) nextByProject.set(row.project_id, num);
+				}
+			}
+			const allocatedCode = (projectId: string, raw: string | null | undefined) => {
+				if (raw?.trim()) return raw.trim();
+				const next = (nextByProject.get(projectId) ?? 0) + 1;
+				nextByProject.set(projectId, next);
+				return `T-${String(next).padStart(3, '0')}`;
+			};
+			if (isRemoteSync) {
+				return changes.map(({ set, after }) => ({
+					...set,
+					...(after.task_code?.trim()
+						? {}
+						: { task_code: allocatedCode(after.project_id, after.task_code) })
+				}));
+			}
 			return changes.map(({ set, after }) => ({
 				...set,
+				...(after.task_code?.trim()
+					? {}
+					: { task_code: allocatedCode(after.project_id, after.task_code) }),
 				...(after.baseline_range == null && after.schedule_range != null
 					? { baseline_range: after.schedule_range }
 					: {})

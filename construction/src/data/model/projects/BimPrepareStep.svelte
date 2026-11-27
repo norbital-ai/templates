@@ -10,9 +10,9 @@
 	 */
 	import type { CurrencyCode, FileRef, Row } from '@norbital-ai/bolt';
 	import type { PageContext } from '@norbital-ai/bolt/page';
-	import { Badge, Button, format, Icon, Progress, Spinner, toast } from '@norbital-ai/ui';
+	import { Badge, Button, format, Icon, Progress, Spinner, Table, toast } from '@norbital-ai/ui';
 	import { fork } from '@norbital-ai/ui/effect';
-	import { Cluster, Grid, Inline, Scroll, Stack, Surface } from '@norbital-ai/ui/layout';
+	import { Bound, Cluster, Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
 	import { Effect, Schema } from 'effect';
 	import {
 		cleanAndOrganizeIfcStep,
@@ -43,6 +43,7 @@
 		onRerunCompliance,
 		onContinueToCosting,
 		onInspect3d,
+		onPreviewComplianceReport,
 		onMutated
 	}: {
 		ctx: PageContext;
@@ -59,6 +60,7 @@
 		onRerunCompliance?: () => void;
 		onContinueToCosting?: () => void;
 		onInspect3d?: (expressIds: readonly number[], label: string) => void;
+		onPreviewComplianceReport?: () => void;
 		onMutated?: () => void;
 	} = $props();
 
@@ -147,6 +149,41 @@
 		findingsWithResolution.filter(
 			({ finding }) => authorityFilter === 'all' || finding.authority === authorityFilter
 		)
+	);
+	type ComplianceTableRow = {
+		readonly id: string;
+		readonly finding: (typeof visibleFindings)[number]['finding'];
+		readonly resolution: (typeof visibleFindings)[number]['resolution'];
+		readonly status: string;
+		readonly authority: string;
+		readonly rule_code: string;
+		readonly rule_name: string;
+		readonly actual: string;
+		readonly expected: string;
+		readonly resolution_label: string;
+		readonly affected_count: number;
+	};
+	const complianceTableRows = $derived<readonly ComplianceTableRow[]>(
+		visibleFindings.map(({ finding, resolution }) => ({
+			id: finding.rule_code,
+			finding,
+			resolution,
+			status: finding.status.toUpperCase(),
+			authority: authorityLabel(finding.authority),
+			rule_code: finding.rule_code,
+			rule_name: finding.rule_name,
+			actual: finding.actual,
+			expected: finding.expected,
+			resolution_label:
+				finding.status === 'pass'
+					? t('bim_compliance.already_compliant')
+					: resolution.kind === 'cleanup'
+						? t('bim_compliance.resolved_by_cleanup')
+						: resolution.kind === 'classification'
+							? t('bim_compliance.resolved_by_classification')
+							: t('bim_compliance.requires_bim_revision'),
+			affected_count: finding.affected_count
+		}))
 	);
 	const authorityOptions = $derived(
 		authorities.map((auth) => ({
@@ -253,6 +290,75 @@
 			: [])
 	]);
 </script>
+
+{#snippet authorityControls()}
+	<SegmentedToggle
+		options={authorityOptions}
+		value={authorityFilter}
+		onChange={(next) => (authorityFilter = next)}
+		label={t('bim_compliance.title')}
+		control={{
+			id: 'construction:bim-compliance-authority',
+			label: t('bim_compliance.title')
+		}}
+	/>
+{/snippet}
+
+{#snippet statusCell({ row }: { row: ComplianceTableRow })}
+	<Badge variant={statusBadgeVariant(row.finding.status)} class="text-tiny">
+		{row.status}
+	</Badge>
+{/snippet}
+
+{#snippet ruleCell({ row }: { row: ComplianceTableRow })}
+	{@const f = row.finding}
+	<div
+		class="flex min-w-0 items-center gap-1.5"
+		title={[f.rule_name, f.clause_ref ?? '', f.remediation ?? ''].filter(Boolean).join(' · ')}
+	>
+		<span class="min-w-0 truncate text-label text-foreground">{f.rule_name}</span>
+		{#if f.clause_ref}
+			<span class="shrink-0 font-mono text-tiny text-muted-foreground">{f.clause_ref}</span>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet resolutionCell({ row }: { row: ComplianceTableRow })}
+	{@const f = row.finding}
+	{#if f.status === 'pass'}
+		<span class="text-micro text-tone-success-text">{row.resolution_label}</span>
+	{:else if row.resolution.kind === 'cleanup'}
+		<Badge variant="success" class="text-tiny">
+			<Icon name="lucide:sparkles" class="size-2.5" />
+			{row.resolution_label}
+		</Badge>
+	{:else if row.resolution.kind === 'classification'}
+		<Badge variant="success" class="text-tiny">
+			<Icon name="lucide:check" class="size-2.5" />
+			{row.resolution_label}
+		</Badge>
+	{:else}
+		<Badge variant="destructive" class="text-tiny" title={t('bim_compliance.not_auto_corrected')}>
+			<Icon name="lucide:triangle-alert" class="size-2.5" />
+			{row.resolution_label}
+		</Badge>
+	{/if}
+{/snippet}
+
+{#snippet inspect3dCell({ row }: { row: ComplianceTableRow })}
+	{@const f = row.finding}
+	{#if f.status !== 'pass' && onInspect3d && f.sample_express_ids?.length}
+		<Button
+			variant="outline"
+			onclick={() => onInspect3d(f.sample_express_ids ?? [], `${f.rule_code} · ${f.rule_name}`)}
+		>
+			<Icon name="lucide:box" class="size-3.5" />
+			{f.affected_count}
+		</Button>
+	{:else}
+		<span class="text-micro text-muted-foreground">{f.affected_count}</span>
+	{/if}
+{/snippet}
 
 <Stack gap="md">
 	<Surface tone="card" padding="md" radius="control">
@@ -367,6 +473,12 @@
 									when: format({ kind: 'instant' }, compliance.checked_at, { locale: ctx.locale })
 								})}
 							</span>
+							{#if onPreviewComplianceReport}
+								<Button variant="outline" onclick={onPreviewComplianceReport}>
+									<Icon name="lucide:file-text" class="size-3.5" />
+									{t('reports.preview_export')}
+								</Button>
+							{/if}
 							{#if canAnalyze && bimFile && onRerunCompliance}
 								<Button variant="outline" disabled={busy} onclick={onRerunCompliance}>
 									<Icon name="lucide:refresh-cw" class="size-3.5" />
@@ -406,111 +518,53 @@
 				</Stack>
 			</Surface>
 
-			<SegmentedToggle
-				options={authorityOptions}
-				value={authorityFilter}
-				onChange={(next) => (authorityFilter = next)}
-				label={t('bim_compliance.title')}
-				control={{
-					id: 'construction:bim-compliance-authority',
-					label: t('bim_compliance.title')
-				}}
-			/>
-
-			<Surface tone="card" padding="none" radius="control" class="overflow-hidden">
-				<Scroll name={t('bim_compliance.title')} axis="x">
-					<table class="w-full min-w-[54rem] table-fixed border-collapse text-left text-xs">
-						<colgroup>
-							<col class="w-[10%]" />
-							<col class="w-[34%]" />
-							<col class="w-[22%]" />
-							<col class="w-[24%]" />
-							<col class="w-[10%]" />
-						</colgroup>
-						<thead>
-							<tr class="border-b border-border bg-muted/40 text-overline text-muted-foreground">
-								<th class="px-3 py-2 font-medium">{t('bim_compliance.col_status')}</th>
-								<th class="px-3 py-2 font-medium">{t('bim_compliance.col_rule')}</th>
-								<th class="px-3 py-2 font-medium">{t('bim_compliance.col_current')}</th>
-								<th class="px-3 py-2 font-medium">{t('bim_compliance.col_resolution')}</th>
-								<th class="px-3 py-2 text-right font-medium">{t('bim_review.inspect_3d')}</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-border">
-							{#each visibleFindings as { finding: f, resolution } (f.rule_code)}
-								<tr class="align-top {f.status === 'pass' ? '' : 'bg-muted/15'}">
-									<td class="px-3 py-2.5">
-										<Badge variant={statusBadgeVariant(f.status)} class="text-tiny">
-											{f.status.toUpperCase()}
-										</Badge>
-									</td>
-									<td class="px-3 py-2.5">
-										<div class="flex min-w-0 flex-col gap-0.5">
-											<span class="text-label text-foreground">{f.rule_name}</span>
-											<span class="font-mono text-micro text-muted-foreground">
-												{`${authorityLabel(f.authority)} · ${f.rule_code}${f.clause_ref ? ` · ${f.clause_ref}` : ''}`}
-											</span>
-											{#if f.status !== 'pass' && f.remediation}
-												<span class="text-micro text-muted-foreground">{f.remediation}</span>
-											{/if}
-										</div>
-									</td>
-									<td class="px-3 py-2.5">
-										<div class="flex min-w-0 flex-col gap-0.5">
-											<span class="font-mono text-micro text-foreground">{f.actual}</span>
-											<span class="text-micro text-muted-foreground">
-												{`${t('bim_compliance.expected')}: ${f.expected}`}
-											</span>
-										</div>
-									</td>
-									<td class="px-3 py-2.5">
-										{#if f.status === 'pass'}
-											<span class="text-micro text-tone-success-text">
-												{t('bim_compliance.already_compliant')}
-											</span>
-										{:else if resolution.kind === 'cleanup'}
-											<Badge variant="success" class="w-fit text-tiny">
-												<Icon name="lucide:sparkles" class="size-2.5" />
-												{t('bim_compliance.resolved_by_cleanup')}
-											</Badge>
-										{:else if resolution.kind === 'classification'}
-											<Badge variant="success" class="w-fit text-tiny">
-												<Icon name="lucide:check" class="size-2.5" />
-												{t('bim_compliance.resolved_by_classification')}
-											</Badge>
-										{:else}
-											<div class="flex flex-col gap-1">
-												<Badge variant="destructive" class="w-fit text-tiny">
-													<Icon name="lucide:triangle-alert" class="size-2.5" />
-													{t('bim_compliance.requires_bim_revision')}
-												</Badge>
-												<span class="text-micro text-muted-foreground">
-													{t('bim_compliance.not_auto_corrected')}
-												</span>
-											</div>
-										{/if}
-									</td>
-									<td class="px-3 py-2.5 text-right">
-										{#if f.status !== 'pass' && onInspect3d && f.sample_express_ids?.length}
-											<Button
-												variant="outline"
-												onclick={() =>
-													onInspect3d(
-														f.sample_express_ids ?? [],
-														`${f.rule_code} · ${f.rule_name}`
-													)}
-											>
-												<Icon name="lucide:box" class="size-3.5" />
-												{f.affected_count}
-											</Button>
-										{/if}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</Scroll>
-			</Surface>
+			<Bound size="viewport">
+				<Table
+					{ctx}
+					of={complianceTableRows}
+					key="bim:compliance-findings"
+					layout="grid"
+					row_class={(row) => (row.finding.status === 'pass' ? undefined : 'bg-muted/15')}
+					toolbar={{
+						title: t('bim_compliance.title'),
+						controls: authorityControls,
+						export: true,
+						select: false,
+						new: false
+					}}
+					columns={[
+						{
+							field: 'status',
+							label: t('bim_compliance.col_status'),
+							width: 96,
+							cell: statusCell
+						},
+						{ field: 'authority', label: t('models.sop_rules.fields.authority'), width: 100 },
+						{ field: 'rule_code', label: t('models.sop_rules.fields.code'), width: 132 },
+						{
+							field: 'rule_name',
+							label: t('bim_compliance.col_rule'),
+							width: 280,
+							cell: ruleCell
+						},
+						{ field: 'actual', label: t('bim_compliance.col_current'), width: 180 },
+						{ field: 'expected', label: t('bim_compliance.expected'), width: 140 },
+						{
+							field: 'resolution_label',
+							label: t('bim_compliance.col_resolution'),
+							width: 196,
+							cell: resolutionCell
+						},
+						{
+							field: 'affected_count',
+							label: t('bim_review.inspect_3d'),
+							width: 96,
+							align: 'end',
+							cell: inspect3dCell
+						}
+					]}
+				/>
+			</Bound>
 		</Stack>
 	{/if}
 </Stack>

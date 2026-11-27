@@ -12,13 +12,14 @@ export default messages({
 
 	'app.configuration.title': 'Configuration',
 	'app.configuration.description':
-		'Manage item matrix, compliance SOPs, BIM rules, and message intake.',
+		'Manage item matrix, BIM compliance rules, and takeoff settings.',
 
-	// Intake settings
-	'connections.loading': 'Loading intake settings…',
-	'connections.intake_rules_title': 'Intake & auto-extraction',
-	'connections.intake_rules_hint':
-		'Control which messages sync and how AI classifies and extracts updates.',
+	// BIM Compliance unified Configuration tab
+	'bim_compliance.nav_title': 'BIM Compliance',
+	'bim_compliance.nav_description':
+		'Manage BCA, CORENET X, and tender SOP rules alongside the workspace BIM takeoff and cleanup profile.',
+	'bim_compliance.tab_rules': 'Compliance Rules',
+	'bim_compliance.tab_profile': 'Takeoff & Cleanup Profile',
 
 	// Business Partners & Cost Matrix pages
 	'partners.title': 'Business Partners',
@@ -265,7 +266,6 @@ export default messages({
 
 	// Sections
 	'section.project': 'Project',
-	'section.bim_model': 'BIM IFC model',
 	'section.task_properties': 'Properties',
 	'section.task_progress': 'Progress',
 	'section.asset_priced_as': 'Priced as',
@@ -645,18 +645,16 @@ export default messages({
 	'models.project_messages.fields.transcription.failed': 'Failed',
 	'models.project_messages.fields.transcription.unavailable': 'Unavailable',
 
-	// Models — Communication Settings
-	'models.communication_settings.label': 'Intake Settings',
-	'models.communication_settings.singular': 'Intake Setting',
-	'models.communication_settings.fields.owner': 'Owner',
-	'models.communication_settings.fields.hard_filter.all': 'All Messages',
-	'models.communication_settings.fields.hard_filter.known_contacts': 'Known Contacts Only',
-
 	// Integrations & Automations
 	'integrations.autodesk_acc.configuration.fields.hub_id': 'Autodesk Hub ID',
 	'integrations.autodesk_acc.configuration.fields.account_id': 'Autodesk Account ID',
 	'integrations.autodesk_acc.configuration.fields.default_project_id': 'Default ACC Project ID',
 	'automations.sync_messages.input.fields.batch': 'Batch size',
+	'automations.file_project_messages.input.fields.ids': 'Project messages',
+	'tasks.bim_element_tagged': 'Tagged to this task',
+	'tasks.bim_element_not_tagged': 'Not tagged to this task',
+	'tasks.bim_tag_element': 'Tag element',
+	'tasks.bim_untag_element': 'Untag element',
 	'automations.analyze_bim_file.input.fields.project_id': 'Project',
 	'automations.analyze_bim_file.input.fields.phase': 'Workflow phase',
 	'automations.analyze_bim_file.input.fields.phase.prepare':
@@ -674,10 +672,6 @@ export default messages({
 	'errors.source_outside_import':
 		'Source message falls outside the connection import start window.',
 	'errors.intake_failed': 'Unable to file incoming coordination message ({kind}).',
-	'errors.intake_needs_member': 'Only signed-in members can save personal intake settings.',
-	'errors.intake_not_own': 'You can only update your own message intake settings.',
-	'errors.classification_too_long':
-		'Classification instructions must be 8,000 characters or fewer.',
 	'errors.project_not_found': 'Project not found.',
 	'errors.no_matrix_reviewer':
 		'No team holds commercial authority to review this Item Matrix proposal.',
@@ -718,7 +712,7 @@ export default messages({
 	'sustainability.empty':
 		'Analyse the building model or add ad-hoc costs whose items carry a carbon factor.',
 	'section.site': 'Site',
-	'bim.tab_model_file': 'Model file',
+	'bim.model_meta': '{schema} · {assets} elements · {storeys} storeys',
 	'component.show_whole_model': 'Show whole model',
 	'tasks.wbs_path_help':
 		'Where this work sits in the work breakdown structure (WBS): 3.1.2 sits under 3.1, which sits under 3. The programme nests work by this code.',
@@ -1039,5 +1033,192 @@ export default messages({
 	'bim_workflow.step3_complete': 'Cost estimate generated and ready to review.',
 	'bim_workflow.view_estimate': 'View Cost Estimate',
 	'bim_workflow.pending_proposals_warning':
-		'{count} Item Matrix proposal(s) are still awaiting approval in Step 2 — unapproved items will remain unmatched until approved.'
+		'{count} Item Matrix proposal(s) are still awaiting approval in Step 2 — unapproved items will remain unmatched until approved.',
+
+	// Task 3D BIM element tagging
+	'tasks.bim_tagged_legend': 'Tagged to task',
+	'tasks.bim_elements_label': 'BIM elements',
+	'tasks.bim_none_tagged': 'No BIM elements tagged yet',
+	'tasks.bim_clear_tags': 'Clear tags',
+	'tasks.bim_view_in_3d': 'View in 3D BIM',
+	'tasks.bim_tag_in_3d': 'Tag in 3D BIM',
+	'tasks.bim_no_project_model': 'Attach a BIM IFC model on the project to tag elements.',
+	'tasks.bim_groups_title': 'Classified BIM groups',
+	'tasks.bim_groups_hint': 'Toggle a whole storey/classification group or click elements in 3D.',
+	'tasks.bim_tagged_short': 'Tagged',
+	'tasks.bim_tag_short': 'Tag',
+	'tasks.bim_picker_title': 'Tag BIM Elements',
+	'tasks.bim_picker_hint': 'Click elements in the 3D model or toggle classified groups.',
+	'tasks.bim_picker_done': 'Done',
+
+	// Sustainability, Compliance & Report Templates
+	'section.sustainability_compliance': 'Sustainability & Regulatory Metadata',
+	'section.report_template': 'Report template',
+	'section.site_energy_emissions': 'Site Energy & Scope 1–2 Emissions',
+	'section.site_water_waste': 'Site Water & C&D Waste (GRI 303 / 306)',
+	'section.compliance_record': 'Compliance / IMS Audit Record',
+	'project.tab_compliance': 'Compliance',
+	'sustainability.intensity_label': 'Embodied intensity (GFA)',
+	'sustainability.baseline_vs': 'BCA ref {baseline} ({delta})',
+	'sustainability.site_emissions': 'Site A4–A5 (Scope 1 & 2)',
+	'sustainability.waste_diverted': 'C&D waste diverted',
+	'sustainability.logs_title': 'Site logs',
+	'sustainability.logs_description':
+		'Monthly site electricity, diesel, A4 transport, water/NEWater, and C&D waste logs for BCA Green Mark WLC and GRI 302–306 reporting.',
+	'sustainability.col_stage': 'Stage',
+	'sustainability.col_epd': 'EPD / Factor Source',
+	'sustainability.col_recycled': 'Recycled',
+	'compliance.overview_tab': 'Overview & BIM Lints',
+	'compliance.register_tab': 'Audits & IMS Register',
+	'compliance.register_title': 'Compliance, CONQUAS & IMS Register',
+	'compliance.register_description':
+		'Track BCA CONQUAS inspections, CORENET X gateways, ISO 9001 NCRs, ISO 14001 environmental checks, ISO 45001 safety audits, and ISO 19650 CDE QA.',
+	'compliance.gateway_label': 'CORENET X gateway',
+	'compliance.audits_summary': 'Site audits & NCRs',
+	'compliance.open_closed_pair': '{open} open · {closed} closed',
+	'compliance.no_bim_lints': 'No BIM compliance lints yet',
+	'compliance.no_bim_lints_hint':
+		'Run Step 1 in BIM → BIM Costing to evaluate CORENET X, BCA, SCDF, PUB, and SOP rules against the project model.',
+
+	// Report previewer & template configuration
+	'reports.nav_title': 'Report Templates',
+	'reports.nav_description':
+		'Customize versioned HTML print templates, declarations, letterheads, and stamps for Sustainability and Compliance PDF reports.',
+	'reports.page_help':
+		'Each report kind and language prints from its latest published version. Revise a template to edit its HTML layout or declaration and publish when ready.',
+	'reports.preview_export': 'Preview & Export PDF',
+	'reports.preview_sustainability_title': 'Sustainability Report Preview',
+	'reports.preview_compliance_title': 'Compliance Report Preview',
+	'reports.template_version': 'v{version}',
+	'reports.include_company_stamp': 'Include company stamp',
+	'reports.open_draft_template': 'Open draft template',
+	'reports.update_template': 'Update template',
+	'reports.export_pdf': 'Export PDF',
+	'reports.preparing_pdf': 'Generating A4 PDF preview…',
+	'reports.pdf_preview_failed': 'Unable to render the PDF preview in this browser.',
+	'reports.pdf_previous': 'Previous',
+	'reports.pdf_next': 'Next',
+	'reports.unavailable': 'Unable to prepare this PDF report right now.',
+	'reports.template_body_help': 'Include the required report placeholder and optional variables:',
+	'reports.print_layout_help':
+		'Optional HTML print layout replaces the default A4 stylesheet using {{field}} placeholders and {{#section}}…{{/section}} blocks.',
+	'reports.revise': 'Revise',
+	'reports.missing': 'Not published',
+	'reports.draft_badge': 'Draft v{version}',
+	'reports.when.sustainability_report':
+		'Printed from Project → Sustainability (BCA Green Mark 2021 / EN 15978 / GRI 301–306).',
+	'reports.when.compliance_report':
+		'Printed from Project → Compliance & BIM Step 2 (BCA CORENET X / ISO 19650 / CONQUAS / IMS).',
+	'errors.report_template_invalid':
+		'Report template body must contain the report placeholder once and use only valid placeholders.',
+	'errors.report_template_unpublished':
+		'No published report template exists for this report type and language. Publish one under Configuration → Report Templates.',
+	'errors.report_artwork_png':
+		'Letterhead and company stamp files must be valid PNG images under 512 KiB.',
+	'errors.report_layout_unavailable': 'Unable to render the attached HTML print layout.',
+
+	// Project sustainability & compliance metadata fields
+	'models.projects.fields.gfa_m2': 'Gross Floor Area (m²)',
+	'models.projects.fields.building_typology': 'Building Typology',
+	'models.projects.fields.building_typology.residential': 'Residential',
+	'models.projects.fields.building_typology.non_residential': 'Non-Residential / Commercial',
+	'models.projects.fields.building_typology.industrial': 'Industrial',
+	'models.projects.fields.green_mark_target': 'Green Mark Target',
+	'models.projects.fields.green_mark_target.certified': 'Green Mark Certified',
+	'models.projects.fields.green_mark_target.gold_plus': 'Green Mark GoldPLUS',
+	'models.projects.fields.green_mark_target.platinum': 'Green Mark Platinum',
+	'models.projects.fields.green_mark_target.sle': 'Green Mark Platinum SLE',
+	'models.projects.fields.green_mark_target.ze': 'Green Mark Zero Energy (ZE)',
+	'models.projects.fields.sustainability_assessor': 'GMAP / Sustainability Assessor',
+	'models.projects.fields.bca_project_ref': 'BCA / CORENET X Ref',
+	'models.projects.fields.submission_gateway': 'Submission Gateway',
+	'models.projects.fields.submission_gateway.design': 'Design Gateway (DG)',
+	'models.projects.fields.submission_gateway.piling': 'Piling Gateway (PG)',
+	'models.projects.fields.submission_gateway.construction': 'Construction Gateway (CG)',
+	'models.projects.fields.submission_gateway.completion': 'Completion Gateway (TOP/CSC)',
+	'models.projects.fields.qualified_person': 'Lead Qualified Person (QP / PE)',
+	'models.projects.fields.bim_manager': 'ISO 19650 BIM Manager',
+	'models.projects.fields.bep_version': 'BEP / EIR Version',
+	'models.projects.fields.conquas_band_target': 'CONQUAS Band Target',
+
+	// Item Matrix carbon provenance fields
+	'models.item_matrix.fields.carbon_stage': 'Carbon lifecycle stage',
+	'models.item_matrix.fields.carbon_stage.a1_a3': 'A1–A3 (Product)',
+	'models.item_matrix.fields.carbon_stage.a1_a5': 'A1–A5 (Upfront)',
+	'models.item_matrix.fields.carbon_stage.a4_a5': 'A4–A5 (Construction)',
+	'models.item_matrix.fields.epd_reference': 'EPD / Carbon Factor Source',
+	'models.item_matrix.fields.recycled_content_pct': 'Recycled content (%)',
+
+	// Models — Report Templates
+	'models.report_templates.label': 'Report Templates',
+	'models.report_templates.singular': 'Report Template',
+	'models.report_templates.fields.kind': 'Report type',
+	'models.report_templates.fields.kind.sustainability_report': 'Sustainability Report',
+	'models.report_templates.fields.kind.compliance_report': 'Compliance Report',
+	'models.report_templates.fields.locale': 'Language',
+	'models.report_templates.fields.locale.en': 'English',
+	'models.report_templates.fields.locale.zh': 'Chinese (中文)',
+	'models.report_templates.fields.version': 'Version',
+	'models.report_templates.fields.title': 'Report title',
+	'models.report_templates.fields.standard_ref': 'Standards reference',
+	'models.report_templates.fields.body': 'Declaration & body',
+	'models.report_templates.fields.print_layout': 'HTML print layout',
+	'models.report_templates.fields.letterhead': 'Letterhead (PNG)',
+	'models.report_templates.fields.company_stamp': 'Company stamp (PNG)',
+	'models.report_templates.fields.published_at': 'Published at',
+	'models.report_templates.fields.status': 'Status',
+	'models.report_templates.fields.status.draft': 'Draft',
+	'models.report_templates.fields.status.published': 'Published',
+
+	// Models — Sustainability Logs
+	'models.sustainability_logs.label': 'Site Sustainability Logs',
+	'models.sustainability_logs.singular': 'Site Sustainability Log',
+	'models.sustainability_logs.fields.project_id': 'Project',
+	'models.sustainability_logs.fields.reporting_period': 'Reporting period',
+	'models.sustainability_logs.fields.electricity_kwh': 'Grid electricity (kWh)',
+	'models.sustainability_logs.fields.diesel_litres': 'Site diesel (L)',
+	'models.sustainability_logs.fields.transport_tco2e': 'A4 haulage (tCO₂e)',
+	'models.sustainability_logs.fields.water_m3': 'Total water (m³)',
+	'models.sustainability_logs.fields.newater_m3': 'NEWater / recycled (m³)',
+	'models.sustainability_logs.fields.waste_generated_t': 'C&D waste generated (t)',
+	'models.sustainability_logs.fields.waste_diverted_t': 'C&D waste diverted (t)',
+	'models.sustainability_logs.fields.waste_hazardous_t': 'Hazardous waste (t)',
+	'models.sustainability_logs.fields.notes': 'Notes',
+
+	// Models — Compliance Records
+	'models.compliance_records.label': 'Compliance & Audit Records',
+	'models.compliance_records.singular': 'Compliance Record',
+	'models.compliance_records.fields.record_code': 'Record code',
+	'models.compliance_records.fields.project_id': 'Project',
+	'models.compliance_records.fields.recorded_on': 'Recorded on',
+	'models.compliance_records.fields.standard': 'Standard',
+	'models.compliance_records.fields.standard.bca_conquas': 'BCA CONQUAS',
+	'models.compliance_records.fields.standard.bca_corenet_x': 'BCA CORENET X',
+	'models.compliance_records.fields.standard.iso_9001': 'ISO 9001 (Quality)',
+	'models.compliance_records.fields.standard.iso_14001': 'ISO 14001 (Environment)',
+	'models.compliance_records.fields.standard.iso_45001': 'ISO 45001 (Safety / WSH)',
+	'models.compliance_records.fields.standard.iso_19650': 'ISO 19650 (BIM / CDE)',
+	'models.compliance_records.fields.category': 'Category',
+	'models.compliance_records.fields.category.inspection': 'Inspection',
+	'models.compliance_records.fields.category.ncr': 'Non-Conformance (NCR)',
+	'models.compliance_records.fields.category.safety_metric': 'Safety / WSH Metric',
+	'models.compliance_records.fields.category.environmental': 'Environmental Monitoring',
+	'models.compliance_records.fields.category.bim_cde': 'BIM / CDE Audit',
+	'models.compliance_records.fields.category.statutory_gateway': 'Statutory Gateway',
+	'models.compliance_records.fields.clause_ref': 'Standard / Clause Ref',
+	'models.compliance_records.fields.title': 'Title',
+	'models.compliance_records.fields.severity': 'Severity',
+	'models.compliance_records.fields.severity.low': 'Low',
+	'models.compliance_records.fields.severity.medium': 'Medium',
+	'models.compliance_records.fields.severity.high': 'High',
+	'models.compliance_records.fields.severity.critical': 'Critical',
+	'models.compliance_records.fields.status': 'Status',
+	'models.compliance_records.fields.status.open': 'Open',
+	'models.compliance_records.fields.status.in_progress': 'In Progress',
+	'models.compliance_records.fields.status.closed': 'Closed',
+	'models.compliance_records.fields.status.verified': 'Verified',
+	'models.compliance_records.fields.metric_value': 'Measured score / metric',
+	'models.compliance_records.fields.corrective_action': 'Corrective action / notes',
+	'models.compliance_records.fields.owner': 'Owner',
+	'models.compliance_records.fields.closed_on': 'Closed on'
 });

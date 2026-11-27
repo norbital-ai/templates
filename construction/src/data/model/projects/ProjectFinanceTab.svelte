@@ -287,10 +287,13 @@
 		<Table
 			{ctx}
 			of={catalogLedgerRows}
-			controlled
+			key={`project:cashflow-ledger:${record.id}`}
 			toolbar={{
 				title: t('commercial.tab_cashflow_ledger'),
-				description: t('cashflow.ledger_description')
+				description: t('cashflow.ledger_description'),
+				export: true,
+				select: false,
+				new: false
 			}}
 			columns={[
 				{ field: 'code', label: t('commercial.col_code') },

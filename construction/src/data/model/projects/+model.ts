@@ -12,6 +12,16 @@ const columns = [
 	'autodesk_project_id',
 	'bim_file',
 	'bim_version',
+	'gfa_m2',
+	'building_typology',
+	'green_mark_target',
+	'sustainability_assessor',
+	'bca_project_ref',
+	'submission_gateway',
+	'qualified_person',
+	'bim_manager',
+	'bep_version',
+	'conquas_band_target',
 	'zones',
 	'location',
 	'address',
@@ -144,6 +154,38 @@ export default model('projects', {
 		},
 		/** Co-located storeys, zones, grid axes, and elevations owned by this project. */
 		zones: { kind: 'custom', of: 'project_zones', optional: true },
+		/** Gross Floor Area (m²) for BCA Green Mark embodied carbon intensity (kgCO₂e/m²). */
+		gfa_m2: { kind: 'decimal', scale: 2, optional: true },
+		/** Building typology determining BCA Green Mark 2021 embodied carbon reference baseline. */
+		building_typology: {
+			kind: 'enum',
+			values: ['residential', 'non_residential', 'industrial'],
+			optional: true
+		},
+		/** Target BCA Green Mark certification tier. */
+		green_mark_target: {
+			kind: 'enum',
+			values: ['certified', 'gold_plus', 'platinum', 'sle', 'ze'],
+			optional: true
+		},
+		/** Green Mark Accredited Professional (GMAP) or sustainability assessor name and registration. */
+		sustainability_assessor: { kind: 'text', optional: true },
+		/** Official BCA / CORENET X / CONQUAS project submission reference number. */
+		bca_project_ref: { kind: 'text', optional: true },
+		/** Active BCA CORENET X multi-agency submission gateway. */
+		submission_gateway: {
+			kind: 'enum',
+			values: ['design', 'piling', 'construction', 'completion'],
+			optional: true
+		},
+		/** Lead Qualified Person (QP) / Professional Engineer (PE) name and registration number. */
+		qualified_person: { kind: 'text', optional: true },
+		/** ISO 19650-2 BIM Manager / Information Manager responsible for CDE federation and QA. */
+		bim_manager: { kind: 'text', optional: true },
+		/** ISO 19650-2 BIM Execution Plan (BEP) and EIR reference version. */
+		bep_version: { kind: 'text', optional: true },
+		/** Target BCA CONQUAS quality score or band (e.g. Band 1 / ≥95). */
+		conquas_band_target: { kind: 'text', optional: true },
 		/** The site, picked on the map or found by address. */
 		location: { kind: 'point', optional: true },
 		/** The geocoder's address for `location`, or the address typed. */
@@ -165,7 +207,10 @@ export default model('projects', {
 			where: { status: { in: ['issued', 'verified', 'certified', 'disputed'] } }
 		}
 	},
-	constraints: { project_number: { unique: ['project_number'] } },
+	constraints: {
+		project_number: { unique: ['project_number'] },
+		valid_gfa: { check: { or: [{ gfa_m2: { is_null: true } }, { gfa_m2: { gt: 0 } }] } }
+	},
 	indexes: { find: { text: ['project_name', 'project_number'] } },
 	outputs: {
 		default: {

@@ -61,25 +61,16 @@
 	const canCreateTx = $derived(ctx.catalog?.commercial_documents?.create !== undefined);
 	const canCreateVo = $derived(ctx.catalog?.contracts?.create !== undefined);
 	const txDirection = $derived(record?.direction === 'upstream' ? 'inflow' : 'outflow');
+	const activeContractType = $derived(
+		String(liveForm?.get('contract_type') ?? record?.contract_type ?? 'subcontract')
+	);
+	const isVariation = $derived(activeContractType === 'variation_order');
 </script>
 
 {#snippet parentContractEditor(field: FieldEditor)}
 	<Picker
 		{ctx}
 		of="contracts"
-		id={field.id}
-		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
-		value={typeof field.value === 'string' ? field.value : null}
-		disabled={field.disabled}
-		invalid={field.error !== undefined}
-		on_change={(next) => field.on_change(next)}
-	/>
-{/snippet}
-
-{#snippet sourceMessageEditor(field: FieldEditor)}
-	<Picker
-		{ctx}
-		of="project_messages"
 		id={field.id}
 		{...scopedProject === null ? {} : { where: { project_id: { eq: scopedProject } } }}
 		value={typeof field.value === 'string' ? field.value : null}
@@ -111,13 +102,17 @@
 			<Field {ctx} name="contract_type" />
 			<Field {ctx} name="trade_specialty" />
 			<Field {ctx} name="contact_id" />
-			<Field {ctx} name="parent_contract_id" editor={parentContractEditor} />
+			{#if isVariation || record?.parent_contract_id != null}
+				<Field {ctx} name="parent_contract_id" editor={parentContractEditor} />
+			{/if}
 			{#if record !== null}
 				<Field {ctx} name="status" />
 			{/if}
 			<Field {ctx} name="contract_period" />
 			<Field {ctx} name="signed_date" />
-			<Field {ctx} name="schedule_impact_days" />
+			{#if isVariation || (record?.schedule_impact_days ?? 0) !== 0}
+				<Field {ctx} name="schedule_impact_days" />
+			{/if}
 		</Grid>
 	</Section>
 
@@ -143,9 +138,13 @@
 		default_open={false}
 	>
 		<Grid minimum="compact">
-			<Field {ctx} name="source_message_id" editor={sourceMessageEditor} />
+			{#if record?.source_message_id != null}
+				<Field {ctx} name="source_message_id" readonly />
+			{/if}
 			<Column span="all"><Field {ctx} name="scope_notes" /></Column>
-			<Column span="all"><Field {ctx} name="bim_pin" /></Column>
+			{#if record?.bim_pin != null}
+				<Column span="all"><Field {ctx} name="bim_pin" readonly /></Column>
+			{/if}
 			<Column span="all"><Field {ctx} name="attachments" /></Column>
 		</Grid>
 	</Section>
