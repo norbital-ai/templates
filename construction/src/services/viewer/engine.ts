@@ -86,6 +86,12 @@ export type ModelBounds = {
 	readonly maxZ: number;
 };
 
+export type ViewerCategory = {
+	readonly name: string;
+	readonly label: string;
+	readonly ids: readonly number[];
+};
+
 export type IFCViewerRuntime = {
 	OBC: ViewerComponentsModule;
 	OBF: ViewerFrontendModule;
@@ -96,12 +102,14 @@ export type IFCViewerRuntime = {
 	fragments: ViewerFragmentsManager;
 	highlighter: ViewerHighlighter | null;
 	currentGroup: ViewerFragmentsModel | null;
+	container: HTMLDivElement;
 	markerStyleIds: string[];
 	rotateAction: number;
 	truckAction: number;
 	touchRotateAction: number;
 	touchTruckAction: number;
 	onControlsRest: () => void;
+	onWheel: (event: WheelEvent) => void;
 };
 
 const IFC_FETCH_TIMEOUT_MS = 120_000;
@@ -215,6 +223,51 @@ export function applyNavigationControls(runtime: IFCViewerRuntime, pan: boolean)
 	}
 }
 
+/**
+ * Wheel & trackpad-pinch gain constants for proportional zoom:
+ * - Pinch (`ctrlKey === true`) emits small pixel deltas (~1–8 px/event) so it needs ~3.5× higher gain.
+ * - Regular wheel/two-finger scroll scales smoothly with pixel velocity (~28% per 100 px detent).
+ */
+const WHEEL_ZOOM_GAIN = 0.0028;
+const PINCH_ZOOM_GAIN = 0.011;
+const MAX_WHEEL_EXPONENT = 0.85;
+
+function currentCameraDistance(runtime: IFCViewerRuntime): number {
+	const controls = runtime.world.camera.controls;
+	if (
+		typeof controls.distance === 'number' &&
+		Number.isFinite(controls.distance) &&
+		controls.distance > 0
+	) {
+		return controls.distance;
+	}
+	const target = new runtime.THREE.Vector3(0, 0, 0);
+	controls.getTarget(target);
+	const cam = runtime.world.camera.three.position;
+	return Math.max(0.1, Math.hypot(cam.x - target.x, cam.y - target.y, cam.z - target.z));
+}
+
+function handleProportionalWheel(runtime: IFCViewerRuntime, event: WheelEvent): void {
+	if (!runtime.world.camera.enabled) return;
+	if (event.deltaY === 0) return;
+	event.preventDefault();
+	const controls = runtime.world.camera.controls;
+	// Normalize deltaMode (0 = pixels, 1 = lines, 2 = pages) into pixel-equivalent magnitude.
+	const unit = event.deltaMode === 1 ? 32 : event.deltaMode === 2 ? 320 : 1;
+	const pixels = event.deltaY * unit;
+	const gain = event.ctrlKey ? PINCH_ZOOM_GAIN : WHEEL_ZOOM_GAIN;
+	const exponent = Math.max(-MAX_WHEEL_EXPONENT, Math.min(MAX_WHEEL_EXPONENT, pixels * gain));
+	const current = currentCameraDistance(runtime);
+	const minDist = controls.minDistance ?? 0.35;
+	const maxDist = controls.maxDistance ?? 200;
+	const targetDist = Math.max(minDist, Math.min(maxDist, current * Math.exp(exponent)));
+	if (typeof controls.dollyTo === 'function') {
+		void controls.dollyTo(targetDist, false);
+	} else if (typeof controls.dolly === 'function') {
+		void controls.dolly(current - targetDist, false);
+	}
+}
+
 export function tuneCameraControls(
 	runtime: IFCViewerRuntime,
 	bounds: ModelBounds | null,
@@ -222,15 +275,21 @@ export function tuneCameraControls(
 ): void {
 	const controls = runtime.world.camera.controls;
 	controls.dollyToCursor = true;
-	controls.infinityDolly = true;
-	controls.dollySpeed = 0.85;
+	// Disable infinityDolly so distance never collapses below minDistance and stalls zoom-out.
+	controls.infinityDolly = false;
+	controls.dollySpeed = 1.6;
 	controls.truckSpeed = 1.8;
-	controls.smoothTime = 0.12;
-	controls.draggingSmoothTime = 0.08;
+	controls.smoothTime = 0.08;
+	controls.draggingSmoothTime = 0.05;
+	// Disable camera-controls' built-in wheel/pinch handler (which divides Mac deltaY by -10 and routes
+	// trackpad pinch to FOV camera.zoom instead of dollying); our container wheel handler owns zoom.
+	if (controls.mouseButtons) {
+		controls.mouseButtons.wheel = 0;
+	}
 	if (bounds) {
 		const { radius } = modelGeometryInfo(bounds);
-		controls.minDistance = 0.4;
-		controls.maxDistance = Math.max(radius * 10, 120);
+		controls.minDistance = Math.max(0.35, radius * 0.035);
+		controls.maxDistance = Math.max(radius * 12, 160);
 		const cam = runtime.world.camera.three;
 		if (typeof cam.updateProjectionMatrix === 'function') {
 			cam.near = Math.max(0.05, radius * 0.002);
@@ -273,14 +332,166 @@ export function zoomByEffect(
 	bounds: ModelBounds | null,
 	direction: 1 | -1
 ) {
-	const dolly = runtime.world.camera.controls.dolly;
-	if (!dolly) return Effect.void;
+	const controls = runtime.world.camera.controls;
+	const current = currentCameraDistance(runtime);
 	const radius = bounds ? modelGeometryInfo(bounds).radius : 12;
-	const step = direction * Math.max(radius * 0.28, 2.5);
+	const minDist = controls.minDistance ?? Math.max(0.35, radius * 0.035);
+	const maxDist = controls.maxDistance ?? Math.max(radius * 12, 160);
+	const nextDist = Math.max(minDist, Math.min(maxDist, current * (direction > 0 ? 0.72 : 1.38)));
+	if (typeof controls.dollyTo === 'function') {
+		const dollyTo = controls.dollyTo;
+		return Effect.tryPromise({
+			try: () => dollyTo.call(controls, nextDist, true),
+			catch: viewerFailure('zoom-camera')
+		}).pipe(Effect.ignore);
+	}
+	const dolly = controls.dolly;
+	if (!dolly) return Effect.void;
 	return Effect.tryPromise({
-		try: () => dolly.call(runtime.world.camera.controls, step, true),
+		try: () => dolly.call(controls, current - nextDist, true),
 		catch: viewerFailure('zoom-camera')
 	}).pipe(Effect.ignore);
+}
+
+const IFC_CATEGORY_LABELS: Record<string, string> = {
+	IFCWALL: 'Walls',
+	IFCWALLSTANDARDCASE: 'Walls (Standard)',
+	IFCSLAB: 'Slabs & Floors',
+	IFCROOF: 'Roof',
+	IFCWINDOW: 'Windows',
+	IFCDOOR: 'Doors',
+	IFCCOLUMN: 'Columns',
+	IFCBEAM: 'Beams',
+	IFCSTAIR: 'Stairs',
+	IFCSTAIRFLIGHT: 'Stair Flights',
+	IFCRAILING: 'Railings',
+	IFCCURTAINWALL: 'Curtain Walls',
+	IFCCOVERING: 'Coverings & Ceilings',
+	IFCMEMBER: 'Structural Members',
+	IFCPLATE: 'Plates',
+	IFCFOOTING: 'Footings',
+	IFCPILE: 'Piles',
+	IFCFURNISHINGELEMENT: 'Furniture',
+	IFCFURNITURE: 'Furniture',
+	IFCBUILDINGELEMENTPROXY: 'Building Elements',
+	IFCPIPESEGMENT: 'Pipes',
+	IFCPIPEFITTING: 'Pipe Fittings',
+	IFCDUCTSEGMENT: 'Ducts',
+	IFCDUCTFITTING: 'Duct Fittings',
+	IFCCABLECARRIERSEGMENT: 'Cable Trays',
+	IFCLIGHTFIXTURE: 'Lighting',
+	IFCSANITARYTERMINAL: 'Sanitary Fixtures',
+	IFCSPACE: 'Spaces',
+	IFCOPENINGELEMENT: 'Openings',
+	IFCSITE: 'Site'
+};
+
+function formatIfcCategoryLabel(raw: string): string {
+	const upper = raw.trim().toUpperCase();
+	const mapped = IFC_CATEGORY_LABELS[upper];
+	if (mapped !== undefined) return mapped;
+	const stripped = upper.startsWith('IFC') ? upper.slice(3) : upper;
+	return stripped
+		.toLowerCase()
+		.replace(
+			/(^|[_\s])([a-z])/g,
+			(_, sep: string, ch: string) => `${sep ? ' ' : ''}${ch.toUpperCase()}`
+		);
+}
+
+/** Reads every IFC category present in the loaded model along with its geometry-bearing local IDs. */
+export function loadModelCategoriesEffect(
+	runtime: IFCViewerRuntime
+): Effect.Effect<readonly ViewerCategory[], never> {
+	return Effect.gen(function* () {
+		const group = runtime.currentGroup;
+		if (
+			!group ||
+			typeof group.getCategories !== 'function' ||
+			typeof group.getItemsOfCategories !== 'function'
+		) {
+			return [];
+		}
+		const getCategories = group.getCategories;
+		const getItemsOfCategories = group.getItemsOfCategories;
+		const [categories, geometryIds] = yield* Effect.all([
+			Effect.tryPromise({
+				try: () => getCategories.call(group),
+				catch: viewerFailure('list-categories')
+			}).pipe(Effect.catch(() => Effect.succeed<readonly string[]>([]))),
+			Effect.tryPromise({
+				try: () => group.getItemsIdsWithGeometry(),
+				catch: viewerFailure('list-geometry-ids')
+			}).pipe(Effect.catch(() => Effect.succeed<readonly number[]>([])))
+		]);
+		if (categories.length === 0) return [];
+		const geomSet = new Set(geometryIds);
+		const escaped = categories.map(
+			(name) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+		);
+		const byCategory = yield* Effect.tryPromise({
+			try: () => getItemsOfCategories.call(group, escaped),
+			catch: viewerFailure('category-items')
+		}).pipe(Effect.catch(() => Effect.succeed<Record<string, number[]>>({})));
+		const result: ViewerCategory[] = [];
+		for (const [name, rawIds] of Object.entries(byCategory)) {
+			const ids = rawIds.filter((id) => geomSet.has(id));
+			if (ids.length === 0) continue;
+			result.push({ name, label: formatIfcCategoryLabel(name), ids });
+		}
+		result.sort((a, b) => b.ids.length - a.ids.length || a.label.localeCompare(b.label));
+		return result;
+	});
+}
+
+/** Applies the full hidden-ID set to the loaded fragments model (empty set shows everything). */
+export function applyVisibilityEffect(
+	runtime: IFCViewerRuntime,
+	hiddenIds: ReadonlySet<number>
+): Effect.Effect<void, never> {
+	return Effect.gen(function* () {
+		const group = runtime.currentGroup;
+		if (!group) return;
+		if (typeof group.resetVisible === 'function') {
+			const resetVisible = group.resetVisible;
+			yield* Effect.tryPromise({
+				try: () => resetVisible.call(group),
+				catch: viewerFailure('reset-visible')
+			}).pipe(Effect.ignore);
+		} else if (typeof group.setVisible === 'function') {
+			const setVisible = group.setVisible;
+			yield* Effect.tryPromise({
+				try: () => setVisible.call(group, undefined, true),
+				catch: viewerFailure('show-all')
+			}).pipe(Effect.ignore);
+		}
+		if (hiddenIds.size > 0 && typeof group.setVisible === 'function') {
+			const setVisible = group.setVisible;
+			yield* Effect.tryPromise({
+				try: () => setVisible.call(group, [...hiddenIds], false),
+				catch: viewerFailure('hide-elements')
+			}).pipe(Effect.ignore);
+		}
+		if (typeof runtime.fragments.core.update === 'function') {
+			const update = runtime.fragments.core.update;
+			yield* Effect.tryPromise({
+				try: () => update.call(runtime.fragments.core, true),
+				catch: viewerFailure('update-visibility')
+			}).pipe(Effect.ignore);
+		}
+	});
+}
+
+/** Lists all geometry-bearing express IDs in the currently loaded model (used for element isolation). */
+export function listModelGeometryIdsEffect(
+	runtime: IFCViewerRuntime
+): Effect.Effect<readonly number[], never> {
+	const group = runtime.currentGroup;
+	if (!group) return Effect.succeed([]);
+	return Effect.tryPromise({
+		try: () => group.getItemsIdsWithGeometry(),
+		catch: viewerFailure('list-geometry-ids')
+	}).pipe(Effect.catch(() => Effect.succeed<readonly number[]>([])));
 }
 
 export function focusSelectedEffect(runtime: IFCViewerRuntime, pin: IFCViewerPinCoords) {
@@ -495,13 +706,16 @@ export function createViewerRuntime(container: HTMLDivElement, pan: boolean) {
 				fragments,
 				highlighter: null,
 				currentGroup: null,
+				container,
 				markerStyleIds: [],
 				rotateAction: controls.mouseButtons?.left ?? 1,
 				truckAction: controls.mouseButtons?.right ?? 2,
 				touchRotateAction: controls.touches?.one ?? 64,
 				touchTruckAction: 128,
-				onControlsRest
+				onControlsRest,
+				onWheel: (event: WheelEvent) => handleProportionalWheel(runtime, event)
 			};
+			container.addEventListener('wheel', runtime.onWheel, { passive: false });
 			tuneCameraControls(runtime, null, pan);
 			return runtime;
 		}).pipe(Effect.onError(() => Effect.sync(() => components.dispose())));
@@ -528,6 +742,7 @@ export function disposeRuntime(runtime: IFCViewerRuntime) {
 	return clearModel(runtime).pipe(
 		Effect.ensuring(
 			Effect.sync(() => {
+				runtime.container.removeEventListener('wheel', runtime.onWheel);
 				runtime.world.camera.controls.removeEventListener?.('rest', runtime.onControlsRest);
 				runtime.components.dispose();
 			})

@@ -15,12 +15,15 @@
 		ViewerOperationFailed,
 		applyClippingPlanes,
 		applyNavigationControls,
+		applyVisibilityEffect,
 		clearSelectionEffect,
 		createViewerRuntime,
 		disposeRuntime,
 		focusSelectedEffect,
 		framePresetEffect,
+		listModelGeometryIdsEffect,
 		loadFragmentsIntoRuntime,
+		loadModelCategoriesEffect,
 		normalizeFileUrlForSameOrigin,
 		nudgeCameraEffect,
 		pickElementEffect,
@@ -32,7 +35,8 @@
 		type IFCViewerRuntime,
 		type LoadBanner,
 		type ModelBounds,
-		type NavMode
+		type NavMode,
+		type ViewerCategory
 	} from './engine.js';
 	import { messageOf, type IFCSelectedElement, type IFCViewerProps } from './types.js';
 
@@ -80,6 +84,13 @@
 	let shiftPanning = $state(false);
 	let propertiesOpen = $state(false);
 	let sectionPanelOpen = $state(false);
+	let visibilityPanelOpen = $state(false);
+	let modelCategories = $state<readonly ViewerCategory[]>([]);
+	let hiddenCategories = $state<readonly string[]>([]);
+	let hiddenElements = $state<readonly { readonly expressId: number; readonly label: string }[]>(
+		[]
+	);
+	let isolatedExpressId = $state<number | null>(null);
 	let modelBounds = $state<ModelBounds | null>(null);
 	let cutX = $state(100);
 	let cutY = $state(100);
@@ -97,6 +108,22 @@
 		return picked === undefined ? [] : tasks.filter((task) => task.expressIds.includes(picked));
 	});
 	const sectionActive = $derived(cutX < 100 || cutY < 100 || cutZ < 100);
+	const hiddenCategorySet = $derived(new Set(hiddenCategories));
+	const hiddenIdCount = $derived.by(() => {
+		if (isolatedExpressId !== null)
+			return Math.max(1, modelCategories.reduce((sum, c) => sum + c.ids.length, 0) - 1);
+		const ids = new Set<number>();
+		for (const cat of modelCategories) {
+			if (hiddenCategorySet.has(cat.name)) {
+				for (const id of cat.ids) ids.add(id);
+			}
+		}
+		for (const el of hiddenElements) ids.add(el.expressId);
+		return ids.size;
+	});
+	const visibilityActive = $derived(
+		isolatedExpressId !== null || hiddenCategories.length > 0 || hiddenElements.length > 0
+	);
 	const effectivePan = $derived(navMode === 'pan' || shiftPanning);
 	const loadingMessage = $derived(
 		loadBanner === 'downloading'
@@ -121,6 +148,62 @@
 		cutX = 100;
 		cutY = 100;
 		cutZ = 100;
+	}
+	function resetVisibilityState() {
+		hiddenCategories = [];
+		hiddenElements = [];
+		isolatedExpressId = null;
+	}
+	function syncVisibility(runtime: IFCViewerRuntime | null = viewer) {
+		if (!runtime?.currentGroup) return;
+		if (isolatedExpressId !== null) {
+			const keep = isolatedExpressId;
+			fork(
+				listModelGeometryIdsEffect(runtime).pipe(
+					Effect.andThen((all) =>
+						applyVisibilityEffect(runtime, new Set(all.filter((id) => id !== keep)))
+					)
+				),
+				() => {}
+			);
+			return;
+		}
+		const hidden = new Set<number>();
+		for (const cat of modelCategories) {
+			if (hiddenCategorySet.has(cat.name)) {
+				for (const id of cat.ids) hidden.add(id);
+			}
+		}
+		for (const el of hiddenElements) hidden.add(el.expressId);
+		fork(applyVisibilityEffect(runtime, hidden), () => {});
+	}
+	function showAllAssets() {
+		resetVisibilityState();
+		syncVisibility();
+	}
+	function toggleCategoryVisibility(categoryName: string) {
+		isolatedExpressId = null;
+		hiddenCategories = hiddenCategorySet.has(categoryName)
+			? hiddenCategories.filter((c) => c !== categoryName)
+			: [...hiddenCategories, categoryName];
+	}
+	function hideSelectedElement() {
+		if (!selectedItem) return;
+		const { expressId, title } = selectedItem;
+		isolatedExpressId = null;
+		if (!hiddenElements.some((el) => el.expressId === expressId)) {
+			hiddenElements = [...hiddenElements, { expressId, label: title }];
+		}
+		clearSelection();
+	}
+	function isolateSelectedElement() {
+		if (!selectedItem) return;
+		hiddenCategories = [];
+		hiddenElements = [];
+		isolatedExpressId = selectedItem.expressId;
+	}
+	function unhideElement(expressId: number) {
+		hiddenElements = hiddenElements.filter((el) => el.expressId !== expressId);
 	}
 	function resetSelectionState() {
 		propertiesOpen = false;
@@ -183,6 +266,8 @@
 				if (!trimmedSrc) {
 					cancelMarkerFrame();
 					resetSelectionState();
+					resetVisibilityState();
+					modelCategories = [];
 					viewer = null;
 					modelBounds = null;
 					loadBanner = 'none';
@@ -229,6 +314,8 @@
 					cutY,
 					cutZ
 				);
+				resetVisibilityState();
+				modelCategories = yield* loadModelCategoriesEffect(runtime);
 				loadBanner = 'none';
 				scheduleMarkerVisualization();
 				yield* Effect.never;
@@ -316,6 +403,12 @@
 		}
 	);
 	watch(
+		() => [hiddenCategories, hiddenElements, isolatedExpressId, modelCategories] as const,
+		() => {
+			syncVisibility();
+		}
+	);
+	watch(
 		() => focusKey,
 		(key) => {
 			if (!viewer?.currentGroup) return;
@@ -387,7 +480,17 @@
 	});
 	const sectionDisclosure = create_disclosure({
 		open: () => sectionPanelOpen,
-		on_open_change: (n) => (sectionPanelOpen = n)
+		on_open_change: (n) => {
+			sectionPanelOpen = n;
+			if (n) visibilityPanelOpen = false;
+		}
+	});
+	const visibilityDisclosure = create_disclosure({
+		open: () => visibilityPanelOpen,
+		on_open_change: (n) => {
+			visibilityPanelOpen = n;
+			if (n) sectionPanelOpen = false;
+		}
 	});
 	const lockSwitch = create_switch({
 		checked: () => interactionLocked,
@@ -403,6 +506,10 @@
 				selected_express_id: selectedItem?.expressId ?? null,
 				nav_mode: navMode,
 				section_panel_open: sectionPanelOpen,
+				visibility_panel_open: visibilityPanelOpen,
+				hidden_categories: hiddenCategories,
+				hidden_element_count: hiddenIdCount,
+				isolated_express_id: isolatedExpressId,
 				cut_x: cutX,
 				cut_y: cutY,
 				cut_z: cutZ,
@@ -411,6 +518,7 @@
 			actions: {
 				reset_view: () => framePreset('iso'),
 				reset_axes: resetAxes,
+				show_all: showAllAssets,
 				clear_selection: clearSelection,
 				toggle_lock: () => {
 					interactionLocked = !interactionLocked;
@@ -523,6 +631,24 @@
 											<Icon name="lucide:focus" class="size-3.5" />
 										</Button>
 									{/if}
+									<Button
+										size="icon"
+										variant="ghost"
+										class="size-7"
+										hint={t('component.hide_selected_element')}
+										onclick={hideSelectedElement}
+									>
+										<Icon name="lucide:eye-off" class="size-3.5" />
+									</Button>
+									<Button
+										size="icon"
+										variant={isolatedExpressId === item.expressId ? 'secondary' : 'ghost'}
+										class="size-7"
+										hint={t('component.isolate_selected_element')}
+										onclick={isolateSelectedElement}
+									>
+										<Icon name="lucide:scan-eye" class="size-3.5" />
+									</Button>
 									<Button
 										size="icon"
 										variant="ghost"
@@ -665,6 +791,15 @@
 					</Button>
 					<span class="h-4 w-px bg-border" aria-hidden="true"></span>
 					<Button
+						{...visibilityDisclosure.trigger_attrs()}
+						size="icon"
+						variant={visibilityPanelOpen || visibilityActive ? 'secondary' : 'ghost'}
+						class="size-7"
+						hint={t('component.visibility_panel')}
+					>
+						<Icon name={visibilityActive ? 'lucide:eye-off' : 'lucide:eye'} class="size-3.5" />
+					</Button>
+					<Button
 						{...sectionDisclosure.trigger_attrs()}
 						size="icon"
 						variant={sectionPanelOpen || sectionActive ? 'secondary' : 'ghost'}
@@ -699,6 +834,96 @@
 								{label}
 							</button>
 						{/each}
+					</div>
+				{/if}
+
+				{#if visibilityPanelOpen && modelBounds}
+					<div {...visibilityDisclosure.content_attrs()} class="w-56">
+						<Surface tone="popover" padding="xs" radius="control">
+							<Stack gap="sm">
+								<Inline align="center" justify="between" gap="sm">
+									<p class="text-overline">{t('component.visibility_panel')}</p>
+									{#if visibilityActive}
+										<button
+											type="button"
+											class="text-tiny font-medium text-primary hover:underline"
+											onclick={showAllAssets}
+										>
+											{t('component.visibility_show_all')}
+										</button>
+									{/if}
+								</Inline>
+								{#if modelCategories.length === 0}
+									<p class="text-micro text-muted-foreground">{t('component.visibility_empty')}</p>
+								{:else}
+									<Stack gap="xs">
+										<p class="text-tiny font-medium text-muted-foreground">
+											{t('component.visibility_categories')}
+										</p>
+										<Scroll axis="y" name={t('component.visibility_categories')} max="compact">
+											<Stack gap="none">
+												{#each modelCategories as cat (cat.name)}
+													{@const hidden =
+														isolatedExpressId !== null || hiddenCategorySet.has(cat.name)}
+													<button
+														type="button"
+														class="flex w-full items-center justify-between gap-2 rounded-inset px-1.5 py-1 text-left text-micro transition-colors hover:bg-muted"
+														aria-pressed={hidden}
+														onclick={() => toggleCategoryVisibility(cat.name)}
+													>
+														<Inline align="center" gap="xs" class="min-w-0">
+															<Icon
+																name={hidden ? 'lucide:eye-off' : 'lucide:eye'}
+																class="size-3 shrink-0 {hidden
+																	? 'text-muted-foreground/60'
+																	: 'text-foreground'}"
+															/>
+															<span
+																class="truncate {hidden
+																	? 'text-muted-foreground line-through'
+																	: 'text-foreground'}"
+															>
+																{cat.label}
+															</span>
+														</Inline>
+														<span class="shrink-0 tabular-nums text-tiny text-muted-foreground">
+															{cat.ids.length}
+														</span>
+													</button>
+												{/each}
+											</Stack>
+										</Scroll>
+									</Stack>
+								{/if}
+								{#if hiddenElements.length > 0}
+									<Stack gap="xs">
+										<p class="text-tiny font-medium text-muted-foreground">
+											{t('component.visibility_hidden_elements')}
+										</p>
+										<Scroll axis="y" name={t('component.visibility_hidden_elements')} max="compact">
+											<Stack gap="none">
+												{#each hiddenElements as el (el.expressId)}
+													<div
+														class="flex items-center justify-between gap-2 rounded-inset px-1.5 py-0.5 text-micro"
+													>
+														<span class="min-w-0 truncate text-muted-foreground">
+															{el.label} · #{el.expressId}
+														</span>
+														<button
+															type="button"
+															class="shrink-0 text-tiny font-medium text-primary hover:underline"
+															onclick={() => unhideElement(el.expressId)}
+														>
+															{t('component.visibility_unhide')}
+														</button>
+													</div>
+												{/each}
+											</Stack>
+										</Scroll>
+									</Stack>
+								{/if}
+							</Stack>
+						</Surface>
 					</div>
 				{/if}
 
@@ -765,30 +990,53 @@
 				</Inline>
 			</Surface>
 		</Imposter>
-	{:else if normalizedMarkerGroups.length > 0}
+	{:else if normalizedMarkerGroups.length > 0 || visibilityActive}
 		<Imposter
 			placement="bottom-start"
 			offset="sm"
-			class="pointer-events-none max-w-52"
+			class="pointer-events-none max-w-60"
 			aria-label={t('component.marker_legend')}
 		>
-			<div class="rounded-control border border-border bg-popover/90 px-2 py-1.5 backdrop-blur-xs">
-				<Stack gap="xs">
-					<p class="text-overline">{t('component.highlights')}</p>
-					<ul class="flex flex-col gap-1">
-						{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
-							<li class="flex items-center gap-1.5 text-micro leading-tight text-foreground">
-								<span
-									class="size-2 shrink-0 rounded-full"
-									style={`background-color: ${group.color}`}
-									aria-hidden="true"
-								></span>
-								<span class="min-w-0 truncate">{group.label}</span>
-							</li>
-						{/each}
-					</ul>
-				</Stack>
-			</div>
+			<Stack gap="xs" align="start">
+				{#if visibilityActive}
+					<div
+						class="pointer-events-auto flex items-center gap-2 rounded-control border border-border bg-popover/90 px-2 py-1 text-micro backdrop-blur-xs"
+					>
+						<Icon name="lucide:eye-off" class="size-3 shrink-0 text-muted-foreground" />
+						<span class="tabular-nums text-foreground">
+							{t('component.visibility_hidden_count', { count: hiddenIdCount })}
+						</span>
+						<button
+							type="button"
+							class="text-tiny font-medium text-primary hover:underline"
+							onclick={showAllAssets}
+						>
+							{t('component.visibility_show_all')}
+						</button>
+					</div>
+				{/if}
+				{#if normalizedMarkerGroups.length > 0}
+					<div
+						class="rounded-control border border-border bg-popover/90 px-2 py-1.5 backdrop-blur-xs"
+					>
+						<Stack gap="xs">
+							<p class="text-overline">{t('component.highlights')}</p>
+							<ul class="flex flex-col gap-1">
+								{#each normalizedMarkerGroups as group (group.label + group.color + group.expressIds.join(','))}
+									<li class="flex items-center gap-1.5 text-micro leading-tight text-foreground">
+										<span
+											class="size-2 shrink-0 rounded-full"
+											style={`background-color: ${group.color}`}
+											aria-hidden="true"
+										></span>
+										<span class="min-w-0 truncate">{group.label}</span>
+									</li>
+								{/each}
+							</ul>
+						</Stack>
+					</div>
+				{/if}
+			</Stack>
 		</Imposter>
 	{/if}
 

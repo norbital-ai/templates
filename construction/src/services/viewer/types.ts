@@ -219,6 +219,7 @@ interface ViewerSimpleCamera {
 	enabled: boolean;
 	three: ViewerCameraObject;
 	controls: {
+		readonly distance?: number;
 		dollyToCursor?: boolean;
 		infinityDolly?: boolean;
 		dollySpeed?: number;
@@ -250,6 +251,10 @@ interface ViewerSimpleCamera {
 		) => Promise<void>;
 		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		dolly?: (distance: number, enableTransition?: boolean) => Promise<void>;
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		dollyTo?: (distance: number, enableTransition?: boolean) => Promise<void>;
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		zoomTo?: (zoom: number, enableTransition?: boolean) => Promise<void>;
 		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
 		truck?: (x: number, y: number, enableTransition?: boolean) => Promise<void>;
 		getTarget(out: ViewerVector3): ViewerVector3;
@@ -298,6 +303,14 @@ export interface ViewerFragmentsModel {
 	getItemsData(ids: number[]): Promise<Array<ViewerItemData | null | undefined>>;
 	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	getItemsIdsWithGeometry(): Promise<number[]>;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	getCategories?: () => Promise<string[]>;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	getItemsOfCategories?: (categories: RegExp[]) => Promise<Record<string, number[]>>;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	setVisible?: (localIds: number[] | undefined, visible: boolean) => Promise<void>;
+	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
+	resetVisible?: () => Promise<void>;
 }
 export interface ViewerFragmentMaterial {
 	readonly isLODMaterial?: boolean;
