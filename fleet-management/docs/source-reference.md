@@ -116,12 +116,11 @@ these components interact at runtime.
 
 ### `configuration` (`src/app/configuration/`)
 
-| File                       | Description                                                                                                                                                                                                                                                           |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `+app.ts`                  | Declares **Configuration** (`lucide:sliders-horizontal`) with pages `connections`, `geofences`, `drivers`.                                                                                                                                                            |
-| `+connections.page.svelte` | Lists workspace-level (`owner: null`) `sys_integration` accounts for `gps_transponder` and `google_routes`, renders `<IntegrationSetup client={ctx.integration(account.id)} />` cards, and provides creation buttons gated on `ctx.catalog?.sys_integration?.create`. |
-| `+geofences.page.svelte`   | `Split` layout pairing `<Table of="geofences">` with `<Map of="geofences" at="center" labels="always">`.                                                                                                                                                              |
-| `+drivers.page.svelte`     | `<Table of="drivers">` ordered by `employee_code` asc (7 columns).                                                                                                                                                                                                    |
+| File                     | Description                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `+app.ts`                | Declares **Configuration** (`lucide:sliders-horizontal`) with pages `geofences`, `drivers`. Workspace integrations (`gps_transponder`, `google_routes`) live in Settings → Integrations → Connections. |
+| `+geofences.page.svelte` | `Split` layout pairing `<Table of="geofences">` with `<Map of="geofences" at="center" labels="always">`.                                                                                               |
+| `+drivers.page.svelte`   | `<Table of="drivers">` ordered by `employee_code` asc (7 columns).                                                                                                                                     |
 
 ## Automations (2)
 

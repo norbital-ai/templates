@@ -11,19 +11,12 @@ export default messages({
 	'app.operations.page_partners': '业务伙伴',
 
 	'app.configuration.title': '系统配置',
-	'app.configuration.description': '集中管理 WhatsApp、邮件与 Autodesk 连接及清单矩阵。',
+	'app.configuration.description': '集中管理清单矩阵、合规 SOP、BIM 规则与消息采集设置。',
 
-	// Connections
-	'connections.title': '外部连接',
-	'connections.description': '连接个人 WhatsApp 或邮箱，系统将自动把工程消息归类至对应项目。',
-	'connections.loading': '正在加载连接…',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': '邮箱',
-	'connections.desc.whatsapp': '同步 WhatsApp 中的现场与项目消息。',
-	'connections.desc.email': '捕获项目往来邮件、附件与商务单据。',
+	// Intake settings
+	'connections.loading': '正在加载采集规则…',
 	'connections.intake_rules_title': '采集与自动提取规则',
 	'connections.intake_rules_hint': '控制同步哪些消息以及 AI 如何归类与提取进度更新。',
-	'connections.open_intake_rules': '配置',
 
 	// Business Partners & Cost Matrix pages
 	'partners.title': '业务伙伴',
@@ -125,6 +118,7 @@ export default messages({
 	'tasks.tab_activity': '动态',
 	'tasks.no_activity': '暂无动态记录。',
 	'tasks.sub_tasks': '子任务',
+	'tasks.no_sub_tasks': '暂无子任务。',
 	'tasks.add_sub_task': '添加子任务',
 	'tasks.add_description_hint': '添加说明…',
 	'tasks.description_placeholder': '编写说明，或输入 / 使用命令…',
@@ -927,6 +921,20 @@ export default messages({
 	'bim_review.empty_filter': '当前筛选条件下无资产。',
 	'bim_review.col_asset': '构件与清理说明',
 	'bim_review.col_class': '类别与连续性',
+	'bim_review.col_cleanup_notes': '元数据清理与提示',
+	'bim_review.col_actions': '操作',
+	'bim_review.col_waste_carbon': '损耗 / 碳排',
+	'bim_review.table_summary':
+		'共 {total} 类构件 · {revisions} 项需修改 BIM 原模型 · 已确认 {verified}',
+	'bim_review.filter_bim_revision': '需修改 BIM 原模型 ({count})',
+	'bim_review.no_file_mutation': '仅分类与元数据整理',
+	'bim_review.inspect_edit': '查看与编辑',
+	'bim_review.open_record': '打开完整记录',
+	'bim_review.proposal_rationale': 'AI 提议依据',
+	'bim_review.tab_matrix': '提议清单矩阵',
+	'bim_review.tab_compliance_issues': '合规诊断报告（{count} 项问题 · {pct}%）',
+	'bim_review.lint_revision_callout':
+		'{revisions} 项需修改 BIM 原模型 · {cleanup} 项可通过清理与分类解决',
 	'bim_review.service_placeholder': '系统标签（如 hydronic_hvac）',
 	'bim_review.summary_progress': '已确认 {verified}/{total} · 标记 {flagged} · 未匹配 {unmatched}',
 	'bim_costing.cleanup_summary':
@@ -1020,6 +1028,19 @@ export default messages({
 	'bim_compliance.warnings': '预警',
 	'bim_compliance.failures': '不合规项',
 	'bim_compliance.expected': '规范要求',
+	'bim_compliance.report_heading': '当前模型合规与 SOP 诊断报告',
+	'bim_compliance.readonly_badge': '只读诊断',
+	'bim_compliance.resolution_banner':
+		'清洁 BIM 仅执行分类与标签/元数据清理（不改动构件几何尺寸）。{cleanup} 项问题可通过清理与分类解决；{revisions} 项需在源 BIM 模型中修改。',
+	'bim_compliance.col_status': '状态',
+	'bim_compliance.col_rule': '规则与条款',
+	'bim_compliance.col_current': '当前模型现状',
+	'bim_compliance.col_resolution': '所需处理',
+	'bim_compliance.already_compliant': '已符合规范',
+	'bim_compliance.resolved_by_cleanup': '元数据清理可解决',
+	'bim_compliance.resolved_by_classification': '分类匹配可解决',
+	'bim_compliance.requires_bim_revision': '需修改 BIM 源文件',
+	'bim_compliance.not_auto_corrected': '涉及几何/建模改动 — 不会自动修改',
 
 	// 两步可重复 BIM 造价流程
 	'bim_step.step1_pill': '1. 清理 BIM、清单矩阵与合规',
@@ -1079,5 +1100,61 @@ export default messages({
 	'bim_step.proposal_rejected': '已驳回 {code}',
 	'bim_step.approved_all': '已批准 {count} 项清单矩阵提议',
 	'bim_step.item_saved': '已保存 {code}',
-	'bim_step.item_created': '已创建清单条目 {code}'
+	'bim_step.item_created': '已创建清单条目 {code}',
+
+	// 分阶段 BIM 造价向导流程
+	'bim_workflow.back': '返回造价概览',
+	'bim_workflow.start_process': '开始造价流程',
+	'bim_workflow.continue_process': '继续流程',
+	'bim_workflow.resume_process': '恢复流程',
+	'bim_workflow.view_progress': '查看进度',
+	'bim_workflow.open_process': 'BIM 造价流程',
+	'bim_workflow.empty_title': '暂无造价估算',
+	'bim_workflow.empty_no_model_hint': '请先上传整合的 BIM IFC 模型，再启动分阶段造价流程。',
+	'bim_workflow.empty_start_hint':
+		'启动三步 BIM 造价流程：解析 IFC 模型、审核提议的清洁 BIM 与清单单价，并生成工程量造价估算。',
+	'bim_workflow.empty_in_progress_title': '造价流程进行中',
+	'bim_workflow.empty_step1_running_hint': '第 1 步（共 3 步）· {detail}',
+	'bim_workflow.empty_step3_running_hint': '第 3 步（共 3 步）· 正在生成分类与工程量造价估算…',
+	'bim_workflow.empty_paused_title': '造价流程已暂停',
+	'bim_workflow.empty_paused_hint': '第 1 步出现错误：{reason}',
+	'bim_workflow.empty_ready_review_title': '造价流程进行中 — 待审核',
+	'bim_workflow.empty_ready_review_hint':
+		'第 1 步已完成（{elements} 个构件 · {unique} 类唯一资产 · 合规率 {score}%）。请继续第 2 步审核提议的构件与单价，然后生成造价估算。',
+	'bim_workflow.badge_step_progress': '第 {step} 步 / 共 {total} 步 · {label}',
+	'bim_workflow.step1_short': '解析与分析',
+	'bim_workflow.step2_short': '审核提议与合规',
+	'bim_workflow.step3_short': '生成造价估算',
+	'bim_workflow.step1_pill': '1. 解析与分析',
+	'bim_workflow.step2_pill': '2. 审核提议与合规',
+	'bim_workflow.step3_pill': '3. 生成造价',
+	'bim_workflow.step_locked_hint': '请先完成第 1 步以解锁此步骤。',
+	'bim_workflow.step1_heading': '第 1 步（共 3 步）· 解析与分析 BIM 模型',
+	'bim_workflow.step1_desc':
+		'从 IFC 文件提取几何与工程量、清理构件类别、提议缺失的清单矩阵单价，并执行合规审查。',
+	'bim_workflow.start_step1': '开始解析与分析',
+	'bim_workflow.rerun_step1': '重新分析',
+	'bim_workflow.retry_step1': '重试第 1 步',
+	'bim_workflow.step1_running_title': '正在解析与分析模型…',
+	'bim_workflow.step1_analyzing_detail': '正在清理 BIM 构件、提议清单矩阵单价并执行合规审查…',
+	'bim_workflow.step1_failed_title': '第 1 步未能完成',
+	'bim_workflow.step1_complete': '第 1 步已完成 · 分析于 {when}',
+	'bim_workflow.durable_back_hint': '您可以随时返回 — 进度会自动持久保存并在后台继续执行。',
+	'bim_workflow.stat_elements': 'BIM 构件总数',
+	'bim_workflow.stat_unique_assets': '唯一资产类型',
+	'bim_workflow.stat_storeys': '楼层数',
+	'bim_workflow.continue_step2': '继续第 2 步：审核提议',
+	'bim_workflow.step2_heading': '第 2 步（共 3 步）· 审核提议的清洁 BIM、单价与合规',
+	'bim_workflow.step2_desc':
+		'在生成造价前，审核并批准提议的清单矩阵单价、核对清理后的构件分类并查看合规审查结果。',
+	'bim_workflow.continue_step3': '继续第 3 步：生成造价',
+	'bim_workflow.back_to_step2': '返回第 2 步',
+	'bim_workflow.step3_heading': '第 3 步（共 3 步）· 生成造价估算',
+	'bim_workflow.step3_desc':
+		'根据已审核的清洁 BIM 分类和已批准的清单矩阵单价生成项目工程量造价估算。',
+	'bim_workflow.step3_running_title': '正在生成造价估算…',
+	'bim_workflow.step3_complete': '造价估算已生成并可查看。',
+	'bim_workflow.view_estimate': '查看造价估算',
+	'bim_workflow.pending_proposals_warning':
+		'第 2 步仍有 {count} 项清单矩阵提议待审批 — 未审批条目在批准前将保持未匹配状态。'
 });

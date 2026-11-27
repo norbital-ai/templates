@@ -659,4 +659,3 @@ before server-side policy checks run:
 - **Live Map (`+live.page.svelte`):** Shows `Refresh live ETAs` only when `ctx.catalog?.routes?.update` exists and `Check transponder health` only when `ctx.catalog?.vehicles?.update` exists.
 - **Dispatch & Routes (`+routes.page.svelte`):** Shows `New dispatch` only when `ctx.catalog?.routes?.create` exists and `Refresh live ETAs` only when `ctx.catalog?.routes?.update` exists.
 - **Vehicle Hub (`vehicles/+representation.svelte`):** Enables scoped `Routes` / `Alerts` creation sheets only when `ctx.catalog?.routes?.create` / `ctx.catalog?.fleet_alerts?.create` are present.
-- **Connections (`+connections.page.svelte`):** Queries `sys_integration` only when `ctx.catalog?.sys_integration` exists and renders `Add` connection buttons only when `ctx.catalog?.sys_integration?.create` exists.

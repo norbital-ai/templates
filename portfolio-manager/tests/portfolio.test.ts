@@ -326,19 +326,19 @@ it.layer(
 				const t = yield* TestWorkspace;
 				const owner = yield* t.as(t.member(['portfolio_manage']));
 				const admin = yield* t.as(t.admin);
-				const client = yield* t.as(t.member(['portfolio_read'], { phone: '+65 9000 0001' }));
+				const client = yield* t.as(
+					t.member(['portfolio_read'], { phone: '+65 9000 0001', external: true })
+				);
 				yield* settled(yield* client.act({ 'report_subscription.create': [{}] }));
 				yield* settled(yield* admin.act({ 'sys_envoy.create': [{ name: 'Reports desk' }] }));
-				const [envoy] = yield* t.db.rows(Schema.Struct({ id: Schema.String }), {
-					text: `SELECT id::text AS id FROM sys_envoy`,
+				const [envoy] = yield* t.db.rows(Schema.Struct({ id: id_of('sys_envoy') }), {
+					text: `SELECT id FROM sys_envoy`,
 					params: []
 				});
 				if (envoy === undefined) return yield* Effect.die(new Error('no envoy'));
 				yield* settled(
 					yield* admin.act({
-						'sys_integration.create': [
-							{ integration: 'whatsapp', name: 'Reports', envoy: envoy.id }
-						]
+						'sys_integration.create': [{ integration: 'whatsapp', name: 'Reports' }]
 					})
 				);
 				const [account] = yield* t.db.rows(Schema.Struct({ id: id_of('sys_integration') }), {
@@ -346,6 +346,11 @@ it.layer(
 					params: []
 				});
 				if (account === undefined) return yield* Effect.die(new Error('no account'));
+				yield* settled(
+					yield* admin.act({
+						'sys_envoy_channel.create': [{ envoy: envoy.id, integration: account.id }]
+					})
+				);
 				yield* t.integrations.pair(account.id, { key: 'k1' });
 				yield* settled(
 					yield* owner.act({ 'portfolio_settings.create': [{ base_currency: 'SGD' }] })
@@ -396,6 +401,114 @@ it.layer(
 						params: [account.id]
 					})
 				).toContainEqual({ status: 'delivered' });
+			})
+	);
+});
+
+it.layer(
+	TestWorkspace.layer({
+		root,
+		now: '2026-11-02T12:00:00.000Z',
+		ports,
+		providers: [whatsapp]
+	})
+)('delivery channel selection and pairing guards', (it) => {
+	it.effect(
+		'skips unpaired envoy channels and requires an explicit report_channel when multiple connected channels exist',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const owner = yield* t.as(t.member(['portfolio_manage']));
+				const admin = yield* t.as(t.admin);
+				const client = yield* t.as(
+					t.member(['portfolio_read'], { phone: '+65 9000 0002', external: true })
+				);
+				yield* settled(yield* client.act({ 'report_subscription.create': [{}] }));
+				yield* settled(
+					yield* admin.act({ 'sys_envoy.create': [{ name: 'Desk A' }, { name: 'Desk B' }] })
+				);
+				const envoys = yield* t.db.rows(
+					Schema.Struct({ id: id_of('sys_envoy'), name: Schema.String }),
+					{
+						text: `SELECT id, name FROM sys_envoy ORDER BY name`,
+						params: []
+					}
+				);
+				const [deskA, deskB] = envoys;
+				if (deskA === undefined || deskB === undefined)
+					return yield* Effect.die(new Error('missing envoys'));
+				yield* settled(
+					yield* admin.act({
+						'sys_integration.create': [
+							{ integration: 'whatsapp', name: 'WA A' },
+							{ integration: 'whatsapp', name: 'WA B' }
+						]
+					})
+				);
+				const accounts = yield* t.db.rows(
+					Schema.Struct({ id: id_of('sys_integration'), name: Schema.String }),
+					{ text: `SELECT id, name FROM sys_integration ORDER BY name`, params: [] }
+				);
+				const [waA, waB] = accounts;
+				if (waA === undefined || waB === undefined)
+					return yield* Effect.die(new Error('missing accounts'));
+				yield* settled(
+					yield* admin.act({
+						'sys_envoy_channel.create': [
+							{ envoy: deskA.id, integration: waA.id },
+							{ envoy: deskB.id, integration: waB.id }
+						]
+					})
+				);
+
+				// 1. Neither channel is paired yet → inbox only, no queued outbound messages.
+				yield* owner.run('portfolio_agent', {}, JobResult);
+				expect((yield* t.run_due()).failed).toEqual([]);
+				expect(
+					yield* owner.query({ report: { fields: ['research_log'], limit: 1 } })
+				).toMatchObject({
+					report: { rows: [{ research_log: expect.stringContaining('not connected yet') }] }
+				});
+				yield* t.syncs.deliver();
+				expect(t.fakes.links.sent).toEqual([]);
+
+				// 2. Pair BOTH channels → ambiguous without report_channel → inbox only, no duplicate sends.
+				yield* t.integrations.pair(waA.id, { key: 'a1' });
+				yield* t.integrations.pair(waB.id, { key: 'b1' });
+				t.clock.set('2026-11-03T12:00:00.000Z');
+				yield* owner.run('portfolio_agent', {}, JobResult);
+				expect((yield* t.run_due()).failed).toEqual([]);
+				expect(
+					yield* owner.query({
+						report: {
+							where: { for_date: { eq: '2026-11-03' } },
+							fields: ['research_log'],
+							limit: 1
+						}
+					})
+				).toMatchObject({
+					report: {
+						rows: [{ research_log: expect.stringContaining('2 connected envoy channels found') }]
+					}
+				});
+				yield* t.syncs.deliver();
+				expect(t.fakes.links.sent).toEqual([]);
+
+				// 3. Pick WA B explicitly in portfolio_settings.report_channel → sends ONLY via WA B.
+				yield* settled(
+					yield* owner.act({
+						'portfolio_settings.create': [{ base_currency: 'USD', report_channel: waB.id }]
+					})
+				);
+				t.clock.set('2026-11-04T12:00:00.000Z');
+				yield* owner.run('portfolio_agent', {}, JobResult);
+				expect((yield* t.run_due()).failed).toEqual([]);
+				yield* t.syncs.deliver();
+				expect(t.fakes.links.sent).toHaveLength(1);
+				expect(t.fakes.links.sent[0]).toMatchObject({
+					instance: waB.id,
+					message: expect.objectContaining({ to: '6590000002@s.whatsapp.net' })
+				});
 			})
 	);
 });

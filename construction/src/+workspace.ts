@@ -13,6 +13,7 @@ export default workspace({
 	currency: 'SGD',
 	theme: { palette: 'warm', accent: 'amber', radius: 'default' },
 	apps: ['operations', 'configuration'],
+	connections: ['whatsapp', 'email'],
 	ai: {},
 	convert: { to: ['pdf'] },
 	limits: {

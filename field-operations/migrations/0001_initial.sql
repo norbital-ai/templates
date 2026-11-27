@@ -1,4 +1,4 @@
--- 0001_initial.sql: 237 step(s), from an empty database to e2af67480ba2ca756aa7390bd51c084cde8844ed7ec85c8777fbef78cb760f0c.
+-- 0001_initial.sql: 246 step(s), from an empty database to 152afff7555c278196a3cf676516466390f068780f9d045d9291c8c2544f6aa2.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -443,6 +443,16 @@ create or replace function "bolt_record_label_sys_envoy_93340fdd"(text) returns 
 			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
+-- step create:function:bolt_record_label_sys_envoy_channel_9d07ea07 (additive)
+create or replace function "bolt_record_label_sys_envoy_channel_9d07ea07"(uuid) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('id', to_jsonb("id")) AS j FROM (SELECT $1 AS "id") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
 -- step create:function:bolt_record_label_sys_file_93340fdd (additive)
 create or replace function "bolt_record_label_sys_file_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
@@ -914,6 +924,21 @@ create table "sys_envoy" ("id" uuid primary key,
 	constraint "sys_envoy__ck__367d8eb4" check (isfinite("created_at"))
 );
 
+-- step create:table:sys_envoy_channel (additive)
+create table "sys_envoy_channel" ("id" uuid primary key,
+	"scope" jsonb,
+	"group_messages" text,
+	"active" boolean default true not null,
+	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_envoy_channel_9d07ea07"("id")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_envoy_channel_9d07ea07"("id"), ''))) stored,
+	"envoy" uuid not null,
+	"integration" text not null,
+	constraint "sys_envoy_channel__ck__6d62513f" check (("scope" is null or store_json_valid("scope", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_envoy_channel__ck__b5b45d76" check ("group_messages" in ('disabled', 'mention_or_reply', 'all')),
+	constraint "sys_envoy_channel__uq__9101eba5" unique nulls not distinct ("envoy", "integration")
+);
+
 -- step create:table:sys_file (additive)
 create table "sys_file" ("id" text primary key,
 	"name" text not null,
@@ -955,10 +980,10 @@ create table "sys_inbox" ("id" uuid primary key,
 create table "sys_integration" ("id" text primary key,
 	"integration" text not null,
 	"name" text not null,
-	"envoy" text,
 	"active" boolean default true not null,
 	"configuration" jsonb default '{}'::jsonb not null,
 	"import_start" jsonb,
+	"listen" jsonb,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
@@ -968,6 +993,7 @@ create table "sys_integration" ("id" text primary key,
 	"owner" text,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__d303bac9" check (("listen" is null or store_json_valid("listen", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1441,11 +1467,14 @@ select bolt_history_register('sys_conversation','{"fields":{"archived_at":{"kind
 -- step create:history:schema:sys_envoy (additive)
 select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"format":"policy","kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
 
+-- step create:history:schema:sys_envoy_channel (additive)
+select bolt_history_register('sys_envoy_channel','{"fields":{"active":{"default":true,"kind":"bool"},"envoy":{"kind":"ref","on_delete":"cascade","to":"sys_envoy"},"group_messages":{"kind":"enum","optional":true,"values":["disabled","mention_or_reply","all"]},"integration":{"kind":"ref","on_delete":"cascade","to":"sys_integration"},"revision":{"default":1,"kind":"int"},"scope":{"kind":"json","optional":true}},"key":"uuid","record_label":"record.id","unique":[{"fields":["envoy","integration"],"name":"one_per_envoy_channel"}]}'::jsonb);
+
 -- step create:history:schema:sys_file (additive)
 select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:sys_integration (additive)
-select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"envoy":{"kind":"text","optional":true},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
 
 -- step create:history:schema:sys_invitation (additive)
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_team"}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
@@ -1488,6 +1517,12 @@ alter table "sys_api_key" add constraint "sys_api_key__fk__39b6eca5" foreign key
 
 -- step create:fk:sys_conversation.sys_conversation__fk__c30bef48 (additive)
 alter table "sys_conversation" add constraint "sys_conversation__fk__c30bef48" foreign key ("integration") references "sys_integration" ("id") on delete cascade on update restrict;
+
+-- step create:fk:sys_envoy_channel.sys_envoy_channel__fk__7f8ef809 (additive)
+alter table "sys_envoy_channel" add constraint "sys_envoy_channel__fk__7f8ef809" foreign key ("envoy") references "sys_envoy" ("id") on delete cascade on update restrict;
+
+-- step create:fk:sys_envoy_channel.sys_envoy_channel__fk__c30bef48 (additive)
+alter table "sys_envoy_channel" add constraint "sys_envoy_channel__fk__c30bef48" foreign key ("integration") references "sys_integration" ("id") on delete cascade on update restrict;
 
 -- step create:fk:sys_inbox.sys_inbox__fk__328a1493 (additive)
 alter table "sys_inbox" add constraint "sys_inbox__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
@@ -1605,6 +1640,12 @@ create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 
 -- step create:index:sys_envoy.sys_envoy__gin__73732636 (additive)
 create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
+
+-- step create:trigger:sys_envoy_channel.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "sys_envoy_channel" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
+
+-- step create:index:sys_envoy_channel.sys_envoy_channel__gin__73732636 (additive)
+create index "sys_envoy_channel__gin__73732636" on "sys_envoy_channel" using gin (bolt_search);
 
 -- step create:trigger:sys_file.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
@@ -1843,6 +1884,12 @@ create index "sys_api_key__ix__6ae667f2" on "sys_api_key" ("created_by");
 -- step create:index:sys_conversation.sys_conversation__ix__20648086 (additive)
 create index "sys_conversation__ix__20648086" on "sys_conversation" ("integration");
 
+-- step create:index:sys_envoy_channel.sys_envoy_channel__ix__b97046cc (additive)
+create index "sys_envoy_channel__ix__b97046cc" on "sys_envoy_channel" ("envoy");
+
+-- step create:index:sys_envoy_channel.sys_envoy_channel__ix__20648086 (additive)
+create index "sys_envoy_channel__ix__20648086" on "sys_envoy_channel" ("integration");
+
 -- step create:index:sys_inbox.sys_inbox__ix__8be7dc72 (additive)
 create index "sys_inbox__ix__8be7dc72" on "sys_inbox" ("instance");
 
@@ -1913,7 +1960,7 @@ create index "suspicious_activity_logs__ix__cbb76264" on "suspicious_activity_lo
 create index "suspicious_activity_logs__ix__7901b40e" on "suspicious_activity_logs" ("resolved_by");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['approval_request','communication_logs','job_assignments','photo_evidence','sites','suspicion_reviews','suspicious_activity_logs','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['approval_request','communication_logs','job_assignments','photo_evidence','sites','suspicion_reviews','suspicious_activity_logs','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace']::text[]));
 
 -- step create:engine:audit:sites (additive)
 drop trigger if exists bolt_audit_mark on "sites";

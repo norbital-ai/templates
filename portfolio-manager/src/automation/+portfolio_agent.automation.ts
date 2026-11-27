@@ -1,5 +1,5 @@
-import { BigDecimal, DateTime, Effect, Option } from 'effect';
-import { automation, is_instance, type CreateInput } from '@norbital-ai/bolt';
+import { BigDecimal, DateTime, Effect, Option, Predicate } from 'effect';
+import { automation, is_instance, type CreateInput, type Id } from '@norbital-ai/bolt';
 import {
 	NEWS_URL,
 	QUOTE_URL,
@@ -103,24 +103,66 @@ export default automation({
 		const base = settings?.base_currency ?? DEFAULT_CURRENCY;
 		const subscribers = input.send === false ? [] : report_subscription.rows.map((one) => one.user);
 		if (holding.rows.length === 0) return;
-		/** The chat accounts an envoy is deployed on: the report reaches each subscriber's own handle there. */
-		const { sys_integration } = yield* ctx.query({
-			sys_integration: { where: { envoy: { is_null: false }, active: { eq: true } }, limit: 20 }
+		/**
+		 * Delivery channel selection: explicit `portfolio_settings.report_channel`, else auto-fallback only when
+		 * exactly one connected chat envoy channel exists. Never queues on unpaired channels or duplicates across many.
+		 */
+		const { sys_envoy, sys_envoy_channel, sys_integration } = yield* ctx.query({
+			sys_envoy: { where: { active: { eq: true } }, fields: ['name'], limit: 100 },
+			sys_envoy_channel: {
+				where: { active: { eq: true } },
+				fields: ['envoy', 'integration'],
+				limit: 100
+			},
+			sys_integration: {
+				where: { active: { eq: true }, owner: { is_null: true } },
+				fields: ['name', 'integration', 'status'],
+				limit: 100
+			}
 		});
-		const via = sys_integration.rows.flatMap((one) =>
+		const chatInstanceId = (one: (typeof sys_integration.rows)[number]) =>
 			is_instance('whatsapp', one) ||
 			is_instance('telegram', one) ||
 			is_instance('slack', one) ||
 			is_instance('discord', one)
-				? [one.id]
-				: []
+				? one.id
+				: null;
+		const isConnected = (status: unknown): boolean =>
+			Predicate.isObject(status) && status['state'] === 'connected';
+		const activeEnvoys = new Set(sys_envoy.rows.map((e) => e.id));
+		const envoyChannelIds = new Set(
+			sys_envoy_channel.rows.filter((ec) => activeEnvoys.has(ec.envoy)).map((ec) => ec.integration)
 		);
-		if (subscribers.length > 0)
-			log.push(
-				via.length === 0
-					? `${subscribers.length} subscriber(s) notified in the app only: no envoy is deployed on a chat account`
-					: `${subscribers.length} subscriber(s) sent through ${via.length} envoy account(s)`
-			);
+		const envoyChatChannels = sys_integration.rows.flatMap((one) => {
+			const instanceId = chatInstanceId(one);
+			return envoyChannelIds.has(one.id) && instanceId !== null ? [{ ...one, instanceId }] : [];
+		});
+		const connectedChannels = envoyChatChannels.filter((one) => isConnected(one.status));
+
+		const via: NonNullable<ReturnType<typeof chatInstanceId>>[] = [];
+		let deliveryLog = '';
+		const selectedChannelId = settings?.report_channel ?? null;
+		const [soleConnected] = connectedChannels;
+		if (selectedChannelId !== null) {
+			const selected = sys_integration.rows.find((one) => one.id === selectedChannelId);
+			const selectedInstanceId = selected === undefined ? null : chatInstanceId(selected);
+			if (selected !== undefined && selectedInstanceId !== null && isConnected(selected.status)) {
+				via.push(selectedInstanceId);
+				deliveryLog = `${subscribers.length} subscriber(s) sent through ${selected.name} (${selected.integration})`;
+			} else {
+				deliveryLog = `${subscribers.length} subscriber(s) notified in the app only: selected delivery channel${selected ? ` ${selected.name}` : ''} is not connected`;
+			}
+		} else if (connectedChannels.length === 1 && soleConnected !== undefined) {
+			via.push(soleConnected.instanceId);
+			deliveryLog = `${subscribers.length} subscriber(s) sent through ${soleConnected.name} (${soleConnected.integration})`;
+		} else if (connectedChannels.length > 1) {
+			deliveryLog = `${subscribers.length} subscriber(s) notified in the app only: ${connectedChannels.length} connected envoy channels found — choose one in Subscribers`;
+		} else if (envoyChatChannels.length > 0) {
+			deliveryLog = `${subscribers.length} subscriber(s) notified in the app only: envoy channel is not connected yet`;
+		} else {
+			deliveryLog = `${subscribers.length} subscriber(s) notified in the app only: no envoy is deployed on a chat account`;
+		}
+		if (subscribers.length > 0) log.push(deliveryLog);
 
 		const ratesPage = yield* read(RATES_URL(base));
 		const rates = Option.match(ratesPage, {

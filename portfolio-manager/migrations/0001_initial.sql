@@ -1,4 +1,4 @@
--- 0001_initial.sql: 192 step(s), from an empty database to ef08c1e67553c7ec90e9dbcdd08e7a521adfb6235e7a71357493197b902d7fe2.
+-- 0001_initial.sql: 203 step(s), from an empty database to 62d796fc6ebdac9b3c8fdc788d36fb175447a10cdf666dd7253c160b50a35e2d.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 
@@ -441,6 +441,16 @@ create or replace function "bolt_record_label_sys_envoy_93340fdd"(text) returns 
 		ELSE nullif(btrim(value), '') END
 		FROM (SELECT (coalesce((label_row.j #> ARRAY['name']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('name', to_jsonb("name")) AS j FROM (SELECT $1 AS "name") label_inputs) label_row OFFSET 0) label_value$record_label$;
 
+-- step create:function:bolt_record_label_sys_envoy_channel_9d07ea07 (additive)
+create or replace function "bolt_record_label_sys_envoy_channel_9d07ea07"(uuid) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
+		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
+		WHEN left(value, 1) IN ('{', '[') AND pg_input_is_valid(value, 'jsonb') THEN NULL
+		WHEN value ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}([.]\d+)?)?(Z|[+-]\d{2}:\d{2})$' THEN
+			CASE WHEN (value::timestamptz AT TIME ZONE 'UTC')::time = '00:00:00'::time THEN to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+			ELSE to_char(value::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') END
+		ELSE nullif(btrim(value), '') END
+		FROM (SELECT (coalesce((label_row.j #> ARRAY['id']), 'null'::jsonb) #>> '{}') AS value FROM (SELECT jsonb_build_object('id', to_jsonb("id")) AS j FROM (SELECT $1 AS "id") label_inputs) label_row OFFSET 0) label_value$record_label$;
+
 -- step create:function:bolt_record_label_sys_file_93340fdd (additive)
 create or replace function "bolt_record_label_sys_file_93340fdd"(text) returns text language sql immutable parallel safe set timezone = 'UTC' as $record_label$SELECT CASE
 		WHEN value ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN NULL
@@ -881,6 +891,21 @@ create table "sys_envoy" ("id" uuid primary key,
 	constraint "sys_envoy__ck__367d8eb4" check (isfinite("created_at"))
 );
 
+-- step create:table:sys_envoy_channel (additive)
+create table "sys_envoy_channel" ("id" uuid primary key,
+	"scope" jsonb,
+	"group_messages" text,
+	"active" boolean default true not null,
+	"revision" int default '1'::int not null,
+	"bolt_record_label" text generated always as ("bolt_record_label_sys_envoy_channel_9d07ea07"("id")) stored,
+	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_sys_envoy_channel_9d07ea07"("id"), ''))) stored,
+	"envoy" uuid not null,
+	"integration" text not null,
+	constraint "sys_envoy_channel__ck__6d62513f" check (("scope" is null or store_json_valid("scope", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_envoy_channel__ck__b5b45d76" check ("group_messages" in ('disabled', 'mention_or_reply', 'all')),
+	constraint "sys_envoy_channel__uq__9101eba5" unique nulls not distinct ("envoy", "integration")
+);
+
 -- step create:table:sys_file (additive)
 create table "sys_file" ("id" text primary key,
 	"name" text not null,
@@ -922,10 +947,10 @@ create table "sys_inbox" ("id" uuid primary key,
 create table "sys_integration" ("id" text primary key,
 	"integration" text not null,
 	"name" text not null,
-	"envoy" text,
 	"active" boolean default true not null,
 	"configuration" jsonb default '{}'::jsonb not null,
 	"import_start" jsonb,
+	"listen" jsonb,
 	"status" jsonb,
 	"epoch" text,
 	"revision" int default '1'::int not null,
@@ -935,6 +960,7 @@ create table "sys_integration" ("id" text primary key,
 	"owner" text,
 	constraint "sys_integration__ck__fc03c40f" check (("configuration" is null or store_json_valid("configuration", '{"default":{},"kind":"json"}'::jsonb) is true)),
 	constraint "sys_integration__ck__da5b6244" check (("import_start" is null or store_json_valid("import_start", '{"kind":"json","optional":true}'::jsonb) is true)),
+	constraint "sys_integration__ck__d303bac9" check (("listen" is null or store_json_valid("listen", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__67fc27ec" check (("status" is null or store_json_valid("status", '{"kind":"json","optional":true}'::jsonb) is true)),
 	constraint "sys_integration__ck__bfedbfd4" check (isfinite("updated_at"))
 );
@@ -1318,6 +1344,7 @@ create table "portfolio_settings" ("id" uuid primary key, revision int not null 
 	"benchmarks" jsonb,
 	"bolt_record_label" text generated always as ("bolt_record_label_portfolio_settings_4d34641e"()) stored,
 	bolt_search tsvector generated always as (bolt_search_document(coalesce("bolt_record_label_portfolio_settings_4d34641e"(), ''))) stored,
+	"report_channel" text,
 	constraint "portfolio_settings__ck__11afee8d" check ("base_currency" ~ '^[A-Z]{3}$'),
 	constraint "portfolio_settings__ck__393079ce" check (("benchmarks" is null or store_json_valid("benchmarks", '{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true}'::jsonb) is true))
 );
@@ -1406,11 +1433,14 @@ select bolt_history_register('sys_conversation','{"fields":{"archived_at":{"kind
 -- step create:history:schema:sys_envoy (additive)
 select bolt_history_register('sys_envoy','{"fields":{"active":{"default":true,"kind":"bool"},"audience":{"default":"private","kind":"enum","values":["private","public"]},"created_at":{"default":{"var":"now"},"kind":"instant"},"delegation":{"default":"disabled","kind":"enum","values":["enabled","disabled"]},"dm":{"default":"union","kind":"enum","values":["union","envoy"]},"group_messages":{"default":"mention_or_reply","kind":"enum","values":["disabled","mention_or_reply","all"]},"name":{"kind":"text"},"policies":{"default":[],"format":"policy","kind":"text","many":true},"revision":{"default":1,"kind":"int"},"task":{"default":"","format":"markdown","kind":"text"},"triage":{"default":false,"kind":"bool"},"triage_scope":{"default":"all","hidden":true,"kind":"enum","values":["dm","group","all"]}},"key":"uuid","record_label":"record.name"}'::jsonb);
 
+-- step create:history:schema:sys_envoy_channel (additive)
+select bolt_history_register('sys_envoy_channel','{"fields":{"active":{"default":true,"kind":"bool"},"envoy":{"kind":"ref","on_delete":"cascade","to":"sys_envoy"},"group_messages":{"kind":"enum","optional":true,"values":["disabled","mention_or_reply","all"]},"integration":{"kind":"ref","on_delete":"cascade","to":"sys_integration"},"revision":{"default":1,"kind":"int"},"scope":{"kind":"json","optional":true}},"key":"uuid","record_label":"record.id","unique":[{"fields":["envoy","integration"],"name":"one_per_envoy_channel"}]}'::jsonb);
+
 -- step create:history:schema:sys_file (additive)
 select bolt_history_register('sys_file','{"fields":{"created_at":{"kind":"instant"},"created_by":{"kind":"text","optional":true},"field":{"kind":"text"},"key":{"kind":"text"},"mime":{"kind":"text"},"name":{"kind":"text"},"revision":{"default":1,"kind":"int"},"sha256":{"kind":"text"},"size":{"kind":"int"},"updated_at":{"kind":"instant","optional":true},"updated_by":{"kind":"text","optional":true}},"key":"text","record_label":"record.name"}'::jsonb);
 
 -- step create:history:schema:sys_integration (additive)
-select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"envoy":{"kind":"text","optional":true},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
+select bolt_history_register('sys_integration','{"fields":{"active":{"default":true,"kind":"bool"},"configuration":{"default":{},"kind":"json"},"epoch":{"kind":"text","optional":true},"import_start":{"kind":"json","optional":true},"integration":{"kind":"text"},"listen":{"kind":"json","optional":true},"name":{"kind":"text"},"owner":{"kind":"ref","optional":true,"to":"sys_user"},"revision":{"default":1,"kind":"int"},"status":{"kind":"json","optional":true},"updated_at":{"default":{"var":"now"},"kind":"instant"}},"key":"text","record_label":"record.name","unique":[{"fields":["owner","integration"],"name":"one_per_member","where":{"owner":{"is_null":false}}}]}'::jsonb);
 
 -- step create:history:schema:sys_invitation (additive)
 select bolt_history_register('sys_invitation','{"check":{"addressed":{"or":[{"email":{"is_null":false}},{"phone":{"is_null":false}}]}},"fields":{"accepted_at":{"kind":"instant","optional":true},"email":{"kind":"text","optional":true},"expires_at":{"kind":"instant"},"external":{"default":false,"kind":"bool"},"invited_by":{"kind":"ref","optional":true,"to":"sys_user"},"party":{"kind":"json","optional":true},"phone":{"kind":"text","optional":true},"revision":{"default":1,"kind":"int"},"revoked_at":{"kind":"instant","optional":true},"team":{"kind":"ref","on_delete":"restrict","optional":true,"to":"sys_team"}},"indexes":[{"on":[{"lower":"email"}]},{"on":["phone"]}],"key":"text","record_label":"record.email"}'::jsonb);
@@ -1428,7 +1458,7 @@ select bolt_history_register('sys_workspace','{"check":{"singleton":{"id":{"eq":
 select bolt_history_register('holding','{"audit":true,"check":{"loan_is_owed":{"or":[{"asset_class":{"ne":"loan"}},{"value_base":{"lte":"0"}}]}},"fields":{"accrued_interest":{"kind":"decimal","optional":true,"scale":2},"asset_class":{"default":"equity","kind":"enum","values":["equity","structured","fund","bond","metal","cash","loan","other"]},"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"cost_value":{"kind":"decimal","optional":true,"scale":2},"currency":{"kind":"currency"},"detail":{"kind":"text","optional":true},"documents":{"accept":["application/pdf","image/png","image/jpeg","text/csv"],"kind":"file","many":true,"max":"32MiB","optional":true},"from_high_pct":{"kind":"decimal","optional":true,"scale":2},"insights":{"fields":{"headline":{"kind":"text"},"source_name":{"kind":"text","optional":true},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"instrument":{"kind":"text"},"isin":{"kind":"text","optional":true},"live_change_pct":{"kind":"decimal","optional":true,"scale":2},"live_price":{"kind":"decimal","optional":true,"scale":4},"live_value_base":{"kind":"decimal","optional":true,"scale":2},"market_value":{"default":0,"kind":"decimal","scale":2},"money_flow":{"kind":"decimal","optional":true,"scale":2},"movement":{"kind":"enum","optional":true,"values":["surge","active","normal","quiet"]},"pnl_history":{"fields":{"date":{"kind":"date"},"pnl":{"kind":"decimal","scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2}},"key":"date","kind":"object","many":true,"optional":true},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"price_date":{"kind":"date","optional":true},"price_updated_at":{"kind":"instant","optional":true},"quantity":{"default":1,"kind":"decimal","scale":4},"research_at":{"kind":"instant","optional":true},"research_direction":{"kind":"text","optional":true},"research_summary":{"format":"markdown","kind":"text","optional":true},"risk_rating":{"kind":"int","max":5,"min":1,"optional":true},"rsi":{"kind":"decimal","optional":true,"scale":2},"sources":{"fields":{"label":{"kind":"text"},"url":{"kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"symbol":{"kind":"text","optional":true},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2},"value_base":{"kind":"decimal","scale":2},"volatility_pct":{"kind":"decimal","optional":true,"scale":2},"volume_ratio":{"kind":"decimal","optional":true,"scale":2}},"record_label":"record.instrument","search":{"text":["instrument","symbol","detail","research_direction","research_summary"]}}'::jsonb);
 
 -- step create:history:schema:portfolio_settings (additive)
-select bolt_history_register('portfolio_settings','{"audit":true,"fields":{"base_currency":{"kind":"currency"},"benchmarks":{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true}},"record_label":"''Portfolio settings''"}'::jsonb);
+select bolt_history_register('portfolio_settings','{"audit":true,"fields":{"base_currency":{"kind":"currency"},"benchmarks":{"fields":{"name":{"kind":"text","optional":true},"symbol":{"kind":"text"}},"key":"symbol","kind":"object","many":true,"optional":true},"report_channel":{"kind":"ref","on_delete":"set_null","optional":true,"to":"sys_integration"}},"record_label":"''Portfolio settings''"}'::jsonb);
 
 -- step create:history:schema:report (additive)
 select bolt_history_register('report','{"audit":true,"fields":{"allocation":{"fields":{"label":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"label","kind":"object","many":true,"optional":true},"base_currency":{"kind":"currency"},"cash":{"kind":"decimal","scale":2},"day_change":{"kind":"decimal","optional":true,"scale":2},"exposure":{"fields":{"currency":{"kind":"text"},"value":{"kind":"decimal","scale":2},"weight":{"kind":"decimal","scale":2}},"key":"currency","kind":"object","many":true,"optional":true},"for_date":{"kind":"date"},"fx_used":{"fields":{"pair":{"kind":"text"},"rate":{"kind":"decimal","scale":6}},"key":"pair","kind":"object","many":true,"optional":true},"headline":{"format":"markdown","kind":"text"},"invested":{"kind":"decimal","scale":2},"liabilities":{"kind":"decimal","scale":2},"market_view":{"format":"markdown","kind":"text","optional":true},"markets":{"fields":{"change_1m_pct":{"kind":"decimal","optional":true,"scale":2},"change_1w_pct":{"kind":"decimal","optional":true,"scale":2},"change_1y_pct":{"kind":"decimal","optional":true,"scale":2},"change_pct":{"kind":"decimal","optional":true,"scale":2},"instrument":{"kind":"text"},"level":{"kind":"decimal","scale":2},"pressure":{"kind":"enum","optional":true,"values":["buying","balanced","selling"]},"trend":{"kind":"enum","optional":true,"values":["up","sideways","down"]}},"key":"instrument","kind":"object","many":true,"optional":true},"net_assets":{"kind":"decimal","scale":2},"positions":{"fields":{"analysis":{"format":"markdown","kind":"text","optional":true},"call":{"kind":"enum","optional":true,"values":["buy","sell","hold","watch"]},"change_pct":{"kind":"decimal","optional":true,"scale":2},"confidence":{"kind":"decimal","optional":true,"scale":2},"headline":{"kind":"text","optional":true},"instrument":{"kind":"text"},"pnl":{"kind":"decimal","optional":true,"scale":2},"pnl_pct":{"kind":"decimal","optional":true,"scale":2},"symbol":{"kind":"text","optional":true},"value":{"kind":"decimal","optional":true,"scale":2},"weight":{"kind":"decimal","optional":true,"scale":2}},"key":"instrument","kind":"object","many":true,"optional":true},"research_log":{"kind":"text","optional":true},"sources":{"fields":{"at":{"kind":"instant"},"publisher":{"kind":"text"},"title":{"kind":"text"},"url":{"format":"url","kind":"text"}},"key":"url","kind":"object","many":true,"optional":true},"summary":{"format":"markdown","kind":"text"},"unrealised_pl":{"kind":"decimal","optional":true,"scale":2}},"record_label":"''Portfolio report · '' + string(record.for_date)","search":{"text":["headline","summary","market_view"]},"unique":[{"fields":["for_date"],"name":"one_per_day"}]}'::jsonb);
@@ -1447,6 +1477,12 @@ alter table "sys_api_key" add constraint "sys_api_key__fk__39b6eca5" foreign key
 
 -- step create:fk:sys_conversation.sys_conversation__fk__c30bef48 (additive)
 alter table "sys_conversation" add constraint "sys_conversation__fk__c30bef48" foreign key ("integration") references "sys_integration" ("id") on delete cascade on update restrict;
+
+-- step create:fk:sys_envoy_channel.sys_envoy_channel__fk__7f8ef809 (additive)
+alter table "sys_envoy_channel" add constraint "sys_envoy_channel__fk__7f8ef809" foreign key ("envoy") references "sys_envoy" ("id") on delete cascade on update restrict;
+
+-- step create:fk:sys_envoy_channel.sys_envoy_channel__fk__c30bef48 (additive)
+alter table "sys_envoy_channel" add constraint "sys_envoy_channel__fk__c30bef48" foreign key ("integration") references "sys_integration" ("id") on delete cascade on update restrict;
 
 -- step create:fk:sys_inbox.sys_inbox__fk__328a1493 (additive)
 alter table "sys_inbox" add constraint "sys_inbox__fk__328a1493" foreign key ("instance") references "sys_integration" ("id") on delete cascade on update restrict;
@@ -1486,6 +1522,9 @@ alter table "sys_team" add constraint "sys_team__fk__cdea38cf" foreign key ("par
 
 -- step create:fk:sys_user.sys_user__fk__8f9d1fed (additive)
 alter table "sys_user" add constraint "sys_user__fk__8f9d1fed" foreign key ("team") references "sys_team" ("id") on delete restrict on update restrict;
+
+-- step create:fk:portfolio_settings.portfolio_settings__fk__fa56ab36 (additive)
+alter table "portfolio_settings" add constraint "portfolio_settings__fk__fa56ab36" foreign key ("report_channel") references "sys_integration" ("id") on delete set null on update restrict;
 
 -- step create:fk:report_subscription.report_subscription__fk__f8f94a56 (additive)
 alter table "report_subscription" add constraint "report_subscription__fk__f8f94a56" foreign key ("user") references "sys_user" ("id") on delete restrict on update restrict;
@@ -1537,6 +1576,12 @@ create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 
 -- step create:index:sys_envoy.sys_envoy__gin__73732636 (additive)
 create index "sys_envoy__gin__73732636" on "sys_envoy" using gin (bolt_search);
+
+-- step create:trigger:sys_envoy_channel.store_row_rules (additive)
+create trigger store_row_rules before insert or update or delete on "sys_envoy_channel" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
+
+-- step create:index:sys_envoy_channel.sys_envoy_channel__gin__73732636 (additive)
+create index "sys_envoy_channel__gin__73732636" on "sys_envoy_channel" using gin (bolt_search);
 
 -- step create:trigger:sys_file.store_row_rules (additive)
 create trigger store_row_rules before insert or update or delete on "sys_file" for each row execute function store_row_rules('{"audit":false,"key":["id"],"states":{}}');
@@ -1724,6 +1769,12 @@ create index "sys_api_key__ix__6ae667f2" on "sys_api_key" ("created_by");
 -- step create:index:sys_conversation.sys_conversation__ix__20648086 (additive)
 create index "sys_conversation__ix__20648086" on "sys_conversation" ("integration");
 
+-- step create:index:sys_envoy_channel.sys_envoy_channel__ix__b97046cc (additive)
+create index "sys_envoy_channel__ix__b97046cc" on "sys_envoy_channel" ("envoy");
+
+-- step create:index:sys_envoy_channel.sys_envoy_channel__ix__20648086 (additive)
+create index "sys_envoy_channel__ix__20648086" on "sys_envoy_channel" ("integration");
+
 -- step create:index:sys_inbox.sys_inbox__ix__8be7dc72 (additive)
 create index "sys_inbox__ix__8be7dc72" on "sys_inbox" ("instance");
 
@@ -1763,11 +1814,14 @@ create index "sys_team__ix__2c838e05" on "sys_team" ("parent");
 -- step create:index:sys_user.sys_user__ix__c267c9e9 (additive)
 create index "sys_user__ix__c267c9e9" on "sys_user" ("team");
 
+-- step create:index:portfolio_settings.portfolio_settings__ix__9d44179d (additive)
+create index "portfolio_settings__ix__9d44179d" on "portfolio_settings" ("report_channel");
+
 -- step create:index:report_subscription.report_subscription__ix__fccf4300 (additive)
 create index "report_subscription__ix__fccf4300" on "report_subscription" ("user");
 
 -- step create:history:current (additive)
-update bolt_history_current set active=false where active and not (model=any(array['approval_request','holding','portfolio_settings','report','report_subscription','sys_api_key','sys_conversation','sys_envoy','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace']::text[]));
+update bolt_history_current set active=false where active and not (model=any(array['approval_request','holding','portfolio_settings','report','report_subscription','sys_api_key','sys_conversation','sys_envoy','sys_envoy_channel','sys_file','sys_integration','sys_invitation','sys_team','sys_user','sys_workspace']::text[]));
 
 -- step create:engine:audit:holding (additive)
 drop trigger if exists bolt_audit_mark on "holding";
@@ -1777,7 +1831,7 @@ create trigger bolt_audit after insert or update or delete on "holding" for each
 -- step create:engine:audit:portfolio_settings (additive)
 drop trigger if exists bolt_audit_mark on "portfolio_settings";
 drop trigger if exists bolt_audit on "portfolio_settings";
-create trigger bolt_audit after insert or update or delete on "portfolio_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[]');
+create trigger bolt_audit after insert or update or delete on "portfolio_settings" for each row when (current_setting('bolt.write', true) is distinct from statement_timestamp()::text) execute function bolt_audit('[]','[["report_channel","sys_integration"]]');
 
 -- step create:engine:audit:report (additive)
 drop trigger if exists bolt_audit_mark on "report";

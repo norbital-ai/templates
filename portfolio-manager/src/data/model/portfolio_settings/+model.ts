@@ -17,10 +17,17 @@ export default model('portfolio_settings', {
 			optional: true,
 			key: 'symbol',
 			fields: { name: { kind: 'text', optional: true }, symbol: { kind: 'text' } }
+		},
+		/** Optional explicit envoy channel used to deliver the daily report PDF to subscribers. */
+		report_channel: {
+			kind: 'ref',
+			to: 'sys_integration',
+			optional: true,
+			on_delete: 'set_null'
 		}
 	},
 	outputs: { default: { fields: 'all' } },
-	create: { fields: ['base_currency', 'benchmarks'] },
-	update: { fields: ['base_currency', 'benchmarks'] },
+	create: { fields: ['base_currency', 'benchmarks', 'report_channel'] },
+	update: { fields: ['base_currency', 'benchmarks', 'report_channel'] },
 	delete: {}
 });

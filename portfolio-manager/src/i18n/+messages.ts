@@ -109,6 +109,9 @@ export default messages({
 	'models.portfolio_settings.fields.benchmarks': 'Benchmarks',
 	'models.portfolio_settings.fields.benchmarks.help':
 		'Indices the markets table leads with, by quote symbol: "^GSPC" for the S&P 500, "^STI" for the Straits Times Index.',
+	'models.portfolio_settings.fields.report_channel': 'Report delivery channel',
+	'models.portfolio_settings.fields.report_channel.help':
+		'The connected envoy channel used to send the daily report PDF to subscribers. Leave blank to auto-select when exactly one channel is connected.',
 	'automations.portfolio_agent.input.fields.send': 'Send to the subscribers',
 	'errors.settings_ambiguous':
 		'Keep one portfolio settings row: the agent cannot choose between several.',
@@ -185,5 +188,17 @@ export default messages({
 		'Each morning, once the report is filed, the envoy sends it with its PDF to every subscriber at their own WhatsApp, Telegram, Slack or Discord. Clients subscribe themselves from Reports.',
 	'component.subscribers.no_envoy':
 		'No envoy is deployed: subscribers get the report in their inbox only. Deploy one on a chat account under Settings → Integrations → Envoys.',
-	'component.subscribers.sent_through': 'Sent through {accounts}.'
+	'component.subscribers.sent_through': 'Sent through {accounts}.',
+	'component.subscribers.delivery_channel': 'Delivery channel',
+	'component.subscribers.channel_auto': 'Auto (when 1 channel is connected)',
+	'component.subscribers.channel_saved': 'Delivery channel saved',
+	'component.subscribers.connected': 'Connected',
+	'component.subscribers.not_connected': 'Not connected',
+	'component.subscribers.auto_single': 'Automatically sending through {channel}.',
+	'component.subscribers.selected_unpaired':
+		'{channel} is not connected yet — pair it in Settings → Integrations → Envoys. Reports go to inboxes only until connected.',
+	'component.subscribers.unpaired_envoy':
+		'Your envoy channel is not connected yet — pair it in Settings → Integrations → Envoys. Subscribers get the report in their inbox only until paired.',
+	'component.subscribers.multiple_envoys':
+		'{count} connected envoy channels found — choose one above so subscribers receive the daily report outside the app.'
 });

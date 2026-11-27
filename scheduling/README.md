@@ -47,7 +47,6 @@ Administrative setup for tailoring the workspace to any local or field service b
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Services**         | Maintain the bookable service catalog — service name, optional category, required skill tag, duration (15 minutes to 12 hours), price, customer-facing description, and active status.                                                                                             |
 | **Scheduling Rules** | Tune workspace-wide operating parameters from one screen: slot start interval, travel turnaround buffer, portal booking horizon, customer free-change cutoff window, live arrival alert threshold and monitoring lead time, and pre-shift confirmation lead time and reply window. |
-| **Connections**      | Connect and manage shared workspace accounts for **WhatsApp**, **Email**, and **Google Routes**, keeping credentials sealed from end users.                                                                                                                                        |
 
 ### My Day
 

@@ -14,6 +14,8 @@ export default policy({
 		/** Every subscriber, notified directly. */
 		report_subscription: { outputs: { default: {} } },
 		/** The accounts an envoy is deployed on: the report goes out through them. */
-		sys_integration: { outputs: { default: {} } }
+		sys_integration: { outputs: { default: {} } },
+		sys_envoy: { outputs: { default: {} } },
+		sys_envoy_channel: { outputs: { default: {} } }
 	}
 });

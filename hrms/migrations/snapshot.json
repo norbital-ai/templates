@@ -2691,6 +2691,52 @@
 			"key": "uuid",
 			"record_label": "record.name"
 		},
+		"sys_envoy_channel": {
+			"fields": {
+				"active": {
+					"default": true,
+					"kind": "bool"
+				},
+				"envoy": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_envoy"
+				},
+				"group_messages": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"disabled",
+						"mention_or_reply",
+						"all"
+					]
+				},
+				"integration": {
+					"kind": "ref",
+					"on_delete": "cascade",
+					"to": "sys_integration"
+				},
+				"revision": {
+					"default": 1,
+					"kind": "int"
+				},
+				"scope": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"key": "uuid",
+			"record_label": "record.id",
+			"unique": [
+				{
+					"fields": [
+						"envoy",
+						"integration"
+					],
+					"name": "one_per_envoy_channel"
+				}
+			]
+		},
 		"sys_file": {
 			"fields": {
 				"created_at": {
@@ -2800,10 +2846,6 @@
 					"default": {},
 					"kind": "json"
 				},
-				"envoy": {
-					"kind": "text",
-					"optional": true
-				},
 				"epoch": {
 					"kind": "text",
 					"optional": true
@@ -2814,6 +2856,10 @@
 				},
 				"integration": {
 					"kind": "text"
+				},
+				"listen": {
+					"kind": "json",
+					"optional": true
 				},
 				"name": {
 					"kind": "text"

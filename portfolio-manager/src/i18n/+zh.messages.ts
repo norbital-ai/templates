@@ -107,6 +107,9 @@ export default messages({
 	'models.portfolio_settings.fields.benchmarks': '基准',
 	'models.portfolio_settings.fields.benchmarks.help':
 		'市场表格优先展示的指数，按报价代码："^GSPC" 为 S&P 500，"^STI" 为海峡时报指数。',
+	'models.portfolio_settings.fields.report_channel': '报告发送渠道',
+	'models.portfolio_settings.fields.report_channel.help':
+		'用于向订阅者发送每日报告 PDF 的已连接使者渠道。留空则在仅有一个已连接渠道时自动选择。',
 	'automations.portfolio_agent.input.fields.send': '发送给订阅者',
 	'errors.report_not_filed': '当日报告未提交，因此未发送。',
 	'errors.own_subscription': '你只能为自己订阅或取消订阅。',
@@ -177,6 +180,18 @@ export default messages({
 	'component.subscribers.no_envoy':
 		'未部署 Envoy：订阅者只能在收件箱中收到报告。请在设置 → 集成 → Envoy 中，在聊天账号上部署一个。',
 	'component.subscribers.sent_through': '通过 {accounts} 发送。',
+	'component.subscribers.delivery_channel': '发送渠道',
+	'component.subscribers.channel_auto': '自动（仅 1 个已连接渠道时）',
+	'component.subscribers.channel_saved': '发送渠道已保存',
+	'component.subscribers.connected': '已连接',
+	'component.subscribers.not_connected': '未连接',
+	'component.subscribers.auto_single': '自动通过 {channel} 发送。',
+	'component.subscribers.selected_unpaired':
+		'{channel} 尚未连接 — 请在设置 → 集成 → 使者中完成配对。连接前报告仅发送至收件箱。',
+	'component.subscribers.unpaired_envoy':
+		'使者渠道尚未连接 — 请在设置 → 集成 → 使者中完成配对。配对前订阅者仅在收件箱中收到报告。',
+	'component.subscribers.multiple_envoys':
+		'检测到 {count} 个已连接的使者渠道 — 请在上方选择一个，以便订阅者在应用外收到每日报告。',
 	'models.holding.fields.instrument': '标的',
 	'models.holding.fields.isin': 'ISIN',
 	'models.holding.fields.asset_class': '资产类别',

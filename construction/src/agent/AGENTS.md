@@ -21,7 +21,7 @@ Generic contractor workspace (`norbital_construction`) for both main contractors
   - `contacts/` (Operations → Business Partners) — customers/clients, vendors/suppliers, subcontractors by `trade_specialty` & consultants (WhatsApp phone & email, standard `payment_terms_days`)
   - `communication_settings/` (Configuration) — personal WhatsApp/email intake & extraction rules (the only message routing configuration; none per project)
 - **Integration (1):** `src/integration/autodesk_acc/+integration.ts` (OAuth 2.0 to Autodesk Platform Services / ACC).
-- **Apps (2):** `operations` (`projects`, `partners`) and `configuration` (`item_matrix`, `sop_rules`, `bim_settings`, `connections`).
+- **Apps (2):** `operations` (`projects`, `partners`) and `configuration` (`item_matrix`, `sop_rules`, `bim_settings`, `intake`). Personal connections live in Bolt's `/connections`; workspace connections (`whatsapp`, `email`, `autodesk_acc`) live in Settings → Integrations → Connections.
 - **Automations (3):** `sync_messages`, `analyze_bim_file`, `generate_payment_claim`.
 - **Services (`src/services/`):**
   - `src/services/commercial/` — `decimal.ts` (`BigDecimal`), `lines.ts` (line totals, 3-way match, catalog resolution), `analytics.ts` (project commercial, cashflow, catalog ledger, embodied carbon).

@@ -11,21 +11,14 @@ export default messages({
 	'app.operations.page_partners': 'Business Partners',
 
 	'app.configuration.title': 'Configuration',
-	'app.configuration.description': 'Manage WhatsApp, email, and Autodesk links and item matrix.',
+	'app.configuration.description':
+		'Manage item matrix, compliance SOPs, BIM rules, and message intake.',
 
-	// Connections
-	'connections.title': 'Connections',
-	'connections.description':
-		'Connect your personal WhatsApp or email account so messages automatically funnel into the matching project.',
-	'connections.loading': 'Loading connections…',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': 'Email',
-	'connections.desc.whatsapp': 'Sync site and project messages from WhatsApp.',
-	'connections.desc.email': 'Capture project emails, attachments, and commercial correspondence.',
+	// Intake settings
+	'connections.loading': 'Loading intake settings…',
 	'connections.intake_rules_title': 'Intake & auto-extraction',
 	'connections.intake_rules_hint':
 		'Control which messages sync and how AI classifies and extracts updates.',
-	'connections.open_intake_rules': 'Configure',
 
 	// Business Partners & Cost Matrix pages
 	'partners.title': 'Business Partners',
@@ -134,6 +127,7 @@ export default messages({
 	'tasks.tab_activity': 'Activity',
 	'tasks.no_activity': 'No activity logged yet.',
 	'tasks.sub_tasks': 'Sub-tasks',
+	'tasks.no_sub_tasks': 'No sub-tasks yet.',
 	'tasks.add_sub_task': 'Add sub-task',
 	'tasks.add_description_hint': 'Add description…',
 	'tasks.description_placeholder': "Write description, or type '/' for commands…",
@@ -800,6 +794,20 @@ export default messages({
 	'bim_review.empty_filter': 'No assets match this review filter.',
 	'bim_review.col_asset': 'Asset & cleanup',
 	'bim_review.col_class': 'Class & continuity',
+	'bim_review.col_cleanup_notes': 'Cleanup & advisories',
+	'bim_review.col_actions': 'Actions',
+	'bim_review.col_waste_carbon': 'Waste / Carbon',
+	'bim_review.table_summary':
+		'{total} assets · {revisions} need BIM model revision · {verified} verified',
+	'bim_review.filter_bim_revision': 'Needs BIM revision ({count})',
+	'bim_review.no_file_mutation': 'Classification & metadata only',
+	'bim_review.inspect_edit': 'Inspect & edit',
+	'bim_review.open_record': 'Open full record',
+	'bim_review.proposal_rationale': 'AI proposal rationale',
+	'bim_review.tab_matrix': 'Proposed Item Matrix',
+	'bim_review.tab_compliance_issues': 'Compliance Report ({count} issues · {pct}%)',
+	'bim_review.lint_revision_callout':
+		'{revisions} require BIM revision · {cleanup} resolved by cleanup',
 	'bim_review.service_placeholder': 'Service tag (e.g. hydronic_hvac)',
 	'bim_review.summary_progress':
 		'{verified}/{total} verified · {flagged} flagged · {unmatched} unmatched',
@@ -896,6 +904,19 @@ export default messages({
 	'bim_compliance.warnings': 'Warnings',
 	'bim_compliance.failures': 'Failures',
 	'bim_compliance.expected': 'Required',
+	'bim_compliance.report_heading': 'Current Model Compliance & SOP Report',
+	'bim_compliance.readonly_badge': 'Read-only diagnostic',
+	'bim_compliance.resolution_banner':
+		'Clean BIM only cleans labels/metadata and classifies assets (no geometry changes). {cleanup} issue(s) are resolved by cleanup & classification; {revisions} require modifying the source BIM file.',
+	'bim_compliance.col_status': 'Status',
+	'bim_compliance.col_rule': 'Rule & Clause',
+	'bim_compliance.col_current': 'Current model',
+	'bim_compliance.col_resolution': 'Action required',
+	'bim_compliance.already_compliant': 'Compliant',
+	'bim_compliance.resolved_by_cleanup': 'Resolved by metadata cleanup',
+	'bim_compliance.resolved_by_classification': 'Resolved by classification',
+	'bim_compliance.requires_bim_revision': 'Requires BIM file revision',
+	'bim_compliance.not_auto_corrected': 'Geometry / authoring change — not auto-modified',
 
 	// 2-Step Repeatable BIM Costing Workflow
 	'bim_step.step1_pill': '1. Clean BIM, Matrix & Lints',
@@ -958,5 +979,65 @@ export default messages({
 	'bim_step.proposal_rejected': 'Rejected {code}',
 	'bim_step.approved_all': 'Approved {count} Item Matrix proposals',
 	'bim_step.item_saved': 'Saved {code}',
-	'bim_step.item_created': 'Created Item Matrix entry {code}'
+	'bim_step.item_created': 'Created Item Matrix entry {code}',
+
+	// Phased tunneled BIM Costing workflow
+	'bim_workflow.back': 'Back to Cost Estimate',
+	'bim_workflow.start_process': 'Start costing process',
+	'bim_workflow.continue_process': 'Continue process',
+	'bim_workflow.resume_process': 'Resume process',
+	'bim_workflow.view_progress': 'View progress',
+	'bim_workflow.open_process': 'BIM process',
+	'bim_workflow.empty_title': 'No cost estimate yet',
+	'bim_workflow.empty_no_model_hint':
+		'Upload a federated BIM IFC model first, then start the phased costing workflow.',
+	'bim_workflow.empty_start_hint':
+		'Start the 3-step BIM costing workflow to parse your IFC model, review proposed clean BIM & rates, and generate a cost estimate.',
+	'bim_workflow.empty_in_progress_title': 'Costing process in progress',
+	'bim_workflow.empty_step1_running_hint': 'Step 1 of 3 · {detail}',
+	'bim_workflow.empty_step3_running_hint':
+		'Step 3 of 3 · Generating classification & BOQ cost estimate…',
+	'bim_workflow.empty_paused_title': 'Costing process paused',
+	'bim_workflow.empty_paused_hint': 'Step 1 encountered an error: {reason}',
+	'bim_workflow.empty_ready_review_title': 'Costing process in progress — ready for review',
+	'bim_workflow.empty_ready_review_hint':
+		'Step 1 complete ({elements} elements · {unique} unique assets · {score}% compliance). Continue to Step 2 to review proposed assets & rates, then generate your cost estimate.',
+	'bim_workflow.badge_step_progress': 'Step {step} of {total} · {label}',
+	'bim_workflow.step1_short': 'Parse & Analyze',
+	'bim_workflow.step2_short': 'Review Proposals & Lints',
+	'bim_workflow.step3_short': 'Generate Cost Estimate',
+	'bim_workflow.step1_pill': '1. Parse & Analyze',
+	'bim_workflow.step2_pill': '2. Review Proposals & Lints',
+	'bim_workflow.step3_pill': '3. Generate Costing',
+	'bim_workflow.step_locked_hint': 'Complete Step 1 first to unlock this step.',
+	'bim_workflow.step1_heading': 'Step 1 of 3 · Parse & Analyze BIM Model',
+	'bim_workflow.step1_desc':
+		'Extracts geometry & quantities from the IFC file, cleans asset classes, proposes missing Item Matrix rates, and runs compliance lints.',
+	'bim_workflow.start_step1': 'Start parsing & analysis',
+	'bim_workflow.rerun_step1': 'Re-run analysis',
+	'bim_workflow.retry_step1': 'Retry Step 1',
+	'bim_workflow.step1_running_title': 'Parsing & analyzing model…',
+	'bim_workflow.step1_analyzing_detail':
+		'Cleaning BIM assets, proposing Item Matrix rates & evaluating compliance lints…',
+	'bim_workflow.step1_failed_title': 'Step 1 could not complete',
+	'bim_workflow.step1_complete': 'Step 1 complete · Analyzed {when}',
+	'bim_workflow.durable_back_hint':
+		'You can go back anytime — progress stays saved and continues in the background.',
+	'bim_workflow.stat_elements': 'BIM elements',
+	'bim_workflow.stat_unique_assets': 'Unique assets',
+	'bim_workflow.stat_storeys': 'Storeys',
+	'bim_workflow.continue_step2': 'Continue to Step 2: Review',
+	'bim_workflow.step2_heading': 'Step 2 of 3 · Review Proposed Clean BIM, Rates & Compliance',
+	'bim_workflow.step2_desc':
+		'Review and approve proposed Item Matrix rates, verify cleaned BIM classifications, and inspect compliance findings before generating costing.',
+	'bim_workflow.continue_step3': 'Continue to Step 3: Generate Costing',
+	'bim_workflow.back_to_step2': 'Back to Step 2',
+	'bim_workflow.step3_heading': 'Step 3 of 3 · Generate Cost Estimate',
+	'bim_workflow.step3_desc':
+		'Builds the project BOQ cost estimate from your reviewed Clean BIM classifications and approved Item Matrix rates.',
+	'bim_workflow.step3_running_title': 'Generating cost estimate…',
+	'bim_workflow.step3_complete': 'Cost estimate generated and ready to review.',
+	'bim_workflow.view_estimate': 'View Cost Estimate',
+	'bim_workflow.pending_proposals_warning':
+		'{count} Item Matrix proposal(s) are still awaiting approval in Step 2 — unapproved items will remain unmatched until approved.'
 });

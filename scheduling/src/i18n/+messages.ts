@@ -13,19 +13,15 @@ export default messages({
 	'app.scheduling.tab_providers': 'Providers',
 
 	'app.configuration.title': 'Configuration',
-	'app.configuration.description': 'Service catalog, scheduling rules, and external connections.',
+	'app.configuration.description': 'Service catalog and scheduling rules.',
 	'app.configuration.tab_services': 'Services',
 	'app.configuration.tab_settings': 'Scheduling rules',
-	'app.configuration.tab_connections': 'Connections',
 	'app.configuration.services_title': 'Services',
 	'app.configuration.services_description':
 		'Bookable services, required skills, durations, and pricing.',
 	'app.configuration.settings_title': 'Scheduling rules',
 	'app.configuration.settings_description':
 		'Slot intervals, travel buffers, booking horizon, shift checks, and ETA thresholds.',
-	'app.configuration.connections_title': 'Connections',
-	'app.configuration.connections_description':
-		'Connect WhatsApp, email, and Google Routes for notices and travel timing.',
 	'app.configuration.section_booking': 'Booking window and buffers',
 	'app.configuration.section_eta': 'Live ETA monitoring',
 	'app.configuration.section_shift': 'Pre-shift confirmation',
@@ -216,17 +212,6 @@ export default messages({
 	'app.recovery.scope': 'Rebooking updates only this appointment and notifies the customer.',
 	'app.recovery.before_start': 'Starts in {time}',
 	'app.recovery.overdue': 'Started {time} ago',
-
-	// ── Connections ──
-	'connections.help':
-		'Configure shared workspace integrations used for customer notices, provider alerts, and Google Routes travel timing.',
-	'connections.add': 'Connect',
-	'connections.empty_title': 'No connections configured',
-	'connections.empty_description':
-		'Connect WhatsApp, email, or Google Routes to enable automated messages and live traffic ETAs.',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': 'Email',
-	'connections.kind.google_routes': 'Google Routes',
 
 	// ── Sections, summaries, shared controls ──
 	'section.pricing_duration': 'Duration and pricing',

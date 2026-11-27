@@ -13,18 +13,14 @@ export default messages({
 	'app.scheduling.tab_providers': '服务人员',
 
 	'app.configuration.title': '系统配置',
-	'app.configuration.description': '服务目录、排程规则与外部集成连接。',
+	'app.configuration.description': '服务目录与排程规则。',
 	'app.configuration.tab_services': '服务项目',
 	'app.configuration.tab_settings': '排程规则',
-	'app.configuration.tab_connections': '外部连接',
 	'app.configuration.services_title': '服务项目',
 	'app.configuration.services_description': '可预约服务目录、所需技能、时长与定价。',
 	'app.configuration.settings_title': '排程规则',
 	'app.configuration.settings_description':
 		'时段间隔、路程缓冲、可约天数、班前确认与到达预警阈值。',
-	'app.configuration.connections_title': '外部连接',
-	'app.configuration.connections_description':
-		'连接 WhatsApp、邮件与 Google Routes 用于通知和路程计算。',
 	'app.configuration.section_booking': '预约窗口与缓冲',
 	'app.configuration.section_eta': '实时到达预警',
 	'app.configuration.section_shift': '班前确认',
@@ -196,16 +192,6 @@ export default messages({
 	'app.recovery.scope': '改派仅影响本次预约，并会自动通知客户。',
 	'app.recovery.before_start': '距开始 {time}',
 	'app.recovery.overdue': '已过开始时间 {time}',
-
-	// ── Connections ──
-	'connections.help': '配置工作区共享连接，用于发送客户与人员通知以及获取 Google Routes 实时路程。',
-	'connections.add': '连接',
-	'connections.empty_title': '尚未配置连接',
-	'connections.empty_description':
-		'连接 WhatsApp、邮件或 Google Routes 以启用自动通知和实时路况预计到达时间。',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': '电子邮箱',
-	'connections.kind.google_routes': 'Google Routes',
 
 	// ── Sections, summaries, shared controls ──
 	'section.pricing_duration': '时长与定价',

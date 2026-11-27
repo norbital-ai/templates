@@ -17,14 +17,6 @@ export default messages({
 	'timeline.reassign': '重新分配项目',
 	'timeline.message_failed': '无法加载消息。请打开详情重试。',
 	'timeline.load_failed': '无法加载更早的活动。请重试。',
-	'connections.title': '我的连接',
-	'connections.open_rules': '配置',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': '邮箱',
-	'connections.kind.google_calendar': 'Google 日历',
-	'connections.desc.whatsapp': '将客户 WhatsApp 消息同步到线索与项目中。',
-	'connections.desc.email': '同步邮件往来并发送外联或跟进提醒。',
-	'connections.desc.google_calendar': '在 Google 日历与 CRM 会议之间双向同步。',
 	'configuration.logs': '已分类消息',
 	'models.template_documents.fields.drafting_instructions': '起草说明',
 	'models.template_documents.fields.version': 'Version',
@@ -536,8 +528,6 @@ export default messages({
 	'errors.task_context': '任务所属公司、项目及联系人必须一致。',
 	'errors.client_needs_commitment':
 		'客户状态须以签署的工作承诺为依据，单独签署保密协议不构成工作承诺。',
-	'connections.description':
-		'连接您自己的 WhatsApp、邮箱和 Google 日历，让消息与会议自动同步至 CRM。',
 	'templates.description': '协议模板、文档版本与起草说明。',
 	'models.companies.fields.documents': '文档',
 	'models.activities.fields.kind.recording': '录音',

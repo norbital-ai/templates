@@ -14,10 +14,7 @@ export default messages({
 	'app.operations.alerts_description': '集中处理超速、进出电子围栏、应答器离线与路线延误告警。',
 
 	'app.configuration.title': '系统配置',
-	'app.configuration.description': '独立隔离的 GPS 应答器网关、电子围栏与驾驶员配置。',
-	'app.configuration.page_connections': '外部连接',
-	'app.configuration.connections_description':
-		'配置 GPS 应答器网关及可选 Google Routes 实时路况 ETA。',
+	'app.configuration.description': '独立隔离的电子围栏与驾驶员配置。',
 	'app.configuration.page_geofences': '电子围栏',
 	'app.configuration.geofences_description': '维护车场、工地、主干道及禁行区电子围栏与区域限速。',
 	'app.configuration.geofences_list_title': '电子围栏列表',
@@ -55,16 +52,7 @@ export default messages({
 	'dispatch.stat_distance': '计划总里程',
 	'dispatch.stops_count': '{count} 个途经点',
 
-	// Connections & Integrations
-	'connections.help':
-		'在下方添加工作区级 GPS 应答器网关或 Google Routes 连接。将生成的 Webhook 地址粘贴至硬件平台，即可在定位上报时即时唤醒同步。',
-	'connections.add': '添加',
-	'connections.loading': '正在加载车队连接…',
-	'connections.empty_title': '尚未配置车队外部连接',
-	'connections.empty_description':
-		'添加 GPS 应答器网关以同步实时定位，或添加 Google Routes 获取实时路况 ETA。',
-	'connections.kind.gps_transponder': 'GPS 应答器网关',
-	'connections.kind.google_routes': 'Google Routes 路况',
+	// Integrations
 	'integrations.gps_transponder.label': 'GPS 应答器网关',
 	'integrations.gps_transponder.configuration.fields.base_url': '网关基础地址',
 	'integrations.gps_transponder.configuration.fields.poll_path': '定位接口路径',

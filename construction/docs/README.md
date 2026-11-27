@@ -26,7 +26,7 @@ bunx bolt build                 # Build release bundle, generate next SQL migrat
 
 - **Schema changes:** Edit model declarations under `src/data/model/**` or custom fields under `src/data/custom_field/**`, then run `bunx bolt build` to generate the next sequential SQL migration under `migrations/` and verify full replay against a scratch database. Commit SQL files together with `migrations/snapshot.json`, `migrations/migrations.lock.json`, and `migrations/physical.json`. Never commit `.norbital/`.
 - **Demo seeding:** `seed/+seeder.ts` defines the template's demo dataset binding for `bolt seed --bank=<path>` during environment reset or provisioning. A fresh workspace without seed data starts empty and ready to configure partners, item matrix rates, and connections.
-- **Autodesk ACC secrets:** Configure `AUTODESK_CLIENT_ID` and `AUTODESK_CLIENT_SECRET` in the host's sealed secret store before pairing the `autodesk_acc` integration under **Configuration → Connections**.
+- **Autodesk ACC secrets:** Configure `AUTODESK_CLIENT_ID` and `AUTODESK_CLIENT_SECRET` in the host's sealed secret store before pairing the `autodesk_acc` integration under **Settings → Integrations → Connections**.
 
 ## Core Architectural Highlights
 

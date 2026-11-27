@@ -25,6 +25,7 @@ import {
 	cleanAndOrganizeIfcStep,
 	organizeTakeoffLines
 } from '../src/services/bim/organizer.js';
+import { assetDiagnosticsFor, classifyFindingResolution } from '../src/services/bim/remediation.js';
 import {
 	buildBimCostEstimateFromExtracted,
 	rankCandidateMatrixRules
@@ -1311,3 +1312,73 @@ it.effect(
 			}
 		})
 );
+
+it('separates cleanup/classification lints from lints requiring an upstream BIM file revision', () => {
+	const base = {
+		authority: 'bca' as const,
+		severity: 'error' as const,
+		status: 'fail' as const,
+		affected_count: 2
+	};
+	expect(
+		classifyFindingResolution(
+			{
+				...base,
+				rule_code: 'BCA-ACC-DOOR-W',
+				rule_name: 'Accessible Door Clear Width',
+				actual: '2/10 non-compliant (worst 762 mm)',
+				expected: '≥ 850 mm'
+			},
+			{ metric: 'min_width_mm', threshold_num: 850, ifc_classes: ['IFCDOOR'] }
+		)
+	).toMatchObject({ kind: 'bim_revision', requiresBimRevision: true });
+
+	expect(
+		classifyFindingResolution(
+			{
+				...base,
+				rule_code: 'SOP-PROXY',
+				rule_name: 'Generic Proxy Ratio',
+				actual: '8%',
+				expected: '≤ 5%'
+			},
+			{ metric: 'proxy_ratio_pct', threshold_num: 5, ifc_classes: null }
+		)
+	).toMatchObject({ kind: 'cleanup', requiresBimRevision: false });
+
+	expect(
+		classifyFindingResolution(
+			{
+				...base,
+				rule_code: 'SOP-UNMATCHED',
+				rule_name: 'Unmatched Assets',
+				actual: '3 unmatched',
+				expected: '= 0'
+			},
+			{ metric: 'max_unmatched_count', threshold_num: 0, ifc_classes: null }
+		)
+	).toMatchObject({ kind: 'classification', requiresBimRevision: false });
+
+	const diag = assetDiagnosticsFor({
+		ifc_class: 'IFCDOOR',
+		cleanup_note: 'Upgraded IFCBUILDINGELEMENTPROXY → IFCDOOR',
+		expressIds: [101, 102],
+		findings: [
+			{
+				...base,
+				rule_code: 'BCA-ACC-DOOR-W',
+				rule_name: 'Accessible Door Clear Width',
+				actual: '2/10 non-compliant',
+				expected: '≥ 850 mm',
+				sample_express_ids: [101]
+			}
+		],
+		ruleByCode: new Map([
+			['BCA-ACC-DOOR-W', { metric: 'min_width_mm', threshold_num: 850, ifc_classes: ['IFCDOOR'] }]
+		])
+	});
+	expect(diag.revisionAlerts).toHaveLength(1);
+	expect(diag.revisionAlerts[0]?.rule_code).toBe('BCA-ACC-DOOR-W');
+	expect(diag.cleanupFlags).toHaveLength(1);
+	expect(diag.cleanupFlags[0]?.kind).toBe('class_cleanup');
+});

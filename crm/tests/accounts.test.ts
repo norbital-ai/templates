@@ -161,7 +161,7 @@ it.live(
 			expect(
 				yield* Effect.flip(
 					wireAct(t, alice, 'sys_integration.update', [
-						{ target: yield* targetOf(t, 'sys_integration', phone), set: { envoy: 'anything' } }
+						{ target: yield* targetOf(t, 'sys_integration', phone), set: { owner: null } }
 					])
 				)
 			).toMatchObject({ _tag: 'ActRefused' });

@@ -19,11 +19,7 @@ export default messages({
 		'Overspeed, geofence entry/exit, offline transponder, and route delay exceptions.',
 
 	'app.configuration.title': 'Configuration',
-	'app.configuration.description':
-		'Isolated fleet settings for GPS transponder gateways, geofences, and drivers.',
-	'app.configuration.page_connections': 'Connections',
-	'app.configuration.connections_description':
-		'Connect GPS transponder gateways and optional Google Routes traffic ETAs.',
+	'app.configuration.description': 'Isolated fleet settings for geofences and drivers.',
 	'app.configuration.page_geofences': 'Geofences',
 	'app.configuration.geofences_description':
 		'Define depot, job site, corridor, and restricted zones with speed limits.',
@@ -65,16 +61,7 @@ export default messages({
 	'dispatch.stat_distance': 'Planned distance',
 	'dispatch.stops_count': '{count} stop(s)',
 
-	// Connections & Integrations
-	'connections.help':
-		'Add workspace telematics gateways or Google Routes connections below. Paste the generated webhook URL into your GPS transponder platform to wake sync on each fix.',
-	'connections.add': 'Add',
-	'connections.loading': 'Loading fleet connections…',
-	'connections.empty_title': 'No fleet integrations connected yet',
-	'connections.empty_description':
-		'Add a GPS Transponder Gateway to sync live vehicle fixes or Google Routes for traffic-aware ETAs.',
-	'connections.kind.gps_transponder': 'GPS Transponder Gateway',
-	'connections.kind.google_routes': 'Google Routes',
+	// Integrations
 	'integrations.gps_transponder.label': 'GPS Transponder Gateway',
 	'integrations.gps_transponder.configuration.fields.base_url': 'Gateway Base URL',
 	'integrations.gps_transponder.configuration.fields.poll_path': 'Positions Endpoint Path',

@@ -61,11 +61,11 @@ Each model folder under `src/data/model/` contains `+model.ts` and `+representat
   - `+projects.page.svelte` — Projects table, plus a **Messages to file** tab (review messages with no project) shown only while any exist
   - `+partners.page.svelte` — Business Partners tabbed directory (**All partners**, **Customers**, **Vendors**, **Subcontractors**) with role-preset quick create
 - `src/app/configuration/` (**Configuration**):
-  - `+app.ts` — declares `item_matrix`, `sop_rules`, `bim_settings`, `connections`
+  - `+app.ts` — declares `item_matrix`, `sop_rules`, `bim_settings`, `intake`
   - `+item_matrix.page.svelte` — active Item Matrix table with rate and carbon factor (with XLSX/CSV file sync)
   - `+sop_rules.page.svelte` — active BCA / CORENET X / SCDF / PUB / URA & Company SOP rules table with bulk toggle-active action
   - `+bim_settings.page.svelte` — singleton workspace BIM takeoff & cleanup profile (`RecordShell header={false}`) with edit/create presets and visual editors
-  - `+connections.page.svelte` — Bolt `<Connections scope="personal">` cards + **Intake & auto-extraction** sheet (`communication_settings`)
+  - `+intake.page.svelte` — per-member **Intake & auto-extraction** rules (`communication_settings`; personal connections live in Bolt's `/connections`, workspace connections in Settings → Integrations → Connections)
 
 ## Automations (3)
 

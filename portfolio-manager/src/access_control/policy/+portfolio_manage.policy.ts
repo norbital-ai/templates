@@ -11,6 +11,8 @@ export default policy({
 		report: { outputs: { default: {} }, delete: {} },
 		portfolio_settings: { outputs: { default: {} }, create: {}, update: {}, delete: {} },
 		sys_integration: { outputs: { default: {} } },
+		sys_envoy: { outputs: { default: {} } },
+		sys_envoy_channel: { outputs: { default: {} } },
 		report_subscription: { outputs: { default: {} }, create: {}, delete: {} },
 		/** The users who may be subscribed to the report. */
 		sys_user: { outputs: { default: {} } }

@@ -11,6 +11,7 @@ export default workspace({
 	languages: ['en', 'zh'],
 	currency: 'SGD',
 	apps: ['crm', 'configuration'],
+	connections: ['email', 'whatsapp', 'telegram', 'slack', 'discord'],
 	ai: {},
 	convert: { to: ['pdf'] }
 });

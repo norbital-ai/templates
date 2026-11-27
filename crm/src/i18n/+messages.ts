@@ -101,15 +101,6 @@ export default messages({
 	'timeline.message_failed': 'Message could not be loaded. Open Details to retry.',
 	'timeline.load_failed': 'Older activities could not be loaded. Try again.',
 	'models.companies.plural': 'Customers',
-	'connections.title': 'My connections',
-	'connections.open_rules': 'Configure',
-	'connections.kind.whatsapp': 'WhatsApp',
-	'connections.kind.email': 'Email',
-	'connections.kind.google_calendar': 'Google Calendar',
-	'connections.desc.whatsapp': 'Sync customer WhatsApp messages into leads and jobs.',
-	'connections.desc.email': 'Sync email threads and send outreach or reminders.',
-	'connections.desc.google_calendar':
-		'Two-way sync between your Google calendars and CRM meetings.',
 	'configuration.logs': 'Classified messages',
 	'models.template_documents.fields.drafting_instructions': 'Drafting instructions',
 	'models.template_documents.fields.version': 'Version',
@@ -127,7 +118,7 @@ export default messages({
 	'crm.accounts.save_rules': 'Save settings',
 	'app.configuration.title': 'Configuration',
 	'app.configuration.description':
-		'Your message rules and connections, the template catalogue and your company’s signatory.',
+		'Your message rules, the template catalogue and your company’s signatory.',
 	'models.activities.fields.source_user': 'Synced by',
 	'models.activities.fields.transport': 'Source type',
 	'models.activities.fields.handle': 'Contact address',
@@ -712,8 +703,6 @@ export default messages({
 	'errors.task_context': 'The task company, job and contact must belong to the same company.',
 	'errors.client_needs_commitment':
 		'Client status follows a signed work commitment; an NDA alone does not create one.',
-	'connections.description':
-		'Connect your own WhatsApp, email and Google Calendar so messages and events flow into the CRM.',
 	'templates.description': 'Agreement templates, document versions and drafting instructions.',
 	'models.companies.fields.documents': 'Documents',
 	'models.activities.fields.kind.recording': 'Recording',

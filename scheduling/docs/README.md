@@ -47,7 +47,7 @@ bun run format                  # Format source and docs with Prettier
   `bun run test` through `TestWorkspace.layer()`. A fresh production workspace starts with its two teams
   (`seed/public/sys_team.json`) and no business rows: configure services and scheduling rules in **Configuration**, link providers to `sys_user`
   accounts in **Scheduling → Providers**, and optionally connect external accounts in
-  **Configuration → Connections**.
+  **Settings → Integrations → Connections**.
 
 ## Operating Loop
 
@@ -73,7 +73,7 @@ bun run format                  # Format source and docs with Prettier
 
 ## External Integrations
 
-Connect shared accounts (`owner: null`) in **Configuration → Connections** (credentials remain
+Connect shared accounts (`owner: null`) in **Settings → Integrations → Connections** (credentials remain
 sealed inside the host store):
 
 - **WhatsApp (`whatsapp`):** delivers outbound customer notices (`deliver_notices`), upcoming

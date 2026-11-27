@@ -8,6 +8,6 @@ export default app({
 		item_matrix: { title: 'item_matrix.title', icon: 'lucide:table-2' },
 		sop_rules: { title: 'sop_rules.tab_title', icon: 'lucide:shield-check' },
 		bim_settings: { title: 'bim_settings.title', icon: 'lucide:sliders-horizontal' },
-		connections: { title: 'connections.title', icon: 'lucide:plug' }
+		intake: { title: 'connections.intake_rules_title', icon: 'lucide:list-filter' }
 	}
 });

@@ -16,6 +16,7 @@ export default workspace({
 	currency: 'USD',
 	theme: { palette: 'crisp', accent: 'blue', radius: 'default' },
 	apps: ['scheduling', 'configuration', 'provider', 'portal'],
+	connections: ['whatsapp', 'email'],
 	signup: {
 		via: ['phone'],
 		policies: ['customer'],
