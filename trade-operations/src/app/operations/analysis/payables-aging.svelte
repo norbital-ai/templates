@@ -65,6 +65,15 @@
 	const isPositiveValue = (value: string) =>
 		BigDecimal.isPositive(BigDecimal.fromStringUnsafe(value));
 	const overdueDays = (due: string | null) => daysOverdue(due, as_of) || null;
+	const openBalance = (entry: NonNullable<typeof entries>[number]): string =>
+		'estimated_balance' in entry && typeof entry.estimated_balance === 'string'
+			? entry.estimated_balance
+			: entry.balance;
+	const entryOverdueDays = (entry: NonNullable<typeof entries>[number]) =>
+		entry.bucket === 'unapplied' ||
+		!BigDecimal.isPositive(BigDecimal.fromStringUnsafe(openBalance(entry)))
+			? null
+			: overdueDays(entry.due_on);
 	const isRelated = (ledger: string, party: string) => relatedKeys.has(`${ledger}:${party}`);
 
 	const suppliers = $derived.by(() => {
@@ -77,8 +86,7 @@
 				const first = matching[0];
 				const related = first ? isRelated(first.ledger, first.party) : false;
 				const oldest = matching.reduce<number | null>((max, entry) => {
-					if (entry.bucket === 'unapplied') return max;
-					const days = overdueDays(entry.due_on);
+					const days = entryOverdueDays(entry);
 					return days !== null && (max === null || days > max) ? days : max;
 				}, null);
 				return {
@@ -121,9 +129,16 @@
 				)
 			);
 			const split = splits.find((s) => s.currency === currency);
-			const periodAccrual = accruals.find(
-				(a) => a.currency === currency && !BigDecimal.isZero(BigDecimal.fromStringUnsafe(a.amount))
+			// Sum company-wide GL 2202.03 accruals across ledgers of this currency; hide when filtered to one party/relation.
+			const currencyAccruals =
+				relation === 'all' && !supplier ? accruals.filter((a) => a.currency === currency) : [];
+			const accrualSum = BigDecimal.sumAll(
+				currencyAccruals.map((a) => BigDecimal.fromStringUnsafe(a.amount))
 			);
+			const periodAccrual =
+				currencyAccruals[0] && !BigDecimal.isZero(accrualSum)
+					? { period: currencyAccruals[0].period, amount: BigDecimal.format(accrualSum) }
+					: null;
 			// Cap summary strip at 5 KPIs, omitting zero-value tiles
 			const cards: { readonly key: string; readonly label: string; readonly value: string }[] = [
 				{ key: 'payable', label: ctx.t('reports.payables.payable'), value: payable },
@@ -171,7 +186,7 @@
 					estimated_balance: null,
 					...row,
 					entry_kind_label: kind ? ctx.t(`reports.payables.kind.${kind}`) : '',
-					days_overdue: row.bucket === 'unapplied' ? null : overdueDays(row.due_on),
+					days_overdue: entryOverdueDays(row),
 					bucket_label: ctx.t(`reports.aging.${row.bucket}`)
 				};
 			}) ?? []
@@ -346,13 +361,16 @@
 			description: about,
 			new: false,
 			controls,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('ap-aging-suppliers', day.today, columns, shownSuppliers)
-				}
-			]
+			actions:
+				shownSuppliers.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('ap-aging-suppliers', day.today, columns, shownSuppliers)
+							}
+						]
+					: []
 		}}
 	>
 		{#snippet empty()}<EmptyState title={ctx.t('reports.payables.empty')} />{/snippet}
@@ -416,13 +434,16 @@
 			description: about,
 			new: false,
 			controls,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('ap-aging-entries', day.today, columns, entryRows)
-				}
-			]
+			actions:
+				entryRows.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('ap-aging-entries', day.today, columns, entryRows)
+							}
+						]
+					: []
 		}}
 	>
 		{#snippet empty()}<EmptyState title={ctx.t('reports.payables.empty')} />{/snippet}

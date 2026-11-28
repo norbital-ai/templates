@@ -19,7 +19,6 @@ type SourceReleaseStatus =
 	'blocked' | 'released' | 'cleared' | 'superseded' | 'withdrawn' | 'bypassed';
 import {
 	kingdeeCreditAccount,
-	kingdeeCreditPolicy,
 	kingdeeCreditPolicyOf,
 	kingdeeOrgCreditPolicy
 } from './configuration.js';
@@ -34,13 +33,69 @@ import {
 	type DatabaseContext
 } from './polling.js';
 import { requireReadAccount } from './sql.js';
+import {
+	populateExposureSql,
+	populateOverdueItemsSql,
+	READ_CREDIT_ENABLED_SQL
+} from './credit-sql.js';
+import { restoreTempCreditBump } from './credit-limit-write.js';
+
+const doLinesJsonSql = `JSON_QUERY(COALESCE((
+     SELECT e.FEntryID AS entry_id,
+      CONVERT(varchar(20),e.FItemID) AS item_id,
+      CONVERT(varchar(100),e.FQty) AS quantity,
+      CONVERT(varchar(100),e.FConsignAmount) AS amount,
+      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
+      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
+      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
+     FROM dbo.ICStockBillEntry e
+     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
+     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
+     WHERE e.FInterID=b.FInterID
+     ORDER BY e.FEntryID
+     FOR JSON PATH, INCLUDE_NULL_VALUES
+    ),'[]')) AS lines`;
+
+const nativeReleaseCustomers = `SELECT DISTINCT c.FItemID
+ FROM dbo.ICCreditObject c
+ WHERE EXISTS (
+  SELECT 1 FROM dbo.ICStockBill udo
+  WHERE udo.FTranType=21 AND udo.FStatus=0 AND udo.FCancellation=0 AND udo.FROB<>-1
+   AND udo.FSupplyID=c.FItemID
+ )`;
+
+const orgReleaseCustomers = `SELECT DISTINCT o.FItemID
+ FROM dbo.t_Organization o
+ WHERE o.FIsCreditMgr<>0 AND o.FDeleted=0
+  AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
+  AND (
+   EXISTS (
+    SELECT 1 FROM dbo.ICStockBill udo
+    WHERE udo.FTranType=21 AND udo.FStatus=0 AND udo.FCancellation=0 AND udo.FROB<>-1
+     AND udo.FSupplyID=o.FItemID
+   )
+   OR EXISTS (
+    SELECT 1 FROM dbo.ICStockBill wdo
+    WHERE wdo.FTranType=21 AND wdo.FSupplyID=o.FItemID
+     AND wdo.FInterID IN (SELECT CONVERT(int, n.value('.','varchar(20)')) FROM @ids.nodes('/ids/id') AS w(n))
+   )
+   OR (@last_fid<>'' AND EXISTS (
+    SELECT 1 FROM dbo.ICStockBill ado
+    WHERE ado.FTranType=21 AND ado.FStatus<>0 AND ado.FCancellation=0 AND ado.FROB<>-1
+     AND ado.FInterID>CONVERT(int,@last_fid) AND ado.FSupplyID=o.FItemID
+   ))
+  )`;
 
 // Snapshot of KIS sales-out credit policy, active unaudited DOs (limited customers), their customers' exposure,
 // and the watched open delivery IDs. Zero customer exposure aggregates run when no unaudited DOs exist.
 const creditReleaseSnapshot = `${requireReadAccount}
+${READ_CREDIT_ENABLED_SQL}
+${populateExposureSql(nativeReleaseCustomers)}
+${populateOverdueItemsSql(nativeReleaseCustomers)}
 DECLARE @data nvarchar(max) = (
  SELECT
   CONVERT(varchar(10),GETDATE(),23) AS today,
+  @credit_enabled AS credit_enabled,
   JSON_QUERY(COALESCE((
    SELECT TOP (2) LTRIM(RTRIM(CONVERT(varchar(1000),FMainAmtCustom))) AS mask,
     LTRIM(RTRIM(CONVERT(varchar(1000),FRangeCustom))) AS control_range,
@@ -63,21 +118,7 @@ DECLARE @data nvarchar(max) = (
     CONVERT(varchar(10),b.FDate,23) AS bill_on,
     CONVERT(varchar(20),b.FSupplyID) AS customer_id,
     CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-    JSON_QUERY(COALESCE((
-     SELECT e.FEntryID AS entry_id,
-      CONVERT(varchar(20),e.FItemID) AS item_id,
-      CONVERT(varchar(100),e.FQty) AS quantity,
-      CONVERT(varchar(100),e.FConsignAmount) AS amount,
-      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-     FROM dbo.ICStockBillEntry e
-     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-     WHERE e.FInterID=b.FInterID
-     ORDER BY e.FEntryID
-     FOR JSON PATH, INCLUDE_NULL_VALUES
-    ),'[]')) AS lines
+    ${doLinesJsonSql}
    FROM dbo.ICStockBill b
    WHERE b.FTranType=21 AND b.FStatus=0 AND b.FCancellation=0 AND b.FROB<>-1
     AND EXISTS (SELECT 1 FROM dbo.ICCreditObject c WHERE c.FItemID=b.FSupplyID)
@@ -90,44 +131,27 @@ DECLARE @data nvarchar(max) = (
     CASE WHEN u.FDeleted=0 AND u.FNumber IN ('CNY','RMB') THEN 'CNY' ELSE LTRIM(RTRIM(ISNULL(u.FNumber,''))) END AS currency,
     CONVERT(varchar(100),c.FAmount) AS credit_limit,
     ISNULL(c.FCreditDays,0) AS credit_days,
-    CONVERT(varchar(100),i.invoiced) AS invoices_audited,
-    CONVERT(varchar(100),i.paid) AS invoices_paid,
-    CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
-    CONVERT(varchar(100),r.receipts) AS receipts_unsettled,
-    CONVERT(varchar(100),r.advances) AS advances_unsettled,
-    CONVERT(varchar(100),d.issued) AS stock_out_audited,
-    CONVERT(varchar(100),d.hooked) AS stock_out_hooked,
-    i.invalid_terms,
+    CONVERT(varchar(100),ISNULL(x.invoices_audited,0)) AS invoices_audited,
+    CONVERT(varchar(100),ISNULL(x.invoices_paid,0)) AS invoices_paid,
+    CONVERT(varchar(100),ISNULL(x.refunds_unsettled,0)) AS refunds_unsettled,
+    CONVERT(varchar(100),ISNULL(x.receipts_unsettled,0)) AS receipts_unsettled,
+    CONVERT(varchar(100),ISNULL(x.advances_unsettled,0)) AS advances_unsettled,
+    CONVERT(varchar(100),ISNULL(x.stock_out_audited,0)) AS stock_out_audited,
+    CONVERT(varchar(100),ISNULL(x.stock_out_hooked,0)) AS stock_out_hooked,
+    COALESCE((SELECT SUM(CASE WHEN v.invalid_term=1 THEN 1 ELSE 0 END) FROM @ovItems v WHERE v.customer_id=c.FItemID),0) AS invalid_terms,
     JSON_QUERY(COALESCE((
-     SELECT TOP (100) LTRIM(RTRIM(ISNULL(s.FBillNo,''))) AS bill_no,
-      CONVERT(varchar(10),COALESCE(s.FSettleDate,s.FDate),23) AS basis_date,
-      CONVERT(varchar(100),a.FRemainAmount) AS amount
-     FROM dbo.t_RP_Contact a
-     JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID AND s.FStatus<>0 AND s.FCancellation=0
-     WHERE a.FRP=1 AND a.FType=3 AND a.FRemainAmount>0 AND a.FCustomer=c.FItemID
-      AND COALESCE(s.FSettleDate,s.FDate)>'19010101'
-      AND DATEDIFF(day,COALESCE(s.FSettleDate,s.FDate),GETDATE())>ISNULL(c.FCreditDays,0)
-     ORDER BY COALESCE(s.FSettleDate,s.FDate),s.FBillNo
+     SELECT TOP (100) v.bill_no,
+      v.basis_date,
+      CONVERT(varchar(100),v.amount) AS amount
+     FROM @ovItems v
+     WHERE v.customer_id=c.FItemID AND v.basis_date IS NOT NULL
+      AND DATEDIFF(day,CONVERT(date,v.basis_date),GETDATE())>ISNULL(c.FCreditDays,0)
+     ORDER BY v.basis_date,v.bill_no
      FOR JSON PATH, INCLUDE_NULL_VALUES
     ),'[]')) AS overdue_invoices
    FROM dbo.ICCreditObject c
    LEFT JOIN dbo.t_Currency u ON u.FCurrencyID=c.FCurrencyID
-   OUTER APPLY(SELECT COALESCE(SUM(a.FAmount),0) AS invoiced,
-    COALESCE(SUM(a.FAmount-a.FRemainAmount),0) AS paid,
-    COALESCE(SUM(CASE WHEN a.FRemainAmount>0 AND
-     (COALESCE(s.FSettleDate,s.FDate) IS NULL OR COALESCE(s.FSettleDate,s.FDate)<='19010101') THEN 1 ELSE 0 END),0) AS invalid_terms
-    FROM dbo.t_RP_Contact a JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID
-     AND s.FStatus<>0 AND s.FCancellation=0
-    WHERE a.FRP=1 AND a.FType=3 AND a.FCustomer=c.FItemID) i
-   OUTER APPLY(SELECT COALESCE(-SUM(CASE WHEN a.FPre=-1 THEN a.FRemainAmount ELSE 0 END),0) AS refunds,
-    COALESCE(SUM(CASE WHEN a.FPre=0 THEN a.FRemainAmount ELSE 0 END),0) AS receipts,
-    COALESCE(SUM(CASE WHEN a.FPre=1 THEN a.FRemainAmount ELSE 0 END),0) AS advances
-    FROM dbo.t_RP_Contact a JOIN dbo.t_RP_NewReceiveBill b ON b.FBillID=a.FBillID AND b.FStatus<>0
-    WHERE a.FRP=1 AND a.FType=5 AND a.FCustomer=c.FItemID) r
-   OUTER APPLY(SELECT COALESCE(SUM(e.FConsignAmount),0) AS issued,
-    COALESCE(SUM(CASE WHEN b.FHookStatus=2 THEN e.FConsignAmount ELSE 0 END),0) AS hooked
-    FROM dbo.ICStockBill b JOIN dbo.ICStockBillEntry e ON e.FInterID=b.FInterID
-    WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=c.FItemID) d
+   LEFT JOIN @exp x ON x.customer_id=c.FItemID
    WHERE EXISTS (
     SELECT 1 FROM dbo.ICStockBill udo
     WHERE udo.FTranType=21 AND udo.FStatus=0 AND udo.FCancellation=0 AND udo.FROB<>-1
@@ -145,21 +169,7 @@ DECLARE @data nvarchar(max) = (
     CONVERT(varchar(10),b.FDate,23) AS bill_on,
     CONVERT(varchar(20),b.FSupplyID) AS customer_id,
     CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-    JSON_QUERY(COALESCE((
-     SELECT e.FEntryID AS entry_id,
-      CONVERT(varchar(20),e.FItemID) AS item_id,
-      CONVERT(varchar(100),e.FQty) AS quantity,
-      CONVERT(varchar(100),e.FConsignAmount) AS amount,
-      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-     FROM dbo.ICStockBillEntry e
-     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-     WHERE e.FInterID=b.FInterID
-     ORDER BY e.FEntryID
-     FOR JSON PATH, INCLUDE_NULL_VALUES
-    ),'[]')) AS lines
+    ${doLinesJsonSql}
    FROM dbo.ICStockBill b
    WHERE b.FTranType=21 AND b.FInterID IN (
     SELECT CONVERT(int, n.value('.','varchar(20)')) FROM @ids.nodes('/ids/id') AS w(n)
@@ -179,6 +189,7 @@ SELECT @fingerprint AS fingerprint,
 // Snapshot of KIS customer-master credit (t_Organization.FIsCreditMgr / FCreditLimit), unaudited blue DOs
 // for credit-managed customers, their exposure (including watched DOs for post-audit bypass checks), and watched DOs.
 const orgCreditReleaseSnapshot = `${requireReadAccount}
+${populateExposureSql(orgReleaseCustomers, { paramDecl: '@ids xml,@last_fid varchar(20)', paramPass: '@ids=@ids,@last_fid=@last_fid' })}
 DECLARE @data nvarchar(max) = (
  SELECT
   CONVERT(varchar(10),GETDATE(),23) AS today,
@@ -191,21 +202,7 @@ DECLARE @data nvarchar(max) = (
     CONVERT(varchar(10),b.FDate,23) AS bill_on,
     CONVERT(varchar(20),b.FSupplyID) AS customer_id,
     CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-    JSON_QUERY(COALESCE((
-     SELECT e.FEntryID AS entry_id,
-      CONVERT(varchar(20),e.FItemID) AS item_id,
-      CONVERT(varchar(100),e.FQty) AS quantity,
-      CONVERT(varchar(100),e.FConsignAmount) AS amount,
-      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-     FROM dbo.ICStockBillEntry e
-     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-     WHERE e.FInterID=b.FInterID
-     ORDER BY e.FEntryID
-     FOR JSON PATH, INCLUDE_NULL_VALUES
-    ),'[]')) AS lines
+    ${doLinesJsonSql}
    FROM dbo.ICStockBill b
    WHERE b.FTranType=21 AND b.FStatus=0 AND b.FCancellation=0 AND b.FROB<>-1
     AND EXISTS (
@@ -222,30 +219,17 @@ DECLARE @data nvarchar(max) = (
     'CNY' AS currency,
     REPLACE(LTRIM(RTRIM(o.FCreditLimit)),',','') AS credit_limit,
     0 AS credit_days,
-    CONVERT(varchar(100),i.invoiced) AS invoices_audited,
-    CONVERT(varchar(100),i.paid) AS invoices_paid,
-    CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
-    CONVERT(varchar(100),r.receipts) AS receipts_unsettled,
-    CONVERT(varchar(100),r.advances) AS advances_unsettled,
-    CONVERT(varchar(100),d.issued) AS stock_out_audited,
-    CONVERT(varchar(100),d.hooked) AS stock_out_hooked,
+    CONVERT(varchar(100),ISNULL(x.invoices_audited,0)) AS invoices_audited,
+    CONVERT(varchar(100),ISNULL(x.invoices_paid,0)) AS invoices_paid,
+    CONVERT(varchar(100),ISNULL(x.refunds_unsettled,0)) AS refunds_unsettled,
+    CONVERT(varchar(100),ISNULL(x.receipts_unsettled,0)) AS receipts_unsettled,
+    CONVERT(varchar(100),ISNULL(x.advances_unsettled,0)) AS advances_unsettled,
+    CONVERT(varchar(100),ISNULL(x.stock_out_audited,0)) AS stock_out_audited,
+    CONVERT(varchar(100),ISNULL(x.stock_out_hooked,0)) AS stock_out_hooked,
     0 AS invalid_terms,
     JSON_QUERY('[]') AS overdue_invoices
    FROM dbo.t_Organization o
-   OUTER APPLY(SELECT COALESCE(SUM(a.FAmount),0) AS invoiced,
-    COALESCE(SUM(a.FAmount-a.FRemainAmount),0) AS paid
-    FROM dbo.t_RP_Contact a JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID
-     AND s.FStatus<>0 AND s.FCancellation=0
-    WHERE a.FRP=1 AND a.FType=3 AND a.FCustomer=o.FItemID) i
-   OUTER APPLY(SELECT COALESCE(-SUM(CASE WHEN a.FPre=-1 THEN a.FRemainAmount ELSE 0 END),0) AS refunds,
-    COALESCE(SUM(CASE WHEN a.FPre=0 THEN a.FRemainAmount ELSE 0 END),0) AS receipts,
-    COALESCE(SUM(CASE WHEN a.FPre=1 THEN a.FRemainAmount ELSE 0 END),0) AS advances
-    FROM dbo.t_RP_Contact a JOIN dbo.t_RP_NewReceiveBill b ON b.FBillID=a.FBillID AND b.FStatus<>0
-    WHERE a.FRP=1 AND a.FType=5 AND a.FCustomer=o.FItemID) r
-   OUTER APPLY(SELECT COALESCE(SUM(e.FConsignAmount),0) AS issued,
-    COALESCE(SUM(CASE WHEN b.FHookStatus=2 THEN e.FConsignAmount ELSE 0 END),0) AS hooked
-    FROM dbo.ICStockBill b JOIN dbo.ICStockBillEntry e ON e.FInterID=b.FInterID
-    WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=o.FItemID) d
+   LEFT JOIN @exp x ON x.customer_id=o.FItemID
    WHERE o.FIsCreditMgr<>0 AND o.FDeleted=0
     AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
     AND (
@@ -277,21 +261,7 @@ DECLARE @data nvarchar(max) = (
     CONVERT(varchar(10),b.FDate,23) AS bill_on,
     CONVERT(varchar(20),b.FSupplyID) AS customer_id,
     CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-    JSON_QUERY(COALESCE((
-     SELECT e.FEntryID AS entry_id,
-      CONVERT(varchar(20),e.FItemID) AS item_id,
-      CONVERT(varchar(100),e.FQty) AS quantity,
-      CONVERT(varchar(100),e.FConsignAmount) AS amount,
-      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-     FROM dbo.ICStockBillEntry e
-     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-     WHERE e.FInterID=b.FInterID
-     ORDER BY e.FEntryID
-     FOR JSON PATH, INCLUDE_NULL_VALUES
-    ),'[]')) AS lines
+    ${doLinesJsonSql}
    FROM dbo.ICStockBill b
    WHERE b.FTranType=21 AND b.FInterID IN (
     SELECT CONVERT(int, n.value('.','varchar(20)')) FROM @ids.nodes('/ids/id') AS w(n)
@@ -308,21 +278,7 @@ DECLARE @data nvarchar(max) = (
     CONVERT(varchar(10),b.FDate,23) AS bill_on,
     CONVERT(varchar(20),b.FSupplyID) AS customer_id,
     CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-    JSON_QUERY(COALESCE((
-     SELECT e.FEntryID AS entry_id,
-      CONVERT(varchar(20),e.FItemID) AS item_id,
-      CONVERT(varchar(100),e.FQty) AS quantity,
-      CONVERT(varchar(100),e.FConsignAmount) AS amount,
-      CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-      CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-      LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-     FROM dbo.ICStockBillEntry e
-     LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-     LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-     WHERE e.FInterID=b.FInterID
-     ORDER BY e.FEntryID
-     FOR JSON PATH, INCLUDE_NULL_VALUES
-    ),'[]')) AS lines
+    ${doLinesJsonSql}
    FROM dbo.ICStockBill b
    WHERE @last_fid<>'' AND b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FROB<>-1
     AND b.FInterID>CONVERT(int,@last_fid)
@@ -380,21 +336,7 @@ SELECT JSON_QUERY(COALESCE((
   CONVERT(varchar(10),b.FDate,23) AS bill_on,
   CONVERT(varchar(20),b.FSupplyID) AS customer_id,
   CONVERT(varchar(18),CONVERT(binary(8),b.FOperDate),1) AS oper_date,
-  JSON_QUERY(COALESCE((
-   SELECT e.FEntryID AS entry_id,
-    CONVERT(varchar(20),e.FItemID) AS item_id,
-    CONVERT(varchar(100),e.FQty) AS quantity,
-    CONVERT(varchar(100),e.FConsignAmount) AS amount,
-    CONVERT(varchar(20),e.FSourceTranType) AS source_type,
-    CONVERT(varchar(20),e.FSourceInterId) AS source_fid,
-    LTRIM(RTRIM(ISNULL(st.FName,''))) AS settle_name
-   FROM dbo.ICStockBillEntry e
-   LEFT JOIN dbo.SEOrder o ON e.FSourceTranType=81 AND o.FInterID=e.FSourceInterId
-   LEFT JOIN dbo.t_Settle st ON st.FItemID=o.FSettleID
-   WHERE e.FInterID=b.FInterID
-   ORDER BY e.FEntryID
-   FOR JSON PATH, INCLUDE_NULL_VALUES
-  ),'[]')) AS lines
+  ${doLinesJsonSql}
  FROM dbo.ICStockBill b
  WHERE b.FTranType=21 AND b.FBillNo IN (
   SELECT n.value('.','nvarchar(60)') FROM @ids.nodes('/ids/id') AS bn(n)
@@ -466,6 +408,7 @@ const CustomerExposureSchema = Schema.Struct({
 const SnapshotPayload = Schema.fromJsonString(
 	Schema.Struct({
 		today: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+		credit_enabled: Schema.optionalKey(Schema.NullOr(Schema.String)),
 		options: Schema.Array(
 			Schema.Struct({ mask: Schema.String, control_range: Schema.String, control: integer })
 		),
@@ -722,6 +665,10 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 
 	const issues: string[] = [...logResult.unparsedLogs];
 	if (page) {
+		if (!isOrgPolicy && page.credit_enabled === '0' && page.customers.length === 0)
+			issues.push(
+				'Kingdee KIS credit management (IC/CreditEnable) is disabled (0) and ICCreditObject has no customer limits.'
+			);
 		if (page.unaudited.length > 500)
 			issues.push('Unaudited delivery orders exceed the 500-bill credit detection bound.');
 		const customerBound = isOrgPolicy ? 2000 : 1000;
@@ -746,35 +693,55 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		if (!prev || BigInt(rel.logId) > BigInt(prev.logId)) newestReleaseByBillNo.set(rel.billNo, rel);
 	}
 
-	// Read workspace state: existing credit_releases + parties + orders + transactions for linking.
-	const { credit_releases: existingReleases, sys_integration: ledgers } = yield* ctx.query({
+	// Read workspace state: query open/active-bump rows separately from recent closed rows so historical volume
+	// never truncates open releases or pending temporary bumps.
+	const directWriteCreditLimit = ctx.configuration.directWriteCreditLimit === true;
+	const releaseFields = [
+		'external_code',
+		'delivery_fid',
+		'bill_number',
+		'party',
+		'route',
+		'source_status',
+		'approval_status',
+		'bill_amount',
+		'credit_limit',
+		'credit_days',
+		'credit_used',
+		'over_limit',
+		'overdue_days',
+		'oldest_overdue_bill',
+		'block_reasons',
+		'temp_bump_amount',
+		'temp_bump_days',
+		'temp_bump_status',
+		'source_oper_date',
+		'content_hash',
+		'approved_content_hash',
+		'audit_seen_at',
+		'release_log_key',
+		'order',
+		'delivery',
+		'settlement_name'
+	] as const;
+	const { credit_releases: openAndActiveReleases, sys_integration: ledgers } = yield* ctx.query({
 		credit_releases: {
-			where: { source: { eq: instance } },
-			fields: [
-				'external_code',
-				'delivery_fid',
-				'bill_number',
-				'source_status',
-				'approval_status',
-				'bill_amount',
-				'credit_limit',
-				'credit_used',
-				'over_limit',
-				'overdue_days',
-				'oldest_overdue_bill',
-				'block_reasons',
-				'source_oper_date',
-				'content_hash',
-				'approved_content_hash',
-				'audit_seen_at',
-				'release_log_key',
-				'order',
-				'delivery',
-				'settlement_name'
-			],
+			where: {
+				source: { eq: instance },
+				or: [{ source_status: { eq: 'blocked' } }, { temp_bump_status: { eq: 'active' } }]
+			},
+			fields: releaseFields,
 			limit: 5000
 		},
 		sys_integration: { where: { integration: { eq: 'kingdee' } }, fields: ['configuration'] }
+	});
+	const { credit_releases: recentReleases } = yield* ctx.query({
+		credit_releases: {
+			where: { source: { eq: instance } },
+			fields: ['external_code', 'delivery_fid', 'source_status', 'release_log_key'],
+			order_by: { observed_at: 'desc' },
+			limit: 5000
+		}
 	});
 	if (
 		ledgers.rows.some(
@@ -785,24 +752,61 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 			reason: 'Enable account-wide credit on one ledger per account set'
 		});
 
-	const seenReleaseLogKeys = new Set(
-		existingReleases.rows.flatMap((row) => (row.release_log_key ? [row.release_log_key] : []))
-	);
-	const closedReleaseFids = new Set(
-		existingReleases.rows
+	const seenReleaseLogKeys = new Set([
+		...openAndActiveReleases.rows.flatMap((row) =>
+			row.release_log_key ? [row.release_log_key] : []
+		),
+		...recentReleases.rows.flatMap((row) => (row.release_log_key ? [row.release_log_key] : []))
+	]);
+	const closedReleaseFids = new Set([
+		...openAndActiveReleases.rows
+			.filter((row) => row.source_status === 'released' || row.source_status === 'bypassed')
+			.map((row) => row.delivery_fid),
+		...recentReleases.rows
 			.filter((row) => row.source_status === 'released' || row.source_status === 'bypassed')
 			.map((row) => row.delivery_fid)
-	);
-	const allExistingKeys = new Set(existingReleases.rows.map((row) => row.external_code));
+	]);
+	const allExistingKeys = new Set([
+		...openAndActiveReleases.rows.map((row) => row.external_code),
+		...recentReleases.rows.map((row) => row.external_code)
+	]);
 	const openByFid = new Map<string, OpenCreditRelease<Id<'orders'>, Id<'transactions'>>>();
-	for (const row of existingReleases.rows) {
+	const openMetaByFid = new Map<
+		string,
+		{
+			readonly party: Id<'parties'>;
+			readonly temp_bump_amount: string | null;
+			readonly temp_bump_days: number | null;
+			readonly temp_bump_status: 'none' | 'active' | 'restored';
+			readonly tempBumpEnabled: boolean;
+		}
+	>();
+	const deferredClosedBumpsByParty = new Map<
+		Id<'parties'>,
+		{
+			readonly external_code: string;
+			readonly credit_limit: string | null;
+			readonly credit_days: number | null;
+			readonly temp_bump_amount: string | null;
+			readonly temp_bump_days: number | null;
+		}[]
+	>();
+	for (const row of openAndActiveReleases.rows) {
 		if (row.source_status === 'blocked') {
+			const tempBumpEnabled =
+				!isOrgPolicy &&
+				directWriteCreditLimit &&
+				row.approval_status === 'approved' &&
+				row.route === 'one_time' &&
+				row.temp_bump_status !== 'restored' &&
+				(row.temp_bump_amount != null || row.temp_bump_days != null);
 			openByFid.set(row.delivery_fid, {
 				external_code: row.external_code,
 				delivery_fid: row.delivery_fid,
 				status: row.approval_status === 'approved' ? 'approved' : 'blocked',
 				bill_amount: row.bill_amount,
 				credit_limit: row.credit_limit,
+				credit_days: row.credit_days,
 				credit_used: row.credit_used,
 				over_limit: row.over_limit,
 				overdue_days: row.overdue_days,
@@ -814,8 +818,87 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				audit_seen_at: row.audit_seen_at,
 				order: row.order,
 				delivery: row.delivery,
-				settlement_name: row.settlement_name
+				settlement_name: row.settlement_name,
+				temp_bump_active: tempBumpEnabled
 			});
+			openMetaByFid.set(row.delivery_fid, {
+				party: row.party,
+				temp_bump_amount: row.temp_bump_amount,
+				temp_bump_days: row.temp_bump_days,
+				temp_bump_status: row.temp_bump_status,
+				tempBumpEnabled
+			});
+		} else if (
+			!isOrgPolicy &&
+			directWriteCreditLimit &&
+			row.route === 'one_time' &&
+			row.temp_bump_status === 'active'
+		) {
+			const list = deferredClosedBumpsByParty.get(row.party) ?? [];
+			list.push({
+				external_code: row.external_code,
+				credit_limit: row.credit_limit,
+				credit_days: row.credit_days,
+				temp_bump_amount: row.temp_bump_amount,
+				temp_bump_days: row.temp_bump_days
+			});
+			deferredClosedBumpsByParty.set(row.party, list);
+		}
+	}
+
+	// Track the true unbumped baseline limit/days for any customer currently carrying an active one-time temp bump,
+	// so a second blocked DO detected while the bump is active never captures the inflated temporary limit as its floor.
+	const activeBaselineByParty = new Map<
+		Id<'parties'>,
+		{ limit: string | null; days: number | null }
+	>();
+	const recordBaseline = (
+		partyId: Id<'parties'>,
+		limit: string | null,
+		days: number | null | undefined
+	) => {
+		const cur = activeBaselineByParty.get(partyId) ?? { limit: null, days: null };
+		let nextLimit = cur.limit;
+		if (limit !== null) {
+			if (
+				nextLimit === null ||
+				BigDecimal.isLessThan(
+					BigDecimal.fromStringUnsafe(limit),
+					BigDecimal.fromStringUnsafe(nextLimit)
+				)
+			)
+				nextLimit = limit;
+		}
+		let nextDays = cur.days;
+		if (days != null && (nextDays === null || days < nextDays)) nextDays = days;
+		activeBaselineByParty.set(partyId, { limit: nextLimit, days: nextDays });
+	};
+	for (const [fid, meta] of openMetaByFid) {
+		if (!meta.tempBumpEnabled) continue;
+		const open = openByFid.get(fid);
+		if (open) recordBaseline(meta.party, open.credit_limit, open.credit_days);
+	}
+	for (const [partyId, deferred] of deferredClosedBumpsByParty) {
+		for (const item of deferred) recordBaseline(partyId, item.credit_limit, item.credit_days);
+	}
+
+	const activeBumpPartyIds = [
+		...new Set([
+			...[...openMetaByFid.values()].filter((m) => m.tempBumpEnabled).map((m) => m.party),
+			...deferredClosedBumpsByParty.keys()
+		])
+	];
+	const partyExternalById = new Map<Id<'parties'>, string>();
+	if (activeBumpPartyIds.length > 0) {
+		const { parties: bumpParties } = yield* ctx.query({
+			parties: {
+				where: { id: { in: activeBumpPartyIds } },
+				fields: ['external_code'],
+				limit: 500
+			}
+		});
+		for (const p of bumpParties.rows) {
+			partyExternalById.set(p.id, p.external_code);
 		}
 	}
 
@@ -1046,11 +1129,13 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		readonly source_status?: SourceReleaseStatus;
 		readonly bill_amount?: string | null;
 		readonly credit_limit?: string | null;
+		readonly credit_days?: number | null;
 		readonly credit_used?: string | null;
 		readonly over_limit?: string | null;
 		readonly overdue_days?: number | null;
 		readonly oldest_overdue_bill?: string | null;
 		readonly block_reasons?: readonly CreditBlockReason[] | null;
+		readonly temp_bump_status?: 'none' | 'active' | 'restored';
 		readonly source_oper_date?: string | null;
 		readonly content_hash?: string | null;
 		readonly audit_seen_at?: ReturnType<typeof Instant> | null;
@@ -1073,6 +1158,132 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		const base = `do:${fid}`;
 		return allExistingKeys.has(base) ? `${base}:${operDate.toLowerCase()}` : base;
 	};
+
+	const closedBumpsThisTick = new Set<string>();
+	const restoredDeferredCodes = new Set<string>();
+	const restoreIfActive = Effect.fnUntraced(function* (fid: string, kind: 'release' | 'close') {
+		const open = openByFid.get(fid);
+		const meta = openMetaByFid.get(fid);
+		if (!open || !meta?.tempBumpEnabled) return 'none';
+		const partyCode = partyExternalById.get(meta.party);
+		if (!partyCode) return 'none';
+		closedBumpsThisTick.add(fid);
+		// Check whether any OTHER open approved one-time bump on this customer is still waiting to audit.
+		const otherActiveOpen: {
+			readonly fid: string;
+			readonly bumpAmount: string | null;
+			readonly bumpDays: number | null;
+		}[] = [];
+		for (const [otherFid, otherMeta] of openMetaByFid) {
+			if (otherFid === fid || closedBumpsThisTick.has(otherFid)) continue;
+			if (otherMeta.party !== meta.party || !otherMeta.tempBumpEnabled) continue;
+			otherActiveOpen.push({
+				fid: otherFid,
+				bumpAmount: otherMeta.temp_bump_amount,
+				bumpDays: otherMeta.temp_bump_days
+			});
+		}
+		const baseline = activeBaselineByParty.get(meta.party);
+		const baseLimit = baseline?.limit ?? open.credit_limit;
+		const baseDays = baseline?.days ?? open.credit_days ?? null;
+		if (otherActiveOpen.length > 0) {
+			if (kind === 'release') {
+				// This DO just audited (increasing audited exposure), while another one-time DO on this
+				// customer still needs the combined temporary headroom. Keep temp_bump_status='active' so
+				// the last closing bump in the wave unwinds the full combined amount back to baseLimit.
+				const list = deferredClosedBumpsByParty.get(meta.party) ?? [];
+				list.push({
+					external_code: open.external_code,
+					credit_limit: open.credit_limit,
+					credit_days: open.credit_days ?? null,
+					temp_bump_amount: meta.temp_bump_amount,
+					temp_bump_days: meta.temp_bump_days
+				});
+				deferredClosedBumpsByParty.set(meta.party, list);
+				return 'deferred';
+			}
+			// DO was withdrawn/superseded without auditing: reduce KIS down to the remaining active wave target.
+			let remainingFloorLimit = baseLimit;
+			if (baseLimit !== null) {
+				let sumOther = BigDecimal.fromStringUnsafe(baseLimit);
+				for (const o of otherActiveOpen) {
+					if (o.bumpAmount != null)
+						sumOther = BigDecimal.sum(sumOther, BigDecimal.fromStringUnsafe(o.bumpAmount));
+				}
+				for (const d of deferredClosedBumpsByParty.get(meta.party) ?? []) {
+					if (!restoredDeferredCodes.has(d.external_code) && d.temp_bump_amount != null)
+						sumOther = BigDecimal.sum(sumOther, BigDecimal.fromStringUnsafe(d.temp_bump_amount));
+				}
+				remainingFloorLimit = fixedDecimal(sumOther, 2);
+			}
+			let remainingFloorDays = baseDays;
+			if (baseDays !== null) {
+				let maxOtherDays = 0;
+				for (const o of otherActiveOpen) {
+					if (o.bumpDays != null && o.bumpDays > maxOtherDays) maxOtherDays = o.bumpDays;
+				}
+				remainingFloorDays = baseDays + maxOtherDays;
+			}
+			const result = yield* restoreTempCreditBump(
+				{
+					partyCode,
+					floorLimit: remainingFloorLimit,
+					bumpAmount: meta.temp_bump_amount,
+					floorDays: remainingFloorDays,
+					bumpDays: meta.temp_bump_days
+				},
+				ctx
+			);
+			return result !== null ? 'restored' : 'none';
+		}
+		// Last active temporary bump on this customer is closing: unwind this bump plus any deferred bumps in the wave.
+		const deferred = (deferredClosedBumpsByParty.get(meta.party) ?? []).filter(
+			(d) => !restoredDeferredCodes.has(d.external_code)
+		);
+		let totalBump = BigDecimal.fromBigInt(0n);
+		let hasBumpAmt = false;
+		let maxBumpDays: number | null = null;
+		const addPart = (amt: string | null, days: number | null) => {
+			if (amt != null) {
+				const parsed = BigDecimal.fromStringUnsafe(amt);
+				if (BigDecimal.isPositive(parsed)) {
+					totalBump = BigDecimal.sum(totalBump, parsed);
+					hasBumpAmt = true;
+				}
+			}
+			if (days != null && days > 0 && (maxBumpDays === null || days > maxBumpDays))
+				maxBumpDays = days;
+		};
+		addPart(meta.temp_bump_amount, meta.temp_bump_days);
+		for (const d of deferred) addPart(d.temp_bump_amount, d.temp_bump_days);
+		const result = yield* restoreTempCreditBump(
+			{
+				partyCode,
+				floorLimit: baseLimit,
+				bumpAmount: hasBumpAmt ? fixedDecimal(totalBump, 2) : null,
+				floorDays: baseDays,
+				bumpDays: maxBumpDays
+			},
+			ctx
+		);
+		if (result === null) return 'none';
+		for (const d of deferred) {
+			restoredDeferredCodes.add(d.external_code);
+			const existingIdx = outRows.findIndex((r) => r.$id === d.external_code);
+			const existingRow = existingIdx >= 0 ? outRows[existingIdx] : undefined;
+			if (existingRow) {
+				outRows[existingIdx] = { ...existingRow, temp_bump_status: 'restored' };
+			} else {
+				outRows.push({
+					$id: d.external_code,
+					external_code: d.external_code,
+					temp_bump_status: 'restored',
+					observed_at: snapshot.observedAt
+				});
+			}
+		}
+		return 'restored';
+	});
 
 	for (const fid of [...allFids].sort()) {
 		const open = openByFid.get(fid) ?? null;
@@ -1236,11 +1447,24 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 							},
 							total
 						);
+						// When another one-time temporary bump is already active on this customer, evaluate new/unapproved DOs
+						// against the true unbumped baseline so the temporary bump never leaks into another DO's floor.
+						const activeBaseline = open?.temp_bump_active
+							? undefined
+							: activeBaselineByParty.get(partyId);
+						const effectiveLimit =
+							activeBaseline?.limit !== undefined && activeBaseline.limit !== null
+								? activeBaseline.limit
+								: customer.row.credit_limit;
+						const effectiveDays =
+							activeBaseline?.days !== undefined && activeBaseline.days !== null
+								? activeBaseline.days
+								: customer.row.credit_days;
 						const verdict = evaluateCreditBlock({
 							controlRange: detection.controlRange,
-							limit: customer.row.credit_limit,
+							limit: effectiveLimit,
 							used,
-							creditDays: customer.row.credit_days,
+							creditDays: effectiveDays,
 							overdueInvoices: customer.row.overdue_invoices,
 							today: detection.today
 						});
@@ -1249,7 +1473,8 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 							oper_date: bill.oper_date,
 							content_hash: contentHash,
 							bill_amount: total,
-							credit_limit: customer.row.credit_limit,
+							credit_limit: effectiveLimit,
+							credit_days: effectiveDays,
 							credit_used: used,
 							verdict,
 							order: orderId,
@@ -1262,16 +1487,34 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 		}
 
 		const action = reconcileCreditRelease(open, observation, snapshot.observedAt);
+		const openMeta = openMetaByFid.get(fid);
 		switch (action.op) {
 			case 'none':
-				if (open) nextWatched.add(fid);
+				if (open) {
+					if (
+						openMeta?.tempBumpEnabled &&
+						openMeta.temp_bump_status === 'none' &&
+						observation.kind === 'unaudited' &&
+						!observation.verdict.blocked
+					) {
+						outRows.push({
+							$id: open.external_code,
+							external_code: open.external_code,
+							temp_bump_status: 'active',
+							observed_at: snapshot.observedAt
+						});
+					}
+					nextWatched.add(fid);
+				}
 				break;
 			case 'close':
 				if (open) {
+					const restoreState = yield* restoreIfActive(fid, 'close');
 					outRows.push({
 						$id: open.external_code,
 						external_code: open.external_code,
 						source_status: action.status,
+						...(restoreState === 'restored' ? { temp_bump_status: 'restored' as const } : {}),
 						audit_seen_at: null,
 						observed_at: snapshot.observedAt
 					});
@@ -1302,10 +1545,16 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				break;
 			case 'release':
 				if (open) {
+					const restoreState = yield* restoreIfActive(fid, 'release');
 					outRows.push({
 						$id: open.external_code,
 						external_code: open.external_code,
 						source_status: action.status,
+						...(restoreState === 'restored'
+							? { temp_bump_status: 'restored' as const }
+							: restoreState === 'deferred'
+								? { temp_bump_status: 'active' as const }
+								: {}),
 						released_by: action.released_by,
 						released_at: Instant(action.released_at),
 						release_log_key: action.release_log_key,
@@ -1323,6 +1572,8 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 						external_code: open.external_code,
 						bill_amount: action.bill_amount,
 						credit_limit: action.credit_limit,
+						credit_days:
+							observation.kind === 'unaudited' ? (observation.credit_days ?? null) : null,
 						credit_used: action.credit_used,
 						over_limit: action.over_limit,
 						overdue_days: action.overdue_days,
@@ -1341,10 +1592,12 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 				break;
 			case 'supersede_and_reopen':
 				if (open) {
+					const restoreState = yield* restoreIfActive(fid, 'close');
 					outRows.push({
 						$id: open.external_code,
 						external_code: open.external_code,
 						source_status: 'superseded',
+						...(restoreState === 'restored' ? { temp_bump_status: 'restored' as const } : {}),
 						audit_seen_at: null,
 						observed_at: snapshot.observedAt
 					});
@@ -1366,6 +1619,7 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 						source_status: 'blocked',
 						bill_amount: billMeta.bill_amount,
 						credit_limit: observation.credit_limit,
+						credit_days: observation.credit_days ?? null,
 						credit_used: observation.credit_used,
 						over_limit: observation.verdict.over_limit,
 						overdue_days: observation.verdict.overdue_days,
@@ -1396,6 +1650,7 @@ export const readCreditReleaseSource = Effect.fnUntraced(function* (
 						source_status: 'blocked',
 						bill_amount: billMeta.bill_amount,
 						credit_limit: observation.credit_limit,
+						credit_days: observation.credit_days ?? null,
 						credit_used: observation.credit_used,
 						over_limit: observation.verdict.over_limit,
 						overdue_days: observation.verdict.overdue_days,

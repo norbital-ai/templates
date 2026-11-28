@@ -17,7 +17,13 @@
 	} from '@norbital-ai/ui';
 	import { Cover, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { observe_once } from '@norbital-ai/ui/effect';
-	import { creditExceptions, creditRead, creditTotals, readAgingAt } from '../../../lib/reports.js';
+	import {
+		creditExceptions,
+		creditRead,
+		creditTotals,
+		estimateAging,
+		readAgingAt
+	} from '../../../lib/reports.js';
 	import { downloadXlsx } from '../../../lib/xlsx.js';
 
 	let { ctx }: { ctx: PageContext } = $props();
@@ -32,15 +38,18 @@
 	const aging = observe_once(() =>
 		ages ? readAgingAt(ctx, day.today, Boolean(ctx.catalog?.source_receivables)) : null
 	);
+	const agingRows = $derived(
+		aging.current?.rows
+			? aging.current.heads.length
+				? estimateAging(aging.current.rows)
+				: aging.current.rows
+			: []
+	);
 	const exceptions = $derived(
 		!hasSnapshots
 			? { customers: [], invoices: [] }
 			: credit?.current && (!ages || aging.current || aging.error)
-				? creditExceptions(
-						credit.current.credit_snapshots.rows,
-						aging.current?.rows ?? [],
-						day.today
-					)
+				? creditExceptions(credit.current.credit_snapshots.rows, agingRows, day.today)
 				: null
 	);
 	const rows = $derived(
@@ -94,6 +103,10 @@
 					'over_limit',
 					'overdue_days',
 					'route',
+					'temp_bump_status',
+					'temp_bump_amount',
+					'temp_bump_days',
+					'proposed_limit',
 					'released_by',
 					'observed_at'
 				] as const)
@@ -151,6 +164,12 @@
 		{ field: 'reasons', label: ctx.t('reports.credit.reasons'), cell: reasons },
 		{ field: 'credit_limit', label: label(ctx, 'credit_snapshots', 'credit_limit'), kind: moneyKind, align: 'end' },
 		{ field: 'credit_used', label: label(ctx, 'credit_snapshots', 'credit_used'), kind: moneyKind, align: 'end' },
+		{
+			field: 'credit_available',
+			label: label(ctx, 'credit_snapshots', 'credit_available'),
+			kind: moneyKind,
+			align: 'end'
+		},
 		{ field: 'over_limit', label: ctx.t('reports.credit.over_limit'), kind: moneyKind, align: 'end' },
 		{ field: 'overdue', label: ctx.t('reports.credit.overdue'), kind: moneyKind, align: 'end' },
 		{ field: 'oldest_overdue', label: ctx.t('reports.aging.oldest_overdue'), kind: daysKind, align: 'end' }
@@ -170,19 +189,22 @@
 			description: ctx.t('reports.credit.scope'),
 			new: false,
 			...(customer ? { controls: backToCustomers } : {}),
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () =>
-						downloadXlsx(
-							'credit-exceptions',
-							day.today,
-							columns,
-							list.map((row) => ({ ...row, reasons: row.reasons.join(', ') }))
-						)
-				}
-			]
+			actions:
+				list.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () =>
+									downloadXlsx(
+										'credit-exceptions',
+										day.today,
+										columns,
+										list.map((row) => ({ ...row, reasons: row.reasons.join(', ') }))
+									)
+							}
+						]
+					: []
 		}}
 	>
 		{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
@@ -213,16 +235,21 @@
 			description: ctx.t('reports.credit.scope'),
 			new: false,
 			...(customer ? { controls: backToCustomers } : {}),
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('credit-overdue', day.today, columns, invoices)
-				}
-			]
+			actions:
+				invoices.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('credit-overdue', day.today, columns, invoices)
+							}
+						]
+					: []
 		}}
 	>
-		{#snippet empty()}<EmptyState title={ctx.t('reports.credit.empty')} />{/snippet}
+		{#snippet empty()}<EmptyState
+				title={ctx.t(customer ? 'reports.aging.empty' : 'reports.credit.empty')}
+			/>{/snippet}
 	</Table>
 {/snippet}
 
@@ -244,7 +271,6 @@
 
 <Cover size="fill" min_height="18rem" gap="sm" {...totals.length > 0 ? { top: summary } : {}}>
 	{#if credit?.error}<EmptyState tone="danger" title={credit.error.message} />
-	{:else if aging.error}<EmptyState tone="danger" title={ctx.t('reports.aging.incomplete')} />
 	{:else if hasSnapshots && !rows}
 		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
 	{:else}

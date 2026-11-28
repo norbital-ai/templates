@@ -10,7 +10,8 @@ import {
 	type ReportOrder
 } from './reports.js';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
-import { hash, numeric, unitRatio } from './commercial.js';
+import { hash, unitRatio } from './commercial.js';
+import { currencyDigits, fixedDecimal } from './purchase-listing.js';
 type MonthlyOrder = ReportOrder;
 /** The fields a statement's sign-off compares (the board and the statement create read them). */
 const statementFields = [
@@ -77,6 +78,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		if (
 			!fact.active ||
 			fact.kind === 'invoice' ||
+			fact.kind === 'invoice_only' ||
 			fact.business_on.slice(0, 7) !== period.slice(0, 7)
 		)
 			continue;
@@ -94,7 +96,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		if (!groups.has(key))
 			groups.set(key, { owner: statement.owner, currency: statement.currency, orders: [] });
 	}
-	return yield* Effect.forEach(
+	const rows = yield* Effect.forEach(
 		[...groups.values()],
 		(group) =>
 			Effect.forEach(
@@ -105,6 +107,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 							(fact) =>
 								fact.active &&
 								fact.kind !== 'invoice' &&
+								fact.kind !== 'invoice_only' &&
 								fact.order === order.id &&
 								fact.business_on.slice(0, 7) === period.slice(0, 7)
 						)
@@ -118,11 +121,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 								amount:
 									current.amount === null
 										? null
-										: new Intl.NumberFormat('en', {
-												useGrouping: false,
-												minimumFractionDigits: current.amount.scale,
-												maximumFractionDigits: current.amount.scale
-											}).format(numeric(BigDecimal.format(current.amount))),
+										: fixedDecimal(current.amount, Math.max(0, current.amount.scale)),
 								unresolved_lines: current.unresolved_lines,
 								awaiting_approval: false
 							},
@@ -156,31 +155,17 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 					const lines = orders.flatMap((row) => row.lines);
 					const unresolved_lines = snapshot.reduce((n, row) => n + row.unresolved_lines, 0);
 					const awaiting_approval = snapshot.filter((row) => row.awaiting_approval).length;
-					const digits =
-						new Intl.NumberFormat('en', {
-							style: 'currency',
-							currency: group.currency
-						}).resolvedOptions().maximumFractionDigits ?? 2;
+					const digits = currencyDigits(group.currency);
 					const amount =
 						unresolved_lines || awaiting_approval
 							? null
-							: new Intl.NumberFormat('en', {
-									useGrouping: false,
-									minimumFractionDigits: digits,
-									maximumFractionDigits: digits
-								}).format(
-									numeric(
-										BigDecimal.format(
-											BigDecimal.round(
-												BigDecimal.sumAll(
-													snapshot.flatMap((row) =>
-														row.amount === null ? [] : [BigDecimal.fromStringUnsafe(row.amount)]
-													)
-												),
-												{ scale: digits }
-											)
+							: fixedDecimal(
+									BigDecimal.sumAll(
+										snapshot.flatMap((row) =>
+											row.amount === null ? [] : [BigDecimal.fromStringUnsafe(row.amount)]
 										)
-									)
+									),
+									digits
 								);
 					return hash({
 						owner: group.owner,
@@ -225,6 +210,9 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 				})
 			),
 		{ concurrency: 'unbounded' }
+	);
+	return rows.toSorted(
+		(a, b) => a.owner_name.localeCompare(b.owner_name) || a.currency.localeCompare(b.currency)
 	);
 });
 type BoardRead = ReturnType<typeof boardRead>;

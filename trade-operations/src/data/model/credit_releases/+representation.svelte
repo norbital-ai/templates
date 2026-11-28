@@ -15,6 +15,10 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Grid, Inline, Stack, Surface } from '@norbital-ai/ui/layout';
+	import {
+		kingdeeIntegrationRead,
+		workspaceKingdeeSummary
+	} from '../../../integration/kingdee/connection-status.js';
 	import { isAdvanceSettlement } from '../../../lib/credit-release.js';
 
 	let {
@@ -26,6 +30,16 @@
 	} = $props();
 
 	const commercial = $derived(ctx.catalog?.credit_releases?.output === undefined);
+	const kingdeeRead = $derived(
+		ctx.catalog?.sys_integration ? ctx.query(kingdeeIntegrationRead) : null
+	);
+	const kingdeeSummary = $derived.by(() => {
+		const rows = kingdeeRead?.current?.sys_integration.rows;
+		if (!rows) return null;
+		const sourceId = view.mode !== 'create' ? view.record.source : null;
+		const matched = sourceId ? rows.filter((r) => r.id === sourceId) : rows;
+		return workspaceKingdeeSummary(matched.length > 0 ? matched : rows);
+	});
 	const canRequest = $derived(
 		view.mode !== 'create' &&
 			view.record.source_status === 'blocked' &&
@@ -71,6 +85,17 @@
 	{#if view.mode !== 'create'}
 		{@const rec = view.record}
 		<Stack gap="md">
+			{#if rec.$sync?.kingdee?.status === 'failed' && rec.$sync.kingdee.message}
+				<Surface tone="subtle" padding="sm" radius="control">
+					<p class="text-body text-destructive">{rec.$sync.kingdee.message}</p>
+				</Surface>
+			{:else if rec.status === 'approved' && rec.$sync?.kingdee?.status === 'pending' && kingdeeSummary && kingdeeSummary.state !== 'connected'}
+				<Surface tone="subtle" padding="sm" radius="control">
+					<p class="text-body text-muted-foreground">
+						{ctx.t('component.credit_release_sync_queued')}
+					</p>
+				</Surface>
+			{/if}
 			{#if rec.status === 'approved'}
 				<Surface tone="subtle" padding="sm" radius="control">
 					<p class="text-body">
@@ -82,7 +107,13 @@
 										currency: rec.currency
 									})
 								})
-							: ctx.t('component.credit_release_kis_one_time', { bill: rec.bill_number })}
+							: rec.route === 'one_time' &&
+								  commercial &&
+								  (rec.temp_bump_status === 'active' ||
+										rec.temp_bump_amount != null ||
+										rec.temp_bump_days != null)
+								? ctx.t('component.credit_release_kis_temp_bump', { bill: rec.bill_number })
+								: ctx.t('component.credit_release_kis_one_time', { bill: rec.bill_number })}
 					</p>
 				</Surface>
 			{:else if rec.status === 'bypassed'}
@@ -106,6 +137,9 @@
 				<Surface tone="subtle" padding="md" radius="control">
 					<Stack gap="md">
 						<h3 class="text-heading">{ctx.t('component.credit_release_request')}</h3>
+						{#if kingdeeSummary && kingdeeSummary.state !== 'connected'}
+							<p class="text-meta">{ctx.t('component.credit_release_kingdee_disconnected')}</p>
+						{/if}
 						{#if isAdvanceSettlement(rec.settlement_name)}
 							<p class="text-meta">
 								{ctx.t('component.credit_release_advance_hint', {
@@ -200,12 +234,16 @@
 					<Field {ctx} name="block_reasons" />
 					<Field {ctx} name="bill_amount" />
 					<Field {ctx} name="credit_limit" />
+					<Field {ctx} name="credit_days" />
 					<Field {ctx} name="credit_used" />
 					<Field {ctx} name="over_limit" />
 					<Field {ctx} name="overdue_days" />
 					<Field {ctx} name="oldest_overdue_bill" />
 					<Field {ctx} name="route" />
 					<Field {ctx} name="proposed_limit" />
+					<Field {ctx} name="temp_bump_amount" />
+					<Field {ctx} name="temp_bump_days" />
+					<Field {ctx} name="temp_bump_status" />
 					<Field {ctx} name="released_by" />
 					<Field {ctx} name="released_at" />
 					<Field {ctx} name="observed_at" />

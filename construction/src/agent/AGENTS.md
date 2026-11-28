@@ -27,11 +27,11 @@ Generic contractor workspace (`norbital-construction`) for both main contractors
 - **Automations (4):** `sync_messages`, `file_project_messages`, `analyze_bim_file`, `generate_payment_claim`.
 - **Services (`src/services/`):**
   - `src/services/commercial/` — `decimal.ts` (`BigDecimal`), `lines.ts` (line totals, 3-way match, catalog resolution), `analytics.ts` (project commercial, cashflow, catalog ledger, embodied carbon).
-  - `src/services/bim/` — `schema.ts`, `config.ts`, `step-parser.ts`, `geometry.ts`, `cleanup.ts`, `pricing.ts`, `compliance.ts`, `organizer.ts`, `classifier.ts` (zero hardcoded business/SOP/regional trade tables; driven by `bim_settings`, `sop_rules`, and `item_matrix`).
+  - `src/services/bim/` — `schema.ts`, `config.ts`, `step-parser.ts`, `geometry.ts`, `cleanup.ts`, `pricing.ts`, `compliance.ts`, `remediation.ts`, `organizer.ts`, `classifier.ts` (zero hardcoded business/SOP/regional trade tables; driven by `bim_settings`, `sop_rules`, and `item_matrix`).
   - `src/services/reports/` — `template-validation.ts`, `report-document.ts`, `report-pdf.ts`, `ReportPdfViewer.svelte`, `ReportPreviewDialog.svelte` (A4 PDF previewer & customizable HTML template engine for BCA Green Mark Sustainability & CORENET X / ISO 19650 / CONQUAS Compliance reports).
   - `src/services/viewer/` — `types.ts`, `runtime.d.ts`, `engine.ts`, `IfcViewer.svelte`, `converter.ts`, `converter.worker.ts`, `geometry-pass.ts`, `takeoff.ts`, `takeoff.worker.ts`.
   - `src/services/ui/` — `SegmentedToggle.svelte`, `create-values.ts`, `download.ts`, `task-meta.ts`.
-- **Libraries (`src/lib/`):** `ActivityTimeline.svelte`, `CatalogLinesEditor.svelte`, `ProjectTimeline.svelte`, `record-editor.svelte`, `schedule-parsers.ts`, `trades.ts`, `zones.ts`, `dates.ts`, `conversations.ts`, `message-import.ts`, `ai.ts`.
+- **Libraries (`src/lib/`):** `ActivityTimeline.svelte`, `CatalogLinesEditor.svelte`, `ProjectTimeline.svelte`, `record-editor.svelte`, `schedule-parsers.ts`, `trades.ts`, `zones.ts`, `dates.ts`, `conversations.ts`, `message-import.ts`, `classifier.ts`, `ai.ts`.
 - **Co-located project hub tabs (`src/data/model/projects/`):** `ProjectProgrammeTab.svelte`, `ProjectBimTab.svelte`, `ProjectFinanceTab.svelte`, `ProjectSustainabilityTab.svelte`, `ProjectComplianceTab.svelte`, `BimPrepareStep.svelte`, `BimAssetReview.svelte`, `BimItemMatrixReview.svelte`.
 
 ## Verification gates

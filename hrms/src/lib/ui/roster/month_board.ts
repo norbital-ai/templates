@@ -99,6 +99,18 @@ export type Day = {
 	readonly findings: readonly string[];
 };
 
+export type BuildDaysInput = {
+	readonly dates: readonly string[];
+	readonly people: readonly Person[];
+	readonly entries: readonly EntryRow[];
+	readonly shifts: readonly ShiftRow[];
+	readonly patterns: readonly PatternRow[];
+	readonly holidays: readonly HolidayRow[];
+	readonly leave: readonly LeaveRow[];
+	readonly locked: ReadonlySet<string>;
+	readonly today: string;
+};
+
 export const dayKey = (employmentId: string, date: string): string => `${employmentId}:${date}`;
 
 /** Every `YYYY-MM-DD` from `from` to `to`, both inclusive. */
@@ -108,6 +120,11 @@ export function datesBetween(from: string, to: string): string[] {
 		{ length: Math.max(0, Duration.toDays(DateTime.distance(first, DateTime.makeUnsafe(to))) + 1) },
 		(_, day) => DateTime.formatIsoDateUtc(DateTime.add(first, { days: day }))
 	);
+}
+
+/** Cached weekday index (`0 = Sun .. 6 = Sat`) for an ISO date string. */
+export function weekdayOfDate(date: string): number {
+	return DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay;
 }
 
 /** The stored intervals, or null when none were recorded (or the value is not a list of intervals). */
@@ -165,9 +182,33 @@ export function workedMinutes(intervals: readonly Interval[] | null): number | n
 	return Math.round(minutes);
 }
 
+// Hoisted Intl formatters: constructing Intl.NumberFormat / DateTimeFormat per cell stalls fast scroll.
+const HOURS_FORMATTER = new Intl.NumberFormat('en', {
+	maximumFractionDigits: 2,
+	useGrouping: false
+});
+const DECIMAL_FORMATTER = new Intl.NumberFormat('en', { maximumFractionDigits: 2 });
+const CLOCK_FORMATTERS = new Map<string, Intl.DateTimeFormat>();
+
+function clockFormatterFor(timeZone: string): Intl.DateTimeFormat {
+	const cached = CLOCK_FORMATTERS.get(timeZone);
+	if (cached !== undefined) return cached;
+	const created = new Intl.DateTimeFormat('en-GB', {
+		day: '2-digit',
+		month: 'short',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hourCycle: 'h23',
+		timeZone
+	});
+	CLOCK_FORMATTERS.set(timeZone, created);
+	return created;
+}
+
 /** `8.5h`: hours to two decimals, trimmed. */
-export const hoursLabel = (minutes: number): string =>
-	`${new Intl.NumberFormat('en', { maximumFractionDigits: 2, useGrouping: false }).format(minutes / 60)}h`;
+export const hoursLabel = (minutes: number): string => `${HOURS_FORMATTER.format(minutes / 60)}h`;
 
 const CLOCK = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const clockMinutes = (clock: string): number =>
@@ -200,8 +241,13 @@ const WEEKDAYS = [
 	'FRIDAY',
 	'SATURDAY'
 ] as const;
+
 /** The weekday's shift, or null when the pattern or date is outside its period. */
-export const cycleShiftId = (pattern: PatternRow | undefined, date: string): string | null => {
+export const cycleShiftId = (
+	pattern: PatternRow | undefined,
+	date: string,
+	weekday?: number
+): string | null => {
 	const days = pattern?.pattern?.days;
 	const from = pattern?.effective_range?.from;
 	const to = pattern?.effective_range?.to ?? null;
@@ -218,7 +264,8 @@ export const cycleShiftId = (pattern: PatternRow | undefined, date: string): str
 		return id == null || id === '' ? null : String(id);
 	}
 	if (days == null) return null;
-	const id = days[WEEKDAYS[DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay] ?? 'SUNDAY'];
+	const wd = weekday ?? weekdayOfDate(date);
+	const id = days[WEEKDAYS[wd] ?? 'SUNDAY'];
 	return id == null || id === '' ? null : id;
 };
 
@@ -233,18 +280,20 @@ const findingsOf = (value: unknown): string[] => {
 	});
 };
 
-/** Every roster-person-day of `dates`, keyed `dayKey(employment, date)`. */
-export function buildDays(input: {
-	readonly dates: readonly string[];
-	readonly people: readonly Person[];
-	readonly entries: readonly EntryRow[];
-	readonly shifts: readonly ShiftRow[];
-	readonly patterns: readonly PatternRow[];
-	readonly holidays: readonly HolidayRow[];
-	readonly leave: readonly LeaveRow[];
-	readonly locked: ReadonlySet<string>;
-	readonly today: string;
-}): Map<string, Day> {
+export type BoardDayIndex = {
+	/** Returns the computed `Day` for `person` and `date`, memoized per cell so only visible cells pay build cost. */
+	day(person: Person, date: string): Day;
+	/** Cached weekday index (`0 = Sun .. 6 = Sat`) for a board date. */
+	weekday(date: string): number;
+};
+
+/**
+ * Builds lookup tables once for a roster month and computes each person-day lazily on demand
+ * (memoized per `(person.id, date)`), avoiding eager `O(people × dates)` work on every refresh.
+ */
+export function createBoardIndex(input: Omit<BuildDaysInput, 'people'>): BoardDayIndex {
+	const dateSet = new Set(input.dates);
+	const weekdays = new Map<string, number>(input.dates.map((date) => [date, weekdayOfDate(date)]));
 	const entries = new Map(
 		input.entries.map((row) => [dayKey(row.employment_id, row.work_date.slice(0, 10)), row])
 	);
@@ -252,7 +301,7 @@ export function buildDays(input: {
 	const leave = new Map<string, { codes: Set<string>; parts: Set<string> }>();
 	for (const row of input.leave) {
 		for (const slot of row.days) {
-			if (!input.dates.includes(slot.date)) continue;
+			if (!dateSet.has(slot.date)) continue;
 			const key = dayKey(row.employee ?? row.employment_id, slot.date);
 			const before = leave.get(key) ?? { codes: new Set<string>(), parts: new Set<string>() };
 			const code = row.catalog_code;
@@ -262,31 +311,56 @@ export function buildDays(input: {
 		}
 	}
 	const shifts = new Map(input.shifts.map((row) => [row.id, row]));
+	const shiftDuration = new Map<string, number | null>(
+		input.shifts.map((row) => [row.id, shiftMinutes(row)])
+	);
 	const patterns = new Map(input.patterns.map((row) => [row.id, row]));
-	const days = new Map<string, Day>();
-	for (const person of input.people) {
+	const personMeta = new WeakMap<
+		Person,
+		{ readonly contracts: readonly Contract[]; readonly lastDay: string | null }
+	>();
+	const cache = new Map<string, Day>();
+
+	const metaOf = (person: Person) => {
+		const cached = personMeta.get(person);
+		if (cached !== undefined) return cached;
 		const contracts = person.contracts ?? [person];
 		const ends = contracts.flatMap(({ to }) => (to == null ? [] : [to]));
 		const lastDay = ends.length < contracts.length ? null : (ends.toSorted().at(-1) ?? null);
-		for (const date of input.dates) {
+		const computed = { contracts, lastDay };
+		personMeta.set(person, computed);
+		return computed;
+	};
+
+	return {
+		weekday(date: string): number {
+			return weekdays.get(date) ?? weekdayOfDate(date);
+		},
+		day(person: Person, date: string): Day {
 			const key = dayKey(person.id, date);
+			const cached = cache.get(key);
+			if (cached !== undefined) return cached;
+
+			const { contracts, lastDay } = metaOf(person);
 			const contract = contracts.find(({ from, to }) => from <= date && (to == null || date <= to));
 			const pattern = contract?.patternId == null ? undefined : patterns.get(contract.patternId);
 			const entry = contract == null ? undefined : entries.get(dayKey(contract.id, date));
 			const shiftId = entry?.shift_definition_id == null ? null : entry.shift_definition_id;
 			const employed = contract !== undefined;
 			// a pattern projects only inside the contract that names it
-			const projectedId = shiftId == null ? cycleShiftId(pattern, date) : null;
+			const projectedId = shiftId == null ? cycleShiftId(pattern, date, weekdays.get(date)) : null;
 			const plannedId = shiftId ?? projectedId;
 			const planned = plannedId == null ? undefined : shifts.get(plannedId);
-			const plannedMinutes = shiftMinutes(planned);
+			const plannedMinutes =
+				plannedId == null ? null : (shiftDuration.get(plannedId) ?? shiftMinutes(planned));
 			const plannedOvertimeMinutes =
 				workedMinutes(intervalsOf(entry?.planned_overtime_intervals)) ?? 0;
 			const intervals = intervalsOf(entry?.actual_worked_intervals);
 			const actualMinutes = workedMinutes(intervals);
 			const target = (plannedMinutes ?? 0) + plannedOvertimeMinutes;
 			const off = leave.get(dayKey(person.employee ?? person.id, date));
-			days.set(key, {
+
+			const built: Day = {
 				date,
 				employed,
 				employmentId: contract?.id ?? null,
@@ -318,7 +392,20 @@ export function buildDays(input: {
 							},
 				locked: input.locked.has(person.id),
 				findings: findingsOf(entry?.findings)
-			});
+			};
+			cache.set(key, built);
+			return built;
+		}
+	};
+}
+
+/** Every roster-person-day of `dates`, keyed `dayKey(employment, date)`. */
+export function buildDays(input: BuildDaysInput): Map<string, Day> {
+	const index = createBoardIndex(input);
+	const days = new Map<string, Day>();
+	for (const person of input.people) {
+		for (const date of input.dates) {
+			days.set(dayKey(person.id, date), index.day(person, date));
 		}
 	}
 	return days;
@@ -347,18 +434,15 @@ export const isUnrecorded = (day: Day): boolean =>
 
 /** The recorded calendar date and clock, in the entity's zone. */
 export const clockStampOf = (instant: string, timeZone: string): string =>
-	new Intl.DateTimeFormat('en-GB', {
-		day: '2-digit',
-		month: 'short',
-		year: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
-		hourCycle: 'h23',
-		timeZone
-	}).format(new Date(instant));
+	clockFormatterFor(timeZone).format(new Date(instant));
 
 type Translator = (key: MessageKey, vars?: { readonly [name: string]: string | number }) => string;
+
+/** Fast allocation-free accessible label used on initial mount; full `describeDay` hydrates on hover/focus. */
+export function briefDayLabel(day: Day, subject: string): string {
+	const summary = day.shift ?? day.projectedShift ?? day.leave?.label ?? day.holiday;
+	return summary == null ? subject : `${subject} · ${summary}`;
+}
 
 /** Everything the cell shows, in words: its accessible name and hover text. */
 export function describeDay(day: Day, subject: string, timeZone: string, t: Translator): string {
@@ -385,9 +469,7 @@ export function describeDay(day: Day, subject: string, timeZone: string, t: Tran
 				: t('roster.layer_clocked_window', {
 						first: clockStampOf(first.start, timeZone),
 						last: clockStampOf(day.intervals.at(-1)?.end ?? first.start, timeZone),
-						hours: new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(
-							day.actualMinutes / 60
-						)
+						hours: DECIMAL_FORMATTER.format(day.actualMinutes / 60)
 					})
 		);
 	if (day.percent != null)

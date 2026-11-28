@@ -4,7 +4,7 @@ Verified directly against `templates/treasury/src/` on 25 November 2026.
 
 **Totals:** 26 models (9 ownership roots), 4 applications (16 pages), 10 custom record views,
 17 automations, 11 policies (4 teams), 1 integration, 1 file sync, 8 shared library modules,
-2 message catalogs (`en`, `zh`), 4 SQL migrations (`0001_initial.sql`–`0004_schema.sql`).
+2 message catalogs (`en`, `zh`), 1 SQL migration (`0001_initial.sql`).
 
 ## Workspace configuration
 

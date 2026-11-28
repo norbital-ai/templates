@@ -19,7 +19,7 @@ Blank cleanly separates **authored source declarations** (`src/`, `seed/`), **co
 |  src/i18n/+messages.ts (+zh)    English & Simplified Chinese model/field labels            |
 |  src/agent/+agent.md, AGENTS.md Norbius system brief & coding-agent structural map         |
 |  seed/+seeder.ts                seeder({ bank: { tree: 'blank' } })  [0 public rows]       |
-|  migrations/0001..0003 + lock   Editable SQL history, snapshot.json, physical.json         |
+|  migrations/0001_initial + lock   Editable SQL history, snapshot.json, physical.json         |
 +---------------------------------------------+----------------------------------------------+
                                               |
                                               v
@@ -49,7 +49,8 @@ Blank cleanly separates **authored source declarations** (`src/`, `seed/`), **co
 |  +---------------------------------------------------------------------------------------+ |
 |  | Tenant Database (Local/Tests: PGlite  |  Deployed: PostgreSQL per tenant)             | |
 |  |  - 1 Authored Table:  notes (audit + search triggers enabled)                         | |
-|  |  - 20 System Tables:  sys_* (18), approval_request, requestor                         | |
+|  |  - 22 System Tables:  sys_* (20, incl. sys_team & sys_envoy_channel),                 | |
+|  |                       approval_request, requestor                                     | |
 |  |  - 5 Engine Tables:   bolt_history*, bolt_approvals, bolt_approval_effect             | |
 |  +---------------------------------------------------------------------------------------+ |
 +--------------------------------------------------------------------------------------------+
@@ -57,7 +58,7 @@ Blank cleanly separates **authored source declarations** (`src/`, `seed/`), **co
 
 ### Architectural Properties
 
-- **Isolated toolchain:** `package.json` pins `@norbital-ai/bolt` (`0.0.10`), `@norbital-ai/ui` (`0.0.10`), `svelte` (`5.57.3`), `vite` (`8.3.5`), and `effect` (`4.0.6`), while `@norbital-ai/bolt-cli` (`0.0.10`), `typescript` (`6.0.3`), `@typescript/native`, `svelte2tsx`, `vitest`, and `@effect/vitest` stay in `devDependencies` and never enter a deployed release.
+- **Isolated toolchain:** `package.json` pins `@norbital-ai/bolt` (`0.0.4`), `@norbital-ai/ui` (`0.0.4`), `svelte` (`5.57.3`), `vite` (`8.3.5`), and `effect` (`4.0.6`), while `@norbital-ai/bolt-cli` (`0.0.4`), `typescript` (`6.0.3`), `@typescript/native`, `svelte2tsx`, `vitest`, and `@effect/vitest` stay in `devDependencies` and never enter a deployed release.
 - **Generated `.norbital/` bridge:** `tsconfig.json` extends `./.norbital/tsconfig.json`. `.norbital/` is produced locally by `bolt check`, `bolt dev`, and `bolt build` and is git-ignored.
 - **Zero-footprint dormancy:** Because Blank declares `0` apps, `0` automations, `0` policies, and `0` custom integrations, runtime schedulers, outbox dispatchers, and sync pollers remain idle while the full platform schema and shell stay immediately operable.
 
@@ -82,7 +83,7 @@ templates/blank/
 |   |       +-- +agent.md                 Norbius brief (domain-neutral workspace assistant)
 |   |       +-- AGENTS.md                 Coding-agent map, folder ownership rule, gates
 |   +-- seed/+seeder.ts                   seeder({ bank: { tree: 'blank' } })
-|   +-- migrations/                       0001..0003 SQL + snapshot + lock + physical.json
+|   +-- migrations/                       0001_initial.sql + snapshot + lock + physical.json
 |
 +-- STANDARD BOLT EXTENSION SLOTS (Empty in Blank -- Add Incrementally)
     +-- src/data/model/<owner>/<child>/   Nested folders mirror ownership; LEAF folder = name
@@ -111,7 +112,7 @@ templates/blank/
 
 ## 3. Data Model & Physical ER Diagram
 
-Even with a single authored model, Blank's compiled schema (`migrations/snapshot.json` and `migrations/0001_initial.sql`–`0003_schema.sql`) materializes **26 physical tables**: 1 authored model table (`notes`), 20 platform system tables (`approval_request`, `requestor`, and 18 `sys_*` tables), and 5 engine-internal tables (`bolt_history*`, `bolt_approvals`, `bolt_approval_effect`).
+Even with a single authored model, Blank's compiled schema (`migrations/snapshot.json` and `migrations/0001_initial.sql`) materializes **28 physical tables**: 1 authored model table (`notes`), 22 platform system tables (`approval_request`, `requestor`, and 20 `sys_*` tables including `sys_team` and `sys_envoy_channel`), and 5 engine-internal tables (`bolt_history*`, `bolt_approvals`, `bolt_approval_effect`).
 
 ```text
 =================================== AUTHORED DOMAIN MODEL ====================================
@@ -127,12 +128,16 @@ Even with a single authored model, Blank's compiled schema (`migrations/snapshot
 | sys_workspace [PK: id (text)] |       | sys_user  [PK: id (text)]                          |
 |  singleton id = ...0001       |       |  name, email (UX lower), phone -> phone_key (UX)   |
 |  name (max 120), revision     |       |  kind (staff|external|anonymous), admin, active    |
-+-------------------------------+       |  team, party -> party_id, preferences (JSON check) |
++-------------------------------+       |  team -> sys_team, party, preferences (JSON check) |
 +-------------------------------+       |  CK admin_staff: admin=false OR kind='staff'       |
-| sys_config    [PK: key]       |       +------+------------+--------------+-----------------+
-| sys_challenge [PK: addr_mac]  |              |            |              |
+| sys_team      [PK: id (text)] |       +------+------------+--------------+-----------------+
+|  name, parent -> sys_team,    |              |            |              |
+|  policies (GIN text[])        |              |            |              |
 +-------------------------------+              |            |              |
-                                    +----------+            |              +-----------+
++-------------------------------+              |            |              |
+| sys_config    [PK: key]       |              |            |              |
+| sys_challenge [PK: addr_mac]  |              |            |              |
++-------------------------------+   +----------+            |              +-----------+
                                     v (1:N)                 v (1:N)                    v (1:N)
 +-------------------------------------+  +-----------------------------+  +------------------+
 | sys_session  [PK: id]               |  | sys_invitation  [PK: id]    |  | sys_api_key      |
@@ -143,19 +148,20 @@ Even with a single authored model, Blank's compiled schema (`migrations/snapshot
 
 =========================== INTEGRATIONS, MESSAGING, SYNC & RUNS =============================
 +----------------------------------------------------------+    +----------------------------+
-| sys_integration  [PK: id (text)]                         |    | Standalone Platform Tables |
+| sys_integration  [PK: id (text)]                         |    | Envoys & Platform Tables   |
 |  owner -> sys_user (RESTRICT)                            |    |  sys_envoy       [PK: uuid]|
 |  UX one_per_member: (owner, integration) WHERE owner!=N  |    |   policies (GIN text[])    |
-|  integration, name, envoy, active, configuration, status |    |  sys_run         [PK: text]|
-+---+----------+----------+----------+----------+----------+    |   key (UX), state, due_at  |
-    |          |          |          |          |               |  sys_notification[PK: text]|
-    | CASCADE  | CASCADE  | CASCADE  | CASCADE  | CASCADE       |   once (UX), (member, at)  |
-    v          v          v          v          v               |  sys_file        [PK: text]|
-+----------+ +----------+ +--------+ +--------+ +------------+  |   sha256, size, mime, key  |
-| sys_conv | | sys_msg  | | sys_   | | sys_   | | sys_sync & |  +----------------------------+
-| ersation | | (seq id) | | inbox  | | outbox | | sys_sync_  |
-|          | |          | | (UX 1  | | writer | | row (UX    |
-|          | |          | | deliv) | | ->user | | partition, |
+|  integration, name, active, configuration, status,       |    |  sys_envoy_channel         |
+|  import_start, listen, classifier, epoch                 |    |   envoy -> sys_envoy,      |
++---+----------+----------+----------+----------+----------+    |   integration -> sys_int., |
+    |          |          |          |          |               |   scope, group_messages    |
+    | CASCADE  | CASCADE  | CASCADE  | CASCADE  | CASCADE       |  sys_run         [PK: text]|
+    v          v          v          v          v               |   key (UX), state, due_at  |
++----------+ +----------+ +--------+ +--------+ +------------+  |  sys_notification[PK: text]|
+| sys_conv | | sys_msg  | | sys_   | | sys_   | | sys_sync & |  |   once (UX), (member, at)  |
+| ersation | | (seq id) | | inbox  | | outbox | | sys_sync_  |  |  sys_file        [PK: text]|
+|          | |          | | (UX 1  | | writer | | row (UX    |  |   sha256, size, mime, key  |
+|          | |          | | deliv) | | ->user | | partition, |  +----------------------------+
 |          | |          | |        | | SETNUL)| | record,rmt)|
 +----------+ +----------+ +--------+ +--------+ +------------+
 
@@ -191,7 +197,7 @@ Even with a single authored model, Blank's compiled schema (`migrations/snapshot
 | ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `notes`            | `notes__gin__73732636`                   | GIN index on generated `bolt_search` (`tsvector` derived from `title`)                                             |
 | `sys_user`         | `sys_user__ck__477bc0d2` (`admin_staff`) | `admin = false OR kind = 'staff'` (external/anonymous accounts can never be admin)                                 |
-| `sys_user`         | `sys_user__ck__5ef80452`                 | `store_json_valid(preferences, ...)` validating `appearance`, `email_notifications`, `locale` (`max 35`), `sounds` |
+| `sys_user`         | `sys_user__ck__8405d565`                 | `store_json_valid(preferences, ...)` validating `appearance`, `email_notifications`, `locale` (`max 35`), `sounds` |
 | `sys_user`         | `sys_user__ux__08e69363`, `1c9f4db2`     | Unique `lower(email)` and unique digit-stripped computed `phone_key`                                               |
 | `sys_workspace`    | `sys_workspace__ck__4e7b428e`            | Singleton row `id = '00000000-0000-0000-0000-000000000001'`                                                        |
 | `sys_invitation`   | `addressed` check                        | At least one of `email` or `phone` must be non-null                                                                |
@@ -270,7 +276,7 @@ Because `notes` omits all write verb declarations (`create`, `update`, `delete`,
 
 ### Schema Lineage Guard (`bolt_history_register`)
 
-Whenever a migration calls `bolt_history_register(model_name, definition)` (seen in `0001_initial.sql`, `0002_schema.sql`, and `0003_schema.sql`):
+Whenever a migration calls `bolt_history_register(model_name, definition)` (seen in `0001_initial.sql`):
 
 1. It locks the current active row in `bolt_history_current` (matching either `model_name` or `definition->>'was'` for renames).
 2. If the definition changed, it **refuses** the migration if either:
@@ -282,7 +288,7 @@ Whenever a migration calls `bolt_history_register(model_name, definition)` (seen
 
 ## 5. Schema Migration & Replay Verification Loop
 
-Blank already demonstrates Bolt's deterministic, hash-verified SQL migration mechanism across three sequential migrations in `migrations/`.
+Blank demonstrates Bolt's deterministic, hash-verified SQL migration mechanism through its rebased initial migration in `migrations/`.
 
 ```text
 +--------------------------------------------------------------------------------------------+
@@ -291,27 +297,13 @@ Blank already demonstrates Bolt's deterministic, hash-verified SQL migration mec
 |  [Empty DB]                                                                                |
 |   physical hash: 4f53cda1...                                                               |
 |       |                                                                                    |
-|       |  0001_initial.sql  (160 steps | file hash: b7c3109c...)                            |
+|       |  0001_initial.sql  (183 steps | file hash: 52c5418b...)                            |
 |       |  - Functions: store_json_valid, store_row_rules, store_statement_rules,            |
 |       |    bolt_search_*, bolt_record_label_*, bolt_history_*, bolt_audit                  |
-|       |  - Tables (26), FKs (15), Triggers, Indexes, Initial History Schemas               |
+|       |  - Tables (28), FKs (19), Triggers, Indexes, Initial History Schemas               |
 |       v                                                                                    |
-|  [Prefix 0001]                                                                             |
-|   physical hash: 8f379ee6...                                                               |
-|       |                                                                                    |
-|       |  0002_schema.sql   (3 steps   | file hash: 3d1affd7...)                            |
-|       |  - Widens sys_user.preferences.locale: enum['en','zh'] -> text(max: 35)            |
-|       |  - Drops ck__3996db29 -> re-registers history -> validates rows -> adds ck__8405.. |
-|       v                                                                                    |
-|  [Prefix 0002]                                                                             |
-|   physical hash: 3591d56e...                                                               |
-|       |                                                                                    |
-|       |  0003_schema.sql   (3 steps   | file hash: 26f1342e...)                            |
-|       |  - Adds optional sys_user.preferences.email_notifications: bool                    |
-|       |  - Drops ck__8405d565 -> re-registers history -> validates rows -> adds ck__5ef8.. |
-|       v                                                                                    |
-|  [Prefix 0003 / HEAD]                                                                      |
-|   physical hash: 67435526...  <===>  snapshot.json (hash: 9fcd24a1...) + physical.json     |
+|  [Prefix 0001 / HEAD]                                                                      |
+|   physical hash: 5ae96e26...  <===>  snapshot.json (hash: 40bdf5e1...) + physical.json     |
 +---------------------------------------------+----------------------------------------------+
                                               |
                                               v
@@ -320,17 +312,17 @@ Blank already demonstrates Bolt's deterministic, hash-verified SQL migration mec
 |                                                                                            |
 |   1. Compile src/ models + platform models ---------> Expected Snapshot                    |
 |   2. Spin up scratch native DB (PGlite)                                                    |
-|   3. Replay "" -> 0001 -> 0002 -> 0003 step by step                                        |
+|   3. Replay "" -> 0001 step by step                                                        |
 |   4. At EVERY prefix: inspect catalog -> hash physical state -> compare migrations.lock    |
 |   5. At HEAD: compare catalog against physical.json (format 2) & Expected Snapshot         |
 |                                                                                            |
-|   Mismatch? --> `bolt check` FAILS   |   Schema changed? --> `bolt build` emits 0004_*.sql |
+|   Mismatch? --> `bolt check` FAILS   |   Schema changed? --> `bolt build` emits 0002_*.sql |
 +--------------------------------------------------------------------------------------------+
 ```
 
 ### Hazard Annotations & Commit Atomicity
 
-- Each generated SQL file documents step hazards (`additive`, `validating`, `data`) and lock risks (`access-exclusive-lock`, `table-scan`) directly in comments (see `0002_schema.sql` and `0003_schema.sql`).
+- Each generated SQL file documents step hazards (`additive`, `validating`, `data`) and lock risks (`access-exclusive-lock`, `table-scan`) directly in comments (see `0001_initial.sql`).
 - Shape-changing constraints include an editable `data:` section followed by an explicit row-count validation `DO` block that aborts with the offending row count before adding the new `CHECK` constraint.
 - Always commit `migrations/*.sql`, `migrations/snapshot.json`, `migrations/migrations.lock.json`, and `migrations/physical.json` together as a single atomic unit.
 
@@ -420,7 +412,7 @@ Blank ships configured for English and Simplified Chinese (`Asia/Singapore`, `en
   +-------------------------------+                       |                         |
   | User Preference Override      |                       v                         v
   |  sys_user.preferences.locale  |             +-------------------+     +-------------------+
-  |  (text, max 35 chars; 0002)   |             | Public Base Pack  |     | External Seed Bank|
+  |  (text, max 35 chars)         |             | Public Base Pack  |     | External Seed Bank|
   +---------------+---------------+             | (in release art.) |     | (--bank=<path>)   |
                   |                             |  0 public rows    |     |  In-memory read   |
          +--------+--------+                    +---------+---------+     |  of tree 'blank'  |
@@ -439,6 +431,6 @@ Blank ships configured for English and Simplified Chinese (`Asia/Singapore`, `en
 
 ### Runtime Notes
 
-- **Locale widening (`0002_schema.sql`):** `sys_user.preferences.locale` accepts arbitrary BCP-47 tags up to 35 characters (`max: 35`), falling back to the workspace default (`en-SG` / `en`) when no catalog exists for a tag.
+- **Locale support:** `sys_user.preferences.locale` accepts arbitrary BCP-47 tags up to 35 characters (`max: 35`), falling back to the workspace default (`en-SG` / `en`) when no catalog exists for a tag.
 - **Chinese catalog (`src/i18n/+zh.messages.ts`):** Maps `models.notes.label` and `models.notes.singular` to `笔记`, `models.notes.fields.title` to `标题`, and `models.notes.fields.body` to `正文`.
 - **Seed isolation:** Blank intentionally contains no `seed/public/` directory and no `seed/test/` fixtures. Release artifacts ship completely empty; private demo members exist only in an external operator bank read in memory during explicit `bolt seed --bank=<path>` runs.

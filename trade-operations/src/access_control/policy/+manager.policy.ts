@@ -4,6 +4,9 @@ export default policy({
 	description: 'Commercial manager with both sales and purchasing access.',
 	capabilities: { apps: ['operations'] },
 	grants: {
+		sys_integration: {
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
+		},
 		// order owners, commission salespeople and logistics handlers
 		sys_user: { outputs: { default: {} } },
 		source_lot_costs: {
@@ -26,7 +29,26 @@ export default policy({
 			create: {}
 		},
 		parties: {
-			outputs: { default: {} }
+			outputs: { default: { history: true } },
+			// related_party belongs to Finance; managers maintain partner profile locally and propose credit limit adjustments with Finance approval
+			update: {
+				fields: [
+					'tax_id',
+					'bank_name',
+					'bank_account',
+					'profile_notes',
+					'credit_limit_target',
+					'credit_days_target'
+				],
+				verdict: function* (changes, ctx) {
+					const creditChanged = changes.some(
+						({ before, after }) =>
+							before.credit_limit_target !== after.credit_limit_target ||
+							before.credit_days_target !== after.credit_days_target
+					);
+					return creditChanged ? yield* review(ctx, 'finance') : ctx.allow();
+				}
+			}
 		},
 		settlements: {
 			outputs: { default: {} }
@@ -137,6 +159,12 @@ export default policy({
 		},
 		source_sales_lines: {
 			outputs: { default: { history: true } }
+		},
+		user_profiles: {
+			outputs: { default: { history: true } },
+			create: {},
+			update: {},
+			delete: {}
 		}
 	}
 });

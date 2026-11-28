@@ -4,7 +4,7 @@ import { columns, SourceRowInvalid, type DatabaseContext } from './polling.js';
 import { sourceKeys, type SourceProjection } from './sql.js';
 
 const PAGE = 999;
-type PreservedModel = 'parties' | 'products' | 'warehouses' | 'source_sales_lines';
+type PreservedModel = 'parties' | 'products' | 'warehouses' | 'settlements' | 'source_sales_lines';
 type Context = DatabaseContext & Pick<SyncCtx<'kingdee'>, 'query'>;
 
 /** A completed source listing verifies absence again before retaining a local master as inactive. */
@@ -35,17 +35,19 @@ export const preserveSource = ({
 					? (yield* ctx.query({ products: page })).products
 					: model === 'warehouses'
 						? (yield* ctx.query({ warehouses: page })).warehouses
-						: (yield* ctx.query({
-								source_sales_lines: {
-									...page,
-									where: {
-										...page.where,
-										kind: { eq: 'invoice_only' },
-										order: { is_null: true },
-										active: { eq: true }
+						: model === 'settlements'
+							? (yield* ctx.query({ settlements: page })).settlements
+							: (yield* ctx.query({
+									source_sales_lines: {
+										...page,
+										where: {
+											...page.where,
+											kind: { eq: 'invoice_only' },
+											order: { is_null: true },
+											active: { eq: true }
+										}
 									}
-								}
-							})).source_sales_lines;
+								})).source_sales_lines;
 		const remoteKey = (external: string) =>
 			model === 'source_sales_lines' ? external.replace(/^invoice-only:/, '') : external;
 		const keys = local.rows.map((row) => remoteKey(row.external_code));

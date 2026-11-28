@@ -39,11 +39,11 @@ themselves to commit directly: every write re-evaluates live state server-side i
 +--------------------------------------------------------------------------------------------+
 |                                 CLIENT APPS (Svelte 5 Pages)                               |
 +------------------------+-----------------------+---------------------+---------------------+
-|  scheduling (6 pages)  | configuration (3 pgs) |  provider (1 page)  |  portal (2 pages)   |
+|  scheduling (6 pages)  | configuration (2 pgs) |  provider (1 page)  |  portal (2 pages)   |
 |  - schedule (Board/Tbl)| - services            |  - today            |  - book (3-step)    |
 |  - bookings (All/Reqs) | - settings (singleton)|  + +session.svelte  |  - appointments     |
-|  - dispatch (Attn/Shft)| - connections         |    (GPS watch Fiber,|  (public visitor -> |
-|  - live (Split Map/Tbl)|                       |     2m throttle)    |   PhoneVerify auth) |
+|  - dispatch (Attn/Shft)| (Connections live in  |    (GPS watch Fiber,|  (public visitor -> |
+|  - live (Split Map/Tbl)|  Settings -> Integr.) |     2m throttle)    |   PhoneVerify auth) |
 |  - customers, providers|                       |                     |                     |
 |  + 7 RecordHub views   |                       |                     |                     |
 |  + Recovery.svelte     |                       |                     |                     |

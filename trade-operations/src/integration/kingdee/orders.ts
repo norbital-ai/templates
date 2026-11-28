@@ -137,7 +137,8 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 		orders: drafts,
 		parties,
 		settlements,
-		sys_user
+		sys_user,
+		user_profiles
 	} = yield* ctx.query({
 		orders: {
 			where: {
@@ -152,7 +153,8 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			fields: ['external_code', 'name', 'kind']
 		},
 		settlements: { where: { source: { eq: instance } }, fields: ['code'] },
-		sys_user: { where: { active: { eq: true } }, fields: ['id'] }
+		sys_user: { where: { active: { eq: true } }, fields: ['id'] },
+		user_profiles: { fields: ['user_id', 'kingdee_employee_id'] }
 	});
 	// an order confirmed here keeps the commission rule and freight treatment in force, as a local confirmation does
 	const { commission_rules, commercial_settings } = yield* ctx.query({
@@ -165,17 +167,29 @@ export const readKingdeeOrders = Effect.fnUntraced(function* (
 			return uuid && row.source_order_key ? [[uuid, row.source_order_key] as const] : [];
 		})
 	);
-	const bound = yield* checked(() =>
-		Object.entries(
-			Schema.decodeUnknownSync(
-				Schema.Record(Schema.String, Schema.Struct({ employeeId: Schema.String }))
-			)(JSON.parse(ctx.configuration.salespersonBindings ?? '{}'))
+	const boundMap = new Map(
+		yield* checked(() =>
+			Object.entries(
+				Schema.decodeUnknownSync(
+					Schema.fromJsonString(
+						Schema.Record(Schema.String, Schema.Struct({ employeeId: Schema.String }))
+					)
+				)(ctx.configuration.salespersonBindings?.trim() || '{}')
+			)
 		)
 	);
+	for (const profile of user_profiles.rows) {
+		if (profile.kingdee_employee_id)
+			boundMap.set(profile.user_id, { employeeId: profile.kingdee_employee_id });
+	}
+	const bound = [...boundMap.entries()];
 	// what a waiting order waits on: an employee binding, or a party or settlement method arriving
 	const { retry, close } = window.with(
 		yield* hash([
 			ctx.configuration.salespersonBindings ?? '',
+			user_profiles.rows
+				.map((p): readonly [string, string] => [p.user_id, p.kingdee_employee_id ?? ''])
+				.sort(([a], [b]) => a.localeCompare(b)),
 			parties.rows.length,
 			settlements.rows.length
 		])
@@ -542,6 +556,21 @@ export const pushOrder = Effect.fnUntraced(function* (
 		!order.payment_terms
 	)
 		return null;
+	const ownerProfile = (yield* ctx.query({
+		user_profiles: {
+			where: { user_id: { eq: order.owner } },
+			fields: ['kingdee_employee_id', 'kingdee_department_id', 'kingdee_biller_id'],
+			limit: 1
+		}
+	})).user_profiles.rows[0];
+	const ownerBinding =
+		ownerProfile?.kingdee_employee_id && ownerProfile.kingdee_department_id
+			? {
+					employeeId: ownerProfile.kingdee_employee_id,
+					departmentId: ownerProfile.kingdee_department_id,
+					...(ownerProfile.kingdee_biller_id ? { billerId: ownerProfile.kingdee_biller_id } : {})
+				}
+			: undefined;
 	const { direction } = order;
 	const key = order.source_order_key;
 	const identity = importedOrderIdentity(key);
@@ -573,6 +602,7 @@ export const pushOrder = Effect.fnUntraced(function* (
 		reference: before?.reference ?? order.number,
 		direction,
 		owner_id: order.owner,
+		...(ownerBinding ? { owner_binding: ownerBinding } : {}),
 		ordered_on: order.ordered_on,
 		currency: order.currency,
 		tax_inclusive: order.tax_inclusive,

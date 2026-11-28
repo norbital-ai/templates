@@ -1,5 +1,5 @@
 import { expect, it } from '@effect/vitest';
-import { xlsxWorkbook } from '../src/lib/xlsx.js';
+import { reportColumnsToXlsx, xlsxWorkbook } from '../src/lib/xlsx.js';
 
 const decoder = new TextDecoder();
 
@@ -48,4 +48,43 @@ it('writes an XLSX workbook with the displayed columns and numeric cells', () =>
 	expect(sheet).toContain('TR-2026-0001');
 	expect(sheet).toContain('<v>22.60</v>');
 	expect(sheet).toContain('<v>10.00</v>');
+});
+
+it('auto-appends explicit currency columns, formats per-row currency scale, and preserves >15-digit BigDecimal precision', () => {
+	const cols = reportColumnsToXlsx([
+		{ field: 'order_number', label: 'Order' },
+		{ field: 'net', label: 'Net', kind: { kind: 'money', currency: 'currency' } },
+		{ field: 'cost', label: 'Cost', kind: { kind: 'money', currency: 'cost_currency' } }
+	]);
+	expect(cols.map((c) => c.field)).toEqual([
+		'order_number',
+		'net',
+		'cost',
+		'currency',
+		'cost_currency'
+	]);
+	const bytes = xlsxWorkbook('Multi', cols, [
+		{
+			order_number: 'SO-JPY',
+			net: '12500',
+			cost: '9007199254740993.125',
+			currency: 'JPY',
+			cost_currency: 'CNY'
+		},
+		{
+			order_number: 'SO-USD',
+			net: '100.5',
+			cost: '720',
+			currency: 'USD',
+			cost_currency: 'CNY'
+		}
+	]);
+	const sheet = files(bytes).get('xl/worksheets/sheet1.xml') ?? '';
+	expect(sheet).toContain('>Currency</t>');
+	expect(sheet).toContain('>Cost currency</t>');
+	expect(sheet).toContain('>JPY</t>');
+	expect(sheet).toContain('>USD</t>');
+	expect(sheet).toContain('<v>12500</v>');
+	expect(sheet).toContain('<v>100.50</v>');
+	expect(sheet).toContain('<v>9007199254740993.13</v>');
 });

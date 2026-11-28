@@ -7,7 +7,6 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { cn, Icon } from '@norbital-ai/ui';
-	import { Imposter, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { hoursLabel, isAbsent, isUnrecorded, type Day } from './month_board.js';
 
 	let { ctx, day }: { ctx: PageContext; day: Day } = $props();
@@ -30,15 +29,11 @@
 					.filter(Boolean)
 					.join(' · ')
 	);
-	const warning = $derived(day.findings.join('\n'));
 </script>
 
-<Stack
-	gap="none"
-	justify="center"
-	size="fill"
+<div
 	class={cn(
-		'relative rounded-sm px-1 pt-0.5 pb-1.5 text-center tabular-nums',
+		'relative flex size-full flex-col justify-center rounded-sm px-1 pt-0.5 pb-1.5 text-center tabular-nums [contain:layout_style]',
 		!day.employed && 'bg-muted/20 text-muted-foreground/40',
 		day.employed && day.holiday != null && 'bg-warning/10',
 		day.employed && day.leave != null && 'bg-brand/10',
@@ -46,7 +41,7 @@
 	)}
 >
 	{#if day.left != null}
-		<Imposter placement="fill">
+		<div class="pointer-events-none absolute inset-0">
 			<svg
 				aria-hidden="true"
 				class="size-full text-destructive/50"
@@ -59,17 +54,19 @@
 					vector-effect="non-scaling-stroke"
 				/>
 			</svg>
-		</Imposter>
+		</div>
 	{:else if !day.employed}
 		<span aria-hidden="true" class="h-px w-3/4 self-center bg-muted-foreground/40"></span>
 	{:else}
 		{#if day.shift != null}
-			<Inline gap="xs" justify="center" class="min-w-0 text-xs leading-5 font-medium sm:text-sm">
+			<div
+				class="inline-flex min-w-0 items-center justify-center gap-1 text-xs leading-5 font-medium sm:text-sm"
+			>
 				<span class="truncate">{day.shift}</span>
 				{#if plannedExtra !== ''}
 					<span class="shrink-0 text-micro font-normal text-muted-foreground">{plannedExtra}</span>
 				{/if}
-			</Inline>
+			</div>
 		{:else if day.projectedShift != null}
 			<span class="truncate text-xs leading-5 text-muted-foreground sm:text-sm"
 				>{day.projectedShift}</span
@@ -112,14 +109,14 @@
 			<span class="text-micro leading-3 text-warning">{ctx.t('roster.progress_open')}</span>
 		{/if}
 		{#if day.findings.length > 0}
-			<Imposter as="span" placement="top-start" offset="none" layer="under" class="p-0.5">
+			<span class="pointer-events-none absolute top-0 start-0 p-0.5">
 				<Icon name="lucide:triangle-alert" class="size-2.5 text-warning" />
-			</Imposter>
+			</span>
 		{/if}
 		{#if day.locked}
-			<Imposter as="span" placement="top-end" offset="none" layer="under" class="p-0.5">
+			<span class="pointer-events-none absolute top-0 end-0 p-0.5">
 				<Icon name="lucide:lock-keyhole" class="size-2.5 text-muted-foreground" />
-			</Imposter>
+			</span>
 		{/if}
 	{/if}
-</Stack>
+</div>

@@ -1,8 +1,13 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
-	import { Badge, Show, Table, Tabs, type Col } from '@norbital-ai/ui';
-	import { AppShell } from '@norbital-ai/ui/layout';
+	import { Badge, EmptyState, Show, Table, TableSkeleton, Tabs, type Col } from '@norbital-ai/ui';
+	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import {
+		kingdeeIntegrationRead,
+		workspaceKingdeeSummary
+	} from '../../../integration/kingdee/connection-status.js';
+	import KingdeeStatusBanner from '../../../lib/ui/kingdee-status-banner.svelte';
 	import {
 		downloadWorkbook,
 		downloadXlsx,
@@ -18,6 +23,15 @@
 
 	const clock = ctx.clock('minute');
 	const day = ctx.clock('day');
+	const kingdeeRead = $derived(
+		ctx.catalog?.sys_integration ? ctx.query(kingdeeIntegrationRead) : null
+	);
+	const kingdeeInstances = $derived(kingdeeRead?.current?.sys_integration.rows ?? null);
+	const disconnected = $derived(
+		kingdeeInstances !== null && workspaceKingdeeSummary(kingdeeInstances).state !== 'connected'
+	);
+	const anyProductRead = ctx.query({ products: { fields: ['id'], limit: 1 } });
+	const hasProducts = $derived((anyProductRead.current?.products.rows.length ?? 0) > 0);
 	let tab = $state('products');
 	const logistics = $derived(ctx.catalog?.stock_snapshots?.output === 'logistics');
 	// each SKU per warehouse region: on hand, what open orders promise out and in, and the balance they leave
@@ -177,59 +191,95 @@
 		]}
 		toolbar={{
 			new: false,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => void exportProducts()
-				}
-			]
+			actions: hasProducts
+				? [
+						{
+							icon: 'lucide:file-spreadsheet',
+							name: ctx.t('component.export_xlsx'),
+							run: () => void exportProducts()
+						}
+					]
+				: []
 		}}
-	/>{/snippet}
+	>
+		{#snippet empty()}
+			<EmptyState
+				title={ctx.t('component.products_empty')}
+				{...disconnected ? { description: ctx.t('component.kingdee_empty_connect_hint') } : {}}
+			/>
+		{/snippet}
+	</Table>{/snippet}
 {#snippet projectedCell({ row }: { row: NonNullable<typeof rows>[number] })}<span
 		class="tabular-nums"><Show {ctx} kind={quantityKind} value={row.projected} /></span
 	>{#if row.short}
 		<Badge variant="destructive">{ctx.t('stock.availability.short')}</Badge>{/if}{/snippet}
-{#snippet stock()}<Table
-		{ctx}
-		layout="grid"
-		of={rows ?? []}
-		key="stock_regions"
-		columns={stockColumns}
-		toolbar={{
-			// a stock past one read says so in the title, where it shifts nothing
-			title: incomplete
-				? `${ctx.t('models.stock_snapshots.label')} · ${ctx.t('stock.availability.incomplete')}`
-				: ctx.t('models.stock_snapshots.label'),
-			description: ctx.t('stock.availability.basis'),
-			new: false,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('stock', day.today, stockColumns, rows ?? [])
-				}
-			]
-		}}
-	/>{/snippet}
+{#snippet stock()}
+	{#if inventory?.error}
+		<EmptyState tone="danger" title={inventory.error.message} />
+	{:else if !rows}
+		<div aria-busy="true" aria-label={ctx.t('component.reports_loading')}><TableSkeleton /></div>
+	{:else}
+		<Table
+			{ctx}
+			layout="grid"
+			of={rows}
+			key="stock_regions"
+			columns={stockColumns}
+			toolbar={{
+				// a stock past one read says so in the title, where it shifts nothing
+				title: incomplete
+					? `${ctx.t('models.stock_snapshots.label')} · ${ctx.t('stock.availability.incomplete')}`
+					: ctx.t('models.stock_snapshots.label'),
+				description: ctx.t('stock.availability.basis'),
+				new: false,
+				actions:
+					rows.length > 0
+						? [
+								{
+									icon: 'lucide:file-spreadsheet',
+									name: ctx.t('component.export_xlsx'),
+									run: () => downloadXlsx('stock', day.today, stockColumns, rows)
+								}
+							]
+						: []
+			}}
+		>
+			{#snippet empty()}
+				<EmptyState
+					title={ctx.t('component.stock_empty')}
+					{...disconnected ? { description: ctx.t('component.kingdee_empty_connect_hint') } : {}}
+				/>
+			{/snippet}
+		</Table>
+	{/if}
+{/snippet}
 {#snippet warehouses()}<Table
 		{ctx}
 		of="warehouses"
 		columns={['external_code', 'name', 'group_code', 'active']}
 		toolbar={{ new: false }}
-	/>{/snippet}
+	>
+		{#snippet empty()}
+			<EmptyState
+				title={ctx.t('component.warehouses_empty')}
+				{...disconnected ? { description: ctx.t('component.kingdee_empty_connect_hint') } : {}}
+			/>
+		{/snippet}
+	</Table>{/snippet}
 <AppShell
 	description={ctx.t('app.warehouse.description')}
 	icon="lucide:package"
 	title={ctx.t('component.stock')}
 	variant="full"
-	><Tabs
-		value={tab}
-		on_value_change={(value) => (tab = value)}
-		tabs={[
-			{ name: 'products', title: ctx.t('models.products.label'), body: products },
-			{ name: 'stock', title: ctx.t('models.stock_snapshots.label'), body: stock },
-			{ name: 'warehouses', title: ctx.t('models.warehouses.label'), body: warehouses }
-		]}
-	/></AppShell
+	><Stack size="fill" gap="sm"
+		><KingdeeStatusBanner {ctx} instances={kingdeeInstances} /><Tabs
+			value={tab}
+			on_value_change={(value) => (tab = value)}
+			tabs={[
+				{ name: 'products', title: ctx.t('models.products.label'), body: products },
+				{ name: 'stock', title: ctx.t('models.stock_snapshots.label'), body: stock },
+				{ name: 'warehouses', title: ctx.t('models.warehouses.label'), body: warehouses }
+			]}
+		/></Stack
+	></AppShell
 >

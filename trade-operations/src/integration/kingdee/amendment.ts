@@ -22,7 +22,6 @@ const escape = (value: string) =>
 		}
 	});
 const q = (name: string) => `[${name}]`;
-const columns = (types: Readonly<Record<string, string>>) => Object.keys(types).map(q).join(',');
 const declaration = (types: Readonly<Record<string, string>>) =>
 	Object.entries(types)
 		.map(([name, type]) => `${q(name)} ${type} NOT NULL`)

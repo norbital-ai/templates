@@ -5,22 +5,23 @@ sheets, reviewing photo integrity findings, exporting site handovers, and pairin
 
 ## Workflow summary
 
-| Flow                      | Operator                         | Entry and outcome                                                                                                |
-| ------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Prepare people            | Administrator                    | **Command center → People**: admit active members, assign a team, and save a mobile number for WhatsApp.         |
-| File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.                 |
-| Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it.   |
-| Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                           |
-| File and inspect evidence | Contractor, Envoy and controller | Photo upload or WhatsApp report, then inspect the job's **Conversation** and **Suspicion logs** tabs.            |
-| Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's final conclusion. |
-| Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.            |
-| Configure the Envoy       | Administrator                    | **Settings → Envoys**: create the Envoy, connect WhatsApp from its card, and inspect its messages.               |
+| Flow                      | Operator                         | Entry and outcome                                                                                                 |
+| ------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Prepare people            | Administrator                    | **System → Command center → People**: admit active members, assign a team, and save a mobile number for WhatsApp. |
+| File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.                  |
+| Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it.    |
+| Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                            |
+| File and inspect evidence | Contractor, Envoy and controller | Photo upload or WhatsApp report, then inspect the job's **Conversation** and **Suspicion logs** tabs.             |
+| Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's final conclusion.  |
+| Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.             |
+| Configure the Envoy       | Administrator                    | **Settings → Integrations → Envoys**: create the Envoy, connect WhatsApp from its card, and inspect its messages. |
 
 ## 1. Prepare people and teams
 
-An administrator opens **Command center → People** (`/command-center/people`), invites members by email or
-international mobile number, and selects an existing team (**Field Operations Controllers**, **Contractor**,
-or **Contractor (Controller)**). Keep the member **Active**.
+An administrator opens **System → Command center → People** (`/command-center/people`), invites members by
+email or international mobile number, and selects an existing team (**Field Operations Controllers**,
+**Contractor**, or **Contractor (Controller)** — teams themselves are edited under **Settings → Organization
+→ Teams**). Keep the member **Active**.
 
 For WhatsApp reporting, save the member's **Mobile number** in international format. A job links to that
 member by matching the email or phone number entered as `assignee_contact` rather than by a separate
@@ -115,13 +116,13 @@ Controllers inspect **Evidence facts** and **Similar photos in other assignments
 
 In **Sites**, select one or more rows and choose **Actions → Site handover** (`site_handover`). Each
 selected site produces a JSON bundle, a job-assignment CSV and a photo-evidence CSV downloadable from the
-banner and from **Command center → Automations**.
+banner and from **System → Command center → Queue** (`/command-center/automations`).
 
 ![Site handover succeeded with the JSON and CSV downloads](screenshots/13-site-handover.webp)
 
 ## 9. Connect and operate the WhatsApp Envoy
 
-Create an active private Envoy under **Settings → Envoys** named **Norbital** with the
+Create an active private Envoy under **Settings → Integrations → Envoys** (`/settings/integrations`) named **Norbital** with the
 `field_ops_whatsapp` policy, delegation disabled, triage enabled, group messages `mention_or_reply`, and
 this task brief:
 

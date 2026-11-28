@@ -1,10 +1,20 @@
 import { policy } from '@norbital-ai/bolt';
-import { lineDeletes, ordersIn, purchasing, scopedOrders } from '../../lib/order-review.js';
+import {
+	lineDeletes,
+	memberOf,
+	ordersIn,
+	ownProfileFields,
+	purchasing,
+	scopedOrders
+} from '../../lib/order-review.js';
 const own = { order: { is: { direction: { eq: 'purchasing' } } } } as const;
 export default policy({
 	description: 'procurement commercial work scoped by order.',
 	capabilities: { apps: ['operations'] },
 	grants: {
+		sys_integration: {
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
+		},
 		// order owners and logistics handlers
 		sys_user: { outputs: { default: {} } },
 		source_stock_commitments: {
@@ -170,6 +180,27 @@ export default policy({
 		},
 		source_sales_lines: {
 			outputs: { commercial: { where: own, history: true } }
+		},
+		user_profiles: {
+			outputs: { default: { where: { user_id: { eq: { var: 'actor.id' } } }, history: true } },
+			create: {
+				fields: ['user_id', ...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ after }) => after.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away, field: 'user_id' })
+						: ctx.allow();
+				}
+			},
+			update: {
+				fields: [...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ before }) => before.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away })
+						: ctx.allow();
+				}
+			}
 		}
 	}
 });

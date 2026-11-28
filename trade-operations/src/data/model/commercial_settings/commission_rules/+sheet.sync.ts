@@ -5,7 +5,7 @@ export default sync('commission_rules', 'sheet', {
 	with: 'file',
 	parser: ['xlsx', 'csv'],
 	schema: commissionRuleWorkbook,
-	read: function* ({ records }, ctx) {
+	read: function* ({ records }, _ctx) {
 		const findings: Finding[] = [];
 		const rows: Record<string, Json>[] = [];
 		const isParameter = (value: unknown): value is { name: string; value: string } =>

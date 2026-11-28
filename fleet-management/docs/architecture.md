@@ -82,11 +82,11 @@ library (`src/lib/geo.ts`).
 |                                                                                              |
 |  +-------------------------------------------+  +-----------------------------------------+  |
 |  | App: operations (Fleet Operations)        |  | App: configuration (Configuration)      |  |
-|  | - live     : Split(Map + Live Alerts)     |  | - connections : IntegrationSetup cards  |  |
-|  | - vehicles : Table -> 5-tab Vehicle Hub   |  | - geofences   : Split(Table + Zone Map) |  |
-|  | - routes   : Tabs(Daily Schedule | All)   |  | - drivers     : Driver Directory Table  |  |
-|  | - alerts   : Exception Register Table     |  +-----------------------------------------+  |
-|  +-------------------------------------------+                                               |
+|  | - live     : Split(Map + Live Alerts)     |  | - geofences   : Split(Table + Zone Map) |  |
+|  | - vehicles : Table -> 5-tab Vehicle Hub   |  | - drivers     : Driver Directory Table  |  |
+|  | - routes   : Tabs(Daily Schedule | All)   |  | (Connections live in Settings ->        |  |
+|  | - alerts   : Exception Register Table     |  |  Integrations -> Connections)           |  |
+|  +-------------------------------------------+  +-----------------------------------------+  |
 |  | Custom Field Renderer: route_waypoints (+renderer.svelte, waypoint-status.svelte)      |  |
 |  | Workspace Assistant  : src/agent/+agent.md (Fleet Operations Assistant)                |  |
 |  +----------------------------------------------------------------------------------------+  |

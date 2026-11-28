@@ -16,7 +16,7 @@ Technical documentation and developer guide for the **Fleet Management** (`norbi
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Handle / Name              | `norbital-fleet-management` — Fleet Management (`车队管理`)                                                                                     |
 | Locale & Regional Defaults | Timezone `Asia/Singapore`, locale `en-SG`, languages `en` / `zh`, currency `SGD`                                                                |
-| Apps (2)                   | `operations` (`live`, `vehicles`, `routes`, `alerts`), `configuration` (`connections`, `geofences`, `drivers`)                                  |
+| Apps (2)                   | `operations` (`live`, `vehicles`, `routes`, `alerts`), `configuration` (`geofences`, `drivers`)                                                 |
 | Record Models (6)          | `vehicles`, `telemetry_pings` (`owned: true`), `routes`, `fleet_alerts`, `geofences`, `drivers`                                                 |
 | Custom Fields (1)          | `route_waypoints`                                                                                                                               |
 | Syncs (2)                  | `telemetry_pings.syncs.transponder` (HTTP/webhook), `telemetry_pings.syncs.gps_csv` (CSV/XLSX)                                                  |
@@ -54,6 +54,6 @@ bun run format                  # Format source and docs with Prettier
 
 ### Seeding & Local Data (`seed/`)
 
-- A freshly provisioned workspace starts empty: add drivers, geofences, and `gps_transponder` / `google_routes` connections under **Configuration**, register vehicles under **Fleet Operations → Vehicles**, or import historical GPS logs via CSV/XLSX.
+- A freshly provisioned workspace starts empty: add drivers and geofences under **Configuration**, pair `gps_transponder` / `google_routes` connections under **Settings → Integrations → Connections**, register vehicles under **Fleet Operations → Vehicles**, or import historical GPS logs via CSV/XLSX.
 - `seed/+seeder.ts` binds the external demo fixture tree (`fleet-management`) for `bolt seed` during managed demo resets.
 - Automated tests in `tests/fleet-telemetry-and-routes.test.ts` run strictly against isolated in-memory PGlite databases via `TestWorkspace` (`tests/test-runtime.ts`) using synthetic fixtures — no external PostgreSQL server or live telematics credentials are required.

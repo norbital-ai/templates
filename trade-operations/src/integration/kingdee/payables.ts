@@ -1,5 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json, Row } from '@norbital-ai/bolt';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { sha256Hex } from '../../lib/commercial.js';
 import { safeDueDate } from '../../lib/payables.js';
 import { currencyDigits, fixedDecimal } from '../../lib/purchase-listing.js';
@@ -386,7 +387,8 @@ const Cursor = Schema.Struct({
 	observed_at: Schema.String,
 	sharded: Schema.optionalKey(Schema.Boolean),
 	next_shard: Schema.optionalKey(Schema.Int),
-	pending_shards: Schema.optionalKey(Schema.Array(Schema.Int))
+	pending_shards: Schema.optionalKey(Schema.Array(Schema.Int)),
+	whole_upper: Schema.optionalKey(Schema.String)
 });
 const MOVED = 5000;
 
@@ -473,7 +475,12 @@ export const readPayables = Effect.fnUntraced(function* (
 			};
 		});
 
-	const publishShard = (shard: number, rows: readonly SqlRow[], priorBuckets: readonly string[]) =>
+	const publishShard = (
+		shard: number,
+		rows: readonly SqlRow[],
+		priorBuckets: readonly string[],
+		wholeUpper?: string
+	) =>
 		Effect.gen(function* () {
 			const idsForShard = shardBuckets(shard);
 			const position = (yield* checked(() =>
@@ -488,16 +495,18 @@ export const readPayables = Effect.fnUntraced(function* (
 			const shardDigests = digestsOf(sorted);
 			for (const b of idsForShard)
 				if (shardDigests[b] !== before.digests[b])
-					return yield* invalid(
-						't_RP_Contact',
-						'The payables listing does not add up to its checkpoint. The previous snapshot is retained.'
-					);
+					return yield* new FacilityFailure({
+						kind: 'upstream',
+						message:
+							'The payables listing changed during this read. The previous snapshot is retained.'
+					});
 			const mergedBuckets = [...priorBuckets];
 			for (const b of idsForShard) {
 				const digest = shardDigests[b];
 				if (digest !== undefined) mergedBuckets[b] = digest;
 			}
 			const nextShard = shard + 1 < SHARDS ? shard + 1 : undefined;
+			const anchorUpper = wholeUpper ?? before.upper;
 			return {
 				rows: [
 					{
@@ -513,25 +522,27 @@ export const readPayables = Effect.fnUntraced(function* (
 					protocol: 'kingdee-ap-v1' as const,
 					account,
 					scope,
-					bookmark: before.upper,
+					// Preserve shard 0's rowversion ceiling until the final shard finishes so updates on earlier shards aren't skipped.
+					bookmark: nextShard !== undefined ? before.upper : anchorUpper,
 					buckets: mergedBuckets,
 					accruals_digest: before.accrualsDigest,
 					observed_at: before.observed_at,
 					sharded: true,
-					...(nextShard !== undefined ? { next_shard: nextShard } : {})
+					...(nextShard !== undefined ? { next_shard: nextShard, whole_upper: anchorUpper } : {})
 				},
 				more: nextShard !== undefined
 			};
 		});
 
 	const whole = Effect.gen(function* () {
-		if (before.total > SHARD_THRESHOLD) {
+		if (before.total > SHARD_THRESHOLD || prior?.sharded) {
 			const buckets = shardBuckets(0).map(String);
 			const rows = yield* selectByIds(ctx, entriesByBucket, buckets, '', account);
 			return yield* publishShard(
 				0,
 				rows,
-				Array.from({ length: BUCKETS }, () => '')
+				Array.from({ length: BUCKETS }, () => ''),
+				before.upper
 			);
 		}
 		const rows = yield* readNativeRows(ctx, entries, { account, ids });
@@ -540,16 +551,16 @@ export const readPayables = Effect.fnUntraced(function* (
 			after.digests.some((digest, bucket) => digest !== before.digests[bucket]) ||
 			after.accrualsDigest !== before.accrualsDigest
 		)
-			return yield* invalid(
-				'FModifyTime',
-				'The payables ledger changed during this read. The previous snapshot is retained.'
-			);
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message: 'The payables ledger changed during this read. The previous snapshot is retained.'
+			});
 		const position = yield* checked(() => rows.map((row) => mapPayableEntry(row, rules)));
 		if (digestsOf(position).some((digest, bucket) => digest !== after.digests[bucket]))
-			return yield* invalid(
-				't_RP_Contact',
-				'The payables listing does not add up to its checkpoint. The previous snapshot is retained.'
-			);
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message: 'The payables listing changed during this read. The previous snapshot is retained.'
+			});
 		return yield* publish(position);
 	});
 
@@ -563,7 +574,7 @@ export const readPayables = Effect.fnUntraced(function* (
 			'',
 			account
 		);
-		return yield* publishShard(shard, rows, prior.buckets);
+		return yield* publishShard(shard, rows, prior.buckets, prior.whole_upper);
 	}
 	if (prior.sharded && prior.pending_shards && prior.pending_shards.length > 0) {
 		const [shard, ...rest] = prior.pending_shards;
@@ -576,7 +587,7 @@ export const readPayables = Effect.fnUntraced(function* (
 				account
 			);
 			const res = yield* publishShard(shard, rows, prior.buckets);
-			const { next_shard: _next, ...cleanCursor } = res.cursor;
+			const { next_shard: _next, whole_upper: _upper, ...cleanCursor } = res.cursor;
 			return {
 				rows: res.rows,
 				cursor: {
@@ -589,13 +600,16 @@ export const readPayables = Effect.fnUntraced(function* (
 			};
 		}
 	}
-	const changed = (yield* readNativeRows(ctx, moved, {
+	// Transitioning from unsharded (<= threshold) to sharded (> threshold) must rebuild all 8 shards cleanly.
+	if (!prior.sharded && before.total > SHARD_THRESHOLD) return yield* whole;
+	const movedRows = yield* readNativeRows(ctx, moved, {
 		account,
 		from: prior.bookmark,
 		to: before.upper
-	}))
-		.map((row) => exactId(row, 'contact_id'))
-		.filter((id) => !excludedSet.has(id));
+	});
+	const changed = (yield* checked(() => movedRows.map((row) => exactId(row, 'contact_id')))).filter(
+		(id) => !excludedSet.has(id)
+	);
 	if (changed.length > MOVED) return yield* whole;
 	const accrualsMoved = before.accrualsDigest !== prior.accruals_digest;
 	if (
@@ -605,7 +619,7 @@ export const readPayables = Effect.fnUntraced(function* (
 	)
 		return { rows: [], cursor, more: false };
 
-	if (prior.sharded || before.total > SHARD_THRESHOLD) {
+	if (prior.sharded) {
 		const dirtyShards = new Set<number>();
 		if (accrualsMoved) dirtyShards.add(0);
 		for (const id of changed) dirtyShards.add(shardOf(Number(id) % BUCKETS));
@@ -631,7 +645,7 @@ export const readPayables = Effect.fnUntraced(function* (
 			account
 		);
 		const res = yield* publishShard(nextDirty, rows, prior.buckets);
-		const { next_shard: _next, ...cleanCursor } = res.cursor;
+		const { next_shard: _next, whole_upper: _upper, ...cleanCursor } = res.cursor;
 		return {
 			rows: res.rows,
 			cursor: {
@@ -645,7 +659,11 @@ export const readPayables = Effect.fnUntraced(function* (
 	}
 
 	const { source_payables: local } = yield* ctx.query({
-		source_payables: { where: { source: { eq: instance } }, fields: ['entries'], limit: 1 }
+		source_payables: {
+			where: { source: { eq: instance }, shard: { eq: 0 } },
+			fields: ['entries'],
+			limit: 1
+		}
 	});
 	const held = new Map((local.rows[0]?.entries ?? []).map((entry) => [entry.contact_id, entry]));
 	const merge = (rows: readonly SqlRow[]) =>
@@ -667,6 +685,13 @@ export const readPayables = Effect.fnUntraced(function* (
 		for (const id of held.keys())
 			if (disagreeingSet.has(String(Number(id) % BUCKETS))) held.delete(id);
 		yield* merge(yield* selectByIds(ctx, entriesByBucket, disagreeing, '', account));
+		const finalDigests = digestsOf([...held.values()]);
+		if (finalDigests.some((digest, bucket) => digest !== before.digests[bucket]))
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message:
+					'The payables ledger changed during incremental reconciliation. The previous snapshot is retained.'
+			});
 	}
 	return yield* publish([...held.values()]);
 });

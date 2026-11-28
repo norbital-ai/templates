@@ -17,13 +17,17 @@ export default sync('contacts', 'kingdee', {
 	every: '1min',
 	read: function* ({ cursor, instance }, ctx) {
 		const page = yield* readSource(projections.contacts, cursor, ctx, (row) => row);
-		const named = page.rows.filter((row) => columns(row).text('name', null) !== null);
-		const { parties } = named.length
+		const externalCodes = yield* checked(() =>
+			page.rows
+				.filter((row) => columns(row).text('name', null) !== null)
+				.map((row) => columns(row).text('external_code'))
+		);
+		const { parties } = externalCodes.length
 			? yield* ctx.query({
 					parties: {
 						where: {
 							source: { eq: instance },
-							external_code: { in: named.map((row) => columns(row).text('external_code')) }
+							external_code: { in: externalCodes }
 						},
 						fields: ['external_code']
 					}

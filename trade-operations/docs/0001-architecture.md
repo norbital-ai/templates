@@ -85,24 +85,45 @@ draft --(Sync to Kingdee, once)--> confirmed --(saved change: follows to Kingdee
 
 ### Parties, products and warehouses
 
-- `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their Kingdee region (`t_SubMessage` list 26), local `related_party` classification (Finance/Admin-editable) and source evidence.
+- `parties` holds customers and suppliers (`customer`, `supplier`, `both`), their Kingdee ID (`external_code`), Kingdee customer/supplier code (`source_number`), Kingdee region (`t_SubMessage` list 26), local profile fields (`related_party`, `tax_id`, `bank_name`, `bank_account`, `profile_notes`), dual-approved credit targets (`credit_limit_target`, `credit_days_target` — synced to `dbo.ICCreditObject` when opt-in `directWriteCreditLimit` is enabled), and source evidence.
+- `user_profiles` stores each member's workspace profile and Kingdee identifiers (`kingdee_employee_id`, `kingdee_department_id`, `kingdee_biller_id`, `kingdee_customer_id`, phone, notes), editable by the member under **Operations → My profile** and centrally administered under **Trade configuration → Profiles**. Order push and pull resolve owner bindings from `user_profiles` first and fall back to legacy ledger `salespersonBindings`.
 - `contacts` are many per party. The `contacts` `kingdee` sync keeps the one contact on the party's Kingdee
   customer or supplier master as its `primary` contact, listed first and read-only to members
   (`errors.kingdee_contact`); members add, edit and delete the others directly. An order's `buyer_contact` is
   one of its party's contacts.
 - `settlements` mirrors Kingdee's settlement methods (`t_Settle`), read-only; an order's `payment_terms` names
   one.
-- `credit_snapshots` is read-only credit evidence. The explicit `kis-sales-out-v1` policy and a verified
-  `creditAccount` bind native sales-out exposure and amount/overdue blocking decisions. Its minute feed
-  reads native credit, invoice, receipt and DO tables; it writes limit, used and derived available credit
-  only when the position changes, and its freshness is the feed's health on the ledger. Unsupported native
-  settings preserve last-good evidence.
-- `credit_releases` tracks unaudited blue Kingdee deliveries blocked by `kis-sales-out-v1` credit control
-  (evaluating exposure including `当前单据金额`). Its `kingdee` sync owns `source_status` (`blocked`,
-  `released`, `cleared`, `superseded`, `withdrawn`, `bypassed`) and confirms password releases from `t_Log`
-  (`XS100016`, incremental `FLogID` seek); members own only the local approval columns (`approval_status`,
-  `route`, `proposed_limit`, `reason`), gated by formal two-step approval (`commercial_managers` → `finance`)
-  and bound to the DO's SHA-256 `content_hash`. Logistics reads it through the price-free `logistics` output.
+- `transactions` mirrors deliveries (`ICStockBill` type 21, both unaudited `draft` and audited `issued` / `void`) and invoices (`ICSale` / `ICPurchase`) on a 1-minute cadence, recording deterministic `credit_check` verdicts (`passed`, `failed`, `released`, `bypassed`, `unchecked`), `credit_check_detail`, and `credit_checked_at` for each sales DO against Kingdee's live credit state (`credit-check.ts`).
+- `credit_snapshots` is read-only credit evidence. Either explicit `kis-sales-out-v1` (native sales-out
+  `ICCreditOption`/`ICCreditField`/`ICCreditObject` rules) or `kis-org-credit-v1` (customer-master
+  `t_Organization.FIsCreditMgr` / `FCreditLimit` with the fixed `ORG_CREDIT_PLAN` exposure formula),
+  paired with a verified `creditAccount`, binds exposure and credit-limit decisions. On full Kingdee KIS
+  databases, `credit-sql.ts` runs the exact `p_IC_InitCreditInstantData` and `v_IC_CreditPlan_AR` formula
+  (partial DO hooking, `t_rp_ARBillOfSH` audited receipts/advances/refunds, `ICSaleEntry` + `FAdjustAmount` +
+  `t_Rp_BegData` + `t_RP_ARPBill`, and `v_IC_CreditPlan_AR` due dates). Its minute feed writes limit, used
+  and derived available credit only when the position changes, and its freshness is the feed's health on the
+  ledger. Unsupported native settings preserve last-good evidence. Sales order forms run
+  `orderCreditAssessment` (`src/lib/credit-release.ts`) against the customer's latest snapshot to surface
+  early-warning banners when the customer is on credit hold, already over limit, or when a same-currency
+  draft order's total would push exposure over limit.
+- `credit_releases` tracks unaudited blue Kingdee deliveries blocked by credit control under both
+  `kis-sales-out-v1` (evaluating exposure including `当前单据金额` / `当前单据金额合计` plus overdue-day rules)
+  and `kis-org-credit-v1` (evaluating `ORG_CREDIT_PLAN` including `当前单据金额` against
+  `t_Organization.FCreditLimit`). Its `kingdee` sync owns `source_status` (`blocked`, `released`,
+  `cleared`, `superseded`, `withdrawn`, `bypassed`) and `temp_bump_status` (`none`, `active`, `restored`).
+  Under `kis-sales-out-v1`, it confirms password releases from `t_Log` (`XS100016`, incremental `FLogID` seek);
+  when opt-in `directWriteCreditLimit` is enabled, approved `permanent` releases update `dbo.ICCreditObject`
+  directly and approved `one_time` releases simulate a one-time pass by idempotently raising
+  `dbo.ICCreditObject` (`FAmount` / `FCreditDays`) so Kingdee allows DO audit, keeping `temp_bump_status=active`
+  while unaudited, and automatically deducting the bump back to the customer's baseline once the DO is audited
+  (preserving any concurrent permanent limit raise). Under `kis-org-credit-v1`, post-audit reconciliation
+  (`org_audit` in `reconcileCreditRelease`) checks exposure against `FCreditLimit` after audit, closing
+  matching approved audits as `released`, unapproved over-limit audits as `bypassed` (or opening a new bypass
+  record for newly audited over-limit DOs with `released_by: 'kingdee-audit'` and
+  `release_log_key: 'org:<fid>:<oper_date>'`), and within-limit audits as `cleared`. Members own only the
+  local approval columns (`approval_status`, `route`, `proposed_limit`, `reason`), gated by formal two-step
+  approval (`commercial_managers` ↔ `finance`) and bound to the DO's SHA-256 `content_hash`. Logistics reads
+  it through the price-free `logistics` output.
 - `products` holds the SKU, code, category (`FComCategoryID`, class 2037), base unit, tax rate and optional price.
 - `warehouses` holds warehouse rows, their `group_code` and `group_name`; a price floor is keyed by the region (`group_code`), not a single
   warehouse.
@@ -128,8 +149,10 @@ product · group_code · currency · effective_on
 - `commercial_settings.floor_rule` decides what happens to a sales line below its floor, or with none: `warn`
   (a hint; the default), `approve` (a sales rep's write waits for a Commercial Manager) or `refuse` (refused at
   write; sync also refuses a line below the floor in force then).
-- The line editor shows the floor under the unit price: the minimum, its effective day, met or below, and what
-  the rule will do.
+- Both the inline order lines grid and the line editor/viewer evaluate each sales line live against the
+  pricing floor for the order date (`evaluateSalesLineFloor` in `src/lib/commercial.ts`), displaying explicit
+  green (**Meets floor**) or red (**Below floor** / **No floor**, with red input outline) indicators alongside
+  the effective minimum price, floor date, and rule action.
 - The floor is a commercial warning/gate; cost-based margin warnings are separate.
 
 ### Commission
@@ -200,7 +223,8 @@ Kingdee header and the floor rule are enforced by the model and policies, not by
 
 `credit_releases` declares `create.effect` and `update.effect` to emit deduped native `ctx.notify` alerts when
 a blocked delivery is detected, approved for KIS release (to Finance, Logistics and the order owner),
-superseded after an edit in KIS, or bypassed with an unapproved `XS100016` release. Other models declare no
+superseded after an edit in KIS, or bypassed (either via an unapproved `XS100016` password release under
+`kis-sales-out-v1` or an unapproved over-limit audit under `kis-org-credit-v1`). Other models declare no
 post-commit effects; ordinary writes, approvals and syncs own their own follow-up.
 
 ## 8. Storage and runtime

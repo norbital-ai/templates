@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	import { Combobox, EmptyState, Label, Tabs, TimeInput, TimeRangeInput } from '@norbital-ai/ui';
-	import { AppShell, Cluster, Inline } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { DateTime, Schema } from 'effect';
+	import KingdeeStatusBanner from '../../../lib/ui/kingdee-status-banner.svelte';
 	import type { SalesBasis } from '../../../lib/reports.js';
 	import SalesAnalysis from './sales-analysis.svelte';
 	import PurchaseListing from './purchase-listing.svelte';
@@ -45,11 +46,24 @@
 	const salesThrough = $derived(monthEndOf(salesTo));
 	const purchaseThrough = $derived(monthEndOf(purchaseTo));
 	// each report shows to whoever reads its root: sales lines, purchase orders, AR/AP, statements, credit
+	const procurementOnly = $derived(
+		Boolean(
+			ctx.catalog?.source_purchase_orders &&
+			!ctx.catalog?.source_receivables &&
+			!ctx.catalog?.commission_statements
+		)
+	);
 	const shown = $derived({
-		sales: Boolean(ctx.catalog?.source_sales_lines),
+		sales: Boolean(ctx.catalog?.source_sales_lines && !procurementOnly),
 		purchases: Boolean(ctx.catalog?.source_purchase_orders),
-		aging: Boolean(ctx.catalog?.transactions && ctx.catalog?.source_payments),
-		payables: Boolean(ctx.catalog?.source_payables),
+		aging: Boolean(
+			ctx.catalog?.source_receivables ||
+			(!procurementOnly && ctx.catalog?.transactions && ctx.catalog?.source_payments)
+		),
+		payables: Boolean(
+			ctx.catalog?.source_payables ||
+			(procurementOnly && ctx.catalog?.transactions && ctx.catalog?.source_payments)
+		),
 		commission: Boolean(ctx.catalog?.commission_statements),
 		credit: Boolean(ctx.catalog?.credit_snapshots || ctx.catalog?.credit_releases)
 	});
@@ -165,28 +179,30 @@
 			</Inline>
 		{/if}
 	{/snippet}
-	{#if tab !== null}<Tabs
-			value={tab}
-			on_value_change={(value) => (chosenTab = value)}
-			tabs={[
-				...(shown.sales
-					? [{ name: 'sales', title: ctx.t('component.sales_analysis'), body: sales }]
-					: []),
-				...(shown.purchases
-					? [{ name: 'purchases', title: ctx.t('component.purchase_listing'), body: purchases }]
-					: []),
-				...(shown.aging
-					? [{ name: 'aging', title: ctx.t('component.ar_aging'), body: aging }]
-					: []),
-				...(shown.payables
-					? [{ name: 'payables', title: ctx.t('component.ap_aging'), body: payables }]
-					: []),
-				...(shown.commission
-					? [{ name: 'commission', title: ctx.t('component.commission'), body: commission }]
-					: []),
-				...(shown.credit
-					? [{ name: 'credit', title: ctx.t('component.credit_exceptions'), body: credit }]
-					: [])
-			]}
-		/>{:else}<EmptyState title={ctx.t('component.reports_access')} />{/if}
+	{#if tab !== null}<Stack size="fill" gap="sm"
+			><KingdeeStatusBanner {ctx} /><Tabs
+				value={tab}
+				on_value_change={(value) => (chosenTab = value)}
+				tabs={[
+					...(shown.sales
+						? [{ name: 'sales', title: ctx.t('component.sales_analysis'), body: sales }]
+						: []),
+					...(shown.purchases
+						? [{ name: 'purchases', title: ctx.t('component.purchase_listing'), body: purchases }]
+						: []),
+					...(shown.aging
+						? [{ name: 'aging', title: ctx.t('component.ar_aging'), body: aging }]
+						: []),
+					...(shown.payables
+						? [{ name: 'payables', title: ctx.t('component.ap_aging'), body: payables }]
+						: []),
+					...(shown.commission
+						? [{ name: 'commission', title: ctx.t('component.commission'), body: commission }]
+						: []),
+					...(shown.credit
+						? [{ name: 'credit', title: ctx.t('component.credit_exceptions'), body: credit }]
+						: [])
+				]}
+			/></Stack
+		>{:else}<EmptyState title={ctx.t('component.reports_access')} />{/if}
 </AppShell>

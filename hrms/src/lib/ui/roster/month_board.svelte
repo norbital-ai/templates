@@ -12,11 +12,11 @@
 		RecordShell,
 		Sheet,
 		toast,
-		virtual_list
+		virtual_grid
 	} from '@norbital-ai/ui';
 	import { Scroll } from '@norbital-ai/ui/layout';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { DateTime, Effect } from 'effect';
+	import { fork, observe_once } from '@norbital-ai/ui/effect';
+	import { Effect } from 'effect';
 	import { isJsonObject, jsonObject } from '../../foundation.js';
 	import { idOf } from '../../reads.js';
 	import { employmentOn, segmentsOf } from '../../../data/model/employee_profile/service/person.js';
@@ -24,7 +24,9 @@
 	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {
+		briefDayLabel,
 		buildDays,
+		createBoardIndex,
 		datesBetween,
 		dayKey,
 		describeDay,
@@ -75,11 +77,31 @@
 	const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 	const PERSON_REM = 10;
 	const DAY_REM = 4.5;
+	const ROW_REM = 3.75; // h-14 (3.5rem) + p-0.5 (0.25rem) + 1px bottom border
+	const ROSTER_FIELDS = [
+		'employment_id',
+		'work_date',
+		'shift_definition_id',
+		'planned_overtime_intervals',
+		'overtime_as_time_off',
+		'actual_worked_intervals',
+		'findings',
+		'consent',
+		'payroll_run_id'
+	] as const;
 
 	let creating = $state<{ employmentId: Id<'employment'>; date: string } | null>(null);
 
 	const companyId = $derived(company.id);
 	const dates = $derived(datesBetween(from, to));
+	const remPx = $derived(
+		typeof document !== 'undefined'
+			? parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+			: 16
+	);
+	const rowPx = $derived(Math.round(remPx * ROW_REM + 1));
+	const dayPx = $derived(remPx * DAY_REM);
+
 	// Keyed by company only so month changes hit the live cache and never refetch stints or shift definitions.
 	const companyData = $derived(
 		ctx.query({
@@ -111,17 +133,7 @@
 					employment_id: { is: { entity_id: { eq: companyId } } },
 					work_date: { gte: from, lte: to }
 				},
-				fields: [
-					'employment_id',
-					'work_date',
-					'shift_definition_id',
-					'planned_overtime_intervals',
-					'overtime_as_time_off',
-					'actual_worked_intervals',
-					'findings',
-					'consent',
-					'payroll_run_id'
-				],
+				fields: [...ROSTER_FIELDS],
 				limit: 10000
 			},
 			holiday: {
@@ -149,17 +161,74 @@
 			}
 		})
 	);
+
+	// Automatically page past 10,000 roster entries (>~320 employees × 31 days) so large companies never truncate silently.
+	const extraRosterEntries = observe_once(() => {
+		const firstNext = monthData.current?.roster_entry.next;
+		if (firstNext == null) return null;
+		const scopeCompany = companyId;
+		const scopeFrom = from;
+		const scopeTo = to;
+		const readRosterPage = (after: typeof firstNext) =>
+			ctx.query({
+				roster_entry: {
+					where: {
+						employment_id: { is: { entity_id: { eq: scopeCompany } } },
+						work_date: { gte: scopeFrom, lte: scopeTo }
+					},
+					fields: [...ROSTER_FIELDS],
+					limit: 10000,
+					after
+				}
+			});
+		type RosterPage = NonNullable<typeof monthData.current>['roster_entry'];
+		return Effect.gen(function* () {
+			const extra: BoardEntry[] = [];
+			let cursor: typeof firstNext | null = firstNext;
+			while (cursor !== null) {
+				const answer: { readonly roster_entry: RosterPage } = yield* readRosterPage(cursor);
+				for (const entry of answer.roster_entry.rows) {
+					extra.push({
+						id: entry.id,
+						employment_id: String(entry.employment_id),
+						payroll_run_id: entry.payroll_run_id,
+						work_date: String(entry.work_date),
+						shift_definition_id: entry.shift_definition_id,
+						planned_overtime_intervals: entry.planned_overtime_intervals,
+						overtime_as_time_off: entry.overtime_as_time_off,
+						actual_worked_intervals: entry.actual_worked_intervals,
+						findings: entry.findings,
+						consent: entry.consent
+					});
+				}
+				cursor = answer.roster_entry.next;
+			}
+			return extra;
+		});
+	});
+
+	const truncated = $derived(
+		companyData.current?.employment.next != null ||
+			companyData.current?.shift_definition.next != null ||
+			companyData.current?.shift_pattern.next != null ||
+			monthData.current?.holiday.next != null ||
+			monthData.current?.leave_catalog_entry.next != null
+	);
+
 	const stintById = $derived(
 		new Map((companyData.current?.employment.rows ?? []).map((row) => [String(row.id), row]))
 	);
 	const entriesByEmployment = $derived.by(() => {
 		const grouped = new Map<string, BoardEntry[]>();
+		const push = (entry: BoardEntry) => {
+			const list = grouped.get(entry.employment_id) ?? [];
+			list.push(entry);
+			grouped.set(entry.employment_id, list);
+		};
 		for (const entry of monthData.current?.roster_entry.rows ?? []) {
-			const employment = String(entry.employment_id);
-			const list = grouped.get(employment) ?? [];
-			list.push({
+			push({
 				id: entry.id,
-				employment_id: employment,
+				employment_id: String(entry.employment_id),
 				payroll_run_id: entry.payroll_run_id,
 				work_date: String(entry.work_date),
 				shift_definition_id: entry.shift_definition_id,
@@ -169,8 +238,8 @@
 				findings: entry.findings,
 				consent: entry.consent
 			});
-			grouped.set(employment, list);
 		}
+		for (const entry of extraRosterEntries.current ?? []) push(entry);
 		return grouped;
 	});
 	const people = $derived.by(() => {
@@ -245,46 +314,96 @@
 			])
 		)
 	);
-	const days = $derived(
-		buildDays({
+	const leaveRows = $derived(
+		(monthData.current?.leave_catalog_entry.rows ?? []).map((row) => ({
+			...row,
+			days: (row.leave_catalog_entry_day ?? []).map((child) => ({
+				date: String(child.incurred_on),
+				part: String(child.part)
+			})),
+			employee: String(stintById.get(String(row.employment_id))?.employee_id?.id)
+		}))
+	);
+	// Lazy memoized cell builder: only computes `Day` objects for the visible virtual slice.
+	const boardIndex = $derived(
+		createBoardIndex({
 			dates,
-			people,
 			entries,
 			shifts: companyData.current?.shift_definition.rows ?? [],
 			patterns: companyData.current?.shift_pattern.rows ?? [],
 			holidays: monthData.current?.holiday.rows ?? [],
-			leave: (monthData.current?.leave_catalog_entry.rows ?? []).map((row) => ({
-				...row,
-				days: (row.leave_catalog_entry_day ?? []).map((child) => ({
-					date: String(child.incurred_on),
-					part: String(child.part)
-				})),
-				employee: String(stintById.get(String(row.employment_id))?.employee_id?.id)
-			})),
+			leave: leaveRows,
 			locked,
 			today
 		})
 	);
-	const loading = $derived(companyData.current === undefined || monthData.current === undefined);
-	const error = $derived(companyData.error?.message ?? monthData.error?.message);
+	const loading = $derived(
+		companyData.current === undefined ||
+			monthData.current === undefined ||
+			extraRosterEntries.loading
+	);
+	const error = $derived(
+		companyData.error?.message ?? monthData.error?.message ?? extraRosterEntries.error?.message
+	);
 
 	let filteredIds = $state.raw<readonly string[] | null>(null);
 	const activeRows = $derived(
 		filteredIds === null ? people : filteredIds.flatMap((id) => byId.get(id) ?? [])
 	);
-	const win = virtual_list({
-		count: () => activeRows.length,
-		key: (i) => activeRows[i]?.id ?? String(i),
-		estimate: 61,
-		threshold: 20,
-		overscan: 6
+
+	// 2D fixed-stride virtualizer: O(1) math on both rows and day columns, zero per-row ResizeObserver.
+	const grid = virtual_grid({
+		rows: {
+			count: () => activeRows.length,
+			key: (i) => activeRows[i]?.id ?? String(i),
+			size: () => rowPx,
+			threshold: 15,
+			overscan: 8
+		},
+		cols: {
+			count: () => dates.length,
+			key: (i) => dates[i] ?? String(i),
+			size: () => dayPx,
+			threshold: 14,
+			overscan: 4
+		}
 	});
+
+	const visibleDates = $derived(grid.cols.slice(dates));
+	const visibleColSpan = $derived(
+		1 + (grid.cols.on ? 1 : 0) + visibleDates.length + (grid.cols.on && grid.cols.after > 0 ? 1 : 0)
+	);
+
+	// Lazily hydrate full cell tooltip & aria-label on hover/focus so fast scrolling never formats Intl strings.
+	const fullDescriptions = new WeakMap<Day, string>();
+	function hydrateTip(button: HTMLButtonElement, day: Day, person: BoardPerson, date: string) {
+		let text = fullDescriptions.get(day);
+		if (text === undefined) {
+			text = describeDay(day, `${person.name} · ${date}`, timeZone, ctx.t);
+			fullDescriptions.set(day, text);
+		}
+		if (button.title !== text) {
+			button.title = text;
+			button.setAttribute('aria-label', text);
+		}
+	}
+
 	function syncShown(shown: readonly { readonly id: unknown }[]) {
 		return () => {
 			const sameAsAll =
 				shown.length === people.length &&
 				shown.every((row, index) => String(row.id) === people[index]?.id);
-			filteredIds = sameAsAll ? null : shown.map((row) => String(row.id));
+			const next = sameAsAll ? null : shown.map((row) => String(row.id));
+			const unchanged =
+				next === filteredIds ||
+				(next !== null &&
+					filteredIds !== null &&
+					next.length === filteredIds.length &&
+					next.every((id, index) => id === filteredIds?.[index]));
+			if (!unchanged) {
+				filteredIds = next;
+				grid.rows.reset();
+			}
 		};
 	}
 
@@ -335,6 +454,17 @@
 		);
 	}
 	function downloadRoster() {
+		const days = buildDays({
+			dates,
+			people,
+			entries,
+			shifts: companyData.current?.shift_definition.rows ?? [],
+			patterns: companyData.current?.shift_pattern.rows ?? [],
+			holidays: monthData.current?.holiday.rows ?? [],
+			leave: leaveRows,
+			locked,
+			today
+		});
 		const rows = people.flatMap((person) =>
 			dates.flatMap((date) => {
 				const day = days.get(dayKey(person.id, date));
@@ -364,6 +494,9 @@
 {#if error != null}
 	<p class="text-sm text-destructive" role="alert">{error}</p>
 {:else}
+	{#if truncated}
+		<p class="text-xs text-warning" role="status">{ctx.t('app.hr_employee.calendar_incomplete')}</p>
+	{/if}
 	<CustomView
 		{ctx}
 		of={people.map(({ id, number, name }) => ({ id, number, name }))}
@@ -413,7 +546,7 @@
 		axis="both"
 		size="fill"
 		fade={false}
-		class="rounded-lg border bg-card"
+		class="rounded-lg border bg-card [overflow-anchor:none]"
 	>
 		<table
 			class="table-fixed border-separate border-spacing-0 text-left text-xs"
@@ -423,7 +556,9 @@
 		>
 			<colgroup>
 				<col style:width={`${PERSON_REM}rem`} />
-				{#each dates as date (date)}<col style:width={`${DAY_REM}rem`} />{/each}
+				{#if grid.cols.on}<col style:width={`${grid.cols.before}px`} />{/if}
+				{#each visibleDates as date (date)}<col style:width={`${DAY_REM}rem`} />{/each}
+				{#if grid.cols.on && grid.cols.after > 0}<col style:width={`${grid.cols.after}px`} />{/if}
 			</colgroup>
 			<thead>
 				<tr>
@@ -436,15 +571,23 @@
 							{ctx.t('roster.plan_recorded')} · {ctx.t('component.work_day_actual')}
 						</span>
 					</th>
-					{#each dates as date (date)}
+					{#if grid.cols.on}
+						<th
+							aria-hidden="true"
+							class="border-0! p-0!"
+							style:width={`${grid.cols.before}px`}
+							{@attach grid.cols.anchor}
+						></th>
+					{/if}
+					{#each visibleDates as date (date)}
 						{@const holiday = holidayByDate.get(date)}
+						{@const wd = boardIndex.weekday(date)}
 						<th
 							scope="col"
 							title={holiday}
 							class={cn(
 								'sticky top-0 z-20 h-10 border-b bg-card text-center font-medium',
-								[0, 6].includes(DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay) &&
-									'bg-muted',
+								(wd === 0 || wd === 6) && 'bg-muted',
 								// a tint is an image over the solid colour: rows scroll beneath this header
 								(holiday != null || date === today) && 'bg-linear-to-b',
 								holiday != null && 'from-warning/10 to-warning/10',
@@ -453,23 +596,28 @@
 							)}
 						>
 							<span class="block text-meta">
-								{holiday == null
-									? WEEKDAY_LETTERS[DateTime.toPartsUtc(DateTime.makeUnsafe(date)).weekDay]
-									: ctx.t('roster.public_holiday_mark')}
+								{holiday == null ? WEEKDAY_LETTERS[wd] : ctx.t('roster.public_holiday_mark')}
 							</span>
 							<span class="block tabular-nums">{Number(date.slice(8, 10))}</span>
 						</th>
 					{/each}
+					{#if grid.cols.on && grid.cols.after > 0}
+						<th aria-hidden="true" class="border-0! p-0!" style:width={`${grid.cols.after}px`}></th>
+					{/if}
 				</tr>
 			</thead>
 			<tbody>
-				{#if win.on}
-					<tr aria-hidden="true" {@attach win.anchor}>
-						<td colspan={dates.length + 1} style="height:{win.before}px;padding:0;border:0"></td>
+				{#if grid.rows.on}
+					<tr aria-hidden="true" {@attach grid.rows.anchor}>
+						<td
+							colspan={visibleColSpan}
+							class="h-0! border-0! p-0!"
+							style:height={`${grid.rows.before}px`}
+						></td>
 					</tr>
 				{/if}
-				{#each win.slice(rows) as person (person.id)}
-					<tr {@attach win.measure(person.id)}>
+				{#each grid.rows.slice(rows) as person (person.id)}
+					<tr>
 						<th
 							scope="row"
 							class="sticky left-0 z-10 border-r border-b bg-card px-3 py-1.5 text-left font-normal"
@@ -477,13 +625,15 @@
 							<span class="block truncate font-mono tabular-nums">{person.number}</span>
 							<span class="block truncate text-micro text-muted-foreground">{person.name}</span>
 						</th>
-						{#each dates as date (date)}
-							{@const day = days.get(dayKey(person.id, date))}
+						{#if grid.cols.on}
+							<td aria-hidden="true" class="border-0! p-0!"></td>
+						{/if}
+						{#each visibleDates as date (date)}
+							{@const day = loading ? null : boardIndex.day(person, date)}
 							<td class={cn('border-b p-0.5', date === today && 'bg-brand/5')}>
-								{#if loading || day == null}
+								{#if day == null}
 									<span class="block h-14 w-full animate-pulse rounded-sm bg-muted"></span>
 								{:else}
-									{@const label = describeDay(day, `${person.name} · ${date}`, timeZone, ctx.t)}
 									<button
 										type="button"
 										class={cn(
@@ -494,12 +644,13 @@
 													? 'cursor-help'
 													: 'cursor-default'
 										)}
-										aria-label={label}
-										title={label}
+										aria-label={briefDayLabel(day, `${person.name} · ${date}`)}
 										aria-haspopup={day.employed && !(day.entryId == null && person.locked)
 											? 'dialog'
 											: undefined}
 										disabled={!day.employed || (day.entryId == null && person.locked)}
+										onpointerenter={(e) => hydrateTip(e.currentTarget, day, person, date)}
+										onfocus={(e) => hydrateTip(e.currentTarget, day, person, date)}
 										onclick={() => openDay(day, person)}
 									>
 										<DayCell {ctx} {day} />
@@ -507,11 +658,18 @@
 								{/if}
 							</td>
 						{/each}
+						{#if grid.cols.on && grid.cols.after > 0}
+							<td aria-hidden="true" class="border-0! p-0!"></td>
+						{/if}
 					</tr>
 				{/each}
-				{#if win.on && win.after > 0}
+				{#if grid.rows.on && grid.rows.after > 0}
 					<tr aria-hidden="true">
-						<td colspan={dates.length + 1} style="height:{win.after}px;padding:0;border:0"></td>
+						<td
+							colspan={visibleColSpan}
+							class="h-0! border-0! p-0!"
+							style:height={`${grid.rows.after}px`}
+						></td>
 					</tr>
 				{/if}
 			</tbody>

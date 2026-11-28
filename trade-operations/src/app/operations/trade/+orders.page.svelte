@@ -2,9 +2,10 @@
 	import type { PageContext } from '@norbital-ai/bolt/page';
 	let { ctx }: { ctx: PageContext } = $props();
 	import { Table, Tabs } from '@norbital-ai/ui';
-	import { AppShell } from '@norbital-ai/ui/layout';
+	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { openCreate } from '../../../lib/ui/create-values.js';
+	import KingdeeStatusBanner from '../../../lib/ui/kingdee-status-banner.svelte';
 	import OrderDocumentDialog from '../../../data/model/orders/order-document-dialog.svelte';
 	import { downloadOrderPdfs } from '../../../data/model/orders/order-pdf.js';
 
@@ -87,16 +88,19 @@
 	title={ctx.t('component.orders')}
 	variant={showPurchase ? 'full' : 'page'}
 >
-	{#if showPurchase}
-		<Tabs
-			tabs={[
-				...(purchaseOnly
-					? []
-					: [{ name: 'sales', title: ctx.t('component.sales_orders'), body: sales }]),
-				{ name: 'purchasing', title: ctx.t('component.purchase_orders'), body: purchases }
-			]}
-		/>
-	{:else}{@render sales()}{/if}
+	<Stack size="fill" gap="sm">
+		<KingdeeStatusBanner {ctx} />
+		{#if showPurchase}
+			<Tabs
+				tabs={[
+					...(purchaseOnly
+						? []
+						: [{ name: 'sales', title: ctx.t('component.sales_orders'), body: sales }]),
+					{ name: 'purchasing', title: ctx.t('component.purchase_orders'), body: purchases }
+				]}
+			/>
+		{:else}{@render sales()}{/if}
+	</Stack>
 </AppShell>
 {#if selectedOrder}
 	<OrderDocumentDialog {ctx} order={selectedOrder} on_close={() => (selectedOrder = null)} />

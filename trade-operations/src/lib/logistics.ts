@@ -21,13 +21,13 @@ export const logisticsLine = [
 	'unit',
 	'quantity'
 ] as const;
-export const logisticsReceipt = ['order', 'reference', 'status', 'source_updated_at'] as const;
 export const logisticsDocument = [
 	'order',
 	'erp_id',
 	'kind',
 	'reference',
 	'status',
+	'credit_check',
 	'source_updated_at'
 ] as const;
 export const logisticsCreditRelease = [

@@ -966,6 +966,7 @@ export default messages({
 	'models.credit_releases.fields.status.bypassed': 'Bypassed (unapproved)',
 	'models.credit_releases.fields.bill_amount': 'Delivery amount',
 	'models.credit_releases.fields.credit_limit': 'Credit limit',
+	'models.credit_releases.fields.credit_days': 'Credit days',
 	'models.credit_releases.fields.credit_used': 'Exposure with DO',
 	'models.credit_releases.fields.over_limit': 'Over limit',
 	'models.credit_releases.fields.overdue_days': 'Overdue days',
@@ -977,6 +978,12 @@ export default messages({
 	'models.credit_releases.fields.route.one_time': 'One-time special release',
 	'models.credit_releases.fields.route.permanent': 'Permanent credit limit increase',
 	'models.credit_releases.fields.proposed_limit': 'Proposed credit limit',
+	'models.credit_releases.fields.temp_bump_amount': 'Temporary limit bump',
+	'models.credit_releases.fields.temp_bump_days': 'Temporary days bump',
+	'models.credit_releases.fields.temp_bump_status': 'Temporary bump state',
+	'models.credit_releases.fields.temp_bump_status.none': 'None',
+	'models.credit_releases.fields.temp_bump_status.active': 'Active (awaiting KIS audit)',
+	'models.credit_releases.fields.temp_bump_status.restored': 'Restored',
 	'models.credit_releases.fields.reason': 'Justification',
 	'models.credit_releases.fields.released_by': 'Released by (KIS)',
 	'models.credit_releases.fields.released_at': 'Released at',
@@ -993,6 +1000,8 @@ export default messages({
 		'Advance-payment terms ({terms}): confirm whether payment has arrived and been posted in Kingdee before requesting special release.',
 	'component.credit_release_kis_one_time':
 		'Approved for one-time release. Audit {bill} in Kingdee KIS using the credit-manager password (特批).',
+	'component.credit_release_kis_temp_bump':
+		'Approved for one-time release. Audit {bill} in Kingdee KIS — if direct credit limit writes are enabled, the temporary limit bump automatically deducts back once audited.',
 	'component.credit_release_kis_permanent':
 		'Approved for permanent credit limit increase to {limit}. Update the customer limit in Kingdee KIS and audit {bill}.',
 	'component.credit_release_bypass_notice':
@@ -1014,5 +1023,90 @@ export default messages({
 	'component.order_credit_releases_alert': 'Delivery {bill} requires credit attention ({status}).',
 	'component.order_credit_open_release': 'Open credit release',
 	'dashboard.credit_blocked': 'Blocked DOs',
-	'dashboard.credit_bypassed': 'Bypassed'
+	'dashboard.credit_bypassed': 'Bypassed',
+	'app.profile.title': 'My profile',
+	'app.profile.description': 'Your Kingdee identifiers and contact details.',
+	'section.profile': 'Profile',
+	'section.profiles': 'Profiles',
+	'section.kingdee_profile': 'Kingdee bindings',
+	'section.partner_profile': 'Partner profile',
+	'section.credit_limit_adjustment': 'Kingdee credit limit adjustment',
+	'settings.profiles.description':
+		'User profiles carrying Kingdee employee, department, biller and customer IDs.',
+	'component.profile_members_only': 'Sign in as a workspace member to manage your profile.',
+	'component.profile_save': 'Save profile',
+	'component.credit_limit_adjustment_help':
+		'Approved changes raise or reduce this customer’s CNY credit limit/days in Kingdee ICCreditObject when direct credit-limit write is enabled.',
+	'models.user_profiles.label': 'User profiles',
+	'models.user_profiles.singular': 'User profile',
+	'models.user_profiles.fields.user_id': 'User',
+	'models.user_profiles.fields.name': 'Name',
+	'models.user_profiles.fields.kingdee_employee_id': 'Kingdee employee ID',
+	'models.user_profiles.fields.kingdee_department_id': 'Kingdee department ID',
+	'models.user_profiles.fields.kingdee_biller_id': 'Kingdee biller ID',
+	'models.user_profiles.fields.kingdee_customer_id': 'Kingdee customer ID',
+	'models.user_profiles.fields.phone': 'Phone',
+	'models.user_profiles.fields.notes': 'Notes',
+	'models.parties.fields.tax_id': 'Tax ID',
+	'models.parties.fields.bank_name': 'Bank name',
+	'models.parties.fields.bank_account': 'Bank account',
+	'models.parties.fields.profile_notes': 'Profile notes',
+	'models.parties.fields.credit_limit_target': 'Target credit limit (Kingdee)',
+	'models.parties.fields.credit_days_target': 'Target credit days (Kingdee)',
+	'models.transactions.fields.credit_check': 'Credit check',
+	'models.transactions.fields.credit_check.passed': 'Passed',
+	'models.transactions.fields.credit_check.failed': 'Failed',
+	'models.transactions.fields.credit_check.released': 'Released',
+	'models.transactions.fields.credit_check.bypassed': 'Bypassed',
+	'models.transactions.fields.credit_check.unchecked': 'Unchecked',
+	'models.transactions.fields.credit_check_detail': 'Credit check detail',
+	'models.transactions.fields.credit_checked_at': 'Credit checked at',
+	'component.pricing_floor_check': 'Pricing floor',
+	'component.floor_status_pass': 'Meets floor',
+	'component.floor_status_fail': 'Below floor',
+	'component.floor_status_missing': 'No floor',
+	'component.floor_select_warehouse': 'Select warehouse to check floor',
+	'integrations.kingdee.configuration.fields.approverId':
+		'Kingdee approver user ID (direct approve)',
+	'integrations.kingdee.configuration.fields.directApproveOrders':
+		'Directly approve synced sales orders in Kingdee (FStatus=1)',
+	'integrations.kingdee.configuration.fields.directWriteCreditLimit':
+		'Write approved credit limit changes directly to Kingdee ICCreditObject',
+	'errors.kingdee_id_invalid': 'Enter a positive numeric Kingdee internal ID.',
+	'errors.profile_own_only': 'You can only manage your own profile.',
+	'errors.credit_target_invalid':
+		'Enter a nonnegative credit limit and credit days between 0 and 3660.',
+	'errors.credit_target_customer_only': 'Credit limits can only be set on customers.',
+	'component.kingdee_not_configured': 'Kingdee not set up',
+	'component.kingdee_not_configured_sync':
+		'Set up and verify the Kingdee connection in Settings → Integrations before syncing orders.',
+	'component.kingdee_not_configured_hint':
+		'No Kingdee connection is configured yet. Ask an administrator to connect Kingdee in Settings → Integrations to sync master data, orders, stock, and reports.',
+	'component.kingdee_not_configured_admin_hint':
+		'No Kingdee connection is configured yet. Connect and verify Kingdee in Settings → Integrations → Connections to enable live sync.',
+	'component.kingdee_off_sync':
+		'Kingdee sync is off. Connect and verify Kingdee in Settings → Integrations before syncing.',
+	'component.kingdee_off_hint':
+		'Kingdee live sync is off. Figures reflect the last synced snapshot; order sync and direct Kingdee credit updates wait until Kingdee is connected and verified in Settings → Integrations.',
+	'component.kingdee_attention_hint':
+		'One or more Kingdee sync feeds need attention. Check Settings → Integrations for details.',
+	'component.kingdee_connection_error_sync':
+		'Kingdee connection needs attention. Resolve the connection error in Settings → Integrations before syncing.',
+	'component.kingdee_empty_connect_hint':
+		'Connect and verify Kingdee in Settings → Integrations to sync live records.',
+	'component.credit_limit_kingdee_disconnected':
+		'Kingdee is not connected. Approved target changes stay queued locally and will not update Kingdee until the connection is enabled and verified.',
+	'component.credit_limit_direct_write_off':
+		'Direct credit-limit write is off in Kingdee settings. Approved targets will not auto-write to Kingdee ICCreditObject; apply them in Kingdee KIS manually or enable direct write.',
+	'component.credit_release_kingdee_disconnected':
+		'Kingdee is not connected. Submitting an approval records the decision here; automatic Kingdee temporary bumps or limit writes will wait until Kingdee is connected.',
+	'component.credit_release_sync_queued':
+		'Waiting for the Kingdee connection to deliver this approved credit update.',
+	'component.transactions_empty': 'No deliveries or invoices yet',
+	'component.parties_empty': 'No customers or suppliers yet',
+	'component.products_empty': 'No products yet',
+	'component.warehouses_empty': 'No warehouses yet',
+	'component.stock_empty': 'No stock snapshots yet',
+	'reports.commission.empty': 'No commission records in this month',
+	'dashboard.kingdee_not_configured': 'Not set up'
 });

@@ -35,5 +35,5 @@ bun run format                  # Format workspace source with Prettier
 ### Workspace Configuration & External Connections
 
 - A fresh workspace starts with its teams and no business rows: configure banks, facilities, sub-limits, fee rules, and reporting exchange rates under **Configuration**, and assign members to the four seeded teams (`seed/public/sys_team.json`: Treasury, Finance, Purchasing, View).
-- To enable automated weekday official exchange rates (`fx_rates_fetch`), connect an organization-wide `mas_rates` integration instance with a Monetary Authority of Singapore API key under **Settings → Connections** (credentials stay in the host's sealed store and are never seeded).
+- To enable automated weekday official exchange rates (`fx_rates_fetch`), connect an organization-wide `mas_rates` integration instance with a Monetary Authority of Singapore API key under **Settings → Integrations → Connections** (credentials stay in the host's sealed store and are never seeded).
 - Optional demonstration data is loaded out-of-band via `bolt seed` using `seed/+seeder.ts` (which also kicks off initial document reading for unread advices, FX documents, and proposals).

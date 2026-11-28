@@ -23,6 +23,7 @@ const syncFields = [
 	'source_status',
 	'bill_amount',
 	'credit_limit',
+	'credit_days',
 	'credit_used',
 	'over_limit',
 	'overdue_days',
@@ -31,6 +32,7 @@ const syncFields = [
 	'source_oper_date',
 	'content_hash',
 	'audit_seen_at',
+	'temp_bump_status',
 	'released_by',
 	'released_at',
 	'release_log_key',
@@ -93,6 +95,7 @@ export default model('credit_releases', {
 		},
 		bill_amount: { kind: 'money', currency: 'currency', optional: true },
 		credit_limit: { kind: 'money', currency: 'currency', optional: true },
+		credit_days: { kind: 'int', optional: true },
 		credit_used: { kind: 'money', currency: 'currency', optional: true },
 		over_limit: { kind: 'money', currency: 'currency', optional: true },
 		overdue_days: { kind: 'int', optional: true },
@@ -100,6 +103,13 @@ export default model('credit_releases', {
 		block_reasons: { kind: 'enum', values: ['over_limit', 'overdue'], many: true, optional: true },
 		route: { kind: 'enum', values: ['one_time', 'permanent'], optional: true },
 		proposed_limit: { kind: 'money', currency: 'currency', optional: true },
+		temp_bump_amount: { kind: 'money', currency: 'currency', optional: true },
+		temp_bump_days: { kind: 'int', optional: true },
+		temp_bump_status: {
+			kind: 'enum',
+			values: ['none', 'active', 'restored'],
+			default: 'none'
+		},
 		reason: { kind: 'text', optional: true },
 		source_oper_date: { kind: 'text', hidden: true, optional: true },
 		content_hash: { kind: 'text', hidden: true, optional: true },
@@ -178,6 +188,8 @@ export default model('credit_releases', {
 			'approval_status',
 			'route',
 			'proposed_limit',
+			'temp_bump_amount',
+			'temp_bump_days',
 			'reason',
 			'approved_content_hash'
 		],
@@ -207,9 +219,24 @@ export default model('credit_releases', {
 								field: 'proposed_limit'
 							});
 					}
+					const tempBumpAmount =
+						after.route === 'one_time' &&
+						before.over_limit != null &&
+						BigDecimal.isGreaterThan(
+							BigDecimal.fromStringUnsafe(before.over_limit),
+							BigDecimal.fromBigInt(0n)
+						)
+							? before.over_limit
+							: null;
+					const tempBumpDays =
+						after.route === 'one_time' && before.overdue_days != null && before.overdue_days > 0
+							? before.overdue_days
+							: null;
 					sets.push({
 						...set,
 						...(after.route === 'one_time' ? { proposed_limit: null } : {}),
+						temp_bump_amount: tempBumpAmount,
+						temp_bump_days: tempBumpDays,
 						approved_content_hash: before.content_hash
 					});
 					continue;

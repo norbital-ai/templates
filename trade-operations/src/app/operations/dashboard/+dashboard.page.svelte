@@ -17,10 +17,22 @@
 		overdueTotals,
 		readAgingAt
 	} from '../../../lib/reports.js';
+	import {
+		kingdeeIntegrationRead,
+		workspaceKingdeeSummary
+	} from '../../../integration/kingdee/connection-status.js';
+	import KingdeeStatusBanner from '../../../lib/ui/kingdee-status-banner.svelte';
 	import Tile from './tile.svelte';
 
 	let { ctx }: { ctx: PageContext } = $props();
 	const day = ctx.clock('day');
+	const kingdeeRead = $derived(
+		ctx.catalog?.sys_integration ? ctx.query(kingdeeIntegrationRead) : null
+	);
+	const kingdeeInstances = $derived(kingdeeRead?.current?.sys_integration.rows ?? null);
+	const kingdeeSummary = $derived(
+		kingdeeInstances === null ? null : workspaceKingdeeSummary(kingdeeInstances)
+	);
 	const moneyKind: Kind = { kind: 'money', currency: 'currency' };
 	const orders = $derived(ctx.catalog?.orders);
 	// a narrower output (logistics) carries no commercial terms: drafts and sales are commercial work
@@ -28,7 +40,7 @@
 	const ages = $derived(Boolean(ctx.catalog?.transactions && ctx.catalog?.source_payments));
 	const shown = $derived({
 		drafts: commercial,
-		approvals: Boolean(orders),
+		approvals: Boolean(orders || ctx.catalog?.credit_releases || ctx.catalog?.parties),
 		kingdee: Boolean(orders),
 		overdue: ages,
 		credit: Boolean(ctx.catalog?.credit_snapshots || ctx.catalog?.credit_releases)
@@ -78,13 +90,13 @@
 		awaiting?.current?.orders.rows.flatMap((row) => (failed.includes(row.id) ? [] : [row.id])) ?? []
 	);
 
-	// the open requests on orders and their lines the viewer may decide or asked for
+	// the open requests on orders, order lines, credit releases, and credit limit changes the viewer may decide or asked for
 	const requests = observe_once(() => ctx.approvals.list());
 	const approvals = $derived(
 		requests.current
 			?.filter(
 				(request) =>
-					(request.model === 'orders' || request.model === 'order_lines') &&
+					['orders', 'order_lines', 'credit_releases', 'parties'].includes(request.model) &&
 					(request.mine || request.moves.some((move) => move.decision === 'approve'))
 			)
 			.map((request) => ({
@@ -103,17 +115,14 @@
 	const aging = observe_once(() =>
 		ages ? readAgingAt(ctx, day.today, Boolean(ctx.catalog?.source_receivables)) : null
 	);
-	const overdue = $derived(
-		aging.current
-			? overdueTotals(
-					agingSummary(
-						aging.current.heads.length
-							? estimateAging(aging.current.rows ?? [])
-							: (aging.current.rows ?? [])
-					)
-				)
-			: null
+	const agingRows = $derived(
+		aging.current?.rows
+			? aging.current.heads.length
+				? estimateAging(aging.current.rows)
+				: aging.current.rows
+			: []
 	);
+	const overdue = $derived(aging.current ? overdueTotals(agingSummary(agingRows)) : null);
 	const credit = $derived(ctx.catalog?.credit_snapshots ? ctx.query(creditRead) : null);
 	const creditReleases = $derived(
 		ctx.catalog?.credit_releases
@@ -137,17 +146,22 @@
 		creditReleases?.current?.credit_releases.rows.filter((r) => r.source_status === 'bypassed')
 			.length ?? 0
 	);
-	const creditFigures = $derived(
+	const creditExceptionCustomers = $derived(
 		credit?.current && (!ages || aging.current || aging.error)
-			? creditTotals(
-					creditExceptions(
-						credit.current.credit_snapshots.rows,
-						aging.current?.rows ?? [],
-						day.today
-					).customers
-				)
+			? creditExceptions(credit.current.credit_snapshots.rows, agingRows, day.today).customers
 			: null
 	);
+	const creditFigures = $derived(
+		creditExceptionCustomers ? creditTotals(creditExceptionCustomers) : null
+	);
+	const creditHeadline = $derived.by(() => {
+		const releaseAlerts = creditReleases?.current ? blockedReleases + bypassedReleases : 0;
+		if (creditExceptionCustomers) {
+			const uniqueCustomers = new Set(creditExceptionCustomers.map((row) => row.party_name)).size;
+			return uniqueCustomers > 0 ? uniqueCustomers : releaseAlerts;
+		}
+		return creditReleases?.current ? releaseAlerts : undefined;
+	});
 
 	type Opens = 'drafts' | 'approvals' | 'kingdee';
 	let chosen = $state<Opens | null>(null);
@@ -246,6 +260,7 @@
 		{#if !Object.values(shown).some(Boolean)}<EmptyState title={ctx.t('dashboard.access')} />
 		{:else}
 			<Stack gap="md">
+				<KingdeeStatusBanner {ctx} instances={kingdeeInstances} />
 				<Grid minimum="compact" gap="sm" onkeydown={viewToggle.root_attrs().onkeydown}>
 					{#if shown.drafts}
 						<Tile
@@ -292,6 +307,21 @@
 								awaiting?.current && recent?.current ? failed.length + pending.length : undefined,
 								awaiting?.error ?? recent?.error
 							)}
+							{#if kingdeeSummary && kingdeeSummary.state !== 'connected'}
+								<span
+									class={kingdeeSummary.state === 'connection_error'
+										? 'text-meta text-destructive'
+										: 'text-meta'}
+								>
+									{ctx.t(
+										kingdeeSummary.state === 'not_configured'
+											? 'dashboard.kingdee_not_configured'
+											: kingdeeSummary.state === 'off'
+												? 'component.kingdee_off'
+												: 'component.kingdee_connection_error'
+									)}
+								</span>
+							{/if}
 							{@render meta([
 								[ctx.t('dashboard.kingdee_failed'), failed.length],
 								[ctx.t('component.contract_pending'), pending.length]
@@ -320,14 +350,7 @@
 							icon="lucide:shield-alert"
 							href={analysis('credit')}
 						>
-							{@render count(
-								creditFigures
-									? creditFigures.reduce((sum, row) => sum + row.customers, 0)
-									: creditReleases?.current
-										? blockedReleases + bypassedReleases
-										: undefined,
-								credit?.error ?? creditReleases?.error
-							)}
+							{@render count(creditHeadline, credit?.error ?? creditReleases?.error)}
 							{@render meta([
 								[ctx.t('dashboard.credit_blocked'), blockedReleases],
 								[ctx.t('dashboard.credit_bypassed'), bypassedReleases]

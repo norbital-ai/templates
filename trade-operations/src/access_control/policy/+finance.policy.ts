@@ -1,9 +1,12 @@
 import { policy } from '@norbital-ai/bolt';
-import { review } from '../../lib/order-review.js';
+import { memberOf, ownProfileFields, review } from '../../lib/order-review.js';
 export default policy({
 	description: 'Finance manages order-scoped billing and payment evidence.',
 	capabilities: { apps: ['operations'] },
 	grants: {
+		sys_integration: {
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
+		},
 		source_lot_costs: {
 			outputs: { default: {} }
 		},
@@ -40,8 +43,26 @@ export default policy({
 		},
 		parties: {
 			outputs: { default: { history: true } },
-			// the rest mirrors Kingdee; Finance maintains related-party classification locally
-			update: { fields: ['related_party'] }
+			// the rest mirrors Kingdee; Finance maintains related-party classification & partner profile locally; credit limit target changes require manager review
+			update: {
+				fields: [
+					'related_party',
+					'tax_id',
+					'bank_name',
+					'bank_account',
+					'profile_notes',
+					'credit_limit_target',
+					'credit_days_target'
+				],
+				verdict: function* (changes, ctx) {
+					const creditChanged = changes.some(
+						({ before, after }) =>
+							before.credit_limit_target !== after.credit_limit_target ||
+							before.credit_days_target !== after.credit_days_target
+					);
+					return creditChanged ? yield* review(ctx, 'manager') : ctx.allow();
+				}
+			}
 		},
 		settlements: {
 			outputs: { default: {} }
@@ -116,6 +137,27 @@ export default policy({
 				verdict: function* (changes, ctx) {
 					const row = changes.findIndex(({ before }) => before.primary);
 					return row >= 0 ? yield* ctx.refuse('errors.kingdee_contact', { row }) : ctx.allow();
+				}
+			}
+		},
+		user_profiles: {
+			outputs: { default: { where: { user_id: { eq: { var: 'actor.id' } } }, history: true } },
+			create: {
+				fields: ['user_id', ...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ after }) => after.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away, field: 'user_id' })
+						: ctx.allow();
+				}
+			},
+			update: {
+				fields: [...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ before }) => before.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away })
+						: ctx.allow();
 				}
 			}
 		}

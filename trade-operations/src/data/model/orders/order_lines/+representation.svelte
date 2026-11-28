@@ -4,6 +4,7 @@
 	import { run } from '@norbital-ai/ui/effect';
 	import { selectOrderProduct } from '../../../../lib/ui/order-product-defaults.js';
 	import {
+		Badge,
 		Field,
 		format,
 		open_record,
@@ -16,13 +17,18 @@
 		type FieldEditor,
 		type FieldView
 	} from '@norbital-ai/ui';
-	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import PrintDetails from '../../../../lib/ui/print-details.svelte';
 	import UnitPriceInput from '../../../../lib/ui/unit-price-input.svelte';
 	import UnitQuantityInput from '../../../../lib/ui/unit-quantity-input.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	import { contractKind, currentTemplate, documentLocale } from '../../../../lib/order-document.js';
-	import { floorFor, floorNetInUnit, quoteBelowFloor } from '../../../../lib/commercial.js';
+	import {
+		evaluateSalesLineFloor,
+		floorFor,
+		floorNetInUnit,
+		quoteBelowFloor
+	} from '../../../../lib/commercial.js';
 	import { displayUnit, isKgUnit, priceToDisplay } from '../../../../lib/unit-display.js';
 	let {
 		view,
@@ -107,41 +113,72 @@
 		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
 		const unitValue = lineUnit ?? form.get('unit');
 		const resolvedUnit = typeof unitValue === 'string' && unitValue !== '' ? unitValue : undefined;
-		const floor = floorFor(
-			header,
-			book.warehouses.rows[0]?.group_code,
-			{ product: productId, ...(resolvedUnit ? { unit: resolvedUnit } : {}) },
-			book.pricing_floors.rows
-		);
-		const floorNet =
-			floor && resolvedUnit ? floorNetInUnit(floor, resolvedUnit) : (floor?.floor_net ?? null);
-		const displayFloorNet =
-			floor && floorNet !== null
-				? priceToDisplay(floorNet, resolvedUnit)
-				: (floor?.floor_net ?? null);
-		const displayFloorUnit = displayUnit(resolvedUnit ?? floor?.unit, ctx.locale);
-		const price = form.get('unit_price');
-		const below =
-			floor && floorNet !== null && price != null && String(price) !== ''
-				? quoteBelowFloor(
-						{
-							unit_price: String(price),
-							discount_pct: String(form.get('discount_pct') ?? '0'),
-							tax_rate: String(form.get('tax_rate') ?? '0'),
-							floor_net: floorNet
-						},
-						header.tax_inclusive
-					)
-				: false;
+		const rawPrice = form.get('unit_price');
+		const rawDiscount = form.get('discount_pct');
+		const rawTax = form.get('tax_rate');
+		const evaluation = evaluateSalesLineFloor({
+			order: header,
+			groupCode: book.warehouses.rows[0]?.group_code,
+			product: productId,
+			unit: resolvedUnit,
+			unitPrice: rawPrice == null ? null : String(rawPrice),
+			discountPct: rawDiscount == null ? null : String(rawDiscount),
+			taxRate: rawTax == null ? null : String(rawTax),
+			floors: book.pricing_floors.rows
+		});
 		return {
-			floor,
-			displayFloorNet,
-			displayFloorUnit,
-			below,
+			floor: evaluation.floor,
+			displayFloorNet:
+				evaluation.floorNet !== null ? priceToDisplay(evaluation.floorNet, resolvedUnit) : null,
+			displayFloorUnit: displayUnit(resolvedUnit ?? evaluation.floor?.unit, ctx.locale),
+			below: evaluation.status === 'below',
 			rule,
-			flagged: !floor || floorNet === null || below
+			status: evaluation.status,
+			flagged: evaluation.flagged
 		};
 	}
+	const savedFloorState = $derived.by(() => {
+		if (view.mode === 'create' || header?.direction !== 'sales') return null;
+		const rec = view.record;
+		const book = floorRead?.current;
+		const liveFloor = book
+			? floorFor(
+					header,
+					book.warehouses.rows[0]?.group_code,
+					{ product: rec.product, ...(rec.unit ? { unit: rec.unit } : {}) },
+					book.pricing_floors.rows
+				)
+			: undefined;
+		const floorNet =
+			rec.floor_net ??
+			(liveFloor && rec.unit
+				? floorNetInUnit(liveFloor, rec.unit)
+				: (liveFloor?.floor_net ?? null));
+		const floorOn = rec.floor_on ?? liveFloor?.effective_on ?? null;
+		if (floorNet === null) {
+			return {
+				status: 'missing' as const,
+				displayFloorNet: null,
+				displayFloorUnit: displayUnit(rec.unit, ctx.locale),
+				floorOn
+			};
+		}
+		const below = quoteBelowFloor(
+			{
+				unit_price: rec.unit_price,
+				discount_pct: rec.discount_pct,
+				tax_rate: rec.tax_rate,
+				floor_net: floorNet
+			},
+			header.tax_inclusive
+		);
+		return {
+			status: below ? ('below' as const) : ('met' as const),
+			displayFloorNet: priceToDisplay(floorNet, rec.unit),
+			displayFloorUnit: displayUnit(rec.unit, ctx.locale),
+			floorOn
+		};
+	});
 	const values: Partial<InsertOf<'order_lines'>> = $derived(
 		view.mode === 'create' ? { ...preset, ...view.values } : {}
 	);
@@ -199,40 +236,80 @@
 			on_change={field.on_change}
 			{...currency ? { currency } : {}}
 			disabled={field.disabled}
-			invalid={Boolean(field.error) || Boolean(state?.flagged && state.rule === 'refuse')}
+			invalid={Boolean(field.error) || Boolean(state?.flagged)}
 		/>
 		{#if state}
-			<p
-				id={`${field.id}-floor`}
-				class="text-xs"
-				class:text-destructive={state.flagged && state.rule !== 'warn'}
-				class:text-warning={state.flagged && state.rule === 'warn'}
-				class:text-muted-foreground={!state.flagged}
-			>
-				{#if state.floor && state.displayFloorNet !== null}
-					{ctx.t('component.quote_floor_minimum')}: {header?.currency}
-					{format({ kind: 'decimal', scale: isKgUnit(lineUnit) ? 2 : 4 }, state.displayFloorNet, {
-						locale: ctx.locale
-					})}/{state.displayFloorUnit} · {state.floor.effective_on}
-					· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
-				{:else}
-					{ctx.t('component.floor_none')}
+			<Inline id={`${field.id}-floor`} align="center" gap="xs">
+				{#if state.status === 'met'}
+					<Badge variant="success">{ctx.t('component.floor_status_pass')}</Badge>
+				{:else if state.status === 'below'}
+					<Badge variant="destructive">{ctx.t('component.floor_status_fail')}</Badge>
+				{:else if state.status === 'missing'}
+					<Badge variant="destructive">{ctx.t('component.floor_status_missing')}</Badge>
 				{/if}
-				{#if state.flagged && state.rule !== 'warn'}
-					· {ctx.t(`component.floor_rule_${state.rule}`)}
-				{/if}
-			</p>
+				<p
+					class="text-xs font-medium"
+					class:text-destructive={state.flagged}
+					class:text-success={state.status === 'met'}
+					class:text-muted-foreground={state.status === 'guide'}
+				>
+					{#if state.floor && state.displayFloorNet !== null}
+						{ctx.t('component.quote_floor_minimum')}: {header?.currency}
+						{format({ kind: 'decimal', scale: isKgUnit(lineUnit) ? 2 : 4 }, state.displayFloorNet, {
+							locale: ctx.locale
+						})}/{state.displayFloorUnit} · {state.floor.effective_on}
+						{#if state.status !== 'guide'}
+							· {ctx.t(state.below ? 'errors.floor_below' : 'component.quote_floor_met')}
+						{/if}
+					{:else}
+						{ctx.t('component.floor_none')}
+					{/if}
+					{#if state.flagged && state.rule !== 'warn'}
+						· {ctx.t(`component.floor_rule_${state.rule}`)}
+					{/if}
+				</p>
+			</Inline>
 		{/if}
 	</Stack>
 {/snippet}
 {#snippet unitPriceView(field: FieldView)}
-	<UnitPriceInput
-		{ctx}
-		value={field.value}
-		unit={lineUnit}
-		{...currency ? { currency } : {}}
-		readonly
-	/>
+	<Stack gap="xs">
+		<UnitPriceInput
+			{ctx}
+			value={field.value}
+			unit={lineUnit}
+			{...currency ? { currency } : {}}
+			readonly
+		/>
+		{#if savedFloorState}
+			<Inline align="center" gap="xs">
+				{#if savedFloorState.status === 'met'}
+					<Badge variant="success">{ctx.t('component.floor_status_pass')}</Badge>
+				{:else if savedFloorState.status === 'below'}
+					<Badge variant="destructive">{ctx.t('component.floor_status_fail')}</Badge>
+				{:else}
+					<Badge variant="destructive">{ctx.t('component.floor_status_missing')}</Badge>
+				{/if}
+				{#if savedFloorState.displayFloorNet !== null}
+					<span
+						class="text-xs font-medium"
+						class:text-success={savedFloorState.status === 'met'}
+						class:text-destructive={savedFloorState.status !== 'met'}
+					>
+						{ctx.t('component.quote_floor_minimum')}: {header?.currency}
+						{format(
+							{ kind: 'decimal', scale: isKgUnit(lineUnit) ? 2 : 4 },
+							savedFloorState.displayFloorNet,
+							{ locale: ctx.locale }
+						)}/{savedFloorState.displayFloorUnit}{#if savedFloorState.floorOn}
+							· {savedFloorState.floorOn}{/if}
+					</span>
+				{:else}
+					<span class="text-xs font-medium text-destructive">{ctx.t('component.floor_none')}</span>
+				{/if}
+			</Inline>
+		{/if}
+	</Stack>
 {/snippet}
 {#snippet printDetails(field: FieldEditor)}
 	<PrintDetails

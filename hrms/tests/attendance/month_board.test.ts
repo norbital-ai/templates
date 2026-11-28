@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import {
+	briefDayLabel,
 	buildDays,
+	clockStampOf,
+	createBoardIndex,
 	cycleShiftId,
 	datesBetween,
 	dayKey,
@@ -202,5 +205,38 @@ describe('month board', () => {
 
 	it('labels hours without inventing precision', () => {
 		assert.equal(hoursLabel(510), '8.5h');
+	});
+
+	it('lazily builds and caches identical days through createBoardIndex and formats stamps/brief labels consistently', () => {
+		const person = { id: 'contract-1', from: '2026-03-01', to: null, patternId: 'cycle' };
+		const input = {
+			dates: datesBetween('2026-03-02', '2026-03-04'),
+			today: '2026-03-05',
+			entries: [
+				{
+					id: 'entry-1',
+					employment_id: 'contract-1',
+					work_date: '2026-03-03',
+					shift_definition_id: 'day',
+					actual_worked_intervals: [{ start: '2026-03-03T09:00:00Z', end: '2026-03-03T13:00:00Z' }]
+				}
+			],
+			shifts: [dayShift, nightShift],
+			patterns: [pattern],
+			holidays: [{ date: '2026-03-04', name: 'Holiday' }],
+			leave: [],
+			locked: new Set(['contract-1'])
+		};
+		const index = createBoardIndex(input);
+		const eager = buildDays({ ...input, people: [person] });
+		const first = index.day(person, '2026-03-03');
+		const second = index.day(person, '2026-03-03');
+		assert.strictEqual(first, second, 'memoizes computed Day per cell');
+		assert.deepEqual(first, eager.get(dayKey('contract-1', '2026-03-03')));
+		assert.equal(briefDayLabel(first, 'Ana · 2026-03-03'), 'Ana · 2026-03-03 · DAY');
+		assert.equal(
+			clockStampOf('2026-03-03T09:00:00Z', 'UTC'),
+			clockStampOf('2026-03-03T09:00:00Z', 'UTC')
+		);
 	});
 });

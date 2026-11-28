@@ -51,4 +51,4 @@ The timeline uses shared platform buttons, dialogs, record shells, and Markdown 
 - `src/data/model/companies/projects/activities/+representation.svelte` and `+model.ts`
 - `src/lib/MeetingActivity.svelte`, `src/lib/MeetingVoices.svelte`, `src/lib/meeting-capture.ts`, and `src/lib/recording-store.ts`
 - `src/lib/DocumentTab.svelte`, `src/lib/DocumentPreviewSheet.svelte`, `src/lib/DocumentPaper.svelte`, and `src/lib/document-layout.ts`
-- `src/app/configuration/+app.ts` and `+rules.page.svelte`
+- `src/app/configuration/+app.ts`

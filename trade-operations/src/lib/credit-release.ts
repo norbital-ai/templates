@@ -14,12 +14,11 @@ export type CreditFormulaKey =
 
 export type CreditAmountKey = Exclude<CreditFormulaKey, 'current_bill'>;
 export type CreditBlockReason = 'over_limit' | 'overdue';
-export type CreditReleaseStatus =
-	'blocked' | 'approved' | 'released' | 'cleared' | 'superseded' | 'withdrawn' | 'bypassed';
 
-/** KIS ICCreditField catalogue names verified on KIS TEST (FGroupID = 2, 销售出库). */
+/** KIS ICCreditField catalogue names verified on KIS PRD/TEST (FGroupID = 2, 销售出库). */
 export const CREDIT_FORMULA_ITEMS = {
 	当前单据金额: { key: 'current_bill', sign: 1 },
+	当前单据金额合计: { key: 'current_bill', sign: 1 },
 	已审核发票金额: { key: 'invoices_audited', sign: 1 },
 	已审核的已收款发票金额: { key: 'invoices_paid', sign: -1 },
 	已审核未核销的应收退款单金额: { key: 'refunds_unsettled', sign: 1 },
@@ -320,6 +319,7 @@ export type OpenCreditRelease<O = string, D = string> = {
 	readonly status: 'blocked' | 'approved';
 	readonly bill_amount: string | null;
 	readonly credit_limit: string | null;
+	readonly credit_days?: number | null;
 	readonly credit_used: string | null;
 	readonly over_limit: string | null;
 	readonly overdue_days: number | null;
@@ -332,6 +332,8 @@ export type OpenCreditRelease<O = string, D = string> = {
 	readonly order: O | null;
 	readonly delivery: D | null;
 	readonly settlement_name: string | null;
+	/** True when an approved one-time pass is using a temporary Kingdee ICCreditObject bump awaiting DO audit. */
+	readonly temp_bump_active?: boolean;
 };
 
 export type BillCreditObservation<O = string, D = string> =
@@ -356,6 +358,7 @@ export type BillCreditObservation<O = string, D = string> =
 			readonly content_hash: string;
 			readonly bill_amount: string;
 			readonly credit_limit: string | null;
+			readonly credit_days?: number | null;
 			readonly credit_used: string | null;
 			readonly verdict: CreditBlockVerdict;
 			readonly order: O | null;
@@ -497,8 +500,23 @@ export function reconcileCreditRelease<O = string, D = string>(
 			return { op: 'close', status: 'cleared' };
 		}
 		if (!open) return { op: 'none' };
-		if (open.status === 'approved' && open.audit_seen_at === null)
-			return { op: 'mark_audit_seen', audit_seen_at: observedAt };
+		if (open.status === 'approved' && open.temp_bump_active) {
+			const validApproval =
+				open.approved_content_hash !== null &&
+				open.approved_content_hash === observation.content_hash;
+			return validApproval
+				? {
+						op: 'release',
+						status: 'released',
+						released_by: 'trade-ops-temp-bump',
+						released_at: observedAt,
+						release_log_key: `temp-bump:${open.delivery_fid}:${observation.oper_date.toLowerCase()}`,
+						content_hash: observation.content_hash,
+						source_oper_date: observation.oper_date
+					}
+				: { op: 'close', status: 'superseded' };
+		}
+		if (open.audit_seen_at === null) return { op: 'mark_audit_seen', audit_seen_at: observedAt };
 		return { op: 'close', status: 'cleared' };
 	}
 
@@ -514,7 +532,9 @@ export function reconcileCreditRelease<O = string, D = string>(
 			return observation.verdict.blocked
 				? { op: 'supersede_and_reopen' }
 				: { op: 'close', status: 'superseded' };
-		if (!observation.verdict.blocked) return { op: 'close', status: 'cleared' };
+		// While an approved temporary credit bump is active, passing credit control is expected until warehouse audits the DO.
+		if (!observation.verdict.blocked)
+			return open.temp_bump_active ? { op: 'none' } : { op: 'close', status: 'cleared' };
 		return open.audit_seen_at !== null ? { op: 'clear_audit_seen' } : { op: 'none' };
 	}
 

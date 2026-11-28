@@ -43,10 +43,10 @@ bunx bolt build
   `migrations/` and replays the full migration chain against a scratch database. Commit SQL files,
   `migrations/snapshot.json`, `migrations/migrations.lock.json`, and generated
   `migrations/physical.json` together. Never commit `.norbital/`.
-- **Seed data:** `seed/public/` ships generic commercial settings (`commercial_settings.json`) and
-  starter EN/ZH layouts (`document_templates.json`) for quotations, sales contracts, and purchase
-  contracts. `seed/test/` contains synthetic fixtures for automated tests only. No credentials or
-  live ERP rows ship with the template.
+- **Seed data:** `seed/public/` ships the starting teams (`sys_team.json`), generic commercial settings
+  (`commercial_settings.json`), and starter EN/ZH layouts (`document_templates.json`) for quotations,
+  sales contracts, and purchase contracts. `seed/test/` contains synthetic fixtures for automated tests
+  only. No credentials or live ERP rows ship with the template.
 - **Kingdee connections:** Each accounting ledger is added dynamically at runtime under
   **Settings -> Integrations -> Connections**; credentials stay in the host's sealed store.
 

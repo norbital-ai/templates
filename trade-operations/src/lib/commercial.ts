@@ -1,4 +1,4 @@
-import { BigDecimal, Effect, Schema } from 'effect';
+import { BigDecimal, Effect, Option, Schema } from 'effect';
 import * as Hex from 'effect/encoding/Hex';
 import type { Row } from '@norbital-ai/bolt';
 
@@ -240,7 +240,11 @@ type Floor = Pick<
  * warehouse region (one price per SKU per region per currency per day). A purchase has none.
  */
 export function floorFor<F extends Floor>(
-	order: Pick<Row<'orders'>, 'direction' | 'currency' | 'ordered_on'>,
+	order: {
+		readonly direction: Row<'orders'>['direction'];
+		readonly currency: string;
+		readonly ordered_on: string;
+	},
 	group: string | null | undefined,
 	line: { readonly product: string; readonly quantity?: string; readonly unit?: string },
 	floors: readonly F[]
@@ -266,15 +270,108 @@ export function quoteBelowFloor(
 	inclusive: boolean
 ) {
 	if (line.floor_net === null) return false;
+	const unitPrice = BigDecimal.fromString(line.unit_price.trim());
+	const discountPct = BigDecimal.fromString(line.discount_pct.trim());
+	const taxRate = BigDecimal.fromString(line.tax_rate.trim());
+	const floor = BigDecimal.fromString(line.floor_net.trim());
+	if (
+		Option.isNone(unitPrice) ||
+		Option.isNone(discountPct) ||
+		Option.isNone(taxRate) ||
+		Option.isNone(floor)
+	)
+		return false;
 	const hundred = BigDecimal.fromBigInt(100n);
+	const divisor = inclusive ? BigDecimal.sum(hundred, taxRate.value) : hundred;
+	if (!BigDecimal.isPositive(divisor)) return false;
 	const charged = BigDecimal.multiply(
-		BigDecimal.fromStringUnsafe(line.unit_price),
-		BigDecimal.subtract(hundred, BigDecimal.fromStringUnsafe(line.discount_pct))
+		unitPrice.value,
+		BigDecimal.subtract(hundred, discountPct.value)
 	);
-	const net = BigDecimal.divideUnsafe(
-		charged,
-		inclusive ? BigDecimal.sum(hundred, BigDecimal.fromStringUnsafe(line.tax_rate)) : hundred
+	const net = BigDecimal.divideUnsafe(charged, divisor);
+	return BigDecimal.isLessThan(BigDecimal.round(net, { scale: floor.value.scale }), floor.value);
+}
+
+export type SalesLineFloorEvaluation<F extends Floor = Floor> = {
+	readonly status: 'missing' | 'guide' | 'below' | 'met';
+	readonly flagged: boolean;
+	readonly floor: F | undefined;
+	readonly floorNet: string | null;
+	readonly effectiveOn: string | null;
+};
+
+/** Evaluates a live or saved sales line against the pricing floor book without throwing on partial numeric input. */
+export function evaluateSalesLineFloor<F extends Floor>(input: {
+	readonly order: {
+		readonly direction: Row<'orders'>['direction'];
+		readonly currency: string;
+		readonly ordered_on: string;
+		readonly tax_inclusive: boolean;
+	};
+	readonly groupCode: string | null | undefined;
+	readonly product: string;
+	readonly unit: string | null | undefined;
+	readonly unitPrice: string | null | undefined;
+	readonly discountPct?: string | null | undefined;
+	readonly taxRate?: string | null | undefined;
+	readonly floors: readonly F[];
+}): SalesLineFloorEvaluation<F> {
+	const resolvedUnit = input.unit?.trim() || undefined;
+	const floor = floorFor(
+		input.order,
+		input.groupCode,
+		{ product: input.product, ...(resolvedUnit ? { unit: resolvedUnit } : {}) },
+		input.floors
 	);
-	const floor = BigDecimal.fromStringUnsafe(line.floor_net);
-	return BigDecimal.isLessThan(BigDecimal.round(net, { scale: floor.scale }), floor);
+	const floorNet =
+		floor && resolvedUnit ? floorNetInUnit(floor, resolvedUnit) : (floor?.floor_net ?? null);
+	if (!floor || floorNet === null) {
+		return {
+			status: 'missing',
+			flagged: true,
+			floor: undefined,
+			floorNet: null,
+			effectiveOn: null
+		};
+	}
+	const priceText = input.unitPrice?.trim() ?? '';
+	if (priceText === '' || Option.isNone(BigDecimal.fromString(priceText))) {
+		return {
+			status: 'guide',
+			flagged: false,
+			floor,
+			floorNet,
+			effectiveOn: floor.effective_on
+		};
+	}
+	const discountText = input.discountPct?.trim() || '0';
+	const taxText = input.taxRate?.trim() || '0';
+	if (
+		Option.isNone(BigDecimal.fromString(discountText)) ||
+		Option.isNone(BigDecimal.fromString(taxText))
+	) {
+		return {
+			status: 'guide',
+			flagged: false,
+			floor,
+			floorNet,
+			effectiveOn: floor.effective_on
+		};
+	}
+	const below = quoteBelowFloor(
+		{
+			unit_price: priceText,
+			discount_pct: discountText,
+			tax_rate: taxText,
+			floor_net: floorNet
+		},
+		input.order.tax_inclusive
+	);
+	return {
+		status: below ? 'below' : 'met',
+		flagged: below,
+		floor,
+		floorNet,
+		effectiveOn: floor.effective_on
+	};
 }

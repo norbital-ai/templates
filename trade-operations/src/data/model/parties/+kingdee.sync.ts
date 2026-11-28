@@ -1,4 +1,5 @@
 import { sync } from '@norbital-ai/bolt';
+import { writeCustomerCreditLimit } from '../../../integration/kingdee/credit-limit-write.js';
 import {
 	columns,
 	readSource,
@@ -37,5 +38,26 @@ export default sync('parties', 'kingdee', {
 			),
 			instance
 		);
+	},
+	write: function* ({ op, row, changed, instance }, ctx) {
+		const limitChanged = changed.includes('credit_limit_target');
+		const daysChanged = changed.includes('credit_days_target');
+		if (
+			op !== 'update' ||
+			row.source !== instance ||
+			row.kind === 'supplier' ||
+			row.currency !== 'CNY' ||
+			(!limitChanged && !daysChanged)
+		)
+			return null;
+		const written = yield* writeCustomerCreditLimit(
+			{
+				partyCode: row.external_code,
+				...(limitChanged ? { limit: row.credit_limit_target } : {}),
+				...(daysChanged ? { creditDays: row.credit_days_target } : {})
+			},
+			ctx
+		);
+		return written && { $id: row.external_code };
 	}
 });

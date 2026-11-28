@@ -8,6 +8,7 @@ import {
 	agingDetails,
 	agingRead,
 	agingSummary,
+	commissionCalculation,
 	creditExceptions,
 	creditRead,
 	estimateAging,
@@ -280,6 +281,7 @@ test.live(
 			expect(customers).toMatchObject([
 				{
 					currency: 'SGD',
+					credit_available: decimalText('-50.00'),
 					over_limit: decimalText('50'),
 					overdue: decimalText('21.8'),
 					oldest_overdue: 39,
@@ -289,3 +291,121 @@ test.live(
 			expect(invoices.map((row) => [row.reference, row.days_overdue])).toEqual([['LATE-1', 39]]);
 		})
 );
+
+test('creditExceptions honors estimated_balance from estimateAging and commission handles case-insensitive units and zero-qty custom rules', () =>
+	Effect.gen(function* () {
+		const ledger = fixtureId('sys_integration', 'kingdee');
+		const raw: Parameters<typeof estimateAging>[0] = [
+			{
+				contact_id: '10',
+				order: null,
+				order_number: '',
+				invoice: null,
+				ledger,
+				ledger_name: 'Primary',
+				party: '101',
+				party_name: 'Paid via Unapplied',
+				reference: 'INV-OLD',
+				currency: 'CNY',
+				issued_on: '2026-08-01',
+				due_on: '2026-09-01',
+				settled_on: null,
+				settlement: null,
+				delivered_on: null,
+				as_of: '2026-10-10',
+				bucket: '31_60',
+				balance: '100.00',
+				unapplied: '0',
+				overpaid: '0',
+				credit: '0'
+			},
+			{
+				contact_id: '11',
+				order: null,
+				order_number: '',
+				invoice: null,
+				ledger,
+				ledger_name: 'Primary',
+				party: '101',
+				party_name: 'Paid via Unapplied',
+				reference: 'RCPT-1',
+				currency: 'CNY',
+				issued_on: null,
+				due_on: null,
+				settled_on: '2026-09-15',
+				settlement: null,
+				delivered_on: null,
+				as_of: '2026-10-10',
+				bucket: 'unapplied',
+				balance: '0',
+				unapplied: '100.00',
+				overpaid: '0',
+				credit: '0'
+			}
+		];
+		const estimated = estimateAging(raw);
+		const cleared = creditExceptions([], estimated, '2026-10-10');
+		expect(cleared.customers).toEqual([]);
+		expect(cleared.invoices).toEqual([]);
+
+		// Commission handles case-insensitive/synonym units ('KG' vs 'kg') and zero-qty price adjustments.
+		const orderId = fixtureId('orders', 'comm-1');
+		const lineId = fixtureId('order_lines', 'comm-line-1');
+		const calc = yield* commissionCalculation(
+			{
+				id: orderId,
+				number: 'TR-2026-9999',
+				direction: 'sales',
+				status: 'confirmed',
+				owner: fixtureId('sys_user', 'seller-1'),
+				currency: 'CNY',
+				ordered_on: '2026-10-01',
+				freight_treatment: 'include',
+				commission: {
+					rule_id: fixtureId('commission_rules', 'rule-1'),
+					currency: 'CNY',
+					effective_on: '2026-10-01',
+					basis_unit: 't',
+					fixed_rate: '0',
+					spread_pct: '0',
+					eligibility_expression: 'true',
+					amount_expression: 'net * 0.05',
+					engine_version: 'cel-v1',
+					parameters: []
+				},
+				party: { external_code: '101' },
+				lines: [
+					{
+						id: lineId,
+						product: fixtureId('products', 'p1'),
+						product_code: 'P1',
+						product_name: 'Resin A',
+						unit: 'kg',
+						quantity: '1000',
+						net: '10000',
+						floor_net: '8'
+					}
+				]
+			},
+			[
+				{
+					id: fixtureId('source_sales_lines', 'f1'),
+					order: orderId,
+					order_line: lineId,
+					kind: 'shipment',
+					unit: 'KG',
+					quantity: '0',
+					currency: 'CNY',
+					net_amount: '2000',
+					active: true,
+					business_on: '2026-10-05'
+				}
+			]
+		);
+		expect(calc.unresolved_lines).toBe(0);
+		expect(calc.snapshot.lines[0]).toMatchObject({
+			reason: 'resolved',
+			spread: null,
+			amount: '100.00'
+		});
+	}));

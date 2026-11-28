@@ -46,7 +46,10 @@
 		type TimelineEntry
 	} from '@norbital-ai/ui';
 	import { Bound, Grid, Inline, Scroll, Stack, Surface, Cluster } from '@norbital-ai/ui/layout';
-	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
+	import {
+		kingdeeConnectionStatus,
+		kingdeeStatusDetail
+	} from '../../../integration/kingdee/connection-status.js';
 	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import UnitPriceInput from '../../../lib/ui/unit-price-input.svelte';
 	import UnitQuantityInput from '../../../lib/ui/unit-quantity-input.svelte';
@@ -59,6 +62,7 @@
 		qtyToDisplay
 	} from '../../../lib/unit-display.js';
 	import { orderCreditAssessment } from '../../../lib/credit-release.js';
+	import { evaluateSalesLineFloor } from '../../../lib/commercial.js';
 
 	const DateBounds = Schema.Struct({
 		from: Schema.NullOr(Schema.String),
@@ -90,6 +94,111 @@
 		const productId = row['product'];
 		return typeof productId === 'string' ? (productUnitById.get(productId) ?? null) : null;
 	};
+	// Live pricing floor book for inline order drafting & explicit red/green floor feedback
+	const floorBookRead = $derived(
+		commercial && ctx.catalog?.pricing_floors
+			? ctx.query({
+					pricing_floors: { limit: 10000 },
+					warehouses: { fields: ['group_code'], limit: 1000 },
+					commercial_settings: {
+						where: { code: { eq: 'default' } },
+						fields: ['floor_rule'],
+						limit: 1
+					}
+				})
+			: null
+	);
+	const warehouseGroupById = $derived(
+		new Map<string, string | null>(
+			(floorBookRead?.current?.warehouses.rows ?? []).map((w) => [w.id, w.group_code])
+		)
+	);
+	type LineFloorCheck = {
+		readonly status: 'no_warehouse' | 'missing' | 'guide' | 'below' | 'met';
+		readonly flagged: boolean;
+		readonly rule: string;
+		readonly currency: string;
+		readonly rowUnit: string | null;
+		readonly displayFloorNet: string | null;
+		readonly displayFloorUnit: string;
+		readonly effectiveOn: string | null;
+	};
+	function lineFloorCheck(form: FormState, row: Row): LineFloorCheck | null {
+		const direction = form.get('direction');
+		if (direction !== 'sales') return null;
+		const book = floorBookRead?.current;
+		if (!book) return null;
+		const childForm = form.child_forms.get(`lines:${row.id}`);
+		const productVal = childForm ? childForm.get('product') : row['product'];
+		const productId = typeof productVal === 'string' && productVal !== '' ? productVal : null;
+		if (!productId) return null;
+		const warehouseId = form.id<'warehouses'>('warehouse');
+		const groupCode = warehouseId ? (warehouseGroupById.get(warehouseId) ?? null) : null;
+		const orderedOnRaw = form.get('ordered_on');
+		const ordered_on =
+			typeof orderedOnRaw === 'string' && orderedOnRaw.trim() !== '' ? orderedOnRaw : day.today;
+		const currencyRaw = form.get('currency') ?? row['currency'];
+		const orderCurrency =
+			typeof currencyRaw === 'string' && currencyRaw !== '' ? currencyRaw : null;
+		const rule = book.commercial_settings.rows[0]?.floor_rule ?? 'warn';
+		if (!groupCode || !orderCurrency) {
+			return {
+				status: 'no_warehouse',
+				flagged: false,
+				rule,
+				currency: orderCurrency ?? '',
+				rowUnit: null,
+				displayFloorNet: null,
+				displayFloorUnit: '',
+				effectiveOn: null
+			};
+		}
+		const rowUnit =
+			(typeof row['unit'] === 'string' && row['unit'].trim() !== '' ? row['unit'] : null) ??
+			productUnitById.get(productId) ??
+			null;
+		const rawPrice = childForm ? childForm.get('unit_price') : row['unit_price'];
+		const rawDiscount = childForm ? childForm.get('discount_pct') : row['discount_pct'];
+		const rawTax = childForm ? childForm.get('tax_rate') : row['tax_rate'];
+		const evaluation = evaluateSalesLineFloor({
+			order: {
+				direction: 'sales',
+				currency: orderCurrency,
+				ordered_on,
+				tax_inclusive: Boolean(form.get('tax_inclusive'))
+			},
+			groupCode,
+			product: productId,
+			unit: rowUnit,
+			unitPrice: rawPrice == null ? null : String(rawPrice),
+			discountPct: rawDiscount == null ? null : String(rawDiscount),
+			taxRate: rawTax == null ? null : String(rawTax),
+			floors: book.pricing_floors.rows
+		});
+		const displayFloorNet =
+			evaluation.floorNet !== null ? priceToDisplay(evaluation.floorNet, rowUnit) : null;
+		const displayFloorUnit = displayUnit(rowUnit ?? evaluation.floor?.unit, ctx.locale);
+		return {
+			status: evaluation.status,
+			flagged: evaluation.flagged,
+			rule,
+			currency: orderCurrency,
+			rowUnit,
+			displayFloorNet,
+			displayFloorUnit,
+			effectiveOn: evaluation.effectiveOn
+		};
+	}
+	const creditCheckStatusOf = (
+		value: unknown
+	): 'passed' | 'failed' | 'released' | 'bypassed' | 'unchecked' | null =>
+		value === 'passed' ||
+		value === 'failed' ||
+		value === 'released' ||
+		value === 'bypassed' ||
+		value === 'unchecked'
+			? value
+			: null;
 	const canEditChildField = (
 		parentForm: FormState,
 		childForm: FormState | undefined,
@@ -189,8 +298,12 @@
 				})
 			: null
 	);
-	const ledger = $derived(ledgerRead?.current?.orders.rows[0]?.ledger);
-	const sourceState = $derived(ledger ? kingdeeConnectionStatus(ledger) : null);
+	const ledger = $derived(ledgerRead?.current?.orders.rows[0]?.ledger ?? null);
+	const ledgerLoaded = $derived(ledgerRead === null || ledgerRead.current !== undefined);
+	const sourceState = $derived(
+		!ledgerLoaded ? null : ledger ? kingdeeConnectionStatus(ledger) : ('not_configured' as const)
+	);
+	const sourceDetail = $derived(ledger ? kingdeeStatusDetail(ledger) : null);
 	// FIFO costs are judged against the minute's stock feed
 	const clock = ctx.clock('minute');
 	const day = ctx.clock('day');
@@ -280,17 +393,29 @@
 				detail: sync?.message ?? ''
 			};
 		if (!so)
-			return sourceState && sourceState !== 'connected'
+			return sourceState === 'connection_error'
 				? {
-						label: ctx.t(`component.kingdee_${sourceState}`),
-						variant: 'outline' as const,
-						detail: ''
+						label: ctx.t('component.kingdee_connection_error'),
+						variant: 'destructive' as const,
+						detail: sourceDetail ?? ctx.t('component.kingdee_connection_error_sync')
 					}
-				: {
-						label: ctx.t('component.contract_pending'),
-						variant: 'warning' as const,
-						detail: ctx.t('component.kingdee_waiting')
-					};
+				: sourceState === 'off'
+					? {
+							label: ctx.t('component.kingdee_off'),
+							variant: 'outline' as const,
+							detail: ctx.t('component.kingdee_off_sync')
+						}
+					: sourceState === 'not_configured'
+						? {
+								label: ctx.t('component.kingdee_not_configured'),
+								variant: 'outline' as const,
+								detail: ctx.t('component.kingdee_not_configured_sync')
+							}
+						: {
+								label: ctx.t('component.contract_pending'),
+								variant: 'warning' as const,
+								detail: ctx.t('component.kingdee_waiting')
+							};
 		const presentation = so.closed
 			? { label: ctx.t('component.kingdee_status_closed'), variant: 'outline' as const }
 			: so.status === 'issued'
@@ -722,9 +847,15 @@
 						? ctx.t('errors.lines_required')
 						: !view.record.payment_terms
 							? ctx.t('errors.payment_terms')
-							: sourceState && sourceState !== 'connected'
-								? ctx.t(`component.kingdee_${sourceState}`)
-								: null}
+							: !ledgerLoaded
+								? ctx.t('dashboard.loading')
+								: sourceState === 'not_configured'
+									? ctx.t('component.kingdee_not_configured_sync')
+									: sourceState === 'off'
+										? ctx.t('component.kingdee_off_sync')
+										: sourceState === 'connection_error'
+											? (sourceDetail ?? ctx.t('component.kingdee_connection_error_sync'))
+											: null}
 		{#if blocked}
 			<!-- a disabled button takes no hover: its wrapper carries the reason -->
 			<Tooltip text={blocked}>
@@ -777,6 +908,7 @@
 			typeof rawCurrency === 'string' && rawCurrency !== '' ? rawCurrency : undefined}
 		{@const editable = canEditChildField(form, childForm, 'unit_price')}
 		{@const error = childForm?.field_errors.get('unit_price')}
+		{@const floor = lineFloorCheck(form, row)}
 		<Stack gap="xs">
 			<UnitPriceInput
 				{ctx}
@@ -785,13 +917,63 @@
 				{...rowCurrency ? { currency: rowCurrency } : {}}
 				readonly={!editable}
 				disabled={form.pending || Boolean(childForm?.pending)}
-				invalid={Boolean(error)}
+				invalid={Boolean(error) || Boolean(floor?.flagged)}
 				dense
 				on_change={(next) => childForm?.set('unit_price', next)}
 			/>
 			{#if error}<p class="text-xs text-destructive">{error}</p>{/if}
 		</Stack>
 	{/snippet}
+	{#snippet floorCell({ row }: { field: string; row: Row })}
+		{@const floor = lineFloorCheck(form, row)}
+		{#if !floor}
+			<span class="text-xs text-muted-foreground">—</span>
+		{:else if floor.status === 'no_warehouse'}
+			<span class="text-xs text-muted-foreground">{ctx.t('component.floor_select_warehouse')}</span>
+		{:else if floor.status === 'missing'}
+			<Stack gap="xs">
+				<Badge variant="destructive">{ctx.t('component.floor_status_missing')}</Badge>
+			</Stack>
+		{:else if floor.status === 'guide'}
+			<span class="text-xs text-muted-foreground">
+				{ctx.t('component.quote_floor_minimum')}: {floor.currency}
+				{floor.displayFloorNet !== null
+					? format(
+							{ kind: 'decimal', scale: isKgUnit(floor.rowUnit) ? 2 : 4 },
+							floor.displayFloorNet,
+							{ locale: ctx.locale }
+						)
+					: '—'}/{floor.displayFloorUnit}
+				{#if floor.effectiveOn}· {floor.effectiveOn}{/if}
+			</span>
+		{:else}
+			<Stack gap="xs">
+				<Inline align="center" gap="xs">
+					<Badge variant={floor.status === 'met' ? 'success' : 'destructive'}>
+						{ctx.t(
+							floor.status === 'met' ? 'component.floor_status_pass' : 'component.floor_status_fail'
+						)}
+					</Badge>
+				</Inline>
+				{#if floor.displayFloorNet !== null}
+					<span
+						class="text-xs tabular-nums"
+						class:text-success={floor.status === 'met'}
+						class:text-destructive={floor.status === 'below'}
+					>
+						{floor.currency}
+						{format(
+							{ kind: 'decimal', scale: isKgUnit(floor.rowUnit) ? 2 : 4 },
+							floor.displayFloorNet,
+							{ locale: ctx.locale }
+						)}/{floor.displayFloorUnit}{#if floor.effectiveOn}
+							· {floor.effectiveOn}{/if}
+					</span>
+				{/if}
+			</Stack>
+		{/if}
+	{/snippet}
+	{@const isSales = form.get('direction') === 'sales'}
 	{@const lineColumns: readonly Col<Row>[] = commercial
 		? [
 				'product',
@@ -808,6 +990,15 @@
 					align: 'end',
 					cell: unitPriceCell
 				},
+				...(isSales
+					? [
+							{
+								field: 'floor_net',
+								label: ctx.t('component.pricing_floor_check'),
+								cell: floorCell
+							}
+						]
+					: []),
 				'discount_pct',
 				'tax_rate',
 				'total'
@@ -824,13 +1015,59 @@
 			]}
 	<ChildGrid {ctx} of="orders" relation="lines" {...id ? { id } : {}} columns={lineColumns} />
 {/snippet}
-{#snippet fulfillment()}{#if id}<Table
+{#snippet fulfillment()}{#if id}
+		{#snippet creditCheckCell({ row }: { field: string; row: Row })}
+			{@const status = creditCheckStatusOf(row['credit_check'])}
+			{@const detail =
+				typeof row['credit_check_detail'] === 'string' ? row['credit_check_detail'] : null}
+			{#if status}
+				{@const variant =
+					status === 'passed' || status === 'released'
+						? ('success' as const)
+						: status === 'failed' || status === 'bypassed'
+							? ('destructive' as const)
+							: ('outline' as const)}
+				{@const text = ctx.t(`models.transactions.fields.credit_check.${status}`)}
+				{#if detail}
+					<Tooltip text={detail}>
+						{#snippet trigger({ props })}
+							<Badge {...props} tabindex={0} {variant}>{text}</Badge>
+						{/snippet}
+					</Tooltip>
+				{:else}
+					<Badge {variant}>{text}</Badge>
+				{/if}
+			{:else}
+				<span class="text-xs text-muted-foreground">—</span>
+			{/if}
+		{/snippet}
+		<Table
 			{ctx}
 			of="transactions"
 			where={{ order: { eq: id }, kind: { in: ['delivery', 'invoice'] } }}
-			columns={['reference', 'kind', 'status', 'issued_on', 'source_updated_at']}
+			columns={[
+				'reference',
+				'kind',
+				'status',
+				{
+					field: 'credit_check',
+					label: label(ctx, 'transactions', 'credit_check'),
+					cell: creditCheckCell
+				},
+				'issued_on',
+				'source_updated_at'
+			]}
 			toolbar={{ new: false }}
-		/>{/if}{/snippet}
+		>
+			{#snippet empty()}
+				<EmptyState
+					title={ctx.t('component.transactions_empty')}
+					{...sourceState && sourceState !== 'connected'
+						? { description: ctx.t('component.kingdee_empty_connect_hint') }
+						: {}}
+				/>
+			{/snippet}
+		</Table>{/if}{/snippet}
 {#snippet filed()}{#if id}<Table
 			{ctx}
 			of="order_files"

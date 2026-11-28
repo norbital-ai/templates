@@ -53,7 +53,7 @@
 			const units = [
 				...Map.groupBy(
 					row.lines.filter((line) => line.basis_quantity !== null),
-					(line) => line.basis_unit
+					(line) => displayUnit(line.basis_unit, ctx.locale) || line.basis_unit
 				)
 			];
 			return {
@@ -61,7 +61,7 @@
 				basis_quantity: units
 					.map(
 						([unit, lines]) =>
-							`${BigDecimal.format(BigDecimal.sumAll(lines.map((line) => BigDecimal.fromStringUnsafe(line.basis_quantity ?? '0'))))} ${displayUnit(unit, ctx.locale)}`
+							`${BigDecimal.format(BigDecimal.sumAll(lines.map((line) => BigDecimal.fromStringUnsafe(line.basis_quantity ?? '0'))))} ${unit}`
 					)
 					.join(' · '),
 				state_label: ctx.t(`reports.commission_ack.${row.state}`)
@@ -103,6 +103,7 @@
 {#snippet salespeopleTab()}
 	{@const peopleColumns: readonly Col<(typeof people)[number]>[] = [
 		{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
+		{ field: 'currency', label: label(ctx, 'orders', 'currency') },
 		{
 			field: 'order_count',
 			label: label(ctx, 'commission_statements', 'order_count'),
@@ -140,19 +141,25 @@
 			title: ctx.t('component.commission'),
 			description: false,
 			new: false,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('commission', day.today, peopleColumns, people)
-				}
-			]
+			actions:
+				people.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('commission', day.today, peopleColumns, people)
+							}
+						]
+					: []
 		}}
-	/>
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.commission.empty')} />{/snippet}
+	</Table>
 {/snippet}
 {#snippet linesTab()}
 	{@const lineColumns: readonly Col<(typeof lines)[number]>[] = [
 		{ field: 'owner_name', label: label(ctx, 'orders', 'owner_name') },
+		{ field: 'currency', label: label(ctx, 'orders', 'currency') },
 		{ field: 'number', label: ctx.t('models.orders.singular') },
 		{ field: 'product', label: ctx.t('reports.sales.product') },
 		{
@@ -182,15 +189,20 @@
 			title: ctx.t('component.commission'),
 			description: false,
 			new: false,
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('commission-lines', day.today, lineColumns, lines)
-				}
-			]
+			actions:
+				lines.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('commission-lines', day.today, lineColumns, lines)
+							}
+						]
+					: []
 		}}
-	/>
+	>
+		{#snippet empty()}<EmptyState title={ctx.t('reports.commission.empty')} />{/snippet}
+	</Table>
 {/snippet}
 
 <Bound size="fill" min_height="18rem">

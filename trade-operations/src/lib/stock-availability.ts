@@ -103,22 +103,6 @@ export function stockAvailability(answer: Answer, now: number) {
 		const source = product.source;
 		const snapshot = snapshots.get(source);
 		const orderTime = snapshot ? confirmed(source, feeds.commitments) : null;
-		const stockUnits = new Set(
-			lots.length
-				? lots.map((row) => normalizeUnit(row.unit ?? null))
-				: [normalizeUnit(product.unit ?? null)]
-		);
-		const orderUnits = new Set(commitments.map((row) => normalizeUnit(row.unit ?? null)));
-		const stockKnown = stockUnits.size === 1 && !stockUnits.has(null);
-		const orderKnown = orderUnits.size <= 1 && !orderUnits.has(null);
-		const compatible =
-			stockKnown && orderKnown && new Set([...stockUnits, ...orderUnits]).size === 1;
-		const stockUnit = stockKnown ? (lots[0]?.unit ?? null) : null;
-		const orderUnit = orderKnown ? (commitments[0]?.unit ?? null) : null;
-		const unit =
-			stockUnit && orderUnit && !compatible
-				? `${stockUnit} / ${orderUnit}`
-				: (stockUnit ?? orderUnit ?? product.unit);
 		const regions = new Set<string | null>([
 			...lots.map((lot) => regionOf(lot.warehouse)),
 			...commitments.map((row) => regionOf(row.warehouse))
@@ -126,6 +110,22 @@ export function stockAvailability(answer: Answer, now: number) {
 		return [...regions].map((region) => {
 			const here = lots.filter((lot) => regionOf(lot.warehouse) === region);
 			const orders = commitments.filter((row) => regionOf(row.warehouse) === region);
+			const stockUnits = new Set(
+				here.length
+					? here.map((row) => normalizeUnit(row.unit ?? null))
+					: [normalizeUnit(product.unit ?? null)]
+			);
+			const orderUnits = new Set(orders.map((row) => normalizeUnit(row.unit ?? null)));
+			const stockKnown = stockUnits.size === 1 && !stockUnits.has(null);
+			const orderKnown = orderUnits.size <= 1 && !orderUnits.has(null);
+			const compatible =
+				stockKnown && orderKnown && new Set([...stockUnits, ...orderUnits]).size === 1;
+			const stockUnit = stockKnown ? (here[0]?.unit ?? product.unit ?? null) : null;
+			const orderUnit = orderKnown ? (orders[0]?.unit ?? null) : null;
+			const unit =
+				stockUnit && orderUnit && !compatible
+					? `${stockUnit} / ${orderUnit}`
+					: (stockUnit ?? orderUnit ?? product.unit);
 			const stockTime =
 				here.length > 0 || listed.has(source) ? confirmed(source, feeds.stock) : null;
 			const onHand = !stockKnown

@@ -20,6 +20,7 @@ source_receivables/
 source_stock_commitments/
 orders/
   activities/
+  order_files/
   order_lines/
   source_payments/
   source_sales_lines/
@@ -31,6 +32,7 @@ products/
   pricing_floors/
   stock_snapshots/
 settlements/
+user_profiles/
 warehouses/
 ```
 
@@ -38,10 +40,10 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 ## Surfaces
 
-- Apps: `operations/analysis`, `operations/dashboard`, `operations/partners`, `operations/trade`, `operations/warehouse`, `trade_configuration`
+- Apps: `operations/analysis`, `operations/dashboard`, `operations/partners`, `operations/profile`, `operations/trade`, `operations/warehouse`, `trade_configuration`
 - Kiosks: none
 - Automations: `source_health`
-- Policies: `configuration`, `finance`, `logistics`, `manager`, `procurement`, `sales`
+- Policies: `configuration`, `finance`, `kingdee_sync`, `logistics`, `manager`, `procurement`, `sales`, `source_health`
 - Custom fields: none
 - Integrations: `kingdee`
 
@@ -52,13 +54,13 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 ## Invariants
 
 - An order holds its own terms; there are no contract versions. Syncing it to Kingdee (`status: confirmed`) happens once; from then on it syncs both ways with its Kingdee SO or PO (`orders` and `order_lines` `kingdee` syncs), and record history is its audit trail.
-- A synced order never returns to draft. Kingdee keeps its header (party, currency, date, salesperson, payment terms); everything else stays editable. Approval is for exceptions only: the floor rule's `approve` mode, sales draft deletes, and credit-release requests (`credit_releases`: `commercial_managers` → `finance`).
-- Settlement methods and each party's primary contact are Kingdee's (`settlements`, `contacts` `kingdee` syncs); members add other contacts.
-- Source confirmations, transactions (`draft` unaudited DOs + `issued`/`void`), payments, receivables/payables snapshots, stock facts and `credit_releases.source_status` are read-only to members (written only by sync).
+- A synced order never returns to draft. Kingdee keeps its header (party, currency, date, salesperson, payment terms); everything else stays editable. Approval is for exceptions only: the floor rule's `approve` mode, sales draft deletes, credit-release requests (`credit_releases`: `commercial_managers` → `finance`), and customer credit-limit target changes (`parties.credit_limit_target` / `credit_days_target`, dual-approved between Commercial Managers and Finance).
+- Settlement methods and each party's primary contact are Kingdee's (`settlements`, `contacts` `kingdee` syncs); members add other contacts, manage partner profile metadata (`tax_id`, `bank_name`, `bank_account`, `profile_notes`), and maintain their own `user_profiles` Kingdee IDs.
+- Source confirmations, transactions (`draft` unaudited DOs + `issued`/`void`, with deterministic `credit_check`), payments, receivables/payables snapshots, stock facts and `credit_releases.source_status` are read-only to members (written only by sync).
 - There is one delivery/invoice ledger and one payment ledger; do not create a parallel one.
 - Money is a value and a currency together; never add or convert across currencies.
 
 ## Read next
 
 - [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
-- [`README.md`](../README.md) and [`docs/README.md`](../docs/README.md) — operator walkthrough and the numbered design set.
+- [`README.md`](../../README.md) and [`docs/README.md`](../../docs/README.md) — operator walkthrough and the numbered design set.

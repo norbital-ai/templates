@@ -1,10 +1,11 @@
 import { importedOrderIdentity } from './order-identity.js';
 import { BigDecimal, Effect, Schema } from 'effect';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
-import { type DatabaseContext, query, SourceRowInvalid } from './polling.js';
+import { type DatabaseContext, query, SourceRowInvalid, SourceUnavailable } from './polling.js';
 import { sha256Hex, numeric } from '../../lib/commercial.js';
 import {
 	batchTypes,
+	salesDirectApprovedHeaderTypes,
 	sourceInteger,
 	sourceOrderBatch,
 	sourceOrderDocument,
@@ -36,7 +37,9 @@ const Configuration = Schema.Struct({
 	baseCurrency: Schema.String.check(Schema.isPattern(/^[A-Z]{3}$/)),
 	branchNo: Schema.NonEmptyString.check(Schema.isMaxLength(20)),
 	billerId: SourceId,
-	salespersonBindings: Schema.NonEmptyString,
+	approverId: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	directApproveOrders: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	salespersonBindings: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	currencyBindings: Schema.NonEmptyString,
 	settlementRules: Schema.NonEmptyString,
 	packagingId: Schema.optionalKey(Schema.NullOr(Schema.String))
@@ -67,8 +70,51 @@ const Receipt = Schema.Struct({
 });
 const decode = <A>(schema: Schema.Codec<A, unknown>, value: unknown) =>
 	Schema.decodeUnknownEffect(schema)(value).pipe(Effect.mapError(failure));
-const json = (value: string) =>
-	Effect.try({ try: (): unknown => JSON.parse(value), catch: failure });
+const decodeJson = <A>(schema: Schema.Codec<A, unknown>, value: string) =>
+	Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(value).pipe(Effect.mapError(failure));
+
+/** Read-only check run by integration `test()` when `directApproveOrders` is enabled. */
+export const testDirectApproveOrderSql = `${requireWriteAccount}
+SELECT TOP (1) CONVERT(varchar(32), FUserID) AS id FROM dbo.t_User WHERE FUserID = CAST(@approver AS int); /* kingdee-direct-approve-test */`;
+
+/** Validates `approverId` (or fallback `billerId`) exists in Kingdee `dbo.t_User` during connection test. */
+export const testDirectApproveOrder = Effect.fnUntraced(function* (
+	ctx: DatabaseContext & { readonly configuration: unknown },
+	account: string
+) {
+	const raw = yield* Schema.decodeUnknownEffect(
+		Schema.Struct({
+			approverId: Schema.optionalKey(Schema.NullOr(Schema.String)),
+			billerId: Schema.optionalKey(Schema.NullOr(Schema.String))
+		})
+	)(ctx.configuration).pipe(
+		Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) }))
+	);
+	const candidate = raw.approverId?.trim() || raw.billerId?.trim() || '';
+	const approver = yield* Effect.try({
+		try: () => sourceInteger(candidate, 'approverId'),
+		catch: () =>
+			new SourceUnavailable({
+				reason:
+					'Direct order approval requires a positive integer approverId (or billerId) matching dbo.t_User.FUserID'
+			})
+	});
+	const rows = yield* query(ctx, {
+		op: 'call',
+		procedure: { schema: 'sys', name: 'sp_executesql' },
+		max_rows: 1,
+		arguments: {
+			stmt: testDirectApproveOrderSql,
+			params: '@write_account nvarchar(73),@approver varchar(32)',
+			write_account: account,
+			approver
+		}
+	});
+	if (rows.length !== 1)
+		return yield* new SourceUnavailable({
+			reason: `Direct order approval approverId ${approver} was not found in Kingdee dbo.t_User`
+		});
+});
 
 /** Existing ERP FUUID carries provenance; the namespace makes it independent of document numbering. */
 export const sourceOrderUuid = (orderId: string, key: string) => {
@@ -169,22 +215,29 @@ const ownedHeader = [
  * SO or PO once by its FUUID, or replaces its lines while it is unaudited and open, as KIS's own 修改 does, against the
  * entries last read.
  */
-const orderSql = (direction: Direction) => {
+const orderSql = (direction: Direction, directApprove = false) => {
 	const bill = bills[direction];
-	const types = batchTypes[direction];
+	const baseTypes = batchTypes[direction];
 	const sales = direction === 'sales';
-	const immutableHeader = sales ? immutableSalesHeader : Object.keys(types.header);
-	const immutableItems = sales ? immutableSalesItems : Object.keys(types.items);
+	const headerTypes: Readonly<Record<string, string>> =
+		sales && directApprove ? salesDirectApprovedHeaderTypes : baseTypes.header;
+	const itemTypes: Readonly<Record<string, string>> = baseTypes.items;
+	const immutableHeader = sales
+		? directApprove
+			? [...immutableSalesHeader, 'FStatus', 'FCheckerID', 'FCheckDate']
+			: immutableSalesHeader
+		: Object.keys(headerTypes);
+	const immutableItems = sales ? immutableSalesItems : Object.keys(itemTypes);
 	const lineCount = `(SELECT COUNT(*) FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @lines)`;
 	const lineDiffers = `EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.order}Entry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND ${immutableItems.map((name) => `actual.${q(name)}=expected.${q(name)}`).join(' AND ')}${sales ? ` AND ((expected.FEntrySelfS0172='' AND (actual.FEntrySelfS0172 IS NULL OR CONVERT(nvarchar(100),actual.FEntrySelfS0172) IN ('','0'))) OR (expected.FEntrySelfS0172<>'' AND ${sameText('actual.FEntrySelfS0172', 'expected.FEntrySelfS0172')}))` : ''}))`;
 	return `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 ${requireWriteAccount}
 DECLARE @payload xml=CONVERT(xml,@document),@remote int,@lock_result int,@created bit=0;
-DECLARE @header TABLE (${declaration(types.header)});
-DECLARE @lines TABLE (${declaration(types.items)});
-INSERT INTO @header SELECT ${xmlValues(types.header)} FROM @payload.nodes('/order/header') AS source(item);
-INSERT INTO @lines SELECT ${xmlValues(types.items)} FROM @payload.nodes('/order/items/item') AS source(item);
+DECLARE @header TABLE (${declaration(headerTypes)});
+DECLARE @lines TABLE (${declaration(itemTypes)});
+INSERT INTO @header SELECT ${xmlValues(headerTypes)} FROM @payload.nodes('/order/header') AS source(item);
+INSERT INTO @lines SELECT ${xmlValues(itemTypes)} FROM @payload.nodes('/order/items/item') AS source(item);
 IF (SELECT COUNT(*) FROM @header)<>1 OR (SELECT COUNT(*) FROM @lines) NOT BETWEEN 1 AND 200 ${fail('Incomplete source order')}
 IF EXISTS(SELECT FEntryID FROM @lines GROUP BY FEntryID HAVING COUNT(*)<>1) ${fail('Duplicate source order line')}
 IF EXISTS(SELECT 1 FROM @header WHERE FBrNo<>@branch) ${fail('Source branch mismatch')}
@@ -194,14 +247,14 @@ IF (SELECT COUNT(*) FROM dbo.${bill.order} WHERE FBrNo=@branch AND FUUID=CAST(@c
 SELECT @remote=FInterID FROM dbo.${bill.order} WITH (UPDLOCK,HOLDLOCK) WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier);
 IF @remote IS NULL BEGIN
  IF EXISTS(SELECT 1 FROM dbo.${bill.order} actual WITH (UPDLOCK,HOLDLOCK) JOIN @header expected ON actual.FBillNo=expected.FBillNo WHERE actual.FBrNo=@branch) ${fail('Source document number is already in use')}
- IF EXISTS(SELECT 1 FROM @header expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.parties} WHERE FItemID=expected.${bill.party} AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Settle WHERE FItemID=expected.FSettleID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Emp WHERE FItemID=expected.FEmpID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Department WHERE FItemID=expected.FDeptID AND FDeleted=0)) ${fail('Source order master data is unavailable')}
+ IF EXISTS(SELECT 1 FROM @header expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.parties} WHERE FItemID=expected.${bill.party} AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Settle WHERE FItemID=expected.FSettleID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Emp WHERE FItemID=expected.FEmpID AND FDeleted=0) OR NOT EXISTS(SELECT 1 FROM dbo.t_Department WHERE FItemID=expected.FDeptID AND FDeleted=0)${sales && directApprove ? ' OR NOT EXISTS(SELECT 1 FROM dbo.t_User WHERE FUserID=expected.FCheckerID)' : ''}) ${fail('Source order master data is unavailable')}
  IF EXISTS(SELECT 1 FROM @lines expected WHERE NOT EXISTS(SELECT 1 FROM dbo.t_Item item JOIN dbo.t_ICItem detail ON detail.FItemID=item.FItemID WHERE item.FItemID=expected.FItemID AND item.FItemClassID=4 AND item.FDetail=1 AND item.FDeleted=0 AND item.FUnUsed=0 AND detail.FDeleted=0 AND detail.FUnitID=expected.FUnitID)) ${fail('Source item or base unit changed')}
 ${sales ? ` IF EXISTS(SELECT 1 FROM @lines expected WHERE expected.FEntrySelfS0172<>'' AND NOT EXISTS(SELECT 1 FROM dbo.t_Item WHERE FItemID=CAST(expected.FEntrySelfS0172 AS int) AND FItemClassID=3001 AND FDeleted=0 AND FUnUsed=0)) ${fail('Source packaging is unavailable')}\n` : ''} UPDATE dbo.ICMaxNum WITH (UPDLOCK,ROWLOCK) SET FMaxNum=FMaxNum+1 WHERE FTableName='${bill.order}';
  IF @@ROWCOUNT<>1 ${fail('Source allocator must identify exactly one row')}
  SELECT @remote=FMaxNum FROM dbo.ICMaxNum WHERE FTableName='${bill.order}';
  IF @remote IS NULL OR @remote<=0 OR EXISTS(SELECT 1 FROM dbo.${bill.order} WHERE FBrNo=@branch AND FInterID=@remote) ${fail('Source allocation is invalid')}
- INSERT INTO dbo.${bill.order} (FInterID,FUUID,${columns(types.header)}) SELECT @remote,CAST(@correlation AS uniqueidentifier),${columns(types.header)} FROM @header;
- INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
+ INSERT INTO dbo.${bill.order} (FInterID,FUUID,${columns(headerTypes)}) SELECT @remote,CAST(@correlation AS uniqueidentifier),${columns(headerTypes)} FROM @header;
+ INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(itemTypes)}) SELECT @remote,@branch,${columns(itemTypes)} FROM @lines;
  SET @created=1;
 END;
 IF (SELECT COUNT(*) FROM dbo.${bill.order} WHERE FBrNo=@branch AND FUUID=CAST(@correlation AS uniqueidentifier))<>1 ${fail('Source correlation was not preserved')}
@@ -212,7 +265,7 @@ IF ${lineCount} OR ${lineDiffers} BEGIN
  INSERT INTO @read SELECT item.value('(@FEntryID)[1]','int'),item.value('(@FItemID)[1]','int'),item.value('(@FQty)[1]','decimal(28,10)'),item.value('(@FAmount)[1]','decimal(28,10)') FROM @basis.nodes('/order/items/item') AS source(item);
  IF (SELECT COUNT(*) FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @read) OR EXISTS(SELECT 1 FROM @read expected WHERE NOT EXISTS(SELECT 1 FROM dbo.${bill.order}Entry actual WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.FEntryID AND actual.FItemID=expected.FItemID AND actual.FQty=expected.FQty AND actual.FAmount=expected.FAmount)) ${moved}
  DELETE FROM dbo.${bill.order}Entry WHERE FBrNO=@branch AND FInterID=@remote;
- INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(types.items)}) SELECT @remote,@branch,${columns(types.items)} FROM @lines;
+ INSERT INTO dbo.${bill.order}Entry (FInterID,FBrNO,${columns(itemTypes)}) SELECT @remote,@branch,${columns(itemTypes)} FROM @lines;
 END;
 IF NOT EXISTS(SELECT 1 FROM dbo.${bill.order} actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FInterID=@remote AND actual.FUUID=CAST(@correlation AS uniqueidentifier) AND ${immutableHeader
 		.map((name) => {
@@ -232,6 +285,7 @@ IF ${lineDiffers} ${fail('Source order lines differ from the submission')}
 SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash;`;
 };
 export const sourceOrderSql = orderSql('sales');
+export const directApprovedSalesOrderSql = orderSql('sales', true);
 export const purchaseOrderSql = orderSql('purchasing');
 /** The entries last read, which a line replacement must still find. */
 const lineBasis = (previous: NonNullable<OrderPayload['previous']>) =>
@@ -260,16 +314,40 @@ export const submitOrder = Effect.fnUntraced(function* (
 			reason: 'The order was not authorized for the configured Kingdee account and branch'
 		});
 	const config = yield* decode(Configuration, ctx.configuration);
-	const people = yield* decode(Salespeople, yield* json(config.salespersonBindings));
-	const currencies = yield* decode(Currencies, yield* json(config.currencyBindings));
-	const rules = yield* decode(SettlementRules, yield* json(config.settlementRules));
+	const people = config.salespersonBindings?.trim()
+		? yield* decodeJson(Salespeople, config.salespersonBindings)
+		: {};
+	const currencies = yield* decodeJson(Currencies, config.currencyBindings);
+	const rules = yield* decodeJson(SettlementRules, config.settlementRules);
 	const selected = yield* Effect.try({
 		try: () => {
-			const person = people[payload.owner_id];
+			const profileBinding = payload.owner_binding
+				? {
+						employeeId: sourceInteger(payload.owner_binding.employeeId, 'kingdee_employee_id'),
+						departmentId: sourceInteger(
+							payload.owner_binding.departmentId,
+							'kingdee_department_id'
+						),
+						...(payload.owner_binding.billerId
+							? { billerId: sourceInteger(payload.owner_binding.billerId, 'kingdee_biller_id') }
+							: {})
+					}
+				: undefined;
+			const person = profileBinding ?? people[payload.owner_id];
 			const denomination = currencies[payload.currency];
 			const rule = rules[payload.payment_terms];
 			if (person === undefined)
-				return invalid('owner', 'The order owner needs a source employee and department binding');
+				return invalid(
+					'owner',
+					'The order owner needs a source employee and department binding in their profile or salespersonBindings'
+				);
+			const billerId = profileBinding?.billerId ?? sourceInteger(config.billerId, 'billerId');
+			const directApprove = sales && !payload.previous && config.directApproveOrders === true;
+			const approverId = directApprove
+				? config.approverId?.trim()
+					? sourceInteger(config.approverId.trim(), 'approverId')
+					: billerId
+				: undefined;
 			const bases = Object.entries(currencies).filter(([, value]) => value.base);
 			if (denomination === undefined || bases.length !== 1 || bases[0]?.[0] !== config.baseCurrency)
 				return invalid(
@@ -289,7 +367,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				return invalid('lines', 'A bounded complete set of unique lines is required');
 			sourceInteger(payload.party_code, 'party_code');
 			for (const line of payload.lines) sourceInteger(line.product_code, 'product_code');
-			return { person, denomination, rule };
+			return { person, billerId, directApprove, approverId, denomination, rule };
 		},
 		catch: failure
 	});
@@ -342,7 +420,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				return invalid('owner', 'Source employee binding changed');
 			return {
 				branchNo: config.branchNo,
-				billerId: sourceInteger(config.billerId, 'billerId'),
+				billerId: selected.billerId,
 				employeeId: selected.person.employeeId,
 				departmentId: selected.person.departmentId,
 				partyId: one('party').id,
@@ -357,6 +435,14 @@ export const submitOrder = Effect.fnUntraced(function* (
 				packagingId: config.packagingId ? sourceInteger(config.packagingId, 'packagingId') : '',
 				creditDays: selected.rule.creditDays,
 				fromMonthEnd: selected.rule.fromMonthEnd,
+				...(selected.directApprove && selected.approverId
+					? {
+							directApprove: {
+								checkerId: selected.approverId,
+								checkDate: payload.ordered_on
+							}
+						}
+					: {}),
 				items: payload.lines.map((line) => {
 					const item = one('item', line.id);
 					if (item.unit_name !== line.unit)
@@ -400,7 +486,13 @@ export const submitOrder = Effect.fnUntraced(function* (
 			op: 'call',
 			procedure: { schema: 'sys', name: 'sp_executesql' },
 			arguments: {
-				stmt: amend ? sourceAmendmentSql : sales ? sourceOrderSql : purchaseOrderSql,
+				stmt: amend
+					? sourceAmendmentSql
+					: sales
+						? selected.directApprove
+							? directApprovedSalesOrderSql
+							: sourceOrderSql
+						: purchaseOrderSql,
 				params:
 					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73),@previous_document nvarchar(max)' +
 					(amend
@@ -420,7 +512,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 							source_id: payload.previous.source_id,
 							source_version: payload.previous.source_version,
 							source_exchange_rate: payload.previous.source_exchange_rate,
-							biller: config.billerId,
+							biller: selected.billerId,
 							change_cause: amendmentCause(
 								payload.reference,
 								yield* sha256Hex(JSON.stringify(payload.lines))

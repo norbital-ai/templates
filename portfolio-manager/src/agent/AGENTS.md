@@ -24,7 +24,7 @@ report_subscription/
   and headline readers, browser research, sources and citations)
 - Record view: `src/data/model/report/+representation.svelte` is the client-facing report; the PDF sent
   is this view rendered
-- Custom fields, integrations: none; delivery goes through every chat account an envoy is deployed on
+- Custom fields, integrations: none; delivery goes through `portfolio_settings.report_channel` (chosen on `subscribers` from active `sys_envoy_channel` chat bindings, or auto-selected only when a single connected chat envoy channel exists)
 
 ## Gates
 
@@ -35,9 +35,9 @@ generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.jso
 ## Invariants
 
 - Four models. Cash and facilities are `holding` lines; a facility's base value is never positive.
-- Currency and benchmarks are the `portfolio_settings` row; subscribers are `report_subscription`
-  rows, one per user, each client's own; the delivery account is wherever an envoy is deployed:
-  configuration, not code.
+- Currency, benchmarks, and `report_channel` are the `portfolio_settings` row; subscribers are `report_subscription`
+  rows, one per user, each client's own; the delivery channel is selected on Subscribers from active `sys_envoy_channel`
+  chat bindings (auto-fallback only when one connected channel exists): configuration, not code.
 - Every claim in a report links its source (`cite` in `market.ts`); an uncited section is dropped.
 - One report per day: a second run that day updates it.
 - The agent asks the model for no host tool.

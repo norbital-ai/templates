@@ -22,6 +22,12 @@ export type OrderPayload = {
 	readonly reference: string;
 	readonly direction: 'sales' | 'purchasing';
 	readonly owner_id: string;
+	/** Optional Kingdee binding from `user_profiles`, overriding `salespersonBindings` / `billerId`. */
+	readonly owner_binding?: {
+		readonly employeeId: string;
+		readonly departmentId: string;
+		readonly billerId?: string;
+	};
 	readonly ordered_on: string;
 	readonly currency: string;
 	readonly tax_inclusive: boolean;
@@ -67,6 +73,11 @@ export type SourceOrderBindings = {
 	readonly packagingId: string;
 	readonly creditDays: number;
 	readonly fromMonthEnd: boolean;
+	/** When set on a new sales order, writes FStatus=1, FCheckerID, FCheckDate directly on create. */
+	readonly directApprove?: {
+		readonly checkerId: string;
+		readonly checkDate: string;
+	};
 	readonly items: readonly { readonly itemId: string; readonly unitId: string }[];
 };
 export type SourceOrderBatch = {
@@ -108,6 +119,12 @@ const salesHeaderTypes = {
 	FHeadSelfS0192: 'nvarchar(100)',
 	FSettleDate: 'datetime',
 	FVersionNo: 'nvarchar(3)'
+} as const;
+export const salesDirectApprovedHeaderTypes = {
+	...salesHeaderTypes,
+	FStatus: 'int',
+	FCheckerID: 'int',
+	FCheckDate: 'datetime'
 } as const;
 const salesItemTypes = {
 	FEntryID: 'int',
@@ -348,7 +365,17 @@ export function sourceOrderBatch(
 		FHeadSelfS0192: '-',
 		FSettleDate: `${settlementDate(payload.ordered_on, bindings.creditDays, bindings.fromMonthEnd)}T00:00:00`,
 		// the original version, as Kingdee's own create sends it: the column's default on the account set is unmeasured
-		FVersionNo: '000'
+		FVersionNo: '000',
+		...(bindings.directApprove
+			? (() => {
+					PlainDate(bindings.directApprove.checkDate);
+					return {
+						FStatus: '1',
+						FCheckerID: sourceInteger(bindings.directApprove.checkerId, 'FCheckerID'),
+						FCheckDate: `${bindings.directApprove.checkDate}T00:00:00`
+					};
+				})()
+			: {})
 	};
 	const values =
 		payload.direction === 'sales'

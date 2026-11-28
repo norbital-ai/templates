@@ -1,5 +1,6 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, Json, Row, SyncCtx } from '@norbital-ai/bolt';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { sha256Hex } from '../../lib/commercial.js';
 import { safeDueDate } from '../../lib/payables.js';
 import {
@@ -162,6 +163,7 @@ LEFT JOIN (
   SUM(pe.FQty) AS qty, MAX(ph.FDate) AS last_date
  FROM dbo.ICStockBillEntry pe
  JOIN dbo.ICStockBill ph ON ph.FInterID=pe.FInterID AND ph.FTranType=1
+  AND ph.FCancellation=0 AND ph.FCheckDate IS NOT NULL
  WHERE pe.FSourceTranType=71
  GROUP BY pe.FSourceInterID, pe.FSourceEntryID
 ) rc ON rc.oid=e.FInterID AND rc.oentry=e.FEntryID
@@ -174,18 +176,18 @@ LEFT JOIN (
   SELECT oe.FSourceInterID AS oid, oe.FSourceEntryID AS oentry, ve.FInterID AS inv,
    vh.FDate AS inv_date, ve.FQty AS qty, ve.FStdAmount AS net, ve.FStdTaxAmount AS tax
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   JOIN dbo.ICStockBillEntry oe ON ve.FSourceTranType=1 AND oe.FInterID=ve.FSourceInterID
    AND oe.FEntryID=ve.FSourceEntryID AND oe.FSourceTranType=71
   UNION ALL
   SELECT ve.FSourceInterID, ve.FSourceEntryID, ve.FInterID, vh.FDate, ve.FQty, ve.FStdAmount, ve.FStdTaxAmount
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   WHERE ve.FSourceTranType=71
   UNION ALL
   SELECT oe.FSourceInterID, oe.FSourceEntryID, ve.FInterID, vh.FDate, ve.FQty, ve.FStdAmount, ve.FStdTaxAmount
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   JOIN dbo.ICPurchaseEntry b ON ve.FSourceTranType=75 AND b.FInterID=ve.FSourceInterID
    AND b.FEntryID=ve.FSourceEntryID AND b.FSourceTranType=1
   JOIN dbo.ICStockBillEntry oe ON oe.FInterID=b.FSourceInterID
@@ -193,7 +195,7 @@ LEFT JOIN (
  ) il
  LEFT JOIN (
   SELECT c.FInvoiceID, SUM(c.FAmount) AS a, SUM(c.FRemainAmount) AS r,
-   MIN(CASE WHEN c.FRemainAmount=0 THEN 2 WHEN c.FRemainAmount=c.FAmount THEN 0 ELSE 1 END) AS status
+   CASE WHEN SUM(c.FRemainAmount)=0 THEN 2 WHEN SUM(c.FRemainAmount)=SUM(c.FAmount) THEN 0 ELSE 1 END AS status
   FROM dbo.t_RP_Contact c WHERE c.FRP=0 AND c.FType=4 GROUP BY c.FInvoiceID
  ) ct ON ct.FInvoiceID=il.inv
  LEFT JOIN (
@@ -222,18 +224,18 @@ FROM (
  SELECT DISTINCT u.oid, u.oentry, u.inv_id, u.inv_no FROM (
   SELECT oe.FSourceInterID AS oid, oe.FSourceEntryID AS oentry, vh.FInterID AS inv_id, vh.FBillNo AS inv_no
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   JOIN dbo.ICStockBillEntry oe ON ve.FSourceTranType=1 AND oe.FInterID=ve.FSourceInterID
    AND oe.FEntryID=ve.FSourceEntryID AND oe.FSourceTranType=71
   UNION ALL
   SELECT ve.FSourceInterID, ve.FSourceEntryID, vh.FInterID, vh.FBillNo
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   WHERE ve.FSourceTranType=71
   UNION ALL
   SELECT oe.FSourceInterID, oe.FSourceEntryID, vh.FInterID, vh.FBillNo
   FROM dbo.ICPurchaseEntry ve
-  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID
+  JOIN dbo.ICPurchase vh ON vh.FInterID=ve.FInterID AND vh.FCancellation=0 AND vh.FCheckDate IS NOT NULL
   JOIN dbo.ICPurchaseEntry b ON ve.FSourceTranType=75 AND b.FInterID=ve.FSourceInterID
    AND b.FEntryID=ve.FSourceEntryID AND b.FSourceTranType=1
   JOIN dbo.ICStockBillEntry oe ON oe.FInterID=b.FSourceInterID
@@ -386,6 +388,27 @@ export function mapPurchaseListingEntry(
 			? settlementDate(invoiced_on, rule.creditDays, rule.fromMonthEnd)
 			: null);
 	const invoiceLines = optionalInt(row, 'invoice_lines') ?? 0;
+	const statusMin = optionalInt(row, 'status_min');
+	const statusMax = optionalInt(row, 'status_max');
+	const origScale = currencyCode ? currencyDigits(currencyCode) : moneyScale;
+	const rawPaid = decimalOrNull(row, 'paid_amount', moneyScale);
+	// Fully settled invoices can drift by 1-2 cents when net + tax are rounded separately from (net + tax); clamp penny drift.
+	const paid_amount =
+		statusMin === 2 &&
+		statusMax === 2 &&
+		rawPaid !== null &&
+		invoice_amount !== null &&
+		BigDecimal.isLessThanOrEqualTo(
+			BigDecimal.abs(
+				BigDecimal.subtract(
+					BigDecimal.fromStringUnsafe(rawPaid),
+					BigDecimal.fromStringUnsafe(invoice_amount)
+				)
+			),
+			BigDecimal.fromStringUnsafe('0.02')
+		)
+			? invoice_amount
+			: rawPaid;
 	const resolvedInvoiceNos =
 		invoiceNumbers !== undefined
 			? invoiceNumbers
@@ -403,7 +426,7 @@ export function mapPurchaseListingEntry(
 		currency: currencyCode,
 		unit_price: decimalOrNull(row, 'unit_price', 8),
 		exchange_rate: decimalOrNull(row, 'exchange_rate', 8),
-		amount: decimalOrNull(row, 'amount', moneyScale),
+		amount: decimalOrNull(row, 'amount', origScale),
 		amount_base: decimalOrNull(row, 'amount_base', moneyScale),
 		received_qty,
 		last_received_on: sourceDate(row, 'last_received_on'),
@@ -416,12 +439,12 @@ export function mapPurchaseListingEntry(
 		net_amount,
 		settlement,
 		due_on,
-		paid_amount: decimalOrNull(row, 'paid_amount', moneyScale),
+		paid_amount,
 		paid_on: sourceDate(row, 'paid_on'),
 		payment_status: purchasePaymentStatus(
 			invoiceLines,
-			optionalInt(row, 'status_min'),
-			optionalInt(row, 'status_max'),
+			statusMin,
+			statusMax,
 			invoiced_qty,
 			quantity
 		),
@@ -520,10 +543,10 @@ export const readPurchaseListing = Effect.fnUntraced(function* (
 	);
 	const after = yield* sourceCheckpoint(ctx, account);
 	if (after.digest !== before.digest)
-		return yield* invalid(
-			'POOrder',
-			'Purchase documents changed during this read. The previous snapshot is retained.'
-		);
+		return yield* new FacilityFailure({
+			kind: 'upstream',
+			message: 'Purchase documents changed during this read. The previous snapshot is retained.'
+		});
 
 	const { entries, notice } = yield* checked(() => {
 		const invoicesByLine = new Map<string, Set<string>>();

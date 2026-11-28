@@ -12,7 +12,11 @@
 		type RecordView,
 		type TimelineEntry
 	} from '@norbital-ai/ui';
-	import { Grid } from '@norbital-ai/ui/layout';
+	import { Grid, Stack, Surface } from '@norbital-ai/ui/layout';
+	import {
+		kingdeeIntegrationRead,
+		workspaceKingdeeSummary
+	} from '../../../integration/kingdee/connection-status.js';
 	import { openCreate } from '../../../lib/ui/create-values.js';
 	let {
 		view,
@@ -82,6 +86,21 @@
 		}))
 	);
 	const canClassify = $derived(Boolean(ctx.catalog?.parties?.update));
+	const kingdeeRead = $derived(
+		ctx.catalog?.sys_integration ? ctx.query(kingdeeIntegrationRead) : null
+	);
+	const kingdeeSummary = $derived.by(() => {
+		const rows = kingdeeRead?.current?.sys_integration.rows;
+		if (!rows) return null;
+		const sourceId = view.mode !== 'create' ? view.record.source : null;
+		const matched = sourceId ? rows.filter((r) => r.id === sourceId) : rows;
+		return workspaceKingdeeSummary(matched.length > 0 ? matched : rows);
+	});
+	const syncFailure = $derived(
+		view.mode !== 'create' && view.record.$sync?.kingdee?.status === 'failed'
+			? (view.record.$sync.kingdee.message ?? '')
+			: null
+	);
 </script>
 
 {#snippet contacts()}{#if id}<Table
@@ -106,7 +125,12 @@
 		<Section title={ctx.t('models.credit_snapshots.label')} icon="lucide:landmark">
 			<Timeline entries={creditEntries} label={ctx.t('models.credit_snapshots.label')}>
 				{#snippet empty()}
-					<EmptyState title={ctx.t('component.credit_snapshots_empty')} />
+					<EmptyState
+						title={ctx.t('component.credit_snapshots_empty')}
+						{...kingdeeSummary && kingdeeSummary.state !== 'connected'
+							? { description: ctx.t('component.kingdee_empty_connect_hint') }
+							: {}}
+					/>
 				{/snippet}
 			</Timeline>
 		</Section>
@@ -120,20 +144,64 @@
 		{ name: 'orders', title: ctx.t('component.orders'), body: orders }
 	]}
 >
-	<!-- Kingdee keeps a partner's own fields; only its related party is classified here -->
+	<!-- Kingdee owns master fields; workspace profile and credit targets live locally and survive re-sync -->
 	<Section first name="partner">
 		<Grid gap="md" minimum="compact">
 			<Field {ctx} name="name" readonly />
 			<Field {ctx} name="external_code" readonly />
+			<Field {ctx} name="source_number" readonly />
 			<Field {ctx} name="kind" readonly />
 			<Field {ctx} name="region" readonly />
 			<Field {ctx} name="currency" readonly />
 			<Field {ctx} name="phone" readonly />
 			<Field {ctx} name="active" readonly />
-			<Field {ctx} name="related_party" />
 			<Field {ctx} name="address" readonly wide />
 		</Grid>
 	</Section>
+	<Section name="profile" icon="lucide:id-card" title={ctx.t('section.partner_profile')}>
+		<Grid gap="md" minimum="compact">
+			<Field {ctx} name="related_party" />
+			<Field {ctx} name="tax_id" />
+			<Field {ctx} name="bank_name" />
+			<Field {ctx} name="bank_account" />
+			<Field {ctx} name="profile_notes" wide />
+		</Grid>
+	</Section>
+	{#if id && !supplier}
+		<Section
+			name="credit_target"
+			icon="lucide:sliders-horizontal"
+			title={ctx.t('section.credit_limit_adjustment')}
+		>
+			<Stack gap="sm">
+				<p class="text-xs text-muted-foreground">
+					{ctx.t('component.credit_limit_adjustment_help')}
+				</p>
+				{#if kingdeeSummary && kingdeeSummary.state !== 'connected'}
+					<Surface tone="subtle" padding="sm" radius="control">
+						<p class="text-xs text-muted-foreground">
+							{ctx.t('component.credit_limit_kingdee_disconnected')}
+						</p>
+					</Surface>
+				{:else if kingdeeSummary && !kingdeeSummary.directCreditWrite}
+					<Surface tone="subtle" padding="sm" radius="control">
+						<p class="text-xs text-muted-foreground">
+							{ctx.t('component.credit_limit_direct_write_off')}
+						</p>
+					</Surface>
+				{/if}
+				{#if syncFailure}
+					<Surface tone="subtle" padding="sm" radius="control">
+						<p class="text-xs text-destructive">{syncFailure}</p>
+					</Surface>
+				{/if}
+				<Grid gap="md" minimum="compact">
+					<Field {ctx} name="credit_limit_target" />
+					<Field {ctx} name="credit_days_target" />
+				</Grid>
+			</Stack>
+		</Section>
+	{/if}
 	<Section
 		name="sync"
 		icon="lucide:refresh-cw"

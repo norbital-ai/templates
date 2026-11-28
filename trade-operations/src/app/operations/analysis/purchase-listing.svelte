@@ -271,13 +271,16 @@
 				description: about,
 				new: false,
 				controls,
-				actions: [
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('purchase-listing', day.today, columns, rows)
-					}
-				]
+				actions:
+					rows.length > 0
+						? [
+								{
+									icon: 'lucide:file-spreadsheet',
+									name: ctx.t('component.export_xlsx'),
+									run: () => downloadXlsx('purchase-listing', day.today, columns, rows)
+								}
+							]
+						: []
 			}}
 		>
 			{#snippet empty()}<EmptyState title={ctx.t('reports.purchases.empty')} />{/snippet}

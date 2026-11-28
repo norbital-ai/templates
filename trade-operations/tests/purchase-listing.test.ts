@@ -609,5 +609,54 @@ it.live(
 				paid_amount: decimalText('5.00'),
 				payment_status: 'partial'
 			});
+
+			// Local fallback keeps amount_base equal to order total in order.currency (never multiplied by foreign FX rate).
+			expect(report.rows[0]?.base_currency).toBe(report.rows[0]?.currency);
+			expect(report.rows[0]?.amount_base).toBe(report.rows[0]?.amount);
+			expect(report.rows[0]?.exchange_rate).toBeNull();
 		})
 );
+
+it('formats non-2dp transaction currency amounts accurately and clamps 1-cent paid rounding drift on fully settled invoices', () => {
+	const entry = mapPurchaseListingEntry(
+		{
+			order_id: '200',
+			entry_id: '1',
+			order_number: 'PO-JPY-1',
+			ordered_on: '2025-04-01',
+			supplier_id: '201',
+			supplier_name: 'Tokyo Supplier',
+			product_category: null,
+			product_spec: null,
+			quantity: '10',
+			currency: 'JPY',
+			unit_price: '100',
+			exchange_rate: '0.05',
+			amount: '1000',
+			amount_base: '50',
+			received_qty: '10',
+			last_received_on: '2025-04-02',
+			invoiced_on: '2025-04-03',
+			invoice_lines: 1,
+			invoiced_qty: '10',
+			net_amount: '100.004',
+			invoice_tax: '13.004',
+			paid_amount: '113.008',
+			status_min: 2,
+			status_max: 2,
+			due_on: '2025-05-03',
+			paid_on: '2025-04-10',
+			settlement_code: null,
+			settlement: null,
+			note: null
+		},
+		{ duty: null, import_vat: null },
+		{},
+		2,
+		'PINV-JPY-1'
+	);
+	expect(entry.amount).toBe('1000');
+	expect(entry.invoice_amount).toBe('113.00');
+	expect(entry.paid_amount).toBe('113.00');
+	expect(entry.payment_status).toBe('paid');
+});

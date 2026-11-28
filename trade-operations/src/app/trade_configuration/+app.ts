@@ -7,6 +7,7 @@ export default app({
 	pages: {
 		templates: { title: 'section.documents', icon: 'lucide:file-text' },
 		pricing_floors: { title: 'section.pricing', icon: 'lucide:chart-no-axes-combined' },
-		commission: { title: 'section.commission', icon: 'lucide:percent' }
+		commission: { title: 'section.commission', icon: 'lucide:percent' },
+		profiles: { title: 'section.profiles', icon: 'lucide:id-card' }
 	}
 });

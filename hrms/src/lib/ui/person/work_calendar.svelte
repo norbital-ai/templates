@@ -83,9 +83,13 @@
 				limit: 10000
 			},
 			leave_catalog_entry: {
-				where: { employment_id: { in: ids } },
+				where: {
+					employment_id: { in: ids },
+					leave_catalog_entry_day: { some: { incurred_on: { gte: from, lte: to } } }
+				},
 				limit: 10000,
 				leave_catalog_entry_day: {
+					where: { incurred_on: { gte: from, lte: to } },
 					fields: ['incurred_on', 'part'],
 					limit: 10000
 				}
@@ -282,6 +286,25 @@
 			return { events: [], error: getErrorMessage(cause) };
 		}
 	});
+	// Retain the previous month's events while refetching a new date window so the calendar never flashes empty.
+	const scopeKey = $derived(`${employment.employee_id}:${company.id}`);
+	let settledEvents = $state.raw<{
+		readonly scope: string;
+		readonly events: readonly CalendarEvent[];
+	} | null>(null);
+	$effect(() => {
+		if (settledEvents !== null && settledEvents.scope !== scopeKey) {
+			settledEvents = null;
+		}
+		if (!loading && !error && !incomplete && presentation.error === null && timeZone != null) {
+			settledEvents = { scope: scopeKey, events: presentation.events };
+		}
+	});
+	const displayedEvents = $derived(
+		loading && settledEvents !== null && settledEvents.scope === scopeKey
+			? settledEvents.events
+			: presentation.events
+	);
 </script>
 
 <Cover gap="sm" size="fill">
@@ -304,7 +327,7 @@
 				{#each warnings as warning}<li>{warning.message}</li>{/each}
 			</ul>{/if}<EventCalendar
 			{ctx}
-			events={presentation.events}
+			events={displayedEvents}
 			{view}
 			date={at}
 			readonly

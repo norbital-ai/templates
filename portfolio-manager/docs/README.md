@@ -43,13 +43,13 @@ Most operational parameters are stored as **data**, not code:
    - `tz`: `'Asia/Singapore'` — single source of truth governing both the `portfolio_agent` `0 8 * * *` cron schedule and the `ctx.today` date stamped on each daily `report` and `pnl_history` entry.
    - `locale`: `'en-US'`, `languages`: `['en', 'zh']`, `currency`: `'USD'`.
    - `convert`: `{ to: ['pdf'] }` — enables `ctx.convert.record('report', id, { to: 'pdf' })`.
-2. **Base currency & benchmarks (`portfolio_settings` model)**
-   - Configured at runtime in **Portfolio → Settings** (single row; defaults to `USD` if absent).
+2. **Base currency, benchmarks & delivery channel (`portfolio_settings` model)**
+   - Configured at runtime in **Portfolio → Settings** (`base_currency`, `benchmarks`; defaults to `USD` if absent) and **Portfolio → Subscribers** (`report_channel`, optional ref to `sys_integration`).
    - If more than one `portfolio_settings` row exists, `portfolio_agent` refuses with `errors.settings_ambiguous`.
 3. **Subscribers (`report_subscription` model)**
-   - One row per subscribed `sys_user` (`one_per_user`). Viewers self-manage their own row on **Portfolio → Reports**; owners manage all rows on **Portfolio → Subscribers**.
+   - One row per subscribed `sys_user` (`one_per_user`). Viewers self-manage their own row on **Portfolio → Reports**; owners manage all rows and pick `report_channel` on **Portfolio → Subscribers**.
 4. **External messaging delivery (built-in Envoy channels)**
-   - No custom integration source files are needed. Deploying an Envoy onto an active `whatsapp`, `telegram`, `slack`, or `discord` account under **Settings → Integrations → Envoys** automatically adds that account to the daily PDF delivery fan-out. Without an active Envoy account, delivery degrades cleanly to in-app notifications only.
+   - No custom integration source files are needed. Bind an active Envoy (`sys_envoy`) to a workspace chat account (`whatsapp`, `telegram`, `slack`, or `discord`) via `sys_envoy_channel` under **Settings → Integrations → Envoys**, then select it as `portfolio_settings.report_channel` in **Portfolio → Subscribers** (if left on automatic, `portfolio_agent` uses a connected Envoy channel only when exactly one exists; with zero or multiple unpaired/ambiguous channels, delivery degrades cleanly to in-app notifications only).
 
 ## Schema Migrations & Seed Workflow
 
@@ -57,7 +57,7 @@ Most operational parameters are stored as **data**, not code:
 
 Schema history lives under `migrations/`:
 
-- `0001_initial.sql` through `0008_schema.sql` — editable SQL migration steps.
+- `0001_initial.sql` — editable initial SQL migration.
 - `snapshot.json`, `migrations.lock.json`, and `physical.json` — generated schema snapshot, prefix hashes, and physical DDL verification manifest.
 
 Whenever a `+model.ts` schema changes, `bunx bolt build` generates the next migration and replays the full prefix chain against a scratch database. Always commit the SQL files, `snapshot.json`, `migrations.lock.json`, and `physical.json` together, and verify with `bunx bolt check`. Never commit `.norbital/`.

@@ -43,7 +43,7 @@ Notes on package isolation:
 ### Migrations (`migrations/`)
 
 - `bolt build` compiles the workspace declaration manifest (including platform system tables and authored models) into the next editable SQL migration under `migrations/` and verifies replay against a scratch database.
-- [`migrations/`](../migrations/) currently tracks three migrations (`0001_initial.sql`, `0002_schema.sql`, `0003_schema.sql`) alongside `snapshot.json`, `migrations.lock.json`, and `physical.json`.
+- [`migrations/`](../migrations/) currently tracks one initial migration (`0001_initial.sql`) alongside `snapshot.json`, `migrations.lock.json`, and `physical.json`.
 - Always commit the SQL files, `snapshot.json`, `migrations.lock.json`, and `physical.json` together. `bolt check` replays every migration prefix and verifies the physical schema hash at each step against `migrations.lock.json`.
 - Use `was` on renamed models or fields to preserve data and history lineage across migrations.
 

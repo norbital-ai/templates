@@ -22,7 +22,7 @@ Envoy-deployed channel accounts (`whatsapp`, `telegram`, `slack`, `discord`).
 |  |  - dashboard    (KPIs, 90d trend, bars, calls)     |   |  src/agent/+agent.md        |  |
 |  |  - reports      (archive + self-subscribe toggle)  |   |  - Answers from holding &   |  |
 |  |  - holdings     (book table + "Run the agent now") |   |    latest report            |  |
-|  |  - subscribers  (roster + active Envoy banner)     |   |  - Edits research_direction |  |
+|  |  - subscribers  (roster + report_channel selector) |   |  - Edits research_direction |  |
 |  |  - settings     (base_currency & benchmarks form)  |   |  - Starts portfolio_agent   |  |
 |  +-------------------------+--------------------------+   +--------------+--------------+  |
 |                            |                                             |                 |
@@ -59,10 +59,11 @@ Envoy-deployed channel accounts (`whatsapp`, `telegram`, `slack`, `discord`).
 |                                            |   |  Browser Search & Reading:                |
 |  System Tables Used:                       |   |   - Bing -> DuckDuckGo -> Mojeek cascade  |
 |   - sys_user            (subscribers)      |   |   - Holding custom URLs (IR / filings)    |
-|   - sys_integration     (Envoy accounts)   |   |                                           |
-|   - sys_envoy           (channel bindings) |   |  Outbound Delivery (via active Envoys):   |
+|   - sys_envoy_channel   (report_channel)   |   |                                           |
+|   - sys_envoy / sys_integration (channels) |   |  Outbound Delivery (configured channel):  |
 |   - sys_file            (holding docs)     |   |   - In-app inbox (always)                 |
-|   - sys_notification / sys_message         |   |   - WhatsApp / Telegram / Slack / Discord |
+|   - sys_notification / sys_message         |   |   - Selected Envoy channel (WA/TG/Slack/  |
+|                                            |   |     Discord) via portfolio_settings       |
 +--------------------------------------------+   +-------------------------------------------+
 ```
 
@@ -126,8 +127,8 @@ PostgreSQL layer via `store_json_valid(...)` check constraints.
 |  - base_currency (ISO3; def USD if empty) |   |  - for_date (date)  - base_currency (ISO3)  |
 |  - benchmarks (obj[] key:symbol?):        |   |  - headline (md)    - summary (md)          |
 |      { name?: text, symbol: text }        |   |  - market_view (md?)- research_log (text?)  |
-+-------------------------------------------+   |  - net_assets, invested, cash, liabilities, |
-                                                |    unrealised_pl?, day_change? (all dec:2)  |
+|  - report_channel (ref -> sys_integration?|   |  - net_assets, invested, cash, liabilities, |
+|      on_delete: set_null)                 |   |    unrealised_pl?, day_change? (all dec:2)  |
 +-------------------------------------------+   |  - markets[]     (key: instrument)          |
 |            report_subscription            |   |  - allocation[]  (key: label)               |
 |  PK: id (uuid)                            |   |  - exposure[]    (key: currency)            |
@@ -140,10 +141,11 @@ PostgreSQL layer via `store_json_valid(...)` check constraints.
                       | N:1 (unique 1:1)
                       v
 +-------------------------------------------+   +---------------------------------------------+
-|             sys_user (system)             |   |          sys_integration (system)           |
-|  - id, name, email, phone, team           |   |  - id, integration, name, active, envoy     |
-|  - whatsapp / telegram / slack / discord  |   |  Queried where envoy IS NOT NULL AND active |
-|    handles used by ctx.notify fan-out     |   |  Filtered by is_instance(chat driver)       |
+|             sys_user (system)             |   |  sys_envoy / sys_envoy_channel / sys_int.   |
+|  - id, name, email, phone, team           |   |  - Active sys_envoy joined through          |
+|  - whatsapp / telegram / slack / discord  |   |    sys_envoy_channel to workspace (owner=N) |
+|    handles used by ctx.notify delivery    |   |    chat sys_integration; selected via       |
+|                                           |   |    portfolio_settings.report_channel        |
 +-------------------------------------------+   +---------------------------------------------+
 ```
 
@@ -337,8 +339,13 @@ to 8,000 characters).
    - Guard: holding.rows.length == 0            --> early return (no-op)
    - base = settings?.base_currency ?? 'USD'
    - subscribers = (input.send === false) ? [] : report_subscription.rows.map(r => r.user)
-   - Query active Envoy integrations (sys_integration where envoy != null & active = true)
-     filtered by is_instance('whatsapp' | 'telegram' | 'slack' | 'discord') --> via[]
+   - Resolve delivery channel (`via[]`, 0 or 1 connected chat channel):
+     * Query active `sys_envoy`, active `sys_envoy_channel`, and workspace `sys_integration`
+       (`owner IS NULL`, `active = true`, chat drivers `whatsapp|telegram|slack|discord`)
+     * If `portfolio_settings.report_channel` is set and connected -> use that channel
+     * Else if exactly 1 connected Envoy chat channel exists -> auto-select it
+     * Else -> `via = []` (in-app notification only; never queues on unpaired channels or
+       duplicates across multiple channels)
                                               |
                                               v
   [Phase 2] FX & MARKET VALUATION
@@ -550,6 +557,8 @@ and unique constraints.
 |  portfolio_settings   | R, C, U, D            | -                     | R                 |
 |  report_subscription  | R, C, D               | R(self), C*, D*       | R                 |
 |  sys_integration      | R                     | -                     | R                 |
+|  sys_envoy            | R                     | -                     | R                 |
+|  sys_envoy_channel    | R                     | -                     | R                 |
 |  sys_user             | R                     | -                     | -                 |
 |                                                                                           |
 |  Legend: R = outputs.default, C = create, U = update, D = delete, - = no grant            |

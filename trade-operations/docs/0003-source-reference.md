@@ -3,18 +3,19 @@
 Checked against this template's source and compiled declaration manifest on 24 November 2026.
 This is a local source inventory, not a declaration that a deployed tenant runs these bytes.
 
-26 models, 6 applications, 1 automation.
+27 models, 7 applications, 1 automation.
 
 ## Applications and pages
 
-| Source application                                              | Title               | Pages                                                                          | Purpose                                                                                                                                                      |
-| --------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                                              | Sales, balances and commissions.                                                                                                                             |
-| [operations/dashboard](../src/app/operations/dashboard/+app.ts) | Dashboard           | dashboard: Dashboard                                                           | What needs attention across orders, Kingdee and receivables.                                                                                                 |
-| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                              | Customers, suppliers and their agreements.                                                                                                                   |
-| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                                 | Commercial work within each order.                                                                                                                           |
-| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                               | Products, lots and stock.                                                                                                                                    |
-| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Pricing), `commission` (Commission) | Each document case's layout per language; dated price book, SalesBridge `.xlsx` upload/download and floor rule; CEL commission rules with freight treatment. |
+| Source application                                              | Title               | Pages                                                                                                 | Purpose                                                                                                                   |
+| --------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [operations/analysis](../src/app/operations/analysis/+app.ts)   | Analysis            | reports: Analysis                                                                                     | Sales, balances and commissions.                                                                                          |
+| [operations/dashboard](../src/app/operations/dashboard/+app.ts) | Dashboard           | dashboard: Dashboard                                                                                  | What needs attention across orders, Kingdee and receivables.                                                              |
+| [operations/partners](../src/app/operations/partners/+app.ts)   | Partners            | parties: Partners                                                                                     | Customers, suppliers, extra profile fields and credit-limit targets.                                                      |
+| [operations/profile](../src/app/operations/profile/+app.ts)     | My profile          | profile: My profile                                                                                   | Each member's Kingdee employee, department, biller and customer identifiers.                                              |
+| [operations/trade](../src/app/operations/trade/+app.ts)         | Orders              | orders: Orders                                                                                        | Commercial work within each order.                                                                                        |
+| [operations/warehouse](../src/app/operations/warehouse/+app.ts) | Warehouse           | stock: Warehouse                                                                                      | Products, lots and stock.                                                                                                 |
+| [trade_configuration](../src/app/trade_configuration/+app.ts)   | Trade configuration | `templates` (Documents), `pricing_floors` (Pricing), `commission` (Commission), `profiles` (Profiles) | Document layouts per language; dated price book and floor rule; CEL commission rules; workspace user Kingdee ID bindings. |
 
 ## Models and exposed operations
 
@@ -46,10 +47,11 @@ Outputs fix field visibility. Policies select outputs and scope rows; write colu
 | [source_sales_lines](../src/data/model/orders/source_sales_lines/+model.ts)              | 20     | default, commercial | create, update         | kingdee, invoice_only |
 | [source_stock_commitments](../src/data/model/source_stock_commitments/+model.ts)         | 3      | default             | create, update         | kingdee               |
 | [stock_snapshots](../src/data/model/products/stock_snapshots/+model.ts)                  | 10     | default, logistics  | create, update, delete | kingdee               |
-| [transactions](../src/data/model/orders/transactions/+model.ts)                          | 13     | default, logistics  | create, update         | kingdee               |
+| [transactions](../src/data/model/orders/transactions/+model.ts)                          | 16     | default, logistics  | create, update         | kingdee               |
+| [user_profiles](../src/data/model/user_profiles/+model.ts)                               | 8      | default             | create, update, delete | none                  |
 | [warehouses](../src/data/model/warehouses/+model.ts)                                     | 8      | default             | create, update         | kingdee, sheet        |
 
-Import is available on a model with an `import_key` constraint; it matches by that key and names its conflict rule (`on_conflict`). Writes listed on a source mirror are the sync’s path (`kingdee_sync`), not a member permission: policies grant members read-only access, except a party's `related_party` classification and its contacts other than its primary one.
+Import is available on a model with an `import_key` constraint; it matches by that key and names its conflict rule (`on_conflict`). Writes listed on a source mirror are the sync’s path (`kingdee_sync`), not a member permission: policies grant members read-only access, except a party's local profile fields (`related_party`, `tax_id`, `bank_name`, `bank_account`, `profile_notes`), dual-approved credit targets (`credit_limit_target`, `credit_days_target`), and its contacts other than its primary one.
 
 ## Automations
 

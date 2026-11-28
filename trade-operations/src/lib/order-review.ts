@@ -15,6 +15,16 @@ type Scope = Pick<Row<'orders'>, 'direction' | 'owner'>;
 /** The writer's member id; a system or visitor writer owns no order. */
 export const memberOf = (ctx: Pick<Clock, 'actor'>) =>
 	ctx.actor.kind === 'member' ? ctx.actor.id : null;
+/** Fields a member may maintain on their own workspace profile. */
+export const ownProfileFields = [
+	'name',
+	'kingdee_employee_id',
+	'kingdee_department_id',
+	'kingdee_biller_id',
+	'kingdee_customer_id',
+	'phone',
+	'notes'
+] as const;
 /** A sales order the writer owns. */
 export const ownSales = (ctx: Pick<Clock, 'actor'>) => (order: Scope) =>
 	order.direction === 'sales' && order.owner === memberOf(ctx);

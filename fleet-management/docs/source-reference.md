@@ -102,7 +102,7 @@ these components interact at runtime.
 | `src/integration/gps_transponder/+integration.ts` | `http`, Bearer `api_key`; config: `base_url` (default `https://telematics.example.com`), `poll_path` (default `/api/v1/positions`); credentials: `api_key`, `webhook_secret`. | `GET /**`; webhook `hmac-sha256` via `webhook_secret`; rate `20/s`; `test` performs `GET <poll_path>`. |
 | `src/integration/google_routes/+integration.ts`   | `http`, header `X-Goog-Api-Key: api_key`, `base_url: 'https://routes.googleapis.com'`; credential: `api_key`.                                                                 | `POST /distanceMatrix/**`; rate `10/s`.                                                                |
 
-## Apps & Pages (2 Apps, 7 Pages)
+## Apps & Pages (2 Apps, 6 Pages)
 
 ### `operations` (`src/app/operations/`)
 
@@ -129,7 +129,7 @@ these components interact at runtime.
 | `src/automation/+refresh_route_eta.automation.ts`  | `mode: 'call'` (page RPC / manual)                  | `['fleet_automation']`                            | Queries active `dispatched`/`en_route` routes, tries workspace `google_routes` `computeRouteMatrix` (`TRAFFIC_AWARE`) with fallback to `estimateEtaMinutes`, updates changed `eta_minutes`, and opens deduplicated `route_delay` alerts when projected arrival slips `>= 15 min` (`>= 45 min` = `critical`, else `warning`).                  |
 | `src/automation/+check_fleet_health.automation.ts` | `cron: '*/15 * * * *'`, `rest: '24h'` (also manual) | `['fleet_automation']`, `concurrency: { max: 1 }` | Queries `en_route`/`idle` vehicles with non-null `last_ping_at`; marks those stale `>= 30 min` as `offline` (`current_speed_kmh: '0.0'`), creates deduplicated `offline` alerts (`>= 90 min` = `critical`, else `warning`), and sends `ctx.notify` to `fleet_dispatchers` and `fleet_administrators` with per-day per-vehicle-set `once` key. |
 
-## Shared Libraries (2)
+## Shared Libraries (1)
 
 | File             | Exports & Purpose                                                                                                                                                                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

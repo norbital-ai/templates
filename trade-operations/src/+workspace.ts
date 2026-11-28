@@ -10,6 +10,7 @@ export default workspace({
 		'operations/partners',
 		'operations/warehouse',
 		'operations/analysis',
+		'operations/profile',
 		'trade_configuration'
 	],
 	convert: { to: ['pdf'] }

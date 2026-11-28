@@ -1,11 +1,11 @@
 # CRM Architecture & Inner Mechanisms
 
-Technical deep-dive into the CRM workspace (`src/+workspace.ts`: `tz: 'Asia/Singapore'`, `locale: 'en-SG'`, `languages: ['en', 'zh']`, `currency: 'SGD'`, `apps: ['crm', 'configuration']`, `ai: {}`, `convert: { to: ['pdf'] }`). Every symbol, constraint, formula, threshold, schedule, and guard below is verified directly against `src/`.
+Technical deep-dive into the CRM workspace (`src/+workspace.ts`: `tz: 'Asia/Singapore'`, `locale: 'en-SG'`, `languages: ['en', 'zh']`, `currency: 'SGD'`, `apps: ['crm', 'configuration']`, `connections: ['email', 'whatsapp', 'telegram', 'slack', 'discord']`, `ai: {}`, `convert: { to: ['pdf'] }`). Every symbol, constraint, formula, threshold, schedule, and guard below is verified directly against `src/`.
 
 ## Table of Contents
 
 1. [System Topology & Runtime Architecture](#1-system-topology--runtime-architecture)
-2. [Data Model Ownership & ER Architecture (22 Models)](#2-data-model-ownership--er-architecture-22-models)
+2. [Data Model Ownership & ER Architecture (21 Models)](#2-data-model-ownership--er-architecture-21-models)
 3. [State Machines, Commitment Gating & Record Locks](#3-state-machines-commitment-gating--record-locks)
 4. [Multi-Channel Message Intake, Fairness & System 1 Routing](#4-multi-channel-message-intake-fairness--system-1-routing)
 5. [Two-Way Google Calendar Sync & Conflict Resolution](#5-two-way-google-calendar-sync--conflict-resolution)
@@ -47,8 +47,8 @@ The workspace splits work cleanly across three runtime planes:
 +============================================================================================+
 |                       BOLT WORKSPACE RUNTIME (Asia/Singapore, en/zh)                       |
 +============================================================================================+
-|  22 Models + Transforms + Post-Commit Effects  |  21 Automations (4 cron + 17 event/call)  |
-|  - Dedupe keys (company_key, domain, uen_key,  |  - Intake: sync_messages (* * * * *),     |
+|  21 Models + Transforms + Post-Commit Effects  |  21 Automations (3 cron + 18 event/call)  |
+|  - Dedupe keys (company_key, domain, uen_key,  |  - Intake: sync_messages (sys_msg create),|
 |    email/phone/telegram/slack/discord keys)    |    classify_messages (*/5 * * * *)        |
 |  - Manual-edit provenance (manual_fields,      |  - Leads:  import_leads (0 7 * * *),      |
 |    origin: 'manual' | 'generated')             |    research_lead, launch/sync_cohort      |
@@ -72,7 +72,7 @@ The workspace splits work cleanly across three runtime planes:
 
 ---
 
-## 2. Data Model Ownership & ER Architecture (22 Models)
+## 2. Data Model Ownership & ER Architecture (21 Models)
 
 `src/data/model/` mirrors record ownership. Only leaf folders name models; child models sit under their parent directory. Foreign keys enforce referential integrity across four ownership branches plus standalone operational roots.
 
@@ -260,7 +260,7 @@ Four models declare native `state` fields, backed by cross-model transactional t
 
 ## 4. Multi-Channel Message Intake, Classifier & Batched Filing
 
-Message ingestion separates **mirroring** (`sync_messages`, reactive on `sys_message.create` plus safety-net cron) from **classification** (`classify_messages`, scheduled immediately plus safety-net cron) and uses two fairness mechanisms so historical backfills never starve live client messages:
+Message ingestion separates **mirroring** (`sync_messages`, event-driven on `sys_message.create` with self-requeue while a backlog remains) from **classification** (`classify_messages`, scheduled immediately plus `*/5 * * * *` cron) and uses two fairness mechanisms so historical backfills never starve live client messages:
 
 1. **Binary-Search Prefix Skip (`filedThrough`):** When the oldest 50-row page is already filed, `sync_messages` binary-searches the sequence space (`low..high`) using paired `sys_message` vs `activities` count queries to jump directly past the longest contiguous filed prefix.
 2. **Dual-Lane Batch Selection (`selectBatch`):** Reserves `floor((batch - 1) / 2)` slots (12 of 25) round-robin across each provider's 4 newest unfiled messages (`dated` by `source_at` + `undated` by `created_at`), then fills the remaining slots in ascending `seq` order to steadily drain backfill.
@@ -281,7 +281,7 @@ Message ingestion separates **mirroring** (`sync_messages`, reactive on `sys_mes
                                          |
                                          v
   +-----------------------------------------------------------------------------------+
-  | sync_messages [on: sys_message.create + cron * * * * *, rest: 1d, concurrency: 1] |
+  | sync_messages [on: sys_message.create + self-requeue, concurrency: 1]               |
   | 1. Binary-search filedThrough(mid) to skip already-filed seq prefix               |
   | 2. Dual-lane selectBatch(oldest[50], recent[4/provider], batch=25):               |
   |      - up to 12 fresh slots (round-robin across providers)                        |

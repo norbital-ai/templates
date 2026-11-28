@@ -62,10 +62,10 @@ installed in Kingdee.
 |  | Background Execution Layer                                                             |  |
 |  |                                                                                        |  |
 |  |  [Automation: source_health]      [6 Sheet Syncs (XLSX/CSV)]   [21 Kingdee SQL Syncs]  |  |
-|  |   on: sys_integration update       orders (sheet, lines)        2 two-way (orders,     |  |
-|  |   policy: source_health            pricing_floors (price_book)   order_lines) +        |  |
-|  |   -> notifies active admins        commission_rules (sheet)     19 read-only mirrors   |  |
-|  |      once per (id, revision)       parties, warehouses (out)    policy: kingdee_sync   |  |
+|  |   on: sys_integration update       orders (sheet, lines)        4 two-way (orders,     |  |
+|  |   policy: source_health            pricing_floors (price_book)   order_lines, parties, |  |
+|  |   -> notifies active admins        commission_rules (sheet)      credit_releases) +    |  |
+|  |      once per (id, revision)       parties, warehouses (out)    17 read-only mirrors   |  |
 |  +----------------------------------------------------+-----------------------------------+  |
 +-------------------------------------------------------|--------------------------------------+
                                                         | sqlserver (TDS, encrypted)
@@ -75,16 +75,17 @@ installed in Kingdee.
 |                       EXTERNAL KINGDEE KIS SQL SERVER LEDGER(S)                              |
 |  - Dynamic runtime connections (Settings -> Integrations -> Connections, no seeded creds)    |
 |  - Read-only projections on masters, stock, credit, DO/PO/invoices, payments, AR/AP, t_Log   |
-|  - Transactional write path (SERIALIZABLE + sp_getapplock) ONLY for SEOrder / POOrder        |
+|  - Transactional write path (SERIALIZABLE + sp_getapplock) for SEOrder/POOrder &             |
+|    opt-in ICCreditObject limit updates / temporary one-time bumps                            |
 +----------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. 26-model data ownership and ER graph
+## 2. 27-model data ownership and ER graph
 
-Models split cleanly into local commercial authority (orders, configuration, approvals, statements)
-and read-only ERP mirrors populated exclusively under `kingdee_sync`. Foreign keys are `restrict`
+Models split cleanly into local commercial authority (orders, user profiles, configuration, approvals, statements)
+and ERP mirrors populated under `kingdee_sync` (with workspace-owned profile fields on `parties`). Foreign keys are `restrict`
 unless marked `owned` (cascade delete) or `opt` (optional reference).
 
 ```text
@@ -284,9 +285,9 @@ exclusive transaction `sp_getapplock` keyed by the deterministic `FUUID`.
   |   ICMaxNum (UPDLOCK,     |      | BRANCH 2: UNAUDITED EDIT |  v (Sales Order;     v (PO)
   |   ROWLOCK)               |      | - Compare live lines vs  |  FCheckDate >=     +----------+
   | - INSERT SEOrder or      |      |   expected lineBasis XML |  '19010102')       | BRANCH 4 |
-  |   POOrder (FStatus=0,    |      |   (FEntryID,Item,Qty,Amt)| +----------------+ | REFUSED  |
-  |   FVersionNo='000')      |      | - Mismatch -> 'moved'    | | BRANCH 3:      | | PO lines |
-  | - INSERT *Entry 1..N     |      |   (retry after read)     | | AUDITED SO     | | editable |
+  |   POOrder (FStatus=0, or |      |   (FEntryID,Item,Qty,Amt)| +----------------+ | REFUSED  |
+  |   FStatus=1+FCheckerID if|      | - Mismatch -> 'moved'    | | BRANCH 3:      | | PO lines |
+  |   directApproveOrders)   |      |   (retry after read)     | | AUDITED SO     | | editable |
   | - Return $id             |      | - Match -> DELETE old    | | AMENDMENT      | | pre-audit|
   +--------------------------+      |   *Entry & INSERT new    | | (sourceAmend-  | | ONLY     |
                                     +--------------------------+ |  mentSql)      | +----------+
@@ -532,8 +533,13 @@ control enter `credit_releases` for dual-party sign-off verified against Kingdee
   |  computed status = 'approved'                                     |
   |  Transform locks: approved_content_hash = before.content_hash     |
   |  Effect notifies: finance + logistics + order.owner               |
-  |   - permanent -> raise limit in Kingdee & audit DO                |
+  |   - permanent -> raise limit in Kingdee (or auto-write if         |
+  |                  directWriteCreditLimit=true) & audit DO          |
   |   - one_time  -> release DO in Kingdee with credit-mgr password   |
+  |                  OR (directWriteCreditLimit=true) temp-bump       |
+  |                  ICCreditObject (+over_limit/+overdue_days),      |
+  |                  mark temp_bump_status='active' while unaudited,  |
+  |                  and auto-deduct back to baseline on DO audit     |
   +--+---------------------------+-----------------------+------------+
      |                           |                       |
      v                           v                       v
@@ -804,39 +810,42 @@ policies (`kingdee_sync` and `source_health`) execute background syncs and healt
 | Team -> Policy    | App capability     | Read scope, output masking & write / approval gates |
 +-------------------+--------------------+-----------------------------------------------------+
 | Sales             | operations         | READ: own sales orders + children (direction='sales'|
-| -> sales          |                    |   & owner==actor.id); source_sales_lines via        |
-|                   |                    |   'commercial' output (hides booked_cost); own      |
+| -> sales          |                    |   & owner==actor.id); own user_profiles row;        |
+|                   |                    |   source_sales_lines via 'commercial' output; own   |
 |                   |                    |   commission_statements & credit_releases;          |
 |                   |                    |   published document_templates; masters/stock;      |
 |                   |                    |   sys_user limited to self + logistics team.        |
-|                   |                    | WRITE: own SOs & lines (floor_rule=='approve' holds |
-|                   |                    |   below-floor lines for commercial_managers);       |
+|                   |                    | WRITE: own user_profiles; own SOs & lines           |
+|                   |                    |   (floor_rule=='approve' holds below-floor lines);  |
 |                   |                    |   draft SO delete -> ALWAYS commercial_managers;    |
 |                   |                    |   credit_releases.update -> 2-step CM -> Finance;   |
 |                   |                    |   non-primary contacts CRUD; own order_files/acts.  |
 +-------------------+--------------------+-----------------------------------------------------+
 | Procurement       | operations         | READ: ALL purchasing orders (direction='purchasing')|
-| -> procurement    |                    |   + children; source_purchase_orders/lines;         |
+| -> procurement    |                    |   + children; own user_profiles; source_purchase_*; |
 |                   |                    |   source_sales_lines via 'commercial' output;       |
 |                   |                    |   published templates; masters/stock/credit/floors. |
-|                   |                    | WRITE: direct create/update/confirm on POs & lines  |
-|                   |                    |   (no PO delete, no floor approval); order_files;   |
-|                   |                    |   activities; non-primary contacts CRUD.            |
+|                   |                    | WRITE: own user_profiles; direct PO create/update/  |
+|                   |                    |   confirm (no PO delete, no floor approval);        |
+|                   |                    |   order_files; activities; non-primary contacts.    |
 +-------------------+--------------------+-----------------------------------------------------+
 | Commercial Mgrs   | operations         | READ: ALL sales & purchasing orders + ALL ERP       |
-| -> manager        |                    |   mirrors (full default outputs incl. booked_cost,  |
-|                   |                    |   lot costs, AR/AP, PO listing); published tmpls.   |
-|                   |                    | WRITE: direct SO/PO create/update/confirm/draft-del;|
+| -> manager        |                    |   mirrors + ALL user_profiles; published templates. |
+|                   |                    | WRITE: own user_profiles; partner extra profile     |
+|                   |                    |   fields; parties.credit_limit_target / days_target |
+|                   |                    |   -> requires Finance sign-off; direct SO/PO CRUD;  |
 |                   |                    |   approves Sales floor & draft-delete holds;        |
 |                   |                    |   creates commission_statements; non-primary contacts|
 |                   |                    |   credit_releases.update -> requires Finance signoff|
 +-------------------+--------------------+-----------------------------------------------------+
 | Finance           | operations         | READ: ALL orders, lines, files (read-only) + ALL    |
-| -> finance        |                    |   financial & ERP mirrors; published templates.     |
-|                   |                    | WRITE: creates commission_statements; updates       |
-|                   |                    |   parties.related_party; activities & non-primary   |
-|                   |                    |   contacts; credit_releases.update -> requires      |
-|                   |                    |   Commercial Manager sign-off (no self-approval).   |
+| -> finance        |                    |   financial & ERP mirrors + ALL user_profiles.      |
+|                   |                    | WRITE: own user_profiles; commission_statements;    |
+|                   |                    |   parties.related_party & extra profile fields;     |
+|                   |                    |   parties.credit_limit_target / days_target ->      |
+|                   |                    |   requires Commercial Manager sign-off; activities; |
+|                   |                    |   non-primary contacts; credit_releases.update ->   |
+|                   |                    |   requires Commercial Manager sign-off.             |
 +-------------------+--------------------+-----------------------------------------------------+
 | Logistics         | operations         | READ: 'logistics' output on orders, order_lines,    |
 | -> logistics      |                    |   transactions, credit_releases, products,          |

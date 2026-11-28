@@ -9,6 +9,7 @@ automations, syncs, integrations, shared library modules, localization catalogs,
 - **Defaults:** `tz: 'UTC'`, `locale: 'en'`, `languages: ['en', 'zh']`, `currency: 'USD'`,
   `theme: { palette: 'crisp', accent: 'blue', radius: 'default' }`.
 - **Apps:** `['scheduling', 'configuration', 'provider', 'portal']`.
+- **Connections:** `['whatsapp', 'email']` (shared workspace connections managed in **Settings → Integrations → Connections**).
 - **Self-signup:** `via: ['phone']`, `policies: ['customer']`, `party: { model: 'customers', match: { phone: 'phone' } }`, `challenge: true`.
 - **Rate limits:**
   - `operations`: `read: 600/min`, `act: 600/min`, `agent: 100/h`
@@ -38,7 +39,7 @@ automations, syncs, integrations, shared library modules, localization catalogs,
 
 ## Apps, Pages & Record Representations
 
-### Apps (4) & Pages (12 + 1 Session)
+### Apps (4) & Pages (11 + 1 Session)
 
 | App             | Path                            | Audience / Requirements                                                          | Pages / Components                                                                                                                                                                                                                                                                                                                             |
 | --------------- | ------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

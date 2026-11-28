@@ -17,12 +17,15 @@ companies/
   potential_projects/
   projects/
     activities/
+      meeting_recordings/
       meeting_speakers/
     issues/
     project_documents/
     signed_documents/
 notes/
+offering_settings/
 outreach_settings/
+products/
 sequences/
 tasks/
 ```
@@ -33,7 +36,7 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 
 - Apps: `configuration`, `crm`
 - Automations: `activities_classify`, `activities_file`, `activities_reconsider_job_rules`, `activities_retry_routing`, `classify_messages`, `import_leads`, `launch_cohort`, `meeting_notes`, `meeting_speakers_save_voice`, `refresh_job_capture_rules`, `remind_follow_ups`, `replay_calendar_activities`, `replay_message_routes`, `research_lead`, `send_message`, `sync_calendar_activities`, `sync_cohort`, `sync_messages`, `template_documents_new_version`, `transcribe_meeting`, `update_requirements`
-- Policies: `calendar_activities`, `calendar_import`, `hq_automation`, `sales`, `template_publishing`
+- Policies: `calendar_activities`, `calendar_import`, `crm`, `hq_automation`, `sales`, `template_publishing`
 - Custom fields: none
 - Integrations: `apollo`, `google_calendar` (and Bolt's own whatsapp, email, telegram, slack, discord)
 

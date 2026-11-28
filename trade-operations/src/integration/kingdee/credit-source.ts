@@ -1,19 +1,35 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json } from '@norbital-ai/bolt';
 import {
+	computeCreditExposure,
+	ORG_CREDIT_PLAN,
+	planCreditFormula
+} from '../../lib/credit-release.js';
+import {
 	kingdeeCreditAccount,
 	kingdeeCreditPolicy,
 	kingdeeCreditPolicyOf,
 	kingdeeOrgCreditPolicy,
 	type KingdeeCreditPolicy
 } from './configuration.js';
-import { readChangedSnapshot, snapshotStatement } from './changed-snapshot.js';
+import { readChangedSnapshot } from './changed-snapshot.js';
+import {
+	populateExposureSql,
+	populateOverdueSummarySql,
+	READ_CREDIT_ENABLED_SQL
+} from './credit-sql.js';
 import { checked } from './order-source.js';
 import { SourceRowInvalid, SourceUnavailable, type DatabaseContext } from './polling.js';
+import { requireReadAccount } from './sql.js';
 
 // KIS sales-out credit: the catalogue chooses signed terms, never an installation-specific view.
-const creditSnapshot = snapshotStatement(`/* kingdee-native-credit */
- SELECT JSON_QUERY(COALESCE((SELECT TOP (2) LTRIM(RTRIM(CONVERT(varchar(1000),FMainAmtCustom))) AS mask,
+const creditSnapshot = `${requireReadAccount}
+${READ_CREDIT_ENABLED_SQL}
+${populateExposureSql('SELECT DISTINCT FItemID FROM dbo.ICCreditObject')}
+${populateOverdueSummarySql('SELECT DISTINCT FItemID FROM dbo.ICCreditObject')}
+DECLARE @data nvarchar(max) = (/* kingdee-native-credit */
+ SELECT @credit_enabled AS credit_enabled,
+ JSON_QUERY(COALESCE((SELECT TOP (2) LTRIM(RTRIM(CONVERT(varchar(1000),FMainAmtCustom))) AS mask,
   LTRIM(RTRIM(CONVERT(varchar(1000),FRangeCustom))) AS control_range, FCreditControl AS control
   FROM dbo.ICCreditOption WHERE FGroupID=2 FOR JSON PATH, INCLUDE_NULL_VALUES),'[]')) AS options,
  JSON_QUERY(COALESCE((SELECT TOP (65) FBitMask AS bit, LTRIM(RTRIM(FCaption)) AS caption, LTRIM(RTRIM(FOperator)) AS operator
@@ -23,73 +39,60 @@ const creditSnapshot = snapshotStatement(`/* kingdee-native-credit */
   CONVERT(bit,CASE WHEN o.FItemID IS NOT NULL THEN 1 ELSE 0 END) AS known_customer,
   CASE WHEN u.FDeleted=0 AND u.FNumber IN ('CNY','RMB') THEN 'CNY' END AS currency,
   CONVERT(varchar(100),c.FAmount) AS credit_limit, ISNULL(c.FCreditDays,0) AS credit_days,
-  CONVERT(varchar(100),i.invoiced) AS invoices_audited,
-  CONVERT(varchar(100),i.paid) AS invoices_paid,
-  CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
-  CONVERT(varchar(100),r.receipts) AS receipts_unsettled,
-  CONVERT(varchar(100),r.advances) AS advances_unsettled,
-  CONVERT(varchar(100),d.issued) AS stock_out_audited,
-  CONVERT(varchar(100),d.hooked) AS stock_out_hooked,
-  i.oldest_days, i.invalid_terms
+  CONVERT(varchar(100),ISNULL(x.invoices_audited,0)) AS invoices_audited,
+  CONVERT(varchar(100),ISNULL(x.invoices_paid,0)) AS invoices_paid,
+  CONVERT(varchar(100),ISNULL(x.refunds_unsettled,0)) AS refunds_unsettled,
+  CONVERT(varchar(100),ISNULL(x.receipts_unsettled,0)) AS receipts_unsettled,
+  CONVERT(varchar(100),ISNULL(x.advances_unsettled,0)) AS advances_unsettled,
+  CONVERT(varchar(100),ISNULL(x.stock_out_audited,0)) AS stock_out_audited,
+  CONVERT(varchar(100),ISNULL(x.stock_out_hooked,0)) AS stock_out_hooked,
+  v.oldest_days, ISNULL(v.invalid_terms,0) AS invalid_terms
  FROM dbo.ICCreditObject c
  LEFT JOIN dbo.t_Organization o ON o.FItemID=c.FItemID
  LEFT JOIN dbo.t_Currency u ON u.FCurrencyID=c.FCurrencyID
- OUTER APPLY(SELECT COALESCE(SUM(a.FAmount),0) AS invoiced,
-  COALESCE(SUM(a.FAmount-a.FRemainAmount),0) AS paid,
-  MAX(CASE WHEN a.FRemainAmount>0 THEN DATEDIFF(day,COALESCE(s.FSettleDate,s.FDate),GETDATE()) END) AS oldest_days,
-  COALESCE(SUM(CASE WHEN a.FRemainAmount>0 AND
-   (COALESCE(s.FSettleDate,s.FDate) IS NULL OR COALESCE(s.FSettleDate,s.FDate)<='19010101') THEN 1 ELSE 0 END),0) AS invalid_terms
-  FROM dbo.t_RP_Contact a JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID
-   AND s.FStatus<>0 AND s.FCancellation=0
-  WHERE a.FRP=1 AND a.FType=3 AND a.FCustomer=c.FItemID) i
- OUTER APPLY(SELECT COALESCE(-SUM(CASE WHEN a.FPre=-1 THEN a.FRemainAmount ELSE 0 END),0) AS refunds,
-  COALESCE(SUM(CASE WHEN a.FPre=0 THEN a.FRemainAmount ELSE 0 END),0) AS receipts,
-  COALESCE(SUM(CASE WHEN a.FPre=1 THEN a.FRemainAmount ELSE 0 END),0) AS advances
-  FROM dbo.t_RP_Contact a JOIN dbo.t_RP_NewReceiveBill b ON b.FBillID=a.FBillID AND b.FStatus<>0
-  WHERE a.FRP=1 AND a.FType=5 AND a.FCustomer=c.FItemID) r
- OUTER APPLY(SELECT COALESCE(SUM(e.FConsignAmount),0) AS issued,
-  COALESCE(SUM(CASE WHEN b.FHookStatus=2 THEN e.FConsignAmount ELSE 0 END),0) AS hooked
-  FROM dbo.ICStockBill b JOIN dbo.ICStockBillEntry e ON e.FInterID=b.FInterID
-  WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=c.FItemID) d
+ LEFT JOIN @exp x ON x.customer_id=c.FItemID
+ LEFT JOIN @ovSummary v ON v.customer_id=c.FItemID
  ORDER BY c.FItemID FOR JSON PATH, INCLUDE_NULL_VALUES),'[]')) AS customers
- FOR JSON PATH, WITHOUT_ARRAY_WRAPPER`);
+ FOR JSON PATH, WITHOUT_ARRAY_WRAPPER);
+SET @data=COALESCE(@data,N'[]');
+DECLARE @fingerprint varchar(64) = CONVERT(varchar(64),HASHBYTES('SHA2_256',@data),2);
+SELECT @fingerprint AS fingerprint,
+ CONVERT(bit,CASE WHEN DATALENGTH(@data)>1000000 THEN 1 ELSE 0 END) AS oversized,
+ CASE WHEN DATALENGTH(@data)<=1000000 AND @fingerprint<>@prior THEN @data END AS entries,
+ CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at;`;
 
-// KIS customer-master credit (`t_Organization.FIsCreditMgr` + `FCreditLimit`) with AR + unhooked sales-out exposure.
-const orgCreditSnapshot = snapshotStatement(`/* kingdee-org-credit */
+// KIS customer-master credit (t_Organization.FIsCreditMgr + FCreditLimit) with AR + unhooked sales-out exposure.
+const orgCreditSnapshot = `${requireReadAccount}
+${populateExposureSql("SELECT DISTINCT FItemID FROM dbo.t_Organization WHERE FIsCreditMgr<>0 AND FDeleted=0 AND LTRIM(RTRIM(ISNULL(FCreditLimit,'')))<>''")}
+DECLARE @data nvarchar(max) = (/* kingdee-org-credit */
  SELECT JSON_QUERY(COALESCE((SELECT TOP (2001) CONVERT(varchar(20),o.FItemID) AS customer_id,
   'CNY' AS currency,
   REPLACE(LTRIM(RTRIM(o.FCreditLimit)),',','') AS credit_limit,
-  CONVERT(varchar(100),i.invoiced) AS invoices_audited,
-  CONVERT(varchar(100),i.paid) AS invoices_paid,
-  CONVERT(varchar(100),r.refunds) AS refunds_unsettled,
-  CONVERT(varchar(100),r.receipts) AS receipts_unsettled,
-  CONVERT(varchar(100),r.advances) AS advances_unsettled,
-  CONVERT(varchar(100),d.issued) AS stock_out_audited,
-  CONVERT(varchar(100),d.hooked) AS stock_out_hooked
+  CONVERT(varchar(100),ISNULL(x.invoices_audited,0)) AS invoices_audited,
+  CONVERT(varchar(100),ISNULL(x.invoices_paid,0)) AS invoices_paid,
+  CONVERT(varchar(100),ISNULL(x.refunds_unsettled,0)) AS refunds_unsettled,
+  CONVERT(varchar(100),ISNULL(x.receipts_unsettled,0)) AS receipts_unsettled,
+  CONVERT(varchar(100),ISNULL(x.advances_unsettled,0)) AS advances_unsettled,
+  CONVERT(varchar(100),ISNULL(x.stock_out_audited,0)) AS stock_out_audited,
+  CONVERT(varchar(100),ISNULL(x.stock_out_hooked,0)) AS stock_out_hooked
  FROM dbo.t_Organization o
- OUTER APPLY(SELECT COALESCE(SUM(a.FAmount),0) AS invoiced,
-  COALESCE(SUM(a.FAmount-a.FRemainAmount),0) AS paid
-  FROM dbo.t_RP_Contact a JOIN dbo.ICSale s ON s.FInterID=a.FInvoiceID
-   AND s.FStatus<>0 AND s.FCancellation=0
-  WHERE a.FRP=1 AND a.FType=3 AND a.FCustomer=o.FItemID) i
- OUTER APPLY(SELECT COALESCE(-SUM(CASE WHEN a.FPre=-1 THEN a.FRemainAmount ELSE 0 END),0) AS refunds,
-  COALESCE(SUM(CASE WHEN a.FPre=0 THEN a.FRemainAmount ELSE 0 END),0) AS receipts,
-  COALESCE(SUM(CASE WHEN a.FPre=1 THEN a.FRemainAmount ELSE 0 END),0) AS advances
-  FROM dbo.t_RP_Contact a JOIN dbo.t_RP_NewReceiveBill b ON b.FBillID=a.FBillID AND b.FStatus<>0
-  WHERE a.FRP=1 AND a.FType=5 AND a.FCustomer=o.FItemID) r
- OUTER APPLY(SELECT COALESCE(SUM(e.FConsignAmount),0) AS issued,
-  COALESCE(SUM(CASE WHEN b.FHookStatus=2 THEN e.FConsignAmount ELSE 0 END),0) AS hooked
-  FROM dbo.ICStockBill b JOIN dbo.ICStockBillEntry e ON e.FInterID=b.FInterID
-  WHERE b.FTranType=21 AND b.FStatus<>0 AND b.FCancellation=0 AND b.FSupplyID=o.FItemID) d
+ LEFT JOIN @exp x ON x.customer_id=o.FItemID
  WHERE o.FIsCreditMgr<>0 AND o.FDeleted=0
   AND LTRIM(RTRIM(ISNULL(o.FCreditLimit,'')))<>''
  ORDER BY o.FItemID FOR JSON PATH, INCLUDE_NULL_VALUES),'[]')) AS customers
- FOR JSON PATH, WITHOUT_ARRAY_WRAPPER`);
+ FOR JSON PATH, WITHOUT_ARRAY_WRAPPER);
+SET @data=COALESCE(@data,N'[]');
+DECLARE @fingerprint varchar(64) = CONVERT(varchar(64),HASHBYTES('SHA2_256',@data),2);
+SELECT @fingerprint AS fingerprint,
+ CONVERT(bit,CASE WHEN DATALENGTH(@data)>1000000 THEN 1 ELSE 0 END) AS oversized,
+ CASE WHEN DATALENGTH(@data)<=1000000 AND @fingerprint<>@prior THEN @data END AS entries,
+ CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at;`;
 
 const precise = Schema.String.check(Schema.isPattern(/^-?\d+(\.\d+)?$/));
 const integer = Schema.Number.check(Schema.isInt());
 const payload = Schema.fromJsonString(
 	Schema.Struct({
+		credit_enabled: Schema.optionalKey(Schema.NullOr(Schema.String)),
 		options: Schema.Array(
 			Schema.Struct({ mask: Schema.String, control_range: Schema.String, control: integer })
 		),
@@ -122,17 +125,6 @@ const checkpoint = Schema.Struct({
 	fingerprint: Schema.optionalKey(Schema.String)
 });
 const invalid = (column: string, reason: string) => new SourceRowInvalid({ column, reason });
-const items = {
-	当前单据金额: { column: null, sign: 1 },
-	已审核发票金额: { column: 'invoices_audited', sign: 1 },
-	已审核的已收款发票金额: { column: 'invoices_paid', sign: -1 },
-	已审核未核销的应收退款单金额: { column: 'refunds_unsettled', sign: 1 },
-	已审核未核销的收款单金额: { column: 'receipts_unsettled', sign: -1 },
-	已审核未核销的预收单金额: { column: 'advances_unsettled', sign: -1 },
-	已审核的销售出库单金额: { column: 'stock_out_audited', sign: 1 },
-	已钩稽的销售出库单金额: { column: 'stock_out_hooked', sign: -1 }
-} as const;
-const catalogue = new Map(Object.entries(items));
 
 const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: string, prior = '') {
 	const current = yield* readChangedSnapshot(
@@ -142,9 +134,14 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 		prior
 	);
 	if (current.entries === null)
-		return { rows: null, fingerprint: current.fingerprint, observedAt: current.observed_at };
+		return {
+			rows: null,
+			creditDisabled: false,
+			fingerprint: current.fingerprint,
+			observedAt: current.observed_at
+		};
 	const entries = current.entries;
-	const rows = yield* checked(() => {
+	const decoded = yield* checked(() => {
 		const page = Schema.decodeUnknownSync(payload)(entries);
 		const option = page.options[0];
 		if (
@@ -157,34 +154,12 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 				'ICCreditOption',
 				'Expected one blocking sales-out credit option with a known amount/term range'
 			);
-		const mask = Number(option.mask);
-		if (
-			!/^\d+$/.test(option.mask) ||
-			!Number.isSafeInteger(mask) ||
-			mask < 0 ||
-			mask >= 2 ** 31 ||
-			page.fields.length > 64
-		)
-			throw invalid('ICCreditOption.FMainAmtCustom', 'Invalid or oversized native credit formula');
-		const plan: (typeof items)[keyof typeof items][] = [];
-		for (let bit = 1; bit <= mask; bit *= 2) {
-			if (!(mask & bit)) continue;
-			const fields = page.fields.filter((f) => f.bit === bit),
-				field = fields[0],
-				item = field && catalogue.get(field.caption);
-			if (fields.length !== 1 || !field || !item)
-				throw invalid(
-					'ICCreditField',
-					'Every selected credit bit requires one known catalogue item'
-				);
-			if (plan.includes(item) || field.operator !== (item.sign === 1 ? '+' : '-'))
-				throw invalid('ICCreditField', 'Duplicate credit item or an unsupported native operator');
-			plan.push(item);
-		}
+		const planned = planCreditFormula(option.mask, page.fields);
+		if (!planned.ok) throw invalid(planned.column, planned.reason);
 		if (page.customers.length > 1000)
 			throw invalid('ICCreditObject', 'Credit exceeds its customer bound');
 		const seen = new Set<string>();
-		return page.customers.map((row) => {
+		const rows = page.customers.map((row) => {
 			const limit = BigDecimal.fromStringUnsafe(row.credit_limit);
 			if (
 				seen.has(row.customer_id) ||
@@ -197,18 +172,14 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 					'Credit requires a unique CNY limit, nonnegative credit days and valid invoice dates'
 				);
 			seen.add(row.customer_id);
-			let used = BigDecimal.fromStringUnsafe('0');
-			for (const item of plan) {
-				// A customer snapshot has no proposed DO: current-document credit is added only at audit.
-				if (item.column === null) continue;
-				const amount = BigDecimal.fromStringUnsafe(row[item.column]);
-				used = item.sign === 1 ? BigDecimal.sum(used, amount) : BigDecimal.subtract(used, amount);
-			}
+			// A customer snapshot has no proposed DO: current-document credit is added only at audit.
+			const usedText = computeCreditExposure(planned.items, row, null);
+			const used = BigDecimal.fromStringUnsafe(usedText);
 			return {
 				customer_id: row.customer_id,
 				currency: row.currency,
 				credit_limit: row.credit_limit,
-				credit_used: BigDecimal.format(used),
+				credit_used: usedText,
 				credit_hold:
 					((Number(option.control_range) & 1) !== 0 && BigDecimal.isGreaterThan(used, limit)) ||
 					((Number(option.control_range) & 2) !== 0 &&
@@ -216,8 +187,14 @@ const observe = Effect.fnUntraced(function* (ctx: DatabaseContext, account: stri
 						row.oldest_days > row.credit_days)
 			};
 		});
+		return { rows, creditDisabled: page.credit_enabled === '0' && rows.length === 0 };
 	});
-	return { rows, fingerprint: current.fingerprint, observedAt: current.observed_at };
+	return {
+		rows: decoded.rows,
+		creditDisabled: decoded.creditDisabled,
+		fingerprint: current.fingerprint,
+		observedAt: current.observed_at
+	};
 });
 const orgPayload = Schema.fromJsonString(
 	Schema.Struct({
@@ -257,20 +234,13 @@ const observeOrg = Effect.fnUntraced(function* (ctx: DatabaseContext, account: s
 			if (seen.has(row.customer_id) || BigDecimal.isNegative(limit))
 				throw invalid('t_Organization', 'Credit requires a unique nonnegative CNY limit');
 			seen.add(row.customer_id);
-			const used = BigDecimal.sumAll([
-				BigDecimal.fromStringUnsafe(row.invoices_audited),
-				BigDecimal.negate(BigDecimal.fromStringUnsafe(row.invoices_paid)),
-				BigDecimal.fromStringUnsafe(row.refunds_unsettled),
-				BigDecimal.negate(BigDecimal.fromStringUnsafe(row.receipts_unsettled)),
-				BigDecimal.negate(BigDecimal.fromStringUnsafe(row.advances_unsettled)),
-				BigDecimal.fromStringUnsafe(row.stock_out_audited),
-				BigDecimal.negate(BigDecimal.fromStringUnsafe(row.stock_out_hooked))
-			]);
+			const usedText = computeCreditExposure(ORG_CREDIT_PLAN, row, null);
+			const used = BigDecimal.fromStringUnsafe(usedText);
 			return {
 				customer_id: row.customer_id,
 				currency: row.currency,
 				credit_limit: row.credit_limit,
-				credit_used: BigDecimal.format(used),
+				credit_used: usedText,
 				credit_hold: BigDecimal.isGreaterThan(used, limit)
 			};
 		});
@@ -379,6 +349,16 @@ export const readCreditSource = Effect.fnUntraced(function* (
 	return {
 		rows: [...rows, ...removed],
 		cursor: cursorAfter,
-		more: false
+		more: false,
+		...('creditDisabled' in current && current.creditDisabled
+			? {
+					health: {
+						state: 'attention' as const,
+						code: 'creditDisabled',
+						message:
+							'Kingdee KIS credit management (IC/CreditEnable) is currently disabled (0) and ICCreditObject has no customer limits.'
+					}
+				}
+			: {})
 	};
 });

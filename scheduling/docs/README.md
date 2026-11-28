@@ -11,9 +11,9 @@ Norbital Bolt workspace (`norbital-scheduling`).
   state machines and record locks, write-time assignment guards, matching/scoring/slot math, portal
   quote-to-booking pipeline, route caching and local-search optimization, pre-shift and live GPS
   ETA pipelines, dual-channel notice delivery, and RBAC matrix.
-- [Source Reference](source-reference.md) — Complete inventory of all 13 models, 4 apps, 12 pages,
-  7 model representations, 2 teams, 7 policies, 18 automations, mail sync, integrations, shared
-  library modules, i18n catalogs, and test suites.
+- [Source Reference](source-reference.md) — Complete inventory of all 13 models, 4 apps, 11 pages
+  (+ 1 session), 7 model representations, 2 teams, 7 policies, 18 automations, mail sync,
+  integrations, shared library modules, i18n catalogs, and test suites.
 - [Product Overview (English)](../README.md) · [产品概述（中文）](../README.zh.md) — Business-focused
   overview, roles, apps, automations, and scope boundaries.
 
@@ -40,7 +40,7 @@ bun run format                  # Format source and docs with Prettier
 - **Declarative schema:** Author fields, relations, unique keys, checks, `no_overlap` constraints,
   and state locks in `src/data/model/**/+model.ts`.
 - **Editable SQL migrations:** `bunx bolt build` generates the next migration under `migrations/`
-  (currently `0001_initial.sql` through `0004_schema.sql`) and replays the full history against a
+  (currently `0001_initial.sql`) and replays the full history against a
   scratch database. Always commit generated SQL files together with `migrations/snapshot.json`,
   `migrations/migrations.lock.json`, and `migrations/physical.json`. Never commit `.norbital/`.
 - **Test fixtures & initial workspace state:** Synthetic test rows in `seed/test/*.json` power

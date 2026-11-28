@@ -1698,6 +1698,32 @@ it.effect(
 								has_weight: false,
 								visual_file: viewOf.get('A5'),
 								signature: 'sig-A5'
+							},
+							{
+								// the same lift again (another car): one asset, so one remembered decision
+								archetype_id: 'A6',
+								representative_express_id: 203,
+								representative_part_ids: [],
+								ifc_class: 'IFCTRANSPORTELEMENT',
+								family: 'KONE MonoSpace 1000kg',
+								type_name: null,
+								object_type: 'MRL Car',
+								predefined_type: 'ELEVATOR',
+								operation_type: null,
+								classification_code: null,
+								classification_name: null,
+								materials: [],
+								material_layers: [],
+								layer_count: 0,
+								properties: [],
+								sample_names: ['KONE MonoSpace 1000kg:L18'],
+								total_count: 0,
+								has_length: false,
+								has_area: false,
+								has_volume: false,
+								has_weight: false,
+								visual_file: viewOf.get('A2'),
+								signature: 'sig-A2'
 							}
 						],
 						buckets: [
@@ -1787,8 +1813,8 @@ it.effect(
 			expect(stored.kind).toBe('committed');
 			yield* t.run_due();
 
-			// Phase 1 ran automatically: EXACTLY 5 System 1 visual calls, all 5 asset_mappings remembered, AND System 2 proposed ART-KINETIC!
-			expect(recordedCalls).toHaveLength(5);
+			// Phase 1 ran automatically: one System 1 visual call per archetype (6), one remembered asset_mapping per signature (5), AND System 2 proposed ART-KINETIC!
+			expect(recordedCalls).toHaveLength(6);
 			for (const call of recordedCalls) {
 				expect(call.imageCount).toBe(1);
 				expect(call.angles).toEqual([
@@ -1803,7 +1829,7 @@ it.effect(
 				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
 			);
 			expect(initialCost.state).toBe('succeeded');
-			expect(recordedCalls).toHaveLength(5);
+			expect(recordedCalls).toHaveLength(6);
 
 			const est = rowsOf(
 				yield* admin.query({
@@ -1947,7 +1973,7 @@ it.effect(
 				admin.run('analyze_bim_file', { project_id: projectId, phase: 'cost' }, JobResult)
 			);
 			expect(again.state).toBe('succeeded');
-			expect(recordedCalls).toHaveLength(5);
+			expect(recordedCalls).toHaveLength(6);
 			const repriced = Schema.decodeUnknownSync(
 				Schema.Array(
 					Schema.Struct({
@@ -2380,5 +2406,53 @@ it.effect(
 				params: []
 			});
 			expect(tasks.length).toBeGreaterThanOrEqual(1);
+		}).pipe(Effect.scoped)
+);
+
+it.effect(
+	'records why an automatic Step 1 failed, so the page offers a retry instead of analysing forever',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* acquireWorkspace({
+				root,
+				now: '2026-06-15T06:00:00.000Z',
+				fakes: { ai: { sys_1: routeSystem1, cassette: { default: [] } } }
+			});
+			const admin = yield* t.as(t.admin);
+			const setup = yield* admin.act({
+				'projects.create': [
+					{
+						project_name: 'Unreadable Takeoff Tower',
+						project_number: 'UTT-01',
+						project_role: 'main_contractor',
+						currency: 'SGD'
+					}
+				]
+			});
+			if (setup.kind !== 'committed') throw new Error('Setup failed');
+			const project = recordOf(setup.records, 'projects');
+			const uploaded = yield* admin.upload('projects.bim_takeoff', {
+				name: 'takeoff.json',
+				mime: 'application/json',
+				bytes: new TextEncoder().encode('{"schema":"IFC4","archetypes":')
+			});
+			if (uploaded.kind !== 'committed') throw new Error('Takeoff upload failed');
+			yield* admin.act({
+				'projects.update': [{ target: project, set: { bim_takeoff: uploaded.output } }]
+			});
+			yield* t.run_due();
+
+			const after = rowsOf(
+				yield* admin.query({
+					projects: {
+						where: { id: { eq: project.id } },
+						fields: ['bim_costing_dirty', 'bim_costing_error'],
+						limit: 1
+					}
+				}),
+				'projects'
+			)[0];
+			expect(after?.['bim_costing_dirty']).toBe(true);
+			expect(String(after?.['bim_costing_error'] ?? '')).toContain('could not be read');
 		}).pipe(Effect.scoped)
 );

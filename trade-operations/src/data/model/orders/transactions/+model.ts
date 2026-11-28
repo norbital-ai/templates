@@ -143,6 +143,13 @@ export default model('transactions', {
 		issued_on: { kind: 'date', optional: true },
 		due_on: { kind: 'date', optional: true },
 		total: { kind: 'money', currency: 'currency', optional: true },
+		credit_check: {
+			kind: 'enum',
+			values: ['passed', 'failed', 'released', 'bypassed', 'unchecked'],
+			optional: true
+		},
+		credit_check_detail: { kind: 'text', optional: true },
+		credit_checked_at: { kind: 'instant', optional: true },
 		source_updated_at: { kind: 'instant', optional: true },
 		source: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		order: { kind: 'ref', to: 'orders', inverse: 'transactions' }
@@ -167,6 +174,9 @@ export default model('transactions', {
 			'issued_on',
 			'due_on',
 			'total',
+			'credit_check',
+			'credit_check_detail',
+			'credit_checked_at',
 			'source_updated_at',
 			'source',
 			'order'
@@ -191,6 +201,9 @@ export default model('transactions', {
 			'issued_on',
 			'due_on',
 			'total',
+			'credit_check',
+			'credit_check_detail',
+			'credit_checked_at',
 			'source_updated_at',
 			'source',
 			'order'

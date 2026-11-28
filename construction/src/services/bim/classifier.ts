@@ -406,9 +406,16 @@ export const persistAssetMappings = Effect.fnUntraced(function* (input: {
 	readonly idempotencyKey: string;
 	readonly ctx: Pick<AutomationCtx, 'files' | 'act'>;
 }) {
-	const freshWithSigs = input.fresh.filter(
-		(a): a is BimArchetype & { readonly signature: string } => a.signature !== undefined
-	);
+	// Archetypes share a signature when they are the same asset: one mapping each, from the surest decision.
+	const confidence = (a: BimArchetype) => input.decisions[a.archetype_id]?.confidence ?? -1;
+	const bySignature = new Map<string, BimArchetype & { readonly signature: string }>();
+	for (const a of input.fresh) {
+		if (a.signature === undefined) continue;
+		const held = bySignature.get(a.signature);
+		if (held === undefined || confidence(a) > confidence(held))
+			bySignature.set(a.signature, { ...a, signature: a.signature });
+	}
+	const freshWithSigs = [...bySignature.values()];
 	if (freshWithSigs.length === 0) return;
 
 	const copiedPairs = yield* Effect.forEach(

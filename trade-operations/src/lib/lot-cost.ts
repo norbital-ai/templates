@@ -52,12 +52,14 @@ export function estimateFifoCost(
 		as_of: string;
 		/** What the ledger last confirmed of its stock and purchase lots (`confirmedAt`), not a row's time. */
 		confirmed: { readonly stock: string | null; readonly lots: string | null };
+		readonly freshMinutes?: number;
 	}
 ) {
 	const quantity = BigDecimal.fromStringUnsafe(input.quantity);
 	const now = Date.parse(input.as_of);
+	const freshWindow = Duration.toMillis(Duration.minutes(input.freshMinutes ?? 30));
 	const fresh = (value: string | null) =>
-		value !== null && Math.abs(now - Date.parse(value)) < Duration.toMillis(Duration.minutes(30));
+		value !== null && Math.abs(now - Date.parse(value)) < freshWindow;
 	if (
 		!BigDecimal.isPositive(quantity) ||
 		purchase.currency !== input.currency ||

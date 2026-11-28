@@ -7,6 +7,7 @@ import {
 	memberOf,
 	orderFloorLines,
 	ordersIn,
+	ownProfileFields,
 	ownSales,
 	review,
 	scopedOrders
@@ -18,6 +19,9 @@ export default policy({
 	description: 'sales commercial work scoped by order.',
 	capabilities: { apps: ['operations'] },
 	grants: {
+		sys_integration: {
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
+		},
 		sys_user: {
 			// themselves, and the Logistics staff an order's logistics handler names
 			outputs: {
@@ -260,6 +264,27 @@ export default policy({
 		},
 		source_sales_lines: {
 			outputs: { commercial: { where: own, history: true } }
+		},
+		user_profiles: {
+			outputs: { default: { where: { user_id: { eq: { var: 'actor.id' } } }, history: true } },
+			create: {
+				fields: ['user_id', ...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ after }) => after.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away, field: 'user_id' })
+						: ctx.allow();
+				}
+			},
+			update: {
+				fields: [...ownProfileFields],
+				verdict: function* (changes, ctx) {
+					const away = changes.findIndex(({ before }) => before.user_id !== memberOf(ctx));
+					return away >= 0
+						? yield* ctx.refuse('errors.profile_own_only', { row: away })
+						: ctx.allow();
+				}
+			}
 		}
 	}
 });

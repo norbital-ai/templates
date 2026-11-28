@@ -182,8 +182,8 @@ Teams are `sys_team` rows an administrator edits; the base seed pack starts thes
   - [`conversation.svelte`](../src/lib/conversation.svelte), [`suspicion-panel.svelte`](../src/lib/suspicion-panel.svelte), [`evidence-basis.svelte`](../src/lib/evidence-basis.svelte), [`photo-dialog.svelte`](../src/lib/photo-dialog.svelte)
 - **Localization (`src/i18n/`):** [`+messages.ts`](../src/i18n/+messages.ts) (`en`), [`+zh.messages.ts`](../src/i18n/+zh.messages.ts) (`zh`)
 - **Agent briefs (`src/agent/`):** [`+agent.md`](../src/agent/+agent.md) (Norbius runtime brief), [`AGENTS.md`](../src/agent/AGENTS.md) (coding-agent workspace map)
-- **Schema migrations (`migrations/`):** `0001_initial.sql`, `0002_schema.sql`, `0003_schema.sql` with `snapshot.json`, `migrations.lock.json`, and `physical.json`
-- **Integrations:** None declared in source; pairing and credentials for the WhatsApp channel live in the host's **Settings → Integrations / Envoys** surface.
+- **Schema migrations (`migrations/`):** `0001_initial.sql` with `snapshot.json`, `migrations.lock.json`, and `physical.json`
+- **Integrations:** None declared in source; pairing and credentials for the WhatsApp channel live in the host's **Settings → Integrations → Envoys** surface.
 
 ---
 

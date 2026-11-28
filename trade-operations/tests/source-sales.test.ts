@@ -494,13 +494,204 @@ it.live(
 				party_region: 'East China',
 				related_party: true,
 				product_category: 'Additives',
+				net: decimalText('100.00'),
 				tax: decimalText('13.00')
 			});
 			expect(invoiceRows.find((r) => r.external_code === 'INV-ONLY-2')).toMatchObject({
 				party_region: 'North China',
 				related_party: false,
 				product_category: 'Solvents',
+				net: decimalText('100.00'),
 				tax: decimalText('13.00')
+			});
+		})
+);
+
+it.live(
+	'computes standalone invoice_only net with null freight, omits margin_rate on negative returns, handles credit-note collection, and converts units/isolates ledgers in purchaseChain',
+	() =>
+		Effect.gen(function* () {
+			const t = yield* workspace();
+			const finance = yield* t.as(t.member(['finance']));
+			const own = yield* draft(t);
+			yield* confirm(t, own.order);
+			const parent = yield* sourceOrder(t, own.order);
+
+			// 1) Standalone invoice_only with freight: null still contributes to net; return row with costedNet < 0 omits margin_rate.
+			const retFact = {
+				...(yield* fact(t, own, 'RET-NEG-1')),
+				kind: 'return',
+				quantity: '-2',
+				net_amount: '-100',
+				tax_amount: '-9',
+				freight: '0',
+				booked_cost: '-80',
+				booked_cost_currency: 'SGD'
+			};
+			yield* pull(t, [retFact]);
+			yield* t.syncs.write('source_sales_lines.sync.kingdee', [
+				{
+					source: 'kingdee',
+					external_code: 'INV-ONLY-NULL-FREIGHT',
+					kind: 'invoice_only',
+					reference: 'INV-STANDALONE-1',
+					business_on: '2026-09-21',
+					source_updated_at: stamp,
+					unit: 'kg',
+					quantity: '4',
+					currency: 'SGD',
+					net_amount: '250.00',
+					tax_amount: '22.50',
+					freight: null,
+					active: true,
+					source_dimensions: {
+						customer: 'Standalone Co',
+						customer_id: 'C-STANDALONE',
+						product: 'Additive Z'
+					}
+				}
+			]);
+			const deliveryRows = salesDetail(
+				yield* finance.query(
+					salesReadDuring({ from: '2026-09-01', to: '2026-09-30', basis: 'delivery' })
+				),
+				{ basis: 'delivery' }
+			);
+			const retRow = deliveryRows.find((r) => r.external_code === 'RET-NEG-1');
+			expect(retRow).toMatchObject({
+				net: decimalText('-100.00'),
+				margin: decimalText('-20.00'),
+				margin_rate: null
+			});
+			const invRows = salesDetail(
+				yield* finance.query(
+					salesReadDuring({ from: '2026-09-01', to: '2026-09-30', basis: 'invoice' })
+				),
+				{ basis: 'invoice' }
+			);
+			expect(invRows.find((r) => r.external_code === 'INV-ONLY-NULL-FREIGHT')).toMatchObject({
+				net: decimalText('250.00'),
+				tax: decimalText('22.50')
+			});
+
+			// 2) salesCollection handles references without '/' AND credit-note invoices (billed < 0).
+			const creditInv = yield* sourceTransaction(t, own, parent, 'invoice', '-2', {
+				reference: 'CN-2026-1',
+				total: '-100.00'
+			});
+			const cnFact = {
+				...(yield* fact(t, own, 'CN-LINE-1')),
+				kind: 'invoice',
+				reference: 'CN-2026-1',
+				quantity: '-2',
+				net_amount: '-100.00',
+				tax_amount: '0',
+				freight: '0'
+			};
+			yield* pull(t, [cnFact]);
+			const cnDetail = salesDetail(
+				yield* finance.query(
+					salesReadDuring({ from: '2026-09-01', to: '2026-09-30', basis: 'invoice' })
+				),
+				{ basis: 'invoice' }
+			).filter((r) => r.external_code === 'CN-LINE-1');
+			expect(
+				salesCollection(cnDetail, yield* finance.query(salesCollectionRead([own.order])))[0]
+					?.collection
+			).toBe('unpaid');
+			yield* sourcePayment(t, parent, creditInv.id, '-40.00', 'REFUND-PARTIAL');
+			expect(
+				salesCollection(cnDetail, yield* finance.query(salesCollectionRead([own.order])))[0]
+					?.collection
+			).toBe('partial');
+			yield* sourcePayment(t, parent, creditInv.id, '-60.00', 'REFUND-REST');
+			expect(
+				salesCollection(cnDetail, yield* finance.query(salesCollectionRead([own.order])))[0]
+					?.collection
+			).toBe('paid');
+
+			// 3) purchaseChain isolates ledgers, converts t -> kg via unitRatio, and attaches purchase_price_currency.
+			const admin = yield* t.as(t.admin);
+			const otherLedger = committed(
+				'sys_integration',
+				yield* admin.act({
+					'sys_integration.create': [
+						{
+							integration: 'kingdee',
+							name: 'Secondary Ledger',
+							configuration: { baseCurrency: 'USD' }
+						}
+					]
+				})
+			);
+			yield* t.syncs.write(
+				'source_purchase_lines.sync.receipts',
+				[
+					{
+						source: 'kingdee',
+						external_code: 'REC-1',
+						kind: 'receipt',
+						reference: 'WIN-1',
+						business_on: '2026-09-01',
+						source_updated_at: stamp,
+						supplier_name: 'Main Supplier',
+						product_code: 'RESIN-A',
+						lot_number: 'LOT-MIX',
+						unit: 't',
+						currency: 'CNY',
+						quantity: '2',
+						net_amount: '24000.00',
+						order_reference: 'PO-1',
+						active: true
+					}
+				],
+				{ instance: 'kingdee' }
+			);
+			yield* t.syncs.write(
+				'source_purchase_lines.sync.receipts',
+				[
+					{
+						source: otherLedger,
+						external_code: 'REC-OTHER',
+						kind: 'receipt',
+						reference: 'WIN-OTHER',
+						business_on: '2026-09-02',
+						source_updated_at: stamp,
+						supplier_name: 'Other Ledger Supplier',
+						product_code: 'RESIN-A',
+						lot_number: 'LOT-MIX',
+						unit: 'kg',
+						currency: 'USD',
+						quantity: '100',
+						net_amount: '9999.00',
+						order_reference: 'PO-OTHER',
+						active: true
+					}
+				],
+				{ instance: otherLedger }
+			);
+			const purchaseLines = (yield* finance.query(purchaseChainRead(['LOT-MIX'])))
+				.source_purchase_lines.rows;
+			const mainLine = purchaseLines.find((r) => r.external_code === 'REC-1');
+			const otherLine = purchaseLines.find((r) => r.external_code === 'REC-OTHER');
+			if (!mainLine || !otherLine) throw new Error('Expected synced purchase receipt lines');
+			const chained = purchaseChain(
+				[{ source: mainLine.source, product_code: 'RESIN-A', lot_number: 'LOT-MIX', unit: 'kg' }],
+				purchaseLines
+			);
+			expect(chained[0]).toMatchObject({
+				supplier: 'Main Supplier',
+				purchase_price: '12',
+				purchase_price_currency: 'CNY'
+			});
+			// Mixed currencies on same ledger withhold purchase_price and purchase_price_currency.
+			const mixed = purchaseChain(
+				[{ source: mainLine.source, product_code: 'RESIN-A', lot_number: 'LOT-MIX', unit: 'kg' }],
+				[mainLine, { ...otherLine, source: mainLine.source }]
+			);
+			expect(mixed[0]).toMatchObject({
+				purchase_price: null,
+				purchase_price_currency: null
 			});
 		})
 );

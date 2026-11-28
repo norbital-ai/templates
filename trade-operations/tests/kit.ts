@@ -36,6 +36,7 @@ export type Synced =
 	| 'transactions'
 	| 'source_payments'
 	| 'source_sales_lines'
+	| 'source_receivables'
 	| 'source_payables'
 	| 'source_purchase_orders';
 export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(

@@ -26,7 +26,7 @@ Three workspace teams separate daily dispatch operations from system configurati
 
 Key governance safeguards apply across all roles:
 
-- **Isolated configuration:** Telematics gateway credentials, geofence definitions, and driver directory records live strictly inside the **Configuration** app and cannot be changed by dispatchers or viewers.
+- **Isolated configuration:** Geofence definitions and driver directory records live strictly inside the **Configuration** app, while telematics gateway and Google Routes credentials live in **Settings → Integrations → Connections**, and cannot be changed by dispatchers or viewers.
 - **Immutable operational history:** Recorded GPS telemetry entries are append-only and cannot be edited or deleted once committed. Completed or cancelled routes lock core dispatch details while still allowing follow-up cargo notes. Resolved alerts automatically record their resolution timestamp and lock classification details while still allowing resolution notes.
 
 ## Apps & Functionality
@@ -48,6 +48,8 @@ The workspace is organized into two purpose-built apps — **Fleet Operations** 
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Geofences** | Split-screen zone register and interactive map for defining circular GPS boundaries across five zone types — Depot, Job Site, Customer, Corridor, and Restricted. Configure center coordinates, radius, optional zone speed-limit overrides (which automatically apply whenever stricter than a vehicle's standard limit), and enter/exit alert triggers. |
 | **Drivers**   | Master directory of commercial fleet drivers recording driver code, full name, license number, license class (Class 3, Class 4, Class 5, Hazmat, Crane), license expiry date, phone, email, and availability status (Active, On Leave, Suspended, Inactive).                                                                                              |
+
+External workspace connections (**GPS Transponder Gateway** and optional **Google Routes**) are configured in **Settings → Integrations → Connections**.
 
 ## Automations & Connections
 

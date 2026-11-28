@@ -5,7 +5,7 @@
  *   screenshots (`bim_takeoff_views`) for qualitative naming, hygiene, and specification intent rules.
  * Zero hardcoded regional or statutory rules — every check is authored in `sop_rules`.
  */
-import { Effect } from 'effect';
+import { Effect, Result } from 'effect';
 import type { AutomationCtx, FileRef } from '@norbital-ai/bolt';
 import { cap, PROMPT_MAX } from '../../lib/ai.js';
 import { MEP_NETWORK_CLASSES } from './config.js';
@@ -658,16 +658,20 @@ export function evaluateSemanticComplianceRules<F = FileRef>(input: {
 				files,
 				output: SEMANTIC_LINT_OUTPUT
 			})
-			.pipe(Effect.option);
+			.pipe(Effect.result);
 
-		if (answer._tag === 'None') {
+		// The reviewer sees why the AI could not judge: the reason the call failed, not just that it did.
+		if (Result.isFailure(answer)) {
+			yield* Effect.logWarning(answer.failure);
+			const failure = answer.failure;
+			const reason = cap(failure instanceof Error ? failure.message : String(failure), 160);
 			return semanticRules.map((rule): BimComplianceFinding => ({
 				rule_code: rule.code,
 				rule_name: rule.name,
 				authority: rule.authority,
 				severity: rule.severity,
 				status: 'warning',
-				actual: 'Semantic AI lint unavailable — re-check when AI is online',
+				actual: `Semantic AI lint unavailable: ${reason}`,
 				expected: cap(rule.threshold_text || rule.name, 140),
 				affected_count: 0,
 				clause_ref: rule.clause_ref ?? null,
@@ -676,7 +680,7 @@ export function evaluateSemanticComplianceRules<F = FileRef>(input: {
 		}
 
 		const byCode = new Map(
-			answer.value.results.map((r) => [r.rule_code.trim().toUpperCase(), r] as const)
+			answer.success.results.map((r) => [r.rule_code.trim().toUpperCase(), r] as const)
 		);
 		return semanticRules.map((rule): BimComplianceFinding => {
 			const res = byCode.get(rule.code.trim().toUpperCase());

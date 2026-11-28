@@ -53,6 +53,9 @@ export const kingdeeConfiguration = {
 	creditAccount: { kind: 'text', optional: true },
 	creditPolicy: { kind: 'enum', values: [...kingdeeCreditPolicies], optional: true },
 	billerId: { kind: 'text', optional: true },
+	approverId: { kind: 'text', optional: true },
+	directApproveOrders: { kind: 'bool', default: false },
+	directWriteCreditLimit: { kind: 'bool', default: false },
 	packagingId: { kind: 'text', optional: true },
 	salespersonBindings: {
 		kind: 'text',

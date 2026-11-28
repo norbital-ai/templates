@@ -7,7 +7,7 @@ Verified directly against `src/` (`src/+workspace.ts`, `src/app/`, `src/data/mod
 ## Workspace Configuration
 
 - **Declaration:** [src/+workspace.ts](../src/+workspace.ts)
-- **Settings:** `tz: 'Asia/Singapore'`, `locale: 'en-SG'`, `languages: ['en', 'zh']`, `currency: 'SGD'`, `apps: ['crm', 'configuration']`, `ai: {}`, `convert: { to: ['pdf'] }`.
+- **Settings:** `tz: 'Asia/Singapore'`, `locale: 'en-SG'`, `languages: ['en', 'zh']`, `currency: 'SGD'`, `apps: ['crm', 'configuration']`, `connections: ['email', 'whatsapp', 'telegram', 'slack', 'discord']`, `ai: {}`, `convert: { to: ['pdf'] }`.
 
 ## Applications and Pages
 
@@ -87,7 +87,7 @@ All named automations run under the reserved system identity with their declared
   - [apollo](../src/integration/apollo/+integration.ts) — HTTP driver (`https://api.apollo.io`, `X-Api-Key`, `rate: '50/min'`, config `label_ids`, `email_account_id`).
   - [google_calendar](../src/integration/google_calendar/+integration.ts) — Calendar driver (config `calendars`, default `['primary']`).
 - **Built-in Bolt channel integrations used (5):** `whatsapp`, `email`, `telegram`, `slack`, `discord`.
-- **Named workspace connections:** None in `+workspace.ts`; all personal and workspace connections are runtime `sys_integration` rows paired in Bolt's native `/connections` and **Settings → Integrations → Connections** views.
+- **Workspace connection slots (`+workspace.ts`):** `connections: ['email', 'whatsapp', 'telegram', 'slack', 'discord']`; personal and workspace connections are paired at runtime in Bolt's native `/connections` and **Settings → Integrations → Connections** views.
 - **Seeded teams (1):** [sales](../seed/public/sys_team.json) (`Sales`, policies `['sales', 'crm']`), a `sys_team` row administrators edit.
 - **Policies (6):**
   - [crm](../src/access_control/policy/+crm.policy.ts) — shared lead pipeline, CRM records, documents, products, and outreach grants.
@@ -107,6 +107,7 @@ All named automations run under the reserved system identity with their declared
 | `activity-timeline.ts` / `ActivityTimeline.svelte` / `ConversationSlice.svelte` | 30-minute per-thread/per-project conversation slicing, live + paginated timeline, inline reassignment via `activities_file`.                                                           |
 | `ai.ts`                                                                         | Prompt bounds (`PROMPT_MAX = 48_000`, `ITEM_MAX = 2_000`, `ITEMS_MAX = 60`) and transcript Markdown/prompt formatting.                                                                 |
 | `calendar.ts`                                                                   | `GoogleEvent` schema, base32hex `eventIdOf()`, attendee filtering, and `syncedChange()` detection.                                                                                     |
+| `classifier.ts`                                                                 | Decodes `sys_integration.classifier` (`mode`: `'smart' \| 'all' \| 'off'`, `instructions`, `disabled_automations`) via `readClassifier()` and `allowsAutomation()`.                    |
 | `conversations.ts`                                                              | Multi-transport handle normalization (`handleKey`, `holdsKey`, `matchContact`), attachment bounds, voice-note detection, and active workspace channel lookups.                         |
 | `customer.ts`                                                                   | Project-to-customer resolution (`customerForProject`, `projectCustomerRows`) and `salesStarter()` trigger check.                                                                       |
 | `derive.ts`                                                                     | Coalesced scheduling of `update_requirements` and `research_lead` from evidence writes.                                                                                                |

@@ -1,11 +1,16 @@
 import { BigDecimal, Duration, Effect, Schema } from 'effect';
 import type { Id, Row, SyncCtx, Json } from '@norbital-ai/bolt';
-import type { FacilityFailure, ReadFailed } from '@norbital-ai/bolt/errors';
+import { FacilityFailure, type ReadFailed } from '@norbital-ai/bolt/errors';
 import { hash, sha256Hex, numeric } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
 import { requireReadAccount } from './sql.js';
 import { bills, directionsOf, type Bill, type Direction } from './bills.js';
-import { kingdeeSettlementRules } from './configuration.js';
+import {
+	kingdeeCreditAccount,
+	kingdeeCreditPolicyOf,
+	kingdeeSettlementRules
+} from './configuration.js';
+import { evaluateDeliveriesCredit } from './credit-check.js';
 import { termDueOn } from './order-batch.js';
 import {
 	columns,
@@ -331,10 +336,11 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 		[...anchors.keys()],
 		ctx.configuration.branchNo
 	);
+	const headerFids = yield* checked(() => headers.map((row) => exactId(row, 'fid')));
 	const lines = yield* selectByIds(
 		ctx,
 		orderLineProjection(bill),
-		headers.map((row) => exactId(row, 'fid')),
+		headerFids,
 		ctx.configuration.branchNo
 	);
 	const verified = yield* selectByIds(
@@ -359,9 +365,9 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 			headers.every((header) => verified.some((after) => stamp(after) === stamp(header)))
 	);
 	if (!coherent)
-		return yield* new SourceRowInvalid({
-			column: 'FOperDate',
-			reason: `The Kingdee ${bill.label} family changed while its complete lines were being read; retry the observation`
+		return yield* new FacilityFailure({
+			kind: 'upstream',
+			message: `The Kingdee ${bill.label} family changed while its complete lines were being read; retry the observation`
 		});
 	return yield* checked(() => {
 		const references = new Map<string, Id<'orders'>>();
@@ -611,13 +617,10 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	});
 	const pending = new Set(pendingIds);
 	// Read all lines of issued documents, including lines that did not match discovery.
-	const entries = yield* selectByIds(
-		ctx,
-		lineProjection,
-		headers.map((header) => exactId(header, 'fid')).filter((fid) => !pending.has(fid)),
-		'',
-		costAccount
+	const issuedFids = yield* checked(() =>
+		headers.map((header) => exactId(header, 'fid')).filter((fid) => !pending.has(fid))
 	);
+	const entries = yield* selectByIds(ctx, lineProjection, issuedFids, '', costAccount);
 	const documents = yield* checked(() => {
 		const resolved = new Map<string, SalesDocument>();
 		const byFid = new Map(deliveries.map((delivery) => [delivery.fid, delivery]));
@@ -1167,6 +1170,40 @@ export const readTransactions = Effect.fnUntraced(function* (
 	unchanged: boolean
 ) {
 	const directions = directionsOf(ctx.configuration);
+	const creditActive =
+		kingdeeCreditPolicyOf(ctx.configuration.creditPolicy) !== null &&
+		kingdeeCreditAccount(ctx.configuration) !== null &&
+		ctx.configuration.baseCurrency === 'CNY';
+	const creditLocal = creditActive
+		? Effect.gen(function* () {
+				const { credit_snapshots, credit_releases } = yield* ctx.query({
+					credit_snapshots: {
+						where: { source: { eq: instance } },
+						fields: ['as_of', 'credit_limit', 'credit_used', 'credit_hold'],
+						limit: 1000
+					},
+					credit_releases: {
+						where: { source: { eq: instance } },
+						fields: ['source_status', 'approval_status', 'observed_at'],
+						limit: 1000
+					}
+				});
+				return yield* hash([
+					credit_snapshots.rows.map((r) => [
+						r.id,
+						r.as_of,
+						r.credit_limit,
+						r.credit_used,
+						r.credit_hold
+					]),
+					credit_releases.rows.map((r) => [r.id, r.source_status, r.approval_status, r.observed_at])
+				]).pipe(
+					Effect.mapError(
+						(cause) => new SourceRowInvalid({ column: '$credit', reason: cause.message })
+					)
+				);
+			})
+		: Effect.succeed('');
 	const graph = yield* readOrderGraph(
 		directions,
 		instance,
@@ -1174,14 +1211,14 @@ export const readTransactions = Effect.fnUntraced(function* (
 		ctx,
 		unchanged,
 		undefined,
-		undefined,
+		creditLocal,
 		true
 	);
 	if (graph === null) return { rows: [], cursor, more: false };
 	const { transactions: existing, orders } = yield* ctx.query({
 		transactions: {
 			where: { source: { eq: instance } },
-			fields: ['erp_id', 'order', 'kind', 'status']
+			fields: ['erp_id', 'order', 'kind', 'status', 'credit_check', 'credit_check_detail']
 		},
 		orders: {
 			where: { ledger: { eq: instance }, direction: { in: [...directions] } },
@@ -1222,85 +1259,119 @@ export const readTransactions = Effect.fnUntraced(function* (
 			});
 		}
 	}
+	const eligible = documents.filter(({ document }) => !graph.held.has(document.owner.order));
+	const existingDraftDeliveryFids = creditActive
+		? existing.rows.flatMap((row) => {
+				if (row.kind !== 'delivery' || row.status !== 'draft') return [];
+				const match = /^delivery:(\d+)(?::|$)/.exec(row.erp_id);
+				return match?.[1] ? [match[1]] : [];
+			})
+		: [];
+	const creditCheckFids = creditActive
+		? [
+				...new Set([
+					...eligible.flatMap(({ kind, document }) =>
+						kind === 'delivery' &&
+						document.owner.direction === 'sales' &&
+						document.status !== 'void'
+							? [document.fid]
+							: []
+					),
+					...existingDraftDeliveryFids
+				])
+			]
+		: [];
+	const creditVerdicts = creditCheckFids.length
+		? yield* evaluateDeliveriesCredit(instance, creditCheckFids, ctx)
+		: new Map();
 	const rows = yield* checked(() =>
-		documents
-			.filter(({ document }) => !graph.held.has(document.owner.order))
-			.map(({ kind, document }) => {
-				const items = new Map<
-					string,
-					{
-						order_line_id: string;
-						product_name: string;
-						unit: string;
-						quantity: BigDecimal.BigDecimal;
-						lot_number: string | null;
-						net_amount: BigDecimal.BigDecimal | null;
-					}
-				>();
-				for (const line of document.lines) {
-					const identity = `${line.localLine.id}/${line.lotNumber ?? ''}`;
-					const previous = items.get(identity);
-					if (
-						previous &&
-						(previous.unit !== line.unit || previous.product_name !== line.localLine.product_name)
-					)
-						return invalid(
-							'FEntryID',
-							'Grouped source document rows disagree on their order line or unit'
-						);
-					// A merged invoice can contain several deliveries of the same order line and lot.
-					items.set(identity, {
-						order_line_id: line.localLine.id,
-						product_name: line.localLine.product_name,
-						unit: line.unit,
-						quantity: previous ? BigDecimal.sum(previous.quantity, line.quantity) : line.quantity,
-						lot_number: line.lotNumber,
-						net_amount: previous
-							? previous.net_amount === null || line.netAmount === null
-								? null
-								: BigDecimal.sum(previous.net_amount, line.netAmount)
-							: line.netAmount
-					});
+		eligible.map(({ kind, document }) => {
+			const items = new Map<
+				string,
+				{
+					order_line_id: string;
+					product_name: string;
+					unit: string;
+					quantity: BigDecimal.BigDecimal;
+					lot_number: string | null;
+					net_amount: BigDecimal.BigDecimal | null;
 				}
-				const erp_id = erpId(known, bills[document.owner.direction].ids[kind], document.fid);
-				return {
-					$id: erp_id,
-					erp_id,
-					kind,
-					order: document.owner.order,
-					reference: document.reference,
-					currency: currency(document.currency),
-					status: document.status,
-					issued_on: document.issuedOn,
-					due_on: dueOf(document),
-					total:
-						document.total === null
+			>();
+			for (const line of document.lines) {
+				const identity = `${line.localLine.id}/${line.lotNumber ?? ''}`;
+				const previous = items.get(identity);
+				if (
+					previous &&
+					(previous.unit !== line.unit || previous.product_name !== line.localLine.product_name)
+				)
+					return invalid(
+						'FEntryID',
+						'Grouped source document rows disagree on their order line or unit'
+					);
+				// A merged invoice can contain several deliveries of the same order line and lot.
+				items.set(identity, {
+					order_line_id: line.localLine.id,
+					product_name: line.localLine.product_name,
+					unit: line.unit,
+					quantity: previous ? BigDecimal.sum(previous.quantity, line.quantity) : line.quantity,
+					lot_number: line.lotNumber,
+					net_amount: previous
+						? previous.net_amount === null || line.netAmount === null
+							? null
+							: BigDecimal.sum(previous.net_amount, line.netAmount)
+						: line.netAmount
+				});
+			}
+			const erp_id = erpId(known, bills[document.owner.direction].ids[kind], document.fid);
+			const verdict =
+				kind === 'delivery' && document.owner.direction === 'sales' && document.status !== 'void'
+					? creditVerdicts.get(document.fid)
+					: undefined;
+			return {
+				$id: erp_id,
+				erp_id,
+				kind,
+				order: document.owner.order,
+				reference: document.reference,
+				currency: currency(document.currency),
+				status: document.status,
+				issued_on: document.issuedOn,
+				due_on: dueOf(document),
+				total:
+					document.total === null
+						? null
+						: new Intl.NumberFormat('en', {
+								useGrouping: false,
+								minimumFractionDigits: document.total.scale,
+								maximumFractionDigits: document.total.scale
+							}).format(numeric(BigDecimal.format(document.total))),
+				items: [...items.values()].map((item) => ({
+					...item,
+					quantity: new Intl.NumberFormat('en', {
+						useGrouping: false,
+						minimumFractionDigits: item.quantity.scale,
+						maximumFractionDigits: item.quantity.scale
+					}).format(numeric(BigDecimal.format(item.quantity))),
+					net_amount:
+						item.net_amount === null
 							? null
 							: new Intl.NumberFormat('en', {
 									useGrouping: false,
-									minimumFractionDigits: document.total.scale,
-									maximumFractionDigits: document.total.scale
-								}).format(numeric(BigDecimal.format(document.total))),
-					items: [...items.values()].map((item) => ({
-						...item,
-						quantity: new Intl.NumberFormat('en', {
-							useGrouping: false,
-							minimumFractionDigits: item.quantity.scale,
-							maximumFractionDigits: item.quantity.scale
-						}).format(numeric(BigDecimal.format(item.quantity))),
-						net_amount:
-							item.net_amount === null
-								? null
-								: new Intl.NumberFormat('en', {
-										useGrouping: false,
-										minimumFractionDigits: item.net_amount.scale,
-										maximumFractionDigits: item.net_amount.scale
-									}).format(numeric(BigDecimal.format(item.net_amount)))
-					})),
-					documents: [],
-					source_updated_at: graph.observedAt
-				};
-			})
+									minimumFractionDigits: item.net_amount.scale,
+									maximumFractionDigits: item.net_amount.scale
+								}).format(numeric(BigDecimal.format(item.net_amount)))
+				})),
+				documents: [],
+				...(verdict
+					? {
+							credit_check: verdict.credit_check,
+							credit_check_detail: verdict.credit_check_detail,
+							credit_checked_at: verdict.credit_checked_at
+						}
+					: {}),
+				source_updated_at: graph.observedAt
+			};
+		})
 	);
 	const present = new Set(rows.map((row) => row.erp_id));
 	const missing = existing.rows
@@ -1309,6 +1380,36 @@ export const readTransactions = Effect.fnUntraced(function* (
 				graph.affected.has(row.order) && !present.has(row.erp_id) && !graph.held.has(row.order)
 		)
 		.map((row) => ({ $id: row.erp_id, erp_id: row.erp_id, status: 'void' as const }));
+	const voidedIds = new Set(missing.map((row) => row.erp_id));
+	const refreshedCredit = creditActive
+		? existing.rows.flatMap((row) => {
+				if (
+					row.kind !== 'delivery' ||
+					row.status !== 'draft' ||
+					present.has(row.erp_id) ||
+					voidedIds.has(row.erp_id)
+				)
+					return [];
+				const fid = /^delivery:(\d+)(?::|$)/.exec(row.erp_id)?.[1];
+				const verdict = fid ? creditVerdicts.get(fid) : undefined;
+				if (
+					!verdict ||
+					(row.credit_check === verdict.credit_check &&
+						row.credit_check_detail === verdict.credit_check_detail)
+				)
+					return [];
+				return [
+					{
+						$id: row.erp_id,
+						erp_id: row.erp_id,
+						credit_check: verdict.credit_check,
+						credit_check_detail: verdict.credit_check_detail,
+						credit_checked_at: verdict.credit_checked_at,
+						source_updated_at: graph.observedAt
+					}
+				];
+			})
+		: [];
 	const orderById = new Map(orders.rows.map((order) => [order.id, order]));
 	const txState = new Map<
 		string,
@@ -1337,7 +1438,7 @@ export const readTransactions = Effect.fnUntraced(function* (
 			})
 		)
 	].sort();
-	return yield* graph.page([...rows, ...missing], nextDrafts);
+	return yield* graph.page([...rows, ...missing, ...refreshedCredit], nextDrafts);
 });
 
 export const reviewedPage = <R>(page: SourcePage<R>, review: DocumentReview): SourcePage<R> =>

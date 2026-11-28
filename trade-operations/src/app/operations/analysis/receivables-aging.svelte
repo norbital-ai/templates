@@ -56,6 +56,15 @@
 			return value !== null && !BigDecimal.isZero(BigDecimal.fromStringUnsafe(value));
 		});
 	const overdueDays = (due: string | null) => daysOverdue(due, as_of) || null;
+	const openBalance = (entry: NonNullable<typeof entries>[number]): string =>
+		'estimated_balance' in entry && typeof entry.estimated_balance === 'string'
+			? entry.estimated_balance
+			: entry.balance;
+	const entryOverdueDays = (entry: NonNullable<typeof entries>[number]) =>
+		entry.bucket === 'unapplied' ||
+		!BigDecimal.isPositive(BigDecimal.fromStringUnsafe(openBalance(entry)))
+			? null
+			: overdueDays(entry.due_on);
 	// each customer: what is owed or held in credit, its buckets, and its oldest overdue invoice; largest owed first
 	const customers = $derived.by(() => {
 		if (!entries) return null;
@@ -64,8 +73,7 @@
 			.map((row) => {
 				const net = BigDecimal.fromStringUnsafe(row.net);
 				const oldest = (byGroup.get(row.group) ?? []).reduce<number | null>((max, entry) => {
-					if (entry.bucket === 'unapplied') return max;
-					const days = overdueDays(entry.due_on);
+					const days = entryOverdueDays(entry);
 					return days !== null && (max === null || days > max) ? days : max;
 				}, null);
 				return {
@@ -117,7 +125,7 @@
 				estimated_applied: null,
 				estimated_balance: null,
 				...row,
-				days_overdue: row.bucket === 'unapplied' ? null : overdueDays(row.due_on),
+				days_overdue: entryOverdueDays(row),
 				bucket_label: ctx.t(`reports.aging.${row.bucket}`)
 			})) ?? []
 	);
@@ -134,17 +142,19 @@
 	const about = $derived(
 		[
 			scope,
-			...heads.map(
-				(head) =>
-					`${head.source?.name ?? ''} ${ctx.t('reports.aging.snapshot_at')} ${format(
-						{ kind: 'instant' },
-						head.observed_at,
-						{
-							locale: ctx.locale,
-							...(ctx.tz == null ? {} : { zone: ctx.tz })
-						}
-					)}`
-			)
+			...heads
+				.filter((head) => head.shard === 0)
+				.map(
+					(head) =>
+						`${head.source?.name ?? ''} ${ctx.t('reports.aging.snapshot_at')} ${format(
+							{ kind: 'instant' },
+							head.observed_at,
+							{
+								locale: ctx.locale,
+								...(ctx.tz == null ? {} : { zone: ctx.tz })
+							}
+						)}`
+				)
 		].join(' · ')
 	);
 	const title = $derived([ctx.t('component.ar_aging'), customer?.name].filter(Boolean).join(' · '));
@@ -258,13 +268,16 @@
 			description: about,
 			new: false,
 			...(heads.length || customer ? { controls } : {}),
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('ar-aging-customers', day.today, columns, shownCustomers)
-				}
-			]
+			actions:
+				shownCustomers.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('ar-aging-customers', day.today, columns, shownCustomers)
+							}
+						]
+					: []
 		}}
 	>
 		{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}
@@ -310,13 +323,16 @@
 			description: about,
 			new: false,
 			...(heads.length || customer ? { controls } : {}),
-			actions: [
-				{
-					icon: 'lucide:file-spreadsheet',
-					name: ctx.t('component.export_xlsx'),
-					run: () => downloadXlsx('ar-aging-entries', day.today, columns, entryRows)
-				}
-			]
+			actions:
+				entryRows.length > 0
+					? [
+							{
+								icon: 'lucide:file-spreadsheet',
+								name: ctx.t('component.export_xlsx'),
+								run: () => downloadXlsx('ar-aging-entries', day.today, columns, entryRows)
+							}
+						]
+					: []
 		}}
 	>
 		{#snippet empty()}<EmptyState title={ctx.t('reports.aging.empty')} />{/snippet}

@@ -1,9 +1,13 @@
+import { BigDecimal, Option } from 'effect';
+import { currencyDigits, fixedDecimal } from './purchase-listing.js';
+
 /** A minimal on-demand XLSX writer: one inline-string sheet, no dependencies, no stored file. */
 export type XlsxColumn = {
 	readonly field: string;
 	readonly label?: string;
 	readonly numeric?: boolean;
 	readonly scale?: number;
+	readonly currencyField?: string;
 };
 
 const encoder = new TextEncoder();
@@ -34,34 +38,38 @@ const columnName = (index: number) => {
 		name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
 	return name;
 };
-const number = (value: unknown) => {
-	if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+const parseDecimal = (value: unknown): BigDecimal.BigDecimal | null => {
+	if (typeof value === 'number')
+		return Number.isFinite(value) ? BigDecimal.fromNumberUnsafe(value) : null;
 	if (value === null || value === undefined || typeof value === 'boolean') return null;
-	const parsed = Number(String(value).trim());
-	return Number.isFinite(parsed) ? parsed : null;
-};
-const numberFormatters = new Map<number, Intl.NumberFormat>();
-const formatNumber = (value: number, scale: number) => {
-	let formatter = numberFormatters.get(scale);
-	if (!formatter) {
-		formatter = new Intl.NumberFormat('en', {
-			useGrouping: false,
-			minimumFractionDigits: scale,
-			maximumFractionDigits: scale
-		});
-		numberFormatters.set(scale, formatter);
-	}
-	return formatter.format(value);
+	const trimmed = String(value).trim();
+	if (!trimmed) return null;
+	const parsed = BigDecimal.fromString(trimmed);
+	return Option.isSome(parsed) ? parsed.value : null;
 };
 const cellXml = (
 	reference: string,
 	value: unknown,
-	column?: { readonly numeric?: boolean; readonly scale?: number }
+	column?: XlsxColumn,
+	row?: { readonly [field: string]: unknown }
 ) => {
 	if (value === null || value === undefined) return '';
-	const numeric = column?.numeric ? number(value) : null;
-	if (numeric !== null && typeof value !== 'boolean')
-		return `<c r="${reference}"><v>${column?.scale === undefined ? numeric : formatNumber(numeric, column.scale)}</v></c>`;
+	const decimal = column?.numeric && typeof value !== 'boolean' ? parseDecimal(value) : null;
+	if (decimal !== null) {
+		const rowCurrency =
+			column?.currencyField && typeof row?.[column.currencyField] === 'string'
+				? String(row[column.currencyField]).trim()
+				: '';
+		const scale =
+			column?.scale !== undefined
+				? column.scale
+				: rowCurrency
+					? currencyDigits(rowCurrency)
+					: undefined;
+		const formatted =
+			scale !== undefined ? fixedDecimal(decimal, scale) : BigDecimal.format(decimal);
+		return `<c r="${reference}"><v>${formatted}</v></c>`;
+	}
 	const text = typeof value === 'boolean' ? (value ? 'TRUE' : 'FALSE') : String(value);
 	return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${xml(text)}</t></is></c>`;
 };
@@ -76,7 +84,7 @@ const sheetXml = (
 		.map((row, rowIndex) =>
 			columns
 				.map((column, columnIndex) =>
-					cellXml(`${columnName(columnIndex)}${rowIndex + 2}`, row[column.field], column)
+					cellXml(`${columnName(columnIndex)}${rowIndex + 2}`, row[column.field], column, row)
 				)
 				.join('')
 		)
@@ -182,8 +190,49 @@ export function xlsxWorkbook(
 type ReportColumn = {
 	readonly field: string;
 	readonly label?: string;
-	readonly kind?: { readonly kind?: string; readonly scale?: number };
+	readonly kind?: { readonly kind?: string; readonly scale?: number; readonly currency?: string };
 };
+const currencyColumnLabel = (field: string) => {
+	if (field === 'currency') return 'Currency';
+	if (field === 'base_currency') return 'Base currency';
+	if (field === 'cost_currency') return 'Cost currency';
+	if (field === 'purchase_price_currency') return 'Purchase currency';
+	return field;
+};
+/** Maps report table columns into XLSX columns, appending explicit currency columns for money fields that lack one. */
+export function reportColumnsToXlsx(columns: readonly (string | ReportColumn)[]): XlsxColumn[] {
+	const existing = new Set<string>();
+	const neededCurrencies = new Set<string>();
+	const mapped: XlsxColumn[] = columns.map((column) => {
+		const { field, label, kind }: ReportColumn =
+			typeof column === 'string' ? { field: column } : column;
+		existing.add(field);
+		if (kind?.kind === 'money' && kind.currency) neededCurrencies.add(kind.currency);
+		return {
+			field,
+			label: label ?? field,
+			numeric: kind?.kind === 'money' || kind?.kind === 'decimal' || kind?.kind === 'int',
+			...(kind?.kind === 'money'
+				? {
+						...(kind.currency ? { currencyField: kind.currency } : {}),
+						...(kind.scale !== undefined
+							? { scale: kind.scale }
+							: !kind.currency
+								? { scale: 2 }
+								: {})
+					}
+				: kind?.scale === undefined
+					? {}
+					: { scale: kind.scale })
+		};
+	});
+	for (const currencyField of neededCurrencies) {
+		if (!existing.has(currencyField)) {
+			mapped.push({ field: currencyField, label: currencyColumnLabel(currencyField) });
+		}
+	}
+	return mapped;
+}
 export function downloadWorkbook(filename: string, bytes: Uint8Array<ArrayBuffer>) {
 	const url = URL.createObjectURL(
 		new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
@@ -203,23 +252,6 @@ export function downloadXlsx(
 	columns: readonly (string | ReportColumn)[],
 	rows: readonly { readonly [field: string]: unknown }[]
 ) {
-	const bytes = xlsxWorkbook(
-		name,
-		columns.map((column) => {
-			const { field, label, kind }: ReportColumn =
-				typeof column === 'string' ? { field: column } : column;
-			return {
-				field,
-				label: label ?? field,
-				numeric: kind?.kind === 'money' || kind?.kind === 'decimal' || kind?.kind === 'int',
-				...(kind?.kind === 'money'
-					? { scale: kind.scale ?? 2 }
-					: kind?.scale === undefined
-						? {}
-						: { scale: kind.scale })
-			};
-		}),
-		rows
-	);
+	const bytes = xlsxWorkbook(name, reportColumnsToXlsx(columns), rows);
 	downloadWorkbook(`${name}-${day}.xlsx`, bytes);
 }

@@ -17,6 +17,7 @@ import {
 	kingdeeCreditPolicy,
 	kingdeeCreditPolicyOf
 } from './configuration.js';
+import { testCreditLimitWrite } from './credit-limit-write.js';
 import { testCreditReleaseSource } from './credit-release-source.js';
 import { testCreditSource } from './credit-source.js';
 import { invoiceAnalysisProjection } from './invoice-analysis.js';
@@ -29,6 +30,7 @@ import { testStockCommitments } from './stock-commitments.js';
 import { testStockLotCosts } from './stock-lot-costs.js';
 import { testDeliveryCosts } from './order-source.js';
 import { sourcePage } from './sql.js';
+import { testDirectApproveOrder } from './submission.js';
 
 export default integration('kingdee', {
 	description:
@@ -62,6 +64,23 @@ export default integration('kingdee', {
 				});
 			// SQL Server checks columns and SELECT permissions even when the projection returns no rows.
 			yield* sourcePage(ctx, source, { limit: 0 });
+		}
+		if (ctx.configuration.directApproveOrders === true) {
+			const account = kingdeeWriteAccount(ctx.configuration);
+			if (account === null)
+				return yield* new SourceUnavailable({
+					reason: 'Direct order approval requires a verified writeAccount pin'
+				});
+			yield* testDirectApproveOrder(ctx, account);
+		}
+		if (ctx.configuration.directWriteCreditLimit === true) {
+			const account = kingdeeWriteAccount(ctx.configuration);
+			if (account === null || ctx.configuration.baseCurrency !== 'CNY')
+				return yield* new SourceUnavailable({
+					reason:
+						'Direct credit limit writes require CNY baseCurrency and a verified writeAccount pin'
+				});
+			yield* testCreditLimitWrite(ctx, account);
 		}
 		if (ctx.configuration.invoiceAnalysisAccount?.trim()) {
 			const account = kingdeeInvoiceAnalysisAccount(ctx.configuration);

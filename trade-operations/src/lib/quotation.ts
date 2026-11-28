@@ -1,6 +1,6 @@
 import { BigDecimal } from 'effect';
 import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
-import { price } from './commercial.js';
+import { price, unitRatio } from './commercial.js';
 import {
 	averageLotCost,
 	estimateFifoCost,
@@ -95,16 +95,31 @@ export function quotationFifoCosts(
 		}
 	>();
 	for (const line of doc.lines) {
-		const key = JSON.stringify([line.product, line.unit.normalize('NFKC').trim().toLowerCase()]);
-		const previous = groups.get(key);
 		const net = price(doc, line).net;
-		if (previous) {
-			previous.quantity = BigDecimal.sum(
-				previous.quantity,
-				BigDecimal.fromStringUnsafe(line.quantity)
-			);
-			previous.net = BigDecimal.sum(previous.net, net);
-		} else groups.set(key, { line, quantity: BigDecimal.fromStringUnsafe(line.quantity), net });
+		const lineQty = BigDecimal.fromStringUnsafe(line.quantity);
+		// Share one FIFO lot queue across lines of the same product with compatible units (e.g. kg + t).
+		let matched: {
+			line: (typeof doc.lines)[number];
+			quantity: BigDecimal.BigDecimal;
+			net: BigDecimal.BigDecimal;
+		} | null = null;
+		let ratio: BigDecimal.BigDecimal | null = null;
+		for (const existing of groups.values()) {
+			if (existing.line.product !== line.product) continue;
+			const converted = unitRatio(line.unit, existing.line.unit);
+			if (converted !== null) {
+				matched = existing;
+				ratio = converted;
+				break;
+			}
+		}
+		if (matched && ratio !== null) {
+			matched.quantity = BigDecimal.sum(matched.quantity, BigDecimal.multiply(lineQty, ratio));
+			matched.net = BigDecimal.sum(matched.net, net);
+		} else {
+			const key = JSON.stringify([line.product, line.unit.normalize('NFKC').trim().toLowerCase()]);
+			groups.set(key, { line, quantity: lineQty, net });
+		}
 	}
 	return [...groups].map(([key, { line, quantity, net }]) => {
 		const estimate = answer.stock_snapshots.next

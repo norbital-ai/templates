@@ -1,7 +1,9 @@
 import { BigDecimal, Effect, Schema } from 'effect';
 import type { InstanceId, SyncCtx, Json, Row } from '@norbital-ai/bolt';
-import { sha256Hex, numeric } from '../../lib/commercial.js';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
+import { sha256Hex } from '../../lib/commercial.js';
 import { safeDueDate } from '../../lib/payables.js';
+import { fixedDecimal } from '../../lib/purchase-listing.js';
 import {
 	kingdeeReceivablesAccount,
 	kingdeeSettlementRules,
@@ -272,11 +274,7 @@ function mapEntry(row: SqlRow, rules: typeof SettlementRules.Type) {
 	const kingdee_due_on = safeDueDate(sourceDate(row, 'due_on'));
 	const delivered_on = sourceDate(row, 'delivered_on');
 	const remainingAmount = r.decimal('remaining');
-	const remaining = new Intl.NumberFormat('en', {
-		useGrouping: false,
-		minimumFractionDigits: remainingAmount.scale,
-		maximumFractionDigits: remainingAmount.scale
-	}).format(numeric(BigDecimal.format(remainingAmount)));
+	const remaining = fixedDecimal(remainingAmount, Math.max(0, remainingAmount.scale));
 	return {
 		contact_id,
 		customer_id,
@@ -293,14 +291,9 @@ function mapEntry(row: SqlRow, rules: typeof SettlementRules.Type) {
 		settlements: Schema.decodeUnknownSync(settlementsSchema)(r.text('settlements', '[]')).map(
 			(check) => {
 				const amount = BigDecimal.fromStringUnsafe(check.amount);
-				const scale = Math.max(0, amount.scale);
 				return {
 					on: PlainDate(check.on),
-					amount: new Intl.NumberFormat('en', {
-						useGrouping: false,
-						minimumFractionDigits: scale,
-						maximumFractionDigits: scale
-					}).format(numeric(BigDecimal.format(amount)))
+					amount: fixedDecimal(amount, Math.max(0, amount.scale))
 				};
 			}
 		)
@@ -315,7 +308,9 @@ const Cursor = Schema.Struct({
 	buckets: Schema.Array(Schema.String),
 	observed_at: Schema.String,
 	sharded: Schema.optionalKey(Schema.Boolean),
-	next_shard: Schema.optionalKey(Schema.Int)
+	next_shard: Schema.optionalKey(Schema.Int),
+	pending_shards: Schema.optionalKey(Schema.Array(Schema.Int)),
+	whole_upper: Schema.optionalKey(Schema.String)
 });
 // a ledger published whole before reads became incremental: read in full once more
 const Whole = Schema.Struct({ protocol: Schema.Literal('kingdee-ar-v1'), account: Schema.String });
@@ -408,7 +403,12 @@ export const readReceivables = Effect.fnUntraced(function* (
 				more: false
 			};
 		});
-	const publishShard = (shard: number, rows: readonly SqlRow[], priorBuckets: readonly string[]) =>
+	const publishShard = (
+		shard: number,
+		rows: readonly SqlRow[],
+		priorBuckets: readonly string[],
+		wholeUpper?: string
+	) =>
 		Effect.gen(function* () {
 			const idsForShard = shardBuckets(shard);
 			const position = (yield* checked(() => rows.map((row) => mapEntry(row, rules)))).filter(
@@ -423,16 +423,18 @@ export const readReceivables = Effect.fnUntraced(function* (
 			const shardDigests = digestsOf(sorted);
 			for (const b of idsForShard)
 				if (shardDigests[b] !== before.digests[b])
-					return yield* invalid(
-						't_RP_Contact',
-						'The receivables listing does not add up to its checkpoint. The previous snapshot is retained.'
-					);
+					return yield* new FacilityFailure({
+						kind: 'upstream',
+						message:
+							'The receivables listing changed during this read. The previous snapshot is retained.'
+					});
 			const mergedBuckets = [...priorBuckets];
 			for (const b of idsForShard) {
 				const digest = shardDigests[b];
 				if (digest !== undefined) mergedBuckets[b] = digest;
 			}
 			const nextShard = shard + 1 < SHARDS ? shard + 1 : undefined;
+			const anchorUpper = wholeUpper ?? before.upper;
 			return {
 				rows: [
 					{
@@ -447,39 +449,43 @@ export const readReceivables = Effect.fnUntraced(function* (
 					protocol: 'kingdee-ar-v2' as const,
 					account,
 					scope,
-					bookmark: before.upper,
+					// Preserve shard 0's rowversion ceiling until the final shard finishes so updates on earlier shards aren't skipped.
+					bookmark: nextShard !== undefined ? before.upper : anchorUpper,
 					buckets: mergedBuckets,
 					observed_at: before.observed_at,
 					sharded: true,
-					...(nextShard !== undefined ? { next_shard: nextShard } : {})
+					...(nextShard !== undefined ? { next_shard: nextShard, whole_upper: anchorUpper } : {})
 				},
 				more: nextShard !== undefined
 			};
 		});
 	const whole = Effect.gen(function* () {
-		if (before.total > SHARD_THRESHOLD) {
+		if (before.total > SHARD_THRESHOLD || (prior?.protocol === 'kingdee-ar-v2' && prior.sharded)) {
 			const buckets = shardBuckets(0).map(String);
 			const rows = yield* selectByIds(ctx, entriesByBucket, buckets, '', account);
 			return yield* publishShard(
 				0,
 				rows,
-				Array.from({ length: BUCKETS }, () => '')
+				Array.from({ length: BUCKETS }, () => ''),
+				before.upper
 			);
 		}
 		const rows = yield* readNativeRows(ctx, entries, { account, ids });
 		const after = yield* sourceCheckpoint(ctx, account, ids);
 		if (after.digests.some((digest, bucket) => digest !== before.digests[bucket]))
-			return yield* invalid(
-				'FModifyTime',
-				'The receivables ledger changed during this read. The previous snapshot is retained.'
-			);
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message:
+					'The receivables ledger changed during this read. The previous snapshot is retained.'
+			});
 		const position = yield* checked(() => rows.map((row) => mapEntry(row, rules)));
 		// the published sums must be the checkpoint's, or every later hour would read the ledger again
 		if (digestsOf(position).some((digest, bucket) => digest !== after.digests[bucket]))
-			return yield* invalid(
-				't_RP_Contact',
-				'The receivables listing does not add up to its checkpoint. The previous snapshot is retained.'
-			);
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message:
+					'The receivables listing changed during this read. The previous snapshot is retained.'
+			});
 		return yield* publish(position);
 	});
 	if (prior === null || prior.protocol !== 'kingdee-ar-v2' || prior.scope !== scope)
@@ -493,15 +499,41 @@ export const readReceivables = Effect.fnUntraced(function* (
 			'',
 			account
 		);
-		return yield* publishShard(shard, rows, prior.buckets);
+		return yield* publishShard(shard, rows, prior.buckets, prior.whole_upper);
 	}
-	const changed = (yield* readNativeRows(ctx, moved, {
+	if (prior.sharded && prior.pending_shards && prior.pending_shards.length > 0) {
+		const [shard, ...rest] = prior.pending_shards;
+		if (shard !== undefined) {
+			const rows = yield* selectByIds(
+				ctx,
+				entriesByBucket,
+				shardBuckets(shard).map(String),
+				'',
+				account
+			);
+			const res = yield* publishShard(shard, rows, prior.buckets);
+			const { next_shard: _next, whole_upper: _upper, ...cleanCursor } = res.cursor;
+			return {
+				rows: res.rows,
+				cursor: {
+					...cleanCursor,
+					bookmark: rest.length > 0 ? prior.bookmark : before.upper,
+					...(rest.length > 0 ? { pending_shards: rest } : {})
+				},
+				more: rest.length > 0
+			};
+		}
+	}
+	// Transitioning from unsharded (<= threshold) to sharded (> threshold) must rebuild all 8 shards cleanly.
+	if (!prior.sharded && before.total > SHARD_THRESHOLD) return yield* whole;
+	const movedRows = yield* readNativeRows(ctx, moved, {
 		account,
 		from: prior.bookmark,
 		to: before.upper
-	}))
-		.map((row) => exactId(row, 'contact_id'))
-		.filter((id) => !excludedContacts.includes(id));
+	});
+	const changed = (yield* checked(() => movedRows.map((row) => exactId(row, 'contact_id')))).filter(
+		(id) => !excludedContacts.includes(id)
+	);
 	if (changed.length > MOVED) return yield* whole;
 	// an unchanged ledger is neither read nor written: the tenant database is not woken for it
 	if (
@@ -509,12 +541,12 @@ export const readReceivables = Effect.fnUntraced(function* (
 		before.digests.every((digest, bucket) => digest === prior.buckets[bucket])
 	)
 		return { rows: [], cursor, more: false };
-	if (prior.sharded || before.total > SHARD_THRESHOLD) {
+	if (prior.sharded) {
 		const dirtyShards = new Set<number>();
 		for (const id of changed) dirtyShards.add(shardOf(Number(id) % BUCKETS));
 		for (let b = 0; b < BUCKETS; b++)
 			if (before.digests[b] !== prior.buckets[b]) dirtyShards.add(shardOf(b));
-		const nextDirty = [...dirtyShards].sort((a, b) => a - b)[0];
+		const [nextDirty, ...remainingDirty] = [...dirtyShards].sort((a, b) => a - b);
 		if (nextDirty === undefined)
 			return {
 				rows: [],
@@ -529,18 +561,23 @@ export const readReceivables = Effect.fnUntraced(function* (
 			account
 		);
 		const res = yield* publishShard(nextDirty, rows, prior.buckets);
-		const remainingDirty = [...dirtyShards].filter((s) => s > nextDirty);
+		const { next_shard: _next, whole_upper: _upper, ...cleanCursor } = res.cursor;
 		return {
 			rows: res.rows,
 			cursor: {
-				...res.cursor,
-				...(remainingDirty.length ? { next_shard: undefined } : {})
+				...cleanCursor,
+				bookmark: remainingDirty.length > 0 ? prior.bookmark : before.upper,
+				...(remainingDirty.length > 0 ? { pending_shards: remainingDirty } : {})
 			},
 			more: remainingDirty.length > 0
 		};
 	}
 	const { source_receivables: local } = yield* ctx.query({
-		source_receivables: { where: { source: { eq: instance } }, fields: ['entries'], limit: 1 }
+		source_receivables: {
+			where: { source: { eq: instance }, shard: { eq: 0 } },
+			fields: ['entries'],
+			limit: 1
+		}
 	});
 	const held = new Map((local.rows[0]?.entries ?? []).map((entry) => [entry.contact_id, entry]));
 	const merge = (rows: readonly SqlRow[]) =>
@@ -554,14 +591,22 @@ export const readReceivables = Effect.fnUntraced(function* (
 		});
 	// a moved item that no longer exists, or no longer counts, leaves the report
 	for (const id of changed) held.delete(id);
-	yield* merge(yield* selectByIds(ctx, entriesById, changed, '', account));
+	if (changed.length) yield* merge(yield* selectByIds(ctx, entriesById, changed, '', account));
 	const disagreeing = digestsOf([...held.values()]).flatMap((digest, bucket) =>
 		digest === before.digests[bucket] ? [] : [String(bucket)]
 	);
 	if (disagreeing.length) {
+		const disagreeingSet = new Set(disagreeing);
 		for (const id of held.keys())
-			if (disagreeing.includes(String(Number(id) % BUCKETS))) held.delete(id);
+			if (disagreeingSet.has(String(Number(id) % BUCKETS))) held.delete(id);
 		yield* merge(yield* selectByIds(ctx, entriesByBucket, disagreeing, '', account));
+		const finalDigests = digestsOf([...held.values()]);
+		if (finalDigests.some((digest, bucket) => digest !== before.digests[bucket]))
+			return yield* new FacilityFailure({
+				kind: 'upstream',
+				message:
+					'The receivables ledger changed during incremental reconciliation. The previous snapshot is retained.'
+			});
 	}
 	return yield* publish([...held.values()]);
 });

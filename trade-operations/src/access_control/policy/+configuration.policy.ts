@@ -3,6 +3,18 @@ export default policy({
 	description: 'Commercial rule configuration; no order access.',
 	capabilities: { apps: ['trade_configuration'] },
 	grants: {
+		sys_integration: {
+			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
+		},
+		sys_user: {
+			outputs: { default: {} }
+		},
+		user_profiles: {
+			outputs: { default: { history: true } },
+			create: {},
+			update: {},
+			delete: {}
+		},
 		source_lot_costs: {
 			outputs: { default: {} }
 		},
@@ -18,7 +30,8 @@ export default policy({
 			update: { moves: { status: ['draft->published'] } }
 		},
 		parties: {
-			outputs: { default: {} }
+			outputs: { default: { history: true } },
+			update: { fields: ['tax_id', 'bank_name', 'bank_account', 'profile_notes'] }
 		},
 		products: {
 			outputs: { default: {} }

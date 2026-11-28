@@ -16,6 +16,10 @@ drawdown/
 facility/
   facility_fee/
   sub_limit/
+fx_deal/
+  fx_document/
+  fx_fixing/
+fx_proposal/
 fx_rate/
 month_end/
   month_end_line/

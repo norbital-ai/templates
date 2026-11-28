@@ -485,6 +485,10 @@
 					"kind": "text",
 					"optional": true
 				},
+				"credit_days": {
+					"kind": "int",
+					"optional": true
+				},
 				"credit_limit": {
 					"currency": "currency",
 					"kind": "money",
@@ -593,6 +597,24 @@
 						"superseded",
 						"withdrawn",
 						"bypassed"
+					]
+				},
+				"temp_bump_amount": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
+				"temp_bump_days": {
+					"kind": "int",
+					"optional": true
+				},
+				"temp_bump_status": {
+					"default": "none",
+					"kind": "enum",
+					"values": [
+						"none",
+						"active",
+						"restored"
 					]
 				}
 			},
@@ -1385,6 +1407,24 @@
 					"kind": "text",
 					"optional": true
 				},
+				"bank_account": {
+					"kind": "text",
+					"optional": true
+				},
+				"bank_name": {
+					"kind": "text",
+					"optional": true
+				},
+				"credit_days_target": {
+					"kind": "int",
+					"min": 0,
+					"optional": true
+				},
+				"credit_limit_target": {
+					"currency": "currency",
+					"kind": "money",
+					"optional": true
+				},
 				"currency": {
 					"kind": "currency"
 				},
@@ -1404,6 +1444,10 @@
 				},
 				"phone": {
 					"format": "phone",
+					"kind": "text",
+					"optional": true
+				},
+				"profile_notes": {
 					"kind": "text",
 					"optional": true
 				},
@@ -1430,13 +1474,19 @@
 				},
 				"source_updated_at": {
 					"kind": "instant"
+				},
+				"tax_id": {
+					"kind": "text",
+					"optional": true
 				}
 			},
 			"record_label": "record.name",
 			"search": {
 				"text": [
 					"name",
-					"external_code"
+					"external_code",
+					"source_number",
+					"tax_id"
 				]
 			},
 			"unique": [
@@ -4219,6 +4269,25 @@
 		"transactions": {
 			"audit": true,
 			"fields": {
+				"credit_check": {
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"passed",
+						"failed",
+						"released",
+						"bypassed",
+						"unchecked"
+					]
+				},
+				"credit_check_detail": {
+					"kind": "text",
+					"optional": true
+				},
+				"credit_checked_at": {
+					"kind": "instant",
+					"optional": true
+				},
 				"currency": {
 					"kind": "currency"
 				},
@@ -4353,6 +4422,59 @@
 					],
 					"import_key": true,
 					"name": "natural_key"
+				}
+			]
+		},
+		"user_profiles": {
+			"audit": true,
+			"fields": {
+				"kingdee_biller_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"kingdee_customer_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"kingdee_department_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"kingdee_employee_id": {
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text"
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"phone": {
+					"format": "phone",
+					"kind": "text",
+					"optional": true
+				},
+				"user_id": {
+					"kind": "ref",
+					"to": "sys_user"
+				}
+			},
+			"record_label": "record.name",
+			"search": {
+				"text": [
+					"name",
+					"kingdee_employee_id",
+					"kingdee_customer_id"
+				]
+			},
+			"unique": [
+				{
+					"fields": [
+						"user_id"
+					],
+					"name": "user"
 				}
 			]
 		},

@@ -119,32 +119,30 @@ Pairing and credentials belong to the host's **Settings → Integrations** surfa
 
 ### Migration Files
 
-| File                                                         | Steps | Summary                                                                                                                                                                                                                                              |
-| ------------------------------------------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`0001_initial.sql`](../migrations/0001_initial.sql)         | `160` | Creates `store_*` and `bolt_*` functions, 26 physical tables (1 authored + 20 system + 5 engine), foreign keys, row-rule triggers, GIN/btree/partial unique indexes, initial `bolt_history_register` snapshots, and `bolt_audit` trigger on `notes`. |
-| [`0002_schema.sql`](../migrations/0002_schema.sql)           | `3`   | Updates `sys_user.preferences.locale` shape from enum `["en","zh"]` to `text` (`max: 35`), re-registers `sys_user` history schema, validates rows, and replaces check constraint `sys_user__ck__3996db29` with `sys_user__ck__8405d565`.             |
-| [`0003_schema.sql`](../migrations/0003_schema.sql)           | `3`   | Adds optional `email_notifications: bool` to `sys_user.preferences`, re-registers `sys_user` history schema, validates rows, and replaces check constraint `sys_user__ck__8405d565` with `sys_user__ck__5ef80452`.                                   |
-| [`snapshot.json`](../migrations/snapshot.json)               | —     | Canonical schema snapshot of 21 model/system tables plus workspace `tz` (`Asia/Singapore`) and `currency` (`null`).                                                                                                                                  |
-| [`migrations.lock.json`](../migrations/migrations.lock.json) | —     | SHA-256 digests for `snapshot`, each SQL migration file, and physical DB state at every prefix (`""`, `0001`, `0002`, `0003`).                                                                                                                       |
-| [`physical.json`](../migrations/physical.json)               | —     | Format-2 normalized physical database catalog representation used for deterministic replay verification.                                                                                                                                             |
+| File                                                         | Steps | Summary                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`0001_initial.sql`](../migrations/0001_initial.sql)         | `183` | Creates `store_*` and `bolt_*` functions, 28 physical tables (1 authored + 22 system + 5 engine), 19 foreign keys, row-rule triggers, GIN/btree/partial unique indexes, initial `bolt_history_register` snapshots, and `bolt_audit` trigger on `notes`. |
+| [`snapshot.json`](../migrations/snapshot.json)               | —     | Canonical schema snapshot of 23 model/system tables plus workspace `tz` (`Asia/Singapore`) and `currency` (`null`).                                                                                                                                     |
+| [`migrations.lock.json`](../migrations/migrations.lock.json) | —     | SHA-256 digests for `snapshot`, `0001_initial.sql`, and physical DB state at every prefix (`""`, `0001_initial.sql`).                                                                                                                                   |
+| [`physical.json`](../migrations/physical.json)               | —     | Format-2 normalized physical database catalog representation used for deterministic replay verification.                                                                                                                                                |
 
-### Physical Tables Created by Migrations (26 Total)
+### Physical Tables Created by Migrations (28 Total)
 
-| Layer                                         | Count | Tables                                                                                                                                                              |
-| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authored model                                | `1`   | `notes`                                                                                                                                                             |
-| Platform identity & config                    | `7`   | `sys_user`, `sys_session`, `sys_invitation`, `sys_api_key`, `sys_challenge`, `sys_config`, `sys_workspace`                                                          |
-| Platform approval records                     | `2`   | `approval_request`, `requestor`                                                                                                                                     |
-| Platform integrations, sync, messaging & runs | `11`  | `sys_integration`, `sys_envoy`, `sys_conversation`, `sys_message`, `sys_inbox`, `sys_outbox`, `sys_sync`, `sys_sync_row`, `sys_run`, `sys_notification`, `sys_file` |
-| Engine internals (audit & approval runtime)   | `5`   | `bolt_history`, `bolt_history_schema`, `bolt_history_current`, `bolt_approvals`, `bolt_approval_effect`                                                             |
+| Layer                                         | Count | Tables                                                                                                                                                                                   |
+| --------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authored model                                | `1`   | `notes`                                                                                                                                                                                  |
+| Platform identity, teams & config             | `8`   | `sys_user`, `sys_team`, `sys_session`, `sys_invitation`, `sys_api_key`, `sys_challenge`, `sys_config`, `sys_workspace`                                                                   |
+| Platform approval records                     | `2`   | `approval_request`, `requestor`                                                                                                                                                          |
+| Platform integrations, sync, messaging & runs | `12`  | `sys_integration`, `sys_envoy`, `sys_envoy_channel`, `sys_conversation`, `sys_message`, `sys_inbox`, `sys_outbox`, `sys_sync`, `sys_sync_row`, `sys_run`, `sys_notification`, `sys_file` |
+| Engine internals (audit & approval runtime)   | `5`   | `bolt_history`, `bolt_history_schema`, `bolt_history_current`, `bolt_approvals`, `bolt_approval_effect`                                                                                  |
 
 ## Package Toolchain
 
 Pinned in [`package.json`](../package.json), [`tsconfig.json`](../tsconfig.json), and [`bunfig.toml`](../bunfig.toml):
 
 - **Package:** `@template/blank` (`0.0.1`, private, `"type": "module"`).
-- **Runtime dependencies:** `@norbital-ai/bolt` (`0.0.10`), `@norbital-ai/ui` (`0.0.10`), `svelte` (`5.57.3`), `vite` (`8.3.5`), `effect` (`4.0.6`).
-- **Tooling / test dependencies:** `@norbital-ai/bolt-cli` (`0.0.10`), `typescript` (`6.0.3`), `@typescript/native` (`npm:typescript@7.0.2`), `svelte2tsx` (`0.7.61`), `vitest` (`5.0.5`), `@effect/vitest` (`4.0.6`), `happy-dom` (`20.14.5`), `@sveltejs/vite-plugin-svelte` (`7.3.1`), `prettier` (`3.9.9`), `prettier-plugin-svelte` (`4.1.1`), `@types/node` (`26.6.5`).
+- **Runtime dependencies:** `@norbital-ai/bolt` (`0.0.4`), `@norbital-ai/ui` (`0.0.4`), `svelte` (`5.57.3`), `vite` (`8.3.5`), `effect` (`4.0.6`).
+- **Tooling / test dependencies:** `@norbital-ai/bolt-cli` (`0.0.4`), `typescript` (`6.0.3`), `@typescript/native` (`npm:typescript@7.0.2`), `svelte2tsx` (`0.7.61`), `vitest` (`5.0.5`), `@effect/vitest` (`4.0.6`), `happy-dom` (`20.14.5`), `@sveltejs/vite-plugin-svelte` (`7.3.1`), `prettier` (`3.9.9`), `prettier-plugin-svelte` (`4.1.1`), `@types/node` (`26.6.5`).
 - **Effect overrides:** `effect`, `@effect/platform-node`, `@effect/platform-node-shared`, `@effect/vitest` all pinned to `4.0.6`.
 - **Installer guard (`bunfig.toml`):** `linker = "hoisted"`, `minimumReleaseAge = 86400` (24-hour third-party publish delay; `@norbital-ai/*` first-party packages explicitly excluded).
 

@@ -3,6 +3,7 @@ export default policy({
 	description: 'The Kingdee syncs mirror ledger rows.',
 	grants: {
 		sys_user: { outputs: { default: {} } },
+		user_profiles: { outputs: { default: {} } },
 		sys_integration: {
 			outputs: { default: { where: { integration: { eq: 'kingdee' } } } }
 		},
@@ -64,6 +65,7 @@ export default policy({
 					'source_status',
 					'bill_amount',
 					'credit_limit',
+					'credit_days',
 					'credit_used',
 					'over_limit',
 					'overdue_days',
@@ -72,6 +74,7 @@ export default policy({
 					'source_oper_date',
 					'content_hash',
 					'audit_seen_at',
+					'temp_bump_status',
 					'released_by',
 					'released_at',
 					'release_log_key',

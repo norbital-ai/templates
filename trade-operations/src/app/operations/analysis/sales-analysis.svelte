@@ -82,6 +82,12 @@
 				unit: displayUnit(row.unit, ctx.locale) || row.unit,
 				sold_price: priceToDisplay(row.sold_price, row.unit),
 				purchase_price: priceToDisplay(row.purchase_price ?? row.lot_unit_cost, row.unit),
+				purchase_price_currency:
+					row.purchase_price !== null
+						? row.purchase_price_currency
+						: row.lot_unit_cost !== null
+							? (row.cost_currency ?? row.currency)
+							: null,
 				supplier_payment_label: row.supplier_payment
 					? ctx.t(`reports.sales.supplier_payment.${row.supplier_payment}`)
 					: '',
@@ -136,7 +142,7 @@
 					...(hasCost && priced.length ? [figure('margin', margin)] : [])
 				],
 				margin_rate:
-					hasCost && priced.length && !BigDecimal.isZero(costedNet)
+					hasCost && priced.length && BigDecimal.isPositive(costedNet)
 						? BigDecimal.format(
 								BigDecimal.round(
 									BigDecimal.divideUnsafe(
@@ -166,10 +172,12 @@
 	{:else if rows}
 		{#each totals as total (total.currency)}
 			<Grid as="dl" gap="sm" tracks="repeat(auto-fit,minmax(9rem,1fr))">
-				<div>
-					<dt class="text-meta">{ctx.t('reports.sales.lines')}</dt>
-					<dd class="text-heading tabular-nums">{total.lines}</dd>
-				</div>
+				{#if total.lines > 0}
+					<div>
+						<dt class="text-meta">{ctx.t('reports.sales.lines')}</dt>
+						<dd class="text-heading tabular-nums">{total.lines}</dd>
+					</div>
+				{/if}
 				{#each total.figures as figure (figure.field)}
 					<div>
 						<dt class="text-meta">{ctx.t(`reports.sales.${figure.field}`)}</dt>
@@ -222,7 +230,12 @@
 						{
 							field: 'purchase_price' as const,
 							label: ctx.t('reports.sales.purchase_price'),
-							kind: { kind: 'decimal', scale: 4, optional: true } as const,
+							kind: {
+								kind: 'money',
+								currency: 'purchase_price_currency',
+								scale: 4,
+								optional: true
+							} as const,
 							align: 'end' as const
 						}
 					]
@@ -272,7 +285,7 @@
 			{
 				field: 'sold_price',
 				label: ctx.t('reports.sales.sold_price'),
-				kind: { kind: 'decimal', scale: 4, optional: true },
+				kind: { kind: 'money', currency: 'currency', scale: 4, optional: true },
 				align: 'end'
 			},
 			{ field: 'invoice_numbers', label: ctx.t('reports.sales.invoice_numbers') },
@@ -321,20 +334,23 @@
 					: ctx.t('component.sales_analysis'),
 				description: ctx.t('component.unpriced_margin'),
 				new: false,
-				actions: [
-					{
-						icon: 'lucide:chart-column',
-						name: ctx.t('component.actual_margins'),
-						run: () => {
-							chart = !chart;
-						}
-					},
-					{
-						icon: 'lucide:file-spreadsheet',
-						name: ctx.t('component.export_xlsx'),
-						run: () => downloadXlsx('sales-analysis', day.today, columns, rows)
-					}
-				]
+				actions:
+					rows.length > 0
+						? [
+								{
+									icon: 'lucide:chart-column',
+									name: ctx.t('component.actual_margins'),
+									run: () => {
+										chart = !chart;
+									}
+								},
+								{
+									icon: 'lucide:file-spreadsheet',
+									name: ctx.t('component.export_xlsx'),
+									run: () => downloadXlsx('sales-analysis', day.today, columns, rows)
+								}
+							]
+						: []
 			}}
 		>
 			{#snippet empty()}<EmptyState
