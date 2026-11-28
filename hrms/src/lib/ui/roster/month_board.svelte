@@ -365,7 +365,8 @@
 			key: (i) => dates[i] ?? String(i),
 			size: () => dayPx,
 			threshold: 14,
-			overscan: 4
+			overscan: 4,
+			max_overscan: 8
 		}
 	});
 
@@ -611,7 +612,7 @@
 					<tr aria-hidden="true" {@attach grid.rows.anchor}>
 						<td
 							colspan={visibleColSpan}
-							class="h-0! border-0! p-0!"
+							class="border-0! p-0! leading-none"
 							style:height={`${grid.rows.before}px`}
 						></td>
 					</tr>
@@ -667,7 +668,7 @@
 					<tr aria-hidden="true">
 						<td
 							colspan={visibleColSpan}
-							class="h-0! border-0! p-0!"
+							class="border-0! p-0! leading-none"
 							style:height={`${grid.rows.after}px`}
 						></td>
 					</tr>

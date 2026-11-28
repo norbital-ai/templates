@@ -9,6 +9,7 @@
 	} from '@norbital-ai/ui';
 	import { Cover } from '@norbital-ai/ui/layout';
 	import { DateTime, Duration, Schema } from 'effect';
+	import { untrack } from 'svelte';
 	import { JsonObject } from '../../contracts.js';
 	import {
 		scheduled,
@@ -293,12 +294,18 @@
 		readonly events: readonly CalendarEvent[];
 	} | null>(null);
 	$effect(() => {
-		if (settledEvents !== null && settledEvents.scope !== scopeKey) {
-			settledEvents = null;
-		}
-		if (!loading && !error && !incomplete && presentation.error === null && timeZone != null) {
-			settledEvents = { scope: scopeKey, events: presentation.events };
-		}
+		const scope = scopeKey;
+		const ready =
+			!loading && !error && !incomplete && presentation.error === null && timeZone != null;
+		const events = presentation.events;
+		untrack(() => {
+			if (settledEvents !== null && settledEvents.scope !== scope) {
+				settledEvents = null;
+			}
+			if (ready) {
+				settledEvents = { scope, events };
+			}
+		});
 	});
 	const displayedEvents = $derived(
 		loading && settledEvents !== null && settledEvents.scope === scopeKey
